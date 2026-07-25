@@ -9,7 +9,7 @@ internal static class SafeRenderable
     {
         try
         {
-            return new Markup(MarkdownFormatter.ToSpectreMarkup(content));
+            return new MarkdownConsoleRenderer().ToRenderable(content);
         }
         catch
         {

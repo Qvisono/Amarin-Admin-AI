@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="Amarin Admin AI/Amarin Admin AI.csproj" />
+  <Project Path="Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj" />
 </Solution>

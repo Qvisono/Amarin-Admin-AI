@@ -96,6 +96,63 @@ internal static partial class ThreadSafeConsole
         }
     }
 
+    /// <summary>
+    /// Render assistant Markdown with Markdig + Spectre inside the Amarin panel.
+    /// Falls back to plain text if markup/ANSI rendering fails (e.g. legacy cmd).
+    /// </summary>
+    public static void WriteAssistantMarkdown(string markdown)
+    {
+        lock (Gate)
+        {
+            ConsoleInputRestore.Restore();
+            AnsiConsole.WriteLine();
+            try
+            {
+                var body = new MarkdownConsoleRenderer().ToRenderable(markdown);
+                AnsiConsole.Write(UiTheme.CreatePanel("[cyan]Amarin[/]", body, UiTheme.Border, UiTheme.Primary));
+            }
+            catch
+            {
+                try
+                {
+                    // Fallback without Spectre markup — plain framed text.
+                    WriteFramedPlainUnlocked("Amarin", markdown);
+                }
+                catch
+                {
+                    Console.WriteLine(markdown);
+                }
+            }
+
+            AnsiConsole.WriteLine();
+            Console.Out.Flush();
+        }
+    }
+
+    private static void WriteFramedPlainUnlocked(string title, string body)
+    {
+        var originalLines = body.Replace("\r\n", "\n").Split('\n');
+        var maxLenOriginal = originalLines.DefaultIfEmpty(string.Empty).Max(l => l.Length);
+        var minWidth = Math.Max(40, $" {title} ".Length + 2);
+        var totalInnerWidth = Math.Max(minWidth, Math.Min(120, maxLenOriginal + 1));
+        var usableWidth = totalInnerWidth - 1;
+
+        var wrappedLines = new List<string>();
+        foreach (var line in originalLines)
+        {
+            wrappedLines.AddRange(WrapLinePlain(line, usableWidth));
+        }
+
+        WriteBorderTop(title, totalInnerWidth);
+        foreach (var line in wrappedLines)
+        {
+            WriteBorderLinePlain(line, totalInnerWidth);
+        }
+
+        WriteBorderBottom(totalInnerWidth);
+        Console.WriteLine();
+    }
+
     public static void WriteFramed(string title, string body)
     {
         lock (Gate)

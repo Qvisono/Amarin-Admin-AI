@@ -94,7 +94,7 @@ public sealed class ConsolePresenter
             ? "Модель вернула пустой ответ."
             : content;
 
-        ThreadSafeConsole.WriteFramedPlain("Amarin", text);
+        ThreadSafeConsole.WriteAssistantMarkdown(text);
     }
 
     public void ShowToolCall(string toolName, string arguments)
@@ -200,7 +200,7 @@ public sealed class ConsolePresenter
 
         AnsiConsole.Write(UiTheme.CreatePanel(
             $"[green]{UiTheme.IconUndo} Откат выполнен[/]",
-            new Markup(FormatContent(result.RestoreOutput)),
+            FormatContent(result.RestoreOutput),
             UiTheme.Success,
             UiTheme.Success));
 
@@ -209,7 +209,7 @@ public sealed class ConsolePresenter
             AnsiConsole.WriteLine();
             AnsiConsole.Write(UiTheme.CreatePanel(
                 "[cyan]Сравнение после отката[/]",
-                new Markup(FormatContent(result.CompareOutput)),
+                FormatContent(result.CompareOutput),
                 UiTheme.Border,
                 UiTheme.Primary));
         }
@@ -534,8 +534,8 @@ public sealed class ConsolePresenter
         return false;
     }
 
-    private static string FormatContent(string content) =>
-        MarkdownFormatter.ToSpectreMarkup(content);
+    private static IRenderable FormatContent(string content) =>
+        SafeRenderable.FromMarkdown(content);
 
     private static string FormatToolArguments(string arguments)
     {
