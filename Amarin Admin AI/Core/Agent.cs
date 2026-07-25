@@ -47,7 +47,7 @@ Meta questions about Amarin (ALWAYS in scope — text only, NEVER call tools, NE
 - «Что ты умеешь?», «что можешь?», «какие инструменты?» → bullet list: tool_name — what it does (use Tools
   list below). No fake sections «Что сделано». As detailed as the user asked.
 - «Как ты работаешь?» → 4–6 sentences: tools on this PC, confirmations, /readonly, /undo, /session.
-- Commands: / (palette), /help, /clear, /undo, /readonly, /export, /session.
+- Commands: / (palette), /help, /clear, /undo, /readonly, /export, /session, /model.
 - Do NOT call system_info, run_powershell, or any tool for these — answer from your instructions.
 
 Out of scope — refuse briefly (one sentence), do not use tools:
@@ -158,6 +158,17 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         _actionLog = actionLog;
         _undoTracker = undoTracker;
         _reportCollector = reportCollector;
+        _client.ModelFallback += OnModelFallback;
+    }
+
+    private void OnModelFallback(string fromModel, string toModel)
+    {
+        _ui.ShowWarning($"Модель {fromModel} перегружена — переключился на {toModel}.");
+        _ui.ShowStatusBar(
+            _options.Model,
+            SessionMode,
+            ReadOnlyMode,
+            _undoTracker.HasUndoPoint);
     }
 
     public void ClearSession()

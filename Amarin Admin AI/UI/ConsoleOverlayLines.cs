@@ -27,6 +27,11 @@ internal static class ConsoleOverlayLines
         }
     }
 
+    public static void ClearFrom(int startTop)
+    {
+        Clear(CountLines(startTop));
+    }
+
     public static void Clear(int lineCount)
     {
         if (lineCount <= 0)
@@ -34,11 +39,38 @@ internal static class ConsoleOverlayLines
             return;
         }
 
-        for (var i = 0; i < lineCount; i++)
+        try
         {
-            Console.Write("\x1b[1A\x1b[2K");
-        }
+            var width = Math.Max(Console.WindowWidth, 1);
+            var cursorTop = Console.CursorTop;
 
-        Console.Out.Flush();
+            for (var i = 0; i < lineCount; i++)
+            {
+                var row = cursorTop - i;
+                if (row < 0)
+                {
+                    break;
+                }
+
+                Console.SetCursorPosition(0, row);
+                Console.Write(new string(' ', width));
+            }
+
+            var targetRow = Math.Max(0, cursorTop - lineCount + 1);
+            Console.SetCursorPosition(0, targetRow);
+            Console.Out.Flush();
+        }
+        catch
+        {
+            if (ConsoleEncoding.IsVirtualTerminalEnabled)
+            {
+                for (var i = 0; i < lineCount; i++)
+                {
+                    Console.Write("\x1b[1A\x1b[2K");
+                }
+
+                Console.Out.Flush();
+            }
+        }
     }
 }

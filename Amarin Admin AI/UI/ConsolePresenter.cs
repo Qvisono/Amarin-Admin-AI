@@ -67,7 +67,7 @@ public sealed class ConsolePresenter
         }
         catch
         {
-            Console.Write("\x1b[2J\x1b[H");
+            ConsoleEncoding.WriteAnsi("\x1b[2J\x1b[H");
         }
 
         ConsoleInputRestore.Restore();
@@ -85,7 +85,7 @@ public sealed class ConsolePresenter
             return;
         }
 
-        ThreadSafeConsole.WriteColoredLine($"  {UiTheme.IconTool}  {line}", ConsoleColor.Gray);
+        ThreadSafeConsole.WriteStyledLine(UiTheme.IconTool, $"[grey]{Markup.Escape(line)}[/]");
     }
 
     public void ShowAssistantMessage(string content)
@@ -102,15 +102,17 @@ public sealed class ConsolePresenter
         if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase) &&
             TryGetAskUserQuestion(arguments, out var question))
         {
-            ThreadSafeConsole.WriteColoredLine(
-                $"  {UiTheme.IconAsk}  {toolName} — {Truncate(question, 80)}",
-                ConsoleColor.Magenta);
+            ThreadSafeConsole.WriteStyledLine(
+                UiTheme.IconAsk,
+                $"[magenta1]{Markup.Escape(toolName)} — {Markup.Escape(Truncate(question, 80))}[/]");
             return;
         }
 
         var icon = ToolIcon(toolName);
         var args = FormatToolArguments(arguments);
-        ThreadSafeConsole.WriteColoredLine($"  {icon}  {toolName} {args}", ConsoleColor.Yellow);
+        ThreadSafeConsole.WriteStyledLine(
+            icon,
+            $"[yellow]{Markup.Escape(toolName)} {Markup.Escape(args)}[/]");
     }
 
     public void ShowToolResult(string toolName, ToolResult result)
@@ -119,20 +121,20 @@ public sealed class ConsolePresenter
         {
             if (result.HasImages)
             {
-                var imageLabel = result.GetImages().Count == 1
-                    ? UiTheme.IconImage
-                    : $"{UiTheme.IconImage} {result.GetImages().Count}";
+                var imageCount = result.GetImages().Count == 1
+                    ? string.Empty
+                    : $" {result.GetImages().Count}";
                 var imageSummary = Truncate(result.Output, 120);
-                ThreadSafeConsole.WriteColoredLine(
-                    $"  {UiTheme.IconSuccess} {toolName} {imageLabel} {imageSummary}",
-                    ConsoleColor.Green);
+                ThreadSafeConsole.WriteStyledLine(
+                    UiTheme.IconSuccess,
+                    $"[green]{Markup.Escape(toolName)}[/] {UiTheme.IconImage}{imageCount} [green]{Markup.Escape(imageSummary)}[/]");
                 return;
             }
 
             var summary = SummarizeOutput(result.Output);
-            ThreadSafeConsole.WriteColoredLine(
-                $"  {UiTheme.IconSuccess} {toolName} — {summary}",
-                ConsoleColor.Green);
+            ThreadSafeConsole.WriteStyledLine(
+                UiTheme.IconSuccess,
+                $"[green]{Markup.Escape(toolName)} — {Markup.Escape(summary)}[/]");
             return;
         }
 
@@ -142,19 +144,19 @@ public sealed class ConsolePresenter
     public void ShowWarning(string message)
     {
         ThreadSafeConsole.WriteLine();
-        ThreadSafeConsole.WriteColoredLine($"{UiTheme.IconWarning} {message}", ConsoleColor.Yellow);
+        ThreadSafeConsole.WriteStyledLine(UiTheme.IconWarning, $"[yellow]{Markup.Escape(message)}[/]");
         ThreadSafeConsole.WriteLine();
     }
 
     public void ShowError(string message)
     {
         ThreadSafeConsole.WriteLine();
-        ThreadSafeConsole.WriteColoredLine($"{UiTheme.IconError} {message}", ConsoleColor.Red);
+        ThreadSafeConsole.WriteStyledLine(UiTheme.IconError, $"[red]{Markup.Escape(message)}[/]");
         ThreadSafeConsole.WriteLine();
     }
 
     public void ShowInfo(string message) =>
-        ThreadSafeConsole.WriteColoredLine($"{UiTheme.IconInfo} {message}", ConsoleColor.Gray);
+        ThreadSafeConsole.WriteStyledLine(UiTheme.IconInfo, $"[grey]{Markup.Escape(message)}[/]");
 
     public void ShowRequestCost(VeniceCost cost)
     {
@@ -280,11 +282,12 @@ public sealed class ConsolePresenter
 
         var body = new Markup(
             $"[bold]Что изменится:[/] {Markup.Escape(info.ChangeSummary)}\n\n" +
-            $"[bold]Уровень риска:[/] {UiTheme.RiskBadge(info.RiskLevel)}\n\n" +
-            $"[dim]{Markup.Escape(info.Details)}[/]");
+            $"[bold]Влияние на систему:[/] {UiTheme.ImpactBadge(info.RiskLevel)}\n\n" +
+            $"[dim]{Markup.Escape(info.Details)}[/]\n\n" +
+            "[grey]Проверьте детали и подтвердите, если согласны с выполнением.[/]");
 
         AnsiConsole.Write(UiTheme.CreatePanel(
-            $"[yellow]{UiTheme.IconDanger} Опасное действие[/]",
+            $"[yellow]{UiTheme.IconInfo} Требуется подтверждение[/]",
             body,
             UiTheme.Warning,
             UiTheme.Warning));
@@ -298,7 +301,7 @@ public sealed class ConsolePresenter
         {
             cancellationToken.ThrowIfCancellationRequested();
             var input = ConsolePrompt.ReadSimpleLine(
-                $"[bold yellow]{UiTheme.IconWarning} Подтверждение[/] [grey]›[/] ");
+                $"[bold yellow]{UiTheme.IconInfo} Подтверждение[/] [grey]›[/] ");
 
             var decision = ConfirmationInput.TryParse(input);
             if (decision is true)
@@ -315,30 +318,138 @@ public sealed class ConsolePresenter
         }
     }
 
+    public Task<string> PromptModelAsync(string current, IReadOnlyList<string> presets)
+    {
+        var overlayStart = ConsoleOverlayLines.CaptureTop();
+
+        try
+        {
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[grey]Модель Venice[/] [dim](сохраняется в appsettings.json)[/]");
+            AnsiConsole.WriteLine();
+
+            // Numbered list aligned with presets order; tier headers for known presets.
+            var numberById = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < presets.Count; i++)
+            {
+                numberById[presets[i]] = i + 1;
+            }
+
+            var shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Models not in catalog tiers (e.g. custom current) — show first without tier label.
+            foreach (var id in presets)
+            {
+                if (VeniceModelCatalog.PresetModels.Contains(id, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                WriteModelChoice(numberById[id], id, current);
+                shown.Add(id);
+            }
+
+            foreach (var tier in VeniceModelCatalog.Tiers)
+            {
+                AnsiConsole.MarkupLine(
+                    $"[bold cyan]{Markup.Escape(tier.Title)}[/] [dim]({Markup.Escape(tier.Subtitle)})[/]");
+
+                foreach (var id in tier.Models)
+                {
+                    if (!numberById.TryGetValue(id, out var num))
+                    {
+                        continue;
+                    }
+
+                    WriteModelChoice(num, id, current);
+                    shown.Add(id);
+                }
+
+                AnsiConsole.WriteLine();
+            }
+
+            // Any remaining selectable IDs not covered above.
+            foreach (var id in presets)
+            {
+                if (shown.Contains(id))
+                {
+                    continue;
+                }
+
+                WriteModelChoice(numberById[id], id, current);
+            }
+
+            AnsiConsole.MarkupLine("  [dim]или введите ID модели вручную · /model имя[/]");
+            AnsiConsole.WriteLine();
+
+            while (true)
+            {
+                var input = ConsolePrompt.ReadSimpleLine("[bold green]Модель[/] [grey]›[/] ").Trim();
+
+                if (int.TryParse(input, out var index) && index >= 1 && index <= presets.Count)
+                {
+                    return Task.FromResult(presets[index - 1]);
+                }
+
+                if (!string.IsNullOrWhiteSpace(input))
+                {
+                    return Task.FromResult(input);
+                }
+
+                AnsiConsole.MarkupLine("[yellow]Введите номер или ID модели[/]");
+            }
+        }
+        finally
+        {
+            ConsoleOverlayLines.ClearFrom(overlayStart);
+            ConsoleInputRestore.Restore();
+            Console.Out.Flush();
+        }
+    }
+
+    private static void WriteModelChoice(int number, string id, string current)
+    {
+        var marker = id.Equals(current, StringComparison.OrdinalIgnoreCase)
+            ? " [green](текущая)[/]"
+            : string.Empty;
+        AnsiConsole.MarkupLine($"  [cyan]{number}.[/] {Markup.Escape(id)}{marker}");
+    }
+
     public Task<SessionMode> PromptSessionModeAsync(SessionMode current)
     {
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[grey]Режим сессии[/] [dim](сохраняется в appsettings.json)[/]");
-        AnsiConsole.MarkupLine($"  [cyan]1.[/] История сессии — Amarin помнит предыдущие вопросы{(current == SessionMode.Continuous ? " [green](текущий)[/]" : "")}");
-        AnsiConsole.MarkupLine($"  [cyan]2.[/] Новая сессия — каждый вопрос с чистого листа{(current == SessionMode.Isolated ? " [green](текущий)[/]" : "")}");
-        AnsiConsole.MarkupLine("  [dim]Сменить позже: /session[/]");
-        AnsiConsole.WriteLine();
+        var overlayStart = ConsoleOverlayLines.CaptureTop();
 
-        while (true)
+        try
         {
-            var input = ConsolePrompt.ReadSimpleLine("[bold green]Режим[/] [grey]›[/] ").Trim();
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[grey]Режим сессии[/] [dim](сохраняется в appsettings.json)[/]");
+            AnsiConsole.MarkupLine($"  [cyan]1.[/] История сессии — Amarin помнит предыдущие вопросы{(current == SessionMode.Continuous ? " [green](текущий)[/]" : "")}");
+            AnsiConsole.MarkupLine($"  [cyan]2.[/] Новая сессия — каждый вопрос с чистого листа{(current == SessionMode.Isolated ? " [green](текущий)[/]" : "")}");
+            AnsiConsole.MarkupLine("  [dim]Сменить позже: /session[/]");
+            AnsiConsole.WriteLine();
 
-            if (input == "1")
+            while (true)
             {
-                return Task.FromResult(SessionMode.Continuous);
-            }
+                var input = ConsolePrompt.ReadSimpleLine("[bold green]Режим[/] [grey]›[/] ").Trim();
 
-            if (input == "2")
-            {
-                return Task.FromResult(SessionMode.Isolated);
-            }
+                if (input == "1")
+                {
+                    return Task.FromResult(SessionMode.Continuous);
+                }
 
-            AnsiConsole.MarkupLine("[yellow]Введите 1 или 2[/]");
+                if (input == "2")
+                {
+                    return Task.FromResult(SessionMode.Isolated);
+                }
+
+                AnsiConsole.MarkupLine("[yellow]Введите 1 или 2[/]");
+            }
+        }
+        finally
+        {
+            ConsoleOverlayLines.ClearFrom(overlayStart);
+            ConsoleInputRestore.Restore();
+            Console.Out.Flush();
         }
     }
 

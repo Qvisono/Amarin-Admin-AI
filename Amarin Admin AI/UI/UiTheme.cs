@@ -47,12 +47,15 @@ internal static class UiTheme
         };
     }
 
-    public static string RiskBadge(DangerousRiskLevel level) => level switch
+    /// <summary>
+    /// Neutral impact scale for confirmation UI — informational, not alarming.
+    /// </summary>
+    public static string ImpactBadge(DangerousRiskLevel level) => level switch
     {
-        DangerousRiskLevel.Low => "[green]●[/] [dim]низкий[/]",
-        DangerousRiskLevel.Medium => "[yellow]●●[/] [yellow]средний[/]",
-        DangerousRiskLevel.High => "[red]●●●[/] [red]высокий[/]",
-        DangerousRiskLevel.Critical => "[bold red]●●●●[/] [bold red]критический[/]",
-        _ => "[grey]●[/] [dim]неизвестно[/]"
+        DangerousRiskLevel.Low => "[green]●[/] [dim]незначительное[/]",
+        DangerousRiskLevel.Medium => "[yellow]●●[/] [yellow]умеренное[/]",
+        DangerousRiskLevel.High => "[orange1]●●●[/] [orange1]существенное[/]",
+        DangerousRiskLevel.Critical => "[red]●●●●[/] [red]серьёзное[/]",
+        _ => "[grey]●[/] [dim]не оценено[/]"
     };
 }

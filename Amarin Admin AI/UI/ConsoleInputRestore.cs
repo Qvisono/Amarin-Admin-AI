@@ -21,9 +21,9 @@ internal static class ConsoleInputRestore
                 Console.Write('\r');
             }
 
-            Console.Write("\x1b[0m\x1b[?25h");
             Console.ResetColor();
             Console.CursorVisible = true;
+            ConsoleEncoding.WriteAnsi("\x1b[0m");
             Console.Out.Flush();
             Console.Error.Flush();
         }
@@ -51,7 +51,7 @@ internal static class ConsoleInputRestore
 
         try
         {
-            Console.Write("\x1b[?25l");
+            Console.CursorVisible = false;
             Tick();
 
             while (!work.IsCompleted)
@@ -72,7 +72,11 @@ internal static class ConsoleInputRestore
 
     private static void WriteSpinnerLine(string message, string frame)
     {
-        Console.Write($"\r\x1b[36m{message}\x1b[0m {frame}  ");
+        Console.Write('\r');
+        var previous = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.Write($"{message} {frame}  ");
+        Console.ForegroundColor = previous;
         Console.Out.Flush();
     }
 

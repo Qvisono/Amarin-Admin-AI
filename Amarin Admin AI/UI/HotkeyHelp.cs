@@ -24,6 +24,7 @@ internal static class HotkeyHelp
         AddRow(table, "—", "Журнал действий", "/history");
         AddRow(table, "—", "Откат изменений", "/undo");
         AddRow(table, "—", "Режим сессии", "/session");
+        AddRow(table, "—", "Сменить модель", "/model");
         AddRow(table, "—", "Баланс Venice", "balance");
         AddRow(table, "—", "Выход", "exit");
 

@@ -4,7 +4,7 @@ public sealed class AgentOptions
 {
     public string ApiKey { get; init; } = string.Empty;
     public string BaseUrl { get; init; } = "https://api.venice.ai/api/v1";
-    public string Model { get; init; } = "grok-41-fast";
+    public string Model { get; set; } = "grok-4-5";
     public int MaxToolRounds { get; init; } = 30;
 
     public string WebSearch { get; init; } = "off";

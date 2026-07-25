@@ -38,7 +38,7 @@ var options = new AgentOptions
         ?? Environment.GetEnvironmentVariable("VENICE_API_KEY")
         ?? string.Empty,
     BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
-    Model = configuration["Venice:Model"] ?? "grok-41-fast",
+    Model = configuration["Venice:Model"] ?? "grok-4-5",
     MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
     WebSearch = configuration["Venice:WebSearch"] ?? "off",
     EnableWebCitations = !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,
@@ -225,6 +225,25 @@ async Task<bool> HandleCommandAsync(string userRequest)
         agent.SessionMode = await ui.PromptSessionModeAsync(agent.SessionMode);
         SessionSettingsStore.Save(agent.SessionMode);
         ui.ShowInfo($"Режим: {SessionModeParser.ToDisplayName(agent.SessionMode)} (сохранён)");
+        return true;
+    }
+
+    if (userRequest.StartsWith("/model", StringComparison.OrdinalIgnoreCase))
+    {
+        var modelArg = userRequest.Length > "/model".Length
+            ? userRequest["/model".Length..].Trim()
+            : null;
+
+        var newModel = string.IsNullOrWhiteSpace(modelArg)
+            ? await ui.PromptModelAsync(
+                options.Model,
+                VeniceModelCatalog.GetSelectableModels(options.Model))
+            : modelArg;
+
+        venice.SetActiveModel(newModel);
+        VeniceSettingsStore.SaveModel(newModel);
+        PrintStatusBar(ui, options.Model, agent, venice);
+        ui.ShowInfo($"Модель: {newModel} (сохранена в appsettings.json)");
         return true;
     }
 

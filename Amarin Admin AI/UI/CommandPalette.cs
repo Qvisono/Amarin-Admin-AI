@@ -14,6 +14,7 @@ public static class CommandPalette
         new("/undo", "Откат изменений", "Восстановить состояние до последнего запроса"),
         new("/readonly", "Режим диагностики", "Только чтение, без записи"),
         new("/session", "Режим сессии", "Непрерывная или изолированная история"),
+        new("/model", "Сменить модель", "Выбрать модель Venice вручную"),
         new("/help", "Справка", "Команды и подсказки"),
         new("balance", "Баланс Venice", "Показать остаток API"),
         new("exit", "Выход", "Закрыть Amarin")
@@ -76,7 +77,9 @@ public static class CommandPalette
                 AnsiConsole.MarkupLine(HintMarkup);
                 Console.Out.Flush();
 
-                drawnLines = ConsoleOverlayLines.CountLines(overlayStart);
+                drawnLines = Math.Max(
+                    ConsoleOverlayLines.CountLines(overlayStart),
+                    EstimatePaletteLines(matches.Count));
 
                 var key = Console.ReadKey(intercept: true);
 
@@ -131,6 +134,8 @@ public static class CommandPalette
             Console.Out.Flush();
         }
     }
+
+    private static int EstimatePaletteLines(int commandCount) => commandCount + 8;
 
     private static IEnumerable<PaletteCommand> FilterCommands(string filter)
     {

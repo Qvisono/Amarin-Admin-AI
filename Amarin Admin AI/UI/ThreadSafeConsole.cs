@@ -53,6 +53,17 @@ internal static partial class ThreadSafeConsole
         }
     }
 
+    public static void WriteStyledLine(string? icon, string markupBody)
+    {
+        lock (Gate)
+        {
+            ConsoleInputRestore.Restore();
+            var prefix = string.IsNullOrEmpty(icon) ? string.Empty : $"  {icon}  ";
+            AnsiConsole.MarkupLine(prefix + markupBody);
+            Console.Out.Flush();
+        }
+    }
+
     public static void WriteAssistantPanel(IRenderable body)
     {
         lock (Gate)

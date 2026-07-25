@@ -14,15 +14,33 @@ public sealed class VeniceClient
 
     private readonly HttpClient _http;
     private readonly AgentOptions _options;
+    private string _primaryModel;
 
     public VeniceBalance? LastBalance { get; private set; }
 
     public VeniceCost RequestCost { get; private set; } = VeniceCost.Zero;
 
+    public event Action<string, string>? ModelFallback;
+
+    public string ActiveModel => _options.Model;
+
+    public void SetActiveModel(string model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            throw new ArgumentException("Model is required.", nameof(model));
+        }
+
+        var normalized = model.Trim();
+        _options.Model = normalized;
+        _primaryModel = normalized;
+    }
+
     public VeniceClient(HttpClient http, AgentOptions options)
     {
         _http = http;
         _options = options;
+        _primaryModel = options.Model;
         _http.BaseAddress = new Uri(_options.BaseUrl.TrimEnd('/') + "/");
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
     }
@@ -43,13 +61,47 @@ public sealed class VeniceClient
             VeniceParameters = veniceParameters
         }, prepareMessages: true, cancellationToken);
 
-    public async Task<ChatCompletionResponse> CreateChatCompletionAsync(
+    public Task<ChatCompletionResponse> CreateChatCompletionAsync(
         ChatCompletionRequest request,
         CancellationToken cancellationToken = default) =>
-        await CreateChatCompletionAsync(request, prepareMessages: false, cancellationToken);
+        CreateChatCompletionAsync(request, prepareMessages: false, cancellationToken);
 
     private async Task<ChatCompletionResponse> CreateChatCompletionAsync(
         ChatCompletionRequest request,
+        bool prepareMessages,
+        CancellationToken cancellationToken)
+    {
+        var startingModel = _options.Model;
+        VeniceApiException? lastOverload = null;
+
+        foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, _primaryModel))
+        {
+            try
+            {
+                var result = await SendChatCompletionAsync(request, model, prepareMessages, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (!model.Equals(startingModel, StringComparison.OrdinalIgnoreCase))
+                {
+                    _options.Model = model;
+                    ModelFallback?.Invoke(startingModel, model);
+                }
+
+                return result;
+            }
+            catch (VeniceApiException ex) when (VeniceModelFallback.IsModelOverloaded(ex))
+            {
+                lastOverload = ex;
+            }
+        }
+
+        throw lastOverload
+            ?? new VeniceApiException("Все модели в цепочке fallback перегружены. Повторите запрос позже.");
+    }
+
+    private async Task<ChatCompletionResponse> SendChatCompletionAsync(
+        ChatCompletionRequest request,
+        string model,
         bool prepareMessages,
         CancellationToken cancellationToken)
     {
@@ -58,17 +110,26 @@ public sealed class VeniceClient
             var payload = prepareMessages
                 ? new ChatCompletionRequest
                 {
-                    Model = request.Model,
+                    Model = model,
                     Messages = ApiContextLimiter.Prepare(request.Messages),
                     Tools = request.Tools,
                     ToolChoice = request.ToolChoice,
                     Temperature = request.Temperature,
                     VeniceParameters = request.VeniceParameters
                 }
-                : request;
+                : new ChatCompletionRequest
+                {
+                    Model = model,
+                    Messages = request.Messages,
+                    Tools = request.Tools,
+                    ToolChoice = request.ToolChoice,
+                    Temperature = request.Temperature,
+                    VeniceParameters = request.VeniceParameters
+                };
 
             return JsonSerializer.Serialize(payload, JsonOptions);
         }, cancellationToken).ConfigureAwait(false);
+
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
         using var response = await _http.PostAsync("chat/completions", content, cancellationToken)
             .ConfigureAwait(false);

@@ -1,5 +1,22 @@
-﻿################################################################################
-# Данный GITIGNORE-файл был автоматически создан Microsoft(R) Visual Studio.
+################################################################################
+# Visual Studio / .NET
 ################################################################################
 
 /.vs
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local build & tooling artifacts
+/release/
+/agent-tools/
+/terminals/
+*.log
+
+# Secrets — never commit real keys
+# (appsettings.json may ship with empty ApiKey)
+.env
+.env.*
