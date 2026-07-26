@@ -38,7 +38,14 @@ public static class ToolSmokeRunner
         ("performance", """{"action":"summary"}"""),
         ("startup_programs", """{"action":"list_all"}"""),
         ("credentials", """{"action":"list_cmdkey"}"""),
-        ("system_repair", """{"action":"status_sfc"}""")
+        ("system_repair", """{"action":"status_sfc"}"""),
+        ("restore_point", """{"action":"status"}"""),
+        ("disk_management", """{"action":"list_volumes"}"""),
+        ("disk_space", """{"action":"analyze"}"""),
+        ("software_inventory", """{"action":"list_installed"}"""),
+        ("firewall_rules", """{"action":"list","filter":"enabled"}"""),
+        ("windows_features", """{"action":"list","filter":"enabled"}"""),
+        ("local_users", """{"action":"list_users"}""")
     ];
 
     public static async Task<IReadOnlyList<ToolSmokeResult>> RunAsync(

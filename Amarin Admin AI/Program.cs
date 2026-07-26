@@ -1,3 +1,4 @@
+using System.Reflection;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
@@ -8,9 +9,12 @@ using Spectre.Console;
 ConsoleEncoding.Configure();
 GlobalFontSettings.UseWindowsFontsUnderWindows = true;
 
+// Config: non-secret settings from appsettings.json; API key ONLY from env / user-secrets.
+// Never read Venice:ApiKey from committed JSON files.
 var configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: true)
+    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
     .AddEnvironmentVariables()
     .Build();
 
@@ -31,12 +35,14 @@ var downloadOptions = new DownloadOptions
         : new DownloadOptions().MaxSizeBytes
 };
 
+// Priority: process env > user-secrets/env via configuration (VENICE_API_KEY only).
+var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
+    ?? configuration["VENICE_API_KEY"]
+    ?? string.Empty;
+
 var options = new AgentOptions
 {
-    ApiKey = configuration["VENICE_API_KEY"]
-        ?? configuration["Venice:ApiKey"]
-        ?? Environment.GetEnvironmentVariable("VENICE_API_KEY")
-        ?? string.Empty,
+    ApiKey = apiKey,
     BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
     Model = configuration["Venice:Model"] ?? "grok-4-5",
     MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
@@ -59,7 +65,8 @@ ui.ShowBanner();
 if (string.IsNullOrWhiteSpace(options.ApiKey))
 {
     ui.ShowError("Не задан API-ключ Venice.ai.");
-    ui.ShowInfo("Установите переменную окружения VENICE_API_KEY или добавьте Venice:ApiKey в appsettings.json.");
+    ui.ShowInfo("Задайте переменную окружения VENICE_API_KEY (или: dotnet user-secrets set \"VENICE_API_KEY\" \"...\").");
+    ui.ShowInfo("Ключ не хранится в appsettings.json и не коммитится в репозиторий.");
     return 1;
 }
 
@@ -105,7 +112,14 @@ var toolRegistry = new ToolRegistry(
     new PerformanceTool(),
     new StartupProgramsTool(),
     new CredentialsTool(),
-    new SystemRepairTool()
+    new SystemRepairTool(),
+    new RestorePointTool(),
+    new DiskManagementTool(),
+    new DiskSpaceTool(),
+    new SoftwareInventoryTool(),
+    new FirewallRulesTool(),
+    new WindowsFeaturesTool(),
+    new LocalUsersTool()
 ]);
 
 var actionLog = new SessionActionLog();
@@ -265,7 +279,15 @@ async Task<bool> HandleCommandAsync(string userRequest)
             DangerousActionGuard.DescribeUndo(undoTracker.DescribeUndoPoint()));
         if (approved)
         {
-            ui.ShowUndoResult(undoTracker.Undo());
+            try
+            {
+                ui.ShowUndoResult(undoTracker.Undo());
+            }
+            catch (Exception ex)
+            {
+                // Compare/restore bugs must not tear down the process.
+                ui.ShowError($"Откат не выполнен (внутренняя ошибка): {ex.Message}");
+            }
         }
         else
         {
@@ -376,7 +398,14 @@ static async Task<int> RunToolSmokeTestAsync()
         new PerformanceTool(),
         new StartupProgramsTool(),
         new CredentialsTool(),
-        new SystemRepairTool()
+        new SystemRepairTool(),
+        new RestorePointTool(),
+        new DiskManagementTool(),
+        new DiskSpaceTool(),
+        new SoftwareInventoryTool(),
+        new FirewallRulesTool(),
+        new WindowsFeaturesTool(),
+        new LocalUsersTool()
     ]);
 
     using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));

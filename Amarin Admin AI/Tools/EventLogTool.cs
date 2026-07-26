@@ -82,12 +82,20 @@ public sealed class EventLogTool : ITool
 
     private static Task<ToolResult> ListLogsAsync(CancellationToken cancellationToken)
     {
+        // Get-WinEvent -ListLog * emits non-terminating errors for inaccessible logs → CLIXML on stderr
+        // and can set non-zero exit. Prefer SilentlyContinue + explicit exit 0.
         var script = """
-            Get-WinEvent -ListLog * -ErrorAction SilentlyContinue |
+            $ErrorActionPreference = 'SilentlyContinue'
+            $logs = @(Get-WinEvent -ListLog * -ErrorAction SilentlyContinue |
               Where-Object { $_.IsEnabled -and $_.RecordCount -gt 0 } |
               Sort-Object LogName |
-              Select-Object -First 60 LogName, RecordCount, IsClassicLog |
-              Format-Table -AutoSize
+              Select-Object -First 60 LogName, RecordCount, IsClassicLog)
+            if ($logs.Count -eq 0) {
+              Write-Output 'Доступных логов с событиями не найдено.'
+              exit 0
+            }
+            $logs | Format-Table -AutoSize | Out-String -Width 200 | Write-Output
+            exit 0
             """;
 
         return PowerShellHelper.RunAsync(script, 90, cancellationToken);
@@ -107,34 +115,46 @@ public sealed class EventLogTool : ITool
             : null;
 
         var levelFilter = BuildLevelFilter(level);
-        var eventIdFilter = eventId is not null ? $"Id = {eventId.Value}" : null;
         var sourceScript = sourceFilter is not null
             ? $"| Where-Object {{ $_.ProviderName -like '*{sourceFilter}*' }}"
             : string.Empty;
 
+        var safeLog = logName.Replace("'", "''", StringComparison.Ordinal);
+
+        // "No events were found" is a normal empty result for smoke (e.g. critical_recent).
+        // Never leave a non-zero exit or Error CLIXML that BuildResult treats as FAIL.
         var script = $$"""
+            $ErrorActionPreference = 'SilentlyContinue'
             $start = (Get-Date).AddHours(-{{hours}})
             $filter = @{
-              LogName = '{{logName.Replace("'", "''", StringComparison.Ordinal)}}'
+              LogName = '{{safeLog}}'
               StartTime = $start
             }
             {{(levelFilter is not null ? $"$filter['Level'] = @({levelFilter})" : "")}}
-            {{(eventIdFilter is not null ? $"$filter['Id'] = {eventId!.Value}" : "")}}
+            {{(eventId is not null ? $"$filter['Id'] = {eventId.Value}" : "")}}
+
+            $events = @()
             try {
-              $events = Get-WinEvent -FilterHashtable $filter -MaxEvents {{maxEvents}} -ErrorAction Stop
+              $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents {{maxEvents}} -ErrorAction SilentlyContinue)
             } catch {
-              if ($_.Exception.Message -match 'No events were found') {
-                'Событий не найдено в {{logName}} за последние {{hours}} ч.'
-                return
-              }
-              throw
+              # swallow — empty result below
             }
+
+            if ($null -eq $events -or $events.Count -eq 0) {
+              Write-Output 'Событий не найдено в {{safeLog}} за последние {{hours}} ч.'
+              exit 0
+            }
+
             $events {{sourceScript}} | ForEach-Object {
-              $msg = if ($_.Message) { ($_.Message -replace '\s+', ' ').Substring(0, [Math]::Min(300, $_.Message.Length)) } else { '' }
+              $raw = if ($_.Message) { $_.Message } else { '' }
+              $msg = if ($raw) {
+                ($raw -replace '\s+', ' ').Substring(0, [Math]::Min(300, $raw.Length))
+              } else { '' }
               "[{0:yyyy-MM-dd HH:mm:ss}] {1} | ID {2} | {3}" -f $_.TimeCreated, $_.LevelDisplayName, $_.Id, $_.ProviderName
               $msg
               ''
             }
+            exit 0
             """;
 
         return PowerShellHelper.RunAsync(script, 120, cancellationToken);

@@ -132,31 +132,59 @@ internal static class ChangeRollbackOperations
 
     public static ToolResult CompareSnapshot(string snapshotId)
     {
-        var dir = ResolveSnapshotDir(snapshotId, out var error);
-        if (dir is null)
+        try
         {
-            return ToolResult.Fail(error!);
+            var dir = ResolveSnapshotDir(snapshotId, out var error);
+            if (dir is null)
+            {
+                return ToolResult.Fail(error!);
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Services ===");
+            try
+            {
+                var oldServices = ChangeRollbackStore.LoadServices(Path.Combine(dir, "services.json"));
+                var currentServices = ChangeRollbackStore.CaptureCurrentServices();
+                sb.AppendLine(ChangeRollbackStore.CompareServices(oldServices, currentServices));
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"Сравнение служб не удалось: {ex.Message}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("=== Scheduled Tasks ===");
+            try
+            {
+                var oldTasks = DeserializeTasks(Path.Combine(dir, "scheduled_tasks.json"));
+                var currentTasks = ChangeRollbackStore.CaptureCurrentScheduledTasks();
+                sb.AppendLine(ChangeRollbackStore.CompareScheduledTasks(oldTasks, currentTasks));
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"Сравнение задач не удалось: {ex.Message}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("=== Startup Programs ===");
+            try
+            {
+                var oldStartup = DeserializeStartup(Path.Combine(dir, "startup_programs.json"));
+                var currentStartup = ChangeRollbackStore.CaptureStartupPrograms();
+                sb.AppendLine(ChangeRollbackStore.CompareStartupPrograms(oldStartup, currentStartup));
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"Сравнение автозагрузки не удалось: {ex.Message}");
+            }
+
+            return ToolResult.Ok(sb.ToString().TrimEnd());
         }
-
-        var sb = new StringBuilder();
-        sb.AppendLine("=== Services ===");
-        var oldServices = ChangeRollbackStore.LoadServices(Path.Combine(dir, "services.json"));
-        var currentServices = ChangeRollbackStore.CaptureCurrentServices();
-        sb.AppendLine(ChangeRollbackStore.CompareServices(oldServices, currentServices));
-
-        sb.AppendLine();
-        sb.AppendLine("=== Scheduled Tasks ===");
-        var oldTasks = DeserializeTasks(Path.Combine(dir, "scheduled_tasks.json"));
-        var currentTasks = ChangeRollbackStore.CaptureCurrentScheduledTasks();
-        sb.AppendLine(ChangeRollbackStore.CompareScheduledTasks(oldTasks, currentTasks));
-
-        sb.AppendLine();
-        sb.AppendLine("=== Startup Programs ===");
-        var oldStartup = DeserializeStartup(Path.Combine(dir, "startup_programs.json"));
-        var currentStartup = ChangeRollbackStore.CaptureStartupPrograms();
-        sb.AppendLine(ChangeRollbackStore.CompareStartupPrograms(oldStartup, currentStartup));
-
-        return ToolResult.Ok(sb.ToString().TrimEnd());
+        catch (Exception ex)
+        {
+            return ToolResult.Fail($"Сравнение снимка не удалось: {ex.Message}");
+        }
     }
 
     public static ToolResult RestoreSnapshot(string snapshotId)

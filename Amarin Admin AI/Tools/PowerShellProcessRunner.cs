@@ -13,6 +13,7 @@ internal static class PowerShellProcessRunner
         int maxStderr = 16_000)
     {
         timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
+        // Caller may already wrap; PowerShellHelper.RunAsync wraps before calling here.
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
 
         var psi = new ProcessStartInfo
@@ -43,7 +44,7 @@ internal static class PowerShellProcessRunner
             var stdout = await AwaitOutputAsync(stdoutTask);
             var stderr = await AwaitOutputAsync(stderrTask);
 
-            return BuildResult(process.ExitCode, stdout, stderr, maxStdout, maxStderr);
+            return PowerShellHelper.BuildResult(process.ExitCode, stdout, stderr, maxStdout, maxStderr);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -69,32 +70,6 @@ internal static class PowerShellProcessRunner
         }
     }
 
-    private static ToolResult BuildResult(
-        int exitCode,
-        string stdout,
-        string stderr,
-        int maxStdout,
-        int maxStderr)
-    {
-        var result = new StringBuilder();
-        result.AppendLine($"Exit code: {exitCode}");
-
-        if (stdout.Length > 0)
-        {
-            result.AppendLine("--- stdout ---");
-            result.Append(Truncate(stdout, maxStdout));
-        }
-
-        if (stderr.Length > 0)
-        {
-            result.AppendLine("--- stderr ---");
-            result.Append(Truncate(stderr, maxStderr));
-        }
-
-        var text = result.ToString().TrimEnd();
-        return exitCode == 0 ? ToolResult.Ok(text) : ToolResult.Fail(text);
-    }
-
     private static void KillProcess(Process process)
     {
         try
@@ -109,7 +84,4 @@ internal static class PowerShellProcessRunner
             // ignore
         }
     }
-
-    private static string Truncate(string text, int maxLength) =>
-        text.Length <= maxLength ? text : text[..maxLength] + "\n... [truncated]";
 }

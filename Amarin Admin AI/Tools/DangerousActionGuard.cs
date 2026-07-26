@@ -67,6 +67,13 @@ internal static class DangerousActionGuard
             "download_file" => true,
             "change_rollback" => IsRollbackRestore(arguments),
             "system_repair" => IsSystemRepairRun(arguments),
+            "disk_management" => IsDiskManagementWrite(arguments),
+            "disk_space" => IsDiskSpaceWrite(arguments),
+            "software_inventory" => IsSoftwareInventoryWrite(arguments),
+            "firewall_rules" => IsFirewallRulesWrite(arguments),
+            "windows_features" => IsWindowsFeaturesWrite(arguments),
+            // Hard-blocked local_users ops (current user / last admin) must NOT prompt confirm.
+            "local_users" => IsLocalUsersWrite(arguments) && !LocalUsersSafety.TryGetHardBlockReason(arguments, out _),
             _ => false
         };
     }
@@ -85,6 +92,10 @@ internal static class DangerousActionGuard
             "change_rollback" => IsRollbackRestore(arguments),
             "system_repair" => IsSystemRepairRun(arguments),
             "run_powershell" => PowerShellAttemptsDanger(arguments),
+            "firewall_rules" => IsFirewallRulesWrite(arguments),
+            "windows_features" => IsWindowsFeaturesWrite(arguments),
+            "local_users" => IsLocalUsersWrite(arguments) && !LocalUsersSafety.TryGetHardBlockReason(arguments, out _),
+            // chkdsk_fix / software_inventory / disk_space cleanup: confirm only
             _ => false
         };
 
@@ -109,12 +120,89 @@ internal static class DangerousActionGuard
             sb.AppendLine($"Действие: {action}");
         }
 
-        foreach (var field in new[] { "path", "service_name", "command", "process_name", "pid", "task_name", "url", "destination", "query" })
+        foreach (var field in new[]
+                 {
+                     "path", "service_name", "command", "process_name", "pid", "task_name",
+                     "url", "destination", "query", "drive_letter", "package_id", "name",
+                     "feature_name", "user", "group"
+                 })
         {
             if (arguments.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String)
             {
                 sb.AppendLine($"{field}: {Truncate(value.GetString() ?? "", 200)}");
             }
+        }
+
+        if (toolName.Equals("disk_management", StringComparison.OrdinalIgnoreCase) &&
+            action.Equals("chkdsk_fix", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.AppendLine("Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.");
+            sb.AppendLine("Откат (/undo) не применим.");
+        }
+
+        if (toolName.Equals("disk_space", StringComparison.OrdinalIgnoreCase) &&
+            action.Equals("cleanup", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.AppendLine("Категории очистки (только фиксированные пути):");
+            if (arguments.TryGetProperty("categories", out var cats) && cats.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var c in cats.EnumerateArray())
+                {
+                    if (c.ValueKind == JsonValueKind.String)
+                    {
+                        sb.AppendLine("  - " + (c.GetString() ?? ""));
+                    }
+                }
+            }
+            else
+            {
+                sb.AppendLine("  (categories не указаны)");
+            }
+
+            sb.AppendLine("Параметр path на cleanup НЕ влияет — произвольные пути не удаляются.");
+            sb.AppendLine("Откат (/undo) не применим.");
+        }
+
+        if (toolName.Equals("software_inventory", StringComparison.OrdinalIgnoreCase) &&
+            action is "install" or "upgrade" or "upgrade_all" or "uninstall")
+        {
+            sb.AppendLine("Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.");
+            sb.AppendLine("Откат (/undo) не применим — winget install/uninstall не откатывается снимком сессии.");
+        }
+
+        if (toolName.Equals("firewall_rules", StringComparison.OrdinalIgnoreCase) &&
+            action is "enable" or "disable" or "create" or "delete")
+        {
+            sb.AppendLine("Изменение правил Windows Firewall.");
+            if (arguments.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
+            {
+                sb.AppendLine($"name: {Truncate(n.GetString() ?? "", 120)}");
+            }
+
+            sb.AppendLine("Перед изменением создаётся снимок сессии (/undo: службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).");
+        }
+
+        if (toolName.Equals("windows_features", StringComparison.OrdinalIgnoreCase) &&
+            action is "enable" or "disable")
+        {
+            sb.AppendLine("Изменение Windows Optional Feature (-Online -NoRestart).");
+            if (arguments.TryGetProperty("feature_name", out var fn) && fn.ValueKind == JsonValueKind.String)
+            {
+                sb.AppendLine($"feature_name: {Truncate(fn.GetString() ?? "", 120)}");
+            }
+
+            sb.AppendLine("PreviousState будет в ответе тулы — для ручного отката (enable/disable обратно).");
+            sb.AppendLine("Снимок сессии (/undo) восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.");
+            sb.AppendLine("Машина НЕ перезагружается автоматически; при RestartNeeded=True — reboot вручную.");
+        }
+
+        if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
+            action is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group")
+        {
+            sb.AppendLine("Изменение локальных учёток/членства в группах.");
+            sb.AppendLine("PreviousEnabled / previous members будут в ответе тулы — для ручного отката.");
+            sb.AppendLine("Снимок сессии (/undo) — службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
+            sb.AppendLine("Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.");
         }
 
         return new DangerousActionInfo(toolName, changeSummary, sb.ToString().TrimEnd(), risk);
@@ -157,6 +245,49 @@ internal static class DangerousActionGuard
                 "run_dism" => "Восстановление образа Windows (DISM)",
                 _ => $"Системный ремонт ({action})"
             },
+            "disk_management" => action switch
+            {
+                "chkdsk_fix" => "chkdsk / исправление тома" +
+                                  FormatField(arguments, "drive_letter", prefix: " ", suffix: ":"),
+                _ => $"Диски ({action})"
+            },
+            "disk_space" => action switch
+            {
+                "cleanup" => "Очистка диска (фиксированные категории)",
+                _ => $"Место на диске ({action})"
+            },
+            "software_inventory" => action switch
+            {
+                "install" => "Установка пакета" + FormatField(arguments, "package_id", prefix: ": "),
+                "upgrade" => "Обновление пакета" + FormatField(arguments, "package_id", prefix: ": "),
+                "upgrade_all" => "Обновление всех пакетов (winget upgrade --all)",
+                "uninstall" => "Удаление пакета" + FormatField(arguments, "package_id", prefix: ": "),
+                _ => $"ПО ({action})"
+            },
+            "firewall_rules" => action switch
+            {
+                "enable" => "Включение правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
+                "disable" => "Отключение правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
+                "create" => "Создание правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
+                "delete" => "Удаление правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
+                _ => $"Брандмауэр ({action})"
+            },
+            "windows_features" => action switch
+            {
+                "enable" => "Включение optional feature" + FormatField(arguments, "feature_name", prefix: ": "),
+                "disable" => "Отключение optional feature" + FormatField(arguments, "feature_name", prefix: ": "),
+                _ => $"Windows features ({action})"
+            },
+            "local_users" => action switch
+            {
+                "enable_user" => "Включение учётки" + FormatField(arguments, "user", prefix: ": "),
+                "disable_user" => "Отключение учётки" + FormatField(arguments, "user", prefix: ": "),
+                "add_to_group" => "Добавление в группу" + FormatField(arguments, "user", prefix: " ") +
+                                  FormatField(arguments, "group", prefix: " → "),
+                "remove_from_group" => "Удаление из группы" + FormatField(arguments, "user", prefix: " ") +
+                                       FormatField(arguments, "group", prefix: " ← "),
+                _ => $"Локальные пользователи ({action})"
+            },
             _ => $"Операция через {toolName}"
         };
     }
@@ -178,6 +309,16 @@ internal static class DangerousActionGuard
             "download_file" => DangerousRiskLevel.Medium,
             "change_rollback" => DangerousRiskLevel.High,
             "system_repair" => DangerousRiskLevel.High,
+            "disk_management" when action is "chkdsk_fix" => DangerousRiskLevel.High,
+            "disk_space" when action is "cleanup" => DangerousRiskLevel.Medium,
+            "software_inventory" when action is "uninstall" => DangerousRiskLevel.High,
+            "software_inventory" when action is "install" or "upgrade" or "upgrade_all"
+                => DangerousRiskLevel.Medium,
+            "firewall_rules" when action is "delete" => DangerousRiskLevel.High,
+            "firewall_rules" when action is "enable" or "disable" or "create" => DangerousRiskLevel.Medium,
+            "windows_features" when action is "enable" or "disable" => DangerousRiskLevel.High,
+            "local_users" when action is "disable_user" or "remove_from_group" => DangerousRiskLevel.High,
+            "local_users" when action is "enable_user" or "add_to_group" => DangerousRiskLevel.Medium,
             "run_powershell" => ClassifyPowerShellRisk(arguments),
             _ => DangerousRiskLevel.Low
         };
@@ -206,7 +347,12 @@ internal static class DangerousActionGuard
         return DangerousRiskLevel.Medium;
     }
 
-    private static string FormatField(JsonElement arguments, string field, string prefix = "", int max = 80)
+    private static string FormatField(
+        JsonElement arguments,
+        string field,
+        string prefix = "",
+        string suffix = "",
+        int max = 80)
     {
         if (!arguments.TryGetProperty(field, out var value) || value.ValueKind != JsonValueKind.String)
         {
@@ -214,7 +360,7 @@ internal static class DangerousActionGuard
         }
 
         var text = value.GetString() ?? "";
-        return string.IsNullOrWhiteSpace(text) ? "" : prefix + Truncate(text, max);
+        return string.IsNullOrWhiteSpace(text) ? "" : prefix + Truncate(text, max) + suffix;
     }
 
     private static bool IsRegistryWrite(JsonElement arguments) =>
@@ -252,6 +398,30 @@ internal static class DangerousActionGuard
     private static bool IsSystemRepairRun(JsonElement arguments) =>
         arguments.TryGetProperty("action", out var action) &&
         action.GetString() is "run_sfc" or "run_dism";
+
+    private static bool IsDiskManagementWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "chkdsk_fix";
+
+    private static bool IsDiskSpaceWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "cleanup";
+
+    private static bool IsSoftwareInventoryWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "install" or "upgrade" or "upgrade_all" or "uninstall";
+
+    private static bool IsFirewallRulesWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "enable" or "disable" or "create" or "delete";
+
+    private static bool IsWindowsFeaturesWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "enable" or "disable";
+
+    private static bool IsLocalUsersWrite(JsonElement arguments) =>
+        arguments.TryGetProperty("action", out var action) &&
+        action.GetString() is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group";
 
     private static bool PowerShellAttemptsDanger(JsonElement arguments)
     {

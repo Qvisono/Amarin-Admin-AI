@@ -53,12 +53,13 @@ internal static class ChangeRollbackStore
 
     public static string CompareServices(IReadOnlyList<ServiceSnapshotEntry> old, IReadOnlyList<ServiceSnapshotEntry> current)
     {
-        var oldMap = old.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
+        // Service names should be unique, but de-dupe anyway — duplicate keys must not crash /undo.
+        var oldMap = ToFirstMap(old, s => s.Name ?? string.Empty);
         var sb = new StringBuilder();
 
         foreach (var service in current.OrderBy(s => s.Name))
         {
-            if (!oldMap.TryGetValue(service.Name, out var previous))
+            if (!oldMap.TryGetValue(service.Name ?? string.Empty, out var previous))
             {
                 continue;
             }
@@ -147,10 +148,11 @@ internal static class ChangeRollbackStore
         IReadOnlyList<ScheduledTaskSnapshotEntry> old,
         IReadOnlyList<ScheduledTaskSnapshotEntry> current)
     {
-        var oldMap = old.ToDictionary(t => TaskKey(t), StringComparer.OrdinalIgnoreCase);
+        // TaskPath+TaskName should be unique; de-dupe if Get-ScheduledTask returns duplicates.
+        var oldMap = ToFirstMap(old, TaskKey);
         var sb = new StringBuilder();
 
-        foreach (var task in current.OrderBy(t => TaskKey(t)))
+        foreach (var task in current.OrderBy(TaskKey))
         {
             var key = TaskKey(task);
             if (!oldMap.TryGetValue(key, out var previous))
@@ -255,19 +257,27 @@ internal static class ChangeRollbackStore
         IReadOnlyList<StartupProgramSnapshotEntry> old,
         IReadOnlyList<StartupProgramSnapshotEntry> current)
     {
-        var oldMap = old.ToDictionary(p => StartupKey(p), StringComparer.OrdinalIgnoreCase);
+        // Startup keys are NOT unique: WMI can list the same Name multiple times
+        // (e.g. WMI:OneDriveSetup). Never ToDictionary without de-duplication.
+        var oldMap = ToFirstMap(old, StartupKey);
         var sb = new StringBuilder();
+        var seenCurrent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var program in current.OrderBy(p => StartupKey(p)))
+        foreach (var program in current.OrderBy(StartupKey))
         {
             var key = StartupKey(program);
+            if (!seenCurrent.Add(key))
+            {
+                continue; // same key twice in current snapshot
+            }
+
             if (!oldMap.TryGetValue(key, out var previous))
             {
                 sb.AppendLine($"NEW {key}: {Truncate(program.Command, 80)}");
                 continue;
             }
 
-            if (!previous.Command.Equals(program.Command, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(previous.Command, program.Command, StringComparison.OrdinalIgnoreCase))
             {
                 sb.AppendLine($"{key}: Command changed");
                 sb.AppendLine($"  было: {Truncate(previous.Command, 100)}");
@@ -276,13 +286,30 @@ internal static class ChangeRollbackStore
         }
 
         var currentKeys = current.Select(StartupKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var removed in old.Where(p => !currentKeys.Contains(StartupKey(p))))
+        var reportedRemoved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var removed in old)
         {
-            sb.AppendLine($"REMOVED {StartupKey(removed)}");
+            var key = StartupKey(removed);
+            if (currentKeys.Contains(key) || !reportedRemoved.Add(key))
+            {
+                continue;
+            }
+
+            sb.AppendLine($"REMOVED {key}");
         }
 
         return sb.Length == 0 ? "Изменений в автозагрузке не найдено." : sb.ToString().TrimEnd();
     }
+
+    /// <summary>
+    /// Dictionary with first occurrence per key — safe when source data has duplicates.
+    /// </summary>
+    private static Dictionary<string, T> ToFirstMap<T>(
+        IEnumerable<T> items,
+        Func<T, string> keySelector) =>
+        items
+            .GroupBy(keySelector, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
     public static string SaveJson<T>(IReadOnlyList<T> items, string path)
     {
@@ -301,8 +328,18 @@ internal static class ChangeRollbackStore
             : $"{path}\\{task.TaskName}";
     }
 
-    private static string StartupKey(StartupProgramSnapshotEntry entry) =>
-        $"{entry.Source}:{entry.Name}";
+    /// <summary>
+    /// Logical identity for a startup entry. Not globally unique in WMI dumps —
+    /// callers must de-dupe (see <see cref="ToFirstMap{T}"/>).
+    /// </summary>
+    private static string StartupKey(StartupProgramSnapshotEntry entry)
+    {
+        var source = entry.Source ?? string.Empty;
+        var name = entry.Name ?? string.Empty;
+        // Include location when present so HKLM vs WMI duplicates stay distinct when possible.
+        var loc = string.IsNullOrWhiteSpace(entry.Location) ? "" : ":" + entry.Location;
+        return $"{source}:{name}{loc}";
+    }
 
     private static List<T> DeserializeList<T>(string json)
     {

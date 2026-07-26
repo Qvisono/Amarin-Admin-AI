@@ -59,6 +59,13 @@ public static class ReadOnlyGuard
             "virtualization" => IsVirtualizationRead(arguments),
             "change_rollback" => IsRollbackAllowed(arguments),
             "system_repair" => IsSystemRepairRead(arguments),
+            "restore_point" => IsRestorePointRead(arguments),
+            "disk_management" => IsDiskManagementRead(arguments),
+            "disk_space" => IsDiskSpaceRead(arguments),
+            "software_inventory" => IsSoftwareInventoryRead(arguments),
+            "firewall_rules" => IsFirewallRulesRead(arguments),
+            "windows_features" => IsWindowsFeaturesRead(arguments),
+            "local_users" => IsLocalUsersRead(arguments),
             _ => true
         };
     }
@@ -102,6 +109,35 @@ public static class ReadOnlyGuard
     private static bool IsSystemRepairRead(JsonElement arguments) =>
         !arguments.TryGetProperty("action", out var action) ||
         action.GetString() is "status_sfc" or "status_dism";
+
+    private static bool IsRestorePointRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list" or "status";
+
+    private static bool IsDiskManagementRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list_disks" or "list_volumes" or "smart_status"
+            or "chkdsk_scan" or "bitlocker_status";
+
+    private static bool IsDiskSpaceRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "analyze" or "largest_items";
+
+    private static bool IsSoftwareInventoryRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list_installed" or "search" or "list_upgrades";
+
+    private static bool IsFirewallRulesRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list" or "get";
+
+    private static bool IsWindowsFeaturesRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list" or "get";
+
+    private static bool IsLocalUsersRead(JsonElement arguments) =>
+        !arguments.TryGetProperty("action", out var action) ||
+        action.GetString() is "list_users" or "list_groups" or "group_members" or "user_details";
 
     private static bool IsPowerShellReadOnly(JsonElement arguments)
     {

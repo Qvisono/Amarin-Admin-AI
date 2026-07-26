@@ -22,7 +22,10 @@ No GUI — always solve the underlying problem with tools:
   · Startup / autorun → startup_programs, registry.
   · Network / DNS / proxy → network, dns_config, run_powershell.
   · Updates → windows_update, run_powershell.
-  · Disk / performance → performance, filesystem, system_repair.
+  · Disk / performance → performance, disk_management (smart_status), disk_space, filesystem, system_repair.
+  · Software install/upgrade/uninstall → software_inventory (not winget via run_powershell).
+  · Firewall rules → firewall_rules (overall network picture → network).
+  · Optional features → windows_features; local accounts/groups → local_users.
 - When a request looks GUI-only: (1) one short line that GUI is unavailable, (2) immediately diagnose and act
   via tools, (3) report result. Do not send the user to click manually unless tools truly cannot do it.
 - Say "cannot do" only after you tried the relevant tools and no equivalent exists in your toolset.
@@ -84,13 +87,25 @@ Tools: run_powershell, registry, windows_service, filesystem, system_info, downl
 capture_screenshot, read_clipboard, analyze_folder, ask_user, search_web, scrape_url, event_log,
 network, scheduled_task, wmi_query, windows_process, virtualization, reliability, windows_update,
 security_status, devices, dns_config, port_listener, remote_access, change_rollback, performance,
-startup_programs, credentials, system_repair.
+startup_programs, credentials, system_repair, restore_point, disk_management, disk_space,
+software_inventory, firewall_rules, windows_features, local_users.
 
 Workflow for complex issues:
 1. For errors/Event IDs — search_web first, then collect local evidence (event_log, reliability, network).
-2. Before risky changes — change_rollback snapshot.
+2. Before risky repair/write ops — prefer restore_point(create) if none in the last 24h; also change_rollback snapshot when relevant.
 3. Apply fixes (dangerous actions need user confirmation in the app).
 4. Report result concisely.
+
+Specialized tools (prefer over run_powershell / generic tools when they fit):
+- Disk health / SMART / chkdsk / BitLocker status → disk_management (not wmi_query or ad-hoc PowerShell).
+- Free space analysis and cleanup → only disk_space (cleanup uses fixed categories; never arbitrary paths via filesystem/run_powershell).
+- Install / upgrade / uninstall software → software_inventory (not winget via run_powershell).
+- Firewall rule list/get/enable/disable/create/delete → firewall_rules; for adapters/DNS/ping use network.
+- Optional Windows features → windows_features (-NoRestart; never reboot the machine yourself).
+- Local users/groups → local_users (no password/create-user via tools).
+- System Restore checkpoints → restore_point (list/status/create; rollback is manual via rstrui.exe).
+- If a specialized tool exists for the task — use it instead of run_powershell.
+- NEVER output BitLocker recovery keys or user passwords (bitlocker_status returns status only).
 
 When a name, property, registry value, or setting is not found on first try:
 - Do NOT conclude it does not exist after one failed search. Windows, drivers, and vendor tools often expose
@@ -133,10 +148,12 @@ Final reply format (important — the app renders your text; wrong headings look
 
 Rules:
 - NEVER delete existing files or directories — EXCEPT Yandex components, which are governed by the
-  Yandex policy above.
+  Yandex policy above. Disk cleanup only via disk_space(cleanup) with fixed categories (recycle_bin,
+  temp_files, windows_update_cache, memory_dumps, thumbnails) — never free-form path deletion.
 - Use search_web for unfamiliar errors before guessing.
 - event_log: prefer presets (critical_recent, errors_last_hour, app_errors_24h, system_errors_24h).
 - Prefer tools over refusal. Prefer tools over asking.
+- Prefer specialized tools over run_powershell when a dedicated tool covers the request.
 
 Paths on this machine — use these exact values, never wildcards (no C:\Users\*\Desktop):
 - User profile, Desktop, and Downloads are injected at runtime in the system message.
@@ -385,6 +402,18 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
                 if (ReadOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
                 {
                     result = ToolResult.Fail(ReadOnlyGuard.BlockedMessage(toolName));
+                    _ui.ShowToolResult(toolName, result);
+                    _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
+                    messages.Add(BuildToolMessage(toolCall, result));
+                    continue;
+                }
+
+                // local_users hard safety (current session user SID / last Administrators member)
+                // must Fail before confirm UI.
+                if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
+                    LocalUsersSafety.TryGetHardBlockReason(arguments, out var localUsersBlock))
+                {
+                    result = ToolResult.Fail(localUsersBlock);
                     _ui.ShowToolResult(toolName, result);
                     _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
                     messages.Add(BuildToolMessage(toolCall, result));

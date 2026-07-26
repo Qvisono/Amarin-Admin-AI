@@ -31,6 +31,8 @@ public static class VeniceSettingsStore
         }
 
         venice["Model"] = model;
+        // Never persist API keys in appsettings.json (env / user-secrets only).
+        venice.Remove("ApiKey");
 
         File.WriteAllText(SettingsPath, root.ToJsonString(WriteOptions) + Environment.NewLine);
     }

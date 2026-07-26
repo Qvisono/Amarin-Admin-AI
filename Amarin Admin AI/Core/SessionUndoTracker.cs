@@ -82,16 +82,46 @@ public sealed class SessionUndoTracker
         }
 
         var snapshotId = _undoSnapshotId!;
-        var restore = ChangeRollbackOperations.RestoreSnapshot(snapshotId);
-        var compare = ChangeRollbackOperations.CompareSnapshot(snapshotId);
 
+        // Always clear undo point once attempted — partial failures must not leave a crashing loop.
         _undoSnapshotId = null;
         _undoUserRequest = null;
         _undoCreatedAt = null;
 
-        return restore.Success
-            ? UndoResult.Ok(restore.Output, compare.Output)
-            : UndoResult.Fail(restore.Output);
+        try
+        {
+            ToolResult restore;
+            try
+            {
+                restore = ChangeRollbackOperations.RestoreSnapshot(snapshotId);
+            }
+            catch (Exception ex)
+            {
+                return UndoResult.Fail($"Ошибка восстановления снимка {snapshotId}: {ex.Message}");
+            }
+
+            string? compareText = null;
+            try
+            {
+                var compare = ChangeRollbackOperations.CompareSnapshot(snapshotId);
+                compareText = compare.Success
+                    ? compare.Output
+                    : $"Сравнение снимка не удалось: {compare.Output}";
+            }
+            catch (Exception ex)
+            {
+                // Compare must never crash the process — restore may already have succeeded.
+                compareText = $"Сравнение снимка не удалось: {ex.Message}";
+            }
+
+            return restore.Success
+                ? UndoResult.Ok(restore.Output, compareText)
+                : UndoResult.Fail(restore.Output);
+        }
+        catch (Exception ex)
+        {
+            return UndoResult.Fail($"Откат прерван: {ex.Message}");
+        }
     }
 
     public void Clear()

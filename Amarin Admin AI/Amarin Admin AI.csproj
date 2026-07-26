@@ -10,6 +10,8 @@
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>jeklE-removebg-preview_1.ico</ApplicationIcon>
+    <!-- API key: dotnet user-secrets set "VENICE_API_KEY" "..." -->
+    <UserSecretsId>amarin-admin-ai-8f3c2a1b-4d5e-6f70-8192-a3b4c5d6e7f8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +24,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.4" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.4" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
     <PackageReference Include="System.Management" Version="9.0.4" />

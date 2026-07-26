@@ -15,8 +15,27 @@
 /agent-tools/
 /terminals/
 *.log
+*.pdb
 
-# Secrets — never commit real keys
-# (appsettings.json may ship with empty ApiKey)
+################################################################################
+# Secrets — never commit real keys or local secret overlays
+################################################################################
 .env
 .env.*
+*.pem
+*.key
+secrets.json
+**/secrets.json
+
+# Local/user settings that may contain secrets (keep only appsettings.example.json in git)
+**/appsettings.*.json
+!**/appsettings.example.json
+# If you keep a private appsettings with secrets outside example — do not commit:
+# appsettings.json should never contain ApiKey; still ignore common secret copies:
+**/appsettings.Local.json
+**/appsettings.Development.json
+**/appsettings.Production.json
+
+# User-secrets are outside the repo by design; ignore accidental dumps
+**/UserSecrets/
+**/user-secrets.json
