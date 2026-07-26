@@ -7,8 +7,10 @@
 Опишите проблему обычным текстом — агент сам продиагностирует и починит систему.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
+![Arch](https://img.shields.io/badge/arch-x64-lightgrey)
 ![License](https://img.shields.io/badge/license-GPL%20v3.0-blue)
-![Self-contained](https://img.shields.io/badge/.NET-не%20требуется-brightgreen)
+![Self-contained](https://img.shields.io/badge/runtime-встроен-brightgreen)
 
 </div>
 
@@ -29,8 +31,9 @@
 | | |
 |---|---|
 | 💻 **Система** | Windows 10 или 11 (x64) |
+| 🧩 **Платформа** | Собрано на .NET 10, архитектура x64 |
+| ⚙️ **Установка .NET** | Не требуется — рантайм .NET 10 встроен в `.exe` |
 | 🔑 **Ключ** | API-ключ Venice.ai |
-| ⚙️ **.NET** | Не нужен — всё внутри `.exe` |
 
 ---
 
@@ -148,7 +151,7 @@ cd путь\к\папке\с\exe
 | Инструмент | Назначение |
 |---|---|
 | `download_file` | Загрузка по URL (белый список доменов, лимит размера) |
-| `capture_screenshot` | С��риншот экрана для анализа |
+| `capture_screenshot` | Скриншот экрана для анализа |
 | `read_clipboard` | Содержимое буфера обмена (текст/картинка) |
 | `analyze_folder` | Обзор папки с текстом и изображениями |
 | `search_web` | Веб-поиск |
