@@ -7,7 +7,7 @@
 Опишите проблему обычным текстом — агент сам продиагностирует и починит систему.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
+![](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
 ![Arch](https://img.shields.io/badge/arch-x64-lightgrey)
 ![License](https://img.shields.io/badge/license-GPL%20v3.0-blue)
 ![Self-contained](https://img.shields.io/badge/runtime-встроен-brightgreen)
