@@ -16,7 +16,9 @@ public sealed record DangerousActionInfo(
     string ToolName,
     string ChangeSummary,
     string Details,
-    DangerousRiskLevel RiskLevel);
+    DangerousRiskLevel RiskLevel,
+    /// <summary>Plain-language explanation from the model (shown as «Объяснение»).</summary>
+    string Explanation = "");
 
 internal static class DangerousActionGuard
 {
@@ -111,6 +113,7 @@ internal static class DangerousActionGuard
 
         var changeSummary = BuildChangeSummary(toolName, action, arguments);
         var risk = GetRiskLevel(toolName, action, arguments);
+        var explanation = ExtractExplanation(arguments, changeSummary);
 
         var sb = new StringBuilder();
         sb.AppendLine($"Инструмент: {toolName}");
@@ -205,7 +208,12 @@ internal static class DangerousActionGuard
             sb.AppendLine("Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.");
         }
 
-        return new DangerousActionInfo(toolName, changeSummary, sb.ToString().TrimEnd(), risk);
+        return new DangerousActionInfo(
+            toolName,
+            changeSummary,
+            sb.ToString().TrimEnd(),
+            risk,
+            explanation);
     }
 
     public static DangerousActionInfo DescribeUndo(string description) =>
@@ -213,7 +221,30 @@ internal static class DangerousActionGuard
             "change_rollback",
             "Восстановление служб, задач планировщика и реестра из снимка",
             description,
-            DangerousRiskLevel.High);
+            DangerousRiskLevel.High,
+            "Вернёт ранее сохранённое состояние служб, задач планировщика и выбранных ключей реестра. " +
+            "Файлы, установленные программы и произвольные изменения PowerShell этим снимком не откатываются.");
+
+    /// <summary>
+    /// Prefer model-supplied <c>explanation</c>; fall back to the structured change summary.
+    /// </summary>
+    private static string ExtractExplanation(JsonElement arguments, string changeSummary)
+    {
+        foreach (var key in new[] { "explanation", "reason", "purpose" })
+        {
+            if (arguments.TryGetProperty(key, out var prop) &&
+                prop.ValueKind == JsonValueKind.String)
+            {
+                var text = (prop.GetString() ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    return Truncate(text, 400);
+                }
+            }
+        }
+
+        return changeSummary;
+    }
 
     private static string BuildChangeSummary(string toolName, string action, JsonElement arguments)
     {

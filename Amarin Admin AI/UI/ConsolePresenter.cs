@@ -280,9 +280,14 @@ public sealed class ConsolePresenter
 
         AnsiConsole.WriteLine();
 
+        var explanation = string.IsNullOrWhiteSpace(info.Explanation)
+            ? info.ChangeSummary
+            : info.Explanation;
+
         var body = new Markup(
             $"[bold]Что изменится:[/] {Markup.Escape(info.ChangeSummary)}\n\n" +
             $"[bold]Влияние на систему:[/] {UiTheme.ImpactBadge(info.RiskLevel)}\n\n" +
+            $"[bold]Объяснение:[/] {Markup.Escape(explanation)}\n\n" +
             $"[dim]{Markup.Escape(info.Details)}[/]\n\n" +
             "[grey]Проверьте детали и подтвердите, если согласны с выполнением.[/]");
 
