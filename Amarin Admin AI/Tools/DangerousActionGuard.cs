@@ -114,6 +114,17 @@ internal static class DangerousActionGuard
         var changeSummary = BuildChangeSummary(toolName, action, arguments);
         var risk = GetRiskLevel(toolName, action, arguments);
         var explanation = ExtractExplanation(arguments, changeSummary);
+        var unlistedDownloadHost = TryGetUnlistedDownloadHost(toolName, arguments);
+
+        if (unlistedDownloadHost is not null)
+        {
+            changeSummary =
+                $"Загрузка с домена вне AllowedDomains: {unlistedDownloadHost}";
+            if (risk < DangerousRiskLevel.High)
+            {
+                risk = DangerousRiskLevel.High;
+            }
+        }
 
         var sb = new StringBuilder();
         sb.AppendLine($"Инструмент: {toolName}");
@@ -134,6 +145,15 @@ internal static class DangerousActionGuard
             {
                 sb.AppendLine($"{field}: {Truncate(value.GetString() ?? "", 200)}");
             }
+        }
+
+        if (unlistedDownloadHost is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"⚠ Домен вне списка AllowedDomains: {unlistedDownloadHost}");
+            sb.AppendLine("Этот сайт не в доверенном списке (Microsoft, GitHub, Discord и т.д.).");
+            sb.AppendLine("Загрузка возможна только если вы явно подтвердите (1 / да).");
+            sb.AppendLine("При отказе (2 / нет) файл скачан не будет.");
         }
 
         if (toolName.Equals("disk_management", StringComparison.OrdinalIgnoreCase) &&
@@ -467,4 +487,30 @@ internal static class DangerousActionGuard
 
     private static string Truncate(string text, int max) =>
         text.Length <= max ? text : text[..max] + "…";
+
+    /// <summary>
+    /// Returns the host when download_file targets a domain outside AllowedDomains; otherwise null.
+    /// </summary>
+    private static string? TryGetUnlistedDownloadHost(string toolName, JsonElement arguments)
+    {
+        if (!toolName.Equals("download_file", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (!arguments.TryGetProperty("url", out var urlProp) ||
+            urlProp.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        var urlText = urlProp.GetString();
+        if (string.IsNullOrWhiteSpace(urlText) ||
+            !Uri.TryCreate(urlText, UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        return DownloadValidator.IsDomainAllowed(uri) ? null : uri.Host;
+    }
 }

@@ -35,6 +35,10 @@ var downloadOptions = new DownloadOptions
         : new DownloadOptions().MaxSizeBytes
 };
 
+// Trust list for download confirmation UI (High risk warning when host is not listed).
+// Non-listed domains are still downloadable after explicit user approval.
+DownloadValidator.ConfigureAllowedDomains(downloadOptions.AllowedDomains);
+
 // Priority: process env > user-secrets/env via configuration (VENICE_API_KEY only).
 var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
     ?? configuration["VENICE_API_KEY"]
@@ -44,7 +48,7 @@ var options = new AgentOptions
 {
     ApiKey = apiKey,
     BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
-    Model = configuration["Venice:Model"] ?? "grok-4-5",
+    Model = configuration["Venice:Model"] ?? "grok-4-6",
     MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
     WebSearch = configuration["Venice:WebSearch"] ?? "off",
     EnableWebCitations = !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,
@@ -52,12 +56,22 @@ var options = new AgentOptions
     Download = downloadOptions
 };
 
-if (args.Contains("--smoke-tools", StringComparer.OrdinalIgnoreCase))
+var startup = StartupArgs.Parse(args);
+
+if (startup.SmokeTools)
 {
     return await RunToolSmokeTestAsync();
 }
 
+if (startup.CenterWindow)
+{
+    ConsoleWindow.CenterOnScreen();
+}
 
+if (!string.IsNullOrWhiteSpace(startup.Model))
+{
+    options.Model = startup.Model.Trim();
+}
 
 var ui = new ConsolePresenter();
 ui.ShowBanner();
@@ -80,6 +94,12 @@ using var downloadHttp = new HttpClient(new SocketsHttpHandler
     Timeout = TimeSpan.FromMinutes(15)
 };
 var venice = new VeniceClient(http, options);
+
+if (!string.IsNullOrWhiteSpace(startup.Model))
+{
+    venice.SetActiveModel(startup.Model.Trim());
+    VeniceSettingsStore.SaveModel(startup.Model.Trim());
+}
 
 var toolRegistry = new ToolRegistry(
 [
@@ -127,10 +147,17 @@ var undoTracker = new SessionUndoTracker();
 var reportCollector = new SessionReportCollector();
 var agent = new Agent(venice, toolRegistry, options, ui, actionLog, undoTracker, reportCollector);
 
+var hasStartupPrompt = !string.IsNullOrWhiteSpace(startup.Prompt);
 var sessionMode = SessionMode.Continuous;
 if (SessionSettingsStore.TryLoad(out var savedMode))
 {
     sessionMode = savedMode;
+}
+else if (hasStartupPrompt)
+{
+    // Quick-chat launch: do not block on interactive mode picker.
+    sessionMode = SessionMode.Continuous;
+    SessionSettingsStore.Save(sessionMode);
 }
 else
 {
@@ -144,6 +171,15 @@ agent.SessionMode = sessionMode;
 var prompt = new ConsolePrompt();
 
 PrintStatusBar(ui, options.Model, agent, venice);
+
+// First turn from quick-chat bar (or CLI): show and run immediately.
+if (hasStartupPrompt)
+{
+    var startupText = startup.Prompt!.Trim();
+    ui.ShowInfo($"Запрос: {startupText}");
+    await RunUserRequestAsync(startupText);
+    ui.ShowSeparator();
+}
 
 while (true)
 {
@@ -170,6 +206,12 @@ while (true)
         continue;
     }
 
+    await RunUserRequestAsync(userRequest);
+    ui.ShowSeparator();
+}
+
+async Task RunUserRequestAsync(string userRequest)
+{
     using var requestCts = new CancellationTokenSource();
     ConsoleCancelEventHandler? cancelHandler = null;
     cancelHandler = (_, e) =>
@@ -211,7 +253,6 @@ while (true)
 
     ConsoleInputRestore.Restore();
     Console.Out.Flush();
-    ui.ShowSeparator();
 }
 
 async Task<bool> HandleCommandAsync(string userRequest)

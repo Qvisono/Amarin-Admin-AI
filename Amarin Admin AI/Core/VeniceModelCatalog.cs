@@ -12,7 +12,7 @@ internal static class VeniceModelCatalog
         new(
             "Флагманский уровень",
             "макс. надёжность",
-            ["claude-sonnet-5", "grok-4-5"]),
+            ["claude-sonnet-5", "grok-4-6"]),
         new(
             "Средний уровень",
             "цена/качество",

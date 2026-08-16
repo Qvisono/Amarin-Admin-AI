@@ -5,7 +5,7 @@ internal static class VeniceModelFallback
     public static readonly string[] FallbackModels =
     [
         "claude-sonnet-5",
-        "grok-4-5",
+        "grok-4-6",
         "openai-gpt-53-codex",
         "kimi-k2-7-code"
     ];

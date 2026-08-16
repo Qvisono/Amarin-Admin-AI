@@ -19,8 +19,10 @@ public sealed class WebDownloadTool : ITool
 
     public string Name => "download_file";
     public string Description =>
-        "Download a file from a whitelisted URL (Microsoft, GitHub, Discord, etc.). " +
-        "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed).";
+        "Download a file from any http(s) URL. Trusted domains (Microsoft, GitHub, Discord, etc.) " +
+        "show a normal confirmation; other domains show a stronger warning and still need user approval. " +
+        "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed). " +
+        "Do NOT use ask_user for domain permission — call download_file; the app asks the user.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -79,9 +81,9 @@ public sealed class WebDownloadTool : ITool
             return ToolResult.Fail("Invalid URL");
         }
 
-        if (!DownloadValidator.TryValidateUrl(uri, _options.AllowedDomains, out var domainError))
+        if (!DownloadValidator.TryValidateUrl(uri, out var urlError))
         {
-            return ToolResult.Fail(domainError);
+            return ToolResult.Fail(urlError);
         }
 
         if (!DownloadPaths.TryResolveDestination(destinationInput, folder, uri, out var destination, out var pathError))

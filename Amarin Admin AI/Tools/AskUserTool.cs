@@ -14,7 +14,8 @@ public sealed class AskUserTool : ITool
     public string Name => ToolName;
     public string Description =>
         "Ask the user ONE question with numbered options when you need their explicit choice to continue. " +
-        "Never use for download/install confirmation (use download_file — the app confirms). " +
+        "Never use for download/install confirmation or non-AllowedDomains permission " +
+        "(use download_file — the app confirms, including unlisted domains). " +
         "Never for opening URLs or facts from other tools. " +
         "The user replies by option number. Use 2-6 clear, distinct options in Russian.";
 
