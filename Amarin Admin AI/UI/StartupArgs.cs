@@ -7,7 +7,6 @@ internal sealed class StartupArgs
 {
     public string? Model { get; private set; }
     public string? Prompt { get; private set; }
-    public bool CenterWindow { get; private set; }
     public bool SmokeTools { get; private set; }
 
     public static StartupArgs Parse(string[] args)
@@ -20,13 +19,6 @@ internal sealed class StartupArgs
             if (a.Equals("--smoke-tools", StringComparison.OrdinalIgnoreCase))
             {
                 result.SmokeTools = true;
-                continue;
-            }
-
-            if (a.Equals("--center", StringComparison.OrdinalIgnoreCase) ||
-                a.Equals("--center-window", StringComparison.OrdinalIgnoreCase))
-            {
-                result.CenterWindow = true;
                 continue;
             }
 

@@ -63,11 +63,6 @@ if (startup.SmokeTools)
     return await RunToolSmokeTestAsync();
 }
 
-if (startup.CenterWindow)
-{
-    ConsoleWindow.CenterOnScreen();
-}
-
 if (!string.IsNullOrWhiteSpace(startup.Model))
 {
     options.Model = startup.Model.Trim();
