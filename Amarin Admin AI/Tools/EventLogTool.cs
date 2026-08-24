@@ -1,4 +1,7 @@
+using System.Diagnostics.Eventing.Reader;
+using System.Globalization;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Text.Json;
 
 namespace Amarin.Tools;
@@ -57,107 +60,177 @@ public sealed class EventLogTool : ITool
         }
         """);
 
-    public async Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
+    public Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
     {
         try
         {
             if (!arguments.TryGetProperty("action", out var actionProp))
             {
-                return ToolResult.Fail("Missing required parameter: action");
+                return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
             }
 
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "list_logs" => await ListLogsAsync(cancellationToken),
-                "read" => await ReadEventsAsync(arguments, cancellationToken),
-                _ => ToolResult.Fail($"Unknown action: {action}")
+                "list_logs" => Task.FromResult(ListLogs()),
+                "read" => Task.FromResult(ReadEvents(arguments)),
+                _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
         catch (Exception ex)
         {
-            return ToolResult.Fail($"Event log error: {ex.Message}");
+            return Task.FromResult(ToolResult.Fail($"Event log error: {ex.Message}"));
         }
     }
 
-    private static Task<ToolResult> ListLogsAsync(CancellationToken cancellationToken)
+    private static ToolResult ListLogs()
     {
-        // Get-WinEvent -ListLog * emits non-terminating errors for inaccessible logs → CLIXML on stderr
-        // and can set non-zero exit. Prefer SilentlyContinue + explicit exit 0.
-        var script = """
-            $ErrorActionPreference = 'SilentlyContinue'
-            $logs = @(Get-WinEvent -ListLog * -ErrorAction SilentlyContinue |
-              Where-Object { $_.IsEnabled -and $_.RecordCount -gt 0 } |
-              Sort-Object LogName |
-              Select-Object -First 60 LogName, RecordCount, IsClassicLog)
-            if ($logs.Count -eq 0) {
-              Write-Output 'Доступных логов с событиями не найдено.'
-              exit 0
-            }
-            $logs | Format-Table -AutoSize | Out-String -Width 200 | Write-Output
-            exit 0
-            """;
+        var rows = new List<(string Name, long Records, bool Classic)>();
+        using var session = new EventLogSession();
+        foreach (var name in session.GetLogNames().OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var config = new EventLogConfiguration(name, session);
+                if (!config.IsEnabled)
+                {
+                    continue;
+                }
 
-        return PowerShellHelper.RunAsync(script, 90, cancellationToken);
+                var info = session.GetLogInformation(name, PathType.LogName);
+                if (info.RecordCount is null or 0)
+                {
+                    continue;
+                }
+
+                rows.Add((name, info.RecordCount.Value, config.IsClassicLog));
+                if (rows.Count >= 60)
+                {
+                    break;
+                }
+            }
+            catch
+            {
+                // inaccessible log
+            }
+        }
+
+        if (rows.Count == 0)
+        {
+            return ToolResult.Ok("Доступных логов с событиями не найдено.");
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("LogName RecordCount IsClassicLog");
+        foreach (var row in rows)
+        {
+            sb.AppendLine($"{row.Name} {row.Records} {row.Classic}");
+        }
+
+        return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
-    private static Task<ToolResult> ReadEventsAsync(JsonElement arguments, CancellationToken cancellationToken)
+    private static ToolResult ReadEvents(JsonElement arguments)
     {
         var (logName, hours, level, maxEvents) = ResolveQuery(arguments);
-
         int? eventId = arguments.TryGetProperty("event_id", out var idProp) && idProp.TryGetInt32(out var id)
             ? id
             : null;
-
         var sourceFilter = arguments.TryGetProperty("source", out var sourceProp) &&
                            sourceProp.ValueKind == JsonValueKind.String
-            ? sourceProp.GetString()?.Replace("'", "''", StringComparison.Ordinal)
+            ? sourceProp.GetString()
             : null;
 
-        var levelFilter = BuildLevelFilter(level);
-        var sourceScript = sourceFilter is not null
-            ? $"| Where-Object {{ $_.ProviderName -like '*{sourceFilter}*' }}"
-            : string.Empty;
+        var start = DateTime.UtcNow.AddHours(-hours);
+        var startText = start.ToString("o", CultureInfo.InvariantCulture);
+        var xpath = new StringBuilder();
+        xpath.Append("*[System[TimeCreated[@SystemTime>='");
+        xpath.Append(startText);
+        xpath.Append("']");
 
-        var safeLog = logName.Replace("'", "''", StringComparison.Ordinal);
+        var levelNumber = LevelNumber(level);
+        if (levelNumber is not null)
+        {
+            xpath.Append(" and Level=");
+            xpath.Append(levelNumber.Value);
+        }
 
-        // "No events were found" is a normal empty result for smoke (e.g. critical_recent).
-        // Never leave a non-zero exit or Error CLIXML that BuildResult treats as FAIL.
-        var script = $$"""
-            $ErrorActionPreference = 'SilentlyContinue'
-            $start = (Get-Date).AddHours(-{{hours}})
-            $filter = @{
-              LogName = '{{safeLog}}'
-              StartTime = $start
+        if (eventId is not null)
+        {
+            xpath.Append(" and EventID=");
+            xpath.Append(eventId.Value);
+        }
+
+        xpath.Append("]]");
+
+        var sb = new StringBuilder();
+        var found = 0;
+        try
+        {
+            var query = new EventLogQuery(logName, PathType.LogName, xpath.ToString())
+            {
+                ReverseDirection = true
+            };
+            using var reader = new EventLogReader(query);
+            for (var record = reader.ReadEvent(); record is not null && found < maxEvents; record = reader.ReadEvent())
+            {
+                using (record)
+                {
+                    var provider = record.ProviderName ?? "";
+                    if (!string.IsNullOrWhiteSpace(sourceFilter) &&
+                        provider.IndexOf(sourceFilter, StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        continue;
+                    }
+
+                    var time = record.TimeCreated?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+                    var levelName = record.LevelDisplayName ?? record.Level?.ToString() ?? "";
+                    sb.AppendLine($"[{time}] {levelName} | ID {record.Id} | {provider}");
+
+                    var message = SafeMessage(record);
+                    if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        sb.AppendLine(message);
+                    }
+
+                    sb.AppendLine();
+                    found++;
+                }
             }
-            {{(levelFilter is not null ? $"$filter['Level'] = @({levelFilter})" : "")}}
-            {{(eventId is not null ? $"$filter['Id'] = {eventId.Value}" : "")}}
+        }
+        catch (EventLogNotFoundException)
+        {
+            return ToolResult.Fail($"Журнал не найден: {logName}");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return ToolResult.Fail($"Нет доступа к журналу {logName}.");
+        }
+        catch (EventLogException ex)
+        {
+            return ToolResult.Ok($"Событий не найдено в {logName} за последние {hours} ч. ({ex.Message})");
+        }
 
-            $events = @()
-            try {
-              $events = @(Get-WinEvent -FilterHashtable $filter -MaxEvents {{maxEvents}} -ErrorAction SilentlyContinue)
-            } catch {
-              # swallow — empty result below
-            }
+        if (found == 0)
+        {
+            return ToolResult.Ok($"Событий не найдено в {logName} за последние {hours} ч.");
+        }
 
-            if ($null -eq $events -or $events.Count -eq 0) {
-              Write-Output 'Событий не найдено в {{safeLog}} за последние {{hours}} ч.'
-              exit 0
-            }
+        return ToolResult.Ok(sb.ToString().TrimEnd());
+    }
 
-            $events {{sourceScript}} | ForEach-Object {
-              $raw = if ($_.Message) { $_.Message } else { '' }
-              $msg = if ($raw) {
-                ($raw -replace '\s+', ' ').Substring(0, [Math]::Min(300, $raw.Length))
-              } else { '' }
-              "[{0:yyyy-MM-dd HH:mm:ss}] {1} | ID {2} | {3}" -f $_.TimeCreated, $_.LevelDisplayName, $_.Id, $_.ProviderName
-              $msg
-              ''
-            }
-            exit 0
-            """;
-
-        return PowerShellHelper.RunAsync(script, 120, cancellationToken);
+    private static string SafeMessage(EventRecord record)
+    {
+        try
+        {
+            var raw = record.FormatDescription() ?? "";
+            raw = string.Join(' ', raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            return raw.Length <= 300 ? raw : raw[..300];
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     private static (string LogName, int Hours, string Level, int MaxEvents) ResolveQuery(JsonElement arguments)
@@ -201,12 +274,12 @@ public sealed class EventLogTool : ITool
         return (logName, hours, level, maxEvents);
     }
 
-    private static string? BuildLevelFilter(string level) => level switch
+    private static int? LevelNumber(string level) => level switch
     {
-        "critical" => "1",
-        "error" => "2",
-        "warning" => "3",
-        "information" => "4",
+        "critical" => 1,
+        "error" => 2,
+        "warning" => 3,
+        "information" => 4,
         _ => null
     };
 

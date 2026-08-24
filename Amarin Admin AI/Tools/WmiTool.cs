@@ -2,6 +2,7 @@ using System.Management;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Management.Infrastructure;
 
 namespace Amarin.Tools;
 
@@ -65,6 +66,45 @@ public sealed class WmiTool : ITool
 
     private static ToolResult Query(string wql)
     {
+        try
+        {
+            return QueryCim(wql);
+        }
+        catch
+        {
+            return QueryDcom(wql);
+        }
+    }
+
+    private static ToolResult QueryCim(string wql)
+    {
+        var sb = new StringBuilder();
+        using var session = CimSession.Create(null);
+        var count = 0;
+        foreach (var instance in session.QueryInstances(@"root\cimv2", "WQL", wql))
+        {
+            using (instance)
+            {
+                if (count++ >= 50)
+                {
+                    sb.AppendLine("… [обрезано]");
+                    break;
+                }
+
+                foreach (var prop in instance.CimInstanceProperties)
+                {
+                    sb.AppendLine($"{prop.Name}: {prop.Value}");
+                }
+
+                sb.AppendLine();
+            }
+        }
+
+        return ToolResult.Ok(sb.Length == 0 ? "Нет данных." : sb.ToString().TrimEnd());
+    }
+
+    private static ToolResult QueryDcom(string wql)
+    {
         var sb = new StringBuilder();
         using var searcher = new ManagementObjectSearcher(wql);
         var count = 0;
@@ -89,29 +129,65 @@ public sealed class WmiTool : ITool
 
     private static ToolResult QueryPrograms(string? filter)
     {
-        var sb = new StringBuilder();
-        using var searcher = new ManagementObjectSearcher("SELECT Name,Version,Vendor,InstallDate FROM Win32_Product");
-        var count = 0;
-        foreach (var obj in searcher.Get())
+        var entries = InstalledProgramsCatalog.Query(filter, max: 80);
+        if (entries.Count == 0)
         {
-            var name = obj["Name"]?.ToString() ?? "";
-            if (filter is not null && !name.Contains(filter, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (count++ >= 80)
-            {
-                break;
-            }
-
-            sb.AppendLine($"{name} | {obj["Version"]} | {obj["Vendor"]}");
+            return ToolResult.Ok("Программы не найдены.");
         }
 
-        return ToolResult.Ok(sb.Length == 0 ? "Программы не найдены." : sb.ToString().TrimEnd());
+        var sb = new StringBuilder();
+        foreach (var entry in entries)
+        {
+            sb.AppendLine($"{entry.Name} | {entry.Version} | {entry.Publisher}");
+        }
+
+        return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
     private static ToolResult QueryDrivers(string? filter)
+    {
+        try
+        {
+            return QueryDriversCim(filter);
+        }
+        catch
+        {
+            return QueryDriversDcom(filter);
+        }
+    }
+
+    private static ToolResult QueryDriversCim(string? filter)
+    {
+        var sb = new StringBuilder();
+        using var session = CimSession.Create(null);
+        var count = 0;
+        foreach (var instance in session.QueryInstances(
+                     @"root\cimv2",
+                     "WQL",
+                     "SELECT DeviceName,DriverVersion,Manufacturer FROM Win32_PnPSignedDriver"))
+        {
+            using (instance)
+            {
+                var name = instance.CimInstanceProperties["DeviceName"]?.Value?.ToString() ?? "";
+                if (filter is not null && !name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (count++ >= 80)
+                {
+                    break;
+                }
+
+                sb.AppendLine(
+                    $"{name} | {instance.CimInstanceProperties["DriverVersion"]?.Value} | {instance.CimInstanceProperties["Manufacturer"]?.Value}");
+            }
+        }
+
+        return ToolResult.Ok(sb.Length == 0 ? "Драйверы не найдены." : sb.ToString().TrimEnd());
+    }
+
+    private static ToolResult QueryDriversDcom(string? filter)
     {
         var sb = new StringBuilder();
         using var searcher = new ManagementObjectSearcher("SELECT DeviceName,DriverVersion,Manufacturer FROM Win32_PnPSignedDriver");

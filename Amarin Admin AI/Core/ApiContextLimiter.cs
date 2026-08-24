@@ -8,7 +8,12 @@ internal static class ApiContextLimiter
 
     public static List<ChatMessage> Prepare(IReadOnlyList<ChatMessage> messages)
     {
-        var prepared = messages.Select(NormalizeMessage).ToList();
+        var prepared = new List<ChatMessage>(messages.Count);
+        for (var i = 0; i < messages.Count; i++)
+        {
+            prepared.Add(NormalizeMessage(messages[i]));
+        }
+
         ReplaceStaleVisionMessages(prepared);
         TruncateToolMessages(prepared);
         return prepared;

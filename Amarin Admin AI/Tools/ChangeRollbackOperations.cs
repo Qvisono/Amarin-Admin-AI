@@ -1,6 +1,8 @@
+using System.Collections.Concurrent;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
@@ -16,6 +18,7 @@ internal static class ChangeRollbackOperations
 
     public static SnapshotResult CreateSnapshot(string label, IReadOnlyList<string>? extraRegistryPaths = null)
     {
+        using var _ = PerfLog.Measure("undo_snapshot");
         string? dir = null;
 
         try
@@ -34,15 +37,6 @@ internal static class ChangeRollbackOperations
                 machine = Environment.MachineName
             }));
 
-            var services = ChangeRollbackStore.CaptureCurrentServices();
-            ChangeRollbackStore.SaveJson(services, Path.Combine(dir, "services.json"));
-
-            var tasks = ChangeRollbackStore.CaptureCurrentScheduledTasks();
-            ChangeRollbackStore.SaveJson(tasks, Path.Combine(dir, "scheduled_tasks.json"));
-
-            var startup = ChangeRollbackStore.CaptureStartupPrograms();
-            ChangeRollbackStore.SaveJson(startup, Path.Combine(dir, "startup_programs.json"));
-
             var regPaths = new List<string>(DefaultRegistryPaths);
             if (extraRegistryPaths is not null)
             {
@@ -51,22 +45,40 @@ internal static class ChangeRollbackOperations
 
             var regDir = Path.Combine(dir, "registry");
             Directory.CreateDirectory(regDir);
-            var regLog = new StringBuilder();
 
-            foreach (var regPath in regPaths.Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                var fileName = regPath.Replace('\\', '_').Replace(':', '_') + ".reg";
-                var outFile = Path.Combine(regDir, fileName);
-                var result = PowerShellHelper.Run($"reg export \"{regPath}\" \"{outFile}\" /y 2>&1");
-                regLog.AppendLine($"{regPath}: {(result.Success ? "ok" : "failed")}");
-            }
+            List<ServiceSnapshotEntry> services = [];
+            List<ScheduledTaskSnapshotEntry> tasks = [];
+            List<StartupProgramSnapshotEntry> startup = [];
+            var regLog = new ConcurrentBag<string>();
+
+            Parallel.Invoke(
+                () => services = ChangeRollbackStore.CaptureCurrentServices(),
+                () => tasks = ChangeRollbackStore.CaptureCurrentScheduledTasks(),
+                () => startup = ChangeRollbackStore.CaptureStartupPrograms(),
+                () =>
+                {
+                    Parallel.ForEach(
+                        regPaths.Distinct(StringComparer.OrdinalIgnoreCase),
+                        regPath =>
+                        {
+                            var fileName = regPath.Replace('\\', '_').Replace(':', '_') + ".reg";
+                            var outFile = Path.Combine(regDir, fileName);
+                            var result = ChangeRollbackStore.ExportRegistryKey(regPath, outFile);
+                            regLog.Add($"{regPath}: {(result.Success ? "ok" : "failed")}");
+                        });
+                });
+
+            ChangeRollbackStore.SaveJson(services, Path.Combine(dir, "services.json"));
+            ChangeRollbackStore.SaveJson(tasks, Path.Combine(dir, "scheduled_tasks.json"));
+            ChangeRollbackStore.SaveJson(startup, Path.Combine(dir, "startup_programs.json"));
 
             ChangeRollbackStore.PruneOldSnapshots();
 
             var message =
                 $"Snapshot created: {id}\nPath: {dir}\n" +
                 $"Services: {services.Count}, Tasks: {tasks.Count}, Startup: {startup.Count}\n" +
-                $"Label: {(string.IsNullOrWhiteSpace(label) ? "(none)" : label)}\nRegistry exports:\n{regLog}";
+                $"Label: {(string.IsNullOrWhiteSpace(label) ? "(none)" : label)}\nRegistry exports:\n" +
+                string.Join(Environment.NewLine, regLog.OrderBy(line => line, StringComparer.OrdinalIgnoreCase));
 
             return new SnapshotResult(true, id, message);
         }
@@ -189,6 +201,7 @@ internal static class ChangeRollbackOperations
 
     public static ToolResult RestoreSnapshot(string snapshotId)
     {
+        using var _ = PerfLog.Measure("undo_restore");
         var dir = ResolveSnapshotDir(snapshotId, out var error);
         if (dir is null)
         {
@@ -221,7 +234,7 @@ internal static class ChangeRollbackOperations
 
             foreach (var regFile in Directory.GetFiles(regDir, "*.reg"))
             {
-                var import = PowerShellHelper.Run($"reg import \"{regFile}\" 2>&1");
+                var import = ChangeRollbackStore.ImportRegistryFile(regFile);
                 if (import.Success)
                 {
                     ok++;

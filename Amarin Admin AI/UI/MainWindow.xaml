@@ -1,0 +1,50 @@
+<Window x:Class="Amarin.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        WindowStyle="ToolWindow"
+        Title="Amarin Admin AI"
+        Height="450"
+        Width="800"
+        WindowStartupLocation="CenterScreen">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome 
+    CornerRadius="18"
+    GlassFrameThickness="1"
+    UseAeroCaptionButtons="False"
+    CaptionHeight="0"
+    ResizeBorderThickness="0" />
+    </shell:WindowChrome.WindowChrome>
+    <Grid>
+        
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="5"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="5"/>
+                <RowDefinition/>
+                <RowDefinition Height="5"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Column="0" Grid.RowSpan="3" Cursor="SizeWE"   Tag="Left"/>
+            <Border Grid.Column="2" Grid.RowSpan="3" Cursor="SizeWE"   Tag="Right"/>
+            <Border Grid.Row="0" Grid.ColumnSpan="3"  Cursor="SizeNS"   Tag="Top"/>
+            <Border Grid.Row="2" Grid.ColumnSpan="3"  Cursor="SizeNS"   Tag="Bottom"/>
+
+            <Border Grid.Row="0" Grid.Column="0" Cursor="SizeNWSE" Tag="TopLeft"/>
+            <Border Grid.Row="0" Grid.Column="2" Cursor="SizeNESW" Tag="TopRight"/>
+            <Border Grid.Row="2" Grid.Column="0" Cursor="SizeNESW" Tag="BottomLeft"/>
+            <Border Grid.Row="2" Grid.Column="2" Cursor="SizeNWSE" Tag="BottomRight"/>
+
+            <Grid.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <EventSetter Event="MouseLeftButtonDown" Handler="ResizeBorder_MouseLeftButtonDown"/>
+                </Style>
+            </Grid.Resources>
+        </Grid>
+    </Grid>
+</Window>

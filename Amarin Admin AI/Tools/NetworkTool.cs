@@ -37,32 +37,32 @@ public sealed class NetworkTool : ITool
         }
         """);
 
-    public Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
+    public async Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
     {
         try
         {
             if (!arguments.TryGetProperty("action", out var actionProp))
             {
-                return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
+                return ToolResult.Fail("Missing required parameter: action");
             }
 
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "adapters" => Task.FromResult(GetAdapters()),
-                "dns" => Task.FromResult(GetDns()),
-                "ping" => Task.FromResult(PingHost(arguments)),
-                "connections" => Task.FromResult(GetConnections()),
-                "firewall_rules" => Task.FromResult(RunNetsh("advfirewall firewall show rule name=all")),
-                "flush_dns" => Task.FromResult(RunCommand("ipconfig", "/flushdns")),
-                "firewall_enable" => Task.FromResult(SetFirewall(arguments, enabled: true)),
-                "firewall_disable" => Task.FromResult(SetFirewall(arguments, enabled: false)),
-                _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
+                "adapters" => GetAdapters(),
+                "dns" => GetDns(),
+                "ping" => await PingHostAsync(arguments, cancellationToken),
+                "connections" => GetConnections(),
+                "firewall_rules" => RunNetsh("advfirewall firewall show rule name=all"),
+                "flush_dns" => RunCommand("ipconfig", "/flushdns"),
+                "firewall_enable" => SetFirewall(arguments, enabled: true),
+                "firewall_disable" => SetFirewall(arguments, enabled: false),
+                _ => ToolResult.Fail($"Unknown action: {action}")
             };
         }
         catch (Exception ex)
         {
-            return Task.FromResult(ToolResult.Fail($"Network error: {ex.Message}"));
+            return ToolResult.Fail($"Network error: {ex.Message}");
         }
     }
 
@@ -87,10 +87,38 @@ public sealed class NetworkTool : ITool
         return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
-    private static ToolResult GetDns() =>
-        RunCommand("ipconfig", "/all");
+    private static ToolResult GetDns()
+    {
+        var sb = new StringBuilder();
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (nic.OperationalStatus != OperationalStatus.Up)
+            {
+                continue;
+            }
 
-    private static ToolResult PingHost(JsonElement arguments)
+            var ip = nic.GetIPProperties();
+            sb.AppendLine($"{nic.Name} | {nic.NetworkInterfaceType}");
+            if (!string.IsNullOrWhiteSpace(ip.DnsSuffix))
+            {
+                sb.AppendLine($"  Suffix: {ip.DnsSuffix}");
+            }
+
+            if (ip.DnsAddresses.Count > 0)
+            {
+                sb.AppendLine($"  DNS: {string.Join(", ", ip.DnsAddresses)}");
+            }
+
+            if (ip.GatewayAddresses.Count > 0)
+            {
+                sb.AppendLine($"  Gateway: {string.Join(", ", ip.GatewayAddresses.Select(g => g.Address))}");
+            }
+        }
+
+        return ToolResult.Ok(sb.Length == 0 ? "Нет активных адаптеров." : sb.ToString().TrimEnd());
+    }
+
+    private static async Task<ToolResult> PingHostAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!arguments.TryGetProperty("host", out var hostProp) ||
             string.IsNullOrWhiteSpace(hostProp.GetString()))
@@ -98,11 +126,85 @@ public sealed class NetworkTool : ITool
             return ToolResult.Fail("host is required for ping");
         }
 
-        return RunCommand("ping", $"-n 4 {hostProp.GetString()}");
+        var host = hostProp.GetString()!.Trim();
+        var sb = new StringBuilder();
+        sb.AppendLine($"Ping {host} (4 packets):");
+
+        using var ping = new Ping();
+        var sent = 0;
+        var received = 0;
+        long totalMs = 0;
+        long minMs = long.MaxValue;
+        long maxMs = 0;
+
+        for (var i = 0; i < 4; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            sent++;
+            try
+            {
+                var reply = await ping.SendPingAsync(host, 4000);
+                if (reply.Status == IPStatus.Success)
+                {
+                    received++;
+                    var ms = reply.RoundtripTime;
+                    totalMs += ms;
+                    if (ms < minMs) minMs = ms;
+                    if (ms > maxMs) maxMs = ms;
+                    var ttl = reply.Options?.Ttl;
+                    sb.AppendLine(ttl is null
+                        ? $"  Reply from {reply.Address}: time={ms}ms"
+                        : $"  Reply from {reply.Address}: time={ms}ms TTL={ttl}");
+                }
+                else
+                {
+                    sb.AppendLine($"  {reply.Status}");
+                }
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"  error: {ex.Message}");
+            }
+        }
+
+        sb.AppendLine($"Sent {sent}, received {received}, lost {sent - received}.");
+        if (received > 0)
+        {
+            sb.AppendLine($"RTT min/avg/max = {minMs}/{totalMs / received}/{maxMs} ms");
+        }
+
+        return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
-    private static ToolResult GetConnections() =>
-        RunCommand("netstat", "-ano");
+    private static ToolResult GetConnections()
+    {
+        var names = NativeNetTable.ProcessNames();
+        var sb = new StringBuilder();
+        sb.AppendLine("Proto Local Remote State PID Process");
+
+        var rows = NativeNetTable.GetTcpRows();
+        rows.AddRange(NativeNetTable.GetUdpRows());
+
+        var written = 0;
+        foreach (var row in rows
+                     .OrderBy(r => r.Protocol)
+                     .ThenBy(r => r.LocalPort)
+                     .ThenBy(r => r.Pid))
+        {
+            var remote = row.Protocol == "UDP"
+                ? "*"
+                : $"{row.RemoteAddress}:{row.RemotePort}";
+            sb.AppendLine(
+                $"{row.Protocol} {row.LocalAddress}:{row.LocalPort} {remote} {row.State} {row.Pid} {NativeNetTable.LookupProcess(names, row.Pid)}");
+            if (++written >= 400)
+            {
+                sb.AppendLine("… [обрезано]");
+                break;
+            }
+        }
+
+        return ToolResult.Ok(written == 0 ? "Нет соединений." : Truncate(sb.ToString().TrimEnd(), 16_000));
+    }
 
     private static ToolResult SetFirewall(JsonElement arguments, bool enabled)
     {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Amarin.Core;
@@ -32,25 +33,38 @@ public sealed class ToolRegistry
     };
 
     private readonly Dictionary<string, ITool> _tools;
+    private readonly ITool[] _all;
+    private readonly List<ToolDefinition> _definitions;
 
     public ToolRegistry(IEnumerable<ITool> tools)
     {
         _tools = tools.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+        _all = [.. _tools.Values];
+        _definitions = BuildDefinitions(_all);
     }
 
-    public IReadOnlyList<ITool> All => _tools.Values.ToList();
+    public IReadOnlyList<ITool> All => _all;
 
-    public List<ToolDefinition> GetDefinitions()
+    public List<ToolDefinition> GetDefinitions() => [.. _definitions];
+
+    private static List<ToolDefinition> BuildDefinitions(IReadOnlyList<ITool> tools)
     {
-        return All.Select(tool => new ToolDefinition
+        using var _ = PerfLog.Measure("tool_definitions");
+        var definitions = new List<ToolDefinition>(tools.Count);
+        foreach (var tool in tools)
         {
-            Function = new FunctionDefinition
+            definitions.Add(new ToolDefinition
             {
-                Name = tool.Name,
-                Description = tool.Description,
-                Parameters = EnrichSchemaWithExplanation(tool.Name, tool.ParametersSchema)
-            }
-        }).ToList();
+                Function = new FunctionDefinition
+                {
+                    Name = tool.Name,
+                    Description = tool.Description,
+                    Parameters = EnrichSchemaWithExplanation(tool.Name, tool.ParametersSchema)
+                }
+            });
+        }
+
+        return definitions;
     }
 
     /// <summary>
@@ -105,6 +119,19 @@ public sealed class ToolRegistry
             return ToolResult.Fail($"Unknown tool: {name}");
         }
 
-        return await tool.ExecuteAsync(arguments, cancellationToken);
+        if (!PerfLog.IsEnabled)
+        {
+            return await tool.ExecuteAsync(arguments, cancellationToken);
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            return await tool.ExecuteAsync(arguments, cancellationToken);
+        }
+        finally
+        {
+            PerfLog.Write($"tool {name} {stopwatch.ElapsedMilliseconds}ms");
+        }
     }
 }

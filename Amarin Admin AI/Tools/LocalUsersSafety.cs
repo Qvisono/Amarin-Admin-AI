@@ -13,16 +13,20 @@ namespace Amarin.Tools;
 /// Hard blocks are evaluated before confirm and before mutation.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal static class LocalUsersSafety
+internal static partial class LocalUsersSafety
 {
     // Unicode letters + digits + common SAM punctuation; no shell metacharacters.
-    private static readonly Regex AccountNamePattern = new(
-        @"^[\p{L}\p{N} ._\-$]{1,64}$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^[\p{L}\p{N} ._\-$]{1,64}$")]
+    private static partial Regex AccountNamePattern();
 
-    private static readonly Regex DangerousChars = new(
-        @"[;|&`$()""'\r\n<>]",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"Name\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase)]
+    private static partial Regex WmiNamePattern();
+
+    [GeneratedRegex(@"Domain\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase)]
+    private static partial Regex WmiDomainPattern();
+
+    [GeneratedRegex(@"[;|&`$()""'\r\n<>]")]
+    private static partial Regex DangerousChars();
 
     /// <summary>Well-known BUILTIN\Administrators — S-1-5-32-544.</summary>
     public static SecurityIdentifier BuiltinAdministratorsSid { get; } =
@@ -60,7 +64,7 @@ internal static class LocalUsersSafety
         }
 
         var name = raw.Trim();
-        if (DangerousChars.IsMatch(name))
+        if (DangerousChars().IsMatch(name))
         {
             error = "name contains forbidden characters (; | & ` $ ( ) quotes, newlines)";
             return false;
@@ -71,7 +75,7 @@ internal static class LocalUsersSafety
             ? name[(name.LastIndexOf('\\') + 1)..]
             : name;
 
-        if (local.Length is 0 or > 64 || !AccountNamePattern.IsMatch(local))
+        if (local.Length is 0 or > 64 || !AccountNamePattern().IsMatch(local))
         {
             error =
                 "name invalid. Allowed: Unicode letters/digits, space, . _ - $ (max 64). " +
@@ -83,7 +87,7 @@ internal static class LocalUsersSafety
         if (name.Contains('\\', StringComparison.Ordinal))
         {
             var domain = name[..name.LastIndexOf('\\')];
-            if (domain.Length > 0 && (DangerousChars.IsMatch(domain) || domain.Length > 64))
+            if (domain.Length > 0 && (DangerousChars().IsMatch(domain) || domain.Length > 64))
             {
                 error = "domain part of name is invalid";
                 return false;
@@ -319,13 +323,13 @@ internal static class LocalUsersSafety
 
     private static string ExtractWmiName(string partComponent)
     {
-        var m = Regex.Match(partComponent, @"Name\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase);
+        var m = WmiNamePattern().Match(partComponent);
         return m.Success ? m.Groups[1].Value : "";
     }
 
     private static string ExtractWmiDomain(string partComponent)
     {
-        var m = Regex.Match(partComponent, @"Domain\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase);
+        var m = WmiDomainPattern().Match(partComponent);
         return m.Success ? m.Groups[1].Value : "";
     }
 

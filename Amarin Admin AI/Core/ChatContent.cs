@@ -6,7 +6,7 @@ namespace Amarin.Core;
 internal static class ChatContent
 {
     public static JsonElement Text(string value) =>
-        JsonSerializer.SerializeToElement(value);
+        JsonSerializer.SerializeToElement(value, VeniceJsonContext.Default.String);
 
     public static JsonElement Vision(string prompt, string base64, string mimeType = "image/png") =>
         VisionMultiple(prompt, [new Tools.ImageAttachment(base64, mimeType)]);

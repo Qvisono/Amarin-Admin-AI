@@ -1,17 +1,12 @@
+using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace Amarin.Core;
 
 public sealed class VeniceClient
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
-
     private readonly HttpClient _http;
     private readonly AgentOptions _options;
     private string _primaryModel;
@@ -105,36 +100,50 @@ public sealed class VeniceClient
         bool prepareMessages,
         CancellationToken cancellationToken)
     {
-        var json = await Task.Run(() =>
+        var payload = prepareMessages
+            ? new ChatCompletionRequest
+            {
+                Model = model,
+                Messages = ApiContextLimiter.Prepare(request.Messages),
+                Tools = request.Tools,
+                ToolChoice = request.ToolChoice,
+                Temperature = request.Temperature,
+                VeniceParameters = request.VeniceParameters
+            }
+            : new ChatCompletionRequest
+            {
+                Model = model,
+                Messages = request.Messages,
+                Tools = request.Tools,
+                ToolChoice = request.ToolChoice,
+                Temperature = request.Temperature,
+                VeniceParameters = request.VeniceParameters
+            };
+
+        var serializeWatch = Stopwatch.StartNew();
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, VeniceJsonContext.Default.ChatCompletionRequest);
+        var serializeMs = serializeWatch.ElapsedMilliseconds;
+
+        using var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
         {
-            var payload = prepareMessages
-                ? new ChatCompletionRequest
-                {
-                    Model = model,
-                    Messages = ApiContextLimiter.Prepare(request.Messages),
-                    Tools = request.Tools,
-                    ToolChoice = request.ToolChoice,
-                    Temperature = request.Temperature,
-                    VeniceParameters = request.VeniceParameters
-                }
-                : new ChatCompletionRequest
-                {
-                    Model = model,
-                    Messages = request.Messages,
-                    Tools = request.Tools,
-                    ToolChoice = request.ToolChoice,
-                    Temperature = request.Temperature,
-                    VeniceParameters = request.VeniceParameters
-                };
+            Content = content,
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+        };
 
-            return JsonSerializer.Serialize(payload, JsonOptions);
-        }, cancellationToken).ConfigureAwait(false);
-
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        using var response = await _http.PostAsync("chat/completions", content, cancellationToken)
+        var httpWatch = Stopwatch.StartNew();
+        using var response = await _http.SendAsync(
+                httpRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken)
             .ConfigureAwait(false);
+        var httpMs = httpWatch.ElapsedMilliseconds;
         UpdateBalanceFromHeaders(response);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        PerfLog.Write(
+            $"venice serialize_ms={serializeMs} http_ms={httpMs} status={(int)response.StatusCode} model={model}");
 
         if (!response.IsSuccessStatusCode)
         {
@@ -145,7 +154,7 @@ public sealed class VeniceClient
         ChatCompletionResponse result;
         try
         {
-            result = JsonSerializer.Deserialize<ChatCompletionResponse>(body, JsonOptions)
+            result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.ChatCompletionResponse)
                 ?? throw new VeniceApiException("Empty response from Venice API.");
         }
         catch (JsonException ex)
@@ -180,9 +189,21 @@ public sealed class VeniceClient
 
     public async Task<string> ScrapeUrlAsync(string url, CancellationToken cancellationToken = default)
     {
-        var json = JsonSerializer.Serialize(new { url }, JsonOptions);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        using var response = await _http.PostAsync("augment/scrape", content, cancellationToken);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            new ScrapeUrlRequest { Url = url },
+            VeniceJsonContext.Default.ScrapeUrlRequest);
+        using var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "augment/scrape")
+        {
+            Content = content,
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+        };
+        using var response = await _http.SendAsync(
+            httpRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
         UpdateBalanceFromHeaders(response);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -270,7 +291,7 @@ public sealed class VeniceClient
     {
         try
         {
-            var error = JsonSerializer.Deserialize<ChatCompletionResponse>(body, JsonOptions);
+            var error = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.ChatCompletionResponse);
             if (!string.IsNullOrWhiteSpace(error?.Error?.Message))
             {
                 return error.Error.Message;

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Amarin.Core;
@@ -126,22 +127,28 @@ public sealed class WebDownloadTool : ITool
             await using var file = File.Create(destination);
             using var hasher = verifyHash ? SHA256.Create() : null;
 
-            var buffer = new byte[CopyBufferSize];
+            var buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
             long total = 0;
-            int read;
-
-            while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0)
+            try
             {
-                total += read;
-                if (total > maxBytes)
+                int read;
+                while ((read = await stream.ReadAsync(buffer.AsMemory(0, CopyBufferSize), cancellationToken)) > 0)
                 {
-                    await file.DisposeAsync();
-                    File.Delete(destination);
-                    return ToolResult.Fail($"Download exceeded size limit ({maxBytes} bytes).");
-                }
+                    total += read;
+                    if (total > maxBytes)
+                    {
+                        await file.DisposeAsync();
+                        File.Delete(destination);
+                        return ToolResult.Fail($"Download exceeded size limit ({maxBytes} bytes).");
+                    }
 
-                hasher?.TransformBlock(buffer, 0, read, null, 0);
-                await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    hasher?.TransformBlock(buffer, 0, read, null, 0);
+                    await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             hasher?.TransformFinalBlock([], 0, 0);

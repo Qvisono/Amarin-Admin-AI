@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +10,7 @@ namespace Amarin.Tools;
 /// Disk space analysis and safe cleanup of fixed categories only (never arbitrary paths on cleanup).
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed class DiskSpaceTool : ITool
+public sealed partial class DiskSpaceTool : ITool
 {
     private static readonly HashSet<string> AllowedCategories = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -20,10 +21,8 @@ public sealed class DiskSpaceTool : ITool
         "thumbnails"
     };
 
-    // Path for largest_items only — basic safety (no free-form command injection).
-    private static readonly Regex SafePathChars = new(
-        @"^[A-Za-z]:\\(?:[^<>:""|?*\x00-\x1F]+\\)*[^<>:""|?*\x00-\x1F]*$",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"^[A-Za-z]:\\(?:[^<>:""|?*\x00-\x1F]+\\)*[^<>:""|?*\x00-\x1F]*$")]
+    private static partial Regex SafePathChars();
 
     public string Name => "disk_space";
 
@@ -76,7 +75,7 @@ public sealed class DiskSpaceTool : ITool
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "analyze" => Task.FromResult(PowerShellHelper.Run(AnalyzeScript(), 180, maxOutput: 4000)),
+                "analyze" => Task.FromResult(Analyze()),
                 "largest_items" => Task.FromResult(LargestItems(arguments)),
                 "cleanup" => Task.FromResult(Cleanup(arguments)),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
@@ -122,7 +121,7 @@ public sealed class DiskSpaceTool : ITool
             path.Contains('`', StringComparison.Ordinal) ||
             path.Contains('\n') ||
             path.Contains('\r') ||
-            !SafePathChars.IsMatch(path.TrimEnd('\\')))
+            !SafePathChars().IsMatch(path.TrimEnd('\\')))
         {
             // Allow root like C:\
             var isRoot = path.Length is 3 && path[1] == ':' && path[2] == '\\';
@@ -133,9 +132,262 @@ public sealed class DiskSpaceTool : ITool
         }
 
         var top = GetInt(arguments, "top", 20, 1, 50);
-        var safePath = path.Replace("'", "''", StringComparison.Ordinal);
-        return PowerShellHelper.Run(LargestItemsScript(safePath, top), 180, maxOutput: 4000);
+        return LargestItemsScan(path, top);
     }
+
+    private static ToolResult Analyze()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== Volumes (free / used) ===");
+        sb.AppendLine("Drive Letter Label Format SizeGB FreeGB UsedGB UsedPct");
+        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
+        {
+            try
+            {
+                var total = drive.TotalSize;
+                var free = drive.AvailableFreeSpace;
+                var used = total - free;
+                var pct = total > 0 ? 100.0 * used / total : 0;
+                sb.AppendLine(
+                    $"{drive.Name.TrimEnd('\\')} {drive.DriveType} {drive.VolumeLabel} {drive.DriveFormat} " +
+                    $"{Gb(total):0.##} {Gb(free):0.##} {Gb(used):0.##} {pct:0.#}");
+            }
+            catch
+            {
+                // skip
+            }
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("=== Common reclaimable locations (GB) ===");
+        sb.AppendLine("Location Path SizeGB");
+
+        var tempUser = Environment.GetEnvironmentVariable("TEMP")
+                       ?? Environment.GetEnvironmentVariable("TMP")
+                       ?? "";
+        var winTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
+        var wuCache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"SoftwareDistribution\Download");
+        var minidump = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Minidump");
+        var memdump = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "MEMORY.DMP");
+        var thumb = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            @"Microsoft\Windows\Explorer");
+
+        AppendLocation(sb, "RecycleBin", @"shell:RecycleBinFolder", RecycleBinBytes());
+        AppendLocation(sb, "UserTemp", tempUser, DirSizeBytes(tempUser, 5_000));
+        AppendLocation(sb, "WindowsTemp", winTemp, DirSizeBytes(winTemp, 5_000));
+        AppendLocation(sb, "WindowsUpdateCache", wuCache, DirSizeBytes(wuCache, 8_000));
+        AppendLocation(sb, "Minidump", minidump, DirSizeBytes(minidump, 2_000));
+        AppendLocation(sb, "MemoryDmp", memdump, FileSizeBytes(memdump));
+        AppendLocation(sb, "Thumbnails", thumb, ThumbCacheBytes(thumb));
+
+        sb.AppendLine();
+        sb.AppendLine("cleanup categories: recycle_bin, temp_files, windows_update_cache, memory_dumps, thumbnails");
+        return ToolResult.Ok(Truncate(sb.ToString().TrimEnd(), 4000));
+    }
+
+    private static ToolResult LargestItemsScan(string path, int top)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"=== largest_items under: {path} (top {top}, depth<=4, timeout ~90s) ===");
+
+        var deadline = DateTime.UtcNow.AddSeconds(90);
+        var items = new List<(string Kind, string Path, long Size, string Note)>();
+        var queue = new Queue<(string Path, int Depth)>();
+        queue.Enqueue((path, 0));
+
+        if (File.Exists(path) && !Directory.Exists(path))
+        {
+            try
+            {
+                items.Add(("file", path, new FileInfo(path).Length, ""));
+            }
+            catch
+            {
+                // skip
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                sb.AppendLine("Scan time limit reached; results may be partial.");
+                break;
+            }
+
+            var (current, depth) = queue.Dequeue();
+            DirectoryInfo dirInfo;
+            try
+            {
+                dirInfo = new DirectoryInfo(current);
+                if (!dirInfo.Exists)
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            try
+            {
+                foreach (var entry in dirInfo.EnumerateFileSystemInfos())
+                {
+                    if (DateTime.UtcNow > deadline)
+                    {
+                        break;
+                    }
+
+                    try
+                    {
+                        if (entry is DirectoryInfo sub)
+                        {
+                            long size = 0;
+                            try
+                            {
+                                size = sub.EnumerateFiles().Sum(f =>
+                                {
+                                    try { return f.Length; }
+                                    catch { return 0L; }
+                                });
+                            }
+                            catch
+                            {
+                                size = 0;
+                            }
+
+                            items.Add(("dir", sub.FullName, size, "immediate-files-only"));
+                            if (depth + 1 <= 4)
+                            {
+                                queue.Enqueue((sub.FullName, depth + 1));
+                            }
+                        }
+                        else if (entry is FileInfo file)
+                        {
+                            items.Add(("file", file.FullName, file.Length, ""));
+                        }
+                    }
+                    catch
+                    {
+                        // skip entry
+                    }
+                }
+            }
+            catch
+            {
+                // skip directory
+            }
+        }
+
+        foreach (var item in items.OrderByDescending(i => i.Size).Take(top))
+        {
+            sb.AppendLine(
+                $"{item.Kind} {item.Size / (1024.0 * 1024.0):0.#} MB {Gb(item.Size):0.###} GB {item.Path} {item.Note}");
+        }
+
+        sb.AppendLine($"Items scanned (listed): {items.Count}");
+        return ToolResult.Ok(Truncate(sb.ToString().TrimEnd(), 4000));
+    }
+
+    private static void AppendLocation(StringBuilder sb, string name, string path, long? bytes)
+    {
+        var size = bytes is null ? "n/a" : Gb(bytes.Value).ToString("0.###");
+        sb.AppendLine($"{name} {path} {size}");
+    }
+
+    private static long? RecycleBinBytes()
+    {
+        long total = 0;
+        var any = false;
+        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady && d.DriveType == DriveType.Fixed))
+        {
+            var rb = Path.Combine(drive.Name, "$Recycle.Bin");
+            var size = DirSizeBytes(rb, 3_000);
+            if (size is null)
+            {
+                continue;
+            }
+
+            any = true;
+            total += size.Value;
+        }
+
+        return any ? total : null;
+    }
+
+    private static long? ThumbCacheBytes(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            return new DirectoryInfo(path)
+                .EnumerateFiles("thumbcache_*.db")
+                .Sum(f => f.Length);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static long? FileSizeBytes(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? new FileInfo(path).Length : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static long? DirSizeBytes(string path, int timeoutMs)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            return null;
+        }
+
+        var sw = Stopwatch.StartNew();
+        long sum = 0;
+        try
+        {
+            foreach (var file in new DirectoryInfo(path).EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                if (sw.ElapsedMilliseconds > timeoutMs)
+                {
+                    return sum;
+                }
+
+                try
+                {
+                    sum += file.Length;
+                }
+                catch
+                {
+                    // skip locked
+                }
+            }
+        }
+        catch
+        {
+            return sum;
+        }
+
+        return sum;
+    }
+
+    private static double Gb(long bytes) => bytes / 1073741824.0;
+
+    private static string Truncate(string text, int max) =>
+        text.Length <= max ? text : text[..max] + "\n... [truncated]";
 
     private static ToolResult Cleanup(JsonElement arguments)
     {
@@ -185,171 +437,6 @@ public sealed class DiskSpaceTool : ITool
 
         return list;
     }
-
-    private static string AnalyzeScript() => """
-        Write-Output '=== Volumes (free / used) ==='
-        Get-Volume -ErrorAction SilentlyContinue |
-          Where-Object { $_.DriveType -eq 'Fixed' -or $_.DriveLetter } |
-          Select-Object DriveLetter, FileSystemLabel, FileSystem,
-            @{n='SizeGB';e={ if ($_.Size) { [math]::Round($_.Size/1GB, 2) } else { $null } }},
-            @{n='FreeGB';e={ if ($_.SizeRemaining) { [math]::Round($_.SizeRemaining/1GB, 2) } else { $null } }},
-            @{n='UsedGB';e={
-              if ($_.Size -and $null -ne $_.SizeRemaining) {
-                [math]::Round(($_.Size - $_.SizeRemaining)/1GB, 2)
-              } else { $null }
-            }},
-            @{n='UsedPct';e={
-              if ($_.Size -and $_.Size -gt 0) {
-                [math]::Round(100.0 * ($_.Size - $_.SizeRemaining) / $_.Size, 1)
-              } else { $null }
-            }} |
-          Sort-Object DriveLetter |
-          Format-Table -AutoSize | Out-String -Width 200
-
-        function Get-DirSizeGB([string]$p) {
-          if (-not $p -or -not (Test-Path -LiteralPath $p)) { return $null }
-          try {
-            $sum = (Get-ChildItem -LiteralPath $p -Force -Recurse -ErrorAction SilentlyContinue |
-              Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
-            if ($null -eq $sum) { return 0 }
-            return [math]::Round([double]$sum / 1GB, 3)
-          } catch { return $null }
-        }
-
-        function Get-FileSizeGB([string]$p) {
-          if (-not $p -or -not (Test-Path -LiteralPath $p)) { return $null }
-          try {
-            $len = (Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue).Length
-            return [math]::Round([double]$len / 1GB, 3)
-          } catch { return $null }
-        }
-
-        $tempUser = [Environment]::GetEnvironmentVariable('TEMP')
-        if (-not $tempUser) { $tempUser = [Environment]::GetEnvironmentVariable('TMP') }
-        $winTemp = Join-Path $env:WINDIR 'Temp'
-        $wuCache = Join-Path $env:WINDIR 'SoftwareDistribution\Download'
-        $minidump = Join-Path $env:WINDIR 'Minidump'
-        $memdump = Join-Path $env:WINDIR 'MEMORY.DMP'
-
-        Write-Output '=== Common reclaimable locations (GB) ==='
-        $rows = @()
-
-        # Recycle Bin approximate size via Shell.Application
-        $rbGb = $null
-        try {
-          $shell = New-Object -ComObject Shell.Application
-          $rb = $shell.NameSpace(0x0a)
-          if ($rb) {
-            $sum = 0L
-            foreach ($i in @($rb.Items())) {
-              try {
-                $sz = $i.Size
-                if ($sz) { $sum += [int64]$sz }
-              } catch {}
-            }
-            $rbGb = [math]::Round($sum / 1GB, 3)
-          }
-        } catch {}
-        $rows += [PSCustomObject]@{ Location = 'RecycleBin'; Path = 'shell:RecycleBinFolder'; SizeGB = $rbGb }
-
-        $rows += [PSCustomObject]@{ Location = 'UserTemp'; Path = $tempUser; SizeGB = (Get-DirSizeGB $tempUser) }
-        $rows += [PSCustomObject]@{ Location = 'WindowsTemp'; Path = $winTemp; SizeGB = (Get-DirSizeGB $winTemp) }
-        $rows += [PSCustomObject]@{ Location = 'WindowsUpdateCache'; Path = $wuCache; SizeGB = (Get-DirSizeGB $wuCache) }
-        $rows += [PSCustomObject]@{ Location = 'Minidump'; Path = $minidump; SizeGB = (Get-DirSizeGB $minidump) }
-        $rows += [PSCustomObject]@{ Location = 'MemoryDmp'; Path = $memdump; SizeGB = (Get-FileSizeGB $memdump) }
-
-        $thumb = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Explorer'
-        $thumbSize = $null
-        if (Test-Path -LiteralPath $thumb) {
-          try {
-            $sum = (Get-ChildItem -LiteralPath $thumb -Force -Filter 'thumbcache_*.db' -ErrorAction SilentlyContinue |
-              Measure-Object -Property Length -Sum).Sum
-            $thumbSize = if ($null -eq $sum) { 0 } else { [math]::Round([double]$sum / 1GB, 3) }
-          } catch {}
-        }
-        $rows += [PSCustomObject]@{ Location = 'Thumbnails'; Path = $thumb; SizeGB = $thumbSize }
-
-        $rows | Format-Table -AutoSize | Out-String -Width 200
-        Write-Output 'cleanup categories: recycle_bin, temp_files, windows_update_cache, memory_dumps, thumbnails'
-        exit 0
-        """;
-
-    private static string LargestItemsScript(string safePath, int top) => $$"""
-        $root = '{{safePath}}'
-        $topN = {{top}}
-        $maxDepth = 4
-        $deadline = (Get-Date).AddSeconds(90)
-
-        Write-Output "=== largest_items under: $root (top $topN, depth<=$maxDepth, timeout ~90s) ==="
-        if (-not (Test-Path -LiteralPath $root)) {
-          Write-Output "Path not found: $root"
-          exit 1
-        }
-
-        $items = New-Object System.Collections.Generic.List[object]
-        $queue = New-Object System.Collections.Generic.Queue[object]
-        $queue.Enqueue([PSCustomObject]@{ Path = $root; Depth = 0 })
-
-        while ($queue.Count -gt 0) {
-          if ((Get-Date) -gt $deadline) {
-            Write-Output 'Scan time limit reached; results may be partial.'
-            break
-          }
-          $cur = $queue.Dequeue()
-          $p = $cur.Path
-          $depth = [int]$cur.Depth
-          try {
-            $entries = Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue
-          } catch { continue }
-
-          foreach ($e in $entries) {
-            if ((Get-Date) -gt $deadline) { break }
-            try {
-              if ($e.PSIsContainer) {
-                $size = $null
-                # immediate children size only (fast approx) + recurse for top dirs
-                try {
-                  $size = (Get-ChildItem -LiteralPath $e.FullName -Force -File -ErrorAction SilentlyContinue |
-                    Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
-                  if ($null -eq $size) { $size = 0 }
-                } catch { $size = 0 }
-                $items.Add([PSCustomObject]@{
-                  Kind = 'dir'
-                  Path = $e.FullName
-                  SizeBytes = [int64]$size
-                  Note = 'immediate-files-only'
-                })
-                if ($depth + 1 -le $maxDepth) {
-                  $queue.Enqueue([PSCustomObject]@{ Path = $e.FullName; Depth = $depth + 1 })
-                }
-              } else {
-                $items.Add([PSCustomObject]@{
-                  Kind = 'file'
-                  Path = $e.FullName
-                  SizeBytes = [int64]$e.Length
-                  Note = ''
-                })
-              }
-            } catch {}
-          }
-        }
-
-        $topItems = $items | Sort-Object SizeBytes -Descending | Select-Object -First $topN
-        $topItems | ForEach-Object {
-          $gb = [math]::Round($_.SizeBytes / 1GB, 3)
-          $mb = [math]::Round($_.SizeBytes / 1MB, 1)
-          [PSCustomObject]@{
-            Kind = $_.Kind
-            SizeMB = $mb
-            SizeGB = $gb
-            Path = $_.Path
-            Note = $_.Note
-          }
-        } | Format-Table -AutoSize -Wrap | Out-String -Width 200
-
-        Write-Output "Items scanned (listed): $($items.Count)"
-        exit 0
-        """;
 
     private static string CleanupScript(string categoriesCsv) => $$"""
         # categories is a fixed whitelist from C# — never free-form paths from the model.

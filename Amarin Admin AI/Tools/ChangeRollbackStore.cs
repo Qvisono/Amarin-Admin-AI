@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32;
 
 namespace Amarin.Tools;
 
@@ -41,14 +43,28 @@ internal static class ChangeRollbackStore
 
     public static List<ServiceSnapshotEntry> CaptureCurrentServices()
     {
-        var result = PowerShellHelper.Run(
-            "Get-Service | Select-Object Name, Status, StartType | ConvertTo-Json -Depth 3 -Compress");
-        if (!result.Success)
+        var result = new List<ServiceSnapshotEntry>();
+        foreach (var service in ServiceController.GetServices())
         {
-            return [];
+            using (service)
+            {
+                try
+                {
+                    result.Add(new ServiceSnapshotEntry
+                    {
+                        Name = service.ServiceName,
+                        Status = service.Status.ToString(),
+                        StartType = service.StartType.ToString()
+                    });
+                }
+                catch
+                {
+                    // inaccessible service
+                }
+            }
         }
 
-        return DeserializeList<ServiceSnapshotEntry>(PowerShellHelper.ExtractStdout(result.Output));
+        return result;
     }
 
     public static string CompareServices(IReadOnlyList<ServiceSnapshotEntry> old, IReadOnlyList<ServiceSnapshotEntry> current)
@@ -88,22 +104,21 @@ internal static class ChangeRollbackStore
             {
                 using var service = new ServiceController(item.Name);
 
-                if (!Enum.TryParse<ServiceStartMode>(item.StartType, true, out _))
+                if (!Enum.TryParse<ServiceStartMode>(item.StartType, true, out var startMode))
                 {
                     skipped++;
                     sb.AppendLine($"SKIP {item.Name}: неизвестный StartType {item.StartType}");
                     continue;
                 }
 
-                var setType = PowerShellHelper.Run(
-                    $"Set-Service -Name '{item.Name.Replace("'", "''", StringComparison.Ordinal)}' " +
-                    $"-StartupType {item.StartType} -ErrorAction Stop");
-                if (!setType.Success)
+                if (!TrySetServiceStartType(item.Name, startMode, out _))
                 {
                     failed++;
                     sb.AppendLine($"FAIL {item.Name}: не удалось установить StartType");
                     continue;
                 }
+
+                service.Refresh();
 
                 if (item.Status.Equals("Running", StringComparison.OrdinalIgnoreCase) &&
                     service.Status != ServiceControllerStatus.Running)
@@ -189,7 +204,7 @@ internal static class ChangeRollbackStore
                 ? "/disable"
                 : "/enable";
 
-            var result = PowerShellHelper.Run($"schtasks {action} /tn \"{fullName}\" 2>&1", 60);
+            var result = RunNative("schtasks.exe", $"{action} /tn \"{fullName}\"", 60);
             if (result.Success)
             {
                 ok++;
@@ -377,6 +392,95 @@ internal static class ChangeRollbackStore
 
         var start = text.IndexOfAny(['[', '{']);
         return start < 0 ? string.Empty : text[start..].TrimEnd();
+    }
+
+    internal static ToolResult ExportRegistryKey(string regPath, string outFile) =>
+        RunNative("reg.exe", $"export \"{regPath}\" \"{outFile}\" /y", 120);
+
+    internal static ToolResult ImportRegistryFile(string regFile) =>
+        RunNative("reg.exe", $"import \"{regFile}\"", 120);
+
+    private static bool TrySetServiceStartType(string serviceName, ServiceStartMode mode, out string? error)
+    {
+        error = null;
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(
+                $@"SYSTEM\CurrentControlSet\Services\{serviceName}",
+                writable: true);
+            if (key is null)
+            {
+                error = "не удалось открыть ключ службы";
+                return false;
+            }
+
+            var startValue = mode switch
+            {
+                ServiceStartMode.Boot => 0,
+                ServiceStartMode.System => 1,
+                ServiceStartMode.Automatic => 2,
+                ServiceStartMode.Manual => 3,
+                ServiceStartMode.Disabled => 4,
+                _ => 2
+            };
+
+            key.SetValue("Start", startValue, RegistryValueKind.DWord);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    private static ToolResult RunNative(string fileName, string arguments, int timeoutSeconds)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        try
+        {
+            using var process = Process.Start(psi);
+            if (process is null)
+            {
+                return ToolResult.Fail($"Не удалось запустить {fileName}.");
+            }
+
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(TimeSpan.FromSeconds(timeoutSeconds)))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                return ToolResult.Fail($"{fileName} timed out after {timeoutSeconds} seconds.");
+            }
+
+            var stdout = stdoutTask.GetAwaiter().GetResult();
+            var stderr = stderrTask.GetAwaiter().GetResult();
+            var output = string.IsNullOrWhiteSpace(stdout) ? stderr : stdout;
+            return process.ExitCode == 0
+                ? ToolResult.Ok(output)
+                : ToolResult.Fail(string.IsNullOrWhiteSpace(output) ? $"{fileName} exit {process.ExitCode}" : output);
+        }
+        catch (Exception ex)
+        {
+            return ToolResult.Fail($"{fileName}: {ex.Message}");
+        }
     }
 
     private static string Truncate(string text, int max) =>

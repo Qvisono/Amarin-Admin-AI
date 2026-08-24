@@ -319,8 +319,14 @@ public static class SessionReportExporter
         return sb.ToString();
     }
 
+    private static void EnsurePdfFonts()
+    {
+        PdfSharp.Fonts.GlobalFontSettings.UseWindowsFontsUnderWindows = true;
+    }
+
     private static void BuildPdf(ReportContext context, string path)
     {
+        EnsurePdfFonts();
         var document = new PdfDocument();
         document.Info.Title = "Amarin Admin AI Report";
         document.Info.Author = "Amarin Admin AI";

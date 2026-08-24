@@ -33,10 +33,7 @@ internal static class ConsoleInputRestore
         }
     }
 
-    public static Task<T> RunWithSpinnerAsync<T>(string message, Func<Task<T>> action) =>
-        Task.FromResult(RunWithSpinner(message, action));
-
-    public static T RunWithSpinner<T>(string message, Func<Task<T>> action)
+    public static async Task<T> RunWithSpinnerAsync<T>(string message, Func<Task<T>> action)
     {
         Restore();
         Console.Out.Flush();
@@ -44,23 +41,24 @@ internal static class ConsoleInputRestore
         var work = Task.Run(action);
         var frame = 0;
 
-        void Tick()
-        {
-            WriteSpinnerLine(message, SpinnerFrames[frame++ % SpinnerFrames.Length]);
-        }
-
         try
         {
             Console.CursorVisible = false;
-            Tick();
+            WriteSpinnerLine(message, SpinnerFrames[0]);
 
             while (!work.IsCompleted)
             {
-                Thread.Sleep(40);
-                Tick();
+                await Task.WhenAny(work, Task.Delay(40)).ConfigureAwait(false);
+                if (work.IsCompleted)
+                {
+                    break;
+                }
+
+                frame++;
+                WriteSpinnerLine(message, SpinnerFrames[frame % SpinnerFrames.Length]);
             }
 
-            return work.GetAwaiter().GetResult();
+            return await work.ConfigureAwait(false);
         }
         finally
         {

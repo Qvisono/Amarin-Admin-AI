@@ -3,7 +3,6 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Win32;
 
 namespace Amarin.Tools;
 
@@ -12,16 +11,20 @@ namespace Amarin.Tools;
 /// Does not use Win32_Product.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed class SoftwareInventoryTool : ITool
+public sealed partial class SoftwareInventoryTool : ITool
 {
-    private static readonly Regex PackageIdPattern = new(
-        @"^[A-Za-z0-9 ._+-]+$",
-        RegexOptions.Compiled);
+    private static string? _wingetPath;
+    private static string? _wingetFailMessage;
+    private static int _wingetState;
 
-    // Free-text query for winget search only — no shell metacharacters.
-    private static readonly Regex QuerySafePattern = new(
-        @"^[\w .+\-@#()/\\,:&']{1,120}$",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"^[A-Za-z0-9 ._+-]+$")]
+    private static partial Regex PackageIdPattern();
+
+    [GeneratedRegex(@"^[\w .+\-@#()/\\,:&']{1,120}$")]
+    private static partial Regex QuerySafePattern();
+
+    [GeneratedRegex(@"\x1B\[[0-9;]*[A-Za-z]")]
+    private static partial Regex AnsiEscape();
 
     public string Name => "software_inventory";
 
@@ -69,10 +72,10 @@ public sealed class SoftwareInventoryTool : ITool
                 "list_installed" => Task.FromResult(ListInstalled(arguments)),
                 "search" => Task.FromResult(WingetSearch(arguments)),
                 "list_upgrades" => Task.FromResult(WingetListUpgrades()),
-                "install" => Task.FromResult(WingetMutate("install", arguments)),
-                "upgrade" => Task.FromResult(WingetMutate("upgrade", arguments)),
-                "upgrade_all" => Task.FromResult(WingetUpgradeAll()),
-                "uninstall" => Task.FromResult(WingetMutate("uninstall", arguments)),
+                "install" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("install", arguments))),
+                "upgrade" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("upgrade", arguments))),
+                "upgrade_all" => Task.FromResult(MutateAndInvalidate(WingetUpgradeAll)),
+                "uninstall" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("uninstall", arguments))),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -92,32 +95,7 @@ public sealed class SoftwareInventoryTool : ITool
             filter = q.GetString()!.Trim();
         }
 
-        var rows = new List<(string Name, string Version, string Publisher, string Date, string Hive)>();
-
-        CollectUninstall(Registry.LocalMachine,
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM", rows);
-        CollectUninstall(Registry.LocalMachine,
-            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM-WOW64", rows);
-        CollectUninstall(Registry.CurrentUser,
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKCU", rows);
-        CollectUninstall(Registry.CurrentUser,
-            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall", "HKCU-WOW64", rows);
-
-        IEnumerable<(string Name, string Version, string Publisher, string Date, string Hive)> query = rows
-            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
-            .GroupBy(r => r.Name + "|" + r.Version, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First())
-            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase);
-
-        if (!string.IsNullOrEmpty(filter))
-        {
-            query = query.Where(r =>
-                r.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                r.Publisher.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                r.Version.Contains(filter, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var list = query.Take(400).ToList();
+        var list = InstalledProgramsCatalog.Query(filter, max: 400);
         if (list.Count == 0)
         {
             return ToolResult.Ok(filter is null
@@ -125,71 +103,7 @@ public sealed class SoftwareInventoryTool : ITool
                 : $"Нет совпадений по filter «{filter}».");
         }
 
-        var sb = new StringBuilder();
-        sb.AppendLine("Name | Version | Publisher | InstallDate | Hive");
-        sb.AppendLine(new string('-', 80));
-        foreach (var r in list)
-        {
-            sb.AppendLine($"{r.Name} | {r.Version} | {r.Publisher} | {r.Date} | {r.Hive}");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine($"Всего (показано до 400): {list.Count}. Источник: реестр Uninstall (не Win32_Product).");
-        return ToolResult.Ok(Truncate(sb.ToString().TrimEnd(), 4000));
-    }
-
-    private static void CollectUninstall(
-        RegistryKey hive,
-        string subKey,
-        string hiveLabel,
-        List<(string Name, string Version, string Publisher, string Date, string Hive)> rows)
-    {
-        try
-        {
-            using var key = hive.OpenSubKey(subKey, writable: false);
-            if (key is null)
-            {
-                return;
-            }
-
-            foreach (var name in key.GetSubKeyNames())
-            {
-                try
-                {
-                    using var item = key.OpenSubKey(name, writable: false);
-                    if (item is null)
-                    {
-                        continue;
-                    }
-
-                    // Skip system components without display name
-                    var displayName = item.GetValue("DisplayName") as string;
-                    if (string.IsNullOrWhiteSpace(displayName))
-                    {
-                        continue;
-                    }
-
-                    var systemComponent = item.GetValue("SystemComponent");
-                    if (systemComponent is int sc && sc == 1)
-                    {
-                        continue;
-                    }
-
-                    var version = item.GetValue("DisplayVersion") as string ?? "";
-                    var publisher = item.GetValue("Publisher") as string ?? "";
-                    var date = item.GetValue("InstallDate") as string ?? "";
-                    rows.Add((displayName.Trim(), version.Trim(), publisher.Trim(), date.Trim(), hiveLabel));
-                }
-                catch
-                {
-                    // ignore individual key errors
-                }
-            }
-        }
-        catch
-        {
-            // hive may be inaccessible
-        }
+        return ToolResult.Ok(Truncate(InstalledProgramsCatalog.FormatTable(list, 400), 4000));
     }
 
     private static ToolResult WingetSearch(JsonElement arguments)
@@ -202,7 +116,7 @@ public sealed class SoftwareInventoryTool : ITool
         }
 
         var query = q.GetString()!.Trim();
-        if (!QuerySafePattern.IsMatch(query))
+        if (!QuerySafePattern().IsMatch(query))
         {
             return ToolResult.Fail(
                 "query содержит недопустимые символы. Разрешены буквы/цифры и ._+-@#()/\\,:&' (до 120 символов).");
@@ -256,7 +170,7 @@ public sealed class SoftwareInventoryTool : ITool
         }
 
         var packageId = idProp.GetString()!.Trim();
-        if (!PackageIdPattern.IsMatch(packageId) || packageId.Length > 128)
+        if (!PackageIdPattern().IsMatch(packageId) || packageId.Length > 128)
         {
             return ToolResult.Fail(
                 "package_id invalid. Allowed: [A-Za-z0-9 ._+-], max 128 chars (e.g. Vendor.App).");
@@ -282,7 +196,46 @@ public sealed class SoftwareInventoryTool : ITool
         return RunWinget(wingetPath, args, 600);
     }
 
+    private static ToolResult MutateAndInvalidate(Func<ToolResult> action)
+    {
+        var result = action();
+        if (result.Success)
+        {
+            InstalledProgramsCatalog.Invalidate();
+        }
+
+        return result;
+    }
+
     private static bool TryFindWinget(out string path, out string failMessage)
+    {
+        if (_wingetState == 1 && _wingetPath is not null)
+        {
+            path = _wingetPath;
+            failMessage = string.Empty;
+            return true;
+        }
+
+        if (_wingetState == 2)
+        {
+            path = string.Empty;
+            failMessage = _wingetFailMessage ?? "winget недоступен.";
+            return false;
+        }
+
+        if (TryResolveWinget(out path, out failMessage))
+        {
+            _wingetPath = path;
+            _wingetState = 1;
+            return true;
+        }
+
+        _wingetFailMessage = failMessage;
+        _wingetState = 2;
+        return false;
+    }
+
+    private static bool TryResolveWinget(out string path, out string failMessage)
     {
         path = string.Empty;
         failMessage = string.Empty;
@@ -462,7 +415,7 @@ public sealed class SoftwareInventoryTool : ITool
             return text;
         }
 
-        return Regex.Replace(text, @"\x1B\[[0-9;]*[A-Za-z]", string.Empty);
+        return AnsiEscape().Replace(text, string.Empty);
     }
 
     private static string Truncate(string text, int max) =>

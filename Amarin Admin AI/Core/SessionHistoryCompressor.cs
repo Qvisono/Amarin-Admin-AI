@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 
 namespace Amarin.Core;
@@ -12,7 +13,13 @@ internal static class SessionHistoryCompressor
     {
         if (history.Count <= PreserveRecentMessages)
         {
-            return history.Select(CloneMessage).ToList();
+            var clone = new List<ChatMessage>(history.Count);
+            for (var i = 0; i < history.Count; i++)
+            {
+                clone.Add(CloneMessage(history[i]));
+            }
+
+            return clone;
         }
 
         var cutoff = history.Count - PreserveRecentMessages;
@@ -71,14 +78,66 @@ internal static class SessionHistoryCompressor
         return ChatContent.Text(ToSingleLine(text, AssistantSummaryMaxLength));
     }
 
-    private static string ToSingleLine(string text, int maxLength)
+    internal static string ToSingleLine(string text, int maxLength)
     {
-        var line = text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
-        while (line.Contains("  ", StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(text))
         {
-            line = line.Replace("  ", " ", StringComparison.Ordinal);
+            return string.Empty;
         }
 
-        return line.Length <= maxLength ? line : line[..maxLength] + "…";
+        var rented = ArrayPool<char>.Shared.Rent(text.Length);
+        try
+        {
+            var written = 0;
+            var pendingSpace = false;
+            for (var i = 0; i < text.Length; i++)
+            {
+                var c = text[i];
+                if (c == '\r')
+                {
+                    continue;
+                }
+
+                if (c is '\n' or '\t')
+                {
+                    c = ' ';
+                }
+
+                if (c == ' ')
+                {
+                    if (written == 0 || pendingSpace)
+                    {
+                        continue;
+                    }
+
+                    pendingSpace = true;
+                    continue;
+                }
+
+                if (pendingSpace)
+                {
+                    rented[written++] = ' ';
+                    pendingSpace = false;
+                }
+
+                rented[written++] = c;
+            }
+
+            if (written == 0)
+            {
+                return string.Empty;
+            }
+
+            if (written <= maxLength)
+            {
+                return new string(rented, 0, written);
+            }
+
+            return string.Concat(rented.AsSpan(0, maxLength), "…");
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(rented);
+        }
     }
 }

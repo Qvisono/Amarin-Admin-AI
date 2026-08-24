@@ -75,7 +75,7 @@ public sealed class ConsolePresenter
     }
 
     public Task<T> RunWithSpinnerAsync<T>(string message, Func<Task<T>> action) =>
-        Task.FromResult(ConsoleInputRestore.RunWithSpinner(message, action));
+        ConsoleInputRestore.RunWithSpinnerAsync(message, action);
 
     public void ShowStatus(string content)
     {

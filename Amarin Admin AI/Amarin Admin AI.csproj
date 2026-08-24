@@ -2,11 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.7.0</Version>
+    <Version>1.8.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -29,8 +31,13 @@
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.4" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
     <PackageReference Include="System.Management" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
     <PackageReference Include="PDFsharp" Version="6.2.1" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Update="appsettings.json">
@@ -40,6 +47,21 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Amarin.AdminAI.Tests" />
+  </ItemGroup>
+
+  <!-- WPF implicit usings collide with Spectre Color / System.IO.Path; restore SDK defaults. -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <Using Remove="System.Windows" />
+    <Using Remove="System.Windows.Controls" />
+    <Using Remove="System.Windows.Data" />
+    <Using Remove="System.Windows.Documents" />
+    <Using Remove="System.Windows.Input" />
+    <Using Remove="System.Windows.Media" />
+    <Using Remove="System.Windows.Media.Imaging" />
+    <Using Remove="System.Windows.Navigation" />
+    <Using Remove="System.Windows.Shapes" />
   </ItemGroup>
 
 </Project>

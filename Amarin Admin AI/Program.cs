@@ -1,13 +1,13 @@
+using System.Diagnostics;
 using System.Reflection;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
 using Microsoft.Extensions.Configuration;
-using PdfSharp.Fonts;
 using Spectre.Console;
 
+var startupClock = Stopwatch.StartNew();
 ConsoleEncoding.Configure();
-GlobalFontSettings.UseWindowsFontsUnderWindows = true;
 
 // Config: non-secret settings from appsettings.json; API key ONLY from env / user-secrets.
 // Never read Venice:ApiKey from committed JSON files.
@@ -63,6 +63,8 @@ if (startup.SmokeTools)
     return await RunToolSmokeTestAsync();
 }
 
+using var wpfUi = WpfUi.Start(waitForMainWindow: false);
+
 if (!string.IsNullOrWhiteSpace(startup.Model))
 {
     options.Model = startup.Model.Trim();
@@ -70,6 +72,7 @@ if (!string.IsNullOrWhiteSpace(startup.Model))
 
 var ui = new ConsolePresenter();
 ui.ShowBanner();
+PerfLog.Write($"banner_ready_ms={startupClock.ElapsedMilliseconds}");
 
 if (string.IsNullOrWhiteSpace(options.ApiKey))
 {
@@ -79,15 +82,8 @@ if (string.IsNullOrWhiteSpace(options.ApiKey))
     return 1;
 }
 
-using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-using var downloadHttp = new HttpClient(new SocketsHttpHandler
-{
-    PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-    EnableMultipleHttp2Connections = true
-})
-{
-    Timeout = TimeSpan.FromMinutes(15)
-};
+using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
+using var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15));
 var venice = new VeniceClient(http, options);
 
 if (!string.IsNullOrWhiteSpace(startup.Model))
@@ -166,6 +162,7 @@ agent.SessionMode = sessionMode;
 var prompt = new ConsolePrompt();
 
 PrintStatusBar(ui, options.Model, agent, venice);
+PerfLog.Write($"prompt_ready_ms={startupClock.ElapsedMilliseconds} memory={GC.GetTotalMemory(false)}");
 
 // First turn from quick-chat bar (or CLI): show and run immediately.
 if (hasStartupPrompt)
@@ -467,5 +464,6 @@ static async Task<int> RunToolSmokeTestAsync()
 
     Console.WriteLine();
     Console.WriteLine($"Итого: {passed} OK, {failed} FAIL из {results.Count}.");
+    PerfLog.Write($"smoke_complete ok={passed} fail={failed} memory={GC.GetTotalMemory(false)}");
     return failed > 0 ? 1 : 0;
 }

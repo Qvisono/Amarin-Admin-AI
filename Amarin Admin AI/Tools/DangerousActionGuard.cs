@@ -20,34 +20,22 @@ public sealed record DangerousActionInfo(
     /// <summary>Plain-language explanation from the model (shown as «Объяснение»).</summary>
     string Explanation = "");
 
-internal static class DangerousActionGuard
+internal static partial class DangerousActionGuard
 {
-    private static readonly string[] PowerShellDangerousPatterns =
-    [
-        @"\bSet-ItemProperty\b",
-        @"\bNew-ItemProperty\b",
-        @"\bRemove-ItemProperty\b",
-        @"\bStart-Service\b",
-        @"\bStop-Service\b",
-        @"\bRestart-Service\b",
-        @"\bSet-Service\b",
-        @"\bbcdedit\b",
-        @"\breagentc\b",
-        @"\bnetsh\s+advfirewall\b",
-        @"\breg\s+add\b",
-        @"\breg\s+delete\b",
-        @"\bDisable-WindowsOptionalFeature\b",
-        @"\bEnable-WindowsOptionalFeature\b",
-        @"\bRestart-Computer\b",
-        @"\bStop-Computer\b",
-        @"\bFormat-Volume\b",
-        @"\bClear-Disk\b",
-        @"\bStop-Process\b",
-        @"\bdocker\s+(stop|kill|rm|remove)\b",
-        @"\bStop-VM\b",
-        @"\bSuspend-VM\b",
-        @"\bCheckpoint-VM\b"
-    ];
+    [GeneratedRegex(
+        @"\b(?:Set-ItemProperty|New-ItemProperty|Remove-ItemProperty|Start-Service|Stop-Service|Restart-Service|Set-Service|bcdedit|reagentc|netsh\s+advfirewall|reg\s+add|reg\s+delete|Disable-WindowsOptionalFeature|Enable-WindowsOptionalFeature|Restart-Computer|Stop-Computer|Format-Volume|Clear-Disk|Stop-Process|docker\s+(?:stop|kill|rm|remove)|Stop-VM|Suspend-VM|Checkpoint-VM)\b",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex PowerShellDangerousPattern();
+
+    [GeneratedRegex(
+        @"\b(?:Format-Volume|Clear-Disk|Remove-Item\b.*-Recurse|Restart-Computer|Stop-Computer)\b",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex PowerShellCriticalPattern();
+
+    [GeneratedRegex(
+        @"\b(?:bcdedit|reg\s+delete|netsh\s+advfirewall.*disable)\b",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex PowerShellHighRiskPattern();
 
     public static bool RequiresConfirmation(string toolName, JsonElement arguments)
     {
@@ -384,13 +372,12 @@ internal static class DangerousActionGuard
 
         var command = commandProp.GetString() ?? string.Empty;
 
-        if (Regex.IsMatch(command, @"\b(Format-Volume|Clear-Disk|Remove-Item\b.*-Recurse|Restart-Computer|Stop-Computer)\b",
-                RegexOptions.IgnoreCase))
+        if (PowerShellCriticalPattern().IsMatch(command))
         {
             return DangerousRiskLevel.Critical;
         }
 
-        if (Regex.IsMatch(command, @"\b(bcdedit|reg\s+delete|netsh\s+advfirewall.*disable)\b", RegexOptions.IgnoreCase))
+        if (PowerShellHighRiskPattern().IsMatch(command))
         {
             return DangerousRiskLevel.High;
         }
@@ -482,7 +469,7 @@ internal static class DangerousActionGuard
         }
 
         var command = commandProp.GetString() ?? string.Empty;
-        return PowerShellDangerousPatterns.Any(p => Regex.IsMatch(command, p, RegexOptions.IgnoreCase));
+        return PowerShellDangerousPattern().IsMatch(command);
     }
 
     private static string Truncate(string text, int max) =>

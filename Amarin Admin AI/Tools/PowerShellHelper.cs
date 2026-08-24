@@ -1,9 +1,11 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Amarin.Tools;
 
-internal static class PowerShellHelper
+internal static partial class PowerShellHelper
 {
     /// <summary>
     /// Shared preamble prepended by <see cref="WrapScript"/> to every script run via
@@ -36,7 +38,7 @@ internal static class PowerShellHelper
     public static ToolResult Run(string script, int timeoutSeconds = 120, int maxOutput = 48_000)
     {
         timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
-        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(WrapScript(script)));
+        var encoded = EncodeUtf16Base64(WrapScript(script));
 
         var psi = new ProcessStartInfo
         {
@@ -114,6 +116,21 @@ internal static class PowerShellHelper
     internal static string WrapScript(string script) =>
         ScriptPreamble + Environment.NewLine + script;
 
+    internal static string EncodeUtf16Base64(string command)
+    {
+        var byteCount = Encoding.Unicode.GetByteCount(command);
+        var rented = ArrayPool<byte>.Shared.Rent(byteCount);
+        try
+        {
+            var written = Encoding.Unicode.GetBytes(command.AsSpan(), rented.AsSpan());
+            return Convert.ToBase64String(rented, 0, written);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(rented);
+        }
+    }
+
     /// <summary>
     /// Exit code is authoritative. Stderr that is only PowerShell progress CLIXML is ignored
     /// (and can turn a spurious non-zero exit into success when there is no real error record).
@@ -170,11 +187,7 @@ internal static class PowerShellHelper
         }
 
         // Any non-whitespace text outside CLIXML documents → not progress-only.
-        var withoutCliXml = System.Text.RegularExpressions.Regex.Replace(
-            trimmed,
-            @"#<\s*CLIXML[\s\S]*?(?=(#<\s*CLIXML)|$)",
-            string.Empty,
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var withoutCliXml = CliXmlDocument().Replace(trimmed, string.Empty);
 
         if (!string.IsNullOrWhiteSpace(withoutCliXml))
         {
@@ -191,4 +204,7 @@ internal static class PowerShellHelper
 
     private static string Truncate(string text, int max) =>
         text.Length <= max ? text : text[..max] + "\n... [truncated]";
+
+    [GeneratedRegex(@"#<\s*CLIXML[\s\S]*?(?=(#<\s*CLIXML)|$)", RegexOptions.IgnoreCase)]
+    private static partial Regex CliXmlDocument();
 }

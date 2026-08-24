@@ -14,7 +14,7 @@ internal static class PowerShellProcessRunner
     {
         timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
         // Caller may already wrap; PowerShellHelper.RunAsync wraps before calling here.
-        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
+        var encoded = PowerShellHelper.EncodeUtf16Base64(command);
 
         var psi = new ProcessStartInfo
         {

@@ -3,41 +3,12 @@ using System.Text.RegularExpressions;
 
 namespace Amarin.Tools;
 
-public static class ReadOnlyGuard
+public static partial class ReadOnlyGuard
 {
-    private static readonly string[] PowerShellMutationPatterns =
-    [
-        @"\bSet-",
-        @"\bNew-",
-        @"\bRemove-",
-        @"\bAdd-",
-        @"\bClear-",
-        @"\bStart-Service\b",
-        @"\bStop-Service\b",
-        @"\bRestart-Service\b",
-        @"\bSet-Service\b",
-        @"\bStop-Process\b",
-        @"\bRestart-Computer\b",
-        @"\bStop-Computer\b",
-        @"\bInvoke-WebRequest\b.*-OutFile",
-        @"\bInvoke-RestMethod\b.*-OutFile",
-        @"\breg\s+add\b",
-        @"\breg\s+delete\b",
-        @"\bnetsh\s+advfirewall\b",
-        @"\bbcdedit\b",
-        @"\bFormat-",
-        @"\bDisable-",
-        @"\bEnable-",
-        @"\bInstall-",
-        @"\bUninstall-",
-        @"\bUpdate-",
-        @"\bRename-",
-        @"\bMove-Item\b",
-        @"\bCopy-Item\b.*-Force",
-        @"\bOut-File\b",
-        @"\bSet-Content\b",
-        @"\bAdd-Content\b"
-    ];
+    [GeneratedRegex(
+        @"\b(?:Set-|New-|Remove-|Add-|Clear-|Start-Service\b|Stop-Service\b|Restart-Service\b|Set-Service\b|Stop-Process\b|Restart-Computer\b|Stop-Computer\b|Invoke-WebRequest\b.*-OutFile|Invoke-RestMethod\b.*-OutFile|reg\s+add\b|reg\s+delete\b|netsh\s+advfirewall\b|bcdedit\b|Format-|Disable-|Enable-|Install-|Uninstall-|Update-|Rename-|Move-Item\b|Copy-Item\b.*-Force|Out-File\b|Set-Content\b|Add-Content\b)",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex PowerShellMutationPattern();
 
     public static bool IsToolAllowed(string toolName, JsonElement arguments)
     {
@@ -158,7 +129,6 @@ public static class ReadOnlyGuard
             return false;
         }
 
-        return !PowerShellMutationPatterns.Any(p =>
-            Regex.IsMatch(command, p, RegexOptions.IgnoreCase));
+        return !PowerShellMutationPattern().IsMatch(command);
     }
 }

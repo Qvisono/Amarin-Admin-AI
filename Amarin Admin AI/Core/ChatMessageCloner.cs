@@ -11,6 +11,25 @@ internal static class ChatMessageCloner
         Name = message.Name
     };
 
-    public static List<ChatMessage> CloneAll(IEnumerable<ChatMessage> messages) =>
-        messages.Select(CloneForStorage).ToList();
+    public static List<ChatMessage> CloneAll(IEnumerable<ChatMessage> messages)
+    {
+        if (messages is IReadOnlyList<ChatMessage> list)
+        {
+            var result = new List<ChatMessage>(list.Count);
+            for (var i = 0; i < list.Count; i++)
+            {
+                result.Add(CloneForStorage(list[i]));
+            }
+
+            return result;
+        }
+
+        var fallback = new List<ChatMessage>();
+        foreach (var message in messages)
+        {
+            fallback.Add(CloneForStorage(message));
+        }
+
+        return fallback;
+    }
 }

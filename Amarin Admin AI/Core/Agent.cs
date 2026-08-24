@@ -188,7 +188,10 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
     private readonly SessionActionLog _actionLog;
     private readonly SessionUndoTracker _undoTracker;
     private readonly SessionReportCollector _reportCollector;
+    private readonly List<ToolDefinition> _toolDefinitions;
     private readonly List<ChatMessage> _sessionHistory = [];
+    private string? _cachedSystemPrompt;
+    private bool _cachedSystemPromptReadOnly;
 
     public SessionMode SessionMode { get; set; } = SessionMode.Continuous;
 
@@ -214,6 +217,8 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         _actionLog = actionLog;
         _undoTracker = undoTracker;
         _reportCollector = reportCollector;
+        _toolDefinitions = tools.GetDefinitions();
+        ValidateToolDefinitions(_toolDefinitions);
         _client.ModelFallback += OnModelFallback;
     }
 
@@ -287,18 +292,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             CompleteRequest(turnId, null);
             return turnId;
         }
-        List<ToolDefinition> toolDefinitions;
-        try
-        {
-            toolDefinitions = _tools.GetDefinitions();
-            ValidateToolDefinitions(toolDefinitions);
-        }
-        catch (Exception ex)
-        {
-            _ui.ShowError($"Не удалось подготовить инструменты: {ex.Message}");
-            CompleteRequest(turnId, null);
-            return turnId;
-        }
+        var toolDefinitions = _toolDefinitions;
 
         string? finalAssistantText = null;
         var emptyResponseRetries = 0;
@@ -388,110 +382,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
             toolsUsed = true;
 
-            foreach (var toolCall in assistantMessage.ToolCalls)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var toolName = toolCall.Function.Name;
-                _ui.ShowToolCall(toolName, toolCall.Function.Arguments);
-
-                ToolResult result;
-                JsonElement arguments;
-                try
-                {
-                    arguments = ParseArguments(toolCall.Function.Arguments);
-                }
-                catch (JsonException ex)
-                {
-                    result = ToolResult.Fail(
-                        $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
-                    _ui.ShowToolResult(toolName, result);
-                    _actionLog.Record(toolName, null, false, result.Output);
-                    messages.Add(BuildToolMessage(toolCall, result));
-                    continue;
-                }
-
-                if (ReadOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
-                {
-                    result = ToolResult.Fail(ReadOnlyGuard.BlockedMessage(toolName));
-                    _ui.ShowToolResult(toolName, result);
-                    _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
-                    messages.Add(BuildToolMessage(toolCall, result));
-                    continue;
-                }
-
-                // local_users hard safety (current session user SID / last Administrators member)
-                // must Fail before confirm UI.
-                if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
-                    LocalUsersSafety.TryGetHardBlockReason(arguments, out var localUsersBlock))
-                {
-                    result = ToolResult.Fail(localUsersBlock);
-                    _ui.ShowToolResult(toolName, result);
-                    _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
-                    messages.Add(BuildToolMessage(toolCall, result));
-                    continue;
-                }
-
-                var isDangerous = DangerousActionGuard.RequiresConfirmation(toolName, arguments);
-                var needsUndoSnapshot = DangerousActionGuard.RequiresUndoSnapshot(toolName, arguments);
-                if (isDangerous)
-                {
-                    var approved = await _ui.ConfirmDangerousActionAsync(
-                        DangerousActionGuard.DescribeDetailed(toolName, arguments),
-                        cancellationToken);
-
-                    if (!approved)
-                    {
-                        result = ToolResult.Fail("Действие отменено пользователем.");
-                        _ui.ShowToolResult(toolName, result);
-                        _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
-                        messages.Add(BuildToolMessage(toolCall, result));
-                        continue;
-                    }
-
-                    if (needsUndoSnapshot)
-                    {
-                        var snapshot = await _ui.RunWithSpinnerAsync(
-                            "Снимок системы для отката…",
-                            () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)));
-                        if (!snapshot.Success)
-                        {
-                            _ui.ShowWarning($"Не удалось создать снимок системы: {snapshot.Message}");
-                        }
-                        else if (snapshot.IsNew)
-                        {
-                            _ui.ShowInfo(
-                                $"Снимок системы для /undo (службы, задачи, реестр): {snapshot.SnapshotId}");
-                        }
-                    }
-                }
-
-                result = await ExecuteToolAsync(toolName, arguments, cancellationToken);
-                _ui.ShowToolResult(toolName, result);
-                ConsoleInputRestore.Restore();
-                _actionLog.Record(
-                    toolName,
-                    ExtractAction(arguments),
-                    result.Success,
-                    result.Output);
-                messages.Add(BuildToolMessage(toolCall, result));
-
-                if (needsUndoSnapshot && result.Success)
-                {
-                    _undoTracker.RecordMutation();
-                }
-
-                if (result.HasImages)
-                {
-                    messages.Add(new ChatMessage
-                    {
-                        Role = "user",
-                        Content = ChatContent.VisionMultiple(
-                            BuildVisionPrompt(toolName, result),
-                            result.GetImages())
-                    });
-                }
-            }
+            await ExecuteToolCallsAsync(assistantMessage.ToolCalls, messages, cancellationToken);
 
             if (round < _options.MaxToolRounds)
             {
@@ -569,6 +460,239 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         }
     }
 
+    private async Task ExecuteToolCallsAsync(
+        IReadOnlyList<ToolCall> toolCalls,
+        List<ChatMessage> messages,
+        CancellationToken cancellationToken)
+    {
+        if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, out var batch))
+        {
+            await ExecuteParallelBatchAsync(batch, messages, cancellationToken);
+            return;
+        }
+
+        foreach (var toolCall in toolCalls)
+        {
+            await ExecuteOneToolCallSequentialAsync(toolCall, messages, cancellationToken);
+        }
+    }
+
+    private bool TryBuildParallelBatch(IReadOnlyList<ToolCall> toolCalls, out List<PreparedCall> batch)
+    {
+        batch = new List<PreparedCall>(toolCalls.Count);
+        foreach (var toolCall in toolCalls)
+        {
+            JsonElement arguments;
+            try
+            {
+                arguments = ParseArguments(toolCall.Function.Arguments);
+            }
+            catch (JsonException)
+            {
+                batch = [];
+                return false;
+            }
+
+            var toolName = toolCall.Function.Name;
+            if (!IsParallelSafeToolCall(toolName, arguments, ReadOnlyMode))
+            {
+                batch = [];
+                return false;
+            }
+
+            batch.Add(new PreparedCall(toolCall, toolName, arguments));
+        }
+
+        return batch.Count == toolCalls.Count && batch.Count > 1;
+    }
+
+    internal static bool IsParallelSafeToolCall(string toolName, JsonElement arguments, bool readOnlyMode)
+    {
+        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (readOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
+        {
+            return false;
+        }
+
+        if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
+            LocalUsersSafety.TryGetHardBlockReason(arguments, out _))
+        {
+            return false;
+        }
+
+        if (DangerousActionGuard.RequiresConfirmation(toolName, arguments) ||
+            DangerousActionGuard.RequiresUndoSnapshot(toolName, arguments))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task ExecuteParallelBatchAsync(
+        List<PreparedCall> batch,
+        List<ChatMessage> messages,
+        CancellationToken cancellationToken)
+    {
+        foreach (var item in batch)
+        {
+            _ui.ShowToolCall(item.ToolName, item.ToolCall.Function.Arguments);
+        }
+
+        var results = new ToolResult[batch.Count];
+        await _ui.RunWithSpinnerAsync(
+            $"Запускаю инструменты ({batch.Count})…",
+            async () =>
+            {
+                var tasks = new Task[batch.Count];
+                for (var i = 0; i < batch.Count; i++)
+                {
+                    var index = i;
+                    var item = batch[i];
+                    tasks[i] = Task.Run(async () =>
+                    {
+                        results[index] = await _tools.ExecuteAsync(
+                            item.ToolName,
+                            item.Arguments,
+                            cancellationToken);
+                    }, cancellationToken);
+                }
+
+                await Task.WhenAll(tasks);
+                return 0;
+            });
+
+        for (var i = 0; i < batch.Count; i++)
+        {
+            AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, batch[i].Arguments, results[i], messages, needsUndoSnapshot: false);
+        }
+    }
+
+    private async Task ExecuteOneToolCallSequentialAsync(
+        ToolCall toolCall,
+        List<ChatMessage> messages,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var toolName = toolCall.Function.Name;
+        _ui.ShowToolCall(toolName, toolCall.Function.Arguments);
+
+        ToolResult result;
+        JsonElement arguments;
+        try
+        {
+            arguments = ParseArguments(toolCall.Function.Arguments);
+        }
+        catch (JsonException ex)
+        {
+            result = ToolResult.Fail(
+                $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
+            _ui.ShowToolResult(toolName, result);
+            _actionLog.Record(toolName, null, false, result.Output);
+            messages.Add(BuildToolMessage(toolCall, result));
+            return;
+        }
+
+        if (ReadOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
+        {
+            result = ToolResult.Fail(ReadOnlyGuard.BlockedMessage(toolName));
+            _ui.ShowToolResult(toolName, result);
+            _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
+            messages.Add(BuildToolMessage(toolCall, result));
+            return;
+        }
+
+        // local_users hard safety (current session user SID / last Administrators member)
+        // must Fail before confirm UI.
+        if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
+            LocalUsersSafety.TryGetHardBlockReason(arguments, out var localUsersBlock))
+        {
+            result = ToolResult.Fail(localUsersBlock);
+            _ui.ShowToolResult(toolName, result);
+            _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
+            messages.Add(BuildToolMessage(toolCall, result));
+            return;
+        }
+
+        var isDangerous = DangerousActionGuard.RequiresConfirmation(toolName, arguments);
+        var needsUndoSnapshot = DangerousActionGuard.RequiresUndoSnapshot(toolName, arguments);
+        if (isDangerous)
+        {
+            var approved = await _ui.ConfirmDangerousActionAsync(
+                DangerousActionGuard.DescribeDetailed(toolName, arguments),
+                cancellationToken);
+
+            if (!approved)
+            {
+                result = ToolResult.Fail("Действие отменено пользователем.");
+                _ui.ShowToolResult(toolName, result);
+                _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
+                messages.Add(BuildToolMessage(toolCall, result));
+                return;
+            }
+
+            if (needsUndoSnapshot)
+            {
+                var snapshot = await _ui.RunWithSpinnerAsync(
+                    "Снимок системы для отката…",
+                    () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)));
+                if (!snapshot.Success)
+                {
+                    _ui.ShowWarning($"Не удалось создать снимок системы: {snapshot.Message}");
+                }
+                else if (snapshot.IsNew)
+                {
+                    _ui.ShowInfo(
+                        $"Снимок системы для /undo (службы, задачи, реестр): {snapshot.SnapshotId}");
+                }
+            }
+        }
+
+        result = await ExecuteToolAsync(toolName, arguments, cancellationToken);
+        AppendToolOutcome(toolCall, toolName, arguments, result, messages, needsUndoSnapshot);
+    }
+
+    private void AppendToolOutcome(
+        ToolCall toolCall,
+        string toolName,
+        JsonElement arguments,
+        ToolResult result,
+        List<ChatMessage> messages,
+        bool needsUndoSnapshot)
+    {
+        _ui.ShowToolResult(toolName, result);
+        ConsoleInputRestore.Restore();
+        _actionLog.Record(
+            toolName,
+            ExtractAction(arguments),
+            result.Success,
+            result.Output);
+        messages.Add(BuildToolMessage(toolCall, result));
+
+        if (needsUndoSnapshot && result.Success)
+        {
+            _undoTracker.RecordMutation();
+        }
+
+        if (result.HasImages)
+        {
+            messages.Add(new ChatMessage
+            {
+                Role = "user",
+                Content = ChatContent.VisionMultiple(
+                    BuildVisionPrompt(toolName, result),
+                    result.GetImages())
+            });
+        }
+    }
+
+    private readonly record struct PreparedCall(ToolCall ToolCall, string ToolName, JsonElement Arguments);
+
     private Task<ToolResult> ExecuteToolAsync(
         string toolName,
         JsonElement arguments,
@@ -615,7 +739,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
     private List<ChatMessage> BuildInitialMessages(string userRequest)
     {
-        var prompt = BaseSystemPrompt + BuildMachinePathsPrompt() + (ReadOnlyMode ? ReadOnlyPromptAppendix : string.Empty);
+        var prompt = GetSystemPrompt();
         var messages = new List<ChatMessage>
         {
             new() { Role = "system", Content = ChatContent.Text(prompt) }
@@ -774,6 +898,20 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         return choice is null
             ? null
             : ExtractAssistantText(choice.Message, choice.FinishReason);
+    }
+
+    private string GetSystemPrompt()
+    {
+        if (_cachedSystemPrompt is not null && _cachedSystemPromptReadOnly == ReadOnlyMode)
+        {
+            return _cachedSystemPrompt;
+        }
+
+        _cachedSystemPromptReadOnly = ReadOnlyMode;
+        _cachedSystemPrompt = BaseSystemPrompt
+            + BuildMachinePathsPrompt()
+            + (ReadOnlyMode ? ReadOnlyPromptAppendix : string.Empty);
+        return _cachedSystemPrompt;
     }
 
     private static string BuildMachinePathsPrompt()
