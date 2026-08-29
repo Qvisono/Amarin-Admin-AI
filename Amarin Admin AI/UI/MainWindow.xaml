@@ -2,11 +2,20 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:local="clr-namespace:Amarin.UI"
         WindowStyle="ToolWindow"
         Title="Amarin Admin AI"
-        Height="450"
-        Width="800"
+        Height="620"
+        Width="1140"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+                <ResourceDictionary Source="AIlogos.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome 
     CornerRadius="18"
@@ -15,8 +24,2262 @@
     CaptionHeight="0"
     ResizeBorderThickness="0" />
     </shell:WindowChrome.WindowChrome>
-    <Grid>
-        
+    <Grid Background="#FF0E0E0E" MouseDown="Grid_MouseDown">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="184"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Border Background="#FF131313">
+                <Border.Resources>
+
+                    <!-- Заголовок группы чатов -->
+                    <Style x:Key="GroupHeader" TargetType="TextBlock">
+                        <Setter Property="FontSize" Value="10.5"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                        <Setter Property="Margin" Value="14,14,6,4"/>
+                    </Style>
+
+                    <!-- Пункт списка чатов -->
+                    <!-- Пункт списка чатов -->
+                    <Style x:Key="ChatItem" TargetType="Button">
+                        <Setter Property="Height" Value="32"/>
+                        <Setter Property="Margin" Value="6,1"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Content}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                        CornerRadius="6" Padding="9,0,4,0">
+                                        <Grid>
+                                            <TextBlock x:Name="Title" Text="{TemplateBinding Content}"
+                                   FontSize="12.5" Foreground="#FFC9C9C9"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap"
+                                   Margin="0,0,2,0"/>
+                                            <Border x:Name="Actions" Width="22" Height="22" CornerRadius="4"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Background="Transparent" Visibility="Collapsed"
+                                ToolTip="Действия" Cursor="Hand">
+                                                <TextBlock Text="⋯" FontSize="14" FontWeight="Bold"
+                                       Foreground="#FF9A9A9A"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Margin="0,0,0,2"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                            <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
+                                        </Trigger>
+                                        <Trigger SourceName="Actions" Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Actions" Property="Background" Value="#FF2E2E2E"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <!-- Активный (выбранный) чат -->
+                    <Style x:Key="ChatItemActive" TargetType="Button" BasedOn="{StaticResource ChatItem}">
+                        <Setter Property="Background" Value="#FF242424"/>
+                    </Style>
+                </Border.Resources>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="40"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ClipToBounds="True" x:Name="SideBarScrollViewer" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+                            <Grid Margin="2,2,2,0">
+                                <!-- Лого приложения -->
+                                <Button Margin="6" Height="30" Width="30" HorizontalAlignment="Left" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                                <Image Source="/jeklE-removebg-preview_1.ico" Width="20" Height="20"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <Button Margin="6" Height="30" Width="30" HorizontalAlignment="Right"
+                                        Cursor="Hand" ToolTip="Свернуть панель">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                                <Path x:Name="Icon"
+                                  Data="M 6,2 L 1,7 L 6,12 M 13,2 L 8,7 L 13,12"
+                                  Width="12" Height="12" Stretch="Uniform"
+                                  Stroke="#FF8A8A8A" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                                    <Setter TargetName="Icon" Property="Stroke" Value="#FFEAEAEA"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+
+                            <!-- New Chat: белая primary-кнопка -->
+                            <Button Cursor="Hand" Margin="0,5,0,0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
+                            Margin="6,0,6,4" Height="28">
+                                            <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Path Data="M6,0 L6,12 M0,6 L12,6"
+                                  Stroke="#FF0E0E0E" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Width="10" Height="10" Stretch="Uniform"
+                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="New Chat" FontSize="11.5"
+                                       Foreground="#FF0E0E0E" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <!-- Поиск -->
+                            <!-- Поиск -->
+                            <Border Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#FF1F1F1F"/>
+                                        <Setter Property="BorderBrush" Value="#FF2E2E2E"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#FF242424"/>
+                                                <Setter Property="BorderBrush" Value="#FF383838"/>
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                <Setter Property="Background" Value="#FF242424"/>
+                                                <Setter Property="BorderBrush" Value="#FF4A4A4A"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Path Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+              Fill="#FF8A8A8A" Width="12" Height="12" Stretch="Uniform"
+              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="SearchBox" Grid.Column="1"
+                 Background="Transparent" BorderThickness="0" Padding="0"
+                 VerticalContentAlignment="Center" FontSize="12"
+                 Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"/>
+                                    <TextBlock Grid.Column="1" Text="Поиск" FontSize="12" Foreground="#FF6E6E6E"
+                   VerticalAlignment="Center" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </Border>
+                            <!-- ===== СПИСОК ЧАТОВ ===== -->
+
+                            <TextBlock Style="{StaticResource GroupHeader}" Text="Сегодня" Margin="14,6,6,4"/>
+                            <Button Style="{StaticResource ChatItemActive}" Content="Ночная сводка"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Ошибки 500 в проде"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Экспорт в CSV"/>
+
+                            <TextBlock Style="{StaticResource GroupHeader}" Text="Вчера"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Миграция PostgreSQL"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Права модератора"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Метрики за июль"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Ротация бэкапов"/>
+
+                            <TextBlock Style="{StaticResource GroupHeader}" Text="Ранее"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Медленные запросы"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Webhook для алертов"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Ревизия API-ключей"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Логи nginx"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Сертификаты TLS"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Инвентаризация VM"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Инциденты Q2"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Чистка сессий"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Аудит аккаунтов"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Нагрузочные тесты"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Хранение логов"/>
+                            <Button Style="{StaticResource ChatItem}" Content="Деплой 2.4"/>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Border Grid.Row="1">
+                        <Grid Height="40" Margin="8,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Width="24" Height="24" CornerRadius="6" Background="#FF2A2A2A" VerticalAlignment="Center">
+                                <TextBlock Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="#FFD8D8D8"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="#FFE8E8E8"/>
+                                <TextBlock Text="Локальный режим" FontSize="9.5" Foreground="#FF6A6A6A"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
+                                    Cursor="Hand" Click="Button_Click_3">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                            <Path x:Name="Icon" Width="13" Height="13" Stretch="Uniform" Fill="#FF7A7A7A"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M19.14,12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6 3.6,1.62,3.6,3.6-1.62,3.6-3.6,3.6z"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#FF262626" TargetName="Bg"/>
+                                                <Setter Property="Fill" Value="#FFEAEAEA" TargetName="Icon"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                </Grid>
+            </Border>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="1" x:Name="Chat">
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="125"/>
+                    </Grid.RowDefinitions>
+                    <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
+              x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="27,18,20,10" MaxWidth="1070" x:Name="MessagesPanel">
+                            <StackPanel.Resources>
+
+                                <!-- ===== Галка выполненного инструмента ===== -->
+                                <Style x:Key="ToolDoneIcon" TargetType="Path">
+                                    <Setter Property="Data" Value="M0,4 L3.5,7.5 L10,0"/>
+                                    <Setter Property="Stroke" Value="#FF5FB878"/>
+                                    <Setter Property="StrokeThickness" Value="1.6"/>
+                                    <Setter Property="StrokeStartLineCap" Value="Round"/>
+                                    <Setter Property="StrokeEndLineCap" Value="Round"/>
+                                    <Setter Property="StrokeLineJoin" Value="Round"/>
+                                    <Setter Property="Width" Value="10"/>
+                                    <Setter Property="Height" Value="8"/>
+                                    <Setter Property="Stretch" Value="Uniform"/>
+                                    <Setter Property="Margin" Value="0,0,10,0"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+
+                                <!-- ===== Превью результата ===== -->
+                                <Style x:Key="ToolResult" TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="Foreground" Value="#FF7A9A82"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+
+                                <!-- ===== Разделитель шагов ===== -->
+                                <Style x:Key="ToolStepDivider" TargetType="Border">
+                                    <Setter Property="Height" Value="1"/>
+                                    <Setter Property="Background" Value="#FF1E1E1E"/>
+                                    <Setter Property="Margin" Value="4,6"/>
+                                </Style>
+
+                                <!-- ===== ПУЗЫРЬ ПОЛЬЗОВАТЕЛЯ (справа) ===== -->
+                                <Style x:Key="UserBubble" TargetType="Border">
+                                    <Setter Property="Background" Value="#FF1F1F1F"/>
+                                    <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Setter Property="CornerRadius" Value="12,12,3,12"/>
+                                    <Setter Property="Padding" Value="14,9"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="MaxWidth" Value="560"/>
+                                    <Setter Property="Margin" Value="60,0,0,18"/>
+                                </Style>
+                                <Style x:Key="UserBubbleText" TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FFE8E8E8"/>
+                                    <Setter Property="FontSize" Value="13.5"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="LineHeight" Value="19"/>
+                                </Style>
+
+                                <!-- ===== ТЕКСТ ИИ (без пузыря) ===== -->
+                                <Style x:Key="AiText" TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#FFDCDCDC"/>
+                                    <Setter Property="FontSize" Value="13.5"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                    <Setter Property="LineHeight" Value="21"/>
+                                </Style>
+
+                                <!-- ===== ЛОГО ИИ ===== -->
+                                <Style x:Key="AiLogoBorder" TargetType="Border">
+                                    <Setter Property="Width" Value="28"/>
+                                    <Setter Property="Height" Value="28"/>
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                    <Setter Property="Background" Value="#FF1C1C1C"/>
+                                    <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+                                    <Setter Property="BorderThickness" Value="1"/>
+                                    <Setter Property="VerticalAlignment" Value="Top"/>
+                                    <Setter Property="Margin" Value="0,0,11,0"/>
+                                </Style>
+
+                                <!-- ===== МЕТА-ШАПКА СООБЩЕНИЯ ИИ ===== -->
+                                <Style x:Key="AiMetaText" TargetType="TextBlock">
+                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="Foreground" Value="#FF8A8A8A"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                                <Style x:Key="AiMetaDot" TargetType="Ellipse">
+                                    <Setter Property="Width" Value="3"/>
+                                    <Setter Property="Height" Value="3"/>
+                                    <Setter Property="Fill" Value="#FF4A4A4A"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Margin" Value="7,1,7,0"/>
+                                </Style>
+
+                                <!-- ===== СТРОКА ИНСТРУМЕНТА ===== -->
+                                <Style x:Key="ToolRow" TargetType="Grid">
+                                    <Setter Property="Margin" Value="4,3"/>
+                                </Style>
+                                <Style x:Key="ToolIcon" TargetType="TextBlock">
+                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="Width" Value="20"/>
+                                    <Setter Property="Foreground" Value="#FF8A8A8A"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                                <Style x:Key="ToolPendingIcon" TargetType="TextBlock" BasedOn="{StaticResource ToolIcon}">
+                                    <Setter Property="Foreground" Value="#FFC9C9C9"/>
+                                    <Style.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                 From="1" To="0.25" Duration="0:0:0.6"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                                <Style x:Key="ToolName" TargetType="TextBlock">
+                                    <Setter Property="FontSize" Value="12.5"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#FFB8B8B8"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Margin" Value="0,0,8,0"/>
+                                </Style>
+                                <Style x:Key="ToolArgs" TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="Foreground" Value="#FF6E6E6E"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+
+                                <!-- ===== ЭКСПАНДЕР "ЗАПУСКАЮ ИНСТРУМЕНТЫ" ===== -->
+                                <Style x:Key="ToolsExpander" TargetType="Expander">
+                                    <Setter Property="Margin" Value="0,0,0,8"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Expander">
+                                                <Border Background="#FF141414" BorderBrush="#FF232323"
+                                    BorderThickness="1" CornerRadius="8"
+                                    HorizontalAlignment="Left" MinWidth="280">
+                                                    <StackPanel>
+                                                        <!-- Шапка -->
+                                                        <ToggleButton IsChecked="{Binding IsExpanded,
+                                        RelativeSource={RelativeSource TemplatedParent},
+                                        Mode=TwoWay}"
+                                        Cursor="Hand">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border x:Name="HeadBg" Background="Transparent"
+                                                        CornerRadius="8" Padding="10,7">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <Path x:Name="Chevron"
+                                                              Data="M0,0 L4,4 L0,8"
+                                                              Stroke="#FF7A7A7A" StrokeThickness="1.4"
+                                                              StrokeStartLineCap="Round"
+                                                              StrokeEndLineCap="Round"
+                                                              StrokeLineJoin="Round"
+                                                              Width="5" Height="9" Stretch="Uniform"
+                                                              VerticalAlignment="Center"
+                                                              Margin="1,0,9,0"
+                                                              RenderTransformOrigin="0.5,0.5">
+                                                                                <Path.RenderTransform>
+                                                                                    <RotateTransform Angle="0"/>
+                                                                                </Path.RenderTransform>
+                                                                            </Path>
+                                                                            <ContentPresenter VerticalAlignment="Center"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="HeadBg"
+                                                                Property="Background" Value="#FF1B1B1B"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Chevron"
+                                                                Property="RenderTransform">
+                                                                                <Setter.Value>
+                                                                                    <RotateTransform Angle="90"/>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                            <ContentPresenter Content="{TemplateBinding Header}"/>
+                                                        </ToggleButton>
+                                                        <!-- Содержимое -->
+                                                        <Border x:Name="Body" Visibility="Collapsed"
+                                            BorderBrush="#FF1E1E1E" BorderThickness="0,1,0,0"
+                                            Padding="8,5,10,7">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsExpanded" Value="True">
+                                                        <Setter TargetName="Body" Property="Visibility" Value="Visible"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                <Style x:Key="ExpanderHeaderText" TargetType="TextBlock">
+                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="Foreground" Value="#FF9A9A9A"/>
+                                </Style>
+
+                                <!-- ══════════════════════════════════════════════════ -->
+                                <!-- ===== НОВОЕ: КНОПКИ ДЕЙСТВИЙ ПОД СООБЩЕНИЯМИ ===== -->
+                                <!-- ══════════════════════════════════════════════════ -->
+
+                                <!-- Контейнер ряда кнопок -->
+                                <Style x:Key="ActionsRow" TargetType="StackPanel">
+                                    <Setter Property="Orientation" Value="Horizontal"/>
+                                </Style>
+
+                                <!-- Маленькая иконка-кнопка (Copy / Regenerate / Delete и т.д.) -->
+                                <Style x:Key="MsgActionButton" TargetType="Button">
+                                    <Setter Property="Width" Value="26"/>
+                                    <Setter Property="Height" Value="26"/>
+                                    <Setter Property="Margin" Value="0,0,2,0"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Opacity" Value="0.55"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                    CornerRadius="6">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+
+                                <!-- Иконка внутри кнопки -->
+                                <Style x:Key="MsgActionIcon" TargetType="Image">
+                                    <Setter Property="Width" Value="13"/>
+                                    <Setter Property="Height" Value="13"/>
+                                    <Setter Property="Stretch" Value="Uniform"/>
+                                </Style>
+
+                            </StackPanel.Resources>
+
+                            <!-- ══════════════════════════════════════════ -->
+                            <!-- 1. ПОЛЬЗОВАТЕЛЬ: чекни сеть                -->
+                            <!-- ══════════════════════════════════════════ -->
+                            <Border Style="{StaticResource UserBubble}">
+                                <TextBlock Style="{StaticResource UserBubbleText}" Text="чекни сеть"/>
+                            </Border>
+                            
+                            <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Right" Margin="0,-14,0,16">
+                                <Button Style="{StaticResource MsgActionButton}">
+                                    <Image Source="{StaticResource Copy}" Margin="5"/>
+                                </Button>
+                                <Button Style="{StaticResource MsgActionButton}">
+                                    <Image Source="{StaticResource Compose}" Margin="2"/>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- ══════════════════════════════════════════ -->
+                            <!-- 2. ИИ: отчёт по сети + свёрнутые тулы       -->
+                            <!-- ══════════════════════════════════════════ -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource AiLogoBorder}">
+                                    <Image Source="{StaticResource Claude}" Width="20" Height="20"/>
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <!-- Мета-шапка: модель · время · длительность -->
+                                    <StackPanel Orientation="Horizontal" Margin="1,4,0,9">
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Claude Sonnet 5"
+                               FontWeight="SemiBold" Foreground="#FFB0B0B0"/>
+                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="07:01"/>
+                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="4s"/>
+                                    </StackPanel>
+                                    <!-- Инструменты (свёрнуты, но раскрываемы) -->
+                                    <Expander Style="{StaticResource ToolsExpander}" IsExpanded="False">
+                                        <Expander.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Style="{StaticResource ToolDoneIcon}" Margin="0,0,7,0"/>
+                                                <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Инструменты выполнены"/>
+                                                <TextBlock Text="· 1" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0"/>
+                                            </StackPanel>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- Вызов init_agent -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="14" Height="14" Margin="1,0,5,0" VerticalAlignment="Center">
+                                                    <Image Source="{StaticResource Grok}"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
+                                       Text='{}{"model":"grok-4-6","prompt":"тщательно проверь сеть"}'/>
+                                            </Grid>
+                                            <!-- ═══ ВЛОЖЕННЫЙ ЭКСПАНДЕР: работа агента ═══ -->
+                                            <Expander Style="{StaticResource ToolsExpander}" IsExpanded="False" Margin="24,3,0,5">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Агент grok-4-6"/>
+                                                        <TextBlock Text="· 8 инструментов" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0"/>
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <StackPanel>
+                                                    <!-- ШАГ 1 -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"adapters"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"dns"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"connections"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"resolvers"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"proxy"}'/>
+                                                    </Grid>
+                                                    <!-- Результаты шага 1 -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Radmin VPN | Ethernet | Up (+ещё 38)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Radmin VPN | Ethernet (+ещё 23)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Proto Local Remote State PID Process (+ещё 288)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 49)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 7)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
+                                                        <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
+                                               VerticalAlignment="Center"
+                                               Text="Инструменты завершены — запрашиваю ответ модели (шаг X)"/>
+                                                    </Grid>
+                                                    <Border Style="{StaticResource ToolStepDivider}"/>
+                                                    <!-- ШАГ 2 -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"ping","host":"192.168.0.1"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"ping","host":"8.8.8.8"}'/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"test_resolve","hostname":"google.com"}'/>
+                                                    </Grid>
+                                                    <!-- Результаты шага 2 -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Ping 192.168.0.1 (4 packets): (+ещё 6)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Ping 8.8.8.8 (4 packets): (+ещё 6)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 25)"/>
+                                                    </Grid>
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
+                                                        <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
+                                               VerticalAlignment="Center"
+                                               Text="Инструменты завершены — запрашиваю ответ модели (шаг X)"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Expander>
+                                            <!-- Результат init_agent -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
+                                       Text="Отчёт агента: сеть исправна, 8 проверок пройдено"/>
+                                            </Grid>
+                                            <!-- Служебное -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
+                                                <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
+                                       VerticalAlignment="Center"
+                                       Text="Инструменты завершены — запрашиваю ответ модели"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Expander>
+                                    <!-- Ответ модели -->
+                                    <TextBlock Style="{StaticResource AiText}" Text="Проверил сеть — всё в порядке." Margin="0,0,0,8"/>
+                                    <TextBlock Style="{StaticResource AiText}" Text="• Шлюз 192.168.0.1 отвечает, задержка ~1 мс, потерь нет" Margin="0,0,0,2"/>
+                                    <TextBlock Style="{StaticResource AiText}" Text="• Внешний узел 1.1.1.1 доступен — пинг стабильный, ~9 мс" Margin="0,0,0,2"/>
+                                    <TextBlock Style="{StaticResource AiText}" Text="• DNS работает: google.com резолвится через 8.8.8.8 без ошибок" Margin="0,0,0,8"/>
+                                    <TextBlock Style="{StaticResource AiText}" Text="Интернет-соединение стабильно, вмешательство не требуется."/>
+
+                                    <!-- Кнопки действий ИИ: перегенерировать / копировать / поделиться / сократить / расширить / редактировать / удалить -->
+                                    <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Left" Margin="0,10,0,0">
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Regenerate}" Margin="4"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Copy}" Margin="5"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Upload}" Margin="4"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Compress}" Margin="6"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Expand}" Margin="6"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Compose}" Margin="2"/>
+                                        </Button>
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Delete}" Margin="6"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- ══════════════════════════════════════════ -->
+                            <!-- 3. ПОЛЬЗОВАТЕЛЬ: VAT + Яндекс               -->
+                            <!-- ══════════════════════════════════════════ -->
+                            <Border Style="{StaticResource UserBubble}">
+                                <TextBlock Style="{StaticResource UserBubbleText}"
+                       Text="что такое VAT? и проверь наличие Яндекса на моем ПК"/>
+                            </Border>
+
+                            <!-- Кнопки действий пользователя: копировать / изменить -->
+                            <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Right" Margin="0,-14,0,16">
+                                <Button Style="{StaticResource MsgActionButton}">
+                                    <Image Source="{StaticResource Copy}" Margin="5"/>
+                                </Button>
+                                <Button Style="{StaticResource MsgActionButton}">
+                                    <Image Source="{StaticResource Compose}" Margin="2"/>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- ══════════════════════════════════════════ -->
+                            <!-- 4. ИИ: В ПРОЦЕССЕ — Working 3s              -->
+                            <!-- ══════════════════════════════════════════ -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource AiLogoBorder}">
+                                    <Image Source="{StaticResource Claude}" Width="20" Height="20"/>
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <!-- Мета-шапка: модель · время · Working (пульсирует) -->
+                                    <StackPanel Orientation="Horizontal" Margin="1,4,0,9">
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Claude Sonnet 5"
+                               FontWeight="SemiBold" Foreground="#FFB0B0B0"/>
+                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="07:03"/>
+                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
+                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Working 3s"
+                               FontWeight="SemiBold" Foreground="#FF9A9A9A">
+                                            <TextBlock.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         From="1" To="0.3" Duration="0:0:0.7"/>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </TextBlock.Triggers>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <!-- Инструменты (раскрыты — идёт работа) -->
+                                    <Expander Style="{StaticResource ToolsExpander}" IsExpanded="True">
+                                        <Expander.Header>
+                                            <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Запускаю инструменты"/>
+                                        </Expander.Header>
+                                        <StackPanel>
+                                            <!-- search_web: вызов -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource ToolIcon}" Text="🔍"/>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="search_web"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
+                                       Text='{}{"query":"VAT налог что такое Value Added Tax"}'/>
+                                            </Grid>
+                                            <!-- init_agent: вызов (выполняется — без галки) -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="14" Height="14" Margin="1,0,5,0" VerticalAlignment="Center">
+                                                    <Image Source="{StaticResource Grok}"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
+                                       Text='{}{"model":"grok-4-6","prompt":"проверь наличие ПО Яндекса на ПК"}'/>
+                                            </Grid>
+                                            <!-- ═══ ВЛОЖЕННЫЙ ЭКСПАНДЕР: агент работает ═══ -->
+                                            <Expander Style="{StaticResource ToolsExpander}" IsExpanded="True" Margin="24,3,0,5">
+                                                <Expander.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Агент grok-4-6"/>
+                                                        <TextBlock Text="· выполняется" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0">
+                                                            <TextBlock.Triggers>
+                                                                <EventTrigger RoutedEvent="Loaded">
+                                                                    <BeginStoryboard>
+                                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                         From="1" To="0.3" Duration="0:0:0.7"/>
+                                                                        </Storyboard>
+                                                                    </BeginStoryboard>
+                                                                </EventTrigger>
+                                                            </TextBlock.Triggers>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Expander.Header>
+                                                <StackPanel>
+                                                    <!-- shell_execute #1: вызов -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
+                                               Text='{}{"command":"Get-ItemProperty HKLM:...\Uninstall\* | Select DisplayName"}'/>
+                                                    </Grid>
+                                                    <!-- shell_execute #1: результат -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="20"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
+                                               Text="Yandex Browser | Яндекс.Диск (+ещё 114)"/>
+                                                    </Grid>
+                                                    <!-- shell_execute #2: выполняется прямо сейчас (пульсирует) -->
+                                                    <Grid Style="{StaticResource ToolRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource ToolPendingIcon}" Text="⚙"/>
+                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
+                                               Text='{}{"command":"Get-Process | Where-Object {$_.Name -like "*yandex*"}"}'/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Expander>
+                                            <!-- Результата init_agent НЕТ — агент ещё работает -->
+                                            <Grid Style="{StaticResource ToolRow}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Style="{StaticResource ToolDoneIcon}"/>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="search_web"/>
+                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
+                                       Text="VAT — Value Added Tax, налог на добавленную... (+ещё 12)"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Expander>
+                                    <!-- Текста ответа НЕТ — модель ещё генерирует -->
+
+                                    <!-- Кнопка действия ИИ: у последнего (генерируемого) сообщения — только Stop -->
+                                    <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                        <Button Style="{StaticResource MsgActionButton}">
+                                            <Image Source="{StaticResource Cancel}" Margin="4"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Border Grid.Row="1" Margin="27,0,27,20" Background="#FF161616" MaxWidth="1070"
+                            CornerRadius="6" BorderBrush="#FF232323" BorderThickness="1">
+                        <Border.Resources>
+                            <Style x:Key="ToolIconButton" TargetType="Button">
+                                <Setter Property="Width" Value="32"/>
+                                <Setter Property="Height" Value="32"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                            </Style>
+                            <Style x:Key="PrimaryActionButton" TargetType="Button">
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Height" Value="28"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6" Padding="16,0">
+                                                <TextBlock Text="{TemplateBinding Content}" FontSize="11.5" FontWeight="SemiBold"
+                               Foreground="#FF0E0E0E"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                            <!-- ===== Бейдж-иконка пункта меню ===== -->
+                            <Style x:Key="ActionBadge" TargetType="Border">
+                                <Setter Property="Width" Value="28"/>
+                                <Setter Property="Height" Value="28"/>
+                                <Setter Property="CornerRadius" Value="7"/>
+                                <Setter Property="Background" Value="#FF1F1F1F"/>
+                                <Setter Property="Margin" Value="0,0,10,0"/>
+                            </Style>
+
+                            <Style x:Key="ActionBadgeIcon" TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="Foreground" Value="#FFB0B0B0"/>
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+
+                            <Style x:Key="ActionTitle" TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="12.5"/>
+                                <Setter Property="Foreground" Value="#FFE0E0E0"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+
+                            <Style x:Key="ActionSubtitle" TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="10.5"/>
+                                <Setter Property="Foreground" Value="#FF6E6E6E"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="0,1,0,0"/>
+                            </Style>
+
+                            <!-- ===== Простой пункт (Attach) ===== -->
+                            <Style x:Key="ActionItem" TargetType="Button">
+                                <Setter Property="Height" Value="46"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="6">
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF202020"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+
+                            <!-- ===== Раскрывающийся пункт (Summarize video) ===== -->
+                            <Style x:Key="ActionExpanderToggle" TargetType="ToggleButton">
+                                <Setter Property="Height" Value="46"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="6">
+                                                <Grid>
+                                                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                    <Path x:Name="Chevron" Data="M0,0 L4,4 L8,0"
+                                  Stroke="#FF6E6E6E" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Width="9" Height="5" Stretch="Uniform"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Margin="0,0,4,0" RenderTransformOrigin="0.5,0.5">
+                                                        <Path.RenderTransform>
+                                                            <RotateTransform Angle="0"/>
+                                                        </Path.RenderTransform>
+                                                    </Path>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF202020"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1D1D1D"/>
+                                                    <Setter TargetName="Chevron" Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="180"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Setter TargetName="Chevron" Property="Stroke" Value="#FFAFAFAF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+
+                            <!-- ===== Плейсхолдер-текстбокс ===== -->
+                            <Style x:Key="PopupUrlTextBox" TargetType="TextBox">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Foreground" Value="#FFEAEAEA"/>
+                                <Setter Property="CaretBrush" Value="#FFEAEAEA"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="Padding" Value="9,0"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            </Style>
+
+                            <!-- ===== Сегментированный переключатель ===== -->
+                            <Style x:Key="SegmentedOption" TargetType="RadioButton">
+                                <Setter Property="GroupName" Value="SummarizeMode"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Height" Value="27"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="RadioButton">
+                                            <Border x:Name="Bg" Background="#FF1B1B1B" BorderBrush="#FF2A2A2A"
+                            BorderThickness="1" CornerRadius="6">
+                                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="10.5"
+                                   Foreground="#FF9A9A9A"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF232323"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FFEAEAEA"/>
+                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="#FFEAEAEA"/>
+                                                    <Setter TargetName="Label" Property="Foreground" Value="#FF0E0E0E"/>
+                                                    <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Border.Resources>
+
+                        <Grid Margin="14,10,14,8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition Height="36"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- ===== ПОЛЕ ВВОДА ===== -->
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <TextBox x:Name="MessageTextBox"
+                     Background="Transparent" BorderThickness="0"
+                     Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"
+                     FontSize="13.5"
+                     AcceptsReturn="True" TextWrapping="Wrap"
+                     VerticalContentAlignment="Top"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     Padding="0"/>
+                                <TextBlock Text="Спросите что-нибудь..." FontSize="14.5"
+                       Foreground="#FF5A5A5A" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=MessageTextBox}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- ===== ТУЛБАР ===== -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Кнопка "+" (прикрепить/добавить контекст) -->
+                                <ToggleButton x:Name="AttachButton" Grid.Column="0" Width="32" Height="32"
+              Margin="0,0,6,0" Cursor="Hand">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="Bg" Background="#FF1F1F1F" CornerRadius="6">
+                                                <Path x:Name="PlusIcon" Data="M7,0 L7,14 M0,7 L14,7"
+                      Stroke="#FFB0B0B0" StrokeThickness="1.6"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Width="13" Height="13" Stretch="Uniform"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RenderTransformOrigin="0.5,0.5">
+                                                    <Path.RenderTransform>
+                                                        <RotateTransform Angle="0"/>
+                                                    </Path.RenderTransform>
+                                                </Path>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    <Setter TargetName="PlusIcon" Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="45"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <Popup x:Name="ActionsPopup"
+       PlacementTarget="{Binding ElementName=AttachButton}"
+       Placement="Top"
+       VerticalOffset="-8"
+       AllowsTransparency="True"
+       StaysOpen="False"
+       PopupAnimation="Fade"
+       IsOpen="{Binding IsChecked, ElementName=AttachButton, Mode=TwoWay}">
+                                    <Border Width="300" Background="#FF161616" BorderBrush="#FF2A2A2A"
+            BorderThickness="1" CornerRadius="12" Padding="6">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <TextBlock Text="Actions" FontSize="12.5" FontWeight="SemiBold"
+                       Foreground="#FF9A9A9A" Margin="8,6,8,4"/>
+
+                                            <Button Style="{StaticResource ActionItem}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Style="{StaticResource ActionBadge}">
+                                                        <Image Source="{StaticResource attach}" Margin="6" RenderTransformOrigin="0.5,0.5">
+                                                            <Image.RenderTransform>
+                                                                <TransformGroup>
+                                                                    <ScaleTransform/>
+                                                                    <SkewTransform/>
+                                                                    <RotateTransform Angle="40"/>
+                                                                    <TranslateTransform/>
+                                                                </TransformGroup>
+                                                            </Image.RenderTransform>
+                                                        </Image>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="Attach image/document"/>
+                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="Фото, PDF, документы"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- Summarize video -->
+                                            <ToggleButton x:Name="SummarizeToggle" Style="{StaticResource ActionExpanderToggle}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Style="{StaticResource ActionBadge}">
+                                                        <TextBlock Style="{StaticResource ActionBadgeIcon}" Text="▶"/>
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="Summarize video"/>
+                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="YouTube-ссылка"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </ToggleButton>
+
+                                            <Border Margin="4,4,4,4" Padding="10" Background="#FF1B1B1B"
+                    BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="9">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=SummarizeToggle}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <StackPanel>
+                                                    <Border Background="#FF141414" BorderBrush="#FF2E2E2E" BorderThickness="1"
+            CornerRadius="6" Height="30">
+                                                        <Grid>
+                                                            <TextBox x:Name="YoutubeUrlBox" Style="{StaticResource PopupUrlTextBox}"/>
+                                                            <TextBlock Text="https://youtube.com/watch?v=..." FontSize="11.5"
+                       Foreground="#FF525252" Margin="9,0" VerticalAlignment="Center"
+                       IsHitTestVisible="False">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Text, ElementName=YoutubeUrlBox}" Value="">
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <Grid Margin="0,8,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <RadioButton Grid.Column="0" Style="{StaticResource SegmentedOption}"
+                     Content="Raw Transcript" IsChecked="True" Margin="0,0,3,0"/>
+                                                        <RadioButton Grid.Column="1" Style="{StaticResource SegmentedOption}"
+                     Content="Create Infographic" Margin="3,0,0,0"/>
+                                                    </Grid>
+
+                                                    <!-- Кнопка подтверждения — без Click, чисто визуальная -->
+                                                    <Button Style="{StaticResource PrimaryActionButton}" Content="Начать" Margin="0,10,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                                <!-- Селектор модели AI -->
+                                <!-- Селектор модели AI -->
+                                <Button Grid.Column="2" Height="32" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="#FF1F1F1F" CornerRadius="6" Padding="6,0,10,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                                                    <Image Source="{StaticResource Claude}" Width="20" Height="20" Margin="0 0 5 0"/>
+
+                                                    <TextBlock Text="Claude Sonnet 5" FontSize="13"
+                               Foreground="#FFD8D8D8" VerticalAlignment="Center"/>
+
+                                                    <Path Data="M0,0 L5,5 L10,0" Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          Width="9" Height="5" Stretch="Uniform"
+                          Margin="7,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#FF2A2A2A" TargetName="Bg"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <!-- Кнопка отправки -->
+                                <Button Grid.Column="4" Width="32" Height="32" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="8">
+                                                <Path Data="M6,11 L6,1 M1,5 L6,0 L11,5"
+                                  Stroke="#FF0E0E0E" StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Width="13" Height="13" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="White" TargetName="Bg"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid VerticalAlignment="Center" Height="30">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="TitleText" Style="{StaticResource TitleUrbanist}" Text="Amarin Admin AI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Column="1">
+                        <Border Width="32" Height="32" x:Name="Warn"
+        Background="Transparent"
+        CornerRadius="4"
+        ToolTipService.Placement="Bottom"
+        ToolTipService.HorizontalOffset="-99"
+        ToolTipService.VerticalOffset="6"
+        ToolTipService.InitialShowDelay="150"
+        ToolTipService.ShowDuration="20000">
+                            <Border.ToolTip>
+                                <ToolTip Background="Transparent"
+                 BorderThickness="0"
+                 Padding="0"
+                 HasDropShadow="False">
+                                    <ToolTip.Template>
+                                        <ControlTemplate TargetType="ToolTip">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="6"/>
+                                                    <RowDefinition/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Стрелка, указывающая на иконку -->
+                                                <Path Grid.Row="0"
+                              Data="M0,6 L6,0 L12,6 Z"
+                              Fill="#FF1B1B1B"
+                              Stroke="#FF3A2E16"
+                              StrokeThickness="1"
+                              HorizontalAlignment="Center"
+                              Margin="0,0,0,-1"/>
+
+                                                <!-- Тело подсказки -->
+                                                <Border Grid.Row="1"
+                                Width="230"
+                                Background="#FF1B1B1B"
+                                BorderBrush="#FF3A2E16"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10,8">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="⚠"
+                                           FontSize="13"
+                                           Foreground="#FFE0A73E"
+                                           VerticalAlignment="Top"
+                                           Margin="0,1,8,0"/>
+                                                        <TextBlock Text="Not running as administrator: many features are unavailable"
+                                           FontSize="11.5"
+                                           Foreground="#FFD8D8D8"
+                                           TextWrapping="Wrap"
+                                           LineHeight="15"
+                                           MaxWidth="196"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </ToolTip.Template>
+                                </ToolTip>
+                            </Border.ToolTip>
+
+                            <Image Source="{StaticResource Alert}"
+           Stretch="Uniform"
+           Margin="6" />
+                        </Border>
+                        <Button Style="{StaticResource LockChromeButton}"
+                                Tag="{DynamicResource Minimize}"
+                                Click="Button_Click_1"/>
+                        <Button Style="{StaticResource LockChromeButton}"
+                                Tag="{DynamicResource Maximize}"
+                                Click="Button_Click_2"/>
+                        <Button Style="{StaticResource LockChromeCloseButton}"
+                                Tag="{DynamicResource Close}"
+                                Click="Button_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Grid x:Name="SettingsOverlay" Visibility="Collapsed">
+            <Grid.Resources>
+                <!-- ===== Кнопка "Сохранить" для промптов ===== -->
+                <Style x:Key="SavePromptButton" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="10,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
+                        Padding="{TemplateBinding Padding}">
+                                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Path Data="M0,3.5 L3,6.5 L8,0" Stroke="#FF0E0E0E" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              Width="9" Height="7" Stretch="Uniform"
+                              Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Сохранить" FontSize="11.5"
+                                   Foreground="#FF0E0E0E" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF3A3A3A"/>
+                                        <Setter Property="Opacity" Value="0.6"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                <!-- ===== Пункт навигации ===== -->
+                <Style x:Key="SettingsNavItem" TargetType="RadioButton">
+                    <Setter Property="Height" Value="30"/>
+                    <Setter Property="Margin" Value="8,1"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="GroupName" Value="SettingsNav"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="RadioButton">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="10,0">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
+                                       FontSize="12.5" Foreground="#FFAFAFAF" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF222222"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="#FFE0E0E0"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <Style x:Key="SettingsNavGroup" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="10.5"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                    <Setter Property="Margin" Value="18,14,8,4"/>
+                </Style>
+
+                <!-- ===== Тумблер ===== -->
+                <Style x:Key="SettingsToggle" TargetType="CheckBox">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="CheckBox">
+                                <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="#FF2E2E2E">
+                                    <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#FF8A8A8A"
+                                     HorizontalAlignment="Left" Margin="3,0"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Track" Property="Background" Value="#FFEAEAEA"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="#FF0E0E0E"/>
+                                        <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Thumb" Property="Fill" Value="#FFC9C9C9"/>
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsMouseOver" Value="True"/>
+                                            <Condition Property="IsChecked" Value="True"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="Track" Property="Background" Value="White"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="#FF0E0E0E"/>
+                                    </MultiTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Тексты ===== -->
+                <Style x:Key="PageTitle" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Margin" Value="0,0,0,14"/>
+                </Style>
+                <Style x:Key="SectionTitle" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#FF9A9A9A"/>
+                    <Setter Property="Margin" Value="0,4,0,8"/>
+                </Style>
+                <Style x:Key="SettingTitle" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="Foreground" Value="#FFE6E6E6"/>
+                </Style>
+                <Style x:Key="SettingDesc" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="11.5"/>
+                    <Setter Property="Foreground" Value="#FF7A7A7A"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                    <Setter Property="Margin" Value="0,3,0,0"/>
+                </Style>
+                <Style x:Key="SettingsDivider" TargetType="Border">
+                    <Setter Property="Height" Value="1"/>
+                    <Setter Property="Background" Value="#FF232323"/>
+                    <Setter Property="Margin" Value="0,12"/>
+                </Style>
+
+                <!-- ===== Вторичная кнопка (Manage/Open...) ===== -->
+                <Style x:Key="SecondaryButton" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="FontSize" Value="11.5"/>
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="12,0"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
+                                BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                    <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF3A3A3A"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Опасная кнопка ===== -->
+                <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                    <Setter Property="Foreground" Value="#FFFF6B6B"/>
+                </Style>
+
+                <!-- ===== ComboBox ===== -->
+                <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
+                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBoxItem">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="4"
+                                Padding="8,5" Margin="3,1">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <Style x:Key="DarkComboBox" TargetType="ComboBox">
+                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Height" Value="28"/>
+                    <Setter Property="MinWidth" Value="170"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItem}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBox">
+                                <Grid>
+                                    <ToggleButton IsChecked="{Binding IsDropDownOpen,
+                                          RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Focusable="False" ClickMode="Press" Cursor="Hand">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border x:Name="Bg" Background="#FF1F1F1F"
+                                                BorderBrush="#FF2E2E2E" BorderThickness="1" CornerRadius="6">
+                                                    <Path Data="M0,0 L4,4 L8,0" Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                  Width="8" Height="4" Stretch="Uniform"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Margin="0,0,10,0"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bg" Property="Background" Value="#FF242424"/>
+                                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF3A3A3A"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                              Margin="10,0,26,0" VerticalAlignment="Center"
+                                              IsHitTestVisible="False"/>
+                                    <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   VerticalOffset="4" AllowsTransparency="True" StaysOpen="False"
+                                   PopupAnimation="Fade">
+                                        <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E"
+                                        BorderThickness="1" CornerRadius="8" Padding="0,3"
+                                        MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <ItemsPresenter/>
+                                            </ScrollViewer>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Многострочный промпт ===== -->
+                <Style x:Key="PromptTextBox" TargetType="TextBox">
+                    <Setter Property="Foreground" Value="#FFEAEAEA"/>
+                    <Setter Property="CaretBrush" Value="#FFEAEAEA"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="AcceptsReturn" Value="True"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                    <Setter Property="MinHeight" Value="64"/>
+                    <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border x:Name="Bg" Background="#FF1B1B1B" BorderBrush="#FF2E2E2E"
+                                BorderThickness="1" CornerRadius="6" Padding="8,6">
+                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF4A4A4A"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Карточка темы ===== -->
+                <Style x:Key="ThemeCard" TargetType="RadioButton">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="GroupName" Value="Theme"/>
+                    <Setter Property="Margin" Value="0,0,8,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="RadioButton">
+                                <Border x:Name="Bg" Width="110" Height="56" Background="#FF1B1B1B"
+                                BorderBrush="#FF2E2E2E" BorderThickness="1" CornerRadius="8">
+                                    <Grid>
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12"
+                                           Foreground="#FFC9C9C9"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Path x:Name="Check" Data="M0,3 L3,6 L8,0" Stroke="#FFEAEAEA"
+                                      StrokeThickness="1.6" StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Width="9" Height="7" Stretch="Uniform" Visibility="Collapsed"
+                                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0"/>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF222222"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF4A4A4A"/>
+                                        <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+            </Grid.Resources>
+
+            <!-- Затемнение -->
+            <Border Background="#7F000000">
+                <Button Opacity="0" Click="SettingsCloseButton_Click"></Button>
+            </Border>
+
+            <!-- Окно -->
+            <Border Width="640" Height="460" Background="#FF161616"
+            BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="170"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ===== НАВИГАЦИЯ ===== -->
+                    <Border Background="#FF131313" CornerRadius="10,0,0,10"
+                    BorderBrush="#FF232323" BorderThickness="0,0,1,0">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="GENERAL" Margin="18,16,8,4"/>
+                                <RadioButton x:Name="NavAccount" Style="{StaticResource SettingsNavItem}" Content="Account"/>
+                                <RadioButton x:Name="NavAppearance" Style="{StaticResource SettingsNavItem}" Content="Appearance"/>
+                                <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="Behavior" IsChecked="True"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="MODEL"/>
+                                <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="Customize"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="DATA &amp; INFO"/>
+                                <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
+                            </StackPanel>
+                            <TextBlock x:Name="SettingsVersionText"
+                                       Text="v1.9.0"
+                                       FontSize="10.5"
+                                       Foreground="#FF5A5A5A"
+                                       Margin="18,0,8,14"
+                                       VerticalAlignment="Bottom"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- ===== КОНТЕНТ ===== -->
+                    <Grid Grid.Column="1">
+
+                        <!-- Крестик поверх всех страниц -->
+                        <Button x:Name="SettingsCloseButton" Width="26" Height="26" Panel.ZIndex="1"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0"
+                        Cursor="Hand" Click="SettingsCloseButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                        <Path x:Name="Icon" Data="M0,0 L8,8 M8,0 L0,8"
+                                      Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Width="9" Height="9" Stretch="Uniform"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                            <Setter TargetName="Icon" Property="Stroke" Value="White"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+
+                        <!-- ═══════════ ACCOUNT ═══════════ -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAccount}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Account"/>
+
+                                <!-- Карточка аккаунта -->
+                                <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E" BorderThickness="1"
+                                CornerRadius="8" Padding="12,10" Margin="0,0,0,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" CornerRadius="8" Background="#FF2A2A2A">
+                                            <TextBlock Text="Г" FontSize="15" FontWeight="SemiBold" Foreground="#FFD8D8D8"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Гость" FontSize="13" FontWeight="SemiBold" Foreground="#FFE8E8E8"/>
+                                            <TextBlock Text="Локальный режим" FontSize="11" Foreground="#FF6A6A6A"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Switch account"/>
+                                    </Grid>
+                                </Border>
+
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Изображение профиля" VerticalAlignment="Center"/>
+                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Имя пользователя" VerticalAlignment="Center"/>
+                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль" VerticalAlignment="Center"/>
+                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль при запуске"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Запрашивать пароль для доступа к приложению при каждом запуске"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- ═══════════ APPEARANCE ═══════════ -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAppearance}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Appearance"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Масштаб интерфейса"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Размер элементов и текста"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="110" SelectedIndex="2">
+                                        <ComboBoxItem Content="80%"/>
+                                        <ComboBoxItem Content="90%"/>
+                                        <ComboBoxItem Content="100%"/>
+                                        <ComboBoxItem Content="110%"/>
+                                        <ComboBoxItem Content="125%"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Тема"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource ThemeCard}" Content="Light"/>
+                                    <RadioButton Style="{StaticResource ThemeCard}" Content="Dark" IsChecked="True"/>
+                                    <RadioButton Style="{StaticResource ThemeCard}" Content="System"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- ═══════════ BEHAVIOR ═══════════ -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavBehavior}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Behavior"/>
+
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Автопрокрутка чата" VerticalAlignment="Center"/>
+                                    <CheckBox Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Уведомлять о завершении ответа"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Показывать системное уведомление, когда модель закончила генерацию"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Режим работы"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Diagnostic — только чтение, без изменений в системе"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="140" SelectedIndex="1" VerticalAlignment="Center">
+                                        <ComboBoxItem Content="Always approve"/>
+                                        <ComboBoxItem Content="Normal"/>
+                                        <ComboBoxItem Content="Diagnostic"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Подтверждать shell-команды"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Выкл — PowerShell-команды выполняются без подтверждения"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="True"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- ═══════════ CUSTOMIZE ═══════════ -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavCustomize}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Customize"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Модели ответа"/>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Лёгкие задачи" VerticalAlignment="Center"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
+                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
+                                        <ComboBoxItem Content="GPT-4o mini"/>
+                                        <ComboBoxItem Content="Gemini Flash"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Тяжёлые задачи" VerticalAlignment="Center"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
+                                        <ComboBoxItem Content="Claude Sonnet 5"/>
+                                        <ComboBoxItem Content="GPT-4 Turbo"/>
+                                        <ComboBoxItem Content="Gemini 2.5 Pro"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Маршрутизатор"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Анализирует запрос и выбирает одну из моделей выше"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}" SelectedIndex="0" VerticalAlignment="Center">
+                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
+                                        <ComboBoxItem Content="GPT-4o mini"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="System-промпты"/>
+
+                                <!-- Основной промпт ИИ -->
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Основной промпт ИИ" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                </Grid>
+                                <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"
+         Text="Ты — Amarin, ассистент системного администратора..."/>
+
+                                <!-- Технический промпт ИИ -->
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт ИИ" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                </Grid>
+                                <TextBox x:Name="TechAiPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
+
+                                <!-- Технический промпт агента -->
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт агента" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                </Grid>
+                                <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Служебные модели"/>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Заголовки чатов" VerticalAlignment="Center"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
+                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
+                                        <ComboBoxItem Content="GPT-4o mini"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — лёгкие задачи" VerticalAlignment="Center"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
+                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
+                                        <ComboBoxItem Content="GPT-4o mini"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — тяжёлые задачи" VerticalAlignment="Center"/>
+                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
+                                        <ComboBoxItem Content="Claude Sonnet 5"/>
+                                        <ComboBoxItem Content="GPT-4 Turbo"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- ═══════════ DATA CONTROLS ═══════════ -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavData}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Data Controls"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Обмен чатами по ссылке"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Сжимает беседу в короткую строку, которую можно открыть в другом экземпляре"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Файлы приложения"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Папка с настройками, чатами и логами"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Открыть"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <!-- Разрешённые сайты -->
+                                <Grid Margin="0,0,0,8">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Разрешённые источники загрузки"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Сайты, с которых агентам разрешено скачивать файлы"/>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                    Content="+" Width="26" Padding="0" FontSize="14"/>
+                                </Grid>
+                                <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E" BorderThickness="1"
+                                CornerRadius="8" Padding="4">
+                                    <StackPanel>
+                                        <Grid Margin="8,5">
+                                            <TextBlock Text="github.com" FontSize="12" FontFamily="Consolas"
+                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
+                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                            Content="–" Width="22" Height="22" Padding="0"/>
+                                        </Grid>
+                                        <Grid Margin="8,5">
+                                            <TextBlock Text="nuget.org" FontSize="12" FontFamily="Consolas"
+                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
+                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                            Content="–" Width="22" Height="22" Padding="0"/>
+                                        </Grid>
+                                        <Grid Margin="8,5">
+                                            <TextBlock Text="python.org" FontSize="12" FontFamily="Consolas"
+                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
+                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                            Content="–" Width="22" Height="22" Padding="0"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Удалить все чаты"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Удаляет все сохранённые переписки"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="Удалить"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Удалить все данные"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Настройки, чаты, аккаунты — безвозвратно"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="Удалить"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5"/>
