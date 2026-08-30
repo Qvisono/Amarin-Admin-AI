@@ -39,11 +39,6 @@ internal static partial class DangerousActionGuard
 
     public static bool RequiresConfirmation(string toolName, JsonElement arguments)
     {
-        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
         return toolName.ToLowerInvariant() switch
         {
             "registry" => IsRegistryWrite(arguments),

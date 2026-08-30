@@ -24,4 +24,9 @@
     <ProjectReference Include="..\Amarin Admin AI\Amarin Admin AI.csproj" />
   </ItemGroup>
 
+  <!-- testhost.exe (core apphost) exits immediately under Microsoft.WindowsDesktop.App; vstest then uses testhost.dll. -->
+  <Target Name="DeleteIncompatibleTestHostExe" AfterTargets="Build">
+    <Delete Files="$(TargetDir)testhost.exe" TreatErrorsAsWarnings="true" />
+  </Target>
+
 </Project>

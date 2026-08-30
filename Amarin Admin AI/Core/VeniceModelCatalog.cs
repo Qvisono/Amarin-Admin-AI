@@ -4,21 +4,24 @@ internal sealed record ModelTierGroup(string Title, string Subtitle, string[] Mo
 
 internal static class VeniceModelCatalog
 {
+    public const string AutoId = "auto";
+
     /// <summary>
-    /// Preset models for /model, grouped by reliability / cost tier.
+    /// Preset models for the Recommended tab, grouped by reliability / cost tier.
+    /// Titles match the picker mockup headers.
     /// </summary>
     public static readonly ModelTierGroup[] Tiers =
     [
         new(
-            "Флагманский уровень",
+            "ФЛАГМАНСКИЕ",
             "макс. надёжность",
             ["claude-sonnet-5", "grok-4-6"]),
         new(
-            "Средний уровень",
+            "СРЕДНИЙ УРОВЕНЬ",
             "цена/качество",
             ["openai-gpt-53-codex", "kimi-k2-7-code"]),
         new(
-            "Бюджетный уровень",
+            "БЮДЖЕТНЫЙ УРОВЕНЬ",
             "для массовых/простых задач",
             ["minimax-m3-preview", "qwen-3-7-plus"])
     ];
@@ -56,4 +59,238 @@ internal static class VeniceModelCatalog
 
     private static bool IsExcluded(string model) =>
         ExcludedModels.Contains(model, StringComparer.OrdinalIgnoreCase);
+
+    public static bool IsAuto(string? modelId) =>
+        !string.IsNullOrWhiteSpace(modelId) &&
+        modelId.Equals(AutoId, StringComparison.OrdinalIgnoreCase);
+
+    public static IReadOnlyList<VeniceModelInfo> FilterAgentic(IEnumerable<VeniceModelInfo> models)
+    {
+        var result = new List<VeniceModelInfo>();
+        foreach (var model in models)
+        {
+            if (string.IsNullOrWhiteSpace(model.Id) || IsExcluded(model.Id))
+            {
+                continue;
+            }
+
+            if (model.ModelSpec?.Offline == true)
+            {
+                continue;
+            }
+
+            var caps = model.ModelSpec?.Capabilities;
+            if (caps is not { SupportsFunctionCalling: true, SupportsReasoning: true })
+            {
+                continue;
+            }
+
+            result.Add(model);
+        }
+
+        return result;
+    }
+
+    public static bool HasVision(VeniceModelInfo model) =>
+        model.ModelSpec?.Capabilities?.SupportsVision == true;
+
+    public static bool HasCode(VeniceModelInfo model)
+    {
+        if (model.ModelSpec?.Capabilities?.OptimizedForCode == true)
+        {
+            return true;
+        }
+
+        var traits = model.ModelSpec?.Traits;
+        if (traits is null)
+        {
+            return false;
+        }
+
+        foreach (var trait in traits)
+        {
+            if (!string.IsNullOrWhiteSpace(trait) &&
+                trait.Contains("code", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool MatchesSearch(VeniceModelInfo model, string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        var q = query.Trim();
+        if (model.Id.Contains(q, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var name = model.ModelSpec?.Name;
+        return !string.IsNullOrWhiteSpace(name) &&
+               name.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static IEnumerable<VeniceModelInfo> FilterAllTab(
+        IEnumerable<VeniceModelInfo> models,
+        string? search,
+        bool vision,
+        bool code)
+    {
+        foreach (var model in models)
+        {
+            if (vision && !HasVision(model))
+            {
+                continue;
+            }
+
+            if (code && !HasCode(model))
+            {
+                continue;
+            }
+
+            if (!MatchesSearch(model, search))
+            {
+                continue;
+            }
+
+            yield return model;
+        }
+    }
+
+    public static string GetListDisplayName(VeniceModelInfo model)
+    {
+        if (!string.IsNullOrWhiteSpace(model.ModelSpec?.Name))
+        {
+            return model.ModelSpec.Name.Trim();
+        }
+
+        return GetDisplayName(model.Id);
+    }
+
+    public static string FormatContext(int? tokens)
+    {
+        if (tokens is null or <= 0)
+        {
+            return "";
+        }
+
+        if (tokens >= 1_000_000)
+        {
+            var millions = tokens.Value / 1_000_000d;
+            return millions % 1 == 0
+                ? $"{(int)millions}M"
+                : $"{millions.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}M";
+        }
+
+        var thousands = (int)Math.Round(tokens.Value / 1000d, MidpointRounding.AwayFromZero);
+        return $"{thousands}k";
+    }
+
+    public static string BuildTooltip(VeniceModelInfo model)
+    {
+        var parts = new List<string> { model.Id };
+        var context = FormatContext(model.ModelSpec?.AvailableContextTokens ?? model.ContextLength);
+        if (context.Length > 0)
+        {
+            parts.Add(context);
+        }
+
+        var caps = new List<string>();
+        if (model.ModelSpec?.Capabilities?.SupportsReasoning == true)
+        {
+            caps.Add("Reason");
+        }
+
+        if (HasVision(model))
+        {
+            caps.Add("Vision");
+        }
+
+        if (HasCode(model))
+        {
+            caps.Add("Code");
+        }
+
+        if (caps.Count > 0)
+        {
+            parts.Add(string.Join(", ", caps));
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    public static string GetDisplayName(string modelId)
+    {
+        if (string.IsNullOrWhiteSpace(modelId) || IsAuto(modelId))
+        {
+            return "Авто";
+        }
+
+        return modelId.Trim().ToLowerInvariant() switch
+        {
+            "claude-sonnet-5" => "Claude Sonnet 5",
+            "grok-4-6" => "Grok 4.6",
+            "grok-4-3" => "Grok 4.3",
+            "openai-gpt-53-codex" => "GPT-5.3 Codex",
+            "kimi-k2-7-code" => "Kimi K2.7 Code",
+            "minimax-m3-preview" => "MiniMax M3 Preview",
+            "qwen-3-7-plus" => "Qwen 3.7 Plus",
+            _ => Humanize(modelId.Trim())
+        };
+    }
+
+    public static string GetLogoLetter(string modelId)
+    {
+        if (string.IsNullOrWhiteSpace(modelId) ||
+            modelId.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return "A";
+        }
+
+        var id = modelId.Trim();
+        foreach (var ch in id)
+        {
+            if (char.IsLetterOrDigit(ch))
+            {
+                return char.ToUpperInvariant(ch).ToString();
+            }
+        }
+
+        return "?";
+    }
+
+    public static string? GetLogoResourceKey(string modelId)
+    {
+        if (IsAuto(modelId))
+        {
+            return "Auto";
+        }
+
+        var id = modelId.Trim().ToLowerInvariant();
+        if (id.Contains("claude", StringComparison.Ordinal))
+        {
+            return "Claude";
+        }
+
+        if (id.Contains("grok", StringComparison.Ordinal))
+        {
+            return "Grok";
+        }
+
+        return null;
+    }
+
+    private static string Humanize(string modelId)
+    {
+        var parts = modelId.Replace('_', '-').Split('-', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', parts.Select(static part =>
+            part.Length == 0 ? part : char.ToUpperInvariant(part[0]) + part[1..]));
+    }
 }

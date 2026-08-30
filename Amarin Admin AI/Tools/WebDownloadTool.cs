@@ -23,7 +23,7 @@ public sealed class WebDownloadTool : ITool
         "Download a file from any http(s) URL. Trusted domains (Microsoft, GitHub, Discord, etc.) " +
         "show a normal confirmation; other domains show a stronger warning and still need user approval. " +
         "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed). " +
-        "Do NOT use ask_user for domain permission — call download_file; the app asks the user.";
+        "Do NOT ask the user for domain permission — call download_file; the app asks the user.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

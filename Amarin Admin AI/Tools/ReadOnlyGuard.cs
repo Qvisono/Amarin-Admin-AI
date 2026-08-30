@@ -12,11 +12,6 @@ public static partial class ReadOnlyGuard
 
     public static bool IsToolAllowed(string toolName, JsonElement arguments)
     {
-        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
         return toolName.ToLowerInvariant() switch
         {
             "download_file" => false,

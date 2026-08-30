@@ -1,35 +1,40 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
-
 namespace Amarin.Core;
 
 public static class SessionSettingsStore
 {
-    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
-
-    public static string SettingsPath =>
-        Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-
     public static bool TryLoad(out SessionMode mode)
     {
+        var store = new AppSettingsStore();
+        if (store.Exists)
+        {
+            mode = store.Load().SessionMode;
+            return true;
+        }
+
         mode = SessionMode.Continuous;
 
-        if (!File.Exists(SettingsPath))
+        if (!File.Exists(ExeSettingsPath))
         {
             return false;
         }
 
         try
         {
-            using var stream = File.OpenRead(SettingsPath);
-            using var document = JsonDocument.Parse(stream);
+            using var stream = File.OpenRead(ExeSettingsPath);
+            using var document = System.Text.Json.JsonDocument.Parse(stream);
             if (!document.RootElement.TryGetProperty("Session", out var session) ||
                 !session.TryGetProperty("Mode", out var modeElement))
             {
                 return false;
             }
 
-            return SessionModeParser.TryParse(modeElement.GetString(), out mode);
+            if (!SessionModeParser.TryParse(modeElement.GetString(), out mode))
+            {
+                return false;
+            }
+
+            Save(mode);
+            return true;
         }
         catch
         {
@@ -39,26 +44,9 @@ public static class SessionSettingsStore
 
     public static void Save(SessionMode mode)
     {
-        JsonObject root;
-
-        if (File.Exists(SettingsPath))
-        {
-            var text = File.ReadAllText(SettingsPath);
-            root = JsonNode.Parse(text)?.AsObject() ?? new JsonObject();
-        }
-        else
-        {
-            root = new JsonObject();
-        }
-
-        if (root["Session"] is not JsonObject session)
-        {
-            session = new JsonObject();
-            root["Session"] = session;
-        }
-
-        session["Mode"] = SessionModeParser.ToConfigValue(mode);
-
-        File.WriteAllText(SettingsPath, root.ToJsonString(WriteOptions) + Environment.NewLine);
+        new AppSettingsStore().Update(settings => settings.SessionMode = mode);
     }
+
+    private static string ExeSettingsPath =>
+        Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 }

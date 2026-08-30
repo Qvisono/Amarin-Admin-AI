@@ -8,6 +8,6 @@ public sealed class WpfUiTests
     public void Start_shows_empty_main_window()
     {
         using var ui = WpfUi.Start();
-        Assert.Equal($"Amarin Admin AI v{RuntimeContext.AppVersion}", ui.MainWindowTitle);
+        Assert.Equal($"Amarin Admin AI v{RuntimeContext.AppVersionDisplay}", ui.MainWindowTitle);
     }
 }

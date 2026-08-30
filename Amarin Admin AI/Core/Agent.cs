@@ -1,12 +1,11 @@
 using System.Text.Json;
 using Amarin.Tools;
-using Amarin.UI;
 
 namespace Amarin.Core;
 
 public sealed class Agent
 {
-    private const string BaseSystemPrompt = """
+    internal const string BaseSystemPrompt = """
 You are Amarin Admin AI — a powerful system administration tool and universal assistant on the user's machine.
 You are NOT a companion for small talk. Do not chat, joke, philosophize, or sustain open-ended dialogue.
 But you ARE an executor: if a request can be fulfilled with your tools or knowledge — do it. Do not refuse operational or informational tasks just because they sound casual or simple.
@@ -39,7 +38,7 @@ In scope — always execute with tools or general knowledge when possible:
   confirmation; other domains get a stronger warning — the user must still approve (1/да) or refuse (2/нет).
   Filename is taken from the URL path as-is — do NOT rename or shorten.
   Pass destination only when the URL has no filename in the path (e.g. /stable). folder: "downloads" (default) or "desktop".
-  Do NOT use ask_user to confirm downloads or domain permission; the app shows its own confirmation.
+  Do NOT ask the user to confirm downloads or domain permission; the app shows its own confirmation.
 - Open websites and YouTube in the default browser: run_powershell → Start-Process 'https://...'
 - Read page content (scrape_url, search_web) — any public URL including YouTube, Discord, docs.
 - System facts: time, date, uptime, OS, hardware (system_info, run_powershell, wmi_query).
@@ -86,7 +85,7 @@ Yandex policy (hard override of the "never delete" rule below):
   here — these are real actions performed this turn).
 
 Tools: run_powershell, registry, windows_service, filesystem, system_info, download_file,
-capture_screenshot, read_clipboard, analyze_folder, ask_user, search_web, scrape_url, event_log,
+capture_screenshot, read_clipboard, analyze_folder, search_web, scrape_url, event_log,
 network, scheduled_task, wmi_query, windows_process, virtualization, reliability, windows_update,
 security_status, devices, dns_config, port_listener, remote_access, change_rollback, performance,
 startup_programs, credentials, system_repair, restore_point, disk_management, disk_space,
@@ -134,6 +133,7 @@ right tool immediately and answer in one short reply.
 
 Communication style:
 - Russian only. Laconic, logical, technical. No filler ("Рад помочь", "Чем ещё помочь?" — never).
+- Never use Unicode emoji or pictographs. For tone use ASCII only: :) :( :D ;) ^_^ -- ~ and parentheses.
 - Status updates while working: 1 short sentence.
 - Final reply: answer the request directly. No invitation to continue chatting.
 
@@ -154,9 +154,6 @@ Final reply format (important — the app renders your text; wrong headings look
   if needed — not «Что сделано».
 - «Технические детали» — only for extra depth the user would need (Event IDs, exact paths, command output).
   Skip if the main answer is enough.
-- ask_user — only when blocked and need an explicit choice between options. Never ask what the user wants
-  when the request is already clear. Never for: download confirmation, AllowedDomains/domain permission,
-  URLs, time/date, image description.
 
 Rules:
 - NEVER delete existing files or directories — EXCEPT Yandex components, which are governed by the
@@ -184,12 +181,13 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
     private readonly VeniceClient _client;
     private readonly ToolRegistry _tools;
     private readonly AgentOptions _options;
-    private readonly ConsolePresenter _ui;
+    private readonly IAgentUi _ui;
     private readonly SessionActionLog _actionLog;
     private readonly SessionUndoTracker _undoTracker;
     private readonly SessionReportCollector _reportCollector;
     private readonly List<ToolDefinition> _toolDefinitions;
     private readonly List<ChatMessage> _sessionHistory = [];
+    private readonly string _basePrompt;
     private string? _cachedSystemPrompt;
     private bool _cachedSystemPromptReadOnly;
 
@@ -205,10 +203,11 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         VeniceClient client,
         ToolRegistry tools,
         AgentOptions options,
-        ConsolePresenter ui,
+        IAgentUi ui,
         SessionActionLog actionLog,
         SessionUndoTracker undoTracker,
-        SessionReportCollector reportCollector)
+        SessionReportCollector reportCollector,
+        string? systemPromptOverride = null)
     {
         _client = client;
         _tools = tools;
@@ -217,6 +216,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         _actionLog = actionLog;
         _undoTracker = undoTracker;
         _reportCollector = reportCollector;
+        _basePrompt = string.IsNullOrWhiteSpace(systemPromptOverride) ? BaseSystemPrompt : systemPromptOverride;
         _toolDefinitions = tools.GetDefinitions();
         ValidateToolDefinitions(_toolDefinitions);
         _client.ModelFallback += OnModelFallback;
@@ -224,12 +224,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
     private void OnModelFallback(string fromModel, string toModel)
     {
-        _ui.ShowWarning($"Модель {fromModel} перегружена — переключился на {toModel}.");
-        _ui.ShowStatusBar(
-            _options.Model,
-            SessionMode,
-            ReadOnlyMode,
-            _undoTracker.HasUndoPoint);
+        _ui.Warn($"Модель {fromModel} перегружена — переключился на {toModel}.");
     }
 
     public void ClearSession()
@@ -240,40 +235,23 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         _reportCollector.Clear();
     }
 
-    public async Task RunAsync(string userRequest, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await RunRequestAsync(userRequest, cancellationToken);
-        }
-        finally
-        {
-            ConsoleInputRestore.Restore();
-        }
-    }
+    public Task<AgentRunResult> RunAsync(string userRequest, CancellationToken cancellationToken = default) =>
+        RunRequestAsync(userRequest, cancellationToken);
 
-    private async Task RunRequestAsync(string userRequest, CancellationToken cancellationToken)
+    private async Task<AgentRunResult> RunRequestAsync(string userRequest, CancellationToken cancellationToken)
     {
-        var turnId = 0;
         try
         {
-            turnId = await RunRequestCoreAsync(userRequest, cancellationToken);
+            return await RunRequestCoreAsync(userRequest, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _ui.ShowError($"Сбой обработки запроса: {ex.Message}");
-            if (turnId > 0)
-            {
-                CompleteRequest(turnId, null);
-            }
-        }
-        finally
-        {
-            ConsoleInputRestore.Restore();
+            _ui.Error($"Сбой обработки запроса: {ex.Message}");
+            return FailResult(ex.Message);
         }
     }
 
-    private async Task<int> RunRequestCoreAsync(string userRequest, CancellationToken cancellationToken)
+    private async Task<AgentRunResult> RunRequestCoreAsync(string userRequest, CancellationToken cancellationToken)
     {
         _client.ResetRequestCost();
         _undoTracker.BeginRequest(userRequest);
@@ -288,9 +266,9 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         }
         catch (Exception ex)
         {
-            _ui.ShowError($"Не удалось подготовить запрос: {ex.Message}");
+            _ui.Error($"Не удалось подготовить запрос: {ex.Message}");
             CompleteRequest(turnId, null);
-            return turnId;
+            return FailResult(ex.Message);
         }
         var toolDefinitions = _toolDefinitions;
 
@@ -311,9 +289,10 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             ChatCompletionResponse response;
             try
             {
-                response = await _ui.RunWithSpinnerAsync(
+                response = await _ui.RunBusyAsync(
                     spinnerMessage,
-                    () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken));
+                    () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken),
+                    cancellationToken);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -328,10 +307,11 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             var choice = response.Choices.FirstOrDefault();
             if (choice is null)
             {
-                _ui.ShowWarning("Venice вернул пустой ответ — повторяю запрос…");
-                response = await _ui.RunWithSpinnerAsync(
+                _ui.Warn("Venice вернул пустой ответ — повторяю запрос…");
+                response = await _ui.RunBusyAsync(
                     "Повтор запроса…",
-                    () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken));
+                    () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken),
+                    cancellationToken);
                 choice = response.Choices.FirstOrDefault()
                     ?? throw new VeniceApiException("No response choices from Venice API.");
             }
@@ -341,7 +321,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
             if (!string.IsNullOrWhiteSpace(assistantText))
             {
-                _ui.ShowAssistantMessage(assistantText);
+                _ui.AssistantMessage(assistantText);
             }
 
             messages.Add(ChatMessageCloner.CloneForStorage(assistantMessage));
@@ -362,22 +342,22 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
                         continue;
                     }
 
-                    _ui.ShowAssistantMessage(
+                    _ui.AssistantMessage(
                         "Модель не вернула текстовый ответ. Повторите запрос или выполните /clear.");
                     CompleteRequest(turnId, null);
                     SaveSessionHistory(messages);
-                    return turnId;
+                    return OkResult(null);
                 }
 
                 finalAssistantText = assistantText;
                 CompleteRequest(turnId, finalAssistantText);
                 SaveSessionHistory(messages);
-                return turnId;
+                return OkResult(finalAssistantText);
             }
 
             if (string.IsNullOrWhiteSpace(assistantText))
             {
-                _ui.ShowInfo($"Запускаю инструменты ({assistantMessage.ToolCalls.Count})…");
+                _ui.Info($"Запускаю инструменты ({assistantMessage.ToolCalls.Count})…");
             }
 
             toolsUsed = true;
@@ -386,19 +366,19 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
             if (round < _options.MaxToolRounds)
             {
-                _ui.ShowInfo($"Инструменты завершены — запрашиваю ответ модели (шаг {round + 1})…");
-                Console.Out.Flush();
+                _ui.Info($"Инструменты завершены — запрашиваю ответ модели (шаг {round + 1})…");
             }
         }
 
         if (string.IsNullOrWhiteSpace(finalAssistantText))
         {
-            var synthesis = await _ui.RunWithSpinnerAsync(
+            var synthesis = await _ui.RunBusyAsync(
                 "Формирую итоговый ответ…",
-                () => RequestSynthesisAsync(messages, cancellationToken));
+                () => RequestSynthesisAsync(messages, cancellationToken),
+                cancellationToken);
             if (!string.IsNullOrWhiteSpace(synthesis))
             {
-                _ui.ShowAssistantMessage(synthesis);
+                _ui.AssistantMessage(synthesis);
                 finalAssistantText = synthesis;
                 messages.Add(new ChatMessage
                 {
@@ -408,20 +388,32 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             }
             else
             {
-                _ui.ShowAssistantMessage(
+                _ui.AssistantMessage(
                     $"Достигнут лимит раундов инструментов ({_options.MaxToolRounds}). " +
                     "Итоговый текстовый ответ не получен — повторите запрос.");
             }
         }
         else
         {
-            _ui.ShowWarning($"Достигнут лимит раундов инструментов ({_options.MaxToolRounds}). Завершаю работу.");
+            _ui.Warn($"Достигнут лимит раундов инструментов ({_options.MaxToolRounds}). Завершаю работу.");
         }
 
         CompleteRequest(turnId, finalAssistantText);
         SaveSessionHistory(messages);
-        return turnId;
+        return OkResult(finalAssistantText);
     }
+
+    private AgentRunResult OkResult(string? text) => new()
+    {
+        AssistantText = text,
+        Cost = _client.RequestCost
+    };
+
+    private AgentRunResult FailResult(string error) => new()
+    {
+        Error = error,
+        Cost = _client.RequestCost
+    };
 
     private static string? ExtractAssistantText(ChatMessage message, string? finishReason)
     {
@@ -456,7 +448,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
         if (_undoTracker.HasUndoPoint)
         {
-            _ui.ShowInfo("Изменения применены. Откат последнего запроса: команда /undo");
+            _ui.Info("Изменения применены. Откат последнего запроса: команда /undo");
         }
     }
 
@@ -508,11 +500,6 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
     internal static bool IsParallelSafeToolCall(string toolName, JsonElement arguments, bool readOnlyMode)
     {
-        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
         if (readOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
         {
             return false;
@@ -540,11 +527,11 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
     {
         foreach (var item in batch)
         {
-            _ui.ShowToolCall(item.ToolName, item.ToolCall.Function.Arguments);
+            _ui.ToolCall(item.ToolName, item.ToolCall.Function.Arguments);
         }
 
         var results = new ToolResult[batch.Count];
-        await _ui.RunWithSpinnerAsync(
+        await _ui.RunBusyAsync(
             $"Запускаю инструменты ({batch.Count})…",
             async () =>
             {
@@ -564,7 +551,8 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
                 await Task.WhenAll(tasks);
                 return 0;
-            });
+            },
+            cancellationToken);
 
         for (var i = 0; i < batch.Count; i++)
         {
@@ -580,7 +568,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         cancellationToken.ThrowIfCancellationRequested();
 
         var toolName = toolCall.Function.Name;
-        _ui.ShowToolCall(toolName, toolCall.Function.Arguments);
+        _ui.ToolCall(toolName, toolCall.Function.Arguments);
 
         ToolResult result;
         JsonElement arguments;
@@ -592,7 +580,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         {
             result = ToolResult.Fail(
                 $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
-            _ui.ShowToolResult(toolName, result);
+            _ui.ToolResult(toolName, result);
             _actionLog.Record(toolName, null, false, result.Output);
             messages.Add(BuildToolMessage(toolCall, result));
             return;
@@ -601,7 +589,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         if (ReadOnlyMode && !ReadOnlyGuard.IsToolAllowed(toolName, arguments))
         {
             result = ToolResult.Fail(ReadOnlyGuard.BlockedMessage(toolName));
-            _ui.ShowToolResult(toolName, result);
+            _ui.ToolResult(toolName, result);
             _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
             messages.Add(BuildToolMessage(toolCall, result));
             return;
@@ -613,7 +601,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             LocalUsersSafety.TryGetHardBlockReason(arguments, out var localUsersBlock))
         {
             result = ToolResult.Fail(localUsersBlock);
-            _ui.ShowToolResult(toolName, result);
+            _ui.ToolResult(toolName, result);
             _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
             messages.Add(BuildToolMessage(toolCall, result));
             return;
@@ -630,7 +618,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             if (!approved)
             {
                 result = ToolResult.Fail("Действие отменено пользователем.");
-                _ui.ShowToolResult(toolName, result);
+                _ui.ToolResult(toolName, result);
                 _actionLog.Record(toolName, ExtractAction(arguments), false, result.Output);
                 messages.Add(BuildToolMessage(toolCall, result));
                 return;
@@ -638,16 +626,17 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
             if (needsUndoSnapshot)
             {
-                var snapshot = await _ui.RunWithSpinnerAsync(
+                var snapshot = await _ui.RunBusyAsync(
                     "Снимок системы для отката…",
-                    () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)));
+                    () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)),
+                    cancellationToken);
                 if (!snapshot.Success)
                 {
-                    _ui.ShowWarning($"Не удалось создать снимок системы: {snapshot.Message}");
+                    _ui.Warn($"Не удалось создать снимок системы: {snapshot.Message}");
                 }
                 else if (snapshot.IsNew)
                 {
-                    _ui.ShowInfo(
+                    _ui.Info(
                         $"Снимок системы для /undo (службы, задачи, реестр): {snapshot.SnapshotId}");
                 }
             }
@@ -665,8 +654,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         List<ChatMessage> messages,
         bool needsUndoSnapshot)
     {
-        _ui.ShowToolResult(toolName, result);
-        ConsoleInputRestore.Restore();
+        _ui.ToolResult(toolName, result);
         _actionLog.Record(
             toolName,
             ExtractAction(arguments),
@@ -698,15 +686,11 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         JsonElement arguments,
         CancellationToken cancellationToken)
     {
-        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase))
-        {
-            return _tools.ExecuteAsync(toolName, arguments, cancellationToken);
-        }
-
         var spinnerMessage = GetToolSpinnerMessage(toolName, arguments);
-        return _ui.RunWithSpinnerAsync(
+        return _ui.RunBusyAsync(
             spinnerMessage,
-            () => _tools.ExecuteAsync(toolName, arguments, cancellationToken));
+            () => _tools.ExecuteAsync(toolName, arguments, cancellationToken),
+            cancellationToken);
     }
 
     private static string GetPowerShellSpinnerMessage(JsonElement arguments)
@@ -861,7 +845,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             if (_sessionHistory.Count > 0)
             {
                 _sessionHistory.Clear();
-                _ui.ShowWarning("История сессии была повреждена и сброшена. Повторите запрос.");
+                _ui.Warn("История сессии была повреждена и сброшена. Повторите запрос.");
             }
 
             throw new VeniceApiException($"Не удалось отправить запрос: {ex.Message}");
@@ -908,7 +892,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         }
 
         _cachedSystemPromptReadOnly = ReadOnlyMode;
-        _cachedSystemPrompt = BaseSystemPrompt
+        _cachedSystemPrompt = _basePrompt
             + BuildMachinePathsPrompt()
             + (ReadOnlyMode ? ReadOnlyPromptAppendix : string.Empty);
         return _cachedSystemPrompt;

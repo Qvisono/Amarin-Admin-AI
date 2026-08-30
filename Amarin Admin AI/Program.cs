@@ -1,469 +1,210 @@
-using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
 using Microsoft.Extensions.Configuration;
-using Spectre.Console;
 
-var startupClock = Stopwatch.StartNew();
-ConsoleEncoding.Configure();
-
-// Config: non-secret settings from appsettings.json; API key ONLY from env / user-secrets.
-// Never read Venice:ApiKey from committed JSON files.
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: true)
-    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
-    .AddEnvironmentVariables()
-    .Build();
-
-var configuredDomains = configuration.GetSection("Download:AllowedDomains")
-    .GetChildren()
-    .Select(item => item.Value)
-    .Where(value => !string.IsNullOrWhiteSpace(value))
-    .Select(value => value!)
-    .ToArray();
-
-var downloadOptions = new DownloadOptions
+internal static class Program
 {
-    AllowedDomains = configuredDomains.Length > 0
-        ? configuredDomains
-        : new DownloadOptions().AllowedDomains,
-    MaxSizeBytes = long.TryParse(configuration["Download:MaxSizeMb"], out var maxMb)
-        ? maxMb * 1024L * 1024L
-        : new DownloadOptions().MaxSizeBytes
-};
-
-// Trust list for download confirmation UI (High risk warning when host is not listed).
-// Non-listed domains are still downloadable after explicit user approval.
-DownloadValidator.ConfigureAllowedDomains(downloadOptions.AllowedDomains);
-
-// Priority: process env > user-secrets/env via configuration (VENICE_API_KEY only).
-var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
-    ?? configuration["VENICE_API_KEY"]
-    ?? string.Empty;
-
-var options = new AgentOptions
-{
-    ApiKey = apiKey,
-    BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
-    Model = configuration["Venice:Model"] ?? "grok-4-6",
-    MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
-    WebSearch = configuration["Venice:WebSearch"] ?? "off",
-    EnableWebCitations = !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,
-    EnableXSearch = bool.TryParse(configuration["Venice:EnableXSearch"], out var xSearch) ? xSearch : null,
-    Download = downloadOptions
-};
-
-var startup = StartupArgs.Parse(args);
-
-if (startup.SmokeTools)
-{
-    return await RunToolSmokeTestAsync();
-}
-
-using var wpfUi = WpfUi.Start(waitForMainWindow: false);
-
-if (!string.IsNullOrWhiteSpace(startup.Model))
-{
-    options.Model = startup.Model.Trim();
-}
-
-var ui = new ConsolePresenter();
-ui.ShowBanner();
-PerfLog.Write($"banner_ready_ms={startupClock.ElapsedMilliseconds}");
-
-if (string.IsNullOrWhiteSpace(options.ApiKey))
-{
-    ui.ShowError("Не задан API-ключ Venice.ai.");
-    ui.ShowInfo("Задайте переменную окружения VENICE_API_KEY (или: dotnet user-secrets set \"VENICE_API_KEY\" \"...\").");
-    ui.ShowInfo("Ключ не хранится в appsettings.json и не коммитится в репозиторий.");
-    return 1;
-}
-
-using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
-using var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15));
-var venice = new VeniceClient(http, options);
-
-if (!string.IsNullOrWhiteSpace(startup.Model))
-{
-    venice.SetActiveModel(startup.Model.Trim());
-    VeniceSettingsStore.SaveModel(startup.Model.Trim());
-}
-
-var toolRegistry = new ToolRegistry(
-[
-    new PowerShellTool(),
-    new RegistryTool(),
-    new ServiceTool(),
-    new FileSystemTool(),
-    new SystemInfoTool(),
-    new WebDownloadTool(downloadHttp, downloadOptions),
-    new ScreenshotTool(),
-    new ClipboardTool(),
-    new FolderAnalysisTool(),
-    new AskUserTool(ui.PromptUserChoiceAsync),
-    new WebSearchTool(venice.SearchWebAsync),
-    new ScrapeUrlTool(venice.ScrapeUrlAsync),
-    new EventLogTool(),
-    new NetworkTool(),
-    new ScheduledTaskTool(),
-    new WmiTool(),
-    new ProcessTool(),
-    new VirtualizationTool(),
-    new ReliabilityTool(),
-    new WindowsUpdateTool(),
-    new SecurityTool(),
-    new DevicesTool(),
-    new DnsConfigTool(),
-    new PortListenerTool(),
-    new RemoteAccessTool(),
-    new ChangeRollbackTool(),
-    new PerformanceTool(),
-    new StartupProgramsTool(),
-    new CredentialsTool(),
-    new SystemRepairTool(),
-    new RestorePointTool(),
-    new DiskManagementTool(),
-    new DiskSpaceTool(),
-    new SoftwareInventoryTool(),
-    new FirewallRulesTool(),
-    new WindowsFeaturesTool(),
-    new LocalUsersTool()
-]);
-
-var actionLog = new SessionActionLog();
-var undoTracker = new SessionUndoTracker();
-var reportCollector = new SessionReportCollector();
-var agent = new Agent(venice, toolRegistry, options, ui, actionLog, undoTracker, reportCollector);
-
-var hasStartupPrompt = !string.IsNullOrWhiteSpace(startup.Prompt);
-var sessionMode = SessionMode.Continuous;
-if (SessionSettingsStore.TryLoad(out var savedMode))
-{
-    sessionMode = savedMode;
-}
-else if (hasStartupPrompt)
-{
-    // Quick-chat launch: do not block on interactive mode picker.
-    sessionMode = SessionMode.Continuous;
-    SessionSettingsStore.Save(sessionMode);
-}
-else
-{
-    sessionMode = await ui.PromptSessionModeAsync(SessionMode.Continuous);
-    SessionSettingsStore.Save(sessionMode);
-    ui.ShowInfo("Режим сохранён в appsettings.json.");
-}
-
-agent.SessionMode = sessionMode;
-
-var prompt = new ConsolePrompt();
-
-PrintStatusBar(ui, options.Model, agent, venice);
-PerfLog.Write($"prompt_ready_ms={startupClock.ElapsedMilliseconds} memory={GC.GetTotalMemory(false)}");
-
-// First turn from quick-chat bar (or CLI): show and run immediately.
-if (hasStartupPrompt)
-{
-    var startupText = startup.Prompt!.Trim();
-    ui.ShowInfo($"Запрос: {startupText}");
-    await RunUserRequestAsync(startupText);
-    ui.ShowSeparator();
-}
-
-while (true)
-{
-    var userRequest = prompt.ReadLine();
-
-    if (userRequest is null)
+    [STAThread]
+    private static int Main(string[] args)
     {
-        return 0;
-    }
-
-    if (string.IsNullOrWhiteSpace(userRequest))
-    {
-        continue;
-    }
-
-    if (userRequest.Equals("exit", StringComparison.OrdinalIgnoreCase))
-    {
-        ui.ShowInfo("До встречи.");
-        return 0;
-    }
-
-    if (await HandleCommandAsync(userRequest))
-    {
-        continue;
-    }
-
-    await RunUserRequestAsync(userRequest);
-    ui.ShowSeparator();
-}
-
-async Task RunUserRequestAsync(string userRequest)
-{
-    using var requestCts = new CancellationTokenSource();
-    ConsoleCancelEventHandler? cancelHandler = null;
-    cancelHandler = (_, e) =>
-    {
-        e.Cancel = true;
-        requestCts.Cancel();
-    };
-    Console.CancelKeyPress += cancelHandler;
-
-    try
-    {
-        await agent.RunAsync(userRequest, requestCts.Token);
-        ui.ShowRequestCost(venice.RequestCost);
-        ShowCachedBalance(venice, ui);
-    }
-    catch (OperationCanceledException)
-    {
-        ui.ShowWarning("Запрос отменён (Ctrl+C).");
-    }
-    catch (VeniceApiException ex)
-    {
-        ui.ShowError(ex.Message);
-    }
-    catch (Exception ex)
-    {
-        ui.ShowError($"Ошибка: {ex.Message}");
-        if (ex.InnerException is not null)
+        var startup = StartupArgs.Parse(args);
+        if (startup.SmokeTools)
         {
-            ui.ShowInfo($"Подробности: {ex.InnerException.Message}");
-        }
-    }
-    finally
-    {
-        if (cancelHandler is not null)
-        {
-            Console.CancelKeyPress -= cancelHandler;
-        }
-    }
-
-    ConsoleInputRestore.Restore();
-    Console.Out.Flush();
-}
-
-async Task<bool> HandleCommandAsync(string userRequest)
-{
-    if (userRequest.Equals("/clear", StringComparison.OrdinalIgnoreCase))
-    {
-        agent.ClearSession();
-        ui.ClearScreen();
-        ui.ShowBanner();
-        PrintStatusBar(ui, options.Model, agent, venice);
-        ui.ShowInfo("История сессии и журнал действий очищены.");
-        return true;
-    }
-
-    if (userRequest.Equals("/help", StringComparison.OrdinalIgnoreCase) ||
-        userRequest.Equals("?", StringComparison.OrdinalIgnoreCase))
-    {
-        ui.ShowHelp();
-        return true;
-    }
-
-    if (userRequest.Equals("/session", StringComparison.OrdinalIgnoreCase) ||
-        userRequest.Equals("/mode", StringComparison.OrdinalIgnoreCase))
-    {
-        agent.SessionMode = await ui.PromptSessionModeAsync(agent.SessionMode);
-        SessionSettingsStore.Save(agent.SessionMode);
-        ui.ShowInfo($"Режим: {SessionModeParser.ToDisplayName(agent.SessionMode)} (сохранён)");
-        return true;
-    }
-
-    if (userRequest.StartsWith("/model", StringComparison.OrdinalIgnoreCase))
-    {
-        var modelArg = userRequest.Length > "/model".Length
-            ? userRequest["/model".Length..].Trim()
-            : null;
-
-        var newModel = string.IsNullOrWhiteSpace(modelArg)
-            ? await ui.PromptModelAsync(
-                options.Model,
-                VeniceModelCatalog.GetSelectableModels(options.Model))
-            : modelArg;
-
-        venice.SetActiveModel(newModel);
-        VeniceSettingsStore.SaveModel(newModel);
-        PrintStatusBar(ui, options.Model, agent, venice);
-        ui.ShowInfo($"Модель: {newModel} (сохранена в appsettings.json)");
-        return true;
-    }
-
-    if (userRequest.Equals("/readonly", StringComparison.OrdinalIgnoreCase))
-    {
-        ToggleReadOnly(agent, ui);
-        return true;
-    }
-
-    if (userRequest.Equals("/undo", StringComparison.OrdinalIgnoreCase))
-    {
-        if (!undoTracker.HasUndoPoint)
-        {
-            ui.ShowInfo("Нет точки отката — последний запрос не вносил изменений или откат уже выполнен.");
-            return true;
+            return RunSmokeTools();
         }
 
-        var approved = await ui.ConfirmDangerousActionAsync(
-            DangerousActionGuard.DescribeUndo(undoTracker.DescribeUndoPoint()));
-        if (approved)
+        return RunWpf(startup);
+    }
+
+    private static int RunWpf(StartupArgs startup)
+    {
+        var configuration = BuildConfiguration();
+        var downloadOptions = LoadDownloadOptions(configuration);
+        DownloadValidator.ConfigureAllowedDomains(downloadOptions.AllowedDomains);
+
+        var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
+                     ?? configuration["VENICE_API_KEY"]
+                     ?? string.Empty;
+
+        var options = new AgentOptions
         {
-            try
+            ApiKey = apiKey,
+            BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
+            Model = configuration["Venice:Model"] ?? "grok-4-6",
+            MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
+            WebSearch = configuration["Venice:WebSearch"] ?? "off",
+            EnableWebCitations = !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,
+            EnableXSearch = bool.TryParse(configuration["Venice:EnableXSearch"], out var xSearch) ? xSearch : null,
+            Download = downloadOptions
+        };
+
+        var settingsStore = new AppSettingsStore();
+        var settings = settingsStore.Load();
+        if (!string.IsNullOrWhiteSpace(startup.Model))
+        {
+            options.Model = startup.Model.Trim();
+            settings.ChatModelId = options.Model;
+            settingsStore.Save(settings);
+        }
+        else if (settingsStore.Exists &&
+                 !string.IsNullOrWhiteSpace(settings.ChatModelId) &&
+                 !settings.ChatModelId.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            options.Model = settings.ChatModelId;
+        }
+
+        var http = HttpClients.Create(TimeSpan.FromMinutes(5));
+        var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15));
+        var venice = new VeniceClient(http, options);
+        var models = new VeniceModelListCache(venice);
+        var chatStore = new ChatStore();
+        var confirmations = new ConfirmationQueue(() => settingsStore.Load());
+        var agentHost = new AgentHost(options, downloadHttp, () => settingsStore.Load(), confirmations);
+        var chatTools = new ToolRegistry(
+        [
+            new ReadFileTool(),
+            new WriteFileTool(),
+            new WebSearchTool(venice.SearchWebAsync),
+            new InitAgentTool(new AgentSlotLimiter(), agentHost)
+        ]);
+        var engine = new ChatEngine(venice, options, () => settingsStore.Load(), chatTools);
+        var titles = new ChatTitleGenerator(http, options, () => settingsStore.Load());
+
+        var services = new AppServices
+        {
+            Options = options,
+            SettingsStore = settingsStore,
+            Settings = settings,
+            ChatStore = chatStore,
+            Http = http,
+            DownloadHttp = downloadHttp,
+            Venice = venice,
+            Models = models,
+            Chat = engine,
+            Titles = titles,
+            Confirmations = confirmations,
+            StartupPrompt = startup.Prompt
+        };
+
+        var app = new Application
+        {
+            ShutdownMode = ShutdownMode.OnMainWindowClose
+        };
+        app.Exit += (_, _) => services.Dispose();
+
+        var window = new MainWindow();
+        window.AttachServices(services);
+        return app.Run(window);
+    }
+
+    private static IConfiguration BuildConfiguration() =>
+        new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+    private static DownloadOptions LoadDownloadOptions(IConfiguration configuration)
+    {
+        var configuredDomains = configuration.GetSection("Download:AllowedDomains")
+            .GetChildren()
+            .Select(item => item.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToArray();
+
+        return new DownloadOptions
+        {
+            AllowedDomains = configuredDomains.Length > 0
+                ? configuredDomains
+                : new DownloadOptions().AllowedDomains,
+            MaxSizeBytes = long.TryParse(configuration["Download:MaxSizeMb"], out var maxMb)
+                ? maxMb * 1024L * 1024L
+                : new DownloadOptions().MaxSizeBytes
+        };
+    }
+
+    private static int RunSmokeTools()
+    {
+        AllocConsole();
+        ConsoleEncoding.Configure();
+        return RunToolSmokeTestAsync().GetAwaiter().GetResult();
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AllocConsole();
+
+    private static async Task<int> RunToolSmokeTestAsync()
+    {
+        Console.WriteLine("Amarin — smoke-test локальных инструментов (без Venice API)…");
+        Console.WriteLine();
+
+        var registry = new ToolRegistry(
+        [
+            new PowerShellTool(),
+            new RegistryTool(),
+            new ServiceTool(),
+            new FileSystemTool(),
+            new SystemInfoTool(),
+            new ScreenshotTool(),
+            new ClipboardTool(),
+            new FolderAnalysisTool(),
+            new EventLogTool(),
+            new NetworkTool(),
+            new ScheduledTaskTool(),
+            new WmiTool(),
+            new ProcessTool(),
+            new VirtualizationTool(),
+            new ReliabilityTool(),
+            new WindowsUpdateTool(),
+            new SecurityTool(),
+            new DevicesTool(),
+            new DnsConfigTool(),
+            new PortListenerTool(),
+            new RemoteAccessTool(),
+            new ChangeRollbackTool(),
+            new PerformanceTool(),
+            new StartupProgramsTool(),
+            new CredentialsTool(),
+            new SystemRepairTool(),
+            new RestorePointTool(),
+            new DiskManagementTool(),
+            new DiskSpaceTool(),
+            new SoftwareInventoryTool(),
+            new FirewallRulesTool(),
+            new WindowsFeaturesTool(),
+            new LocalUsersTool()
+        ]);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
+        var results = await ToolSmokeRunner.RunAsync(registry, cts.Token);
+
+        var passed = 0;
+        var failed = 0;
+
+        foreach (var result in results)
+        {
+            var status = result.Success ? "OK" : "FAIL";
+            if (result.Success)
             {
-                ui.ShowUndoResult(undoTracker.Undo());
+                passed++;
             }
-            catch (Exception ex)
+            else
             {
-                // Compare/restore bugs must not tear down the process.
-                ui.ShowError($"Откат не выполнен (внутренняя ошибка): {ex.Message}");
+                failed++;
             }
-        }
-        else
-        {
-            ui.ShowInfo("Откат отменён.");
+
+            Console.WriteLine($"[{status,-4}] {result.ToolName,-22} {result.ElapsedMs,5} ms  {result.Summary}");
         }
 
-        return true;
+        Console.WriteLine();
+        Console.WriteLine($"Итого: {passed} OK, {failed} FAIL из {results.Count}.");
+        PerfLog.Write($"smoke_complete ok={passed} fail={failed} memory={GC.GetTotalMemory(false)}");
+        return failed > 0 ? 1 : 0;
     }
-
-    if (userRequest.StartsWith("/export", StringComparison.OrdinalIgnoreCase))
-    {
-        var formatArg = userRequest.Length > "/export".Length
-            ? userRequest["/export".Length..].Trim()
-            : null;
-
-        if (!SessionReportExporter.TryParseFormat(formatArg, out var format))
-        {
-            ui.ShowWarning("Формат: /export [html|md|pdf|all]. По умолчанию — all.");
-            return true;
-        }
-
-        var exportResult = SessionReportExporter.Export(
-            format,
-            reportCollector,
-            actionLog,
-            undoTracker,
-            options.Model,
-            agent.SessionMode,
-            agent.ReadOnlyMode);
-
-        ui.ShowExportResult(exportResult);
-        return true;
-    }
-
-    if (userRequest.Equals("balance", StringComparison.OrdinalIgnoreCase))
-    {
-        ShowCachedBalance(venice, ui);
-        return true;
-    }
-
-    if (userRequest.Equals("/history", StringComparison.OrdinalIgnoreCase))
-    {
-        ui.ShowSessionHistory(actionLog.Entries);
-        return true;
-    }
-
-    return false;
-}
-
-static void PrintStatusBar(ConsolePresenter ui, string model, Agent agent, VeniceClient venice)
-{
-    ui.ShowStatusBar(
-        model,
-        agent.SessionMode,
-        agent.ReadOnlyMode,
-        agent.UndoTracker.HasUndoPoint,
-        venice.LastBalance?.Format());
-}
-
-static void ToggleReadOnly(Agent agent, ConsolePresenter ui)
-{
-    agent.ReadOnlyMode = !agent.ReadOnlyMode;
-    ui.ShowInfo(agent.ReadOnlyMode
-        ? "Режим только диагностика включён — запись и опасный PowerShell заблокированы."
-        : "Режим только диагностика выключен — доступны все инструменты (с подтверждением опасных действий).");
-}
-
-static void ShowCachedBalance(VeniceClient venice, ConsolePresenter ui)
-{
-    if (venice.LastBalance is null)
-    {
-        ui.ShowInfo("Баланс: появится после первого запроса к Venice.");
-        return;
-    }
-
-    ui.ShowBalance(venice.LastBalance);
-}
-
-static async Task<int> RunToolSmokeTestAsync()
-{
-    Console.WriteLine("Amarin — smoke-test локальных инструментов (без Venice API)…");
-    Console.WriteLine();
-
-    var registry = new ToolRegistry(
-    [
-        new PowerShellTool(),
-        new RegistryTool(),
-        new ServiceTool(),
-        new FileSystemTool(),
-        new SystemInfoTool(),
-        new ScreenshotTool(),
-        new ClipboardTool(),
-        new FolderAnalysisTool(),
-        new EventLogTool(),
-        new NetworkTool(),
-        new ScheduledTaskTool(),
-        new WmiTool(),
-        new ProcessTool(),
-        new VirtualizationTool(),
-        new ReliabilityTool(),
-        new WindowsUpdateTool(),
-        new SecurityTool(),
-        new DevicesTool(),
-        new DnsConfigTool(),
-        new PortListenerTool(),
-        new RemoteAccessTool(),
-        new ChangeRollbackTool(),
-        new PerformanceTool(),
-        new StartupProgramsTool(),
-        new CredentialsTool(),
-        new SystemRepairTool(),
-        new RestorePointTool(),
-        new DiskManagementTool(),
-        new DiskSpaceTool(),
-        new SoftwareInventoryTool(),
-        new FirewallRulesTool(),
-        new WindowsFeaturesTool(),
-        new LocalUsersTool()
-    ]);
-
-    using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
-    var results = await ToolSmokeRunner.RunAsync(registry, cts.Token);
-
-    var passed = 0;
-    var failed = 0;
-
-    foreach (var result in results)
-    {
-        var status = result.Success ? "OK" : "FAIL";
-        if (result.Success)
-        {
-            passed++;
-        }
-        else
-        {
-            failed++;
-        }
-
-        Console.WriteLine($"[{status,-4}] {result.ToolName,-22} {result.ElapsedMs,5} ms  {result.Summary}");
-    }
-
-    Console.WriteLine();
-    Console.WriteLine($"Итого: {passed} OK, {failed} FAIL из {results.Count}.");
-    PerfLog.Write($"smoke_complete ok={passed} fail={failed} memory={GC.GetTotalMemory(false)}");
-    return failed > 0 ? 1 : 0;
 }

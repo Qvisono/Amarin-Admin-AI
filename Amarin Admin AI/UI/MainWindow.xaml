@@ -27,12 +27,13 @@
     ResizeBorderThickness="0" />
     </shell:WindowChrome.WindowChrome>
     <Grid Background="#FF0E0E0E" MouseDown="Grid_MouseDown">
-        <Grid>
+        <Grid x:Name="ScaledRoot">
+            <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="184"/>
+                <ColumnDefinition x:Name="SidebarColumn" Width="184"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Border Background="#FF131313">
+            <Border x:Name="SidebarBorder" Background="#FF131313">
                 <Border.Resources>
 
                     <!-- Заголовок группы чатов -->
@@ -105,11 +106,22 @@
                         <StackPanel>
                             <Grid Margin="2,2,2,0">
                                 <!-- Лого приложения -->
-                                <Button Margin="6" Height="30" Width="30" HorizontalAlignment="Left" Cursor="Hand">
+                                <Button x:Name="SidebarLogoButton" Margin="6" Height="30" Width="30" HorizontalAlignment="Left"
+                                        Cursor="Hand" Click="SidebarLogoButton_Click"
+                                        MouseEnter="SidebarLogoButton_MouseEnter"
+                                        MouseLeave="SidebarLogoButton_MouseLeave">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
-                                                <Image Source="/jeklE-removebg-preview_1.ico" Width="20" Height="20"/>
+                                                <Grid>
+                                                    <Image x:Name="LogoImage" Source="/jeklE-removebg-preview_1.ico" Width="20" Height="20"/>
+                                                    <Path x:Name="ExpandIcon" Visibility="Collapsed"
+                                                          Data="M 2,2 L 7,7 L 2,12 M 8,2 L 13,7 L 8,12"
+                                                          Width="12" Height="12" Stretch="Uniform"
+                                                          Stroke="#FFEAEAEA" StrokeThickness="1.5"
+                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
@@ -120,8 +132,8 @@
                                     </Button.Template>
                                 </Button>
 
-                                <Button Margin="6" Height="30" Width="30" HorizontalAlignment="Right"
-                                        Cursor="Hand" ToolTip="Свернуть панель">
+                                <Button x:Name="CollapseSidebarButton" Margin="6" Height="30" Width="30" HorizontalAlignment="Right"
+                                        Cursor="Hand" ToolTip="Свернуть панель" Click="CollapseSidebarButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
@@ -144,19 +156,19 @@
                             </Grid>
 
                             <!-- New Chat: белая primary-кнопка -->
-                            <Button Cursor="Hand" Margin="0,5,0,0">
+                            <Button x:Name="NewChatButton" Cursor="Hand" Margin="0,5,0,0" Click="NewChatButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
                             Margin="6,0,6,4" Height="28">
                                             <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Path Data="M6,0 L6,12 M0,6 L12,6"
+                                                <Path x:Name="NewChatPlus" Data="M6,0 L6,12 M0,6 L12,6"
                                   Stroke="#FF0E0E0E" StrokeThickness="1.5"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Width="10" Height="10" Stretch="Uniform"
                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="New Chat" FontSize="11.5"
+                                                <TextBlock x:Name="NewChatLabel" Text="New Chat" FontSize="11.5"
                                        Foreground="#FF0E0E0E" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
@@ -174,7 +186,7 @@
 
                             <!-- Поиск -->
                             <!-- Поиск -->
-                            <Border Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
+                            <Border x:Name="SearchBorder" Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Background" Value="#FF1F1F1F"/>
@@ -202,7 +214,8 @@
                                     <TextBox x:Name="SearchBox" Grid.Column="1"
                  Background="Transparent" BorderThickness="0" Padding="0"
                  VerticalContentAlignment="Center" FontSize="12"
-                 Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"/>
+                 Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"
+                 TextChanged="SearchBox_TextChanged"/>
                                     <TextBlock Grid.Column="1" Text="Поиск" FontSize="12" Foreground="#FF6E6E6E"
                    VerticalAlignment="Center" IsHitTestVisible="False">
                                         <TextBlock.Style>
@@ -219,35 +232,11 @@
                                 </Grid>
                             </Border>
                             <!-- ===== СПИСОК ЧАТОВ ===== -->
-
-                            <TextBlock Style="{StaticResource GroupHeader}" Text="Сегодня" Margin="14,6,6,4"/>
-                            <Button Style="{StaticResource ChatItemActive}" Content="Ночная сводка"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Ошибки 500 в проде"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Экспорт в CSV"/>
-
-                            <TextBlock Style="{StaticResource GroupHeader}" Text="Вчера"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Миграция PostgreSQL"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Права модератора"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Метрики за июль"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Ротация бэкапов"/>
-
-                            <TextBlock Style="{StaticResource GroupHeader}" Text="Ранее"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Медленные запросы"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Webhook для алертов"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Ревизия API-ключей"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Логи nginx"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Сертификаты TLS"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Инвентаризация VM"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Инциденты Q2"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Чистка сессий"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Аудит аккаунтов"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Нагрузочные тесты"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Хранение логов"/>
-                            <Button Style="{StaticResource ChatItem}" Content="Деплой 2.4"/>
+                            <StackPanel x:Name="ChatListPanel"/>
 
                         </StackPanel>
                     </ScrollViewer>
-                    <Border Grid.Row="1">
+                    <Border Grid.Row="1" x:Name="SidebarFooter">
                         <Grid Height="40" Margin="8,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -255,17 +244,17 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <Border Width="24" Height="24" CornerRadius="6" Background="#FF2A2A2A" VerticalAlignment="Center">
+                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="#FF2A2A2A" VerticalAlignment="Center">
                                 <TextBlock Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="#FFD8D8D8"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
 
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                            <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="#FFE8E8E8"/>
                                 <TextBlock Text="Локальный режим" FontSize="9.5" Foreground="#FF6A6A6A"/>
                             </StackPanel>
 
-                            <Button Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
+                            <Button x:Name="SettingsButton" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
                                     Cursor="Hand" Click="Button_Click_3">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
@@ -301,743 +290,6 @@
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
               x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="27,18,20,10" MaxWidth="1070" x:Name="MessagesPanel">
-                            <StackPanel.Resources>
-
-                                <!-- ===== Галка выполненного инструмента ===== -->
-                                <Style x:Key="ToolDoneIcon" TargetType="Path">
-                                    <Setter Property="Data" Value="M0,4 L3.5,7.5 L10,0"/>
-                                    <Setter Property="Stroke" Value="#FF5FB878"/>
-                                    <Setter Property="StrokeThickness" Value="1.6"/>
-                                    <Setter Property="StrokeStartLineCap" Value="Round"/>
-                                    <Setter Property="StrokeEndLineCap" Value="Round"/>
-                                    <Setter Property="StrokeLineJoin" Value="Round"/>
-                                    <Setter Property="Width" Value="10"/>
-                                    <Setter Property="Height" Value="8"/>
-                                    <Setter Property="Stretch" Value="Uniform"/>
-                                    <Setter Property="Margin" Value="0,0,10,0"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-
-                                <!-- ===== Превью результата ===== -->
-                                <Style x:Key="ToolResult" TargetType="TextBlock">
-                                    <Setter Property="FontFamily" Value="Consolas"/>
-                                    <Setter Property="FontSize" Value="12"/>
-                                    <Setter Property="Foreground" Value="#FF7A9A82"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                </Style>
-
-                                <!-- ===== Разделитель шагов ===== -->
-                                <Style x:Key="ToolStepDivider" TargetType="Border">
-                                    <Setter Property="Height" Value="1"/>
-                                    <Setter Property="Background" Value="#FF1E1E1E"/>
-                                    <Setter Property="Margin" Value="4,6"/>
-                                </Style>
-
-                                <!-- ===== ПУЗЫРЬ ПОЛЬЗОВАТЕЛЯ (справа) ===== -->
-                                <Style x:Key="UserBubble" TargetType="Border">
-                                    <Setter Property="Background" Value="#FF1F1F1F"/>
-                                    <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
-                                    <Setter Property="CornerRadius" Value="12,12,3,12"/>
-                                    <Setter Property="Padding" Value="14,9"/>
-                                    <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Setter Property="MaxWidth" Value="560"/>
-                                    <Setter Property="Margin" Value="60,0,0,18"/>
-                                </Style>
-                                <Style x:Key="UserBubbleText" TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#FFE8E8E8"/>
-                                    <Setter Property="FontSize" Value="13.5"/>
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="LineHeight" Value="19"/>
-                                </Style>
-
-                                <!-- ===== ТЕКСТ ИИ (без пузыря) ===== -->
-                                <Style x:Key="AiText" TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#FFDCDCDC"/>
-                                    <Setter Property="FontSize" Value="13.5"/>
-                                    <Setter Property="TextWrapping" Value="Wrap"/>
-                                    <Setter Property="LineHeight" Value="21"/>
-                                </Style>
-
-                                <!-- ===== ЛОГО ИИ ===== -->
-                                <Style x:Key="AiLogoBorder" TargetType="Border">
-                                    <Setter Property="Width" Value="28"/>
-                                    <Setter Property="Height" Value="28"/>
-                                    <Setter Property="CornerRadius" Value="8"/>
-                                    <Setter Property="Background" Value="#FF1C1C1C"/>
-                                    <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
-                                    <Setter Property="VerticalAlignment" Value="Top"/>
-                                    <Setter Property="Margin" Value="0,0,11,0"/>
-                                </Style>
-
-                                <!-- ===== МЕТА-ШАПКА СООБЩЕНИЯ ИИ ===== -->
-                                <Style x:Key="AiMetaText" TargetType="TextBlock">
-                                    <Setter Property="FontSize" Value="12"/>
-                                    <Setter Property="Foreground" Value="#FF8A8A8A"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                                <Style x:Key="AiMetaDot" TargetType="Ellipse">
-                                    <Setter Property="Width" Value="3"/>
-                                    <Setter Property="Height" Value="3"/>
-                                    <Setter Property="Fill" Value="#FF4A4A4A"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="Margin" Value="7,1,7,0"/>
-                                </Style>
-
-                                <!-- ===== СТРОКА ИНСТРУМЕНТА ===== -->
-                                <Style x:Key="ToolRow" TargetType="Grid">
-                                    <Setter Property="Margin" Value="4,3"/>
-                                </Style>
-                                <Style x:Key="ToolIcon" TargetType="TextBlock">
-                                    <Setter Property="FontSize" Value="12"/>
-                                    <Setter Property="Width" Value="20"/>
-                                    <Setter Property="Foreground" Value="#FF8A8A8A"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                </Style>
-                                <Style x:Key="ToolPendingIcon" TargetType="TextBlock" BasedOn="{StaticResource ToolIcon}">
-                                    <Setter Property="Foreground" Value="#FFC9C9C9"/>
-                                    <Style.Triggers>
-                                        <EventTrigger RoutedEvent="Loaded">
-                                            <BeginStoryboard>
-                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                 From="1" To="0.25" Duration="0:0:0.6"/>
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </EventTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                                <Style x:Key="ToolName" TargetType="TextBlock">
-                                    <Setter Property="FontSize" Value="12.5"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="#FFB8B8B8"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="Margin" Value="0,0,8,0"/>
-                                </Style>
-                                <Style x:Key="ToolArgs" TargetType="TextBlock">
-                                    <Setter Property="FontFamily" Value="Consolas"/>
-                                    <Setter Property="FontSize" Value="12"/>
-                                    <Setter Property="Foreground" Value="#FF6E6E6E"/>
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                </Style>
-
-                                <!-- ===== ЭКСПАНДЕР "ЗАПУСКАЮ ИНСТРУМЕНТЫ" ===== -->
-                                <Style x:Key="ToolsExpander" TargetType="Expander">
-                                    <Setter Property="Margin" Value="0,0,0,8"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Expander">
-                                                <Border Background="#FF141414" BorderBrush="#FF232323"
-                                    BorderThickness="1" CornerRadius="8"
-                                    HorizontalAlignment="Left" MinWidth="280">
-                                                    <StackPanel>
-                                                        <!-- Шапка -->
-                                                        <ToggleButton IsChecked="{Binding IsExpanded,
-                                        RelativeSource={RelativeSource TemplatedParent},
-                                        Mode=TwoWay}"
-                                        Cursor="Hand">
-                                                            <ToggleButton.Template>
-                                                                <ControlTemplate TargetType="ToggleButton">
-                                                                    <Border x:Name="HeadBg" Background="Transparent"
-                                                        CornerRadius="8" Padding="10,7">
-                                                                        <StackPanel Orientation="Horizontal">
-                                                                            <Path x:Name="Chevron"
-                                                              Data="M0,0 L4,4 L0,8"
-                                                              Stroke="#FF7A7A7A" StrokeThickness="1.4"
-                                                              StrokeStartLineCap="Round"
-                                                              StrokeEndLineCap="Round"
-                                                              StrokeLineJoin="Round"
-                                                              Width="5" Height="9" Stretch="Uniform"
-                                                              VerticalAlignment="Center"
-                                                              Margin="1,0,9,0"
-                                                              RenderTransformOrigin="0.5,0.5">
-                                                                                <Path.RenderTransform>
-                                                                                    <RotateTransform Angle="0"/>
-                                                                                </Path.RenderTransform>
-                                                                            </Path>
-                                                                            <ContentPresenter VerticalAlignment="Center"/>
-                                                                        </StackPanel>
-                                                                    </Border>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter TargetName="HeadBg"
-                                                                Property="Background" Value="#FF1B1B1B"/>
-                                                                        </Trigger>
-                                                                        <Trigger Property="IsChecked" Value="True">
-                                                                            <Setter TargetName="Chevron"
-                                                                Property="RenderTransform">
-                                                                                <Setter.Value>
-                                                                                    <RotateTransform Angle="90"/>
-                                                                                </Setter.Value>
-                                                                            </Setter>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </ToggleButton.Template>
-                                                            <ContentPresenter Content="{TemplateBinding Header}"/>
-                                                        </ToggleButton>
-                                                        <!-- Содержимое -->
-                                                        <Border x:Name="Body" Visibility="Collapsed"
-                                            BorderBrush="#FF1E1E1E" BorderThickness="0,1,0,0"
-                                            Padding="8,5,10,7">
-                                                            <ContentPresenter/>
-                                                        </Border>
-                                                    </StackPanel>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsExpanded" Value="True">
-                                                        <Setter TargetName="Body" Property="Visibility" Value="Visible"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                                <Style x:Key="ExpanderHeaderText" TargetType="TextBlock">
-                                    <Setter Property="FontSize" Value="12"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Foreground" Value="#FF9A9A9A"/>
-                                </Style>
-
-                                <!-- ══════════════════════════════════════════════════ -->
-                                <!-- ===== НОВОЕ: КНОПКИ ДЕЙСТВИЙ ПОД СООБЩЕНИЯМИ ===== -->
-                                <!-- ══════════════════════════════════════════════════ -->
-
-                                <!-- Контейнер ряда кнопок -->
-                                <Style x:Key="ActionsRow" TargetType="StackPanel">
-                                    <Setter Property="Orientation" Value="Horizontal"/>
-                                </Style>
-
-                                <!-- Маленькая иконка-кнопка (Copy / Regenerate / Delete и т.д.) -->
-                                <Style x:Key="MsgActionButton" TargetType="Button">
-                                    <Setter Property="Width" Value="26"/>
-                                    <Setter Property="Height" Value="26"/>
-                                    <Setter Property="Margin" Value="0,0,2,0"/>
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="BorderThickness" Value="0"/>
-                                    <Setter Property="Cursor" Value="Hand"/>
-                                    <Setter Property="Padding" Value="0"/>
-                                    <Setter Property="Opacity" Value="0.55"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="Bg" Background="{TemplateBinding Background}"
-                                    CornerRadius="6">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsPressed" Value="True">
-                                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Opacity" Value="1"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-
-                                <!-- Иконка внутри кнопки -->
-                                <Style x:Key="MsgActionIcon" TargetType="Image">
-                                    <Setter Property="Width" Value="13"/>
-                                    <Setter Property="Height" Value="13"/>
-                                    <Setter Property="Stretch" Value="Uniform"/>
-                                </Style>
-
-                            </StackPanel.Resources>
-
-                            <!-- ══════════════════════════════════════════ -->
-                            <!-- 1. ПОЛЬЗОВАТЕЛЬ: чекни сеть                -->
-                            <!-- ══════════════════════════════════════════ -->
-                            <Border Style="{StaticResource UserBubble}">
-                                <TextBlock Style="{StaticResource UserBubbleText}" Text="чекни сеть"/>
-                            </Border>
-                            
-                            <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Right" Margin="0,-14,0,16">
-                                <Button Style="{StaticResource MsgActionButton}">
-                                    <Image Source="{StaticResource Copy}" Margin="5"/>
-                                </Button>
-                                <Button Style="{StaticResource MsgActionButton}">
-                                    <Image Source="{StaticResource Compose}" Margin="2"/>
-                                </Button>
-                            </StackPanel>
-
-                            <!-- ══════════════════════════════════════════ -->
-                            <!-- 2. ИИ: отчёт по сети + свёрнутые тулы       -->
-                            <!-- ══════════════════════════════════════════ -->
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource AiLogoBorder}">
-                                    <Image Source="{StaticResource Claude}" Width="20" Height="20"/>
-                                </Border>
-                                <StackPanel Grid.Column="1">
-                                    <!-- Мета-шапка: модель · время · длительность -->
-                                    <StackPanel Orientation="Horizontal" Margin="1,4,0,9">
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Claude Sonnet 5"
-                               FontWeight="SemiBold" Foreground="#FFB0B0B0"/>
-                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="07:01"/>
-                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="4s"/>
-                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="$0,0236"/>
-                                    </StackPanel>
-                                    <!-- Инструменты (свёрнуты, но раскрываемы) -->
-                                    <Expander Style="{StaticResource ToolsExpander}" IsExpanded="False">
-                                        <Expander.Header>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Path Style="{StaticResource ToolDoneIcon}" Margin="0,0,7,0"/>
-                                                <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Инструменты выполнены"/>
-                                                <TextBlock Text="· 1" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0"/>
-                                            </StackPanel>
-                                        </Expander.Header>
-                                        <StackPanel>
-                                            <!-- Вызов init_agent -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Width="14" Height="14" Margin="1,0,5,0" VerticalAlignment="Center">
-                                                    <Image Source="{StaticResource Grok}"/>
-                                                </Border>
-                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
-                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
-                                       Text='{}{"model":"grok-4-6","prompt":"тщательно проверь сеть"}'/>
-                                            </Grid>
-                                            <!-- ═══ ВЛОЖЕННЫЙ ЭКСПАНДЕР: работа агента ═══ -->
-                                            <Expander Style="{StaticResource ToolsExpander}" IsExpanded="False" Margin="24,3,0,5">
-                                                <Expander.Header>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Агент grok-4-6"/>
-                                                        <TextBlock Text="· 8 инструментов" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0"/>
-                                                    </StackPanel>
-                                                </Expander.Header>
-                                                <StackPanel>
-                                                    <!-- ШАГ 1 -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"adapters"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"dns"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"connections"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"resolvers"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"proxy"}'/>
-                                                    </Grid>
-                                                    <!-- Результаты шага 1 -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Radmin VPN | Ethernet | Up (+ещё 38)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Radmin VPN | Ethernet (+ещё 23)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Proto Local Remote State PID Process (+ещё 288)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 49)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 7)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
-                                                        <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
-                                               VerticalAlignment="Center"
-                                               Text="Инструменты завершены — запрашиваю ответ модели (шаг X)"/>
-                                                    </Grid>
-                                                    <Border Style="{StaticResource ToolStepDivider}"/>
-                                                    <!-- ШАГ 2 -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"ping","host":"192.168.0.1"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"ping","host":"8.8.8.8"}'/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}" Text='{}{"action":"test_resolve","hostname":"google.com"}'/>
-                                                    </Grid>
-                                                    <!-- Результаты шага 2 -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Ping 192.168.0.1 (4 packets): (+ещё 6)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="network"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Ping 8.8.8.8 (4 packets): (+ещё 6)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="dns_config"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}" Text="Exit code: 0 (+ещё 25)"/>
-                                                    </Grid>
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
-                                                        <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
-                                               VerticalAlignment="Center"
-                                               Text="Инструменты завершены — запрашиваю ответ модели (шаг X)"/>
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Expander>
-                                            <!-- Результат init_agent -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="20"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
-                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
-                                       Text="Отчёт агента: сеть исправна, 8 проверок пройдено"/>
-                                            </Grid>
-                                            <!-- Служебное -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource ToolIcon}" Text="ℹ"/>
-                                                <TextBlock Grid.Column="1" FontSize="12" Foreground="#FF6E6E6E" FontStyle="Italic"
-                                       VerticalAlignment="Center"
-                                       Text="Инструменты завершены — запрашиваю ответ модели"/>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Expander>
-                                    <!-- Ответ модели -->
-                                    <TextBlock Style="{StaticResource AiText}" Text="Проверил сеть — всё в порядке." Margin="0,0,0,8"/>
-                                    <TextBlock Style="{StaticResource AiText}" Text="• Шлюз 192.168.0.1 отвечает, задержка ~1 мс, потерь нет" Margin="0,0,0,2"/>
-                                    <TextBlock Style="{StaticResource AiText}" Text="• Внешний узел 1.1.1.1 доступен — пинг стабильный, ~9 мс" Margin="0,0,0,2"/>
-                                    <TextBlock Style="{StaticResource AiText}" Text="• DNS работает: google.com резолвится через 8.8.8.8 без ошибок" Margin="0,0,0,8"/>
-                                    <TextBlock Style="{StaticResource AiText}" Text="Интернет-соединение стабильно, вмешательство не требуется."/>
-
-                                    <!-- Кнопки действий ИИ: перегенерировать / копировать / поделиться / сократить / расширить / редактировать / удалить -->
-                                    <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Left" Margin="0,10,0,0">
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Regenerate}" Margin="4"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Copy}" Margin="5"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Upload}" Margin="4"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Compress}" Margin="6"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Expand}" Margin="6"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Compose}" Margin="2"/>
-                                        </Button>
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Delete}" Margin="6"/>
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
-
-                            <!-- ══════════════════════════════════════════ -->
-                            <!-- 3. ПОЛЬЗОВАТЕЛЬ: VAT + Яндекс               -->
-                            <!-- ══════════════════════════════════════════ -->
-                            <Border Style="{StaticResource UserBubble}">
-                                <TextBlock Style="{StaticResource UserBubbleText}"
-                       Text="что такое VAT? и проверь наличие Яндекса на моем ПК"/>
-                            </Border>
-
-                            <!-- Кнопки действий пользователя: копировать / изменить -->
-                            <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Right" Margin="0,-14,0,16">
-                                <Button Style="{StaticResource MsgActionButton}">
-                                    <Image Source="{StaticResource Copy}" Margin="5"/>
-                                </Button>
-                                <Button Style="{StaticResource MsgActionButton}">
-                                    <Image Source="{StaticResource Compose}" Margin="2"/>
-                                </Button>
-                            </StackPanel>
-
-                            <!-- ══════════════════════════════════════════ -->
-                            <!-- 4. ИИ: В ПРОЦЕССЕ — Working 3s              -->
-                            <!-- ══════════════════════════════════════════ -->
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource AiLogoBorder}">
-                                    <Image Source="{StaticResource Claude}" Width="20" Height="20"/>
-                                </Border>
-                                <StackPanel Grid.Column="1">
-                                    <!-- Мета-шапка: модель · время · Working (пульсирует) -->
-                                    <StackPanel Orientation="Horizontal" Margin="1,4,0,9">
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Claude Sonnet 5"
-                               FontWeight="SemiBold" Foreground="#FFB0B0B0"/>
-                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="07:03"/>
-                                        <Ellipse Style="{StaticResource AiMetaDot}"/>
-                                        <TextBlock Style="{StaticResource AiMetaText}" Text="Working 3s"
-                               FontWeight="SemiBold" Foreground="#FF9A9A9A">
-                                            <TextBlock.Triggers>
-                                                <EventTrigger RoutedEvent="Loaded">
-                                                    <BeginStoryboard>
-                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                         From="1" To="0.3" Duration="0:0:0.7"/>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </EventTrigger>
-                                            </TextBlock.Triggers>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <!-- Инструменты (раскрыты — идёт работа) -->
-                                    <Expander Style="{StaticResource ToolsExpander}" IsExpanded="True">
-                                        <Expander.Header>
-                                            <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Запускаю инструменты"/>
-                                        </Expander.Header>
-                                        <StackPanel>
-                                            <!-- search_web: вызов -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource ToolIcon}" Text="🔍"/>
-                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="search_web"/>
-                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
-                                       Text='{}{"query":"VAT налог что такое Value Added Tax"}'/>
-                                            </Grid>
-                                            <!-- init_agent: вызов (выполняется — без галки) -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Width="14" Height="14" Margin="1,0,5,0" VerticalAlignment="Center">
-                                                    <Image Source="{StaticResource Grok}"/>
-                                                </Border>
-                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="init_agent"/>
-                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
-                                       Text='{}{"model":"grok-4-6","prompt":"проверь наличие ПО Яндекса на ПК"}'/>
-                                            </Grid>
-                                            <!-- ═══ ВЛОЖЕННЫЙ ЭКСПАНДЕР: агент работает ═══ -->
-                                            <Expander Style="{StaticResource ToolsExpander}" IsExpanded="True" Margin="24,3,0,5">
-                                                <Expander.Header>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource ExpanderHeaderText}" Text="Агент grok-4-6"/>
-                                                        <TextBlock Text="· выполняется" FontSize="12" Foreground="#FF565656" Margin="6,0,0,0">
-                                                            <TextBlock.Triggers>
-                                                                <EventTrigger RoutedEvent="Loaded">
-                                                                    <BeginStoryboard>
-                                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                         From="1" To="0.3" Duration="0:0:0.7"/>
-                                                                        </Storyboard>
-                                                                    </BeginStoryboard>
-                                                                </EventTrigger>
-                                                            </TextBlock.Triggers>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Expander.Header>
-                                                <StackPanel>
-                                                    <!-- shell_execute #1: вызов -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
-                                               Text='{}{"command":"Get-ItemProperty HKLM:...\Uninstall\* | Select DisplayName"}'/>
-                                                    </Grid>
-                                                    <!-- shell_execute #1: результат -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="20"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
-                                               Text="Yandex Browser | Яндекс.Диск (+ещё 114)"/>
-                                                    </Grid>
-                                                    <!-- shell_execute #2: выполняется прямо сейчас (пульсирует) -->
-                                                    <Grid Style="{StaticResource ToolRow}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Style="{StaticResource ToolPendingIcon}" Text="⚙"/>
-                                                        <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="shell_execute"/>
-                                                        <TextBlock Grid.Column="2" Style="{StaticResource ToolArgs}"
-                                               Text='{}{"command":"Get-Process | Where-Object {$_.Name -like "*yandex*"}"}'/>
-                                                    </Grid>
-                                                </StackPanel>
-                                            </Expander>
-                                            <!-- Результата init_agent НЕТ — агент ещё работает -->
-                                            <Grid Style="{StaticResource ToolRow}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="20"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Path Style="{StaticResource ToolDoneIcon}"/>
-                                                <TextBlock Grid.Column="1" Style="{StaticResource ToolName}" Text="search_web"/>
-                                                <TextBlock Grid.Column="2" Style="{StaticResource ToolResult}"
-                                       Text="VAT — Value Added Tax, налог на добавленную... (+ещё 12)"/>
-                                            </Grid>
-                                        </StackPanel>
-                                    </Expander>
-                                    <!-- Текста ответа НЕТ — модель ещё генерирует -->
-
-                                    <!-- Кнопка действия ИИ: у последнего (генерируемого) сообщения — только Stop -->
-                                    <StackPanel Style="{StaticResource ActionsRow}" HorizontalAlignment="Left" Margin="0,4,0,0">
-                                        <Button Style="{StaticResource MsgActionButton}">
-                                            <Image Source="{StaticResource Cancel}" Margin="4"/>
-                                        </Button>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Grid>
                         </StackPanel>
                     </ScrollViewer>
                     <Border Grid.Row="1" Margin="27,0,27,20" Background="#FF161616" MaxWidth="1070"
@@ -1219,7 +471,8 @@
                      AcceptsReturn="True" TextWrapping="Wrap"
                      VerticalContentAlignment="Top"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     Padding="0"/>
+                     Padding="0"
+                     PreviewKeyDown="MessageTextBox_PreviewKeyDown"/>
                                 <TextBlock Text="Спросите что-нибудь..." FontSize="14.5"
                        Foreground="#FF5A5A5A" IsHitTestVisible="False">
                                     <TextBlock.Style>
@@ -1389,8 +642,16 @@
                                         <ControlTemplate TargetType="ToggleButton">
                                             <Border x:Name="Bg" Background="#FF1F1F1F" CornerRadius="6" Padding="6,0,10,0">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Image Source="{StaticResource Claude}" Width="20" Height="20" Margin="0 0 5 0"/>
-                                                    <TextBlock Text="Claude Sonnet 5" FontSize="13"
+                                                    <Grid Width="20" Height="20" Margin="0,0,5,0">
+                                                        <Image x:Name="ModelButtonLogo" Source="{StaticResource Claude}" Width="20" Height="20"/>
+                                                        <Path x:Name="ModelButtonLightning" Data="M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"
+                              Fill="#FF9A9A9A" Width="9" Height="12" Stretch="Uniform"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                                        <TextBlock x:Name="ModelButtonLetter" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#FF9A9A9A" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
+                                                    </Grid>
+                                                    <TextBlock x:Name="ModelButtonLabel" Text="Claude Sonnet 5" FontSize="13"
                                Foreground="#FFD8D8D8" VerticalAlignment="Center"/>
                                                     <Path x:Name="Chevron" Data="M0,0 L5,5 L10,0" Stroke="#FF8A8A8A" StrokeThickness="1.4"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
@@ -1427,9 +688,14 @@
        AllowsTransparency="True"
        StaysOpen="False"
        PopupAnimation="Fade"
-       IsOpen="{Binding IsChecked, ElementName=ModelButton, Mode=TwoWay}">
+       IsOpen="{Binding IsChecked, ElementName=ModelButton, Mode=TwoWay}"
+       Opened="ModelPicker_Opened">
 
-                                    <Border Width="250" Height="320" Background="#FF161616" BorderBrush="#FF2A2A2A"
+                                    <Grid>
+                                    <local:ModelPickerPanel x:Name="ChatModelPicker"
+                                                            AllowAuto="True"
+                                                            ModelPicked="ChatModelPicker_ModelPicked"/>
+                                    <Border Visibility="Collapsed" Width="250" Height="320" Background="#FF161616" BorderBrush="#FF2A2A2A"
             BorderThickness="1" CornerRadius="10" Padding="6">
                                         <Border.Effect>
                                             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
@@ -1597,8 +863,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <Path Data="M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"
-                                  Fill="#FF9A9A9A" Width="9" Height="12" Stretch="Uniform"
+                                                            <Image Width="15" Height="15"
                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
                                                         </Grid>
@@ -1756,8 +1021,7 @@
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
-                                                                <Path Data="M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"
-                                      Fill="#FF9A9A9A" Width="9" Height="12" Stretch="Uniform"
+                                                                <Image Width="15" Height="15"
                                       HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                                 <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
                                                             </Grid>
@@ -1809,10 +1073,11 @@
 
                                         </Grid>
                                     </Border>
+                                    </Grid>
                                 </Popup>
                                 
                                 <!-- Кнопка отправки -->
-                                <Button Grid.Column="4" Width="32" Height="32" Cursor="Hand">
+                                <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="8">
@@ -1845,8 +1110,8 @@
                         <Border Width="32" Height="32" x:Name="Warn"
         Background="Transparent"
         CornerRadius="4"
-        ToolTipService.Placement="Bottom"
-        ToolTipService.HorizontalOffset="-99"
+        ToolTipService.Placement="Custom"
+        ToolTipService.HorizontalOffset="0"
         ToolTipService.VerticalOffset="6"
         ToolTipService.InitialShowDelay="150"
         ToolTipService.ShowDuration="20000">
@@ -2255,7 +1520,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.10.0"
+                                       Text="v1.11.0 early beta"
                                        FontSize="10.5"
                                        Foreground="#FF5A5A5A"
                                        Margin="18,0,8,14"
@@ -2379,13 +1644,15 @@
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Масштаб интерфейса"/>
                                         <TextBlock Style="{StaticResource SettingDesc}" Text="Размер элементов и текста"/>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                      MinWidth="110" SelectedIndex="2">
-                                        <ComboBoxItem Content="80%"/>
-                                        <ComboBoxItem Content="90%"/>
-                                        <ComboBoxItem Content="100%"/>
-                                        <ComboBoxItem Content="110%"/>
-                                        <ComboBoxItem Content="125%"/>
+                                    <ComboBox x:Name="UiScaleComboBox" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="110" SelectedIndex="2"
+                                      SelectionChanged="UiScaleComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="80%" Tag="80"/>
+                                        <ComboBoxItem Content="90%" Tag="90"/>
+                                        <ComboBoxItem Content="100%" Tag="100"/>
+                                        <ComboBoxItem Content="110%" Tag="110"/>
+                                        <ComboBoxItem Content="125%" Tag="125"/>
+                                        <ComboBoxItem Content="150%" Tag="150"/>
                                     </ComboBox>
                                 </Grid>
 
@@ -2417,7 +1684,7 @@
 
                                 <Grid>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Автопрокрутка чата" VerticalAlignment="Center"/>
-                                    <CheckBox Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True"/>
+                                    <CheckBox x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -2443,10 +1710,11 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
        Text="Режим работы для ИИ агента. Normal - спрашивать всегда"/>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                      MinWidth="140" SelectedIndex="1" VerticalAlignment="Center">
-                                        <ComboBoxItem Content="Always approve"/>
-                                        <ComboBoxItem Content="Normal"/>
+                                    <ComboBox x:Name="ApprovalModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="140" SelectedIndex="1" VerticalAlignment="Center"
+                                      SelectionChanged="ApprovalModeCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Always approve" Tag="AlwaysApprove"/>
+                                        <ComboBoxItem Content="Normal" Tag="Normal"/>
                                     </ComboBox>
                                 </Grid>
                             </StackPanel>
@@ -2470,19 +1738,13 @@
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Модели ответа"/>
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Лёгкие задачи" VerticalAlignment="Center"/>
-                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
-                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
-                                        <ComboBoxItem Content="GPT-4o mini"/>
-                                        <ComboBoxItem Content="Gemini Flash"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="LiteModelPicker" HorizontalAlignment="Right" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Тяжёлые задачи" VerticalAlignment="Center"/>
-                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
-                                        <ComboBoxItem Content="Claude Sonnet 5"/>
-                                        <ComboBoxItem Content="GPT-4 Turbo"/>
-                                        <ComboBoxItem Content="Gemini 2.5 Pro"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="HeavyModelPicker" HorizontalAlignment="Right" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -2494,10 +1756,8 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="Анализирует запрос и выбирает одну из моделей выше"/>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" Style="{StaticResource DarkComboBox}" SelectedIndex="0" VerticalAlignment="Center">
-                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
-                                        <ComboBoxItem Content="GPT-4o mini"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="1" Width="170" VerticalAlignment="Center"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -2511,10 +1771,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Основной промпт ИИ" VerticalAlignment="Center"/>
-                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                    <Button x:Name="SaveMainPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveMainPromptButton_Click"/>
                                 </Grid>
-                                <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"
-         Text="Ты — Amarin, ассистент системного администратора..."/>
+                                <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
 
                                 <!-- Технический промпт ИИ -->
                                 <Grid Margin="0,0,0,6">
@@ -2523,7 +1782,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт ИИ" VerticalAlignment="Center"/>
-                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                    <Button x:Name="SaveTechAiPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAiPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="TechAiPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
 
@@ -2534,7 +1793,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт агента" VerticalAlignment="Center"/>
-                                    <Button Grid.Column="1" Style="{StaticResource SavePromptButton}"/>
+                                    <Button x:Name="SaveTechAgentPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAgentPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
 
@@ -2543,24 +1802,18 @@
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Служебные модели"/>
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Заголовки чатов" VerticalAlignment="Center"/>
-                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
-                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
-                                        <ComboBoxItem Content="GPT-4o mini"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="TitleModelPicker" HorizontalAlignment="Right" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — лёгкие задачи" VerticalAlignment="Center"/>
-                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
-                                        <ComboBoxItem Content="Claude Haiku 4.5"/>
-                                        <ComboBoxItem Content="GPT-4o mini"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" HorizontalAlignment="Right" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — тяжёлые задачи" VerticalAlignment="Center"/>
-                                    <ComboBox Style="{StaticResource DarkComboBox}" HorizontalAlignment="Right" SelectedIndex="0">
-                                        <ComboBoxItem Content="Claude Sonnet 5"/>
-                                        <ComboBoxItem Content="GPT-4 Turbo"/>
-                                    </ComboBox>
+                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" HorizontalAlignment="Right" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -2602,7 +1855,8 @@
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Файлы приложения"/>
                                         <TextBlock Style="{StaticResource SettingDesc}" Text="Папка с настройками, чатами и логами"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Открыть"/>
+                                    <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                            Content="Открыть" Click="OpenAppFilesButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -2649,7 +1903,8 @@
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Удалить все чаты"/>
                                         <TextBlock Style="{StaticResource SettingDesc}" Text="Удаляет все сохранённые переписки"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="Удалить"/>
+                                    <Button x:Name="DeleteAllChatsButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                            Content="Удалить" Click="DeleteAllChatsButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -2670,6 +1925,68 @@
                     </Grid>
                 </Grid>
             </Border>
+        </Grid>
+
+        <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="30">
+            <Border Background="#7F000000"/>
+            <Border Width="420" MinHeight="180" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="#FF161616" BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="10"
+                    Padding="20,18">
+                <StackPanel>
+                    <TextBlock Text="Требуется подтверждение" FontSize="15" FontWeight="SemiBold"
+                               Foreground="White" Margin="0,0,0,12"/>
+                    <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
+                               Foreground="#FFB0B0B0" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="#FFE8E8E8"
+                               TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="#FF9A9A9A"
+                               TextWrapping="Wrap" Margin="0,0,0,16"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button x:Name="ConfirmationNoButton" Content="Нет" Height="28" Padding="16,0"
+                                Margin="0,0,8,0" Cursor="Hand" Click="ConfirmationNoButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
+                                            BorderThickness="1" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
+                                                   Foreground="#FFD8D8D8"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button x:Name="ConfirmationYesButton" Content="Да" Height="28" Padding="16,0"
+                                Cursor="Hand" Click="ConfirmationYesButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
+                                                   FontWeight="SemiBold" Foreground="#FF0E0E0E"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         </Grid>
 
         <Grid>

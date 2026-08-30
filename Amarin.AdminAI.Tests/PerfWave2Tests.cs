@@ -31,7 +31,6 @@ public sealed class PerfWave2Tests
         Assert.True(Agent.IsParallelSafeToolCall("performance",
             JsonDocument.Parse("""{"action":"summary"}""").RootElement, readOnlyMode: false));
 
-        Assert.False(Agent.IsParallelSafeToolCall("ask_user", empty.RootElement, readOnlyMode: false));
         Assert.False(Agent.IsParallelSafeToolCall("download_file",
             JsonDocument.Parse("""{"url":"https://example.com/a.exe"}""").RootElement, readOnlyMode: false));
         Assert.False(Agent.IsParallelSafeToolCall("windows_service",

@@ -236,6 +236,228 @@
     </Setter>
     </Style>
 
+    <!-- ===== Chat message styles (from mockup) ===== -->
+    <Style x:Key="ToolDoneIcon" TargetType="Path">
+        <Setter Property="Data" Value="M0,4 L3.5,7.5 L10,0"/>
+        <Setter Property="Stroke" Value="#FF5FB878"/>
+        <Setter Property="StrokeThickness" Value="1.6"/>
+        <Setter Property="StrokeStartLineCap" Value="Round"/>
+        <Setter Property="StrokeEndLineCap" Value="Round"/>
+        <Setter Property="StrokeLineJoin" Value="Round"/>
+        <Setter Property="Width" Value="10"/>
+        <Setter Property="Height" Value="8"/>
+        <Setter Property="Stretch" Value="Uniform"/>
+        <Setter Property="Margin" Value="0,0,10,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="ToolResult" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="#FF7A9A82"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style x:Key="ToolStepDivider" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="#FF1E1E1E"/>
+        <Setter Property="Margin" Value="4,6"/>
+    </Style>
+    <Style x:Key="UserBubble" TargetType="Border">
+        <Setter Property="Background" Value="#FF1F1F1F"/>
+        <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12,12,3,12"/>
+        <Setter Property="Padding" Value="14,9"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="MaxWidth" Value="560"/>
+        <Setter Property="Margin" Value="60,0,0,18"/>
+    </Style>
+    <Style x:Key="UserBubbleText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#FFE8E8E8"/>
+        <Setter Property="FontSize" Value="13.5"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="19"/>
+    </Style>
+    <Style x:Key="AiText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#FFDCDCDC"/>
+        <Setter Property="FontSize" Value="13.5"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="21"/>
+    </Style>
+    <Style x:Key="AiLogoBorder" TargetType="Border">
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Background" Value="#FF1C1C1C"/>
+        <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0,0,11,0"/>
+    </Style>
+    <Style x:Key="AiMetaText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="#FF8A8A8A"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="AiMetaDot" TargetType="Ellipse">
+        <Setter Property="Width" Value="3"/>
+        <Setter Property="Height" Value="3"/>
+        <Setter Property="Fill" Value="#FF4A4A4A"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="7,1,7,0"/>
+    </Style>
+    <Style x:Key="ToolRow" TargetType="Grid">
+        <Setter Property="Margin" Value="4,3"/>
+    </Style>
+    <Style x:Key="ToolIcon" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Foreground" Value="#FF8A8A8A"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="ToolPendingIcon" TargetType="TextBlock" BasedOn="{StaticResource ToolIcon}">
+        <Setter Property="Foreground" Value="#FFC9C9C9"/>
+        <Style.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                <BeginStoryboard>
+                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         From="1" To="0.25" Duration="0:0:0.6"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="ToolName" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#FFB8B8B8"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,8,0"/>
+    </Style>
+    <Style x:Key="ToolArgs" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="#FF6E6E6E"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style x:Key="ToolsExpander" TargetType="Expander">
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Expander">
+                    <Border Background="#FF141414" BorderBrush="#FF232323"
+                            BorderThickness="1" CornerRadius="8"
+                            HorizontalAlignment="Left" MinWidth="280">
+                        <StackPanel>
+                            <ToggleButton IsChecked="{Binding IsExpanded,
+                                RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Cursor="Hand">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="HeadBg" Background="Transparent"
+                                                CornerRadius="8" Padding="10,7">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path x:Name="Chevron"
+                                                      Data="M0,0 L4,4 L0,8"
+                                                      Stroke="#FF7A7A7A" StrokeThickness="1.4"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"
+                                                      Width="5" Height="9" Stretch="Uniform"
+                                                      VerticalAlignment="Center"
+                                                      Margin="1,0,9,0"
+                                                      RenderTransformOrigin="0.5,0.5">
+                                                    <Path.RenderTransform>
+                                                        <RotateTransform Angle="0"/>
+                                                    </Path.RenderTransform>
+                                                </Path>
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="HeadBg" Property="Background" Value="#FF1B1B1B"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chevron" Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="90"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                                <ContentPresenter Content="{TemplateBinding Header}"/>
+                            </ToggleButton>
+                            <Border x:Name="Body" Visibility="Collapsed"
+                                    BorderBrush="#FF1E1E1E" BorderThickness="0,1,0,0"
+                                    Padding="8,5,10,7">
+                                <ContentPresenter/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="Body" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="ExpanderHeaderText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#FF9A9A9A"/>
+    </Style>
+    <Style x:Key="ActionsRow" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal"/>
+    </Style>
+    <Style x:Key="MsgActionButton" TargetType="Button">
+        <Setter Property="Width" Value="26"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Margin" Value="0,0,2,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Opacity" Value="0.55"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="1"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.28"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="MsgActionIcon" TargetType="Image">
+        <Setter Property="Width" Value="13"/>
+        <Setter Property="Height" Value="13"/>
+        <Setter Property="Stretch" Value="Uniform"/>
+    </Style>
+
     <Style x:Key="LockChromeCloseButton" TargetType="Button" BasedOn="{StaticResource LockChromeButton}">
         <Setter Property="Template">
             <Setter.Value>

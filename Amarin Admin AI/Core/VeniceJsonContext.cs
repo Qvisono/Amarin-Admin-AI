@@ -8,6 +8,8 @@ namespace Amarin.Core;
     GenerationMode = JsonSourceGenerationMode.Default)]
 [JsonSerializable(typeof(ChatCompletionRequest))]
 [JsonSerializable(typeof(ChatCompletionResponse))]
+[JsonSerializable(typeof(ChatCompletionChunk))]
+[JsonSerializable(typeof(VeniceModelsListResponse))]
 [JsonSerializable(typeof(ScrapeUrlRequest))]
 [JsonSerializable(typeof(string))]
 internal partial class VeniceJsonContext : JsonSerializerContext;

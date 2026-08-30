@@ -6,10 +6,10 @@ public sealed class VeniceCost
 {
     public static VeniceCost Zero { get; } = new();
 
-    public decimal Usd { get; init; }
-    public decimal Diem { get; init; }
+    public decimal Usd { get; set; }
+    public decimal Diem { get; set; }
 
-    public bool HasData { get; init; }
+    public bool HasData { get; set; }
 
     public VeniceCost Add(VeniceCost other) => new()
     {

@@ -6,8 +6,29 @@ using Spectre.Console.Rendering;
 
 namespace Amarin.UI;
 
-public sealed class ConsolePresenter
+public sealed class ConsolePresenter : IAgentUi
 {
+    void IAgentUi.Warn(string message) => ShowWarning(message);
+
+    void IAgentUi.Error(string message) => ShowError(message);
+
+    void IAgentUi.Info(string message) => ShowInfo(message);
+
+    void IAgentUi.AssistantMessage(string text) => ShowAssistantMessage(text);
+
+    void IAgentUi.ToolCall(string name, string argumentsJson) => ShowToolCall(name, argumentsJson);
+
+    void IAgentUi.ToolResult(string name, ToolResult result) => ShowToolResult(name, result);
+
+    public Task<T> RunBusyAsync<T>(
+        string message,
+        Func<Task<T>> work,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return RunWithSpinnerAsync(message, work);
+    }
+
     public void ShowBanner()
     {
         var isAdmin = RuntimeContext.IsAdministrator();
@@ -18,7 +39,7 @@ public sealed class ConsolePresenter
         AnsiConsole.Write(new FigletText("Amarin").Color(UiTheme.Primary));
         AnsiConsole.MarkupLine(
             "[grey]Помощник системного администратора Windows[/]\n" +
-            $"[dim]v{Markup.Escape(RuntimeContext.AppVersion)}[/]  " +
+            $"[dim]v{Markup.Escape(RuntimeContext.AppVersionDisplay)}[/]  " +
             $"[grey]│[/] [cyan]{Markup.Escape(Environment.UserName)}@{Markup.Escape(Environment.MachineName)}[/]  " +
             $"[grey]│[/] {adminLabel}");
         AnsiConsole.WriteLine();
@@ -99,15 +120,6 @@ public sealed class ConsolePresenter
 
     public void ShowToolCall(string toolName, string arguments)
     {
-        if (toolName.Equals(AskUserTool.ToolName, StringComparison.OrdinalIgnoreCase) &&
-            TryGetAskUserQuestion(arguments, out var question))
-        {
-            ThreadSafeConsole.WriteStyledLine(
-                UiTheme.IconAsk,
-                $"[magenta1]{Markup.Escape(toolName)} — {Markup.Escape(Truncate(question, 80))}[/]");
-            return;
-        }
-
         var icon = ToolIcon(toolName);
         var args = FormatToolArguments(arguments);
         ThreadSafeConsole.WriteStyledLine(
@@ -330,7 +342,7 @@ public sealed class ConsolePresenter
         try
         {
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine("[grey]Модель Venice[/] [dim](сохраняется в appsettings.json)[/]");
+            AnsiConsole.MarkupLine("[grey]Модель Venice[/] [dim](сохраняется в настройках пользователя)[/]");
             AnsiConsole.WriteLine();
 
             // Numbered list aligned with presets order; tier headers for known presets.
@@ -427,7 +439,7 @@ public sealed class ConsolePresenter
         try
         {
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine("[grey]Режим сессии[/] [dim](сохраняется в appsettings.json)[/]");
+            AnsiConsole.MarkupLine("[grey]Режим сессии[/] [dim](сохраняется в настройках пользователя)[/]");
             AnsiConsole.MarkupLine($"  [cyan]1.[/] История сессии — Amarin помнит предыдущие вопросы{(current == SessionMode.Continuous ? " [green](текущий)[/]" : "")}");
             AnsiConsole.MarkupLine($"  [cyan]2.[/] Новая сессия — каждый вопрос с чистого листа{(current == SessionMode.Isolated ? " [green](текущий)[/]" : "")}");
             AnsiConsole.MarkupLine("  [dim]Сменить позже: /session[/]");
@@ -458,86 +470,13 @@ public sealed class ConsolePresenter
         }
     }
 
-    public Task<string> PromptUserChoiceAsync(
-        string question,
-        IReadOnlyList<string> options,
-        bool allowCustomAnswer,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        AnsiConsole.WriteLine();
-        AnsiConsole.Write(UiTheme.CreatePanel(
-            $"[mediumpurple1]{UiTheme.IconAsk} Amarin спрашивает[/]",
-            new Markup(MarkdownFormatter.ToSpectreMarkup(question)),
-            UiTheme.AskUser,
-            UiTheme.AskUser));
-        AnsiConsole.WriteLine();
-
-        for (var i = 0; i < options.Count; i++)
-        {
-            AnsiConsole.MarkupLine($"  [mediumpurple1]{i + 1}.[/] {MarkdownFormatter.ToSpectreMarkup(options[i])}");
-        }
-
-        if (allowCustomAnswer)
-        {
-            AnsiConsole.MarkupLine("  [grey]или введите свой ответ текстом[/]");
-        }
-
-        AnsiConsole.WriteLine();
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var input = ConsolePrompt.ReadSimpleLine(
-                $"[bold mediumpurple1]{UiTheme.IconAsk} Выбор[/] [grey]›[/] ").Trim();
-
-            if (int.TryParse(input, out var number) && number >= 1 && number <= options.Count)
-            {
-                return Task.FromResult(options[number - 1]);
-            }
-
-            if (allowCustomAnswer && !string.IsNullOrWhiteSpace(input))
-            {
-                return Task.FromResult(input);
-            }
-
-            var hint = allowCustomAnswer
-                ? $"[yellow]Введите номер от 1 до {options.Count} или свой ответ[/]"
-                : $"[yellow]Введите номер от 1 до {options.Count}[/]";
-            AnsiConsole.MarkupLine(hint);
-        }
-    }
-
     private static string ToolIcon(string toolName) => toolName.ToLowerInvariant() switch
     {
         "search_web" or "scrape_url" => UiTheme.IconSearch,
         "capture_screenshot" or "read_clipboard" or "analyze_folder" => UiTheme.IconImage,
         "change_rollback" => UiTheme.IconUndo,
-        "ask_user" => UiTheme.IconAsk,
         _ => UiTheme.IconTool
     };
-
-    private static bool TryGetAskUserQuestion(string arguments, out string question)
-    {
-        question = string.Empty;
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(arguments);
-            if (doc.RootElement.TryGetProperty("question", out var prop))
-            {
-                question = prop.GetString() ?? string.Empty;
-                return !string.IsNullOrWhiteSpace(question);
-            }
-        }
-        catch
-        {
-            // ignore
-        }
-
-        return false;
-    }
 
     private static IRenderable FormatContent(string content) =>
         SafeRenderable.FromMarkdown(content);
