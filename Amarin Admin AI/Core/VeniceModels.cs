@@ -65,6 +65,11 @@ public sealed class ChatMessage
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? Content { get; init; }
 
+    /// <summary>Read-only mirror of the streaming delta field; never sent back to the API.</summary>
+    [JsonPropertyName("reasoning_content")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? ReasoningContent { get; init; }
+
     [JsonPropertyName("tool_calls")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<ToolCall>? ToolCalls { get; init; }
@@ -180,6 +185,14 @@ public sealed class ChatMessageDelta
     [JsonPropertyName("content")]
     public JsonElement? Content { get; init; }
 
+    /// <summary>
+    /// Reasoning models (grok-4-x) stream their chain of thought here and only then start
+    /// filling <see cref="Content"/>. Venice ignores disable_thinking/strip_thinking_response
+    /// for them, so the field arrives whether we ask for it or not.
+    /// </summary>
+    [JsonPropertyName("reasoning_content")]
+    public JsonElement? ReasoningContent { get; init; }
+
     [JsonPropertyName("tool_calls")]
     public List<ToolCallDelta>? ToolCalls { get; init; }
 }
@@ -212,6 +225,12 @@ public sealed class FunctionCallDelta
 public sealed class StreamedChatCompletion
 {
     public string Text { get; init; } = "";
+
+    /// <summary>
+    /// Chain of thought collected from <c>reasoning_content</c>. Never shown as the answer
+    /// unless the model produced nothing else — see <c>ChatEngine.StreamWithRetryAsync</c>.
+    /// </summary>
+    public string ReasoningText { get; init; } = "";
 
     public List<ToolCall> ToolCalls { get; init; } = [];
 

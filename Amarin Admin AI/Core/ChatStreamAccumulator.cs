@@ -5,10 +5,23 @@ namespace Amarin.Core;
 
 internal sealed class ChatStreamAccumulator
 {
+    /// <summary>
+    /// Venice appends the encrypted copy of the chain of thought to the last reasoning chunk.
+    /// Everything from this marker on is an opaque base64 blob and must never reach the user.
+    /// </summary>
+    private const string EncryptedReasoningMarker = "__ENCRYPTED_REASONING__";
+
     private readonly StringBuilder _text = new();
+    private readonly StringBuilder _reasoning = new();
     private readonly Dictionary<int, ToolCallBuilder> _toolCalls = [];
 
     public string Text => _text.ToString();
+
+    /// <summary>
+    /// Chain of thought from <c>reasoning_content</c>, with the encrypted tail stripped.
+    /// Only used as a fallback when the model produced no content at all.
+    /// </summary>
+    public string ReasoningText => Sanitize(_reasoning.ToString());
 
     public string? FinishReason { get; private set; }
 
@@ -51,6 +64,14 @@ internal sealed class ChatStreamAccumulator
             addedText = true;
         }
 
+        // Collected but not surfaced: reasoning is only a fallback for a model that thought
+        // itself out of a budget and emitted no content (grok-4-6 does this intermittently).
+        var reasoning = ChatContent.ReadText(delta.ReasoningContent);
+        if (!string.IsNullOrEmpty(reasoning))
+        {
+            _reasoning.Append(reasoning);
+        }
+
         if (delta.ToolCalls is { Count: > 0 })
         {
             foreach (var toolDelta in delta.ToolCalls)
@@ -87,6 +108,17 @@ internal sealed class ChatStreamAccumulator
         }
 
         return addedText;
+    }
+
+    private static string Sanitize(string reasoning)
+    {
+        if (reasoning.Length == 0)
+        {
+            return "";
+        }
+
+        var cut = reasoning.IndexOf(EncryptedReasoningMarker, StringComparison.Ordinal);
+        return (cut >= 0 ? reasoning[..cut] : reasoning).Trim();
     }
 
     public List<ToolCall> BuildToolCalls()

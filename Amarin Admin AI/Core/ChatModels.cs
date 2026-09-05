@@ -1,3 +1,5 @@
+using Amarin.Tools;
+
 namespace Amarin.Core;
 
 public enum AssistantStatus
@@ -50,6 +52,12 @@ public sealed class ChatDisplayMessage
     public DateTime CreatedAt { get; set; }
 
     public string Text { get; set; } = "";
+
+    /// <summary>
+    /// Images the user attached to this message, stored inline as base64 so they survive a
+    /// restart and travel with an exported or shared chat. Empty for assistant messages.
+    /// </summary>
+    public List<ImageAttachment> Images { get; set; } = [];
 
     public string? RequestedModelId { get; set; }
 

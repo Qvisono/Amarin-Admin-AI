@@ -6,11 +6,16 @@ internal sealed class AppServices : IDisposable
 {
     public required AgentOptions Options { get; init; }
 
-    public required AppSettingsStore SettingsStore { get; init; }
+    // Settable, not init-only: switching profiles re-roots both stores in place.
+    public required AppSettingsStore SettingsStore { get; set; }
 
     public required AppSettings Settings { get; set; }
 
-    public required ChatStore ChatStore { get; init; }
+    public required ChatStore ChatStore { get; set; }
+
+    public required ProfileStore Profiles { get; init; }
+
+    public required ProfileRegistry ProfileRegistry { get; set; }
 
     public required HttpClient Http { get; init; }
 
@@ -29,6 +34,20 @@ internal sealed class AppServices : IDisposable
     public string? StartupPrompt { get; init; }
 
     public void ReloadSettings() => Settings = SettingsStore.Load();
+
+    /// <summary>
+    /// Points the settings and chat stores at another profile's directory. The engine keeps
+    /// reading settings through the same <c>Func&lt;AppSettings&gt;</c>, so nothing else has
+    /// to be rebuilt — but the caller must persist the current chat first.
+    /// </summary>
+    public void UseProfile(string dataRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
+        Directory.CreateDirectory(Path.Combine(dataRoot, "chats"));
+        SettingsStore = new AppSettingsStore(dataRoot);
+        ChatStore = new ChatStore(dataRoot);
+        Settings = SettingsStore.Load();
+    }
 
     public void Dispose()
     {

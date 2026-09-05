@@ -102,7 +102,7 @@ internal static partial class DangerousActionGuard
         if (unlistedDownloadHost is not null)
         {
             changeSummary =
-                $"Загрузка с домена вне AllowedDomains: {unlistedDownloadHost}";
+                $"Загрузка будет отклонена: домен {unlistedDownloadHost} не в белом списке";
             if (risk < DangerousRiskLevel.High)
             {
                 risk = DangerousRiskLevel.High;
@@ -133,10 +133,9 @@ internal static partial class DangerousActionGuard
         if (unlistedDownloadHost is not null)
         {
             sb.AppendLine();
-            sb.AppendLine($"⚠ Домен вне списка AllowedDomains: {unlistedDownloadHost}");
-            sb.AppendLine("Этот сайт не в доверенном списке (Microsoft, GitHub, Discord и т.д.).");
-            sb.AppendLine("Загрузка возможна только если вы явно подтвердите (1 / да).");
-            sb.AppendLine("При отказе (2 / нет) файл скачан не будет.");
+            sb.AppendLine($"⚠ Домен {unlistedDownloadHost} не в белом списке загрузок.");
+            sb.AppendLine("Загрузка будет отклонена даже при подтверждении.");
+            sb.AppendLine("Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.");
         }
 
         if (toolName.Equals("disk_management", StringComparison.OrdinalIgnoreCase) &&

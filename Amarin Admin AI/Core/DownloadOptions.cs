@@ -3,8 +3,9 @@ namespace Amarin.Core;
 public sealed class DownloadOptions
 {
     /// <summary>
-    /// Trusted download hosts (and subdomains). Not a hard block: other hosts can still be
-    /// downloaded after the user approves a High-risk confirmation dialog.
+    /// Seed for the user-managed allowlist in settings.json. Once seeded, this value is no longer
+    /// consulted — the effective list is <see cref="AppSettings.DownloadAllowedDomains"/> and it is
+    /// enforced: <c>download_file</c> refuses any host outside it.
     /// </summary>
     public string[] AllowedDomains { get; init; } =
     [

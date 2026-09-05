@@ -30,7 +30,9 @@ public sealed class AppSettingsStore
             var text = File.ReadAllText(_file);
             var settings = JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options)
                            ?? AppSettings.CreateDefault();
-            if (MigrateLegacyChatPrompts(settings))
+            var changed = MigrateLegacyChatPrompts(settings);
+            changed |= SeedDownloadAllowedDomains(settings);
+            if (changed)
             {
                 Save(settings);
             }
@@ -96,6 +98,21 @@ public sealed class AppSettingsStore
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// Fills the download allowlist on settings files written before it existed.
+    /// Only <c>null</c> is seeded — an empty list means the user cleared it on purpose.
+    /// </summary>
+    internal static bool SeedDownloadAllowedDomains(AppSettings settings)
+    {
+        if (settings.DownloadAllowedDomains is not null)
+        {
+            return false;
+        }
+
+        settings.DownloadAllowedDomains = [.. new DownloadOptions().AllowedDomains];
+        return true;
     }
 
     private static bool SamePrompt(string? left, string? right) =>

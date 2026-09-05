@@ -20,10 +20,11 @@ public sealed class WebDownloadTool : ITool
 
     public string Name => "download_file";
     public string Description =>
-        "Download a file from any http(s) URL. Trusted domains (Microsoft, GitHub, Discord, etc.) " +
-        "show a normal confirmation; other domains show a stronger warning and still need user approval. " +
+        "Download a file over http(s) from a host on the user's download allowlist. " +
         "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed). " +
-        "Do NOT ask the user for domain permission — call download_file; the app asks the user.";
+        "The allowlist is enforced by the app: if the result starts with 'DOMAIN_BLOCKED:', the host is " +
+        "not allowed. In that case STOP — do not retry, do not try mirrors, proxies or another URL. " +
+        "Just tell the user the domain is blocked; the app offers them a button to allow it.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -85,6 +86,14 @@ public sealed class WebDownloadTool : ITool
         if (!DownloadValidator.TryValidateUrl(uri, out var urlError))
         {
             return ToolResult.Fail(urlError);
+        }
+
+        if (!DownloadValidator.IsDomainAllowed(uri))
+        {
+            return ToolResult.Fail(
+                $"{DomainList.BlockedMarker} {uri.Host} не в белом списке загрузок. " +
+                "Не повторяй попытку, не ищи зеркала и не пробуй другой URL — просто скажи пользователю, " +
+                "что домен заблокирован; приложение само предложит ему добавить домен в список.");
         }
 
         if (!DownloadPaths.TryResolveDestination(destinationInput, folder, uri, out var destination, out var pathError))

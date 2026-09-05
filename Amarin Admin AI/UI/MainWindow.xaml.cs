@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Amarin.Core;
+using Amarin.Tools;
 
 namespace Amarin.UI
 {
@@ -20,6 +21,14 @@ namespace Amarin.UI
         private AssistantMessageView? _liveAssistant;
         private readonly DispatcherTimer _workingTimer = new() { Interval = TimeSpan.FromSeconds(1) };
         private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
+
+        // Разметку в живом ответе пересобираем по таймеру, а не на каждую дельту: полная
+        // перестройка FlowDocument десятки раз в секунду съела бы UI-поток.
+        private readonly DispatcherTimer _streamRender = new() { Interval = TimeSpan.FromMilliseconds(80) };
+        private string _pendingStreamText = "";
+        private string _renderedStreamText = "";
+        private readonly Dictionary<string, FrameworkElement> _messageViews = [];
+        private NotificationToast? _toast;
         private DateTime _workingStarted;
         private Image? _logoImage;
         private System.Windows.Shapes.Path? _expandIcon;
@@ -55,6 +64,7 @@ namespace Amarin.UI
                 : Visibility.Visible;
 
             _workingTimer.Tick += (_, _) => UpdateWorkingClock();
+            _streamRender.Tick += (_, _) => FlushStreamText();
             _saveTimer.Tick += (_, _) =>
             {
                 _saveTimer.Stop();
@@ -62,6 +72,13 @@ namespace Amarin.UI
             };
 
             Loaded += OnWindowLoaded;
+            Activated += (_, _) =>
+            {
+                TaskbarFlash.Stop(this);
+                _toast?.Dismiss();
+            };
+            ThemeManager.EffectiveThemeChanged += OnEffectiveThemeChanged;
+            Closed += (_, _) => ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
             PreviewTextInput += Window_PreviewTextInput;
             PreviewKeyDown += Window_PreviewKeyDown;
         }
@@ -230,6 +247,344 @@ namespace Amarin.UI
             UiScale.Apply(this, ScaledRoot, percent);
         }
 
+        private void ThemeCard_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            if (sender is RadioButton { Tag: string tag } &&
+                Enum.TryParse(tag, ignoreCase: true, out AppTheme theme))
+            {
+                _services.Settings.Theme = theme;
+                _services.SettingsStore.Save(_services.Settings);
+                ThemeManager.Apply(theme);
+            }
+        }
+
+        /// <summary>
+        /// Re-fetches the ImageSources that were assigned from code: those hold the previous
+        /// theme's object and, unlike brushes, do not follow a DynamicResource.
+        /// </summary>
+        private void OnEffectiveThemeChanged()
+        {
+            if (!IsLoaded)
+            {
+                return;
+            }
+
+            UpdateModelButton();
+
+            // RenderSession drops _liveAssistant, so never rebuild mid-turn;
+            // the next render picks the new logos up anyway.
+            if (!_busy)
+            {
+                RenderSession();
+            }
+        }
+
+        private void SelectThemeCard(AppTheme theme)
+        {
+            ThemeCardLight.IsChecked = theme == AppTheme.Light;
+            ThemeCardDark.IsChecked = theme == AppTheme.Dark;
+            ThemeCardSystem.IsChecked = theme == AppTheme.System;
+        }
+
+        // ───────── Уведомление о завершении ответа ─────────
+
+        private void NotifyOnCompleteToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.NotifyOnResponseComplete = NotifyOnCompleteToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+            if (!_services.Settings.NotifyOnResponseComplete)
+            {
+                _toast?.Dismiss();
+            }
+        }
+
+        private void NotifySoundToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.NotifySound = NotifySoundToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+        }
+
+        private void MaybeShowCompletionToast(ChatDisplayMessage assistant)
+        {
+            if (_services?.Settings.NotifyOnResponseComplete != true ||
+                assistant.Status == AssistantStatus.Error)
+            {
+                PerfLog.Write("toast skipped reason=disabled_or_error");
+                return;
+            }
+
+            // Only when the user is looking elsewhere. IsActive is not that test — it stays
+            // true while the window is merely covered by another app, which is the common case.
+            if (IsForeground() && WindowState != WindowState.Minimized)
+            {
+                PerfLog.Write("toast skipped reason=window_in_foreground");
+                return;
+            }
+
+            // Never on top of a modal.
+            if (ConfirmationOverlay.Visibility == Visibility.Visible ||
+                DomainOverlay.Visibility == Visibility.Visible)
+            {
+                PerfLog.Write("toast skipped reason=modal_open");
+                return;
+            }
+
+            ShowCompletionToast(assistant);
+
+            // The toast goes away on its own; the taskbar button keeps blinking until the user
+            // comes back, so a missed card does not mean a missed answer. This runs whenever
+            // the window is not in front, not just when minimized — being buried behind another
+            // app is the ordinary case, and it was silently skipped before.
+            TaskbarFlash.Flash(this);
+
+            if (_services.Settings.NotifySound)
+            {
+                try
+                {
+                    System.Media.SystemSounds.Asterisk.Play();
+                }
+                catch
+                {
+                    // No audio device — the visual cue alone is enough.
+                }
+            }
+        }
+
+        private void ShowCompletionToast(ChatDisplayMessage assistant)
+        {
+            // Replace any toast still on screen outright — no fade, so the cards don't overlap.
+            _toast?.Close();
+
+            var modelId = assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "";
+            var id = assistant.Id;
+            var toast = NotificationToast.Show(
+                modelId,
+                FirstLine(assistant.Text),
+                BuildToastMeta(modelId, assistant.Duration),
+                _services?.Settings.UiScalePercent ?? 100,
+                OwnHandle(),
+                () => OpenFromToast(id));
+
+            _toast = toast;
+            toast.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_toast, toast))
+                {
+                    _toast = null;
+                }
+            };
+        }
+
+        private IntPtr OwnHandle()
+        {
+            try
+            {
+                return new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            }
+            catch (InvalidOperationException)
+            {
+                return IntPtr.Zero;
+            }
+        }
+
+        /// <summary>True when this window is the one the user is actually looking at.</summary>
+        private bool IsForeground()
+        {
+            var own = OwnHandle();
+            return own != IntPtr.Zero && GetForegroundWindow() == own;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        private void OpenFromToast(string? messageId)
+        {
+            if (WindowState == WindowState.Minimized)
+            {
+                WindowState = WindowState.Normal;
+            }
+
+            TaskbarFlash.Stop(this);
+            Activate();
+            ScrollToMessage(messageId);
+        }
+
+        private static string FirstLine(string? text)
+        {
+            var line = (text ?? "")
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault(l => !string.IsNullOrWhiteSpace(l));
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return "Ответ без текста";
+            }
+
+            return line.Length <= 160 ? line : line[..160] + "…";
+        }
+
+        private static string BuildToastMeta(string modelId, TimeSpan duration)
+        {
+            var name = VeniceModelCatalog.GetDisplayName(modelId);
+            if (duration <= TimeSpan.Zero)
+            {
+                return name;
+            }
+
+            var elapsed = duration.TotalSeconds < 60
+                ? $"{duration.TotalSeconds:0.#} с"
+                : $"{(int)duration.TotalMinutes} мин {duration.Seconds} с";
+            return string.IsNullOrWhiteSpace(name) ? elapsed : $"{name} · {elapsed}";
+        }
+
+        private void ScrollToMessage(string? id)
+        {
+            if (string.IsNullOrEmpty(id) || !_messageViews.TryGetValue(id, out var element))
+            {
+                return;
+            }
+
+            // Stop autoscroll from yanking the view back to the bottom.
+            _stickToBottom = false;
+            Dispatcher.BeginInvoke(element.BringIntoView, DispatcherPriority.Loaded);
+        }
+
+        private void TrackMessageView(ChatDisplayMessage message, FrameworkElement element)
+        {
+            if (!string.IsNullOrEmpty(message.Id))
+            {
+                _messageViews[message.Id] = element;
+            }
+        }
+
+        // ───────── Белый список загрузок ─────────
+
+        private List<string> AllowedDomains
+        {
+            get
+            {
+                if (_services is null)
+                {
+                    return [];
+                }
+
+                return _services.Settings.DownloadAllowedDomains ??= [];
+            }
+        }
+
+        private void RefreshAllowedDomainsUi()
+        {
+            var domains = AllowedDomains;
+            // List<string> raises no change notifications, so rebind rather than mutate in place.
+            AllowedDomainsList.ItemsSource = null;
+            AllowedDomainsList.ItemsSource = domains.ToList();
+            AllowedDomainsEmpty.Visibility = domains.Count == 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void SaveAllowedDomains()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            _services.SettingsStore.Save(_services.Settings);
+            DownloadValidator.ConfigureAllowedDomains(_services.Settings.DownloadAllowedDomains);
+            RefreshAllowedDomainsUi();
+        }
+
+        private void AddDomainButton_Click(object sender, RoutedEventArgs e) => OpenDomainDialog("");
+
+        private void RemoveDomainButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services is null || sender is not Button { Tag: string domain })
+            {
+                return;
+            }
+
+            AllowedDomains.RemoveAll(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase));
+            SaveAllowedDomains();
+        }
+
+        private void OpenDomainDialog(string host)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            DomainError.Visibility = Visibility.Collapsed;
+            DomainInput.Text = host ?? "";
+            DomainOverlay.Visibility = Visibility.Visible;
+            Chat.IsHitTestVisible = false;
+            Dispatcher.BeginInvoke(() =>
+            {
+                DomainInput.Focus();
+                DomainInput.SelectAll();
+            }, DispatcherPriority.Input);
+        }
+
+        private void CloseDomainDialog()
+        {
+            DomainOverlay.Visibility = Visibility.Collapsed;
+            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+        }
+
+        private void DomainCancelButton_Click(object sender, RoutedEventArgs e) => CloseDomainDialog();
+
+        private void DomainAddButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            if (!DomainList.TryAdd(AllowedDomains, DomainInput.Text, out var error))
+            {
+                DomainError.Text = error;
+                DomainError.Visibility = Visibility.Visible;
+                return;
+            }
+
+            AllowedDomains.Sort(StringComparer.OrdinalIgnoreCase);
+            SaveAllowedDomains();
+            CloseDomainDialog();
+        }
+
+        private void DomainInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                DomainAddButton_Click(sender, e);
+            }
+            else if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                CloseDomainDialog();
+            }
+        }
+
+        private void DomainInput_TextChanged(object sender, TextChangedEventArgs e) =>
+            DomainError.Visibility = Visibility.Collapsed;
+
         private void ApprovalModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_settingsUiLoading || _services is null)
@@ -392,9 +747,16 @@ namespace Amarin.UI
                 _services.ReloadSettings();
                 var settings = _services.Settings;
                 AutoScrollToggle.IsChecked = settings.AutoScroll;
+                NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
+                NotifySoundToggle.IsChecked = settings.NotifySound;
+                SelectThemeCard(settings.Theme);
+                ThemeManager.Apply(settings.Theme);
                 SelectUiScale(settings.UiScalePercent);
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
+                ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
+                LoadAccountUi();
+                RefreshAllowedDomainsUi();
 
                 LiteModelPicker.SetSelected(settings.LiteModelId);
                 HeavyModelPicker.SetSelected(settings.HeavyModelId);
@@ -491,7 +853,30 @@ namespace Amarin.UI
             MessageTextBox.Focus();
         }
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshChatList();
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // A pasted share code is not a search term — open the conversation it carries.
+            if (ChatShareCodec.LooksLikeShareCode(SearchBox.Text))
+            {
+                var shared = ChatShareCodec.TryDecode(SearchBox.Text);
+                SearchBox.Clear();
+                if (shared is null)
+                {
+                    MessageBox.Show(
+                        this,
+                        "Код чата повреждён или не распознан.",
+                        Title,
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                OpenSharedSession(shared);
+                return;
+            }
+
+            RefreshChatList();
+        }
 
         private void SendButton_Click(object sender, RoutedEventArgs e) => _ = SendAsync();
 
@@ -634,6 +1019,18 @@ namespace Amarin.UI
 
         private void MessageTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Ctrl+V attaches an image when the clipboard holds one; otherwise the TextBox
+            // handles the paste itself and text keeps working exactly as before.
+            if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                if (TryPasteImageFromClipboard())
+                {
+                    e.Handled = true;
+                }
+
+                return;
+            }
+
             if (e.Key != Key.Enter)
             {
                 return;
@@ -656,7 +1053,8 @@ namespace Amarin.UI
             }
 
             var text = MessageTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(text))
+            // Images alone are a valid message — "look at this" needs no words.
+            if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0)
             {
                 return;
             }
@@ -672,12 +1070,37 @@ namespace Amarin.UI
                 return;
             }
 
+            var command = ChatCommands.TryParse(text);
+
+            // The agent works from a text brief and has no vision input, so refuse rather than
+            // send the images off into nothing.
+            if (command is not null && _pendingImages.Count > 0)
+            {
+                MessageBox.Show(
+                    this,
+                    "Команда /agent не принимает изображения.\nУберите вложения или отправьте их обычным сообщением.",
+                    Title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             MessageTextBox.Clear();
+            var images = _pendingImages.Count == 0 ? null : _pendingImages.ToArray();
+            ClearPendingImages();
             _turnCts = new CancellationTokenSource();
             SetBusy(true);
             try
             {
-                await _services.Chat.RunTurnAsync(_session, text, this, _turnCts.Token);
+                if (command is { Name: ChatCommands.Agent } agent)
+                {
+                    await _services.Chat.RunAgentCommandAsync(
+                        _session, text, agent.Argument, agent.Complexity, this, _turnCts.Token);
+                }
+                else
+                {
+                    await _services.Chat.RunTurnAsync(_session, text, images, this, _turnCts.Token);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -714,6 +1137,7 @@ namespace Amarin.UI
             if (!busy)
             {
                 _workingTimer.Stop();
+                StopStreamRender();
                 FocusMessageInput();
             }
         }
@@ -750,18 +1174,22 @@ namespace Amarin.UI
         private void RenderSession()
         {
             MessagesPanel.Children.Clear();
+            _messageViews.Clear();
             _liveAssistant = null;
             var actions = CreateMessageActions();
             foreach (var message in _session.Messages)
             {
                 if (message.Role == "user")
                 {
-                    MessagesPanel.Children.Add(ChatMessageViews.CreateUser(this, message, actions).Root);
+                    var userRoot = ChatMessageViews.CreateUser(this, message, actions).Root;
+                    MessagesPanel.Children.Add(userRoot);
+                    TrackMessageView(message, userRoot);
                     continue;
                 }
 
                 var view = ChatMessageViews.CreateAssistant(this, message, actions);
                 MessagesPanel.Children.Add(view.Root);
+                TrackMessageView(message, view.Root);
             }
 
             MaybeAutoscroll();
@@ -773,7 +1201,11 @@ namespace Amarin.UI
             CommitEdit = CommitUserEdit,
             Delete = DeleteAssistant,
             Regenerate = RegenerateAssistant,
-            Cancel = _ => CancelTurn()
+            Cancel = _ => CancelTurn(),
+            Share = ShareMessage,
+            Export = ExportMessage,
+            SharingEnabled = SharingEnabled,
+            AddDownloadDomain = OpenDomainDialog
         };
 
         private static void CopyMessage(ChatDisplayMessage message)
@@ -1171,6 +1603,15 @@ namespace Amarin.UI
                 return;
             }
 
+            // Never move the view out from under a live flick: SmoothScroll re-asserts its own
+            // position on the next frame, so the two would trade corrections once per frame.
+            // This is the only thing the chat scroller does that the sidebar's does not.
+            // The flick settles on its own, and the next extent change resumes following.
+            if (SmoothScroll.IsAnimating(ChatScrollViewer))
+            {
+                return;
+            }
+
             _autoScrolling = true;
             ChatScrollViewer.ScrollToEnd();
             Dispatcher.BeginInvoke(() => _autoScrolling = false, DispatcherPriority.Background);
@@ -1199,7 +1640,9 @@ namespace Amarin.UI
 
         void IChatTurnObserver.OnUserAppended(ChatDisplayMessage user) => Ui(() =>
         {
-            MessagesPanel.Children.Add(ChatMessageViews.CreateUser(this, user, CreateMessageActions()).Root);
+            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions()).Root;
+            MessagesPanel.Children.Add(userRoot);
+            TrackMessageView(user, userRoot);
             SchedulePersist();
             MaybeAutoscroll();
             RefreshChatList();
@@ -1212,7 +1655,11 @@ namespace Amarin.UI
             var view = ChatMessageViews.CreateAssistant(this, assistant, CreateMessageActions());
             _liveAssistant = view;
             MessagesPanel.Children.Add(view.Root);
+            TrackMessageView(assistant, view.Root);
             _workingTimer.Start();
+            _pendingStreamText = "";
+            _renderedStreamText = "";
+            _streamRender.Start();
             MaybeAutoscroll();
         });
 
@@ -1223,10 +1670,32 @@ namespace Amarin.UI
                 return;
             }
 
-            _liveAssistant.SetBody(assistant.Text, markdown: false);
+            // Только копим: перерисует и подкрутит прокрутку следующий тик _streamRender.
+            _pendingStreamText = assistant.Text;
             _liveAssistant.ApplyBranding(this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
-            MaybeAutoscroll();
         });
+
+        /// <summary>Показать накопленный кусок ответа, если он изменился с прошлого тика.</summary>
+        private void FlushStreamText()
+        {
+            if (_liveAssistant is null || _pendingStreamText == _renderedStreamText)
+            {
+                return;
+            }
+
+            _renderedStreamText = _pendingStreamText;
+            _liveAssistant.SetBody(_renderedStreamText, streaming: true);
+
+            // Прокрутка только после перерисовки — иначе она считает высоту прошлого кадра.
+            MaybeAutoscroll();
+        }
+
+        private void StopStreamRender()
+        {
+            _streamRender.Stop();
+            _pendingStreamText = "";
+            _renderedStreamText = "";
+        }
 
         void IChatTurnObserver.OnToolsChanged(ChatDisplayMessage assistant) => Ui(() =>
         {
@@ -1238,10 +1707,11 @@ namespace Amarin.UI
         void IChatTurnObserver.OnAssistantCompleted(ChatDisplayMessage assistant) => Ui(() =>
         {
             _workingTimer.Stop();
+            StopStreamRender();
             _liveAssistant?.ApplyBranding(this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
             if (_liveAssistant is not null)
             {
-                _liveAssistant.SetBody(assistant.Text, markdown: true);
+                _liveAssistant.SetBody(assistant.Text, streaming: false);
                 _liveAssistant.UpdateTools(assistant);
                 _liveAssistant.ShowFinished(assistant);
             }
@@ -1249,14 +1719,16 @@ namespace Amarin.UI
             _liveAssistant = null;
             PersistCurrent();
             MaybeAutoscroll();
+            MaybeShowCompletionToast(assistant);
         });
 
         void IChatTurnObserver.OnAssistantCancelled(ChatDisplayMessage assistant) => Ui(() =>
         {
             _workingTimer.Stop();
+            StopStreamRender();
             if (_liveAssistant is not null)
             {
-                _liveAssistant.SetBody(assistant.Text, markdown: true);
+                _liveAssistant.SetBody(assistant.Text, streaming: false);
                 _liveAssistant.UpdateTools(assistant);
                 _liveAssistant.ShowFinished(assistant);
             }

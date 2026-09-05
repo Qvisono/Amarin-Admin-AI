@@ -32,6 +32,7 @@ internal sealed class WpfUi : IDisposable
                     ShutdownMode = ShutdownMode.OnExplicitShutdown
                 };
                 application = app;
+                ThemeManager.Initialize(app, new Core.AppSettingsStore().Load().Theme);
                 app.Startup += (_, _) =>
                 {
                     try
@@ -90,6 +91,9 @@ internal sealed class WpfUi : IDisposable
 
         return new WpfUi(thread, application);
     }
+
+    /// <summary>Runs <paramref name="action"/> on the UI thread. Used by tests to build windows.</summary>
+    internal T Invoke<T>(Func<T> action) => _application.Dispatcher.Invoke(action);
 
     internal string MainWindowTitle =>
         _application.Dispatcher.Invoke(() =>

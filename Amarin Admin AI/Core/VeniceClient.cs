@@ -299,6 +299,7 @@ public sealed class VeniceClient
         return new StreamedChatCompletion
         {
             Text = accumulator.Text,
+            ReasoningText = accumulator.ReasoningText,
             ToolCalls = accumulator.BuildToolCalls(),
             FinishReason = accumulator.FinishReason,
             Cost = accumulator.Cost,

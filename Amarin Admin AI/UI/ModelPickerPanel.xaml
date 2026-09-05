@@ -3,10 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="AIlogos.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-
             <Style x:Key="PickerTab" TargetType="RadioButton">
                 <Setter Property="GroupName" Value="ModelPickerTabs"/>
                 <Setter Property="Cursor" Value="Hand"/>
@@ -16,16 +12,16 @@
                         <ControlTemplate TargetType="RadioButton">
                             <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                           FontSize="11" Foreground="#FF9A9A9A"
+                                           FontSize="11" Foreground="{DynamicResource Text.Muted}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FF232323"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FF2E2E2E"/>
-                                    <Setter TargetName="Label" Property="Foreground" Value="White"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Track}"/>
+                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
                                     <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -37,7 +33,7 @@
             <Style x:Key="PickerGroupHeader" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="9.5"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
                 <Setter Property="Margin" Value="8,8,6,3"/>
             </Style>
 
@@ -54,10 +50,10 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -67,14 +63,14 @@
 
             <Style x:Key="ModelName" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             </Style>
 
             <Style x:Key="SelectedCheck" TargetType="Path">
                 <Setter Property="Data" Value="M0,3.5 L3,6.5 L8,0"/>
-                <Setter Property="Stroke" Value="#FFEAEAEA"/>
+                <Setter Property="Stroke" Value="{DynamicResource Text.Bright}"/>
                 <Setter Property="StrokeThickness" Value="1.5"/>
                 <Setter Property="StrokeStartLineCap" Value="Round"/>
                 <Setter Property="StrokeEndLineCap" Value="Round"/>
@@ -93,20 +89,20 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
+                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="5" Padding="8,0">
                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                           FontSize="10.5" Foreground="#FF9A9A9A"
+                                           FontSize="10.5" Foreground="{DynamicResource Text.Muted}"
                                            VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FF242424"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
-                                    <Setter TargetName="Bg" Property="Background" Value="#FFEAEAEA"/>
-                                    <Setter TargetName="Bg" Property="BorderBrush" Value="#FFEAEAEA"/>
-                                    <Setter TargetName="Label" Property="Foreground" Value="#FF0E0E0E"/>
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
                                     <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
@@ -117,7 +113,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Width="250" Height="320" Background="#FF161616" BorderBrush="#FF2A2A2A"
+    <Border Width="250" Height="320" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="10" Padding="6">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
@@ -129,7 +125,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Background="#FF1B1B1B" BorderBrush="#FF262626" BorderThickness="1"
+            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                     CornerRadius="7" Padding="2">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -200,15 +196,15 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Height="24" CornerRadius="5" Background="#FF1F1F1F"
-                            BorderBrush="#FF2E2E2E" BorderThickness="1">
+                    <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
                         <Grid>
                             <TextBox x:Name="ModelSearchBox"
                                      Background="Transparent" BorderThickness="0" Padding="7,0"
                                      VerticalContentAlignment="Center" FontSize="11"
-                                     Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"
+                                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
                                      TextChanged="ModelSearchBox_TextChanged"/>
-                            <TextBlock Text="Поиск..." FontSize="11" Foreground="#FF6E6E6E"
+                            <TextBlock Text="Поиск..." FontSize="11" Foreground="{DynamicResource Text.Faint}"
                                        Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

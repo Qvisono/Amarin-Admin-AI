@@ -54,11 +54,13 @@ public sealed class Wave1PersistenceTests
     [Fact]
     public void Ui_scale_normalizes_and_roundtrips()
     {
-        Assert.Equal([80, 90, 100, 110, 125, 150], UiScale.Percents);
+        Assert.Equal([80, 90, 100, 110, 125, 150, 175, 200, 225, 250], UiScale.Percents);
         Assert.Equal(100, UiScale.Normalize(100));
         Assert.Equal(150, UiScale.Normalize(150));
+        Assert.Equal(250, UiScale.Normalize(250));
         Assert.Equal(80, UiScale.Normalize(80));
         Assert.Equal(100, UiScale.Normalize(117));
+        Assert.Equal(100, UiScale.Normalize(300));
         Assert.Equal(100, UiScale.Normalize(0));
         Assert.Equal(100, UiScale.Normalize(-10));
 

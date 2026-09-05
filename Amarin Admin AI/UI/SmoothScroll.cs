@@ -36,6 +36,17 @@ namespace Amarin.UI
         public static void SetIsEnabled(DependencyObject obj, bool value) =>
             obj.SetValue(IsEnabledProperty, value);
 
+        /// <summary>
+        /// True while a flick is still being carried by inertia.
+        ///
+        /// The hook owns <see cref="ScrollViewer.VerticalOffset"/> for as long as this is true —
+        /// it re-asserts its own position every frame — so anything else that scrolls the viewer
+        /// in that window is undone on the next frame, once per frame. Callers that move the view
+        /// on their own check this first and let the flick finish.
+        /// </summary>
+        public static bool IsAnimating(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.IsAnimating ?? false;
+
         private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not ScrollViewer viewer)
@@ -96,6 +107,8 @@ namespace Amarin.UI
                 _onLoaded = OnLoaded;
                 _onUnloaded = OnUnloaded;
             }
+
+            public bool IsAnimating => _ticking;
 
             public void Attach()
             {

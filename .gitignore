@@ -39,3 +39,6 @@ secrets.json
 # User-secrets are outside the repo by design; ignore accidental dumps
 **/UserSecrets/
 **/user-secrets.json
+
+# Visual Studio project backup artifacts
+*.csproj.Backup.tmp

@@ -24,7 +24,6 @@ internal static class Program
     {
         var configuration = BuildConfiguration();
         var downloadOptions = LoadDownloadOptions(configuration);
-        DownloadValidator.ConfigureAllowedDomains(downloadOptions.AllowedDomains);
 
         var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
                      ?? configuration["VENICE_API_KEY"]
@@ -42,8 +41,26 @@ internal static class Program
             Download = downloadOptions
         };
 
-        var settingsStore = new AppSettingsStore();
+        // Profiles first: the active one decides which directory settings and chats come from.
+        // The default profile maps to the original app root, so an upgrade never relocates
+        // an existing conversation.
+        var profileStore = new ProfileStore();
+        var registry = profileStore.Load();
+        var activeProfile = profileStore.Active(registry);
+        var dataRoot = profileStore.DataRootFor(activeProfile.Id);
+
+        var settingsStore = new AppSettingsStore(dataRoot);
         var settings = settingsStore.Load();
+
+        // The effective allowlist lives in settings.json; appsettings.json only seeded it.
+        if (settings.DownloadAllowedDomains is null)
+        {
+            settings.DownloadAllowedDomains = [.. downloadOptions.AllowedDomains];
+            settingsStore.Save(settings);
+        }
+
+        DownloadValidator.ConfigureAllowedDomains(settings.DownloadAllowedDomains);
+
         if (!string.IsNullOrWhiteSpace(startup.Model))
         {
             options.Model = startup.Model.Trim();
@@ -61,9 +78,16 @@ internal static class Program
         var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15));
         var venice = new VeniceClient(http, options);
         var models = new VeniceModelListCache(venice);
-        var chatStore = new ChatStore();
-        var confirmations = new ConfirmationQueue(() => settingsStore.Load());
-        var agentHost = new AgentHost(options, downloadHttp, () => settingsStore.Load(), confirmations);
+        var chatStore = new ChatStore(dataRoot);
+
+        // Assigned just below. Everything that reads settings goes through the services bag so
+        // that switching profiles re-roots the store for the engine, agent and title generator
+        // too — capturing `settingsStore` directly would pin them to the profile seen at launch.
+        AppServices? services = null;
+        AppSettings ReadSettings() => services?.SettingsStore.Load() ?? settingsStore.Load();
+
+        var confirmations = new ConfirmationQueue(ReadSettings);
+        var agentHost = new AgentHost(options, downloadHttp, ReadSettings, confirmations);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
@@ -71,15 +95,17 @@ internal static class Program
             new WebSearchTool(venice.SearchWebAsync),
             new InitAgentTool(new AgentSlotLimiter(), agentHost)
         ]);
-        var engine = new ChatEngine(venice, options, () => settingsStore.Load(), chatTools);
-        var titles = new ChatTitleGenerator(http, options, () => settingsStore.Load());
+        var engine = new ChatEngine(venice, options, ReadSettings, chatTools);
+        var titles = new ChatTitleGenerator(http, options, ReadSettings);
 
-        var services = new AppServices
+        services = new AppServices
         {
             Options = options,
             SettingsStore = settingsStore,
             Settings = settings,
             ChatStore = chatStore,
+            Profiles = profileStore,
+            ProfileRegistry = registry,
             Http = http,
             DownloadHttp = downloadHttp,
             Venice = venice,
@@ -94,7 +120,16 @@ internal static class Program
         {
             ShutdownMode = ShutdownMode.OnMainWindowClose
         };
-        app.Exit += (_, _) => services.Dispose();
+        var disposable = services;
+        app.Exit += (_, _) => disposable.Dispose();
+        // Before the lock screen, so the password dialog is themed like the rest of the app.
+        ThemeManager.Initialize(app, settings.Theme);
+
+        if (activeProfile.IsLocked && !PasswordWindow.Unlock(activeProfile))
+        {
+            disposable.Dispose();
+            return 1;
+        }
 
         var window = new MainWindow();
         window.AttachServices(services);

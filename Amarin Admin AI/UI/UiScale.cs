@@ -10,7 +10,7 @@ namespace Amarin.UI;
 
 internal static class UiScale
 {
-    public static readonly int[] Percents = [80, 90, 100, 110, 125, 150];
+    public static readonly int[] Percents = [80, 90, 100, 110, 125, 150, 175, 200, 225, 250];
 
     private const int WmDpiChanged = 0x02E0;
     private const uint MonitorDefaultToNearest = 2;
@@ -321,7 +321,7 @@ internal static class UiScale
             monitorDpi = 96;
         }
 
-        var dpi = (uint)Math.Max(64, (int)Math.Round(monitorDpi * (_percent / 100.0)));
+        var dpi = (uint)Math.Clamp((int)Math.Round(monitorDpi * (_percent / 100.0)), 64, 960);
         return dpi;
     }
 

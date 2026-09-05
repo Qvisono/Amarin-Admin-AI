@@ -3,6 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:local="clr-namespace:Amarin.UI"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
         WindowStyle="ToolWindow"
         Title="Amarin Admin AI"
         Height="620"
@@ -14,7 +17,18 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources.xaml"/>
-                <ResourceDictionary Source="AIlogos.xaml"/>
+                <!--
+                    Design-time only. At runtime the palette, icons and vendor logos come
+                    from ThemeManager, which swaps three Application-level dictionaries so
+                    the theme can flip Light/Dark live. The XAML designer never runs
+                    ThemeManager, so without these every {DynamicResource} falls back to an
+                    unstyled default and the window renders all-white. mc:Ignorable="d"
+                    strips the d:-prefixed entries out of the runtime load, so they add
+                    nothing (and cannot shadow the live theme) in the built app.
+                -->
+                <ResourceDictionary d:Source="Theme/Palette.Dark.xaml"/>
+                <ResourceDictionary d:Source="Theme/Icons.Dark.xaml"/>
+                <ResourceDictionary d:Source="Theme/AiLogos.Dark.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -26,21 +40,21 @@
     CaptionHeight="0"
     ResizeBorderThickness="0" />
     </shell:WindowChrome.WindowChrome>
-    <Grid Background="#FF0E0E0E" MouseDown="Grid_MouseDown">
+    <Grid Background="{DynamicResource Bg.Window}" MouseDown="Grid_MouseDown">
         <Grid x:Name="ScaledRoot">
             <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="SidebarColumn" Width="184"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Border x:Name="SidebarBorder" Background="#FF131313">
+            <Border x:Name="SidebarBorder" Background="{DynamicResource Bg.Sidebar}">
                 <Border.Resources>
 
                     <!-- Заголовок группы чатов -->
                     <Style x:Key="GroupHeader" TargetType="TextBlock">
                         <Setter Property="FontSize" Value="10.5"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
                         <Setter Property="Margin" Value="14,14,6,4"/>
                     </Style>
 
@@ -59,7 +73,7 @@
                         CornerRadius="6" Padding="9,0,4,0">
                                         <Grid>
                                             <TextBlock x:Name="Title" Text="{TemplateBinding Content}"
-                                   FontSize="12.5" Foreground="#FFC9C9C9"
+                                   FontSize="12.5" Foreground="{DynamicResource Text.Tertiary}"
                                    VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    TextWrapping="NoWrap"
@@ -69,7 +83,7 @@
                                 Background="Transparent" Visibility="Collapsed"
                                 ToolTip="Действия" Cursor="Hand">
                                                 <TextBlock Text="⋯" FontSize="14" FontWeight="Bold"
-                                       Foreground="#FF9A9A9A"
+                                       Foreground="{DynamicResource Text.Muted}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
                                        Margin="0,0,0,2"/>
                                             </Border>
@@ -77,12 +91,12 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
                                         <Trigger SourceName="Actions" Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Actions" Property="Background" Value="#FF2E2E2E"/>
+                                            <Setter TargetName="Actions" Property="Background" Value="{DynamicResource Bg.Track}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -92,7 +106,7 @@
 
                     <!-- Активный (выбранный) чат -->
                     <Style x:Key="ChatItemActive" TargetType="Button" BasedOn="{StaticResource ChatItem}">
-                        <Setter Property="Background" Value="#FF242424"/>
+                        <Setter Property="Background" Value="{DynamicResource Bg.Hover}"/>
                     </Style>
                 </Border.Resources>
 
@@ -118,14 +132,14 @@
                                                     <Path x:Name="ExpandIcon" Visibility="Collapsed"
                                                           Data="M 2,2 L 7,7 L 2,12 M 8,2 L 13,7 L 8,12"
                                                           Width="12" Height="12" Stretch="Uniform"
-                                                          Stroke="#FFEAEAEA" StrokeThickness="1.5"
+                                                          Stroke="{DynamicResource Text.Bright}" StrokeThickness="1.5"
                                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Grid>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -140,14 +154,14 @@
                                                 <Path x:Name="Icon"
                                   Data="M 6,2 L 1,7 L 6,12 M 13,2 L 8,7 L 13,12"
                                   Width="12" Height="12" Stretch="Uniform"
-                                  Stroke="#FF8A8A8A" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.5"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
-                                                    <Setter TargetName="Icon" Property="Stroke" Value="#FFEAEAEA"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                                                    <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -159,25 +173,25 @@
                             <Button x:Name="NewChatButton" Cursor="Hand" Margin="0,5,0,0" Click="NewChatButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
+                                        <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6"
                             Margin="6,0,6,4" Height="28">
                                             <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <Path x:Name="NewChatPlus" Data="M6,0 L6,12 M0,6 L12,6"
-                                  Stroke="#FF0E0E0E" StrokeThickness="1.5"
+                                  Stroke="{DynamicResource Text.OnAccent}" StrokeThickness="1.5"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Width="10" Height="10" Stretch="Uniform"
                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
                                                 <TextBlock x:Name="NewChatLabel" Text="New Chat" FontSize="11.5"
-                                       Foreground="#FF0E0E0E" VerticalAlignment="Center"/>
+                                       Foreground="{DynamicResource Text.OnAccent}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
                                             </Trigger>
                                             <Trigger Property="IsPressed" Value="True">
-                                                <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillPressed}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -189,16 +203,16 @@
                             <Border x:Name="SearchBorder" Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="Background" Value="#FF1F1F1F"/>
-                                        <Setter Property="BorderBrush" Value="#FF2E2E2E"/>
+                                        <Setter Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#FF242424"/>
-                                                <Setter Property="BorderBrush" Value="#FF383838"/>
+                                                <Setter Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                             </Trigger>
                                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                                <Setter Property="Background" Value="#FF242424"/>
-                                                <Setter Property="BorderBrush" Value="#FF4A4A4A"/>
+                                                <Setter Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -209,14 +223,14 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Path Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-              Fill="#FF8A8A8A" Width="12" Height="12" Stretch="Uniform"
+              Fill="{DynamicResource Text.Dim}" Width="12" Height="12" Stretch="Uniform"
               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     <TextBox x:Name="SearchBox" Grid.Column="1"
                  Background="Transparent" BorderThickness="0" Padding="0"
                  VerticalContentAlignment="Center" FontSize="12"
-                 Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"
+                 Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
                  TextChanged="SearchBox_TextChanged"/>
-                                    <TextBlock Grid.Column="1" Text="Поиск" FontSize="12" Foreground="#FF6E6E6E"
+                                    <TextBlock Grid.Column="1" Text="Поиск" FontSize="12" Foreground="{DynamicResource Text.Faint}"
                    VerticalAlignment="Center" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -244,14 +258,14 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="#FF2A2A2A" VerticalAlignment="Center">
-                                <TextBlock Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="#FFD8D8D8"
+                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="{DynamicResource Bg.Selected}" VerticalAlignment="Center">
+                                <TextBlock Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Secondary}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
 
                             <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="#FFE8E8E8"/>
-                                <TextBlock Text="Локальный режим" FontSize="9.5" Foreground="#FF6A6A6A"/>
+                                <TextBlock Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"/>
+                                <TextBlock Text="Локальный режим" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
                             </StackPanel>
 
                             <Button x:Name="SettingsButton" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
@@ -259,14 +273,14 @@
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
-                                            <Path x:Name="Icon" Width="13" Height="13" Stretch="Uniform" Fill="#FF7A7A7A"
+                                            <Path x:Name="Icon" Width="13" Height="13" Stretch="Uniform" Fill="{DynamicResource Text.Dim}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"
                                       Data="M19.14,12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6 3.6,1.62,3.6,3.6-1.62,3.6-3.6,3.6z"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#FF262626" TargetName="Bg"/>
-                                                <Setter Property="Fill" Value="#FFEAEAEA" TargetName="Icon"/>
+                                                <Setter Property="Background" Value="{DynamicResource Bg.Hover}" TargetName="Bg"/>
+                                                <Setter Property="Fill" Value="{DynamicResource Text.Bright}" TargetName="Icon"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -285,15 +299,18 @@
                 <Grid Grid.Row="1" x:Name="Chat">
                     <Grid.RowDefinitions>
                         <RowDefinition/>
-                        <RowDefinition Height="125"/>
+                        <!-- Auto, not fixed: the composer grows when image thumbnails are attached. -->
+                        <RowDefinition Height="Auto" MinHeight="125"/>
                     </Grid.RowDefinitions>
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
               x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="27,18,20,10" MaxWidth="1070" x:Name="MessagesPanel">
                         </StackPanel>
                     </ScrollViewer>
-                    <Border Grid.Row="1" Margin="27,0,27,20" Background="#FF161616" MaxWidth="1070"
-                            CornerRadius="6" BorderBrush="#FF232323" BorderThickness="1">
+                    <Border Grid.Row="1" x:Name="ComposerBorder" Margin="27,0,27,20"
+                            Background="{DynamicResource Bg.Panel}" MaxWidth="1070"
+                            CornerRadius="6" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                            AllowDrop="True" PreviewDragOver="Composer_DragOver" Drop="Composer_Drop">
                         <Border.Resources>
                             <Style x:Key="ToolIconButton" TargetType="Button">
                                 <Setter Property="Width" Value="32"/>
@@ -307,17 +324,17 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6" Padding="16,0">
+                                            <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6" Padding="16,0">
                                                 <TextBlock Text="{TemplateBinding Content}" FontSize="11.5" FontWeight="SemiBold"
-                               Foreground="#FF0E0E0E"
+                               Foreground="{DynamicResource Text.OnAccent}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillPressed}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -329,26 +346,26 @@
                                 <Setter Property="Width" Value="28"/>
                                 <Setter Property="Height" Value="28"/>
                                 <Setter Property="CornerRadius" Value="7"/>
-                                <Setter Property="Background" Value="#FF1F1F1F"/>
+                                <Setter Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                 <Setter Property="Margin" Value="0,0,10,0"/>
                             </Style>
 
                             <Style x:Key="ActionBadgeIcon" TargetType="TextBlock">
                                 <Setter Property="FontSize" Value="13"/>
-                                <Setter Property="Foreground" Value="#FFB0B0B0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text.Tertiary}"/>
                                 <Setter Property="HorizontalAlignment" Value="Center"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                             </Style>
 
                             <Style x:Key="ActionTitle" TargetType="TextBlock">
                                 <Setter Property="FontSize" Value="12.5"/>
-                                <Setter Property="Foreground" Value="#FFE0E0E0"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                             </Style>
 
                             <Style x:Key="ActionSubtitle" TargetType="TextBlock">
                                 <Setter Property="FontSize" Value="10.5"/>
-                                <Setter Property="Foreground" Value="#FF6E6E6E"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                 <Setter Property="Margin" Value="0,1,0,0"/>
                             </Style>
@@ -365,7 +382,7 @@
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF202020"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -384,7 +401,7 @@
                                                 <Grid>
                                                     <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                     <Path x:Name="Chevron" Data="M0,0 L4,4 L8,0"
-                                  Stroke="#FF6E6E6E" StrokeThickness="1.4"
+                                  Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.4"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Width="9" Height="5" Stretch="Uniform"
                                   HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -397,16 +414,16 @@
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF202020"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1D1D1D"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Card}"/>
                                                     <Setter TargetName="Chevron" Property="RenderTransform">
                                                         <Setter.Value>
                                                             <RotateTransform Angle="180"/>
                                                         </Setter.Value>
                                                     </Setter>
-                                                    <Setter TargetName="Chevron" Property="Stroke" Value="#FFAFAFAF"/>
+                                                    <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -418,8 +435,8 @@
                             <Style x:Key="PopupUrlTextBox" TargetType="TextBox">
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Foreground" Value="#FFEAEAEA"/>
-                                <Setter Property="CaretBrush" Value="#FFEAEAEA"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                                <Setter Property="CaretBrush" Value="{DynamicResource Text.Bright}"/>
                                 <Setter Property="FontSize" Value="12"/>
                                 <Setter Property="Padding" Value="9,0"/>
                                 <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -433,20 +450,20 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="RadioButton">
-                                            <Border x:Name="Bg" Background="#FF1B1B1B" BorderBrush="#FF2A2A2A"
+                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                             BorderThickness="1" CornerRadius="6">
                                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="10.5"
-                                   Foreground="#FF9A9A9A"
+                                   Foreground="{DynamicResource Text.Muted}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF232323"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FFEAEAEA"/>
-                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="#FFEAEAEA"/>
-                                                    <Setter TargetName="Label" Property="Foreground" Value="#FF0E0E0E"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
                                                     <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
@@ -458,15 +475,31 @@
 
                         <Grid Margin="14,10,14,8">
                             <Grid.RowDefinitions>
-                                <RowDefinition/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition MinHeight="45"/>
                                 <RowDefinition Height="36"/>
                             </Grid.RowDefinitions>
 
+                            <!-- ===== ПРИКРЕПЛЁННЫЕ ИЗОБРАЖЕНИЯ ===== -->
+                            <StackPanel x:Name="AttachedImagesHost" Grid.Row="0" Visibility="Collapsed"
+                                        Margin="0,0,0,8">
+                                <ItemsControl x:Name="AttachedImagesPanel">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <TextBlock x:Name="AttachedImagesWarning" Visibility="Collapsed"
+                                           FontSize="11" Margin="2,6,0,0" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Status.Warning}"/>
+                            </StackPanel>
+
                             <!-- ===== ПОЛЕ ВВОДА ===== -->
-                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <Grid Grid.Row="1" Margin="0,0,0,6">
                                 <TextBox x:Name="MessageTextBox"
                      Background="Transparent" BorderThickness="0"
-                     Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"
+                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
                      FontSize="13.5"
                      AcceptsReturn="True" TextWrapping="Wrap"
                      VerticalContentAlignment="Top"
@@ -474,7 +507,7 @@
                      Padding="0"
                      PreviewKeyDown="MessageTextBox_PreviewKeyDown"/>
                                 <TextBlock Text="Спросите что-нибудь..." FontSize="14.5"
-                       Foreground="#FF5A5A5A" IsHitTestVisible="False">
+                       Foreground="{DynamicResource Text.Faint}" IsHitTestVisible="False">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -489,7 +522,7 @@
                             </Grid>
 
                             <!-- ===== ТУЛБАР ===== -->
-                            <Grid Grid.Row="1">
+                            <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -503,9 +536,9 @@
               Margin="0,0,6,0" Cursor="Hand">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
-                                            <Border x:Name="Bg" Background="#FF1F1F1F" CornerRadius="6">
+                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6">
                                                 <Path x:Name="PlusIcon" Data="M7,0 L7,14 M0,7 L14,7"
-                      Stroke="#FFB0B0B0" StrokeThickness="1.6"
+                      Stroke="{DynamicResource Text.Tertiary}" StrokeThickness="1.6"
                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                       Width="13" Height="13" Stretch="Uniform"
                       HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -517,10 +550,10 @@
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                                     <Setter TargetName="PlusIcon" Property="RenderTransform">
                                                         <Setter.Value>
                                                             <RotateTransform Angle="45"/>
@@ -539,19 +572,20 @@
        StaysOpen="False"
        PopupAnimation="Fade"
        IsOpen="{Binding IsChecked, ElementName=AttachButton, Mode=TwoWay}">
-                                    <Border Width="300" Background="#FF161616" BorderBrush="#FF2A2A2A"
+                                    <Border Width="300" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="12" Padding="6">
                                         <Border.Effect>
                                             <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
                                         </Border.Effect>
                                         <StackPanel>
                                             <TextBlock Text="Actions" FontSize="12.5" FontWeight="SemiBold"
-                       Foreground="#FF9A9A9A" Margin="8,6,8,4"/>
+                       Foreground="{DynamicResource Text.Muted}" Margin="8,6,8,4"/>
 
-                                            <Button Style="{StaticResource ActionItem}">
+                                            <Button x:Name="AttachImageButton" Style="{StaticResource ActionItem}"
+                                                    Click="AttachImageButton_Click">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Border Style="{StaticResource ActionBadge}">
-                                                        <Image Source="{StaticResource attach}" Margin="6" RenderTransformOrigin="0.5,0.5">
+                                                        <Image Source="{DynamicResource attach}" Margin="6" RenderTransformOrigin="0.5,0.5">
                                                             <Image.RenderTransform>
                                                                 <TransformGroup>
                                                                     <ScaleTransform/>
@@ -582,8 +616,8 @@
                                                 </StackPanel>
                                             </ToggleButton>
 
-                                            <Border Margin="4,4,4,4" Padding="10" Background="#FF1B1B1B"
-                    BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="9">
+                                            <Border Margin="4,4,4,4" Padding="10" Background="{DynamicResource Bg.Card}"
+                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="9">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -595,12 +629,12 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <StackPanel>
-                                                    <Border Background="#FF141414" BorderBrush="#FF2E2E2E" BorderThickness="1"
+                                                    <Border Background="{DynamicResource Bg.Sidebar}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
             CornerRadius="6" Height="30">
                                                         <Grid>
                                                             <TextBox x:Name="YoutubeUrlBox" Style="{StaticResource PopupUrlTextBox}"/>
                                                             <TextBlock Text="https://youtube.com/watch?v=..." FontSize="11.5"
-                       Foreground="#FF525252" Margin="9,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Text.Faint}" Margin="9,0" VerticalAlignment="Center"
                        IsHitTestVisible="False">
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock">
@@ -640,20 +674,20 @@
                                 <ToggleButton x:Name="ModelButton" Grid.Column="2" Height="32" Cursor="Hand">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
-                                            <Border x:Name="Bg" Background="#FF1F1F1F" CornerRadius="6" Padding="6,0,10,0">
+                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6" Padding="6,0,10,0">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Grid Width="20" Height="20" Margin="0,0,5,0">
-                                                        <Image x:Name="ModelButtonLogo" Source="{StaticResource Claude}" Width="20" Height="20"/>
+                                                        <Image x:Name="ModelButtonLogo" Source="{DynamicResource Claude}" Width="20" Height="20"/>
                                                         <Path x:Name="ModelButtonLightning" Data="M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"
-                              Fill="#FF9A9A9A" Width="9" Height="12" Stretch="Uniform"
+                              Fill="{DynamicResource Text.Muted}" Width="9" Height="12" Stretch="Uniform"
                               HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
                                                         <TextBlock x:Name="ModelButtonLetter" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="#FF9A9A9A" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Visibility="Collapsed"/>
                                                     </Grid>
                                                     <TextBlock x:Name="ModelButtonLabel" Text="Claude Sonnet 5" FontSize="13"
-                               Foreground="#FFD8D8D8" VerticalAlignment="Center"/>
-                                                    <Path x:Name="Chevron" Data="M0,0 L5,5 L10,0" Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                               Foreground="{DynamicResource Text.Secondary}" VerticalAlignment="Center"/>
+                                                    <Path x:Name="Chevron" Data="M0,0 L5,5 L10,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Width="9" Height="5" Stretch="Uniform"
                           Margin="7,0,0,0" VerticalAlignment="Center"
@@ -666,10 +700,10 @@
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                                 </Trigger>
                                                 <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                                     <Setter TargetName="Chevron" Property="RenderTransform">
                                                         <Setter.Value>
                                                             <RotateTransform Angle="180"/>
@@ -695,7 +729,7 @@
                                     <local:ModelPickerPanel x:Name="ChatModelPicker"
                                                             AllowAuto="True"
                                                             ModelPicked="ChatModelPicker_ModelPicked"/>
-                                    <Border Visibility="Collapsed" Width="250" Height="320" Background="#FF161616" BorderBrush="#FF2A2A2A"
+                                    <Border Visibility="Collapsed" Width="250" Height="320" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="10" Padding="6">
                                         <Border.Effect>
                                             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
@@ -713,16 +747,16 @@
                                                         <ControlTemplate TargetType="RadioButton">
                                                             <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
                                                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                           FontSize="11" Foreground="#FF9A9A9A"
+                                           FontSize="11" Foreground="{DynamicResource Text.Muted}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FF232323"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2E2E2E"/>
-                                                                    <Setter TargetName="Label" Property="Foreground" Value="White"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Track}"/>
+                                                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
                                                                     <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -735,7 +769,7 @@
                                             <Style x:Key="PickerGroupHeader" TargetType="TextBlock">
                                                 <Setter Property="FontSize" Value="9.5"/>
                                                 <Setter Property="FontWeight" Value="SemiBold"/>
-                                                <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
                                                 <Setter Property="Margin" Value="8,8,6,3"/>
                                             </Style>
 
@@ -753,10 +787,10 @@
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
@@ -767,7 +801,7 @@
                                             <!-- ===== Тексты пункта ===== -->
                                             <Style x:Key="ModelName" TargetType="TextBlock">
                                                 <Setter Property="FontSize" Value="12"/>
-                                                <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
                                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                                 <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                                             </Style>
@@ -775,7 +809,7 @@
                                             <!-- ===== Галка выбранной модели ===== -->
                                             <Style x:Key="SelectedCheck" TargetType="Path">
                                                 <Setter Property="Data" Value="M0,3.5 L3,6.5 L8,0"/>
-                                                <Setter Property="Stroke" Value="#FFEAEAEA"/>
+                                                <Setter Property="Stroke" Value="{DynamicResource Text.Bright}"/>
                                                 <Setter Property="StrokeThickness" Value="1.5"/>
                                                 <Setter Property="StrokeStartLineCap" Value="Round"/>
                                                 <Setter Property="StrokeEndLineCap" Value="Round"/>
@@ -795,20 +829,20 @@
                                                 <Setter Property="Template">
                                                     <Setter.Value>
                                                         <ControlTemplate TargetType="ToggleButton">
-                                                            <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
+                                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="5" Padding="8,0">
                                                                 <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                           FontSize="10.5" Foreground="#FF9A9A9A"
+                                           FontSize="10.5" Foreground="{DynamicResource Text.Muted}"
                                            VerticalAlignment="Center"/>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FF242424"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                                                 </Trigger>
                                                                 <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="#FFEAEAEA"/>
-                                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="#FFEAEAEA"/>
-                                                                    <Setter TargetName="Label" Property="Foreground" Value="#FF0E0E0E"/>
+                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
                                                                     <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -826,7 +860,7 @@
                                             </Grid.RowDefinitions>
 
                                             <!-- ═══ ВКЛАДКИ ═══ -->
-                                            <Border Background="#FF1B1B1B" BorderBrush="#FF262626" BorderThickness="1"
+                                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                     CornerRadius="7" Padding="2">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
@@ -878,7 +912,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <Image Source="{StaticResource Claude}" Width="15" Height="15"
+                                                            <Image Source="{DynamicResource Claude}" Width="15" Height="15"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
                                                             <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
@@ -892,7 +926,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <Image Source="{StaticResource Grok}" Width="13" Height="13"
+                                                            <Image Source="{DynamicResource Grok}" Width="13" Height="13"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
                                                         </Grid>
@@ -907,7 +941,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="O" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A9A"
+                                                            <TextBlock Text="O" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="GPT-5.3 Codex"/>
                                                         </Grid>
@@ -920,7 +954,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="K" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A9A"
+                                                            <TextBlock Text="K" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Kimi K2.7 Code"/>
                                                         </Grid>
@@ -935,7 +969,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="M" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A9A"
+                                                            <TextBlock Text="M" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="MiniMax M3 Preview"/>
                                                         </Grid>
@@ -948,7 +982,7 @@
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A9A"
+                                                            <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                        HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                             <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
                                                         </Grid>
@@ -982,14 +1016,14 @@
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
 
-                                                    <Border Height="24" CornerRadius="5" Background="#FF1F1F1F"
-                            BorderBrush="#FF2E2E2E" BorderThickness="1">
+                                                    <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
                                                         <Grid>
                                                             <TextBox x:Name="ModelSearchBox"
                                      Background="Transparent" BorderThickness="0" Padding="7,0"
                                      VerticalContentAlignment="Center" FontSize="11"
-                                     Foreground="#FFEAEAEA" CaretBrush="#FFEAEAEA"/>
-                                                            <TextBlock Text="Поиск..." FontSize="11" Foreground="#FF6E6E6E"
+                                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"/>
+                                                            <TextBlock Text="Поиск..." FontSize="11" Foreground="{DynamicResource Text.Faint}"
                                        Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock">
@@ -1034,7 +1068,7 @@
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
-                                                                <Image Source="{StaticResource Claude}" Width="15" Height="15"
+                                                                <Image Source="{DynamicResource Claude}" Width="15" Height="15"
                                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                                 <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
                                                                 <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
@@ -1048,7 +1082,7 @@
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
-                                                                <Image Source="{StaticResource Grok}" Width="13" Height="13"
+                                                                <Image Source="{DynamicResource Grok}" Width="13" Height="13"
                                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
                                                                 <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
                                                             </Grid>
@@ -1061,7 +1095,7 @@
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
-                                                                <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="#FF9A9A9A"
+                                                                <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
                                                                 <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
                                                             </Grid>
@@ -1080,16 +1114,16 @@
                                 <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="8">
+                                            <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="8">
                                                 <Path Data="M6,11 L6,1 M1,5 L6,0 L11,5"
-                                  Stroke="#FF0E0E0E" StrokeThickness="1.8"
+                                  Stroke="{DynamicResource Text.OnAccent}" StrokeThickness="1.8"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   Width="13" Height="13" Stretch="Uniform"
                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="White" TargetName="Bg"/>
+                                                    <Setter Property="Background" Value="{DynamicResource Accent.FillHover}" TargetName="Bg"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -1131,8 +1165,8 @@
                                                 <!-- Стрелка, указывающая на иконку -->
                                                 <Path Grid.Row="0"
                               Data="M0,6 L6,0 L12,6 Z"
-                              Fill="#FF1B1B1B"
-                              Stroke="#FF3A2E16"
+                              Fill="{DynamicResource Bg.Card}"
+                              Stroke="{DynamicResource Status.WarningBorder}"
                               StrokeThickness="1"
                               HorizontalAlignment="Center"
                               Margin="0,0,0,-1"/>
@@ -1140,20 +1174,20 @@
                                                 <!-- Тело подсказки -->
                                                 <Border Grid.Row="1"
                                 Width="230"
-                                Background="#FF1B1B1B"
-                                BorderBrush="#FF3A2E16"
+                                Background="{DynamicResource Bg.Card}"
+                                BorderBrush="{DynamicResource Status.WarningBorder}"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 Padding="10,8">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="⚠"
                                            FontSize="13"
-                                           Foreground="#FFE0A73E"
+                                           Foreground="{DynamicResource Status.Warning}"
                                            VerticalAlignment="Top"
                                            Margin="0,1,8,0"/>
                                                         <TextBlock Text="Not running as administrator: many features are unavailable"
                                            FontSize="11.5"
-                                           Foreground="#FFD8D8D8"
+                                           Foreground="{DynamicResource Text.Secondary}"
                                            TextWrapping="Wrap"
                                            LineHeight="15"
                                            MaxWidth="196"/>
@@ -1165,7 +1199,7 @@
                                 </ToolTip>
                             </Border.ToolTip>
 
-                            <Image Source="{StaticResource Alert}"
+                            <Image Source="{DynamicResource Alert}"
            Stretch="Uniform"
            Margin="6" />
                         </Border>
@@ -1193,27 +1227,27 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
+                                <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6"
                         Padding="{TemplateBinding Padding}">
                                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Path Data="M0,3.5 L3,6.5 L8,0" Stroke="#FF0E0E0E" StrokeThickness="1.6"
+                                        <Path Data="M0,3.5 L3,6.5 L8,0" Stroke="{DynamicResource Text.OnAccent}" StrokeThickness="1.6"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Width="9" Height="7" Stretch="Uniform"
                               Margin="0,0,6,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="Сохранить" FontSize="11.5"
-                                   Foreground="#FF0E0E0E" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource Text.OnAccent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="White"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
                                     </Trigger>
                                     <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillPressed}"/>
                                     </Trigger>
                                     <Trigger Property="IsEnabled" Value="False">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF3A3A3A"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Elevated}"/>
                                         <Setter Property="Opacity" Value="0.6"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -1232,16 +1266,16 @@
                             <ControlTemplate TargetType="RadioButton">
                                 <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="10,0">
                                     <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                       FontSize="12.5" Foreground="#FFAFAFAF" VerticalAlignment="Center"/>
+                                       FontSize="12.5" Foreground="{DynamicResource Text.Tertiary}" VerticalAlignment="Center"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF222222"/>
-                                        <Setter TargetName="Label" Property="Foreground" Value="#FFE0E0E0"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Body}"/>
                                     </Trigger>
                                     <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                        <Setter TargetName="Label" Property="Foreground" Value="White"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1252,7 +1286,7 @@
                 <Style x:Key="SettingsNavGroup" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="10.5"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="#FF5A5A5A"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
                     <Setter Property="Margin" Value="18,14,8,4"/>
                 </Style>
 
@@ -1263,26 +1297,26 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="CheckBox">
-                                <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="#FF2E2E2E">
-                                    <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="#FF8A8A8A"
+                                <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="{DynamicResource Bg.Track}">
+                                    <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="{DynamicResource Text.Dim}"
                                      HorizontalAlignment="Left" Margin="3,0"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Track" Property="Background" Value="#FFEAEAEA"/>
-                                        <Setter TargetName="Thumb" Property="Fill" Value="#FF0E0E0E"/>
+                                        <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
                                         <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Thumb" Property="Fill" Value="#FFC9C9C9"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.Tertiary}"/>
                                     </Trigger>
                                     <MultiTrigger>
                                         <MultiTrigger.Conditions>
                                             <Condition Property="IsMouseOver" Value="True"/>
                                             <Condition Property="IsChecked" Value="True"/>
                                         </MultiTrigger.Conditions>
-                                        <Setter TargetName="Track" Property="Background" Value="White"/>
-                                        <Setter TargetName="Thumb" Property="Fill" Value="#FF0E0E0E"/>
+                                        <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
                                     </MultiTrigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1294,35 +1328,35 @@
                 <Style x:Key="PageTitle" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="15"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
                     <Setter Property="Margin" Value="0,0,0,14"/>
                 </Style>
                 <Style x:Key="SectionTitle" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="#FF9A9A9A"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
                     <Setter Property="Margin" Value="0,4,0,8"/>
                 </Style>
                 <Style x:Key="SettingTitle" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="13"/>
-                    <Setter Property="Foreground" Value="#FFE6E6E6"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
                 </Style>
                 <Style x:Key="SettingDesc" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="11.5"/>
-                    <Setter Property="Foreground" Value="#FF7A7A7A"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
                     <Setter Property="Margin" Value="0,3,0,0"/>
                 </Style>
                 <Style x:Key="SettingsDivider" TargetType="Border">
                     <Setter Property="Height" Value="1"/>
-                    <Setter Property="Background" Value="#FF232323"/>
+                    <Setter Property="Background" Value="{DynamicResource Bg.Hover}"/>
                     <Setter Property="Margin" Value="0,12"/>
                 </Style>
 
                 <!-- ===== Вторичная кнопка (Manage/Open...) ===== -->
                 <Style x:Key="SecondaryButton" TargetType="Button">
                     <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
                     <Setter Property="FontSize" Value="11.5"/>
                     <Setter Property="Height" Value="26"/>
                     <Setter Property="Padding" Value="12,0"/>
@@ -1330,7 +1364,7 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
                                     <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
                                        Foreground="{TemplateBinding Foreground}"
@@ -1338,8 +1372,8 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF3A3A3A"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1349,12 +1383,12 @@
 
                 <!-- ===== Опасная кнопка ===== -->
                 <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                    <Setter Property="Foreground" Value="#FFFF6B6B"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
                 </Style>
 
                 <!-- ===== ComboBox ===== -->
                 <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
-                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="Template">
@@ -1366,7 +1400,7 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1375,7 +1409,7 @@
                 </Style>
 
                 <Style x:Key="DarkComboBox" TargetType="ComboBox">
-                    <Setter Property="Foreground" Value="#FFD8D8D8"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="Height" Value="28"/>
                     <Setter Property="MinWidth" Value="170"/>
@@ -1390,9 +1424,9 @@
                                           Focusable="False" ClickMode="Press" Cursor="Hand">
                                         <ToggleButton.Template>
                                             <ControlTemplate TargetType="ToggleButton">
-                                                <Border x:Name="Bg" Background="#FF1F1F1F"
-                                                BorderBrush="#FF2E2E2E" BorderThickness="1" CornerRadius="6">
-                                                    <Path Data="M0,0 L4,4 L8,0" Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="6">
+                                                    <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
                                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                                   Width="8" Height="4" Stretch="Uniform"
                                                   HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -1400,8 +1434,8 @@
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bg" Property="Background" Value="#FF242424"/>
-                                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF3A3A3A"/>
+                                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -1413,7 +1447,7 @@
                                     <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
                                    VerticalOffset="4" AllowsTransparency="True" StaysOpen="False"
                                    PopupAnimation="Fade">
-                                        <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E"
+                                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                         BorderThickness="1" CornerRadius="8" Padding="0,3"
                                         MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
                                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -1429,8 +1463,8 @@
 
                 <!-- ===== Многострочный промпт ===== -->
                 <Style x:Key="PromptTextBox" TargetType="TextBox">
-                    <Setter Property="Foreground" Value="#FFEAEAEA"/>
-                    <Setter Property="CaretBrush" Value="#FFEAEAEA"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                    <Setter Property="CaretBrush" Value="{DynamicResource Text.Bright}"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="AcceptsReturn" Value="True"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
@@ -1439,13 +1473,13 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TextBox">
-                                <Border x:Name="Bg" Background="#FF1B1B1B" BorderBrush="#FF2E2E2E"
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="6" Padding="8,6">
                                     <ScrollViewer x:Name="PART_ContentHost"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF4A4A4A"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1461,13 +1495,13 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="RadioButton">
-                                <Border x:Name="Bg" Width="110" Height="56" Background="#FF1B1B1B"
-                                BorderBrush="#FF2E2E2E" BorderThickness="1" CornerRadius="8">
+                                <Border x:Name="Bg" Width="110" Height="56" Background="{DynamicResource Bg.Card}"
+                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="8">
                                     <Grid>
                                         <TextBlock Text="{TemplateBinding Content}" FontSize="12"
-                                           Foreground="#FFC9C9C9"
+                                           Foreground="{DynamicResource Text.Tertiary}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <Path x:Name="Check" Data="M0,3 L3,6 L8,0" Stroke="#FFEAEAEA"
+                                        <Path x:Name="Check" Data="M0,3 L3,6 L8,0" Stroke="{DynamicResource Text.Bright}"
                                       StrokeThickness="1.6" StrokeStartLineCap="Round"
                                       StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Width="9" Height="7" Stretch="Uniform" Visibility="Collapsed"
@@ -1476,11 +1510,11 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF222222"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                     </Trigger>
                                     <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                        <Setter TargetName="Bg" Property="BorderBrush" Value="#FF4A4A4A"/>
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
                                         <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
@@ -1492,13 +1526,14 @@
             </Grid.Resources>
 
             <!-- Затемнение -->
-            <Border Background="#7F000000">
+            <Border Background="{DynamicResource Overlay.Scrim}">
                 <Button Opacity="0" Click="SettingsCloseButton_Click"></Button>
             </Border>
 
             <!-- Окно -->
-            <Border Width="640" Height="460" Background="#FF161616"
-            BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="10">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border Width="640" Height="460" Background="{DynamicResource Bg.Panel}"
+            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="170"/>
@@ -1506,8 +1541,8 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- ===== НАВИГАЦИЯ ===== -->
-                    <Border Background="#FF131313" CornerRadius="10,0,0,10"
-                    BorderBrush="#FF232323" BorderThickness="0,0,1,0">
+                    <Border Background="{DynamicResource Bg.Sidebar}" CornerRadius="10,0,0,10"
+                    BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,0,1,0">
                         <Grid>
                             <StackPanel>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="GENERAL" Margin="18,16,8,4"/>
@@ -1520,9 +1555,9 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.11.0 early beta"
+                                       Text="v1.12.0 Beta"
                                        FontSize="10.5"
-                                       Foreground="#FF5A5A5A"
+                                       Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
                                        VerticalAlignment="Bottom"/>
                         </Grid>
@@ -1539,15 +1574,15 @@
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
                                         <Path x:Name="Icon" Data="M0,0 L8,8 M8,0 L0,8"
-                                      Stroke="#FF8A8A8A" StrokeThickness="1.4"
+                                      Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                       Width="9" Height="9" Stretch="Uniform"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                            <Setter TargetName="Icon" Property="Stroke" Value="White"/>
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                            <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Primary}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -1570,7 +1605,7 @@
                                 <TextBlock Style="{StaticResource PageTitle}" Text="Account"/>
 
                                 <!-- Карточка аккаунта -->
-                                <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E" BorderThickness="1"
+                                <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
                                 CornerRadius="8" Padding="12,10" Margin="0,0,0,14">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -1578,31 +1613,58 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <Border Width="36" Height="36" CornerRadius="8" Background="#FF2A2A2A">
-                                            <TextBlock Text="Г" FontSize="15" FontWeight="SemiBold" Foreground="#FFD8D8D8"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource Bg.Selected}"
+                                                ClipToBounds="True">
+                                            <Grid>
+                                                <TextBlock x:Name="AccountAvatarLetter" Text="Г" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Text.Secondary}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Image x:Name="AccountAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                            </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Гость" FontSize="13" FontWeight="SemiBold" Foreground="#FFE8E8E8"/>
-                                            <TextBlock Text="Локальный режим" FontSize="11" Foreground="#FF6A6A6A"/>
+                                            <TextBlock x:Name="AccountNameText" Text="Гость" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Text.Body}"/>
+                                            <TextBlock x:Name="AccountModeText" Text="Локальный режим" FontSize="11"
+                                                       Foreground="{DynamicResource Text.Faint}"/>
                                         </StackPanel>
-                                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Switch account"/>
+                                        <Button x:Name="SwitchAccountButton" Grid.Column="2" Style="{StaticResource SecondaryButton}"
+                                                Content="Сменить" Click="SwitchAccountButton_Click"/>
                                     </Grid>
                                 </Border>
 
                                 <Grid>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Изображение профиля" VerticalAlignment="Center"/>
-                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button x:Name="RemoveAvatarButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Убрать" Margin="0,0,6,0" Click="RemoveAvatarButton_Click"/>
+                                        <Button x:Name="ChangeAvatarButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Изменить" Click="ChangeAvatarButton_Click"/>
+                                    </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Имя пользователя" VerticalAlignment="Center"/>
-                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                    <StackPanel Margin="0,0,120,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Имя пользователя"/>
+                                        <TextBlock x:Name="AccountNameHint" Style="{StaticResource SettingDesc}" Text="Гость"/>
+                                    </StackPanel>
+                                    <Button x:Name="ChangeNameButton" Style="{StaticResource SecondaryButton}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Content="Изменить" Click="ChangeNameButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль" VerticalAlignment="Center"/>
-                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right" Content="Изменить"/>
+                                    <StackPanel Margin="0,0,180,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль"/>
+                                        <TextBlock x:Name="AccountPasswordHint" Style="{StaticResource SettingDesc}"
+                                                   Text="Не задан"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Button x:Name="RemovePasswordButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Удалить" Margin="0,0,6,0" Click="RemovePasswordButton_Click"/>
+                                        <Button x:Name="ChangePasswordButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Изменить" Click="ChangePasswordButton_Click"/>
+                                    </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -1613,9 +1675,10 @@
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль при запуске"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Запрашивать пароль для доступа к приложению при каждом запуске"/>
+                                           Text="Блокирует вход в приложение. Чаты на диске не шифруются"/>
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                    <CheckBox x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                                              Checked="LockOnStartupToggle_Changed" Unchecked="LockOnStartupToggle_Changed"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -1653,16 +1716,25 @@
                                         <ComboBoxItem Content="110%" Tag="110"/>
                                         <ComboBoxItem Content="125%" Tag="125"/>
                                         <ComboBoxItem Content="150%" Tag="150"/>
+                                        <ComboBoxItem Content="175%" Tag="175"/>
+                                        <ComboBoxItem Content="200%" Tag="200"/>
+                                        <ComboBoxItem Content="225%" Tag="225"/>
+                                        <ComboBoxItem Content="250%" Tag="250"/>
                                     </ComboBox>
                                 </Grid>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Тема"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="Цвет темы оформления. System следует настройке Windows"
+                                           Margin="0,0,0,8"/>
                                 <StackPanel Orientation="Horizontal">
-                                    <RadioButton Style="{StaticResource ThemeCard}" Content="Light"/>
-                                    <RadioButton Style="{StaticResource ThemeCard}" Content="Dark" IsChecked="True"/>
-                                    <RadioButton Style="{StaticResource ThemeCard}" Content="System"/>
+                                    <RadioButton x:Name="ThemeCardLight" Style="{StaticResource ThemeCard}" Content="Light"
+                                                 Tag="Light" Checked="ThemeCard_Checked"/>
+                                    <RadioButton x:Name="ThemeCardDark" Style="{StaticResource ThemeCard}" Content="Dark"
+                                                 Tag="Dark" Checked="ThemeCard_Checked"/>
+                                    <RadioButton x:Name="ThemeCardSystem" Style="{StaticResource ThemeCard}" Content="System"
+                                                 Tag="System" Checked="ThemeCard_Checked"/>
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>
@@ -1695,9 +1767,28 @@
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Уведомлять о завершении ответа"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Показывать системное уведомление, когда модель закончила генерацию"/>
+                                           Text="Всплывающее окно в правом нижнем углу, когда модель закончила генерацию, а окно не в фокусе"/>
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                    <CheckBox x:Name="NotifyOnCompleteToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}" IsChecked="True"
+                                              Checked="NotifyOnCompleteToggle_Changed"
+                                              Unchecked="NotifyOnCompleteToggle_Changed"/>
+                                </Grid>
+                                <Grid Margin="18,10,0,0"
+                                      IsEnabled="{Binding IsChecked, ElementName=NotifyOnCompleteToggle}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Звук уведомления"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Короткий системный сигнал вместе с уведомлением"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="NotifySoundToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}" IsChecked="True"
+                                              Checked="NotifySoundToggle_Changed"
+                                              Unchecked="NotifySoundToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -1841,9 +1932,26 @@
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Обмен чатами по ссылке"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Сжимает беседу в короткую строку, которую можно открыть в другом экземпляре"/>
+                                           Text="Кнопки «Поделиться» и «Экспорт» под ответами. Код и JSON не шифруются"/>
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                                    <CheckBox x:Name="ChatSharingToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="ChatSharingToggle_Changed"
+                                              Unchecked="ChatSharingToggle_Changed"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Импорт чата"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Открыть экспортированный .json или файл .amrnchat как новый чат"/>
+                                    </StackPanel>
+                                    <Button x:Name="ImportChatButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                            Content="Открыть файл" Click="ImportChatButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -1862,35 +1970,41 @@
 
                                 <!-- Разрешённые сайты -->
                                 <Grid Margin="0,0,0,8">
-                                    <StackPanel VerticalAlignment="Center">
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,34,0">
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Разрешённые источники загрузки"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Сайты, с которых агентам разрешено скачивать файлы"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Загрузка с других сайтов отклоняется. Поддомены разрешены автоматически"/>
                                     </StackPanel>
-                                    <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
-                                    Content="+" Width="26" Padding="0" FontSize="14"/>
+                                    <Button x:Name="AddDomainButton" Style="{StaticResource SecondaryButton}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Content="+" Width="26" Padding="0" FontSize="14"
+                                            Click="AddDomainButton_Click"/>
                                 </Grid>
-                                <Border Background="#FF1B1B1B" BorderBrush="#FF2E2E2E" BorderThickness="1"
+                                <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
                                 CornerRadius="8" Padding="4">
-                                    <StackPanel>
-                                        <Grid Margin="8,5">
-                                            <TextBlock Text="github.com" FontSize="12" FontFamily="Consolas"
-                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
-                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
-                                            Content="–" Width="22" Height="22" Padding="0"/>
-                                        </Grid>
-                                        <Grid Margin="8,5">
-                                            <TextBlock Text="nuget.org" FontSize="12" FontFamily="Consolas"
-                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
-                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
-                                            Content="–" Width="22" Height="22" Padding="0"/>
-                                        </Grid>
-                                        <Grid Margin="8,5">
-                                            <TextBlock Text="python.org" FontSize="12" FontFamily="Consolas"
-                                               Foreground="#FFC9C9C9" VerticalAlignment="Center"/>
-                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
-                                            Content="–" Width="22" Height="22" Padding="0"/>
-                                        </Grid>
-                                    </StackPanel>
+                                    <Grid>
+                                        <TextBlock x:Name="AllowedDomainsEmpty" Margin="8,7"
+                                                   Text="Список пуст — любые загрузки заблокированы"
+                                                   FontSize="12" Foreground="{DynamicResource Text.Faint}"
+                                                   Visibility="Collapsed"/>
+                                        <ScrollViewer MaxHeight="152" VerticalScrollBarVisibility="Auto">
+                                            <ItemsControl x:Name="AllowedDomainsList">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="8,5">
+                                                            <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                                                       Foreground="{DynamicResource Text.Tertiary}"
+                                                                       VerticalAlignment="Center" Margin="0,0,30,0"
+                                                                       TextTrimming="CharacterEllipsis"/>
+                                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                                                    Content="–" Width="22" Height="22" Padding="0"
+                                                                    Tag="{Binding}" ToolTip="Удалить из списка"
+                                                                    Click="RemoveDomainButton_Click"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
                                 </Border>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -1925,66 +2039,144 @@
                     </Grid>
                 </Grid>
             </Border>
+            </Viewbox>
         </Grid>
 
         <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="30">
-            <Border Background="#7F000000"/>
+            <Border Background="{DynamicResource Overlay.Scrim}"/>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
             <Border Width="420" MinHeight="180" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="#FF161616" BorderBrush="#FF2A2A2A" BorderThickness="1" CornerRadius="10"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
                     Padding="20,18">
                 <StackPanel>
                     <TextBlock Text="Требуется подтверждение" FontSize="15" FontWeight="SemiBold"
-                               Foreground="White" Margin="0,0,0,12"/>
+                               Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,12"/>
                     <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
-                               Foreground="#FFB0B0B0" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="#FFE8E8E8"
+                               Foreground="{DynamicResource Text.Tertiary}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
                                TextWrapping="Wrap" Margin="0,0,0,8"/>
-                    <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="#FF9A9A9A"
+                    <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
                                TextWrapping="Wrap" Margin="0,0,0,16"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="ConfirmationNoButton" Content="Нет" Height="28" Padding="16,0"
-                                Margin="0,0,8,0" Cursor="Hand" Click="ConfirmationNoButton_Click">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bg" Background="#FF1F1F1F" BorderBrush="#FF2E2E2E"
-                                            BorderThickness="1" CornerRadius="6"
-                                            Padding="{TemplateBinding Padding}">
-                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
-                                                   Foreground="#FFD8D8D8"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
-                        <Button x:Name="ConfirmationYesButton" Content="Да" Height="28" Padding="16,0"
-                                Cursor="Hand" Click="ConfirmationYesButton_Click">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bg" Background="#FFEAEAEA" CornerRadius="6"
-                                            Padding="{TemplateBinding Padding}">
-                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
-                                                   FontWeight="SemiBold" Foreground="#FF0E0E0E"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="White"/>
-                                        </Trigger>
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="#FFD4D4D4"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
+                        <Button x:Name="ConfirmationNoButton" Content="Нет"
+                                Style="{StaticResource DialogSecondaryButton}"
+                                Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                        <Button x:Name="ConfirmationYesButton" Content="Да"
+                                Style="{StaticResource DialogPrimaryButton}"
+                                Click="ConfirmationYesButton_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ДОБАВЛЕНИЕ ДОМЕНА В БЕЛЫЙ СПИСОК ═══════════ -->
+        <Grid x:Name="DomainOverlay" Visibility="Collapsed" Panel.ZIndex="35">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="DomainCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <StackPanel>
+                    <TextBlock Text="Добавить домен в белый список" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
+                    <TextBlock Text="Агенту будет разрешено скачивать файлы с этого домена и его поддоменов."
+                               FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                               TextWrapping="Wrap" Margin="0,0,0,14"/>
+                    <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="6" Padding="10,7">
+                        <TextBox x:Name="DomainInput" Background="Transparent" BorderThickness="0"
+                                 FontFamily="Consolas" FontSize="13"
+                                 Foreground="{DynamicResource Text.Body}"
+                                 CaretBrush="{DynamicResource Text.Bright}"
+                                 KeyDown="DomainInput_KeyDown"
+                                 TextChanged="DomainInput_TextChanged"/>
+                    </Border>
+                    <TextBlock x:Name="DomainError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
+                               TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <Button x:Name="DomainCancelButton" Content="Отмена"
+                                Style="{StaticResource DialogSecondaryButton}"
+                                Margin="0,0,8,0" Click="DomainCancelButton_Click"/>
+                        <Button x:Name="DomainAddButton" Content="Добавить"
+                                Style="{StaticResource DialogPrimaryButton}"
+                                Click="DomainAddButton_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ПЕРЕИМЕНОВАНИЕ ПРОФИЛЯ ═══════════ -->
+        <Grid x:Name="NameOverlay" Visibility="Collapsed" Panel.ZIndex="36">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="NameCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock x:Name="NameDialogTitle" Text="Имя пользователя" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
+                        <TextBlock x:Name="NameDialogSubtitle"
+                                   Text="Отображается в настройках. Хранится только на этом компьютере."
+                                   FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                                   TextWrapping="Wrap" Margin="0,0,0,14"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <TextBox x:Name="NameInput" Background="Transparent" BorderThickness="0"
+                                     FontSize="13" MaxLength="40"
+                                     Foreground="{DynamicResource Text.Body}"
+                                     CaretBrush="{DynamicResource Text.Bright}"
+                                     KeyDown="NameInput_KeyDown"/>
+                        </Border>
+                        <TextBlock x:Name="NameError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="Отмена" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="NameCancelButton_Click"/>
+                            <Button x:Name="NameSaveButton" Content="Сохранить"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="NameSaveButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ВЫБОР ПРОФИЛЯ ═══════════ -->
+        <Grid x:Name="ProfileOverlay" Visibility="Collapsed" Panel.ZIndex="37">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="ProfileCloseButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock Text="Профили" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
+                        <TextBlock Text="У каждого профиля свои чаты и настройки. Данные хранятся локально."
+                                   FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                                   TextWrapping="Wrap" Margin="0,0,0,14"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="8" Padding="4">
+                            <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="ProfileList"/>
+                            </ScrollViewer>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="Новый профиль" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="CreateProfileButton_Click"/>
+                            <Button Content="Закрыть" Style="{StaticResource DialogPrimaryButton}"
+                                    Click="ProfileCloseButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
         </Grid>
 
         </Grid>

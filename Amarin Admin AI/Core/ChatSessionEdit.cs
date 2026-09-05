@@ -62,14 +62,20 @@ internal static class ChatSessionEdit
         }
 
         TruncateApiToMatchDisplay(session);
+        var images = session.Messages[index].Images;
         for (var i = session.ApiMessages.Count - 1; i >= 0; i--)
         {
             if (session.ApiMessages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
             {
+                // Rewriting the text must not silently drop the images the user attached.
                 session.ApiMessages[i] = new ChatMessage
                 {
                     Role = "user",
-                    Content = ChatContent.Text(text)
+                    Content = images.Count == 0
+                        ? ChatContent.Text(text)
+                        : ChatContent.VisionMultiple(
+                            string.IsNullOrWhiteSpace(text) ? "Посмотри на изображение." : text,
+                            images)
                 };
                 break;
             }

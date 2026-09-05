@@ -242,6 +242,8 @@ internal sealed class ChatEngine
         Do not explain.
         """;
 
+    private const string InitAgentToolName = Tools.InitAgentTool.ToolName;
+
     private readonly VeniceClient _venice;
     private readonly AgentOptions _options;
     private readonly Func<AppSettings> _settings;
@@ -265,13 +267,27 @@ internal sealed class ChatEngine
         ChatSession session,
         string userText,
         IChatTurnObserver observer,
+        CancellationToken cancellationToken) =>
+        await RunTurnAsync(session, userText, images: null, observer, cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <param name="images">
+    /// Attachments for this turn. A turn carrying images is valid with no text at all —
+    /// "look at this" is a complete request.
+    /// </param>
+    public async Task RunTurnAsync(
+        ChatSession session,
+        string userText,
+        IReadOnlyList<ImageAttachment>? images,
+        IChatTurnObserver observer,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(observer);
 
         var text = userText.Trim();
-        if (string.IsNullOrWhiteSpace(text))
+        var attachments = images is { Count: > 0 } ? images : null;
+        if (string.IsNullOrWhiteSpace(text) && attachments is null)
         {
             return;
         }
@@ -282,18 +298,177 @@ internal sealed class ChatEngine
             Role = "user",
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = now,
-            Text = text
+            Text = text,
+            Images = attachments is null ? [] : [.. attachments]
         };
         session.Messages.Add(user);
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "user",
-            Content = ChatContent.Text(text)
+            Content = attachments is null
+                ? ChatContent.Text(text)
+                : ChatContent.VisionMultiple(VisionPrompt(text), attachments)
         });
         session.UpdatedAt = now;
         observer.OnUserAppended(user);
 
         await GenerateAssistantAsync(session, observer, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The vision content array always leads with a text part, so an image-only turn needs a
+    /// stand-in question rather than an empty string the model has to guess at.
+    /// </summary>
+    private static string VisionPrompt(string text) =>
+        string.IsNullOrWhiteSpace(text) ? "Посмотри на изображение." : text;
+
+    /// <summary>
+    /// Handles <c>/agent &lt;prompt&gt;</c>: starts the agent immediately instead of asking the
+    /// chat model whether it wants to call <c>init_agent</c>, then still runs one ordinary chat
+    /// completion so the user gets the usual written report over the agent's result.
+    /// </summary>
+    public async Task RunAgentCommandAsync(
+        ChatSession session,
+        string displayText,
+        string prompt,
+        string complexity,
+        IChatTurnObserver observer,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(observer);
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            return;
+        }
+
+        var now = DateTime.Now;
+        var user = new ChatDisplayMessage
+        {
+            Role = "user",
+            Id = Guid.NewGuid().ToString("N"),
+            CreatedAt = now,
+            Text = displayText.Trim()
+        };
+        session.Messages.Add(user);
+        // The model sees the task, not the slash syntax — it only has to write the report.
+        session.ApiMessages.Add(new ChatMessage
+        {
+            Role = "user",
+            Content = ChatContent.Text(prompt)
+        });
+        session.UpdatedAt = now;
+        observer.OnUserAppended(user);
+
+        _venice.ResetRequestCost();
+        var requested = ReadSelectedModel(session);
+        var assistant = new ChatDisplayMessage
+        {
+            Role = "assistant",
+            Id = Guid.NewGuid().ToString("N"),
+            CreatedAt = DateTime.Now,
+            RequestedModelId = requested,
+            ResolvedModelId = requested,
+            Status = AssistantStatus.Streaming,
+            Text = ""
+        };
+        session.Messages.Add(assistant);
+        observer.OnAssistantStarted(assistant);
+
+        var clock = Stopwatch.StartNew();
+        try
+        {
+            if (VeniceModelCatalog.IsAuto(requested))
+            {
+                var chosen = await RouteAsync(prompt, cancellationToken).ConfigureAwait(false);
+                assistant.ResolvedModelId = chosen;
+                observer.OnAssistantText(assistant);
+                _venice.SetActiveModel(chosen);
+            }
+            else
+            {
+                _venice.SetActiveModel(requested);
+            }
+
+            var messages = BuildApiMessages(session);
+
+            // Forge the tool call the chat model would normally have made. Everything
+            // downstream — slot limiting, the nested-agent card, cost roll-up — is the
+            // existing init_agent path, so nothing here is agent plumbing of its own.
+            var arguments = JsonSerializer.Serialize(new { prompt, complexity });
+
+            var toolCall = new ToolCall
+            {
+                Id = "call-" + Guid.NewGuid().ToString("N"),
+                Function = new FunctionCall { Name = InitAgentToolName, Arguments = arguments }
+            };
+
+            var apiAssistant = new ChatMessage
+            {
+                Role = "assistant",
+                Content = null,
+                ToolCalls = [toolCall]
+            };
+            messages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
+            session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
+
+            var toolRound = CreateRound([toolCall]);
+            toolRound.InfoLine = "Запускаю агента";
+            assistant.ToolRounds.Add(toolRound);
+            observer.OnToolsChanged(assistant);
+
+            await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
+                .ConfigureAwait(false);
+
+            toolRound.InfoLine = "Агент завершил работу — готовлю отчёт";
+            observer.OnToolsChanged(assistant);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var report = await StreamWithRetryAsync(
+                    messages,
+                    tools: null,
+                    toolChoice: "none",
+                    assistant,
+                    observer,
+                    clock,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            FinishAssistant(session, assistant, clock, report);
+            observer.OnAssistantCompleted(assistant);
+        }
+        catch (OperationCanceledException)
+        {
+            clock.Stop();
+            assistant.Duration = clock.Elapsed;
+            assistant.ResolvedModelId = _venice.ActiveModel;
+            assistant.Cost = SumCosts(
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
+                assistant);
+            assistant.Status = AssistantStatus.Cancelled;
+            MarkRunningToolsCancelled(assistant);
+            session.UpdatedAt = DateTime.Now;
+            observer.OnToolsChanged(assistant);
+            observer.OnAssistantCancelled(assistant);
+        }
+        catch (Exception ex)
+        {
+            clock.Stop();
+            assistant.Duration = clock.Elapsed;
+            assistant.Status = AssistantStatus.Error;
+            if (string.IsNullOrWhiteSpace(assistant.Text))
+            {
+                assistant.Text = ex.Message;
+            }
+
+            assistant.Cost = SumCosts(
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
+                assistant);
+            session.UpdatedAt = DateTime.Now;
+            observer.OnError(ex.Message);
+            observer.OnAssistantCompleted(assistant);
+        }
     }
 
     public async Task GenerateAssistantAsync(
@@ -308,7 +483,13 @@ internal sealed class ChatEngine
         var text = lastUser?.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(text))
         {
-            return;
+            // An image-only turn has no text but is still a real request.
+            if (lastUser is null || lastUser.Images.Count == 0)
+            {
+                return;
+            }
+
+            text = VisionPrompt(text);
         }
 
         _venice.ResetRequestCost();
@@ -391,7 +572,7 @@ internal sealed class ChatEngine
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var streamed = await StreamOnceAsync(
+            var streamed = await StreamWithRetryAsync(
                     messages,
                     _toolDefinitions,
                     "auto",
@@ -433,7 +614,7 @@ internal sealed class ChatEngine
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var synthesis = await StreamOnceAsync(
+        var synthesis = await StreamWithRetryAsync(
                 messages,
                 tools: null,
                 toolChoice: "none",
@@ -445,6 +626,67 @@ internal sealed class ChatEngine
         FinishAssistant(session, assistant, clock, synthesis);
         observer.OnAssistantCompleted(assistant);
     }
+
+    /// <summary>
+    /// Runs one streaming call and retries it once when the model returned nothing at all.
+    /// Reasoning models (grok-4-6) intermittently spend their whole completion budget on
+    /// chain of thought and stop with neither content nor tool calls; a plain retry clears it.
+    /// Mirrors the two-attempt loop the agent path has had all along (see <c>Agent</c>).
+    /// </summary>
+    private async Task<StreamedChatCompletion> StreamWithRetryAsync(
+        List<ChatMessage> messages,
+        List<ToolDefinition>? tools,
+        string? toolChoice,
+        ChatDisplayMessage assistant,
+        IChatTurnObserver observer,
+        Stopwatch clock,
+        CancellationToken cancellationToken)
+    {
+        var streamed = await StreamOnceAsync(
+                messages, tools, toolChoice, assistant, observer, clock, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!IsEmptyCompletion(streamed))
+        {
+            return streamed;
+        }
+
+        PerfLog.Write(
+            $"chat empty_completion model={streamed.Model} finish={streamed.FinishReason} " +
+            $"reasoning_chars={streamed.ReasoningText.Length} — retrying once");
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var retry = await StreamOnceAsync(
+                messages, tools, toolChoice, assistant, observer, clock, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!IsEmptyCompletion(retry))
+        {
+            return retry;
+        }
+
+        // Both attempts thought and said nothing. Whatever reasoning we captured is a far
+        // better answer than a bare "no text" line, so hand that back instead.
+        var salvage = retry.ReasoningText.Length > 0 ? retry.ReasoningText : streamed.ReasoningText;
+        if (salvage.Length == 0)
+        {
+            return retry;
+        }
+
+        PerfLog.Write($"chat empty_completion model={retry.Model} — falling back to reasoning text");
+        return new StreamedChatCompletion
+        {
+            Text = salvage,
+            ReasoningText = salvage,
+            ToolCalls = retry.ToolCalls,
+            FinishReason = retry.FinishReason,
+            Cost = retry.Cost,
+            Model = retry.Model
+        };
+    }
+
+    private static bool IsEmptyCompletion(StreamedChatCompletion streamed) =>
+        string.IsNullOrWhiteSpace(streamed.Text) && streamed.ToolCalls.Count == 0;
 
     private async Task<StreamedChatCompletion> StreamOnceAsync(
         List<ChatMessage> messages,
@@ -606,7 +848,7 @@ internal sealed class ChatEngine
         clock.Stop();
         assistant.Text = string.IsNullOrWhiteSpace(streamed.Text)
             ? (string.IsNullOrWhiteSpace(assistant.Text)
-                ? "Модель не вернула текстовый ответ."
+                ? EmptyCompletionMessage(streamed)
                 : assistant.Text)
             : streamed.Text;
         assistant.Duration = clock.Elapsed;
@@ -644,6 +886,22 @@ internal sealed class ChatEngine
                 round.InfoLine = "Инструменты прерваны";
             }
         }
+    }
+
+    /// <summary>
+    /// Last resort text: two attempts produced neither content nor reasoning. Name the model
+    /// and the finish reason so the cause is visible instead of a bare "no text" line.
+    /// </summary>
+    private static string EmptyCompletionMessage(StreamedChatCompletion streamed)
+    {
+        var model = string.IsNullOrWhiteSpace(streamed.Model) ? "модель" : streamed.Model;
+        var reason = string.IsNullOrWhiteSpace(streamed.FinishReason)
+            ? "поток завершился без причины"
+            : $"finish_reason: {streamed.FinishReason}";
+        return streamed.FinishReason?.Equals("length", StringComparison.OrdinalIgnoreCase) == true
+            ? $"Ответ обрезан лимитом токенов ({model}). Повторите запрос или упростите вопрос."
+            : $"Модель {model} не вернула текстовый ответ после двух попыток ({reason}). " +
+              "Повторите запрос или выберите другую модель.";
     }
 
     private static VeniceCost SumCosts(VeniceCost chatCost, ChatDisplayMessage assistant)

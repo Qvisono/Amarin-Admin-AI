@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -17,6 +18,18 @@ internal sealed class MessageActions
     public Action<ChatDisplayMessage>? Delete;
     public Action<ChatDisplayMessage>? Regenerate;
     public Action<ChatDisplayMessage>? Cancel;
+
+    /// <summary>Copy a share code for the dialog up to and including this message.</summary>
+    public Action<ChatDisplayMessage>? Share;
+
+    /// <summary>Write the dialog up to this message out as plain JSON.</summary>
+    public Action<ChatDisplayMessage>? Export;
+
+    /// <summary>False hides both of the above (Settings → Data Controls).</summary>
+    public Func<bool>? SharingEnabled;
+
+    /// <summary>Raised by the "add to allowlist" chip under a download blocked by the domain list.</summary>
+    public Action<string>? AddDownloadDomain;
 }
 
 internal sealed class UserMessageView
@@ -69,6 +82,9 @@ internal sealed class AssistantMessageView
     public required StackPanel ToolsHost { get; init; }
     public required FrameworkElement Host { get; init; }
 
+    /// <summary>Callbacks owned by the window; used by the blocked-download chip.</summary>
+    public MessageActions? Callbacks { get; set; }
+
     private Storyboard? _pulse;
     private Expander? _toolsExpander;
     private readonly Dictionary<string, bool> _nestedExpanded = new();
@@ -81,10 +97,14 @@ internal sealed class AssistantMessageView
         ModelBrand.Apply(host, modelId, LogoImage, LogoLetter, LogoLightning);
     }
 
-    public void SetBody(string text, bool markdown)
+    /// <param name="streaming">
+    /// Ответ ещё печатается. Разметка применяется всегда — троттлинг живого рендера живёт
+    /// в окне; здесь флаг решает только, прятать ли пока пустое тело.
+    /// </param>
+    public void SetBody(string text, bool streaming)
     {
         var empty = string.IsNullOrWhiteSpace(text);
-        Body.Visibility = empty && markdown is false
+        Body.Visibility = empty && streaming
             ? Visibility.Collapsed
             : Visibility.Visible;
         if (empty)
@@ -92,13 +112,7 @@ internal sealed class AssistantMessageView
             return;
         }
 
-        ChatMarkdown.Write(
-            Body,
-            text,
-            markdown,
-            Color.FromRgb(0xDC, 0xDC, 0xDC),
-            fontSize: 13.5,
-            lineHeight: 21);
+        ChatMarkdown.Write(Body, Host, text, fontSize: 13.5, lineHeight: 21);
     }
 
     public void ShowWorking(TimeSpan elapsed)
@@ -136,7 +150,7 @@ internal sealed class AssistantMessageView
         CancelButton.Visibility = Visibility.Collapsed;
         foreach (UIElement child in Actions.Children)
         {
-            if (!ReferenceEquals(child, CancelButton))
+            if (!ReferenceEquals(child, CancelButton) && !ChatMessageViews.IsPermanentlyHidden(child))
             {
                 child.Visibility = Visibility.Visible;
             }
@@ -246,6 +260,10 @@ internal sealed class AssistantMessageView
                 if (call.Status is ToolCallStatus.Done or ToolCallStatus.Failed)
                 {
                     body.Children.Add(BuildResultRow(call));
+                    if (BuildBlockedDomainNotice(call) is { } notice)
+                    {
+                        body.Children.Add(notice);
+                    }
                 }
             }
 
@@ -325,6 +343,67 @@ internal sealed class AssistantMessageView
         grid.Children.Add(name);
         grid.Children.Add(preview);
         return grid;
+    }
+
+    /// <summary>
+    /// Offer to allow the host when <c>download_file</c> was refused by the allowlist.
+    /// Returns null for every other tool result.
+    /// </summary>
+    private Border? BuildBlockedDomainNotice(ToolCallRecord call)
+    {
+        if (call.Success ||
+            !call.Name.Equals("download_file", StringComparison.OrdinalIgnoreCase) ||
+            !call.ResultPreview.StartsWith(DomainList.BlockedMarker, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!DomainList.TryGetHostFromToolArguments(call.ArgumentsJson, out var host))
+        {
+            // Fall back to the host embedded in the marker: "DOMAIN_BLOCKED: example.com ...".
+            var rest = call.ResultPreview[DomainList.BlockedMarker.Length..].TrimStart();
+            host = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                return null;
+            }
+        }
+
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.Children.Add(new Ellipse
+        {
+            Width = 6,
+            Height = 6,
+            Fill = (Brush)Host.FindResource("Status.Warning"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0)
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = $"Домен {host} заблокирован",
+            FontSize = 12,
+            Foreground = (Brush)Host.FindResource("Text.Secondary"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0)
+        });
+
+        var allow = new Button
+        {
+            Style = (Style)Host.FindResource("InlineLinkButton"),
+            Content = "Добавить в белый список"
+        };
+        allow.Click += (_, _) => Callbacks?.AddDownloadDomain?.Invoke(host);
+        row.Children.Add(allow);
+
+        return new Border
+        {
+            Style = (Style)Host.FindResource("BlockedDomainNotice"),
+            Child = row
+        };
     }
 
     private Expander BuildNestedAgentExpander(ToolCallRecord call)
@@ -470,24 +549,34 @@ internal sealed class AssistantMessageView
 
 internal static class ChatMessageViews
 {
-    private static readonly Color UserForeground = Color.FromRgb(0xE8, 0xE8, 0xE8);
-    private static readonly Color AiForeground = Color.FromRgb(0xDC, 0xDC, 0xDC);
+    // Ключи палитры, а не Color: тело сообщения обязано перекрашиваться вместе с темой.
+    private const string UserForeground = "Text.Body";
+    private const string AiForeground = "Text.Secondary";
 
     public static UserMessageView CreateUser(
         FrameworkElement host,
         ChatDisplayMessage message,
         MessageActions? actions = null)
     {
-        var display = CreateReadOnlyBox(UserForeground, 13.5, 19, shrinkWrap: true);
-        ChatMarkdown.Write(display, message.Text, markdown: false, UserForeground, 13.5, 19, fillAvailableWidth: false);
-        FitUserBubble(display, message.Text, host);
+        // Блочная разметка не влезает в обжатый по тексту пузырь — такие сообщения
+        // растягиваем до максимума, как ответы ассистента.
+        var wide = ChatMarkdown.HasBlockConstructs(message.Text);
+        var display = CreateReadOnlyBox(UserForeground, 13.5, 19, shrinkWrap: !wide);
+        ChatMarkdown.Write(
+            display, host, message.Text, 13.5, 19, fillAvailableWidth: wide);
+        if (wide)
+        {
+            display.MaxWidth = UserBubbleInnerMax;
+        }
+        else
+        {
+            FitUserBubble(display, ChatMarkdown.FlattenInline(message.Text), host);
+        }
 
         var editor = new TextBox
         {
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
-            Foreground = new SolidColorBrush(UserForeground),
-            CaretBrush = new SolidColorBrush(UserForeground),
             FontSize = 13.5,
             TextWrapping = TextWrapping.Wrap,
             AcceptsReturn = true,
@@ -496,8 +585,13 @@ internal static class ChatMessageViews
             HorizontalAlignment = HorizontalAlignment.Left,
             MaxWidth = UserBubbleInnerMax
         };
+        editor.SetResourceReference(Control.ForegroundProperty, UserForeground);
+        editor.SetResourceReference(TextBoxBase.CaretBrushProperty, UserForeground);
 
-        var hostGrid = new Grid { HorizontalAlignment = HorizontalAlignment.Left };
+        var hostGrid = new Grid
+        {
+            HorizontalAlignment = wide ? HorizontalAlignment.Stretch : HorizontalAlignment.Left
+        };
         hostGrid.Children.Add(display);
         hostGrid.Children.Add(editor);
 
@@ -515,7 +609,13 @@ internal static class ChatMessageViews
         row.Children.Add(copy);
         row.Children.Add(edit);
 
+        // Left as a stretched panel: UserBubble right-aligns itself and relies on its own margin.
         var root = new StackPanel();
+        if (message.Images.Count > 0)
+        {
+            root.Children.Add(CreateImageStrip(message));
+        }
+
         root.Children.Add(bubble);
         root.Children.Add(row);
         var view = new UserMessageView(root)
@@ -621,13 +721,7 @@ internal static class ChatMessageViews
         }
         else
         {
-            ChatMarkdown.Write(
-                body,
-                message.Text,
-                markdown: !streaming,
-                AiForeground,
-                13.5,
-                21);
+            ChatMarkdown.Write(body, host, message.Text, 13.5, 21);
         }
 
         var cancel = IconAction(host, "Cancel", "Остановить");
@@ -645,9 +739,15 @@ internal static class ChatMessageViews
         var copy = IconAction(host, "Copy", "Копировать");
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         row.Children.Add(copy);
-        var share = IconAction(host, "Upload", "Поделиться");
-        share.IsEnabled = false;
+        var sharingOn = actions?.SharingEnabled?.Invoke() ?? true;
+        var share = IconAction(host, "Upload", "Поделиться диалогом до этого ответа");
+        share.Click += (_, _) => actions?.Share?.Invoke(message);
+        HideIf(share, !sharingOn);
         row.Children.Add(share);
+        var export = IconAction(host, "Download", "Экспорт диалога в JSON");
+        export.Click += (_, _) => actions?.Export?.Invoke(message);
+        HideIf(export, !sharingOn);
+        row.Children.Add(export);
         var compress = IconAction(host, "Compress", "Сжать");
         compress.IsEnabled = false;
         row.Children.Add(compress);
@@ -691,7 +791,8 @@ internal static class ChatMessageViews
             LogoLightning = logoLightning,
             RootElement = grid,
             ToolsHost = toolsHost,
-            Host = host
+            Host = host,
+            Callbacks = actions
         };
         view.ApplyBranding(host, message.ResolvedModelId ?? message.RequestedModelId ?? "");
         view.UpdateTools(message);
@@ -702,7 +803,7 @@ internal static class ChatMessageViews
         }
         else
         {
-            view.SetBody(message.Text, markdown: true);
+            view.SetBody(message.Text, streaming: false);
             view.ShowFinished(message);
         }
 
@@ -713,13 +814,16 @@ internal static class ChatMessageViews
     private const double UserBubbleWidthSlack = 12;
 
     private static RichTextBox CreateReadOnlyBox(
-        Color foreground,
+        string foregroundKey,
         double fontSize,
         double lineHeight,
         bool shrinkWrap = false)
     {
         var box = new RichTextBox
         {
+            // Без IsDocumentEnabled ни ссылки, ни кнопка «копировать» внутри
+            // BlockUIContainer не получают мышь в режиме только для чтения.
+            IsDocumentEnabled = true,
             IsReadOnly = true,
             IsUndoEnabled = false,
             IsReadOnlyCaretVisible = false,
@@ -731,13 +835,13 @@ internal static class ChatMessageViews
             HorizontalAlignment = shrinkWrap ? HorizontalAlignment.Left : HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Top,
             FontSize = fontSize,
-            Foreground = new SolidColorBrush(foreground),
             CaretBrush = Brushes.Transparent,
-            SelectionBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A)),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
             FocusVisualStyle = null
         };
+        box.SetResourceReference(Control.ForegroundProperty, foregroundKey);
+        box.SetResourceReference(TextBoxBase.SelectionBrushProperty, "Bg.Elevated");
         box.Document.PagePadding = new Thickness(0);
         box.Document.LineHeight = lineHeight;
         box.Document.PageHeight = double.NaN;
@@ -817,7 +921,66 @@ internal static class ChatMessageViews
         return Math.Clamp(Math.Ceiling(wrapped + UserBubbleWidthSlack), 8, maxWidth);
     }
 
-    private static Button IconAction(FrameworkElement host, string resourceKey, string? tooltip = null)
+    /// <summary>
+    /// Thumbnails of the images sent with a user message, shown above the bubble so they are
+    /// still there after the chat is reloaded from disk.
+    /// </summary>
+    private static FrameworkElement CreateImageStrip(ChatDisplayMessage message)
+    {
+        var strip = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 0, 0, 6)
+        };
+
+        foreach (var attachment in message.Images)
+        {
+            var frame = new Border
+            {
+                Width = 96,
+                Height = 96,
+                Margin = new Thickness(6, 0, 0, 6),
+                CornerRadius = new CornerRadius(8),
+                BorderThickness = new Thickness(1),
+                ClipToBounds = true,
+                ToolTip = attachment.Label
+            };
+            frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+            frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+
+            if (MainWindow.TryDecode(attachment, decodePixelWidth: 192) is { } source)
+            {
+                frame.Child = new Image { Source = source, Stretch = Stretch.UniformToFill };
+            }
+
+            strip.Children.Add(frame);
+        }
+
+        return strip;
+    }
+
+    /// <summary>
+    /// Marker for buttons that must stay hidden. <see cref="AssistantMessageView.ShowFinished"/>
+    /// re-shows the whole action row, so a plain Collapsed would be undone on the next status change.
+    /// </summary>
+    private const string HiddenTag = "amarin.hidden";
+
+    internal static bool IsPermanentlyHidden(UIElement element) =>
+        element is FrameworkElement { Tag: HiddenTag };
+
+    private static void HideIf(FrameworkElement element, bool hidden)
+    {
+        if (!hidden)
+        {
+            return;
+        }
+
+        element.Tag = HiddenTag;
+        element.Visibility = Visibility.Collapsed;
+    }
+
+    internal static Button IconAction(FrameworkElement host, string resourceKey, string? tooltip = null)
     {
         var button = new Button
         {

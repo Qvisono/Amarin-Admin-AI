@@ -4,142 +4,6 @@
     <Geometry x:Key="Maximize">F0 M24,24z M0,0z M5,9.2 A4.2,4.2 0 0 1 9.2,5 L14.8,5 A4.2,4.2 0 0 1 19,9.2 L19,14.8 A4.2,4.2 0 0 1 14.8,19 L9.2,19 A4.2,4.2 0 0 1 5,14.8 L5,9.2 z M6.4,9.2 A2.8,2.8 0 0 0 9.2,6.4 L14.8,6.4 A2.8,2.8 0 0 0 17.6,9.2 L17.6,14.8 A2.8,2.8 0 0 0 14.8,17.6 L9.2,17.6 A2.8,2.8 0 0 0 6.4,14.8 L6.4,9.2 z</Geometry>
     <Geometry x:Key="Minimize">F1 M24,24z M0,0z M6.7,12 A0.84,0.84 0 0 1 7.54,11.16 L16.46,11.16 A0.84,0.84 0 0 1 17.3,12 A0.84,0.84 0 0 1 16.46,12.84 L7.54,12.84 A0.84,0.84 0 0 1 6.7,12 z</Geometry>
 
-    <DrawingImage x:Key="Alert">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Brush="#FFE53935" Geometry="F1 M24,24z M0,0z M20,12C20,16.4183 16.4183,20 12,20 7.58172,20 4,16.4183 4,12 4,7.58172 7.58172,4 12,4 16.4183,4 20,7.58172 20,12z" />
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M12,8L12,12.5">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="#FFFFFFFF" Thickness="2.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M24,24z M0,0z M13,15.5C13,16.0523 12.5523,16.5 12,16.5 11.4477,16.5 11,16.0523 11,15.5 11,14.9477 11.4477,14.5 12,14.5 12.5523,14.5 13,14.9477 13,15.5z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="attach">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M9.81826,7.23019C9.81826,7.23019 9.81817,13.5601 9.81826,15.6701 9.81832,16.9891 10.6361,18.3075 12,18.3075 13.3639,18.3075 14.1818,16.9891 14.1818,15.6701 14.1818,13.5601 14.1818,8.28518 14.1818,6.1752 14.1818,4.06522 11.9438,2.87618 9.81826,3.01024 7.85859,3.13384 6.00018,4.06522 6.00018,6.1752 6.00018,8.28518 5.99977,12.5051 6.00018,15.6701 6.00066,19.3378 8.20735,22 11.9998,22 15.7923,22 17.9995,18.835 17.9999,15.6701 18.0002,12.5051 17.9999,7.23019 17.9999,7.23019">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Regenerate">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M16.2721,3.13079L17.4462,6.15342C17.6461,6.66824,17.3909,7.24768,16.8761,7.44764L13.8535,8.6217">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Miter" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M7.61555,20.5111L6.93391,17.3409C6.81782,16.801,7.16142,16.2692,7.70136,16.1531L10.8715,15.4714">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Miter" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Brush="White" Geometry="F0 M24,24z M0,0z M16.9153,7.86755C17.6501,7.5052 17.8749,6.55584 17.263,6.01119 16.4869,5.32046 15.5626,4.77045 14.5169,4.41551 10.3331,2.99538 5.79017,5.23581 4.37005,9.41964 4.01511,10.4653 3.88883,11.5335 3.96442,12.5696 4.02402,13.3867 4.9141,13.7862 5.64883,13.4239L5.64883,13.4239C6.17327,13.1652 6.44536,12.5884 6.44406,12.0037 6.44274,11.4136 6.53712,10.8132 6.73739,10.2232 7.71372,7.34681 10.837,5.80651 13.7134,6.78285 14.3034,6.98311 14.8371,7.27371 15.3045,7.63397 15.7677,7.99095 16.3909,8.12619 16.9153,7.86755L16.9153,7.86755z M6.97575,16.1145C7.50019,15.8558 8.12343,15.991 8.58656,16.348 9.05394,16.7083 9.58773,16.9989 10.1777,17.1992 13.0541,18.1755 16.1774,16.6352 17.1537,13.7588 17.354,13.1688 17.4483,12.5684 17.447,11.9783 17.4457,11.3936 17.7178,10.8168 18.2423,10.5581L18.2423,10.5581C18.977,10.1958 19.8671,10.5953 19.9267,11.4124 20.0022,12.4485 19.876,13.5167 19.521,14.5624 18.1009,18.7462 13.558,20.9866 9.37418,19.5665 8.32849,19.2116 7.4042,18.6615 6.62812,17.9708 6.01616,17.4262 6.24102,16.4768 6.97575,16.1145L6.97575,16.1145z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Compress">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M15,9L21,3 M15,9L19.5,9 M15,9L15,4.5 M9,15L3,21 M9,15L4.5,15 M9,15L9,19.5 M15,15L9,9">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Expand">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M15,9L21,3 M21,3L16.5,3 M21,3L21,7.5 M9,15L3,21 M3,21L7.5,21 M3,21L3,16.5 M15,15L9,9">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Cancel">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Brush="White" Geometry="F0 M24,24z M0,0z M21,12C21,16.9706 16.9706,21 12,21 7.02944,21 3,16.9706 3,12 3,7.02944 7.02944,3 12,3 16.9706,3 21,7.02944 21,12z M16.1716,14.7574C16.6951,13.967 17,13.0191 17,12 17,9.23858 14.7614,7 12,7 10.9809,7 10.033,7.30488 9.24261,7.8284L16.1716,14.7574z M7.8284,9.24261L14.7574,16.1716C13.967,16.6951 13.0191,17 12,17 9.23858,17 7,14.7614 7,12 7,10.9809 7.30488,10.033 7.8284,9.24261z M12,5C8.13401,5 5,8.13401 5,12 5,15.866 8.13401,19 12,19 15.866,19 19,15.866 19,12 19,8.13401 15.866,5 12,5z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Delete">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M10,12L10,17">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M14,12L14,17">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M4,7L20,7">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M6,10L6,18C6,19.6569,7.34315,21,9,21L15,21C16.6569,21,18,19.6569,18,18L18,10">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M9,5C9,3.89543,9.89543,3,11,3L13,3C14.1046,3,15,3.89543,15,5L15,7 9,7 9,5z">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Compose">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Geometry="F1 M24,24z M0,0z M12,7L6.5,7C5.67157,7,5,7.67157,5,8.5L5,17.5C5,18.3284,5.67157,19,6.5,19L15.5,19C16.3284,19,17,18.3284,17,17.5L17,13">
-                    <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Miter" MiterLimit="1" />
-                    </GeometryDrawing.Pen>
-                </GeometryDrawing>
-                <GeometryDrawing Brush="White" Geometry="F0 M24,24z M0,0z M19.1888,6.725L19.1888,6.725C19.5892,6.34461,19.6054,5.71165,19.225,5.31125L19.225,5.31125C18.8446,4.91084,18.2117,4.89461,17.8113,5.275L17.8113,5.275 17.6171,5.45948C17.2094,5.84678,17.2011,6.49397,17.5987,6.89159L17.5987,6.89159C17.9822,7.27505,18.6014,7.28299,18.9946,6.90948L19.1888,6.725z M16.8372,7.5443C17.2348,7.94193,17.2265,8.58911,16.8188,8.97641L9.18875,16.225 9.18875,16.225C8.78835,16.6054,8.15539,16.5892,7.775,16.1887L7.775,16.1887C7.39462,15.7883,7.41085,15.1554,7.81125,14.775L7.81125,14.775 15.4413,7.52641C15.8345,7.1529,16.4537,7.16084,16.8372,7.5443L16.8372,7.5443z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Upload">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Brush="White" Geometry="F1 M24,24z M0,0z M9.71,6.71L11,5.41 11,17A1,1,0,0,0,13,17L13,5.41 14.29,6.71A1,1,0,0,0,15.71,6.71A1,1,0,0,0,15.71,5.29L12.71,2.29A1,1,0,0,0,11.29,2.29L8.29,5.29A1,1,0,0,0,9.71,6.71z M18,9L16,9A1,1,0,0,0,16,11L18,11A1,1,0,0,1,19,12L19,19A1,1,0,0,1,18,20L6,20A1,1,0,0,1,5,19L5,12A1,1,0,0,1,6,11L8,11A1,1,0,0,0,8,9L6,9A3,3,0,0,0,3,12L3,19A3,3,0,0,0,6,22L18,22A3,3,0,0,0,21,19L21,12A3,3,0,0,0,18,9z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
-
-    <DrawingImage x:Key="Copy">
-        <DrawingImage.Drawing>
-            <DrawingGroup ClipGeometry="M0,0 V20 H20 V0 H0 Z">
-                <GeometryDrawing Brush="White" Geometry="F0 M20,20z M0,0z M4,2A2,2,0,0,0,2,4L2,13A2,2,0,0,0,4,15L6,15 6,17A2,2,0,0,0,8,19L17,19A2,2,0,0,0,19,17L19,8A2,2,0,0,0,17,6L15,6 15,4A2,2,0,0,0,13,2L4,2z M13,6L13,4 4,4 4,13 6,13 6,8A2,2,0,0,1,8,6L13,6z M8,8L17,8 17,17 8,17 8,8z" />
-            </DrawingGroup>
-        </DrawingImage.Drawing>
-    </DrawingImage>
 
     <Style TargetType="ScrollBar">
         <Setter Property="Width" Value="7"/>
@@ -157,7 +21,7 @@
                                 <Thumb>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border Background="#48FFFFFF" CornerRadius="3" Margin="1,2"/>
+                                            <Border Background="{DynamicResource Overlay.Glass}" CornerRadius="3" Margin="1"/>
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
@@ -167,9 +31,24 @@
                             </Track.IncreaseRepeatButton>
                         </Track>
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- Реверс нужен только вертикальной полосе: там ноль трека сверху. -->
+                        <Trigger Property="Orientation" Value="Horizontal">
+                            <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <!-- Базовые сеттеры описывают вертикальную полосу; для горизонтальной меняем оси местами. -->
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="Height" Value="7"/>
+                <Setter Property="MinHeight" Value="7"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <ControlTemplate x:Key="DarkScrollViewer" TargetType="ScrollViewer">
@@ -194,7 +73,7 @@
     </ControlTemplate>
 
     <Style x:Key="MacTitleBase" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#E6FFFFFF"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.PrimaryTranslucent}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="IsHitTestVisible" Value="False"/>
         <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
@@ -222,13 +101,13 @@
                 <Border x:Name="border" Background="Transparent">
                     <Viewbox Margin="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Path Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
-                                  Fill="#FFEAEAEA"
+                                  Fill="{DynamicResource Text.Bright}"
                                   Stretch="Uniform"/>
                     </Viewbox>
                 </Border>
                 <ControlTemplate.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
-                        <Setter TargetName="border" Property="Background" Value="#FF242424"/>
+                        <Setter TargetName="border" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                     </Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate>
@@ -239,7 +118,7 @@
     <!-- ===== Chat message styles (from mockup) ===== -->
     <Style x:Key="ToolDoneIcon" TargetType="Path">
         <Setter Property="Data" Value="M0,4 L3.5,7.5 L10,0"/>
-        <Setter Property="Stroke" Value="#FF5FB878"/>
+        <Setter Property="Stroke" Value="{DynamicResource Status.Success}"/>
         <Setter Property="StrokeThickness" Value="1.6"/>
         <Setter Property="StrokeStartLineCap" Value="Round"/>
         <Setter Property="StrokeEndLineCap" Value="Round"/>
@@ -253,18 +132,18 @@
     <Style x:Key="ToolResult" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Consolas"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Foreground" Value="#FF7A9A82"/>
+        <Setter Property="Foreground" Value="{DynamicResource Status.SuccessSoft}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
     <Style x:Key="ToolStepDivider" TargetType="Border">
         <Setter Property="Height" Value="1"/>
-        <Setter Property="Background" Value="#FF1E1E1E"/>
+        <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
         <Setter Property="Margin" Value="4,6"/>
     </Style>
     <Style x:Key="UserBubble" TargetType="Border">
-        <Setter Property="Background" Value="#FF1F1F1F"/>
-        <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+        <Setter Property="Background" Value="{DynamicResource Bg.Raised}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="12,12,3,12"/>
         <Setter Property="Padding" Value="14,9"/>
@@ -273,13 +152,13 @@
         <Setter Property="Margin" Value="60,0,0,18"/>
     </Style>
     <Style x:Key="UserBubbleText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#FFE8E8E8"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
         <Setter Property="FontSize" Value="13.5"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="LineHeight" Value="19"/>
     </Style>
     <Style x:Key="AiText" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#FFDCDCDC"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
         <Setter Property="FontSize" Value="13.5"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="LineHeight" Value="21"/>
@@ -288,21 +167,21 @@
         <Setter Property="Width" Value="28"/>
         <Setter Property="Height" Value="28"/>
         <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Background" Value="#FF1C1C1C"/>
-        <Setter Property="BorderBrush" Value="#FF2A2A2A"/>
+        <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="VerticalAlignment" Value="Top"/>
         <Setter Property="Margin" Value="0,0,11,0"/>
     </Style>
     <Style x:Key="AiMetaText" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Foreground" Value="#FF8A8A8A"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style x:Key="AiMetaDot" TargetType="Ellipse">
         <Setter Property="Width" Value="3"/>
         <Setter Property="Height" Value="3"/>
-        <Setter Property="Fill" Value="#FF4A4A4A"/>
+        <Setter Property="Fill" Value="{DynamicResource Text.Faint}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="7,1,7,0"/>
     </Style>
@@ -312,11 +191,11 @@
     <Style x:Key="ToolIcon" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Width" Value="20"/>
-        <Setter Property="Foreground" Value="#FF8A8A8A"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style x:Key="ToolPendingIcon" TargetType="TextBlock" BasedOn="{StaticResource ToolIcon}">
-        <Setter Property="Foreground" Value="#FFC9C9C9"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Tertiary}"/>
         <Style.Triggers>
             <EventTrigger RoutedEvent="FrameworkElement.Loaded">
                 <BeginStoryboard>
@@ -331,14 +210,14 @@
     <Style x:Key="ToolName" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#FFB8B8B8"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Tertiary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,0,8,0"/>
     </Style>
     <Style x:Key="ToolArgs" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Consolas"/>
         <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Foreground" Value="#FF6E6E6E"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
@@ -347,7 +226,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Expander">
-                    <Border Background="#FF141414" BorderBrush="#FF232323"
+                    <Border Background="{DynamicResource Bg.Sidebar}" BorderBrush="{DynamicResource Border.Subtle}"
                             BorderThickness="1" CornerRadius="8"
                             HorizontalAlignment="Left" MinWidth="280">
                         <StackPanel>
@@ -361,7 +240,7 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <Path x:Name="Chevron"
                                                       Data="M0,0 L4,4 L0,8"
-                                                      Stroke="#FF7A7A7A" StrokeThickness="1.4"
+                                                      Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
                                                       StrokeStartLineCap="Round"
                                                       StrokeEndLineCap="Round"
                                                       StrokeLineJoin="Round"
@@ -378,7 +257,7 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="HeadBg" Property="Background" Value="#FF1B1B1B"/>
+                                                <Setter TargetName="HeadBg" Property="Background" Value="{DynamicResource Bg.Card}"/>
                                             </Trigger>
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="Chevron" Property="RenderTransform">
@@ -393,7 +272,7 @@
                                 <ContentPresenter Content="{TemplateBinding Header}"/>
                             </ToggleButton>
                             <Border x:Name="Body" Visibility="Collapsed"
-                                    BorderBrush="#FF1E1E1E" BorderThickness="0,1,0,0"
+                                    BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,1,0,0"
                                     Padding="8,5,10,7">
                                 <ContentPresenter/>
                             </Border>
@@ -411,7 +290,7 @@
     <Style x:Key="ExpanderHeaderText" TargetType="TextBlock">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="#FF9A9A9A"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
     </Style>
     <Style x:Key="ActionsRow" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Horizontal"/>
@@ -433,10 +312,10 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="#FF1F1F1F"/>
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bg" Property="Background" Value="#FF2A2A2A"/>
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -466,14 +345,98 @@
                         <Viewbox Margin="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Path x:Name="icon"
                                   Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
-                                  Fill="#FFEAEAEA"
+                                  Fill="{DynamicResource Text.Bright}"
                                   Stretch="Uniform"/>
                         </Viewbox>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#FFC42B1C"/>
-                            <Setter TargetName="icon" Property="Fill" Value="White"/>
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Status.DangerStrong}"/>
+                            <Setter TargetName="icon" Property="Fill" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Плашка «домен заблокирован» под неудачной загрузкой ===== -->
+    <Style x:Key="BlockedDomainNotice" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Status.WarningSurface}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Status.WarningBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Margin" Value="24,4,4,6"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+
+    <Style x:Key="InlineLinkButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="5" Padding="7,2">
+                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Status.Warning}"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Кнопки модальных диалогов (подтверждение, добавление домена) ===== -->
+    <Style x:Key="DialogSecondaryButton" TargetType="Button">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Secondary}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DialogPrimaryButton" TargetType="Button">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.OnAccent}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillPressed}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
