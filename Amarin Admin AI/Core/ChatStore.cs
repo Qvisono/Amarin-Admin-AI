@@ -40,12 +40,45 @@ public sealed class ChatStore
             throw new ArgumentException("Chat session id is required.", nameof(session));
         }
 
-        session.UpdatedAt = DateTime.Now;
+        // UpdatedAt belongs to whoever actually changes the session — ChatEngine and
+        // ChatSessionEdit already stamp it on every append, edit and delete. Stamping it here as
+        // well made an ordinary save indistinguishable from an edit, so merely opening a chat
+        // (which saves the one being left) dragged that chat into today's sidebar group.
+        if (session.UpdatedAt == default)
+        {
+            session.UpdatedAt = session.CreatedAt == default ? DateTime.Now : session.CreatedAt;
+        }
+
         Directory.CreateDirectory(_chatsDirectory);
 
         var json = JsonSerializer.Serialize(session, AppJson.Options) + Environment.NewLine;
-        AppDataFile.WriteAtomic(ChatPath(session.Id), json);
+        var path = ChatPath(session.Id);
+
+        // Switching chats saves the outgoing one whether or not anything changed. Rewriting an
+        // untouched conversation — inline base64 images and all — is pure churn.
+        if (!IsOnDisk(path, json))
+        {
+            AppDataFile.WriteAtomic(path, json);
+        }
+
         UpsertIndex(session);
+    }
+
+    /// <summary>True when <paramref name="path"/> already holds exactly <paramref name="json"/>.</summary>
+    private static bool IsOnDisk(string path, string json)
+    {
+        try
+        {
+            return File.Exists(path) && File.ReadAllText(path) == json;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     public ChatSession? TryLoad(string id)
@@ -76,7 +109,8 @@ public sealed class ChatStore
     {
         var index = LoadIndex();
         return index.Items
-            .OrderByDescending(item => item.UpdatedAt)
+            .OrderByDescending(item => item.IsPinned)
+            .ThenByDescending(item => item.UpdatedAt)
             .ToList();
     }
 
@@ -91,6 +125,49 @@ public sealed class ChatStore
         return items
             .Where(item => item.Title.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase))
             .ToList();
+    }
+
+    /// <summary>
+    /// Retitles a chat without touching <see cref="ChatSession.UpdatedAt"/> — renaming is
+    /// housekeeping, not a new message, so it must not reshuffle the sidebar.
+    /// </summary>
+    public bool Rename(string id, string title)
+    {
+        var trimmed = title?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(id) || trimmed.Length == 0)
+        {
+            return false;
+        }
+
+        var session = TryLoad(id);
+        if (session is null)
+        {
+            return false;
+        }
+
+        session.Title = trimmed;
+        Save(session);
+        return true;
+    }
+
+    /// <summary>Pins or unpins a chat. Index-only, so the conversation file is untouched.</summary>
+    public bool SetPinned(string id, bool pinned)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return false;
+        }
+
+        var index = LoadIndex();
+        var entry = index.Items.FirstOrDefault(item => item.Id == id);
+        if (entry is null || entry.IsPinned == pinned)
+        {
+            return false;
+        }
+
+        entry.IsPinned = pinned;
+        SaveIndex(index);
+        return true;
     }
 
     public bool Delete(string id)
@@ -176,7 +253,8 @@ public sealed class ChatStore
     private void SaveIndex(ChatIndex index)
     {
         index.Items = index.Items
-            .OrderByDescending(item => item.UpdatedAt)
+            .OrderByDescending(item => item.IsPinned)
+            .ThenByDescending(item => item.UpdatedAt)
             .ToList();
         var json = JsonSerializer.Serialize(index, AppJson.Options) + Environment.NewLine;
         AppDataFile.WriteAtomic(_indexFile, json);

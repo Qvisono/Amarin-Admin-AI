@@ -25,6 +25,14 @@ public partial class NotificationToast : Window
     private readonly DispatcherTimer _dismiss = new() { Interval = Dwell };
     private bool _closing;
     private bool _suppressCardClick;
+    private DateTime _shownAt = DateTime.UtcNow;
+
+    /// <summary>
+    /// How long the card has been on screen. The main window uses this to tell a deliberate
+    /// "user came back to read it" activation from one that lands in the same breath as the
+    /// toast appearing, which would otherwise wipe the card out within a couple of frames.
+    /// </summary>
+    internal TimeSpan VisibleFor => DateTime.UtcNow - _shownAt;
 
     /// <summary>Raised when the card body (not the close button) is clicked.</summary>
     public event Action? CardClicked;
@@ -159,6 +167,7 @@ public partial class NotificationToast : Window
             storyboard.Begin(this);
         }
 
+        _shownAt = DateTime.UtcNow;
         _dismiss.Start();
     }
 

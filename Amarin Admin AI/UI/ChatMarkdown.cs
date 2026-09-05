@@ -224,6 +224,11 @@ internal static class ChatMarkdown
                 target.Add(BuildRule());
                 break;
 
+            case ParagraphBlock paragraph when SoleImage(paragraph.Inline) is { } picture:
+                // Абзац из одной картинки — это иллюстрация, а не текст: показываем её.
+                target.Add(BuildImage(picture, context, last));
+                break;
+
             case ParagraphBlock paragraph:
                 target.Add(BuildParagraph(paragraph.Inline, context, last));
                 break;
@@ -285,6 +290,50 @@ internal static class ChatMarkdown
         {
             Margin = new Thickness(0)
         };
+
+    /// <summary>
+    /// Единственная картинка в абзаце, если он состоит только из неё. Пробелы вокруг не в счёт —
+    /// перенос строки в разметке не должен мешать показать иллюстрацию.
+    /// </summary>
+    private static LinkInline? SoleImage(ContainerInline? inline)
+    {
+        if (inline is null)
+        {
+            return null;
+        }
+
+        LinkInline? found = null;
+        foreach (var child in inline)
+        {
+            switch (child)
+            {
+                case LinkInline { IsImage: true } image when found is null:
+                    found = image;
+                    break;
+
+                case LineBreakInline:
+                    break;
+
+                case LiteralInline literal when literal.Content.ToString().Trim().Length == 0:
+                    break;
+
+                default:
+                    return null;
+            }
+        }
+
+        return found;
+    }
+
+    private static WpfBlock BuildImage(LinkInline image, RenderContext context, bool last)
+    {
+        var url = image.GetDynamicUrl?.Invoke() ?? image.Url ?? "";
+        var alt = InlineText(image);
+        return new BlockUIContainer(ImageBlockView.Create(context.Host, url, alt))
+        {
+            Margin = new Thickness(0, 0, 0, last ? 0 : 10)
+        };
+    }
 
     private static WpfBlock BuildQuote(QuoteBlock quote, RenderContext context, bool last)
     {

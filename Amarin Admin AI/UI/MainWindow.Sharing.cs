@@ -14,7 +14,13 @@ namespace Amarin.UI
 
         private bool SharingEnabled() => _services?.Settings.ChatSharingEnabled != false;
 
-        private void ShareMessage(ChatDisplayMessage message)
+        private void ShareMessage(ChatDisplayMessage message) => ShareSession(_session, message.Id);
+
+        /// <summary>
+        /// Copies a share code for <paramref name="session"/>. A null <paramref name="upToMessageId"/>
+        /// shares the whole conversation, which is what the sidebar's chat menu asks for.
+        /// </summary>
+        private void ShareSession(ChatSession session, string? upToMessageId)
         {
             if (_services is null || !SharingEnabled())
             {
@@ -24,7 +30,7 @@ namespace Amarin.UI
             string code;
             try
             {
-                code = ChatShareCodec.Encode(_session, message.Id);
+                code = ChatShareCodec.Encode(session, upToMessageId);
             }
             catch (Exception ex)
             {
@@ -43,13 +49,15 @@ namespace Amarin.UI
                 return;
             }
 
-            var upTo = _session.Messages.FindIndex(m => m.Id == message.Id) + 1;
+            var upTo = upToMessageId is null
+                ? session.Messages.Count
+                : session.Messages.FindIndex(m => m.Id == upToMessageId) + 1;
             var note = $"Код скопирован в буфер обмена ({code.Length} символов, сообщений: {upTo}).\n" +
                        "Вставьте его в поиск в боковой панели другого экземпляра, чтобы открыть чат.";
 
             // A multi-thousand character clipboard payload does not survive every chat app,
             // so hand over a file as well once it gets long.
-            if (code.Length > ShareCodeFileThreshold && TrySaveShareFile(code) is { } path)
+            if (code.Length > ShareCodeFileThreshold && TrySaveShareFile(code, session.Title) is { } path)
             {
                 note += $"\n\nКод длинный, поэтому также сохранён в файл:\n{path}";
             }
@@ -57,7 +65,10 @@ namespace Amarin.UI
             MessageBox.Show(this, note, Title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void ExportMessage(ChatDisplayMessage message)
+        private void ExportMessage(ChatDisplayMessage message) => ExportSession(_session, message.Id);
+
+        /// <summary>Writes <paramref name="session"/> out as plain JSON, whole or up to a message.</summary>
+        private void ExportSession(ChatSession session, string? upToMessageId)
         {
             if (_services is null || !SharingEnabled())
             {
@@ -69,7 +80,7 @@ namespace Amarin.UI
                 Title = "Экспорт диалога",
                 Filter = "JSON|*.json|Все файлы|*.*",
                 DefaultExt = ".json",
-                FileName = SafeFileName(_session.Title) + ".json"
+                FileName = SafeFileName(session.Title) + ".json"
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -79,7 +90,7 @@ namespace Amarin.UI
 
             try
             {
-                File.WriteAllText(dialog.FileName, ChatShareCodec.ExportJson(_session, message.Id));
+                File.WriteAllText(dialog.FileName, ChatShareCodec.ExportJson(session, upToMessageId));
                 MessageBox.Show(
                     this,
                     "Диалог сохранён:\n" + dialog.FileName,
@@ -168,7 +179,7 @@ namespace Amarin.UI
             OpenSharedSession(session);
         }
 
-        private string? TrySaveShareFile(string code)
+        private static string? TrySaveShareFile(string code, string? title)
         {
             try
             {
@@ -176,7 +187,7 @@ namespace Amarin.UI
                 Directory.CreateDirectory(directory);
                 var path = Path.Combine(
                     directory,
-                    $"{SafeFileName(_session.Title)}-{DateTime.Now:yyyyMMdd-HHmmss}{ChatShareCodec.FileExtension}");
+                    $"{SafeFileName(title)}-{DateTime.Now:yyyyMMdd-HHmmss}{ChatShareCodec.FileExtension}");
                 File.WriteAllText(path, code);
                 return path;
             }

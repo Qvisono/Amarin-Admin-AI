@@ -4,7 +4,7 @@ using Amarin.Tools;
 
 namespace Amarin.Core;
 
-internal sealed class ChatEngine
+internal sealed partial class ChatEngine
 {
     /// <summary>
     /// Tooling rules for the ordinary chat companion only.
@@ -22,9 +22,26 @@ internal sealed class ChatEngine
         - read_file(path): read a text file, or list a directory.
         - write_file(path, content): write text, creates folders, never deletes.
         - search_web(query): web search, summary in Russian.
+        - generate_image(prompt, orientation): draw a picture from a description.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
         - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
           It can do everything you can't: open URLs in the browser, scrape pages,
           run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES
+        - Reach for generate_image whenever a picture carries the answer better
+          than a paragraph would: diagrams, infographics, illustrations, mock-ups.
+          Don't ask permission first, and don't offer to draw something instead of
+          drawing it.
+        - The tool result gives you a handle like amarin-image:1a2b3c4d. Put the
+          picture in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - You may also embed an ordinary public image URL the same way:
+          ![caption](https://example.com/photo.jpg) -- it is fetched and shown.
+        - Say nothing like "here is the image"; the picture speaks for itself.
 
         AGENT RULES
         - complexity is exactly "lite" (one check/listing) or "heavy" (repair,
@@ -195,6 +212,39 @@ internal sealed class ChatEngine
         """;
 
     /// <summary>Tech prompt before the no-emoji / ASCII-emoticon rule.</summary>
+    /// <summary>Pre-images tooling prompt; used only to migrate AppData.</summary>
+    internal const string LegacyDefaultTechPromptV7 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search, summary in Russian.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        AGENT RULES
+        - complexity is exactly "lite" (one check/listing) or "heavy" (repair,
+          diagnosis, multi-step). Default to lite when unsure.
+        - prompt must restate the user's actual request in the user's language:
+          what to inspect, which files, what to change. Be specific.
+        - Up to 4 agents run in parallel; a 5th call errors -- read it and adapt.
+        - Wait for all agent reports before answering the user.
+        - If a report is empty or off-topic, re-run init_agent with a clearer prompt.
+        - Keep the report's substance in your answer: facts, numbers, names,
+          statuses. React in your own voice but drop nothing important.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
     internal const string LegacyDefaultTechPromptV6 = """
         These are tooling rules for the chat companion. They do not change your personality.
         You are talking to a person, not operating as a command-line utility.
@@ -813,6 +863,41 @@ internal sealed class ChatEngine
             };
             messages.Add(toolMessage);
             session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(toolMessage));
+
+            if (!result.HasImages)
+            {
+                continue;
+            }
+
+            // Keep the pictures on the record so the transcript can draw them, and hand them to
+            // the model as a vision turn — a "tool" message may only carry text, so the images
+            // would otherwise be produced and then thrown away by both halves of the app.
+            // Each gets a handle the model can write into its answer to place the picture.
+            var images = result.GetImages();
+            var handled = new List<ImageAttachment>(images.Count);
+            var handles = new List<string>(images.Count);
+            foreach (var image in images)
+            {
+                var handle = ChatImageRegistry.Register(image);
+                handled.Add(image with { Label = handle });
+                handles.Add(handle);
+            }
+
+            call.Images = handled;
+
+            var placement = handles.Count == 1
+                ? $"Вставь это изображение в ответ разметкой ![описание]({handles[0]}) там, где оно уместно."
+                : "Вставь эти изображения разметкой ![описание](handle): " + string.Join(", ", handles);
+
+            var visionMessage = new ChatMessage
+            {
+                Role = "user",
+                Content = ChatContent.VisionMultiple(
+                    $"Результат инструмента {call.Name}. {placement}",
+                    handled)
+            };
+            messages.Add(visionMessage);
+            session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(visionMessage));
         }
 
         observer.OnToolsChanged(assistant);

@@ -6,7 +6,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Amarin.Core;
 using Amarin.Tools;
-using Bitmap = System.Drawing.Bitmap;
 using Image = System.Windows.Controls.Image;
 
 namespace Amarin.UI
@@ -20,6 +19,12 @@ namespace Amarin.UI
     public partial class MainWindow
     {
         private const string AvatarFileName = "avatar.png";
+
+        /// <summary>
+        /// Side of the stored avatar. Generous for a 36px chip, but cheap, and it leaves room
+        /// for a larger rendering later without asking the user to pick the photo again.
+        /// </summary>
+        private const int AvatarPixels = 512;
 
         /// <summary>What the name dialog does when it is confirmed.</summary>
         private Action<string>? _nameDialogCommit;
@@ -41,6 +46,10 @@ namespace Amarin.UI
             AccountModeText.Text = ProfileStore.IsDefault(profile.Id)
                 ? "Локальный режим · основной профиль"
                 : "Локальный режим · дополнительный профиль";
+            SidebarAccountName.Text = profile.Name;
+            SidebarAccountMode.Text = ProfileStore.IsDefault(profile.Id)
+                ? "Локальный режим"
+                : "Доп. профиль";
 
             AccountPasswordHint.Text = profile.HasPassword ? "Задан" : "Не задан";
             RemovePasswordButton.IsEnabled = profile.HasPassword;
@@ -51,23 +60,46 @@ namespace Amarin.UI
             ApplyAvatar(profile);
         }
 
+        /// <summary>
+        /// Repaints both places the avatar appears. Every path that changes the picture goes
+        /// through here — the settings tab, "change" and "remove" — so the sidebar can never
+        /// drift out of step with the account panel again.
+        /// </summary>
         private void ApplyAvatar(UserProfile profile)
         {
             var path = AvatarPath(profile);
-            if (path is not null && File.Exists(path) && LoadAvatar(path) is { } source)
+            var source = path is not null && File.Exists(path) ? LoadAvatar(path) : null;
+
+            if (source is not null)
             {
                 AccountAvatarImage.Source = source;
                 AccountAvatarImage.Visibility = Visibility.Visible;
                 AccountAvatarLetter.Visibility = Visibility.Collapsed;
                 RemoveAvatarButton.IsEnabled = true;
+            }
+            else
+            {
+                AccountAvatarImage.Source = null;
+                AccountAvatarImage.Visibility = Visibility.Collapsed;
+                AccountAvatarLetter.Visibility = Visibility.Visible;
+                AccountAvatarLetter.Text = FirstLetter(profile.Name);
+                RemoveAvatarButton.IsEnabled = false;
+            }
+
+            ApplySidebarAvatar(profile, source);
+        }
+
+        private void ApplySidebarAvatar(UserProfile profile, BitmapImage? source)
+        {
+            if (SidebarAvatarImage is null || SidebarAvatarLetter is null)
+            {
                 return;
             }
 
-            AccountAvatarImage.Source = null;
-            AccountAvatarImage.Visibility = Visibility.Collapsed;
-            AccountAvatarLetter.Visibility = Visibility.Visible;
-            AccountAvatarLetter.Text = FirstLetter(profile.Name);
-            RemoveAvatarButton.IsEnabled = false;
+            SidebarAvatarImage.Source = source;
+            SidebarAvatarImage.Visibility = source is null ? Visibility.Collapsed : Visibility.Visible;
+            SidebarAvatarLetter.Visibility = source is null ? Visibility.Visible : Visibility.Collapsed;
+            SidebarAvatarLetter.Text = FirstLetter(profile.Name);
         }
 
         private string? AvatarPath(UserProfile profile) =>
@@ -106,7 +138,9 @@ namespace Amarin.UI
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = "Изображение профиля",
-                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp|Все файлы|*.*"
+                // No .webp: the WIC codec for it is not present on every Windows install, and a
+                // missing one surfaces as an unhelpful decoder error rather than a refusal here.
+                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|Все файлы|*.*"
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -118,25 +152,76 @@ namespace Amarin.UI
             var target = Path.Combine(ProfileStore.DataRootFor(profile.Id), AvatarFileName);
             try
             {
+                var original = LoadForCrop(dialog.FileName);
+                if (original is null)
+                {
+                    MessageBox.Show(
+                        this,
+                        "Не удалось прочитать это изображение. Попробуйте PNG или JPEG.",
+                        Title,
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                if (AvatarCropWindow.Choose(original, this) is not { } selection)
+                {
+                    return;
+                }
+
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 
-                // Store a downscaled copy rather than the original — an 8 MP photo has no
-                // business sitting in the profile folder to render a 36px chip.
-                using (var stream = File.OpenRead(dialog.FileName))
-                using (var original = new Bitmap(stream))
-                using (var resized = ImageHelpers.Downscale(original))
+                // Store exactly the square the user framed, at a size that suits a 36px chip —
+                // not the original, which for a phone photo is several megapixels of nothing.
+                using (var stream = File.Create(target))
                 {
-                    resized.Save(target, System.Drawing.Imaging.ImageFormat.Png);
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(SquareAvatar(original, selection)));
+                    encoder.Save(stream);
                 }
 
                 profile.AvatarFileName = AvatarFileName;
                 SaveProfiles();
                 ApplyAvatar(profile);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
                 MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// Decodes the picked file at full size. WPF imaging throughout, so the pixels the crop
+        /// dialog shows are the pixels that get saved — GDI+ ignores the EXIF orientation that
+        /// WPF honours, and mixing the two would rotate the crop out from under the user.
+        /// </summary>
+        private static BitmapSource? LoadForCrop(string path)
+        {
+            try
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                image.UriSource = new Uri(path);
+                image.EndInit();
+                image.Freeze();
+                return image;
+            }
+            catch (Exception ex) when (ex is IOException or NotSupportedException or ArgumentException or UriFormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Cuts <paramref name="selection"/> out and squares it off at <see cref="AvatarPixels"/>.</summary>
+        private static BitmapSource SquareAvatar(BitmapSource source, Int32Rect selection)
+        {
+            var cropped = new CroppedBitmap(source, selection);
+            var scale = AvatarPixels / (double)selection.Width;
+            var scaled = new TransformedBitmap(cropped, new ScaleTransform(scale, scale));
+            scaled.Freeze();
+            return scaled;
         }
 
         private void RemoveAvatarButton_Click(object sender, RoutedEventArgs e)
@@ -349,10 +434,10 @@ namespace Amarin.UI
                 Width = 26,
                 Height = 26,
                 CornerRadius = new CornerRadius(6),
-                ClipToBounds = true,
                 Margin = new Thickness(0, 0, 10, 0)
             };
             chip.SetResourceReference(Border.BackgroundProperty, "Bg.Selected");
+            RoundedClip.SetRadius(chip, 6);
 
             var path = AvatarPath(profile);
             if (path is not null && File.Exists(path) && LoadAvatar(path) is { } source)

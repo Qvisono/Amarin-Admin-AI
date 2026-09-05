@@ -93,6 +93,12 @@ public sealed class ToolCallRecord
 
     public ToolCallStatus Status { get; set; }
 
+    /// <summary>
+    /// Pictures the tool produced — a generated image, a screenshot. Stored inline as base64 so
+    /// they survive a restart and travel with an exported chat, exactly like user attachments.
+    /// </summary>
+    public List<ImageAttachment> Images { get; set; } = [];
+
     public AgentRunRecord? NestedAgent { get; set; }
 }
 
@@ -125,4 +131,10 @@ public sealed class ChatIndexEntry
     public string Title { get; set; } = "";
 
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Kept at the top of the sidebar, out of the by-date groups. Lives on the index rather
+    /// than the session so pinning never counts as an edit to the conversation itself.
+    /// </summary>
+    public bool IsPinned { get; set; }
 }

@@ -11,6 +11,8 @@ namespace Amarin.Core;
 [JsonSerializable(typeof(ChatCompletionChunk))]
 [JsonSerializable(typeof(VeniceModelsListResponse))]
 [JsonSerializable(typeof(ScrapeUrlRequest))]
+[JsonSerializable(typeof(ImageGenerateRequest))]
+[JsonSerializable(typeof(ImageGenerateResponse))]
 [JsonSerializable(typeof(string))]
 internal partial class VeniceJsonContext : JsonSerializerContext;
 

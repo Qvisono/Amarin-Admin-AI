@@ -318,3 +318,60 @@ public sealed class VeniceModelCapabilities
     [JsonPropertyName("quantization")]
     public string? Quantization { get; init; }
 }
+/// <summary>
+/// Request for Venice's image endpoint. Separate from chat completions: it is a different API
+/// shape, and the models that serve it are not in the text catalogue.
+/// </summary>
+public sealed class ImageGenerateRequest
+{
+    [JsonPropertyName("model")]
+    public required string Model { get; init; }
+
+    [JsonPropertyName("prompt")]
+    public required string Prompt { get; init; }
+
+    [JsonPropertyName("negative_prompt")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? NegativePrompt { get; init; }
+
+    // Pixel size and aspect ratio are alternatives, not companions: the diffusion models take
+    // width/height, while the Gemini-backed nano-banana line is driven by aspect_ratio plus a
+    // resolution tier and rejects pixel dimensions. Both are nullable so only one goes on the wire.
+    [JsonPropertyName("width")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Width { get; init; }
+
+    [JsonPropertyName("height")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Height { get; init; }
+
+    [JsonPropertyName("aspect_ratio")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AspectRatio { get; init; }
+
+    [JsonPropertyName("resolution")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Resolution { get; init; }
+
+    [JsonPropertyName("format")]
+    public string Format { get; init; } = "png";
+
+    /// <summary>Base64 in the JSON body rather than raw bytes, so it can go straight into a message.</summary>
+    [JsonPropertyName("return_binary")]
+    public bool ReturnBinary { get; init; }
+
+    [JsonPropertyName("safe_mode")]
+    public bool SafeMode { get; init; }
+
+    [JsonPropertyName("hide_watermark")]
+    public bool HideWatermark { get; init; } = true;
+}
+
+public sealed class ImageGenerateResponse
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+
+    [JsonPropertyName("images")]
+    public List<string> Images { get; init; } = [];
+}

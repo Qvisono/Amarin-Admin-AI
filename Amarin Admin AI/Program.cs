@@ -93,6 +93,11 @@ internal static class Program
             new ReadFileTool(),
             new WriteFileTool(),
             new WebSearchTool(venice.SearchWebAsync),
+            // Aspect ratio is chosen from the pixel size for tool calls; only the infographic
+            // flow asks for a specific ratio, and it calls the client directly.
+            new GenerateImageTool((prompt, width, height, model, ct) =>
+                venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
+            new YouTubeTranscriptTool(),
             new InitAgentTool(new AgentSlotLimiter(), agentHost)
         ]);
         var engine = new ChatEngine(venice, options, ReadSettings, chatTools);
@@ -116,9 +121,13 @@ internal static class Program
             StartupPrompt = startup.Prompt
         };
 
+        // Explicit shutdown until the real window exists. WPF hands Application.MainWindow to the
+        // first window created on this thread, which would be the lock screen — and under
+        // OnMainWindowClose, closing it on a *correct* password would shut the app down before
+        // MainWindow ever opened.
         var app = new Application
         {
-            ShutdownMode = ShutdownMode.OnMainWindowClose
+            ShutdownMode = ShutdownMode.OnExplicitShutdown
         };
         var disposable = services;
         app.Exit += (_, _) => disposable.Dispose();
@@ -133,6 +142,10 @@ internal static class Program
 
         var window = new MainWindow();
         window.AttachServices(services);
+        // Claim the slot the lock screen may have taken, then restore the normal close-to-exit
+        // behaviour now that the window it refers to is the one the user actually sees.
+        app.MainWindow = window;
+        app.ShutdownMode = ShutdownMode.OnMainWindowClose;
         return app.Run(window);
     }
 

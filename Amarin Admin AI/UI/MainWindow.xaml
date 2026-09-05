@@ -78,15 +78,26 @@
                                    TextTrimming="CharacterEllipsis"
                                    TextWrapping="NoWrap"
                                    Margin="0,0,2,0"/>
-                                            <Border x:Name="Actions" Width="22" Height="22" CornerRadius="4"
+                                            <Button x:Name="Actions" Width="22" Height="22"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Background="Transparent" Visibility="Collapsed"
+                                Visibility="Collapsed"
                                 ToolTip="Действия" Cursor="Hand">
-                                                <TextBlock Text="⋯" FontSize="14" FontWeight="Bold"
-                                       Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Margin="0,0,0,2"/>
-                                            </Border>
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="ActionsBg" Background="Transparent" CornerRadius="4">
+                                                            <TextBlock Text="⋯" FontSize="14" FontWeight="Bold"
+                                                   Foreground="{DynamicResource Text.Muted}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Margin="0,0,0,2"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="ActionsBg" Property="Background" Value="{DynamicResource Bg.Track}"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
                                         </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -95,8 +106,11 @@
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
-                                        <Trigger SourceName="Actions" Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Actions" Property="Background" Value="{DynamicResource Bg.Track}"/>
+                                        <!-- Keep the affordance up while its menu is open, or it
+                                             vanishes the moment the pointer leaves the row. -->
+                                        <Trigger SourceName="Actions" Property="IsKeyboardFocusWithin" Value="True">
+                                            <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -258,14 +272,19 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="{DynamicResource Bg.Selected}" VerticalAlignment="Center">
-                                <TextBlock Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Secondary}"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Border x:Name="AccountAvatar" Width="24" Height="24" CornerRadius="6" Background="{DynamicResource Bg.Selected}"
+                                    VerticalAlignment="Center" local:RoundedClip.Radius="6">
+                                <Grid>
+                                    <TextBlock x:Name="SidebarAvatarLetter" Text="Г" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Secondary}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Image x:Name="SidebarAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                </Grid>
                             </Border>
 
                             <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"/>
-                                <TextBlock Text="Локальный режим" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
+                                <TextBlock x:Name="SidebarAccountName" Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"
+                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                <TextBlock x:Name="SidebarAccountMode" Text="Локальный режим" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
                             </StackPanel>
 
                             <Button x:Name="SettingsButton" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
@@ -655,14 +674,18 @@
                                                             <ColumnDefinition Width="*"/>
                                                             <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <RadioButton Grid.Column="0" Style="{StaticResource SegmentedOption}"
+                                                        <RadioButton x:Name="RawTranscriptOption" Grid.Column="0" Style="{StaticResource SegmentedOption}"
                      Content="Raw Transcript" IsChecked="True" Margin="0,0,3,0"/>
-                                                        <RadioButton Grid.Column="1" Style="{StaticResource SegmentedOption}"
+                                                        <RadioButton x:Name="InfographicOption" Grid.Column="1" Style="{StaticResource SegmentedOption}"
                      Content="Create Infographic" Margin="3,0,0,0"/>
                                                     </Grid>
 
-                                                    <!-- Кнопка подтверждения — без Click, чисто визуальная -->
-                                                    <Button Style="{StaticResource PrimaryActionButton}" Content="Начать" Margin="0,10,0,0"/>
+                                                    <TextBlock x:Name="SummarizeError" FontSize="11" Margin="2,8,0,0"
+                     TextWrapping="Wrap" Visibility="Collapsed"
+                     Foreground="{DynamicResource Status.Danger}"/>
+
+                                                    <Button x:Name="SummarizeStartButton" Style="{StaticResource PrimaryActionButton}"
+                     Content="Начать" Margin="0,10,0,0" Click="SummarizeStartButton_Click"/>
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
@@ -1555,7 +1578,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.12.0 Beta"
+                                       Text="v1.13.0"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -1614,7 +1637,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource Bg.Selected}"
-                                                ClipToBounds="True">
+                                                local:RoundedClip.Radius="8">
                                             <Grid>
                                                 <TextBlock x:Name="AccountAvatarLetter" Text="Г" FontSize="15" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource Text.Secondary}"
@@ -2177,6 +2200,64 @@
                     </StackPanel>
                 </Border>
             </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ПРОСМОТР ИЗОБРАЖЕНИЯ ═══════════ -->
+        <!-- Не отдельное окно: UiScale подменяет DPI одному HWND, и второе окно рисовалось бы
+             в системном масштабе, разъезжаясь с остальной программой. -->
+        <Grid x:Name="ImageViewerOverlay" Visibility="Collapsed" Panel.ZIndex="38"
+              Focusable="True" PreviewKeyDown="ImageViewer_PreviewKeyDown">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="ImageViewerCloseButton_Click"/>
+            </Border>
+
+            <!-- Кадр просмотра. Картинка двигается трансформом, поэтому область фиксирована. -->
+            <Border Margin="56,64,56,64" CornerRadius="10" ClipToBounds="True"
+                    Background="Transparent">
+                <Canvas x:Name="ImageViewerStage" Background="Transparent" ClipToBounds="True"
+                        Cursor="SizeAll"
+                        SizeChanged="ImageViewerStage_SizeChanged"
+                        MouseLeftButtonDown="ImageViewerStage_MouseLeftButtonDown"
+                        MouseLeftButtonUp="ImageViewerStage_MouseLeftButtonUp"
+                        MouseMove="ImageViewerStage_MouseMove"
+                        MouseWheel="ImageViewerStage_MouseWheel">
+                    <Image x:Name="ImageViewerImage" Canvas.Left="0" Canvas.Top="0"
+                           RenderOptions.BitmapScalingMode="HighQuality">
+                        <Image.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="ImageViewerZoom"/>
+                                <TranslateTransform x:Name="ImageViewerPan"/>
+                            </TransformGroup>
+                        </Image.RenderTransform>
+                    </Image>
+                </Canvas>
+            </Border>
+
+            <!-- Панель действий снизу по центру -->
+            <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,16"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="6">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="ImageViewerPrevButton" Content="←" Width="32"
+                            Style="{StaticResource DialogSecondaryButton}" Margin="0,0,4,0"
+                            ToolTip="Предыдущая" Click="ImageViewerPrevButton_Click"/>
+                    <TextBlock x:Name="ImageViewerCounter" VerticalAlignment="Center"
+                               MinWidth="44" TextAlignment="Center" FontSize="12"
+                               Foreground="{DynamicResource Text.Muted}"/>
+                    <Button x:Name="ImageViewerNextButton" Content="→" Width="32"
+                            Style="{StaticResource DialogSecondaryButton}" Margin="4,0,10,0"
+                            ToolTip="Следующая" Click="ImageViewerNextButton_Click"/>
+                    <Button Content="Сохранить" Style="{StaticResource DialogSecondaryButton}"
+                            Margin="0,0,4,0" Click="ImageViewerSaveButton_Click"/>
+                    <Button Content="Копировать" Style="{StaticResource DialogSecondaryButton}"
+                            Margin="0,0,4,0" Click="ImageViewerCopyButton_Click"/>
+                    <Button Content="Закрыть" Style="{StaticResource DialogPrimaryButton}"
+                            Click="ImageViewerCloseButton_Click"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
         </Grid>

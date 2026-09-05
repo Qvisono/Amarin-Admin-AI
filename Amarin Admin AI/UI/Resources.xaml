@@ -443,4 +443,106 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- ═══════════ КОНТЕКСТНОЕ МЕНЮ ═══════════ -->
+    <!-- Форма взята у ActionsPopup и ModelPickerPanel, чтобы меню читалось как часть
+         программы, а не как системное. HasDropShadow=True обязателен: без него Popup меню
+         не получает AllowsTransparency, и скругление срежется по прямоугольнику. -->
+
+    <Style x:Key="AppContextMenu" TargetType="ContextMenu">
+        <Setter Property="HasDropShadow" Value="True"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <!-- Поля под тень: она рисуется наружу и иначе обрежется. -->
+                    <Border Margin="10,6,10,12" MinWidth="180"
+                            Background="{DynamicResource Bg.Panel}"
+                            BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="10" Padding="6">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
+                        </Border.Effect>
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AppMenuItem" TargetType="MenuItem">
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <!-- Свой шаблон целиком: штатный рисует слева колонку под галочки и иконки,
+                     из-за которой текст уезжает вправо от края панели. -->
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="9,0">
+                        <ContentPresenter x:Name="Label"
+                                          ContentSource="Header"
+                                          VerticalAlignment="Center"
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"
+                                          TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Необратимое действие: красный текст, и заливка только под курсором, чтобы пункт
+         не выглядел тревожно, пока на него не навелись. -->
+    <Style x:Key="DangerMenuItem" TargetType="MenuItem" BasedOn="{StaticResource AppMenuItem}">
+        <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="9,0">
+                        <ContentPresenter x:Name="Label"
+                                          ContentSource="Header"
+                                          VerticalAlignment="Center"
+                                          TextBlock.Foreground="{TemplateBinding Foreground}"
+                                          TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Status.DangerStrong}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AppMenuSeparator" TargetType="Separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="6,4"/>
+        <Setter Property="Background" Value="{DynamicResource Border.Subtle}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Background="{TemplateBinding Background}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

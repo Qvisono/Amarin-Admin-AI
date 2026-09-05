@@ -1,0 +1,99 @@
+<Window x:Class="Amarin.UI.AvatarCropWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Amarin Admin AI">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+                <!-- Design-time only; the runtime theme comes from ThemeManager. -->
+                <ResourceDictionary d:Source="Theme/Palette.Dark.xaml"/>
+                <ResourceDictionary d:Source="Theme/Icons.Dark.xaml"/>
+                <ResourceDictionary d:Source="Theme/AiLogos.Dark.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Outer margin leaves room for the drop shadow. -->
+    <Grid Margin="24">
+        <Border x:Name="Card" Background="{DynamicResource Bg.Panel}"
+                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                CornerRadius="12" Padding="22,20"
+                MouseLeftButtonDown="Card_MouseLeftButtonDown">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="Область фото профиля" FontSize="15" FontWeight="SemiBold"
+                           Foreground="{DynamicResource Text.Body}"/>
+                <TextBlock Text="Перетащите изображение мышью, колесо или ползунок — масштаб."
+                           FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Text.Faint}"/>
+
+                <!-- Fixed 360x360 stage; the 300x300 square inside it is what gets saved. -->
+                <Border Margin="0,16,0,0" CornerRadius="8" ClipToBounds="True"
+                        Background="{DynamicResource Bg.Sidebar}"
+                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                    <Canvas x:Name="Stage" Width="360" Height="360" ClipToBounds="True"
+                            Cursor="SizeAll"
+                            Background="Transparent"
+                            MouseLeftButtonDown="Stage_MouseLeftButtonDown"
+                            MouseLeftButtonUp="Stage_MouseLeftButtonUp"
+                            MouseMove="Stage_MouseMove"
+                            MouseWheel="Stage_MouseWheel">
+                        <Image x:Name="Source" Canvas.Left="0" Canvas.Top="0">
+                            <Image.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="Zoom"/>
+                                    <TranslateTransform x:Name="Pan"/>
+                                </TransformGroup>
+                            </Image.RenderTransform>
+                        </Image>
+
+                        <!-- Everything outside the crop area is dimmed, so the excluded part of
+                             the photo stays visible while it is being framed. The corners are
+                             rounded to the same proportion the avatar chips use, so what is
+                             shown here is what will actually be visible. -->
+                        <Path Fill="{DynamicResource Overlay.Scrim}" IsHitTestVisible="False">
+                            <Path.Data>
+                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                    <CombinedGeometry.Geometry1>
+                                        <RectangleGeometry Rect="0,0,360,360"/>
+                                    </CombinedGeometry.Geometry1>
+                                    <CombinedGeometry.Geometry2>
+                                        <RectangleGeometry Rect="30,30,300,300" RadiusX="69" RadiusY="69"/>
+                                    </CombinedGeometry.Geometry2>
+                                </CombinedGeometry>
+                            </Path.Data>
+                        </Path>
+                        <Rectangle Canvas.Left="30" Canvas.Top="30" Width="300" Height="300"
+                                   RadiusX="69" RadiusY="69"
+                                   Stroke="{DynamicResource Text.Primary}" StrokeThickness="1.5" Opacity="0.85"
+                                   IsHitTestVisible="False"/>
+                    </Canvas>
+                </Border>
+
+                <Slider x:Name="ZoomSlider" Margin="0,14,0,0" Minimum="0" Maximum="1"
+                        IsMoveToPointEnabled="True"
+                        ValueChanged="ZoomSlider_ValueChanged"/>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                    <Button x:Name="CancelButton" Style="{StaticResource DialogSecondaryButton}"
+                            Content="Отмена" Margin="0,0,8,0" Click="CancelButton_Click"/>
+                    <Button x:Name="OkButton" Style="{StaticResource DialogPrimaryButton}"
+                            Content="Применить" Click="OkButton_Click"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

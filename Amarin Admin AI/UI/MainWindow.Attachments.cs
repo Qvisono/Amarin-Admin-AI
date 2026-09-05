@@ -254,8 +254,14 @@ namespace Amarin.UI
                 Height = ThumbnailSize,
                 CornerRadius = new CornerRadius(6),
                 BorderThickness = new Thickness(1),
-                ClipToBounds = true,
+                Cursor = System.Windows.Input.Cursors.Hand,
                 ToolTip = attachment.Label
+            };
+            RoundedClip.SetRadius(frame, 6);
+            frame.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                ShowAttachments(_pendingImages, _pendingImages.IndexOf(attachment));
             };
             frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
             frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");

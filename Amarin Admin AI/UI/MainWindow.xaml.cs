@@ -28,7 +28,17 @@ namespace Amarin.UI
         private string _pendingStreamText = "";
         private string _renderedStreamText = "";
         private readonly Dictionary<string, FrameworkElement> _messageViews = [];
+
+        /// <summary>
+        /// A toast younger than this ignores window activation. Long enough to outlive the
+        /// activation storm around showing it, short enough that a real click-back still closes it.
+        /// </summary>
+        private static readonly TimeSpan ActivationDismissGrace = TimeSpan.FromMilliseconds(700);
+
         private NotificationToast? _toast;
+
+        /// <summary>The completion card currently on screen, if any. For tests.</summary>
+        internal NotificationToast? CurrentToast => _toast;
         private DateTime _workingStarted;
         private Image? _logoImage;
         private System.Windows.Shapes.Path? _expandIcon;
@@ -72,11 +82,7 @@ namespace Amarin.UI
             };
 
             Loaded += OnWindowLoaded;
-            Activated += (_, _) =>
-            {
-                TaskbarFlash.Stop(this);
-                _toast?.Dismiss();
-            };
+            Activated += (_, _) => OnWindowActivated();
             ThemeManager.EffectiveThemeChanged += OnEffectiveThemeChanged;
             Closed += (_, _) => ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
             PreviewTextInput += Window_PreviewTextInput;
@@ -365,7 +371,26 @@ namespace Amarin.UI
             }
         }
 
-        private void ShowCompletionToast(ChatDisplayMessage assistant)
+        /// <summary>
+        /// The user came back to the app. Clears the taskbar flash, and puts the toast away —
+        /// but only if it has been up long enough to have been a deliberate return.
+        /// <para>
+        /// The toast is only ever shown while the window is *not* in front, so an activation can
+        /// arrive in the same breath as the toast for reasons that have nothing to do with the
+        /// user: focus moving inside the app, a modal opening, the window restoring. Dismissing
+        /// on those is what made the notification appear for a frame and vanish.
+        /// </para>
+        /// </summary>
+        internal void OnWindowActivated()
+        {
+            TaskbarFlash.Stop(this);
+            if (_toast is { } toast && toast.VisibleFor > ActivationDismissGrace)
+            {
+                toast.Dismiss();
+            }
+        }
+
+        internal void ShowCompletionToast(ChatDisplayMessage assistant)
         {
             // Replace any toast still on screen outright — no fade, so the cards don't overlap.
             _toast?.Close();
@@ -647,6 +672,9 @@ namespace Amarin.UI
             {
                 _services.Settings.ChatModelId = id;
                 _services.SettingsStore.Save(_services.Settings);
+                // The per-chat model lives on the session, so write it out now rather than
+                // leaving it to ride along on whatever unrelated save happens next.
+                PersistCurrent();
             }
 
             UpdateModelButton();
@@ -924,6 +952,13 @@ namespace Amarin.UI
                 return true;
             }
 
+            // The viewer owns the arrow keys and Escape while it is up; without this the
+            // window-level typing sink would push them into the composer instead.
+            if (ImageViewerOverlay.Visibility == Visibility.Visible)
+            {
+                return true;
+            }
+
             if (ConfirmationOverlay.Visibility == Visibility.Visible &&
                 IsInside(ConfirmationOverlay, focused))
             {
@@ -1138,7 +1173,15 @@ namespace Amarin.UI
             {
                 _workingTimer.Stop();
                 StopStreamRender();
-                FocusMessageInput();
+
+                // Focusing an element in an inactive window activates that window, so a turn
+                // finishing while the user works elsewhere used to yank the app to the front —
+                // and, on the way, dismiss the very toast announcing it. The toast and the
+                // taskbar flash are the cues for that case; the caret can wait until they return.
+                if (IsForeground())
+                {
+                    FocusMessageInput();
+                }
             }
         }
 
@@ -1166,6 +1209,9 @@ namespace Amarin.UI
         {
             _stickToBottom = true;
             _session = session;
+            // Image handles written into earlier answers only resolve while the pictures they
+            // name are registered, and the registry does not survive a restart.
+            ChatImageRegistry.RestoreAll(session);
             RenderSession();
             UpdateModelButton();
             FocusMessageInput();
@@ -1405,6 +1451,8 @@ namespace Amarin.UI
             var today = DateTime.Today;
             var yesterday = today.AddDays(-1);
 
+            var first = true;
+
             void AddGroup(string title, IEnumerable<ChatIndexEntry> group)
             {
                 var list = group.ToList();
@@ -1418,9 +1466,11 @@ namespace Amarin.UI
                     Style = (Style)ChatListPanel.FindResource("GroupHeader"),
                     Text = title
                 };
-                if (title == "Сегодня")
+                if (first)
                 {
+                    // The topmost header sits right under the search box and needs less air.
                     header.Margin = new Thickness(14, 6, 6, 4);
+                    first = false;
                 }
 
                 ChatListPanel.Children.Add(header);
@@ -1436,12 +1486,14 @@ namespace Amarin.UI
                     };
                     button.Click += ChatItem_Click;
                     ChatListPanel.Children.Add(button);
+                    AttachChatActions(button, item);
                 }
             }
 
-            AddGroup("Сегодня", items.Where(i => i.UpdatedAt.Date == today));
-            AddGroup("Вчера", items.Where(i => i.UpdatedAt.Date == yesterday));
-            AddGroup("Ранее", items.Where(i => i.UpdatedAt.Date < yesterday));
+            AddGroup("Закреплённые", items.Where(i => i.IsPinned));
+            AddGroup("Сегодня", items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
+            AddGroup("Вчера", items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
+            AddGroup("Ранее", items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
             {

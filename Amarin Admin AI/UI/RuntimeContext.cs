@@ -8,7 +8,8 @@ internal static class RuntimeContext
     public static string AppVersion =>
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
 
-    public static string AppVersionDisplay => $"{AppVersion} Beta";
+    /// <summary>Shown in the window title and in Settings. Plain version — 1.13.0 is a full release.</summary>
+    public static string AppVersionDisplay => AppVersion;
 
     public static bool IsAdministrator()
     {

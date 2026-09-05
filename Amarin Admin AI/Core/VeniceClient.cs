@@ -412,6 +412,101 @@ public sealed class VeniceClient
         return string.IsNullOrWhiteSpace(markdown) ? "Страница пуста или контент не извлечён." : markdown;
     }
 
+    /// <summary>
+    /// Default image model — Google's "nano banana" through Venice. Costs more than a diffusion
+    /// model, but it is the one that renders legible text inside the picture, which is the whole
+    /// point for diagrams and infographics.
+    /// </summary>
+    public const string DefaultImageModel = "nano-banana-pro";
+
+    /// <summary>True for the Gemini-backed line, which is sized by ratio rather than pixels.</summary>
+    private static bool UsesAspectRatio(string model) =>
+        model.StartsWith("nano-banana", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Generates one image and returns it as base64 PNG. Venice bills this per image; the
+    /// balance headers it sends back are folded into <see cref="RequestCost"/> like any other call.
+    /// </summary>
+    /// <param name="aspectRatio">e.g. "3:4" for a portrait infographic. Ignored by pixel-sized models.</param>
+    public async Task<string> GenerateImageAsync(
+        string prompt,
+        int width = 1024,
+        int height = 1024,
+        string? model = null,
+        string? aspectRatio = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            throw new ArgumentException("Prompt is required.", nameof(prompt));
+        }
+
+        var resolved = string.IsNullOrWhiteSpace(model) ? DefaultImageModel : model;
+        var byRatio = UsesAspectRatio(resolved);
+
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(
+            new ImageGenerateRequest
+            {
+                Model = resolved,
+                Prompt = prompt,
+                Width = byRatio ? null : width,
+                Height = byRatio ? null : height,
+                AspectRatio = byRatio ? (aspectRatio ?? RatioFor(width, height)) : null,
+                Resolution = byRatio ? "2K" : null
+            },
+            VeniceJsonContext.Default.ImageGenerateRequest);
+
+        using var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "image/generate")
+        {
+            Content = content,
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+        };
+
+        using var response = await _http.SendAsync(
+            httpRequest,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        UpdateBalanceFromHeaders(response);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new VeniceApiException(
+                $"Venice image error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+        }
+
+        var result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.ImageGenerateResponse);
+        var image = result?.Images.FirstOrDefault(item => !string.IsNullOrWhiteSpace(item));
+        if (image is null)
+        {
+            throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
+        }
+
+        return image;
+    }
+
+    /// <summary>Maps the caller's pixel intent onto the nearest ratio the ratio-based models take.</summary>
+    private static string RatioFor(int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return "1:1";
+        }
+
+        var ratio = width / (double)height;
+        return ratio switch
+        {
+            < 0.72 => "3:4",
+            < 0.95 => "4:5",
+            < 1.06 => "1:1",
+            < 1.4 => "5:4",
+            _ => "4:3"
+        };
+    }
+
     public async Task<string> SearchWebAsync(string query, CancellationToken cancellationToken = default)
     {
         var useXSearch = _options.EnableXSearch

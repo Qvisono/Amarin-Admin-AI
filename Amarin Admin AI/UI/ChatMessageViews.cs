@@ -613,7 +613,7 @@ internal static class ChatMessageViews
         var root = new StackPanel();
         if (message.Images.Count > 0)
         {
-            root.Children.Add(CreateImageStrip(message));
+            root.Children.Add(CreateImageStrip(host, message));
         }
 
         root.Children.Add(bubble);
@@ -925,7 +925,7 @@ internal static class ChatMessageViews
     /// Thumbnails of the images sent with a user message, shown above the bubble so they are
     /// still there after the chat is reloaded from disk.
     /// </summary>
-    private static FrameworkElement CreateImageStrip(ChatDisplayMessage message)
+    private static FrameworkElement CreateImageStrip(FrameworkElement host, ChatDisplayMessage message)
     {
         var strip = new WrapPanel
         {
@@ -934,8 +934,10 @@ internal static class ChatMessageViews
             Margin = new Thickness(0, 0, 0, 6)
         };
 
-        foreach (var attachment in message.Images)
+        for (var index = 0; index < message.Images.Count; index++)
         {
+            var attachment = message.Images[index];
+            var position = index;
             var frame = new Border
             {
                 Width = 96,
@@ -943,11 +945,17 @@ internal static class ChatMessageViews
                 Margin = new Thickness(6, 0, 0, 6),
                 CornerRadius = new CornerRadius(8),
                 BorderThickness = new Thickness(1),
-                ClipToBounds = true,
+                Cursor = System.Windows.Input.Cursors.Hand,
                 ToolTip = attachment.Label
+            };
+            frame.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                ImageViewerHost.Open(host, message.Images, position);
             };
             frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
             frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+            RoundedClip.SetRadius(frame, 8);
 
             if (MainWindow.TryDecode(attachment, decodePixelWidth: 192) is { } source)
             {

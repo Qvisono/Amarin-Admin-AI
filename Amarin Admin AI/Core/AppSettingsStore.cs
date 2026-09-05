@@ -91,7 +91,8 @@ public sealed class AppSettingsStore
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV3) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV4) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV5) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV6))
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV6) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV7))
         {
             settings.TechAiPrompt = "";
             changed = true;

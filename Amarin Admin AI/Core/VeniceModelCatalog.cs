@@ -266,6 +266,80 @@ internal static class VeniceModelCatalog
         return "?";
     }
 
+    /// <summary>
+    /// Model id fragment → logo key in AiLogos.*.xaml, most specific first.
+    /// <para>
+    /// Order is load-bearing: "grok-imagine-image" must reach Grok before anything matches on
+    /// "image", and a vendor's own name has to lose to its model family — "qwen-image" is Qwen,
+    /// not Alibaba. Add new entries above the vendor fallbacks at the bottom.
+    /// </para>
+    /// </summary>
+    private static readonly (string Needle, string Key)[] LogoKeys =
+    [
+        // Chat models
+        ("claude", "Claude"),
+        ("grok", "Grok"),
+        ("deepseek", "DeepSeek"),
+        ("kimi", "Kimi"),
+        ("moonshot", "Moonshot"),
+        ("minimax", "MiniMax"),
+        ("qwen", "Qwen"),
+        ("gemma", "Gemma"),
+        ("gemini", "GoogleGemini"),
+        ("llama", "Llama"),
+        ("nemotron", "NVIDIA"),
+        ("nvidia", "NVIDIA"),
+        ("hunyuan", "Hunyuan"),
+        ("baichuan", "Baichuan"),
+        ("arcee", "Arcee"),
+        ("aion", "AionLabs"),
+        ("mercury", "Inception"),
+        ("inception", "Inception"),
+        ("spark", "Spark"),
+        ("perplexity", "Perplexity"),
+        ("sonar", "Perplexity"),
+        ("cohere", "Cohere"),
+        ("command-r", "Cohere"),
+
+        // Mistral's family names share no common substring.
+        ("mistral", "Mistral"),
+        ("ministral", "Mistral"),
+        ("magistral", "Mistral"),
+        ("codestral", "Mistral"),
+        ("devstral", "Mistral"),
+        ("pixtral", "Mistral"),
+
+        // OpenAI
+        ("openai", "OpenAI"),
+        ("gpt", "OpenAI"),
+        ("codex", "OpenAI"),
+
+        // Image models
+        ("nano-banana", "Google"),
+        ("flux", "Flux"),
+        ("seedream", "ByteDance"),
+        ("seedance", "ByteDance"),
+        ("bytedance", "ByteDance"),
+        ("doubao", "ByteDance"),
+        ("venice-sd", "Stability"),
+        ("stable-diffusion", "Stability"),
+        ("sdxl", "Stability"),
+
+        // Video models
+        ("kling", "Kling"),
+        ("pixverse", "PixVerse"),
+        ("hailuo", "Hailuo"),
+        ("runway", "Runway"),
+        ("luma", "Luma"),
+        ("pika", "Pika"),
+        ("vidu", "Vidu"),
+
+        // Vendor fallbacks for ids that name the maker rather than the model.
+        ("anthropic", "Anthropic"),
+        ("google", "Google"),
+        ("alibaba", "Alibaba"),
+    ];
+
     public static string? GetLogoResourceKey(string modelId)
     {
         if (IsAuto(modelId))
@@ -273,15 +347,18 @@ internal static class VeniceModelCatalog
             return "Auto";
         }
 
-        var id = modelId.Trim().ToLowerInvariant();
-        if (id.Contains("claude", StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(modelId))
         {
-            return "Claude";
+            return null;
         }
 
-        if (id.Contains("grok", StringComparison.Ordinal))
+        var id = modelId.Trim().ToLowerInvariant();
+        foreach (var (needle, key) in LogoKeys)
         {
-            return "Grok";
+            if (id.Contains(needle, StringComparison.Ordinal))
+            {
+                return key;
+            }
         }
 
         return null;
