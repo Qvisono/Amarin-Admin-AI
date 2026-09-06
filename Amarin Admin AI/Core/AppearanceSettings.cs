@@ -129,7 +129,7 @@ public sealed class AppearanceSettings
     /// <summary>Pill width as a share of the expanded composer, 30..100 %.</summary>
     public double CompactWidthPercent { get; set; } = 58;
 
-    /// <summary>How close the pointer must come, in pixels, to unfold the pill. 40..400.</summary>
+    /// <summary>How close the pointer must come, in pixels, to unfold the pill. 25..400.</summary>
     public double CompactHoverRadius { get; set; } = 40;
 
     public AppearanceSettings Clone() => new()
@@ -180,7 +180,7 @@ public sealed class AppearanceSettings
         ChatColumnWidth = Clamp(ChatColumnWidth, 480, 100000);
         CompactDelayMs = (int)Clamp(CompactDelayMs, 300, 5000);
         CompactWidthPercent = Clamp(CompactWidthPercent, 30, 100);
-        CompactHoverRadius = Clamp(CompactHoverRadius, 40, 400);
+        CompactHoverRadius = Clamp(CompactHoverRadius, 25, 400);
 
         AccentColor = NormalizeHex(AccentColor);
 

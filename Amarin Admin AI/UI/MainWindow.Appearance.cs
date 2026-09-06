@@ -16,15 +16,34 @@ namespace Amarin.UI
     {
         private const string BackgroundFileStem = "background";
 
-        /// <summary>Ready-made backdrops, so the feature looks good before anyone touches a slider.</summary>
+        /// <summary>
+        /// Ready-made backdrops, so the feature looks good before anyone touches a slider. One per
+        /// shipped palette, in <see cref="ThemeCatalog.Presets"/> order: a deep glow band between
+        /// two near-black ends on the dark themes, a soft vaulted wash on the light ones. Every
+        /// stop stays inside the palette's own luminance range so the backdrop reads as an
+        /// extension of the window rather than a panel fighting it, and each hue span is kept
+        /// short to avoid the grey mud a purple-to-orange interpolation lands in.
+        /// </summary>
         private static readonly (string Name, string[] Colors, double Angle)[] GradientPresets =
         [
-            ("Ночь", ["#0F2027", "#203A43", "#2C5364"], 135),
-            ("Закат", ["#3A1C71", "#D76D77", "#FFAF7B"], 120),
-            ("Океан", ["#1A2980", "#26D0CE"], 150),
-            ("Туманность", ["#0B0B2B", "#41295A", "#2F0743"], 110),
-            ("Мох", ["#0F2027", "#1D3A2E", "#375A45"], 140),
-            ("Графит", ["#141414", "#2B2B2B", "#0E0E0E"], 135)
+            ("Light",    ["#F1F1F4", "#FBFBFC", "#F4F3F1"], 135),
+            ("Dark",     ["#0E0E10", "#1E1E24", "#080809"], 135),
+            ("Graphite", ["#161719", "#232A38", "#101115"], 140),
+            ("Midnight", ["#090D18", "#1B2547", "#0B1022"], 140),
+            ("Nord",     ["#0E141A", "#1D2E39", "#101C24"], 150),
+            ("Cobalt",   ["#050F1A", "#0E2E48", "#07161F"], 145),
+            ("Slate",    ["#0D0F12", "#1C232C", "#101519"], 130),
+            ("Amethyst", ["#0F0A17", "#271540", "#140C24"], 125),
+            ("Rosé",     ["#130A11", "#3C1628", "#1A0C15"], 120),
+            ("Crimson",  ["#130C0C", "#3B161A", "#1A0E0E"], 118),
+            ("Ember",    ["#130F0A", "#3B2010", "#1A1109"], 112),
+            ("Emerald",  ["#0A1411", "#123C2A", "#0C1E19"], 150),
+            ("Silver",   ["#E9EEF6", "#FAFBFC", "#EFF0F5"], 140),
+            ("Frost",    ["#E2EEF7", "#F7FBFD", "#EBF3F8"], 150),
+            ("Sakura",   ["#F5E5EC", "#FDF7F9", "#F8EEF2"], 125),
+            ("Mint",     ["#E4F2EA", "#F6FCF9", "#EDF7F2"], 150),
+            ("Paper",    ["#E4DCCC", "#F2ECE1", "#E9E1D3"], 135),
+            ("Sepia",    ["#EEE1D0", "#F8F2E9", "#F1E8DA"], 128)
         ];
 
         private AppearanceManager? _appearance;
@@ -230,7 +249,10 @@ namespace Amarin.UI
             GradientPresetsHost.Children.Clear();
             foreach (var (name, colors, angle) in GradientPresets)
             {
-                var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
+                // Preview along the preset's own axis, matching how the backdrop is painted, so
+                // the swatch is an honest thumbnail rather than a fixed diagonal.
+                var (start, end) = PreviewAxis(angle);
+                var brush = new LinearGradientBrush { StartPoint = start, EndPoint = end };
                 for (var i = 0; i < colors.Length; i++)
                 {
                     brush.GradientStops.Add(new GradientStop(
@@ -242,9 +264,9 @@ namespace Amarin.UI
 
                 var swatch = new Border
                 {
-                    Width = 60,
-                    Height = 30,
-                    CornerRadius = new CornerRadius(6),
+                    Width = 64,
+                    Height = 34,
+                    CornerRadius = new CornerRadius(7),
                     Background = brush,
                     BorderThickness = new Thickness(1),
                     Margin = new Thickness(0, 0, 6, 6)
@@ -266,6 +288,19 @@ namespace Amarin.UI
                 button.Click += (_, _) => ApplyGradientPreset(captured.colors, captured.angle);
                 GradientPresetsHost.Children.Add(button);
             }
+        }
+
+        /// <summary>
+        /// Endpoints for a gradient angle inside the unit square, matching
+        /// <c>AppearanceManager.AxisFor</c> so the preset swatch previews the real backdrop.
+        /// </summary>
+        private static (Point Start, Point End) PreviewAxis(double degrees)
+        {
+            const double radius = 0.5;
+            var radians = degrees * Math.PI / 180.0;
+            var dx = Math.Cos(radians) * radius;
+            var dy = Math.Sin(radians) * radius;
+            return (new Point(0.5 - dx, 0.5 - dy), new Point(0.5 + dx, 0.5 + dy));
         }
 
         private static ControlTemplate TransparentButtonTemplate()

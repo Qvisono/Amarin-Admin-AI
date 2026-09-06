@@ -53,7 +53,7 @@ public sealed class AppearanceSettingsTests
         Assert.Equal(480, appearance.ChatColumnWidth);
         Assert.Equal(300, appearance.CompactDelayMs);
         Assert.Equal(100, appearance.CompactWidthPercent);
-        Assert.Equal(40, appearance.CompactHoverRadius);
+        Assert.Equal(25, appearance.CompactHoverRadius);
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public sealed class AppearanceSettingsTests
         Assert.Equal(800, appearance.CompactDelayMs);
         Assert.Equal(40, appearance.CompactHoverRadius);
 
-        // The default hover radius sits on the slider's own minimum, so it must survive clamping.
+        // The default hover radius sits inside the slider range (25..400), so it must survive clamping.
         Assert.False(appearance.Normalize());
         Assert.Equal(40, appearance.CompactHoverRadius);
     }
