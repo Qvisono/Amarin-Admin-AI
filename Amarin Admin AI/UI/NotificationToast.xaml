@@ -19,10 +19,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources.xaml"/>
-                <!-- Design-time only; the runtime theme comes from ThemeManager. -->
-                <ResourceDictionary d:Source="Theme/Palette.Dark.xaml"/>
-                <ResourceDictionary d:Source="Theme/Icons.Dark.xaml"/>
-                <ResourceDictionary d:Source="Theme/AiLogos.Dark.xaml"/>
+                <!-- Палитра: в работе — ThemeManager, в конструкторе —
+                     Properties/DesignTimeResources.xaml. -->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>

@@ -32,6 +32,8 @@ public sealed class AppSettingsStore
                            ?? AppSettings.CreateDefault();
             var changed = MigrateLegacyChatPrompts(settings);
             changed |= SeedDownloadAllowedDomains(settings);
+            settings.Appearance ??= new AppearanceSettings();
+            changed |= settings.Appearance.Normalize();
             if (changed)
             {
                 Save(settings);
@@ -92,7 +94,9 @@ public sealed class AppSettingsStore
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV4) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV5) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV6) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV7))
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV7) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV8) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV9))
         {
             settings.TechAiPrompt = "";
             changed = true;

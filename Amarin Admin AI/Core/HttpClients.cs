@@ -4,7 +4,19 @@ namespace Amarin.Core;
 
 internal static class HttpClients
 {
-    public static HttpClient Create(TimeSpan timeout)
+    /// <summary>
+    /// Chrome on Windows 11. Without a User-Agent Cloudflare and most CDNs answer 403 — that alone
+    /// is why remote pictures never loaded. Kept here so every fetcher tells the same story.
+    /// </summary>
+    public const string BrowserUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/131.0.0.0 Safari/537.36";
+
+    /// <param name="browserIdentity">
+    /// Send browser-shaped default headers. Set it for anything that talks to ordinary websites;
+    /// the Venice API does not need the disguise and is left plain.
+    /// </param>
+    public static HttpClient Create(TimeSpan timeout, bool browserIdentity = false)
     {
         var handler = new SocketsHttpHandler
         {
@@ -15,11 +27,22 @@ internal static class HttpClients
             ConnectTimeout = TimeSpan.FromSeconds(15)
         };
 
-        return new HttpClient(handler)
+        var client = new HttpClient(handler)
         {
             Timeout = timeout,
             DefaultRequestVersion = HttpVersion.Version20,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
+
+        if (browserIdentity)
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", BrowserUserAgent);
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                "Accept",
+                "image/avif,image/webp,image/apng,image/svg+xml,image/*,text/html;q=0.9,*/*;q=0.8");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru,en;q=0.9");
+        }
+
+        return client;
     }
 }

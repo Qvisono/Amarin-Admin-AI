@@ -5,6 +5,10 @@
     <SolidColorBrush x:Key="Bg.Window"   Color="#FFF6F6F7"/>
     <SolidColorBrush x:Key="Bg.Sidebar"  Color="#FFEFEFF1"/>
     <SolidColorBrush x:Key="Bg.Panel"    Color="#FFFFFFFF"/>
+    <!-- Как Bg.Panel, но только для поверхностей внутри окна (поле ввода). Существует
+         отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
+         это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
+    <SolidColorBrush x:Key="Bg.Glass"    Color="#FFFFFFFF"/>
     <SolidColorBrush x:Key="Bg.Card"     Color="#FFF3F3F5"/>
     <SolidColorBrush x:Key="Bg.Raised"   Color="#FFECECEF"/>
     <SolidColorBrush x:Key="Bg.Hover"    Color="#FFE3E3E7"/>

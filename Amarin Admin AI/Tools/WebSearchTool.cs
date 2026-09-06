@@ -10,8 +10,10 @@ public sealed class WebSearchTool : ITool
 
     public string Name => "search_web";
     public string Description =>
-        "Search the web for Windows error codes, KB articles, known fixes, and documentation. " +
-        "Use for unfamiliar or complex problems before making system changes.";
+        "Search the web for anything: Windows error codes, KB articles and documentation, but " +
+        "also pictures, art, wallpapers, news, facts. The answer always ends with a list of the " +
+        "source URLs, so this is how you find an address to hand to fetch_image when the user " +
+        "asks you to find a picture rather than draw one.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

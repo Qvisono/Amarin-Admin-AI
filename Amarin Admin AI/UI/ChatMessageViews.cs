@@ -71,8 +71,11 @@ internal sealed class AssistantMessageView
     public required TextBlock ModelName { get; init; }
     public required TextBlock Clock { get; init; }
     public required TextBlock Duration { get; init; }
+    public required TextBlock Thinking { get; init; }
+    public required Ellipse ThinkingDot { get; init; }
     public required TextBlock Cost { get; init; }
     public required Ellipse CostDot { get; init; }
+    public required Border CostChip { get; init; }
     public required StackPanel Actions { get; init; }
     public required Button CancelButton { get; init; }
     public required Image LogoImage { get; init; }
@@ -119,30 +122,56 @@ internal sealed class AssistantMessageView
     {
         Duration.Text = ChatFormat.Working(elapsed);
         Duration.FontWeight = FontWeights.SemiBold;
-        Duration.Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0x9A));
+        Duration.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
         Cost.Visibility = Visibility.Collapsed;
         CostDot.Visibility = Visibility.Collapsed;
+        Thinking.Visibility = Visibility.Collapsed;
+        ThinkingDot.Visibility = Visibility.Collapsed;
         StartPulse();
     }
+
+    /// <summary>
+    /// Below this the figure is noise: the model started answering as soon as the connection
+    /// was open, and "думал 0s" beside the duration says nothing.
+    /// </summary>
+    private static readonly TimeSpan ThinkingWorthShowing = TimeSpan.FromSeconds(1);
 
     public void ShowFinished(ChatDisplayMessage message)
     {
         StopPulse();
         Duration.Opacity = 1;
         Duration.FontWeight = FontWeights.Normal;
-        Duration.Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8A, 0x8A));
+        Duration.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
         Duration.Text = ChatFormat.Duration(message.Duration);
+
+        if (message.ThinkingDuration >= ThinkingWorthShowing)
+        {
+            Thinking.Text = "думал " + ChatFormat.Duration(message.ThinkingDuration);
+            Thinking.Visibility = Visibility.Visible;
+            ThinkingDot.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            Thinking.Visibility = Visibility.Collapsed;
+            ThinkingDot.Visibility = Visibility.Collapsed;
+        }
+
         var cost = ChatFormat.Cost(message.Cost);
         if (string.IsNullOrEmpty(cost))
         {
             Cost.Visibility = Visibility.Collapsed;
             CostDot.Visibility = Visibility.Collapsed;
+            CostChip.ToolTip = null;
         }
         else
         {
             Cost.Text = cost;
             Cost.Visibility = Visibility.Visible;
             CostDot.Visibility = Visibility.Visible;
+
+            // Rebuilt from the message itself, so a chat reopened from disk gets the same
+            // breakdown as one that just finished — every part of it is persisted.
+            CostChip.ToolTip = CostBreakdownTooltip.Build(Host, message);
         }
 
         Body.Visibility = Visibility.Visible;
@@ -225,14 +254,15 @@ internal sealed class AssistantMessageView
 
         if (!running && calls.Count > 0)
         {
-            header.Children.Add(new TextBlock
+            var count = new TextBlock
             {
                 Text = "· " + calls.Count,
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x56, 0x56, 0x56)),
                 Margin = new Thickness(6, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
-            });
+            };
+            count.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+            header.Children.Add(count);
         }
 
         return header;
@@ -325,6 +355,7 @@ internal sealed class AssistantMessageView
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var check = new System.Windows.Shapes.Path { Style = (Style)Host.FindResource("ToolDoneIcon") };
         var name = new TextBlock
@@ -342,6 +373,22 @@ internal sealed class AssistantMessageView
         grid.Children.Add(check);
         grid.Children.Add(name);
         grid.Children.Add(preview);
+
+        // Инструменты вроде generate_image стоят заметно дороже самого разговора — без ценника
+        // прямо здесь непонятно, откуда в шапке сообщения взялась вся сумма.
+        if (ChatFormat.Cost(call.Cost) is { Length: > 0 } price)
+        {
+            var cost = new TextBlock
+            {
+                Style = (Style)Host.FindResource("ToolResult"),
+                Text = price,
+                Margin = new Thickness(8, 0, 0, 0),
+                ToolTip = $"Стоимость вызова {call.Name}"
+            };
+            Grid.SetColumn(cost, 3);
+            grid.Children.Add(cost);
+        }
+
         return grid;
     }
 
@@ -422,13 +469,13 @@ internal sealed class AssistantMessageView
         var suffix = new TextBlock
         {
             FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x56, 0x56, 0x56)),
             Margin = new Thickness(6, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
             Text = running
                 ? "· выполняется"
                 : "· " + agent.ToolRounds.SelectMany(round => round.Calls).Count() + " инструментов"
         };
+        suffix.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
         if (running)
         {
             suffix.BeginAnimation(
@@ -512,12 +559,12 @@ internal sealed class AssistantMessageView
         var label = new TextBlock
         {
             FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x6E, 0x6E, 0x6E)),
             FontStyle = FontStyles.Italic,
             VerticalAlignment = VerticalAlignment.Center,
             Text = text,
             TextWrapping = TextWrapping.Wrap
         };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
         Grid.SetColumn(label, 1);
         grid.Children.Add(icon);
         grid.Children.Add(label);
@@ -665,7 +712,6 @@ internal static class ChatMessageViews
         {
             FontSize = 11,
             FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0x9A)),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Visibility = Visibility.Collapsed
@@ -673,7 +719,6 @@ internal static class ChatMessageViews
         var logoLightning = new System.Windows.Shapes.Path
         {
             Data = Geometry.Parse("M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"),
-            Fill = new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0x9A)),
             Width = 9,
             Height = 12,
             Stretch = Stretch.Uniform,
@@ -681,6 +726,12 @@ internal static class ChatMessageViews
             VerticalAlignment = VerticalAlignment.Center,
             Visibility = Visibility.Collapsed
         };
+
+        // These two are the fallbacks drawn when a model has no logo image, and they sit on
+        // AiLogoBorder — whose background is Bg.Card, so it follows the theme. A fixed grey
+        // would be a light mark on a light chip.
+        logoLetter.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
+        logoLightning.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Text.Muted");
         var logoBorder = new Border { Style = (Style)host.FindResource("AiLogoBorder") };
         var logoHost = new Grid();
         logoHost.Children.Add(logoImage);
@@ -692,17 +743,43 @@ internal static class ChatMessageViews
         {
             Style = (Style)host.FindResource("AiMetaText"),
             FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0xB0, 0xB0)),
             Text = VeniceModelCatalog.GetDisplayName(message.ResolvedModelId ?? message.RequestedModelId ?? "")
         };
+
+        // A step brighter than the rest of the meta row (AiMetaText is Text.Dim) so the model
+        // stands out — but through the palette, not a fixed grey: a hardcoded one is invisible
+        // on the light themes.
+        modelName.SetResourceReference(TextBlock.ForegroundProperty, "Text.Tertiary");
         var clock = new TextBlock
         {
             Style = (Style)host.FindResource("AiMetaText"),
             Text = ChatFormat.Clock(message.CreatedAt)
         };
         var duration = new TextBlock { Style = (Style)host.FindResource("AiMetaText") };
+        var thinkingDot = new Ellipse
+        {
+            Style = (Style)host.FindResource("AiMetaDot"),
+            Visibility = Visibility.Collapsed
+        };
+        var thinking = new TextBlock
+        {
+            Style = (Style)host.FindResource("AiMetaText"),
+            Visibility = Visibility.Collapsed
+        };
         var costDot = new Ellipse { Style = (Style)host.FindResource("AiMetaDot"), Visibility = Visibility.Collapsed };
         var cost = new TextBlock { Style = (Style)host.FindResource("AiMetaText"), Visibility = Visibility.Collapsed };
+
+        // The price and its dot ride in a transparent border so the whole chip is one hover
+        // target: a bare TextBlock only answers the mouse over the glyphs themselves, and the
+        // breakdown would flicker as the pointer crossed a gap between digits.
+        var costChip = new Border { Background = Brushes.Transparent };
+        ToolTipService.SetInitialShowDelay(costChip, 150);
+        ToolTipService.SetShowDuration(costChip, 20000);
+        ToolTipService.SetVerticalOffset(costChip, 4);
+        var costRow = new StackPanel { Orientation = Orientation.Horizontal };
+        costRow.Children.Add(costDot);
+        costRow.Children.Add(cost);
+        costChip.Child = costRow;
 
         var meta = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(1, 4, 0, 9) };
         meta.Children.Add(modelName);
@@ -710,8 +787,9 @@ internal static class ChatMessageViews
         meta.Children.Add(clock);
         meta.Children.Add(new Ellipse { Style = (Style)host.FindResource("AiMetaDot") });
         meta.Children.Add(duration);
-        meta.Children.Add(costDot);
-        meta.Children.Add(cost);
+        meta.Children.Add(thinkingDot);
+        meta.Children.Add(thinking);
+        meta.Children.Add(costChip);
 
         var body = CreateReadOnlyBox(AiForeground, 13.5, 21);
         var streaming = message.Status is AssistantStatus.Streaming;
@@ -744,7 +822,7 @@ internal static class ChatMessageViews
         share.Click += (_, _) => actions?.Share?.Invoke(message);
         HideIf(share, !sharingOn);
         row.Children.Add(share);
-        var export = IconAction(host, "Download", "Экспорт диалога в JSON");
+        var export = IconAction(host, "ExportJson", "Экспорт диалога в JSON");
         export.Click += (_, _) => actions?.Export?.Invoke(message);
         HideIf(export, !sharingOn);
         row.Children.Add(export);
@@ -782,8 +860,11 @@ internal static class ChatMessageViews
             ModelName = modelName,
             Clock = clock,
             Duration = duration,
+            Thinking = thinking,
+            ThinkingDot = thinkingDot,
             Cost = cost,
             CostDot = costDot,
+            CostChip = costChip,
             Actions = row,
             CancelButton = cancel,
             LogoImage = logoImage,
@@ -1003,7 +1084,7 @@ internal static class ChatMessageViews
             Margin = resourceKey switch
             {
                 "Compose" => new Thickness(2),
-                "Regenerate" or "Upload" or "Cancel" => new Thickness(4),
+                "Regenerate" or "Upload" or "Cancel" or "ExportJson" => new Thickness(4),
                 "Copy" => new Thickness(5),
                 _ => new Thickness(6)
             }

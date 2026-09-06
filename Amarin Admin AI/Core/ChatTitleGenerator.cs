@@ -55,7 +55,10 @@ internal sealed class ChatTitleGenerator
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            var reply = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content);
+            // A GLM-class model titles the chat by thinking out loud first, and the tags would
+            // end up in the sidebar.
+            var reply = ReasoningSplit.Split(
+                ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
             return ChatTitle.Sanitize(reply);
         }
         catch (OperationCanceledException)

@@ -154,7 +154,9 @@ public sealed class Wave1PersistenceTests
                 RequestedModelId = "claude-sonnet-5",
                 ResolvedModelId = "claude-sonnet-5",
                 Duration = TimeSpan.FromSeconds(4),
+                ThinkingDuration = TimeSpan.FromSeconds(2),
                 Cost = new VeniceCost { Usd = 0.0236m, HasData = true },
+                ModelCost = new VeniceCost { Usd = 0.0136m, HasData = true },
                 Status = AssistantStatus.Complete,
                 ToolRounds =
                 [
@@ -243,6 +245,11 @@ public sealed class Wave1PersistenceTests
             Assert.Equal("чекни сеть", loaded.Messages[0].Text);
             Assert.Equal(AssistantStatus.Complete, loaded.Messages[1].Status);
             Assert.Equal(0.0236m, loaded.Messages[1].Cost?.Usd);
+
+            // The price breakdown and the thinking time are rebuilt from the reopened chat, so
+            // both have to survive the round trip.
+            Assert.Equal(0.0136m, loaded.Messages[1].ModelCost?.Usd);
+            Assert.Equal(TimeSpan.FromSeconds(2), loaded.Messages[1].ThinkingDuration);
             Assert.Equal("init_agent", loaded.Messages[1].ToolRounds[0].Calls[0].Name);
             Assert.Equal("heavy", JsonDocument.Parse(loaded.Messages[1].ToolRounds[0].Calls[0].ArgumentsJson)
                 .RootElement.GetProperty("complexity").GetString());

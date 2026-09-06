@@ -75,7 +75,7 @@ internal static class Program
         }
 
         var http = HttpClients.Create(TimeSpan.FromMinutes(5));
-        var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15));
+        var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15), browserIdentity: true);
         var venice = new VeniceClient(http, options);
         var models = new VeniceModelListCache(venice);
         var chatStore = new ChatStore(dataRoot);
@@ -97,6 +97,7 @@ internal static class Program
             // flow asks for a specific ratio, and it calls the client directly.
             new GenerateImageTool((prompt, width, height, model, ct) =>
                 venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
+            new FetchImageTool(),
             new YouTubeTranscriptTool(),
             new InitAgentTool(new AgentSlotLimiter(), agentHost)
         ]);

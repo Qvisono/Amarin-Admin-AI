@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -14,14 +15,29 @@ internal sealed class ChatStreamAccumulator
     private readonly StringBuilder _text = new();
     private readonly StringBuilder _reasoning = new();
     private readonly Dictionary<int, ToolCallBuilder> _toolCalls = [];
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
 
-    public string Text => _text.ToString();
+    /// <summary>The answer alone: any chain of thought the model inlined is stripped out.</summary>
+    public string Text => ReasoningSplit.Split(_text.ToString()).Answer;
+
+    /// <summary>
+    /// Chain of thought the model wrote into <c>content</c> inside <c>&lt;think&gt;</c>-style
+    /// tags, as GLM does. Empty for models that use the <c>reasoning_content</c> channel.
+    /// </summary>
+    public string InlineReasoning => ReasoningSplit.Split(_text.ToString()).Reasoning;
 
     /// <summary>
     /// Chain of thought from <c>reasoning_content</c>, with the encrypted tail stripped.
-    /// Only used as a fallback when the model produced no content at all.
+    /// Surfaced as the collapsed block above the answer, and used as the answer itself only
+    /// when the model produced no content at all.
     /// </summary>
     public string ReasoningText => Sanitize(_reasoning.ToString());
+
+    /// <summary>
+    /// How long the model spent before the first word of the answer appeared. Zero when it
+    /// started answering straight away — there was nothing to wait through.
+    /// </summary>
+    public TimeSpan ThinkingElapsed { get; private set; }
 
     public string? FinishReason { get; private set; }
 
@@ -60,16 +76,28 @@ internal sealed class ChatStreamAccumulator
         var piece = ChatContent.ReadText(delta.Content);
         if (!string.IsNullOrEmpty(piece))
         {
+            // Compared against the answer as it stood before this chunk, not against the chunk
+            // itself: a model writing inside <think> is producing content that must not repaint
+            // the bubble, and only the split can tell the two apart.
+            var before = Text.Length;
             _text.Append(piece);
-            addedText = true;
+            addedText = Text.Length > before;
         }
 
-        // Collected but not surfaced: reasoning is only a fallback for a model that thought
-        // itself out of a budget and emitted no content (grok-4-6 does this intermittently).
         var reasoning = ChatContent.ReadText(delta.ReasoningContent);
         if (!string.IsNullOrEmpty(reasoning))
         {
             _reasoning.Append(reasoning);
+        }
+
+        if (addedText && ThinkingElapsed == TimeSpan.Zero &&
+            (_reasoning.Length > 0 || InlineReasoning.Length > 0))
+        {
+            // The first visible word closes the thinking phase, and only a model that actually
+            // thought gets a figure — otherwise this would report the network round trip of
+            // every answer as deliberation. Reasoning between later chunks is inside the turn's
+            // own duration and needs no second number.
+            ThinkingElapsed = _clock.Elapsed;
         }
 
         if (delta.ToolCalls is { Count: > 0 })

@@ -21,27 +21,57 @@ internal sealed partial class ChatEngine
         TOOLS
         - read_file(path): read a text file, or list a directory.
         - write_file(path, content): write text, creates folders, never deletes.
-        - search_web(query): web search, summary in Russian.
-        - generate_image(prompt, orientation): draw a picture from a description.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
         - youtube_transcript(url): subtitles of a YouTube video as plain text.
         - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
           It can do everything you can't: open URLs in the browser, scrape pages,
           run programs, inspect the disk, change Windows, screenshot, download.
 
-        IMAGES
-        - Reach for generate_image whenever a picture carries the answer better
-          than a paragraph would: diagrams, infographics, illustrations, mock-ups.
-          Don't ask permission first, and don't offer to draw something instead of
-          drawing it.
-        - The tool result gives you a handle like amarin-image:1a2b3c4d. Put the
-          picture in your reply by writing it as a normal markdown image:
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
           ![short caption](amarin-image:1a2b3c4d)
         - Place that line exactly where the picture belongs -- mid-answer between
-          two paragraphs, or at the end. A handle you never write is never shown.
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
         - Never invent a handle, and never paste base64 or a data: URI yourself.
-        - You may also embed an ordinary public image URL the same way:
-          ![caption](https://example.com/photo.jpg) -- it is fetched and shown.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
         - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
 
         AGENT RULES
         - complexity is exactly "lite" (one check/listing) or "heavy" (repair,
@@ -211,7 +241,122 @@ internal sealed partial class ChatEngine
         Do not invent tool names. You cannot ask the user via a tool.
         """;
 
-    /// <summary>Tech prompt before the no-emoji / ASCII-emoticon rule.</summary>
+    /// <summary>
+    /// Tooling prompt from the first fetch_image build, before finding and drawing were split
+    /// apart. Shipped briefly, so a settings file can still hold it; migration only.
+    /// </summary>
+    internal const string LegacyDefaultTechPromptV9 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search, summary in Russian.
+        - generate_image(prompt, orientation): draw a picture from a description.
+        - fetch_image(url, caption): bring a picture from any public http(s) link
+          into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES
+        - Reach for generate_image whenever a picture carries the answer better
+          than a paragraph would: diagrams, infographics, illustrations, mock-ups.
+          Don't ask permission first, and don't offer to draw something instead of
+          drawing it.
+        - The tool result gives you a handle like amarin-image:1a2b3c4d. Put the
+          picture in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - Someone else's picture -> fetch_image. Use it when the user pastes a link
+          to an image OR to a page that shows one (art sites, galleries, wikis,
+          news, boorus), and when you found such a link yourself. A page link is
+          fine: its preview image is followed for you. Any site is allowed --
+          there is no allowlist on this tool.
+        - fetch_image gives you a handle too, and hands you the picture to look at.
+          Show the handle, not the original URL, and describe what you actually
+          see in it rather than repeating the page's caption.
+        - If a fetch fails, say why in one line and try the direct file link if you
+          have one. Do not tell the user to go open the site themselves.
+        - Pasting a bare remote URL as ![caption](https://example.com/photo.jpg)
+          also works, but prefer fetch_image: it survives sites that block us, and
+          it is the only way you get to see the picture.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        AGENT RULES
+        - complexity is exactly "lite" (one check/listing) or "heavy" (repair,
+          diagnosis, multi-step). Default to lite when unsure.
+        - prompt must restate the user's actual request in the user's language:
+          what to inspect, which files, what to change. Be specific.
+        - Up to 4 agents run in parallel; a 5th call errors -- read it and adapt.
+        - Wait for all agent reports before answering the user.
+        - If a report is empty or off-topic, re-run init_agent with a clearer prompt.
+        - Keep the report's substance in your answer: facts, numbers, names,
+          statuses. React in your own voice but drop nothing important.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
+    /// <summary>Tooling prompt before fetch_image existed; used only to migrate AppData.</summary>
+    internal const string LegacyDefaultTechPromptV8 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search, summary in Russian.
+        - generate_image(prompt, orientation): draw a picture from a description.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES
+        - Reach for generate_image whenever a picture carries the answer better
+          than a paragraph would: diagrams, infographics, illustrations, mock-ups.
+          Don't ask permission first, and don't offer to draw something instead of
+          drawing it.
+        - The tool result gives you a handle like amarin-image:1a2b3c4d. Put the
+          picture in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - You may also embed an ordinary public image URL the same way:
+          ![caption](https://example.com/photo.jpg) -- it is fetched and shown.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        AGENT RULES
+        - complexity is exactly "lite" (one check/listing) or "heavy" (repair,
+          diagnosis, multi-step). Default to lite when unsure.
+        - prompt must restate the user's actual request in the user's language:
+          what to inspect, which files, what to change. Be specific.
+        - Up to 4 agents run in parallel; a 5th call errors -- read it and adapt.
+        - Wait for all agent reports before answering the user.
+        - If a report is empty or off-topic, re-run init_agent with a clearer prompt.
+        - Keep the report's substance in your answer: facts, numbers, names,
+          statuses. React in your own voice but drop nothing important.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
     /// <summary>Pre-images tooling prompt; used only to migrate AppData.</summary>
     internal const string LegacyDefaultTechPromptV7 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
@@ -493,9 +638,9 @@ internal sealed partial class ChatEngine
             clock.Stop();
             assistant.Duration = clock.Elapsed;
             assistant.ResolvedModelId = _venice.ActiveModel;
-            assistant.Cost = SumCosts(
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
-                assistant);
+            ApplyCosts(
+                assistant,
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -512,9 +657,9 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            assistant.Cost = SumCosts(
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
-                assistant);
+            ApplyCosts(
+                assistant,
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -581,9 +726,9 @@ internal sealed partial class ChatEngine
             clock.Stop();
             assistant.Duration = clock.Elapsed;
             assistant.ResolvedModelId = _venice.ActiveModel;
-            assistant.Cost = SumCosts(
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
-                assistant);
+            ApplyCosts(
+                assistant,
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -600,9 +745,9 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            assistant.Cost = SumCosts(
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero,
-                assistant);
+            ApplyCosts(
+                assistant,
+                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -773,6 +918,87 @@ internal sealed partial class ChatEngine
         return streamed;
     }
 
+    /// <summary>
+    /// Catches the model redrawing a picture it already made this turn. It is shown its own
+    /// output as a vision turn, decides the result is not quite right, and calls generate_image
+    /// again with a reworded version of the same prompt — then embeds only one of the two, while
+    /// the user pays for both. A genuinely different picture ("нарисуй кота", "нарисуй собаку")
+    /// shares almost no wording and goes through. Returns the handle to reuse, or null.
+    /// </summary>
+    internal static string? RedrawOf(ChatDisplayMessage assistant, ToolRound current, ToolCallRecord call)
+    {
+        if (!call.Name.Equals("generate_image", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var words = PromptWords(call.ArgumentsJson);
+        if (words.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var round in assistant.ToolRounds)
+        {
+            foreach (var earlier in round.Calls)
+            {
+                if (ReferenceEquals(earlier, call) ||
+                    !earlier.Success ||
+                    earlier.Images.Count == 0 ||
+                    !earlier.Name.Equals("generate_image", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // Calls inside one round run in parallel; only a call from a finished round can
+                // be judged a duplicate, since a sibling has not produced anything yet.
+                if (ReferenceEquals(round, current))
+                {
+                    continue;
+                }
+
+                if (Overlap(words, PromptWords(earlier.ArgumentsJson)) >= 0.55 &&
+                    earlier.Images[0].Label is { Length: > 0 } handle)
+                {
+                    return handle;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static HashSet<string> PromptWords(string argumentsJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(argumentsJson);
+            if (!document.RootElement.TryGetProperty("prompt", out var prompt) ||
+                prompt.GetString() is not { } text)
+            {
+                return [];
+            }
+
+            return new HashSet<string>(
+                text.ToLowerInvariant()
+                    .Split([' ', ',', '.', ';', ':', '-', '(', ')', '\n', '\r', '\t', '"', '\''],
+                        StringSplitOptions.RemoveEmptyEntries)
+                    .Where(word => word.Length > 3),
+                StringComparer.Ordinal);
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Share of the smaller prompt's vocabulary the two have in common.</summary>
+    private static double Overlap(HashSet<string> left, HashSet<string> right)
+    {
+        var smaller = Math.Min(left.Count, right.Count);
+        return smaller == 0 ? 0 : left.Count(right.Contains) / (double)smaller;
+    }
+
     private async Task ExecuteRoundAsync(
         ToolRound toolRound,
         List<ChatMessage> messages,
@@ -797,15 +1023,25 @@ internal sealed partial class ChatEngine
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var arguments = ParseArguments(call.ArgumentsJson);
-                    using (AgentRunScope.Push(new AgentRunContext
+                    if (RedrawOf(assistant, toolRound, call) is { } already)
                     {
-                        Call = call,
-                        Assistant = assistant,
-                        Observer = observer
-                    }))
+                        result = ToolResult.Fail(
+                            "Эта картинка уже нарисована в этом ходе — вставь готовый хэндл " +
+                            $"{already} вместо повторного вызова. Каждая генерация стоит денег, " +
+                            "и переделывать только потому, что тебе не понравился результат, не надо.");
+                    }
+                    else
                     {
-                        result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
-                            .ConfigureAwait(false);
+                        using (AgentRunScope.Push(new AgentRunContext
+                        {
+                            Call = call,
+                            Assistant = assistant,
+                            Observer = observer
+                        }))
+                        {
+                            result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
+                                .ConfigureAwait(false);
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -938,7 +1174,9 @@ internal sealed partial class ChatEngine
             : streamed.Text;
         assistant.Duration = clock.Elapsed;
         assistant.ResolvedModelId = streamed.Model;
-        assistant.Cost = SumCosts(_venice.RequestCost.HasData ? _venice.RequestCost : streamed.Cost, assistant);
+
+        assistant.ThinkingDuration = streamed.ThinkingElapsed;
+        ApplyCosts(assistant, _venice.RequestCost.HasData ? _venice.RequestCost : streamed.Cost);
         assistant.Status = AssistantStatus.Complete;
         session.ApiMessages.Add(new ChatMessage
         {
@@ -1006,6 +1244,34 @@ internal sealed partial class ChatEngine
         return total;
     }
 
+    /// <summary>
+    /// Books the turn's bill and, alongside it, the breakdown the price tooltip reads.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="chatCost"/> is what the shared <see cref="VeniceClient"/> spent, which
+    /// covers the conversation plus the tools that bill through it — drawing a picture, scraping
+    /// a page. Those same charges are mirrored onto the tool rows by
+    /// <c>AgentRunScope.Charge</c>, so taking them back out leaves exactly what the model itself
+    /// cost. Nested agents run on their own client and are added, not subtracted.
+    /// </remarks>
+    private static void ApplyCosts(ChatDisplayMessage assistant, VeniceCost chatCost)
+    {
+        var tools = VeniceCost.Zero;
+        foreach (var round in assistant.ToolRounds)
+        {
+            foreach (var call in round.Calls)
+            {
+                if (call.Cost is { HasData: true } cost)
+                {
+                    tools = tools.Add(cost);
+                }
+            }
+        }
+
+        assistant.Cost = SumCosts(chatCost, assistant);
+        assistant.ModelCost = chatCost.Subtract(tools);
+    }
+
     private string ReadSelectedModel(ChatSession session)
     {
         if (!string.IsNullOrWhiteSpace(session.SelectedModelId))
@@ -1044,7 +1310,8 @@ internal sealed partial class ChatEngine
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            var reply = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content);
+            var reply = ReasoningSplit.Split(
+                ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
             return ParseRouterComplexity(reply) == "heavy" ? heavyId : liteId;
         }
         catch (OperationCanceledException)

@@ -62,7 +62,7 @@ public sealed class Wave7ChatTests
     public void Delete_assistant_removes_the_user_turn_it_answered()
     {
         var session = SampleSession();
-        Assert.True(ChatSessionEdit.DeleteAssistantTurn(session, "a2"));
+        Assert.True(ChatSessionEdit.DeleteTurn(session, "a2"));
         Assert.Equal(2, session.Messages.Count);
         Assert.Equal("u1", session.Messages[0].Id);
         Assert.Equal("a1", session.Messages[1].Id);
@@ -70,7 +70,7 @@ public sealed class Wave7ChatTests
         Assert.Equal("assistant", session.ApiMessages[^1].Role);
         Assert.Equal("ок", ChatContent.ReadText(session.ApiMessages[^1].Content));
 
-        Assert.True(ChatSessionEdit.DeleteAssistantTurn(session, "a1"));
+        Assert.True(ChatSessionEdit.DeleteTurn(session, "a1"));
         Assert.Empty(session.Messages);
         Assert.Empty(session.ApiMessages);
     }

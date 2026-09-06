@@ -34,11 +34,14 @@ In scope — always execute with tools or general knowledge when possible:
 - Answer general questions, provide information, and perform creative, analytical, or coding tasks.
 - If the user input is a single word or name, do NOT just provide a basic dictionary definition. Immediately use search_web to find comprehensive information about it and summarize the results.
 - Download files (download_file) when the user asks — call download_file with url only.
-  Any http(s) site is allowed: trusted domains (AllowedDomains: Microsoft, GitHub, Discord, …) get a normal
-  confirmation; other domains get a stronger warning — the user must still approve (1/да) or refuse (2/нет).
+  Saving to disk is limited to the user's download allowlist (Microsoft, GitHub, Discord, …); other
+  hosts come back as DOMAIN_BLOCKED and the app offers the user a button to allow them.
   Filename is taken from the URL path as-is — do NOT rename or shorten.
   Pass destination only when the URL has no filename in the path (e.g. /stable). folder: "downloads" (default) or "desktop".
   Do NOT ask the user to confirm downloads or domain permission; the app shows its own confirmation.
+- Show a picture from the web (fetch_image) — any public http(s) link, no allowlist, nothing written
+  to disk. Works on a link to the image itself and on a link to the page that shows it. Use this,
+  not download_file, whenever the point is to see or show a picture rather than keep the file.
 - Open websites and YouTube in the default browser: run_powershell → Start-Process 'https://...'
 - Read page content (scrape_url, search_web) — any public URL including YouTube, Discord, docs.
 - System facts: time, date, uptime, OS, hardware (system_info, run_powershell, wmi_query).
@@ -417,7 +420,10 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
     private static string? ExtractAssistantText(ChatMessage message, string? finishReason)
     {
-        var text = ChatContent.ReadText(message.Content);
+        // The agent runs unstreamed, so the whole answer arrives at once — chain of thought and
+        // all, for the models that inline it. The report is machine-read downstream, and tags in
+        // it would end up quoted back into the parent conversation.
+        var text = ReasoningSplit.Split(ChatContent.ReadText(message.Content) ?? "").Answer;
         if (!string.IsNullOrWhiteSpace(text))
         {
             return text;
@@ -425,7 +431,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
         if (message.Content is { ValueKind: JsonValueKind.String })
         {
-            return message.Content.Value.GetString();
+            return ReasoningSplit.Split(message.Content.Value.GetString() ?? "").Answer;
         }
 
         if (!string.IsNullOrWhiteSpace(finishReason) &&

@@ -15,6 +15,9 @@ public sealed class VeniceClient
 
     public VeniceCost RequestCost { get; private set; } = VeniceCost.Zero;
 
+    /// <summary>Guards the running total: parallel tool calls share one client.</summary>
+    private readonly Lock _costGate = new();
+
     public event Action<string, string>? ModelFallback;
 
     public string ActiveModel => _options.Model;
@@ -293,13 +296,15 @@ public sealed class VeniceClient
 
         if (accumulator.Cost.HasData)
         {
-            RequestCost = RequestCost.Add(accumulator.Cost);
+            AddCost(accumulator.Cost);
         }
 
         return new StreamedChatCompletion
         {
             Text = accumulator.Text,
             ReasoningText = accumulator.ReasoningText,
+            InlineReasoning = accumulator.InlineReasoning,
+            ThinkingElapsed = accumulator.ThinkingElapsed,
             ToolCalls = accumulator.BuildToolCalls(),
             FinishReason = accumulator.FinishReason,
             Cost = accumulator.Cost,
@@ -364,16 +369,35 @@ public sealed class VeniceClient
         return result.Data;
     }
 
-    public void ResetRequestCost() => RequestCost = VeniceCost.Zero;
+    public void ResetRequestCost()
+    {
+        lock (_costGate)
+        {
+            RequestCost = VeniceCost.Zero;
+        }
+    }
 
     private void RecordCost(ChatCompletionResponse result)
     {
-        if (result.Cost is null)
+        if (result.Cost is not null)
         {
-            return;
+            AddCost(result.Cost.ToCost());
+        }
+    }
+
+    /// <summary>
+    /// The one way money is booked. Tool calls in a round run in parallel and share this client,
+    /// so the running total needs a gate; the same charge is also billed to whichever tool call
+    /// is on the stack, which is what puts a price tag next to generate_image in the transcript.
+    /// </summary>
+    private void AddCost(VeniceCost cost)
+    {
+        lock (_costGate)
+        {
+            RequestCost = RequestCost.Add(cost);
         }
 
-        RequestCost = RequestCost.Add(result.Cost.ToCost());
+        AgentRunScope.Charge(cost);
     }
 
     public async Task<string> ScrapeUrlAsync(string url, CancellationToken cancellationToken = default)
@@ -408,7 +432,7 @@ public sealed class VeniceClient
             ? contentProp.GetString()
             : null;
 
-        RequestCost = RequestCost.Add(new VeniceCost { Usd = 0.01m, HasData = true });
+        AddCost(new VeniceCost { Usd = 0.01m, HasData = true });
         return string.IsNullOrWhiteSpace(markdown) ? "Страница пуста или контент не извлечён." : markdown;
     }
 
@@ -424,8 +448,15 @@ public sealed class VeniceClient
         model.StartsWith("nano-banana", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Generates one image and returns it as base64 PNG. Venice bills this per image; the
-    /// balance headers it sends back are folded into <see cref="RequestCost"/> like any other call.
+    /// A drawn picture costs far more than the text around it, and until this was priced the
+    /// message header showed only the chat tokens — a few hundredths of a cent for a turn that
+    /// really cost cents. Used only when Venice reports neither a cost nor a usable balance delta.
+    /// </summary>
+    private const decimal FallbackImageUsd = 0.10m;
+
+    /// <summary>
+    /// Generates one image and returns it as base64 PNG. Venice bills this per image, and the
+    /// charge is folded into <see cref="RequestCost"/> so it reaches the message header.
     /// </summary>
     /// <param name="aspectRatio">e.g. "3:4" for a portrait infographic. Ignored by pixel-sized models.</param>
     public async Task<string> GenerateImageAsync(
@@ -465,6 +496,8 @@ public sealed class VeniceClient
             VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
 
+        var balanceBefore = LastBalance?.Usd;
+
         using var response = await _http.SendAsync(
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
@@ -485,7 +518,34 @@ public sealed class VeniceClient
             throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
         }
 
+        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd));
         return image;
+    }
+
+    /// <summary>
+    /// What the picture cost, best source first: the number Venice put in the body, else how much
+    /// the account balance moved across this one call, else a flat estimate. The balance reading
+    /// is only trusted when it moved by a plausible amount — a top-up or a parallel request in
+    /// flight would otherwise show up as a wild figure in the message header.
+    /// </summary>
+    private static VeniceCost PriceImage(VeniceCostResponse? reported, decimal? before, decimal? after)
+    {
+        var cost = reported?.ToCost();
+        if (cost is { HasData: true })
+        {
+            return cost;
+        }
+
+        if (before is { } start && after is { } end)
+        {
+            var spent = start - end;
+            if (spent > 0m && spent <= 1m)
+            {
+                return new VeniceCost { Usd = spent, HasData = true };
+            }
+        }
+
+        return new VeniceCost { Usd = FallbackImageUsd, HasData = true };
     }
 
     /// <summary>Maps the caller's pixel intent onto the nearest ratio the ratio-based models take.</summary>
@@ -520,9 +580,18 @@ public sealed class VeniceClient
                 new ChatMessage
                 {
                     Role = "system",
+                    // The links are the point, not decoration: the caller is a model that can
+                    // fetch a picture or read a page, but only if it is handed an address. The
+                    // old wording asked for "a summary with practical fixes" and got prose like
+                    // "on DeviantArt, search the furrywallpaper tag" — advice no tool can act on.
                     Content = ChatContent.Text(
-                        "You are a web research assistant. Search the web and return a concise summary in Russian " +
-                        "with practical fixes and source references when available.")
+                        "You are a web research assistant. Search the web and answer concisely in Russian.\n" +
+                        "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +
+                        "one per line, bare (no markdown, no shortening). Never write a link as a " +
+                        "description like 'ищи по тегу X on site Y' — give the address itself.\n" +
+                        "If the request is about pictures, art, wallpapers, photos or covers, list at " +
+                        "least 5 URLs of pages that show a matching image, and direct file URLs " +
+                        "(.jpg/.png/.webp) whenever the search results reveal them.")
                 },
                 new ChatMessage { Role = "user", Content = ChatContent.Text(query) }
             ],
@@ -535,7 +604,8 @@ public sealed class VeniceClient
             }
         }, cancellationToken);
 
-        var text = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content);
+        var text = ReasoningSplit.Split(
+            ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
         return string.IsNullOrWhiteSpace(text) ? "Результаты поиска не найдены." : text;
     }
 

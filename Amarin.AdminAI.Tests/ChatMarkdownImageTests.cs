@@ -93,14 +93,34 @@ public sealed class ChatMarkdownImageTests
     }
 
     [Fact]
-    public void An_image_inside_a_sentence_stays_a_link()
+    public void An_image_inside_a_sentence_still_becomes_a_picture()
     {
-        // Only a paragraph that is nothing but an image becomes a picture; one embedded in prose
-        // would break the line, so it keeps the old link behaviour.
+        // A picture used to appear only when it had a paragraph to itself; anything the model
+        // wrote around it — even one word — silently turned the illustration into a blue link.
+        // The paragraph is now cut into text, picture, text instead.
         var blocks = Render($"Смотри ![тут](data:image/png;base64,{PixelPng}) внимательно.");
         var kinds = _wpf.Ui.Invoke(() => blocks.Select(b => b.GetType().Name).ToList());
 
-        Assert.Equal([nameof(Paragraph)], kinds);
+        Assert.Equal([nameof(Paragraph), nameof(BlockUIContainer), nameof(Paragraph)], kinds);
+
+        var (before, after, hasImage) = _wpf.Ui.Invoke(() => (
+            new TextRange(blocks[0].ContentStart, blocks[0].ContentEnd).Text.Trim(),
+            new TextRange(blocks[2].ContentStart, blocks[2].ContentEnd).Text.Trim(),
+            ((BlockUIContainer)blocks[1]).Child is Border { Child: Image { Source: not null } }));
+
+        Assert.Equal("Смотри", before);
+        Assert.Equal("внимательно.", after);
+        Assert.True(hasImage, "the embedded image did not decode");
+    }
+
+    [Fact]
+    public void A_picture_that_opens_a_paragraph_keeps_the_trailing_text()
+    {
+        var blocks = Render($"![тут](data:image/png;base64,{PixelPng}) — вот так.");
+        var kinds = _wpf.Ui.Invoke(() => blocks.Select(b => b.GetType().Name).ToList());
+
+        // No empty paragraph in front of the picture: blank runs are dropped.
+        Assert.Equal([nameof(BlockUIContainer), nameof(Paragraph)], kinds);
     }
 
     [Fact]

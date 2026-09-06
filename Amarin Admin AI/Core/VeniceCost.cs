@@ -18,6 +18,19 @@ public sealed class VeniceCost
         HasData = HasData || other.HasData
     };
 
+    /// <summary>
+    /// Takes a part out of a total — used to recover what the conversation itself cost once the
+    /// tool charges booked against the same client are removed. Clamped at zero: the parts are
+    /// reported separately by Venice and rounding could otherwise leave a negative remainder,
+    /// which would read as the model paying the user.
+    /// </summary>
+    public VeniceCost Subtract(VeniceCost other) => new()
+    {
+        Usd = Math.Max(0m, Usd - other.Usd),
+        Diem = Math.Max(0m, Diem - other.Diem),
+        HasData = HasData
+    };
+
     public string Format()
     {
         var parts = new List<string>();

@@ -17,9 +17,13 @@ internal static class ThemeManager
     private static Application? _application;
     private static AppTheme _theme = AppTheme.Dark;
     private static bool _systemHooked;
+    private static string _paletteName = "";
 
     /// <summary>Theme actually painted right now, after resolving <see cref="AppTheme.System"/>.</summary>
     public static bool IsLight { get; private set; }
+
+    /// <summary>The preset actually painted right now, after resolving <see cref="AppTheme.System"/>.</summary>
+    public static ThemePresetInfo Current { get; private set; } = ThemeCatalog.Find(AppTheme.Dark);
 
     /// <summary>Raised on the UI thread after the dictionaries were swapped.</summary>
     public static event Action? EffectiveThemeChanged;
@@ -29,24 +33,29 @@ internal static class ThemeManager
         ArgumentNullException.ThrowIfNull(application);
         _application = application;
 
+        EnsureSlots(application);
+        Apply(theme);
+    }
+
+    /// <summary>
+    /// 0 palette, 1 icons, 2 vendor logos, 3 the appearance overrides written by
+    /// <see cref="AppearanceManager"/> — last dictionary wins, so 3 sits on top of 0.
+    /// </summary>
+    internal const int OverrideSlot = 3;
+
+    private static void EnsureSlots(Application application)
+    {
         var dictionaries = application.Resources.MergedDictionaries;
-        while (dictionaries.Count < 3)
+        while (dictionaries.Count <= OverrideSlot)
         {
             dictionaries.Add(new ResourceDictionary());
         }
-
-        Apply(theme);
     }
 
     public static void Apply(AppTheme theme)
     {
         _theme = theme;
-        var light = theme switch
-        {
-            AppTheme.Light => true,
-            AppTheme.Dark => false,
-            _ => IsSystemLight()
-        };
+        var preset = ThemeCatalog.Resolve(theme, IsSystemLight());
 
         EnsureSystemHook();
 
@@ -55,16 +64,20 @@ internal static class ThemeManager
             return;
         }
 
+        EnsureSlots(_application);
+
         // Skip the swap when nothing changes, but always run it the first time.
         var dictionaries = _application.Resources.MergedDictionaries;
-        if (dictionaries.Count >= 3 && dictionaries[0].Count > 0 && light == IsLight)
+        if (dictionaries[0].Count > 0 && preset.PaletteName == _paletteName)
         {
             return;
         }
 
-        IsLight = light;
-        var suffix = light ? "Light" : "Dark";
-        dictionaries[0] = Load($"Palette.{suffix}");
+        IsLight = preset.IsLight;
+        Current = preset;
+        _paletteName = preset.PaletteName;
+        var suffix = preset.IsLight ? "Light" : "Dark";
+        dictionaries[0] = Load($"Palette.{preset.PaletteName}");
         dictionaries[1] = Load($"Icons.{suffix}");
         dictionaries[2] = Load($"AiLogos.{suffix}");
 

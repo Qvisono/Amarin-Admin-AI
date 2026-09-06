@@ -11,6 +11,12 @@ internal static class AppPaths
 
     public static string SettingsFile => Path.Combine(Root, "settings.json");
 
+    /// <summary>
+    /// Last known Venice balance. A file of its own rather than a field in settings.json:
+    /// it changes after every single turn, and settings would be rewritten just as often.
+    /// </summary>
+    public static string BalanceFile => Path.Combine(Root, "balance.json");
+
     public static string ChatsDirectory => Path.Combine(Root, "chats");
 
     public static string ChatIndexFile => Path.Combine(ChatsDirectory, "index.json");

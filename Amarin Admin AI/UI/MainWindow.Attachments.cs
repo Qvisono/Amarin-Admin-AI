@@ -201,6 +201,10 @@ namespace Amarin.UI
                 ? Visibility.Collapsed
                 : Visibility.Visible;
 
+            // Единственное место, где меняется наличие вложений — компактный режим слушает его
+            // отсюда, а не с каждой точки добавления (перетаскивание, вставка, диалог файла).
+            _compact?.SetHasAttachments(_pendingImages.Count > 0);
+
             UpdateAttachmentWarning(rejected);
         }
 

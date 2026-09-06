@@ -6,11 +6,31 @@ public enum ApprovalMode
     AlwaysApprove
 }
 
+/// <summary>
+/// Palette preset. The first three are the originals and keep their names in settings.json;
+/// the rest are the shipped colour presets. See <see cref="ThemeCatalog"/> for what each maps to.
+/// </summary>
 public enum AppTheme
 {
     System,
     Light,
-    Dark
+    Dark,
+    Midnight,
+    Nord,
+    Cobalt,
+    Slate,
+    Amethyst,
+    Rose,
+    Crimson,
+    Ember,
+    Emerald,
+    Frost,
+    Sakura,
+    Mint,
+    Sepia,
+    Silver,
+    Graphite,
+    Paper
 }
 
 public sealed class AppSettings
@@ -22,6 +42,12 @@ public sealed class AppSettings
 
     /// <summary>Uniform UI zoom, percent. Allowed: 80, 90, 100, 110, 125, 150, 175, 200, 225, 250.</summary>
     public int UiScalePercent { get; set; } = 100;
+
+    /// <summary>
+    /// Backdrop, glass and layout customisation on top of <see cref="Theme"/>.
+    /// Defaults reproduce the plain preset look, so this is inert until the user turns it on.
+    /// </summary>
+    public AppearanceSettings Appearance { get; set; } = new();
 
     public ApprovalMode ApprovalMode { get; set; } = ApprovalMode.Normal;
 

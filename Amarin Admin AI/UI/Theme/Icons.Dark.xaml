@@ -138,11 +138,19 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
-    <!-- Save the dialog to a JSON file. Mirror of Upload: arrow points down into the tray. -->
-    <DrawingImage x:Key="Download">
+    <!--
+        Экспорт диалога в JSON. Фигурные скобки, а не стрелка в лоток: соседняя кнопка
+        «поделиться» — уже стрелка, и две стрелки подряд неразличимы на 26 px. Скобки
+        читаются как «структурированные данные» и остаются разборчивыми вплоть до 13 px.
+    -->
+    <DrawingImage x:Key="ExportJson">
         <DrawingImage.Drawing>
             <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
-                <GeometryDrawing Brush="White" Geometry="F1 M24,24z M0,0z M14.29,13.29L13,14.59 13,3A1,1,0,0,0,11,3L11,14.59 9.71,13.29A1,1,0,0,0,8.29,14.71L11.29,17.71A1,1,0,0,0,12.71,17.71L15.71,14.71A1,1,0,0,0,14.29,13.29z M18,9L16,9A1,1,0,0,0,16,11L18,11A1,1,0,0,1,19,12L19,19A1,1,0,0,1,18,20L6,20A1,1,0,0,1,5,19L5,12A1,1,0,0,1,6,11L8,11A1,1,0,0,0,8,9L6,9A3,3,0,0,0,3,12L3,19A3,3,0,0,0,6,22L18,22A3,3,0,0,0,21,19L21,12A3,3,0,0,0,18,9z" />
+                <GeometryDrawing Geometry="F1 M24,24z M0,0z M10.2,3.6 C7.2,3.6 7.9,6.4 7.9,9.3 C7.9,11.2 5.9,11.6 4.2,12 C5.9,12.4 7.9,12.8 7.9,14.7 C7.9,17.6 7.2,20.4 10.2,20.4 M13.8,3.6 C16.8,3.6 16.1,6.4 16.1,9.3 C16.1,11.2 18.1,11.6 19.8,12 C18.1,12.4 16.1,12.8 16.1,14.7 C16.1,17.6 16.8,20.4 13.8,20.4">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="White" Thickness="2.1" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
             </DrawingGroup>
         </DrawingImage.Drawing>
     </DrawingImage>

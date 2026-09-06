@@ -232,6 +232,15 @@ public sealed class StreamedChatCompletion
     /// </summary>
     public string ReasoningText { get; init; } = "";
 
+    /// <summary>
+    /// Chain of thought the model wrote into <c>content</c> in <c>&lt;think&gt;</c>-style tags
+    /// rather than on the reasoning channel. Already removed from <see cref="Text"/>.
+    /// </summary>
+    public string InlineReasoning { get; init; } = "";
+
+    /// <summary>Time from the first chunk to the first word of the answer.</summary>
+    public TimeSpan ThinkingElapsed { get; init; }
+
     public List<ToolCall> ToolCalls { get; init; } = [];
 
     public string? FinishReason { get; init; }
@@ -374,4 +383,11 @@ public sealed class ImageGenerateResponse
 
     [JsonPropertyName("images")]
     public List<string> Images { get; init; } = [];
+
+    /// <summary>
+    /// Same shape as on a chat completion. Modelled so an image is billed in the message header
+    /// like everything else; if the endpoint omits it, the caller falls back to the balance delta.
+    /// </summary>
+    [JsonPropertyName("cost")]
+    public VeniceCostResponse? Cost { get; init; }
 }

@@ -17,26 +17,88 @@ internal static class ChatSessionEdit
         return true;
     }
 
-    public static bool DeleteAssistantTurn(ChatSession session, string assistantId)
+    /// <summary>
+    /// Removes one turn — the question and the answer it produced — and leaves everything that
+    /// came after it in place.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A turn cannot be cut out of <see cref="ChatSession.ApiMessages"/> message by message: one
+    /// visible answer expands into an interleaved run of <c>assistant(tool_calls)</c> and
+    /// <c>tool</c> entries, and breaking a <c>tool_call_id</c> pairing makes the API reject the
+    /// whole history. It can be cut out turn by turn, though: the list carries no system prompt
+    /// (<c>ChatEngine.BuildApiMessages</c> prepends that at send time), so every <c>user</c>
+    /// entry opens a turn and the range up to the next one is exactly one self-contained turn.
+    /// </para>
+    /// <para>
+    /// If the two lists have drifted out of step — a compressed history, a hand-edited file —
+    /// there is no safe mapping, and the old behaviour applies instead: keep the prefix and drop
+    /// the rest. Losing the tail is bad; sending a history the API refuses is worse.
+    /// </para>
+    /// </remarks>
+    public static bool DeleteTurn(ChatSession session, string messageId)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var index = session.Messages.FindIndex(item => item.Id == assistantId);
+        var index = session.Messages.FindIndex(item => item.Id == messageId);
         if (index < 0)
         {
             return false;
         }
 
         var start = index;
-        if (index > 0 &&
-            session.Messages[index - 1].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+        while (start > 0 && !session.Messages[start].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
         {
-            start = index - 1;
+            start--;
         }
 
-        session.Messages.RemoveRange(start, session.Messages.Count - start);
-        TruncateApiToMatchDisplay(session);
+        var end = start + 1;
+        while (end < session.Messages.Count &&
+               !session.Messages[end].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+        {
+            end++;
+        }
+
+        var turnOrdinal = 0;
+        for (var i = 0; i < start; i++)
+        {
+            if (session.Messages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            {
+                turnOrdinal++;
+            }
+        }
+
+        var turnsBefore = UserCount(session);
+        var starts = ApiTurnStarts(session);
+        session.Messages.RemoveRange(start, end - start);
+
+        if (starts.Count != turnsBefore || turnOrdinal >= starts.Count)
+        {
+            TruncateApiToMatchDisplay(session);
+        }
+        else
+        {
+            var from = starts[turnOrdinal];
+            var to = turnOrdinal + 1 < starts.Count ? starts[turnOrdinal + 1] : session.ApiMessages.Count;
+            session.ApiMessages.RemoveRange(from, to - from);
+        }
+
         session.UpdatedAt = DateTime.Now;
         return true;
+    }
+
+    /// <summary>Index of every <c>user</c> entry in the wire history — one per turn.</summary>
+    private static List<int> ApiTurnStarts(ChatSession session)
+    {
+        var starts = new List<int>();
+        for (var i = 0; i < session.ApiMessages.Count; i++)
+        {
+            if (IsUser(session.ApiMessages[i]))
+            {
+                starts.Add(i);
+            }
+        }
+
+        return starts;
     }
 
     public static bool ReplaceUserText(ChatSession session, string userId, string newText)

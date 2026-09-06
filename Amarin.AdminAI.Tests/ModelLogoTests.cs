@@ -47,16 +47,20 @@ public sealed class ModelLogoTests
     [InlineData("venice-sd35", "Stability")]
     [InlineData("flux-2-dev", "Flux")]
     [InlineData("seedream-4", "ByteDance")]
+    [InlineData("seedance-1-pro", "ByteDance")]
     [InlineData("moonshot-v1-8k", "Moonshot")]
     [InlineData("anthropic-claude-legacy", "Claude")]
+    [InlineData("zai-org-glm-5-1", "GLM")]
+    [InlineData("xiaomi-mimo-7b", "MiMo")]
+    [InlineData("seed-oss-36b", "Seed")]
     public void Known_models_resolve_to_the_expected_logo(string modelId, string expected) =>
         Assert.Equal(expected, VeniceModelCatalog.GetLogoResourceKey(modelId));
 
     [Fact]
     public void An_unknown_model_falls_back_to_a_letter()
     {
-        Assert.Null(VeniceModelCatalog.GetLogoResourceKey("zai-org-glm-5-1"));
-        Assert.Equal("Z", VeniceModelCatalog.GetLogoLetter("zai-org-glm-5-1"));
+        Assert.Null(VeniceModelCatalog.GetLogoResourceKey("mystery-model-9000"));
+        Assert.Equal("M", VeniceModelCatalog.GetLogoLetter("mystery-model-9000"));
     }
 
     [Fact]
@@ -67,13 +71,14 @@ public sealed class ModelLogoTests
         // Everything reachable from the table, plus "Auto" which is returned separately.
         var ids = new[]
         {
-            "auto", "claude", "grok", "deepseek", "kimi", "moonshot", "minimax", "qwen",
-            "gemma", "gemini", "llama", "nemotron", "nvidia", "hunyuan", "baichuan", "arcee",
-            "aion", "mercury", "inception", "spark", "perplexity", "sonar", "cohere",
+            "auto", "claude", "grok", "deepseek", "kimi", "moonshot", "minimax", "mimo", "glm",
+            "qwen", "gemma", "gemini", "llama", "nemotron", "nvidia", "hunyuan", "baichuan",
+            "arcee", "aion", "mercury", "inception", "spark", "perplexity", "sonar", "cohere",
             "command-r", "mistral", "ministral", "magistral", "codestral", "devstral",
             "pixtral", "openai", "gpt", "codex", "nano-banana", "flux", "seedream", "seedance",
-            "bytedance", "doubao", "venice-sd", "stable-diffusion", "sdxl", "kling", "pixverse",
-            "hailuo", "runway", "luma", "pika", "vidu", "anthropic", "google", "alibaba"
+            "bytedance", "doubao", "seed", "venice-sd", "stable-diffusion", "sdxl", "kling",
+            "pixverse", "hailuo", "runway", "luma", "pika", "vidu", "anthropic", "google",
+            "alibaba"
         };
 
         var missing = new List<string>();

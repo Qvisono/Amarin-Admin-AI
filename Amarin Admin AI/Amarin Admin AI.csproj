@@ -8,7 +8,7 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.13.0</Version>
+    <Version>1.14.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -20,6 +20,20 @@
   <ItemGroup>
     <Resource Include="jeklE-removebg-preview_1.ico" />
     <Resource Include="Fonts\*.ttf" />
+  </ItemGroup>
+
+  <!--
+    Штатный крючок конструктора XAML: словарь с этими метаданными он подмешивает в ресурсы
+    приложения, а работающая программа его не грузит. Без него окна в конструкторе белые —
+    палитру подставляет ThemeManager, а его код там не выполняется. Update, а не Include:
+    SDK и так забирает все *.xaml как Page, второй элемент был бы дубликатом.
+  -->
+  <ItemGroup>
+    <Page Update="Properties\DesignTimeResources.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+      <ContainsDesignTimeResources>true</ContainsDesignTimeResources>
+    </Page>
   </ItemGroup>
 
   <ItemGroup>

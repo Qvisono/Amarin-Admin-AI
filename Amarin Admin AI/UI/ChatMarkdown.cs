@@ -224,9 +224,11 @@ internal static class ChatMarkdown
                 target.Add(BuildRule());
                 break;
 
-            case ParagraphBlock paragraph when SoleImage(paragraph.Inline) is { } picture:
-                // Абзац из одной картинки — это иллюстрация, а не текст: показываем её.
-                target.Add(BuildImage(picture, context, last));
+            case ParagraphBlock { Inline: { } inline } when HasPicture(inline):
+                // Картинка в абзаце — это иллюстрация, а не текст. Абзац разрезается на части:
+                // текст до, сама картинка, текст после. Иначе всё, что не осталось наедине с
+                // картинкой, молча вырождалось в синюю ссылку.
+                AddSplitParagraph(target, inline, context, last);
                 break;
 
             case ParagraphBlock paragraph:
@@ -291,38 +293,98 @@ internal static class ChatMarkdown
             Margin = new Thickness(0)
         };
 
-    /// <summary>
-    /// Единственная картинка в абзаце, если он состоит только из неё. Пробелы вокруг не в счёт —
-    /// перенос строки в разметке не должен мешать показать иллюстрацию.
-    /// </summary>
-    private static LinkInline? SoleImage(ContainerInline? inline)
+    /// <summary>Есть ли в абзаце картинка на верхнем уровне — вложенные в ссылку не в счёт.</summary>
+    private static bool HasPicture(ContainerInline inline)
     {
-        if (inline is null)
-        {
-            return null;
-        }
-
-        LinkInline? found = null;
         foreach (var child in inline)
         {
-            switch (child)
+            if (child is LinkInline { IsImage: true })
             {
-                case LinkInline { IsImage: true } image when found is null:
-                    found = image;
-                    break;
-
-                case LineBreakInline:
-                    break;
-
-                case LiteralInline literal when literal.Content.ToString().Trim().Length == 0:
-                    break;
-
-                default:
-                    return null;
+                return true;
             }
         }
 
-        return found;
+        return false;
+    }
+
+    /// <summary>
+    /// Разрезает абзац по картинкам: «Вот: ![alt](url) и подпись» превращается в три блока.
+    /// Пустые куски выбрасываются, так что абзац из одной картинки остаётся одной картинкой.
+    /// </summary>
+    private static void AddSplitParagraph(
+        BlockCollection target,
+        ContainerInline inline,
+        RenderContext context,
+        bool last)
+    {
+        var produced = new List<WpfBlock>();
+        var run = new List<MdInline>();
+
+        void FlushText()
+        {
+            var trimmed = TrimBlank(run);
+            if (trimmed.Count > 0)
+            {
+                produced.Add(BuildParagraphFrom(trimmed, context, last: false));
+            }
+
+            run.Clear();
+        }
+
+        foreach (var child in inline)
+        {
+            if (child is LinkInline { IsImage: true } picture)
+            {
+                FlushText();
+                produced.Add(BuildImage(picture, context, last: false));
+            }
+            else
+            {
+                run.Add(child);
+            }
+        }
+
+        FlushText();
+
+        if (produced.Count == 0)
+        {
+            return;
+        }
+
+        if (last)
+        {
+            produced[^1].Margin = new Thickness(0);
+        }
+
+        foreach (var block in produced)
+        {
+            target.Add(block);
+        }
+    }
+
+    /// <summary>Срезает переносы и пробельные куски с обоих концов куска текста.</summary>
+    private static List<MdInline> TrimBlank(List<MdInline> inlines)
+    {
+        static bool Blank(MdInline inline) => inline switch
+        {
+            LineBreakInline => true,
+            LiteralInline literal => literal.Content.ToString().Trim().Length == 0,
+            _ => false
+        };
+
+        var start = 0;
+        var end = inlines.Count;
+        while (start < end && Blank(inlines[start]))
+        {
+            start++;
+        }
+
+        while (end > start && Blank(inlines[end - 1]))
+        {
+            end--;
+        }
+
+        return inlines.GetRange(start, end - start);
     }
 
     private static WpfBlock BuildImage(LinkInline image, RenderContext context, bool last)
@@ -469,6 +531,20 @@ internal static class ChatMarkdown
     {
         var paragraph = NewParagraph(context, last);
         AddInlines(paragraph.Inlines, inline, context);
+        return paragraph;
+    }
+
+    private static WpfParagraph BuildParagraphFrom(
+        IReadOnlyList<MdInline> inlines,
+        RenderContext context,
+        bool last)
+    {
+        var paragraph = NewParagraph(context, last);
+        foreach (var child in inlines)
+        {
+            AddInline(paragraph.Inlines, child, context);
+        }
+
         return paragraph;
     }
 

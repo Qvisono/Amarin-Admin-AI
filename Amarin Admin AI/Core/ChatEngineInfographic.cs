@@ -185,6 +185,7 @@ internal sealed partial class ChatEngine
                 cancellationToken)
             .ConfigureAwait(false);
 
-        return ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content)?.Trim() ?? "";
+        return ReasoningSplit.Split(
+            ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
     }
 }

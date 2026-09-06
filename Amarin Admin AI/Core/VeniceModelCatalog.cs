@@ -283,6 +283,8 @@ internal static class VeniceModelCatalog
         ("kimi", "Kimi"),
         ("moonshot", "Moonshot"),
         ("minimax", "MiniMax"),
+        ("mimo", "MiMo"),
+        ("glm", "GLM"),
         ("qwen", "Qwen"),
         ("gemma", "Gemma"),
         ("gemini", "GoogleGemini"),
@@ -317,10 +319,13 @@ internal static class VeniceModelCatalog
         // Image models
         ("nano-banana", "Google"),
         ("flux", "Flux"),
+        // ByteDance's own sub-brands must win over the plain "seed" family below them —
+        // "seedream-3-5".Contains("seed") is also true, and the loop returns the first hit.
         ("seedream", "ByteDance"),
         ("seedance", "ByteDance"),
         ("bytedance", "ByteDance"),
         ("doubao", "ByteDance"),
+        ("seed", "Seed"),
         ("venice-sd", "Stability"),
         ("stable-diffusion", "Stability"),
         ("sdxl", "Stability"),

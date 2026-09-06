@@ -18,17 +18,11 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources.xaml"/>
                 <!--
-                    Design-time only. At runtime the palette, icons and vendor logos come
-                    from ThemeManager, which swaps three Application-level dictionaries so
-                    the theme can flip Light/Dark live. The XAML designer never runs
-                    ThemeManager, so without these every {DynamicResource} falls back to an
-                    unstyled default and the window renders all-white. mc:Ignorable="d"
-                    strips the d:-prefixed entries out of the runtime load, so they add
-                    nothing (and cannot shadow the live theme) in the built app.
+                    Палитры здесь нет намеренно: в работающем приложении её подставляет
+                    ThemeManager словарями уровня Application, и словарь уровня окна
+                    перекрыл бы их — тема перестала бы переключаться. Конструктору XAML
+                    палитру даёт Properties/DesignTimeResources.xaml.
                 -->
-                <ResourceDictionary d:Source="Theme/Palette.Dark.xaml"/>
-                <ResourceDictionary d:Source="Theme/Icons.Dark.xaml"/>
-                <ResourceDictionary d:Source="Theme/AiLogos.Dark.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -41,6 +35,15 @@
     ResizeBorderThickness="0" />
     </shell:WindowChrome.WindowChrome>
     <Grid Background="{DynamicResource Bg.Window}" MouseDown="Grid_MouseDown">
+        <!--
+            Слой оформления: градиент или картинка «за стеклом», которые AppearanceManager
+            собирает во время выполнения. ZIndex="-1" держит его под ScaledRoot независимо от
+            порядка в разметке, а IsHitTestVisible="False" — чтобы перетаскивание окна по пустому
+            месту (Grid_MouseDown) продолжало работать: попадание проваливается сквозь слой на
+            заливку корневого Grid.
+        -->
+        <Grid x:Name="BackdropHost" Panel.ZIndex="-1" IsHitTestVisible="False"
+              ClipToBounds="True" Visibility="Collapsed"/>
         <Grid x:Name="ScaledRoot">
             <Grid>
             <Grid.ColumnDefinitions>
@@ -127,12 +130,19 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition/>
-                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="42"/>
                     </Grid.RowDefinitions>
 
                     <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ClipToBounds="True" x:Name="SideBarScrollViewer" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
-                            <Grid Margin="2,2,2,0">
+                            <!--
+                                Без горизонтальных полей: свёрнутая панель шириной 42 не может
+                                позволить себе ни пикселя. Кнопка 30 плюс её поля 6+6 — это ровно
+                                42, и любой отступ здесь заставил бы WPF обрезать её прямоугольным
+                                layout-клипом (срез без скругления справа). Заодно логотип и «New
+                                Chat» теперь начинаются с одного x.
+                            -->
+                            <Grid Margin="0,2,0,0">
                                 <!-- Лого приложения -->
                                 <Button x:Name="SidebarLogoButton" Margin="6" Height="30" Width="30" HorizontalAlignment="Left"
                                         Cursor="Hand" Click="SidebarLogoButton_Click"
@@ -319,15 +329,23 @@
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <!-- Auto, not fixed: the composer grows when image thumbnails are attached. -->
-                        <RowDefinition Height="Auto" MinHeight="125"/>
+                        <RowDefinition x:Name="ComposerRow" Height="Auto" MinHeight="125"/>
                     </Grid.RowDefinitions>
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
               x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="27,18,20,10" MaxWidth="1070" x:Name="MessagesPanel">
                         </StackPanel>
                     </ScrollViewer>
+                    <!--
+                        VerticalAlignment="Bottom" и ClipToBounds нужны компактному режиму: при
+                        Stretch заданная высота центрируется в строке, и полоска зависла бы над
+                        нижним краем, а Border не обрезает детей — тулбар вылезал бы за
+                        скруглённый край во время анимации. На развёрнутый вид это не влияет:
+                        строка ровно по высоте composer'а плюс отступ.
+                    -->
                     <Border Grid.Row="1" x:Name="ComposerBorder" Margin="27,0,27,20"
-                            Background="{DynamicResource Bg.Panel}" MaxWidth="1070"
+                            Background="{DynamicResource Bg.Glass}" MaxWidth="1070"
+                            VerticalAlignment="Bottom" ClipToBounds="True"
                             CornerRadius="6" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                             AllowDrop="True" PreviewDragOver="Composer_DragOver" Drop="Composer_Drop">
                         <Border.Resources>
@@ -492,11 +510,16 @@
                             </Style>
                         </Border.Resources>
 
-                        <Grid Margin="14,10,14,8">
+                        <Grid x:Name="ComposerLayout" Margin="14,10,14,8">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition MinHeight="45"/>
-                                <RowDefinition Height="36"/>
+                                <RowDefinition x:Name="ComposerInputRowDef" MinHeight="45"/>
+                                <!--
+                                    Auto, а не фиксированные 36: высоту задаёт сам тулбар, и
+                                    компактный режим анимирует её до нуля. Со строкой Height="36"
+                                    строка держала бы высоту, сколько бы тулбар ни ужимался.
+                                -->
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- ===== ПРИКРЕПЛЁННЫЕ ИЗОБРАЖЕНИЯ ===== -->
@@ -515,7 +538,7 @@
                             </StackPanel>
 
                             <!-- ===== ПОЛЕ ВВОДА ===== -->
-                            <Grid Grid.Row="1" Margin="0,0,0,6">
+                            <Grid x:Name="ComposerInputRow" Grid.Row="1" Margin="0,0,0,6">
                                 <TextBox x:Name="MessageTextBox"
                      Background="Transparent" BorderThickness="0"
                      Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
@@ -525,7 +548,7 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      Padding="0"
                      PreviewKeyDown="MessageTextBox_PreviewKeyDown"/>
-                                <TextBlock Text="Спросите что-нибудь..." FontSize="14.5"
+                                <TextBlock x:Name="ComposerPlaceholder" Text="Спросите что-нибудь..." FontSize="14.5"
                        Foreground="{DynamicResource Text.Faint}" IsHitTestVisible="False">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -541,7 +564,7 @@
                             </Grid>
 
                             <!-- ===== ТУЛБАР ===== -->
-                            <Grid Grid.Row="2">
+                            <Grid x:Name="ComposerToolbar" Grid.Row="2" Height="36">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -738,7 +761,7 @@
                                     </ToggleButton.Template>
                                 </ToggleButton>
 
-                                <Popup x:Name="ModelPicker"
+                                    <Popup x:Name="ModelPicker"
        PlacementTarget="{Binding ElementName=ModelButton}"
        Placement="Top"
        VerticalOffset="-8"
@@ -748,393 +771,428 @@
        IsOpen="{Binding IsChecked, ElementName=ModelButton, Mode=TwoWay}"
        Opened="ModelPicker_Opened">
 
-                                    <Grid>
-                                    <local:ModelPickerPanel x:Name="ChatModelPicker"
+                                        <Grid>
+                                            <local:ModelPickerPanel x:Name="ChatModelPicker"
                                                             AllowAuto="True"
                                                             ModelPicked="ChatModelPicker_ModelPicked"/>
-                                    <Border Visibility="Collapsed" Width="250" Height="320" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                                            <Border Visibility="Collapsed" Width="250" Height="320" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="10" Padding="6">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                                        </Border.Effect>
+                                                <Border.Effect>
+                                                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
+                                                </Border.Effect>
 
-                                        <Border.Resources>
+                                                <Border.Resources>
 
-                                            <!-- ===== Вкладка ===== -->
-                                            <Style x:Key="PickerTab" TargetType="RadioButton">
-                                                <Setter Property="GroupName" Value="ModelPickerTabs"/>
-                                                <Setter Property="Cursor" Value="Hand"/>
-                                                <Setter Property="Height" Value="24"/>
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="RadioButton">
-                                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
-                                                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
+                                                    <!-- ===== Вкладка ===== -->
+                                                    <Style x:Key="PickerTab" TargetType="RadioButton">
+                                                        <Setter Property="GroupName" Value="ModelPickerTabs"/>
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Setter Property="Height" Value="24"/>
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="RadioButton">
+                                                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
+                                                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
                                            FontSize="11" Foreground="{DynamicResource Text.Muted}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Track}"/>
-                                                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
-                                                                    <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Track}"/>
+                                                                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                                                                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
 
-                                            <!-- ===== Заголовок категории ===== -->
-                                            <Style x:Key="PickerGroupHeader" TargetType="TextBlock">
-                                                <Setter Property="FontSize" Value="9.5"/>
-                                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
-                                                <Setter Property="Margin" Value="8,8,6,3"/>
-                                            </Style>
+                                                    <!-- ===== Заголовок категории ===== -->
+                                                    <Style x:Key="PickerGroupHeader" TargetType="TextBlock">
+                                                        <Setter Property="FontSize" Value="9.5"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                                                        <Setter Property="Margin" Value="8,8,6,3"/>
+                                                    </Style>
 
-                                            <!-- ===== Пункт модели (однострочный) ===== -->
-                                            <Style x:Key="ModelItem" TargetType="Button">
-                                                <Setter Property="Cursor" Value="Hand"/>
-                                                <Setter Property="Height" Value="28"/>
-                                                <Setter Property="Margin" Value="0,1"/>
-                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="7,0">
-                                                                <ContentPresenter VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsPressed" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
+                                                    <!-- ===== Пункт модели (однострочный) ===== -->
+                                                    <Style x:Key="ModelItem" TargetType="Button">
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Setter Property="Height" Value="28"/>
+                                                        <Setter Property="Margin" Value="0,1"/>
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="7,0">
+                                                                        <ContentPresenter VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsPressed" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
 
-                                            <!-- ===== Тексты пункта ===== -->
-                                            <Style x:Key="ModelName" TargetType="TextBlock">
-                                                <Setter Property="FontSize" Value="12"/>
-                                                <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-                                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                            </Style>
+                                                    <!-- ===== Тексты пункта ===== -->
+                                                    <Style x:Key="ModelName" TargetType="TextBlock">
+                                                        <Setter Property="FontSize" Value="12"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+                                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                    </Style>
 
-                                            <!-- ===== Галка выбранной модели ===== -->
-                                            <Style x:Key="SelectedCheck" TargetType="Path">
-                                                <Setter Property="Data" Value="M0,3.5 L3,6.5 L8,0"/>
-                                                <Setter Property="Stroke" Value="{DynamicResource Text.Bright}"/>
-                                                <Setter Property="StrokeThickness" Value="1.5"/>
-                                                <Setter Property="StrokeStartLineCap" Value="Round"/>
-                                                <Setter Property="StrokeEndLineCap" Value="Round"/>
-                                                <Setter Property="StrokeLineJoin" Value="Round"/>
-                                                <Setter Property="Width" Value="9"/>
-                                                <Setter Property="Height" Value="7"/>
-                                                <Setter Property="Stretch" Value="Uniform"/>
-                                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                                <Setter Property="Margin" Value="6,0,2,0"/>
-                                            </Style>
+                                                    <!-- ===== Галка выбранной модели ===== -->
+                                                    <Style x:Key="SelectedCheck" TargetType="Path">
+                                                        <Setter Property="Data" Value="M0,3.5 L3,6.5 L8,0"/>
+                                                        <Setter Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                                        <Setter Property="StrokeThickness" Value="1.5"/>
+                                                        <Setter Property="StrokeStartLineCap" Value="Round"/>
+                                                        <Setter Property="StrokeEndLineCap" Value="Round"/>
+                                                        <Setter Property="StrokeLineJoin" Value="Round"/>
+                                                        <Setter Property="Width" Value="9"/>
+                                                        <Setter Property="Height" Value="7"/>
+                                                        <Setter Property="Stretch" Value="Uniform"/>
+                                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        <Setter Property="Margin" Value="6,0,2,0"/>
+                                                    </Style>
 
-                                            <!-- ===== Фильтр-чип ===== -->
-                                            <Style x:Key="FilterChip" TargetType="ToggleButton">
-                                                <Setter Property="Cursor" Value="Hand"/>
-                                                <Setter Property="Height" Value="24"/>
-                                                <Setter Property="Margin" Value="4,0,0,0"/>
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="ToggleButton">
-                                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
+                                                    <!-- ===== Фильтр-чип ===== -->
+                                                    <Style x:Key="FilterChip" TargetType="ToggleButton">
+                                                        <Setter Property="Cursor" Value="Hand"/>
+                                                        <Setter Property="Height" Value="24"/>
+                                                        <Setter Property="Margin" Value="4,0,0,0"/>
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="5" Padding="8,0">
-                                                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
+                                                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
                                            FontSize="10.5" Foreground="{DynamicResource Text.Muted}"
                                            VerticalAlignment="Center"/>
-                                                            </Border>
-                                                            <ControlTemplate.Triggers>
-                                                                <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                                                </Trigger>
-                                                                <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
-                                                                    <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
-                                                                    <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
-                                                                    <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
-                                                                </Trigger>
-                                                            </ControlTemplate.Triggers>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Style>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                                                        </Trigger>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                                                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                                                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
+                                                                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
 
-                                        </Border.Resources>
+                                                </Border.Resources>
 
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                            </Grid.RowDefinitions>
-
-                                            <!-- ═══ ВКЛАДКИ ═══ -->
-                                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
-                    CornerRadius="7" Padding="2">
                                                 <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <RadioButton x:Name="TabRecommended" Style="{StaticResource PickerTab}"
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="*"/>
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- ═══ ВКЛАДКИ ═══ -->
+                                                    <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                    CornerRadius="7" Padding="2">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <RadioButton x:Name="TabRecommended" Style="{StaticResource PickerTab}"
                                  Content="Рекомендованы" IsChecked="True"/>
-                                                    <RadioButton x:Name="TabAll" Grid.Column="1" Style="{StaticResource PickerTab}"
+                                                            <RadioButton x:Name="TabAll" Grid.Column="1" Style="{StaticResource PickerTab}"
                                  Content="Все"/>
-                                                </Grid>
-                                            </Border>
-
-                                            <!-- ═══ ВКЛАДКА «РЕКОМЕНДОВАНЫ» ═══ -->
-                                            <ScrollViewer Grid.Row="1" Margin="0,2,0,0" VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
-                                                <ScrollViewer.Style>
-                                                    <Style TargetType="ScrollViewer">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=TabRecommended}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ScrollViewer.Style>
-                                                <StackPanel Margin="0,2,0,2">
-
-                                                    <!-- Авто -->
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="Маршрутизатор сам выберет модель">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Image Width="15" Height="15"
-                                  HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <TextBlock Style="{StaticResource PickerGroupHeader}" Text="ФЛАГМАНСКИЕ"/>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="claude-sonnet-5 · 1M">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Image Source="{DynamicResource Claude}" Width="15" Height="15"
-                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
-                                                            <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="grok-4-6 · 256k">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Image Source="{DynamicResource Grok}" Width="13" Height="13"
-                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <TextBlock Style="{StaticResource PickerGroupHeader}" Text="СРЕДНИЙ УРОВЕНЬ"/>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="openai-gpt-53-codex · 400k">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="O" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="GPT-5.3 Codex"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="kimi-k2-7-code · 256k">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="K" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Kimi K2.7 Code"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <TextBlock Style="{StaticResource PickerGroupHeader}" Text="БЮДЖЕТНЫЙ УРОВЕНЬ"/>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="minimax-m3-preview · 128k">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="M" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="MiniMax M3 Preview"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                    <Button Style="{StaticResource ModelItem}" ToolTip="qwen-3-7-plus · 128k">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="22"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
-                                                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
-                                                        </Grid>
-                                                    </Button>
-
-                                                </StackPanel>
-                                            </ScrollViewer>
-
-                                            <!-- ═══ ВКЛАДКА «ВСЕ» ═══ -->
-                                            <Grid Grid.Row="1" Margin="0,6,0,0">
-                                                <Grid.Style>
-                                                    <Style TargetType="Grid">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=TabAll}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Grid.Style>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="*"/>
-                                                </Grid.RowDefinitions>
-
-                                                <!-- Поиск + фильтры -->
-                                                <Grid Margin="0,0,0,4">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
-                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                                                        <Grid>
-                                                            <TextBox x:Name="ModelSearchBox"
-                                     Background="Transparent" BorderThickness="0" Padding="7,0"
-                                     VerticalContentAlignment="Center" FontSize="11"
-                                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"/>
-                                                            <TextBlock Text="Поиск..." FontSize="11" Foreground="{DynamicResource Text.Faint}"
-                                       Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
-                                                                <TextBlock.Style>
-                                                                    <Style TargetType="TextBlock">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding Text, ElementName=ModelSearchBox}" Value="">
-                                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                            </DataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </TextBlock.Style>
-                                                            </TextBlock>
                                                         </Grid>
                                                     </Border>
 
-                                                    <ToggleButton Grid.Column="1" Style="{StaticResource FilterChip}" Content="Vision"/>
-                                                    <ToggleButton Grid.Column="2" Style="{StaticResource FilterChip}" Content="Code"/>
-                                                </Grid>
+                                                    <!-- ═══ ВКЛАДКА «РЕКОМЕНДОВАНЫ» ═══ -->
+                                                    <ScrollViewer Grid.Row="1" Margin="0,2,0,0" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
+                                                        <ScrollViewer.Style>
+                                                            <Style TargetType="ScrollViewer">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=TabRecommended}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </ScrollViewer.Style>
+                                                        <StackPanel Margin="0,2,0,2">
 
-                                                <!-- Список -->
-                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                                            <!-- Авто -->
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="Маршрутизатор сам выберет модель">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Image Width="15" Height="15"
+                                  HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <TextBlock Style="{StaticResource PickerGroupHeader}" Text="ФЛАГМАНСКИЕ"/>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="claude-sonnet-5 · 1M">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Image Source="{DynamicResource Claude}" Width="15" Height="15"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
+                                                                    <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="grok-4-6 · 256k">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Image Source="{DynamicResource Grok}" Width="13" Height="13"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <TextBlock Style="{StaticResource PickerGroupHeader}" Text="СРЕДНИЙ УРОВЕНЬ"/>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="openai-gpt-53-codex · 400k">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="O" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="GPT-5.3 Codex"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="kimi-k2-7-code · 256k">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="K" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Kimi K2.7 Code"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <TextBlock Style="{StaticResource PickerGroupHeader}" Text="БЮДЖЕТНЫЙ УРОВЕНЬ"/>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="minimax-m3-preview · 128k">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="M" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="MiniMax M3 Preview"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <Button Style="{StaticResource ModelItem}" ToolTip="qwen-3-7-plus · 128k">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="22"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                                                    <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
+                                                                </Grid>
+                                                            </Button>
+
+                                                        </StackPanel>
+                                                    </ScrollViewer>
+
+                                                    <!-- ═══ ВКЛАДКА «ВСЕ» ═══ -->
+                                                    <Grid Grid.Row="1" Margin="0,6,0,0">
+                                                        <Grid.Style>
+                                                            <Style TargetType="Grid">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=TabAll}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Grid.Style>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="*"/>
+                                                        </Grid.RowDefinitions>
+
+                                                        <!-- Поиск + фильтры -->
+                                                        <Grid Margin="0,0,0,4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <Border Height="24" CornerRadius="5" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                                                                <Grid>
+                                                                    <TextBox x:Name="ModelSearchBox"
+                                     Background="Transparent" BorderThickness="0" Padding="7,0"
+                                     VerticalContentAlignment="Center" FontSize="11"
+                                     Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"/>
+                                                                    <TextBlock Text="Поиск..." FontSize="11" Foreground="{DynamicResource Text.Faint}"
+                                       Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Text, ElementName=ModelSearchBox}" Value="">
+                                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </Grid>
+                                                            </Border>
+
+                                                            <ToggleButton Grid.Column="1" Style="{StaticResource FilterChip}" Content="Vision"/>
+                                                            <ToggleButton Grid.Column="2" Style="{StaticResource FilterChip}" Content="Code"/>
+                                                        </Grid>
+
+                                                        <!-- Список -->
+                                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
-                                                    <StackPanel Margin="0,0,0,2">
+                                                            <StackPanel Margin="0,0,0,2">
 
-                                                        <Button Style="{StaticResource ModelItem}" ToolTip="Маршрутиз��тор сам выберет модель">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="22"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <Image Width="15" Height="15"
+                                                                <Button Style="{StaticResource ModelItem}" ToolTip="Маршрутиз��тор сам выберет модель">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="22"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Width="15" Height="15"
                                       HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
-                                                            </Grid>
-                                                        </Button>
+                                                                        <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
+                                                                    </Grid>
+                                                                </Button>
 
-                                                        <Button Style="{StaticResource ModelItem}" ToolTip="claude-sonnet-5 · 1M · Reason, Vision, Code">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="22"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <Image Source="{DynamicResource Claude}" Width="15" Height="15"
+                                                                <Button Style="{StaticResource ModelItem}" ToolTip="claude-sonnet-5 · 1M · Reason, Vision, Code">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="22"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Source="{DynamicResource Claude}" Width="15" Height="15"
                                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
-                                                                <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
-                                                            </Grid>
-                                                        </Button>
+                                                                        <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Claude Sonnet 5"/>
+                                                                        <Path Grid.Column="2" Style="{StaticResource SelectedCheck}"/>
+                                                                    </Grid>
+                                                                </Button>
 
-                                                        <Button Style="{StaticResource ModelItem}" ToolTip="grok-4-6 · 256k · Reason, Code">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="22"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <Image Source="{DynamicResource Grok}" Width="13" Height="13"
+                                                                <Button Style="{StaticResource ModelItem}" ToolTip="grok-4-6 · 256k · Reason, Code">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="22"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Source="{DynamicResource Grok}" Width="13" Height="13"
                                        HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
-                                                            </Grid>
-                                                        </Button>
+                                                                        <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Grok 4.6"/>
+                                                                    </Grid>
+                                                                </Button>
 
-                                                        <Button Style="{StaticResource ModelItem}" ToolTip="qwen-3-7-plus · 128k · Vision, Code">
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="22"/>
-                                                                    <ColumnDefinition Width="*"/>
-                                                                    <ColumnDefinition Width="Auto"/>
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                                                <Button Style="{StaticResource ModelItem}" ToolTip="qwen-3-7-plus · 128k · Vision, Code">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="22"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="Auto"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Text="Q" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
                                            HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0"/>
-                                                                <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
-                                                            </Grid>
-                                                        </Button>
+                                                                        <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Qwen 3.7 Plus"/>
+                                                                    </Grid>
+                                                                </Button>
 
-                                                    </StackPanel>
-                                                </ScrollViewer>
-                                            </Grid>
+                                                            </StackPanel>
+                                                        </ScrollViewer>
+                                                    </Grid>
 
+                                                </Grid>
+                                            </Border>
                                         </Grid>
+                                    </Popup>
+
+                                    <!--
+                                        Остаток на счету. Высота задана явно, а не растянута по
+                                        строке: тулбар меняет высоту в компактном режиме, и плашка
+                                        на Stretch скакала бы вместе с ним. Радиус и высота взяты
+                                        от кнопки отправки справа, чтобы пара читалась как один
+                                        ряд. Цвета ставит BalanceBadge из палитры — здесь только
+                                        форма. Видна всегда: до первого ответа Venice цифра берётся
+                                        из кэша на диске, а если и его нет — стоит прочерк.
+                                    -->
+                                    <Border x:Name="BalanceBadge" Grid.Column="3"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Height="28" CornerRadius="8" Padding="8,0,10,0"
+                                            BorderThickness="1" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <!--
+                                                Обе фигуры одним Path: у них общая система
+                                                координат 24x24, и растянуть их порознь нельзя —
+                                                задняя монетка занимает лишь угол бокса и,
+                                                растянутая сама по себе, раздулась бы на всю
+                                                иконку.
+                                            -->
+                                            <Path x:Name="BalanceCoin" Width="15" Height="15"
+                                                  Stretch="Uniform" Margin="0,0,6,0"
+                                                  VerticalAlignment="Center">
+                                                <Path.Data>
+                                                    <GeometryGroup FillRule="Nonzero">
+                                                        <StaticResource ResourceKey="Coin.Back"/>
+                                                        <StaticResource ResourceKey="Coin.Face"/>
+                                                    </GeometryGroup>
+                                                </Path.Data>
+                                            </Path>
+                                            <TextBlock x:Name="BalanceAmount" Text="—" FontSize="12"
+                                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </Border>
-                                    </Grid>
-                                </Popup>
-                                
-                                <!-- Кнопка отправки -->
-                                <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
+
+                                    <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="8">
@@ -1511,24 +1569,27 @@
                 </Style>
 
                 <!-- ===== Карточка темы ===== -->
+                <!--
+                    Карточка темы. Содержимое — превью палитры, которое собирается кодом из
+                    ThemeCatalog, поэтому здесь ContentPresenter, а не TextBlock: шаблон не может
+                    принять три цвета через TemplateBinding.
+                -->
                 <Style x:Key="ThemeCard" TargetType="RadioButton">
                     <Setter Property="Cursor" Value="Hand"/>
                     <Setter Property="GroupName" Value="Theme"/>
-                    <Setter Property="Margin" Value="0,0,8,0"/>
+                    <Setter Property="Margin" Value="0,0,8,8"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="RadioButton">
-                                <Border x:Name="Bg" Width="110" Height="56" Background="{DynamicResource Bg.Card}"
+                                <Border x:Name="Bg" Width="98" Height="68" Background="{DynamicResource Bg.Card}"
                                 BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="8">
                                     <Grid>
-                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12"
-                                           Foreground="{DynamicResource Text.Tertiary}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <ContentPresenter/>
                                         <Path x:Name="Check" Data="M0,3 L3,6 L8,0" Stroke="{DynamicResource Text.Bright}"
                                       StrokeThickness="1.6" StrokeStartLineCap="Round"
                                       StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                       Width="9" Height="7" Stretch="Uniform" Visibility="Collapsed"
-                                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0"/>
+                                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,8,0"/>
                                     </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
@@ -1544,6 +1605,95 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+                </Style>
+
+                <!-- Сегмент переключателя «Нет / Градиент / Изображение» -->
+                <Style x:Key="SettingsSegment" TargetType="RadioButton">
+                    <Setter Property="GroupName" Value="BackdropMode"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Margin" Value="0,0,6,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="RadioButton">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                                        BorderBrush="{DynamicResource Border.Default}"
+                                        BorderThickness="1" CornerRadius="6" Padding="12,0">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5"
+                                               Foreground="{DynamicResource Text.Muted}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
+                                        <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Ползунок настройки: заполненная дорожка слева от бегунка -->
+                <Style x:Key="SettingsRangeSlider" TargetType="Slider">
+                    <Setter Property="Height" Value="20"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="IsMoveToPointEnabled" Value="True"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Slider">
+                                <Grid>
+                                    <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                            Background="{DynamicResource Bg.Track}"/>
+                                    <Track x:Name="PART_Track">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                                <RepeatButton.Template>
+                                                    <ControlTemplate TargetType="RepeatButton">
+                                                        <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                                                Background="{DynamicResource Accent.Fill}"/>
+                                                    </ControlTemplate>
+                                                </RepeatButton.Template>
+                                            </RepeatButton>
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                                <RepeatButton.Template>
+                                                    <ControlTemplate TargetType="RepeatButton">
+                                                        <Border Background="Transparent"/>
+                                                    </ControlTemplate>
+                                                </RepeatButton.Template>
+                                            </RepeatButton>
+                                        </Track.IncreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb>
+                                                <Thumb.Template>
+                                                    <ControlTemplate TargetType="Thumb">
+                                                        <Ellipse Width="13" Height="13"
+                                                                 Fill="{DynamicResource Accent.Fill}"
+                                                                 Stroke="{DynamicResource Bg.Panel}" StrokeThickness="2"/>
+                                                    </ControlTemplate>
+                                                </Thumb.Template>
+                                            </Thumb>
+                                        </Track.Thumb>
+                                    </Track>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <Style x:Key="SettingValue" TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="10.5"/>
+                    <Setter Property="FontFamily" Value="Consolas"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="HorizontalAlignment" Value="Right"/>
                 </Style>
 
             </Grid.Resources>
@@ -1578,7 +1728,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.13.0"
+                                       Text="v1.14.0"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -1749,16 +1899,437 @@
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Тема"/>
-                                <TextBlock Style="{StaticResource SettingDesc}" Text="Цвет темы оформления. System следует настройке Windows"
+                                <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="Цветовая палитра приложения"
                                            Margin="0,0,0,8"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <RadioButton x:Name="ThemeCardLight" Style="{StaticResource ThemeCard}" Content="Light"
-                                                 Tag="Light" Checked="ThemeCard_Checked"/>
-                                    <RadioButton x:Name="ThemeCardDark" Style="{StaticResource ThemeCard}" Content="Dark"
-                                                 Tag="Dark" Checked="ThemeCard_Checked"/>
-                                    <RadioButton x:Name="ThemeCardSystem" Style="{StaticResource ThemeCard}" Content="System"
-                                                 Tag="System" Checked="ThemeCard_Checked"/>
+                                <!-- Карточки строятся кодом из ThemeCatalog.Presets: новая тема = одна строка в каталоге -->
+                                <WrapPanel x:Name="ThemeCardsHost" Orientation="Horizontal"/>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Следовать теме Windows"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Переключаться между Light и Dark вместе с системой"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="ThemeFollowSystemToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="ThemeFollowSystemToggle_Changed"
+                                              Unchecked="ThemeFollowSystemToggle_Changed"/>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Оформление" Margin="0,0,0,2"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Фон за интерфейсом, стекло и свой акцентный цвет. Выключено — чистая палитра темы"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AppearanceEnabledToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="AppearanceEnabledToggle_Changed"
+                                              Unchecked="AppearanceEnabledToggle_Changed"/>
+                                </Grid>
+
+                                <StackPanel x:Name="AppearanceBody" Margin="0,10,0,0"
+                                            IsEnabled="{Binding IsChecked, ElementName=AppearanceEnabledToggle}">
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Акцентный цвет"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}"
+                                                       Text="Заливка основных кнопок. «По теме» — цвет из палитры"/>
+                                        </StackPanel>
+                                        <local:ColorPickerField x:Name="AccentPicker" Grid.Column="1" Width="118"
+                                                                VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <Border Style="{StaticResource SettingsDivider}"/>
+
+                                    <TextBlock Style="{StaticResource SectionTitle}" Text="Фон"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                                        <RadioButton x:Name="BackdropNone" Style="{StaticResource SettingsSegment}"
+                                                     Content="Нет" Tag="None" Checked="BackdropMode_Checked"/>
+                                        <RadioButton x:Name="BackdropGradient" Style="{StaticResource SettingsSegment}"
+                                                     Content="Градиент" Tag="Gradient" Checked="BackdropMode_Checked"/>
+                                        <RadioButton x:Name="BackdropImage" Style="{StaticResource SettingsSegment}"
+                                                     Content="Изображение" Tag="Image" Checked="BackdropMode_Checked"/>
+                                    </StackPanel>
+
+                                    <!-- ── Градиент ── -->
+                                    <StackPanel x:Name="GradientPanel" Visibility="Collapsed">
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Готовые сочетания"
+                                                   Margin="0,0,0,6"/>
+                                        <WrapPanel x:Name="GradientPresetsHost" Margin="0,0,0,10"/>
+
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Цвета" Margin="0,0,0,6"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <local:ColorPickerField x:Name="GradientColor1" Width="106" Margin="0,0,6,0"/>
+                                            <local:ColorPickerField x:Name="GradientColor2" Width="106" Margin="0,0,6,0"/>
+                                            <local:ColorPickerField x:Name="GradientColor3" Width="106" Margin="0,0,6,0"/>
+                                            <local:ColorPickerField x:Name="GradientColor4" Width="106"/>
+                                        </StackPanel>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Наклон"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="GradientAngleSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0" Maximum="359" SmallChange="1" LargeChange="15"/>
+                                            <TextBlock x:Name="GradientAngleValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Движение"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="Отключается при удалённом сеансе и без аппаратного ускорения"/>
+                                            </StackPanel>
+                                            <ComboBox x:Name="MotionCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                                      MinWidth="130" VerticalAlignment="Center"
+                                                      SelectionChanged="MotionCombo_SelectionChanged">
+                                                <ComboBoxItem Content="Нет" Tag="None"/>
+                                                <ComboBoxItem Content="Вращение" Tag="Drift"/>
+                                                <ComboBoxItem Content="Перелив" Tag="Aurora"/>
+                                                <ComboBoxItem Content="Пульс" Tag="Pulse"/>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Скорость"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="MotionSpeedSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0.25" Maximum="3" SmallChange="0.05" LargeChange="0.25"/>
+                                            <TextBlock x:Name="MotionSpeedValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- ── Изображение ── -->
+                                    <StackPanel x:Name="ImagePanel" Visibility="Collapsed">
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Файл"/>
+                                                <TextBlock x:Name="BackgroundImageName" Style="{StaticResource SettingDesc}"
+                                                           Text="Не выбрано" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="RemoveBackgroundButton" Style="{StaticResource SecondaryButton}"
+                                                        Content="Убрать" Margin="0,0,6,0" Click="RemoveBackgroundButton_Click"/>
+                                                <Button x:Name="ChooseBackgroundButton" Style="{StaticResource SecondaryButton}"
+                                                        Content="Выбрать" Click="ChooseBackgroundButton_Click"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Вписывание"
+                                                       VerticalAlignment="Center"/>
+                                            <ComboBox x:Name="ImageFitCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                                      MinWidth="130" VerticalAlignment="Center"
+                                                      SelectionChanged="ImageFitCombo_SelectionChanged">
+                                                <ComboBoxItem Content="Заполнить" Tag="Fill"/>
+                                                <ComboBoxItem Content="Целиком" Tag="Fit"/>
+                                                <ComboBoxItem Content="Плиткой" Tag="Tile"/>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Яркость фото"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="ImageBrightnessSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0.2" Maximum="1.6" SmallChange="0.02" LargeChange="0.1"/>
+                                            <TextBlock x:Name="ImageBrightnessValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Насыщенность"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="ImageSaturationSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0" Maximum="2" SmallChange="0.02" LargeChange="0.1"/>
+                                            <TextBlock x:Name="ImageSaturationValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Толщина кристалла"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="Размытие фото"/>
+                                            </StackPanel>
+                                            <Slider x:Name="ImageBlurSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0" Maximum="80" SmallChange="1" LargeChange="5"/>
+                                            <TextBlock x:Name="ImageBlurValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- ── Стекло ── -->
+                                    <StackPanel x:Name="GlassPanel" Visibility="Collapsed">
+                                        <Border Style="{StaticResource SettingsDivider}"/>
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Стекло"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон"
+                                                   Margin="0,0,0,8"/>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Плотность панелей"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="GlassOpacitySlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0.15" Maximum="1" SmallChange="0.01" LargeChange="0.05"/>
+                                            <TextBlock x:Name="GlassOpacityValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Матовость"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="GlassFrostSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0" Maximum="0.6" SmallChange="0.01" LargeChange="0.05"/>
+                                            <TextBlock x:Name="GlassFrostValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Блик по диагонали"
+                                                       VerticalAlignment="Center"/>
+                                            <CheckBox x:Name="GlassSheenToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="GlassSheenToggle_Changed" Unchecked="GlassSheenToggle_Changed"/>
+                                        </Grid>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Виньетка"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="Затемняет края, чтобы текст не терялся на светлом фото"/>
+                                            </StackPanel>
+                                            <CheckBox x:Name="VignetteToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="VignetteToggle_Changed" Unchecked="VignetteToggle_Changed"/>
+                                        </Grid>
+                                    </StackPanel>
                                 </StackPanel>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="Интерфейс"/>
+
+                                <Grid Margin="0,2,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Шрифт"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Гарнитуры поставляются вместе с приложением"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="FontCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                              MinWidth="130" VerticalAlignment="Center"
+                                              SelectionChanged="FontCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Системный" Tag=""/>
+                                        <ComboBoxItem Content="Urbanist" Tag="Urbanist"/>
+                                        <ComboBoxItem Content="Outfit" Tag="Outfit"/>
+                                        <ComboBoxItem Content="Rubik" Tag="Rubik"/>
+                                        <ComboBoxItem Content="Arimo" Tag="Arimo"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Ширина колонки чата"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Длинные строки труднее читать — узкая колонка помогает"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="ChatWidthCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                              MinWidth="130" VerticalAlignment="Center"
+                                              SelectionChanged="ChatWidthCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Узкая" Tag="760"/>
+                                        <ComboBoxItem Content="Обычная" Tag="1070"/>
+                                        <ComboBoxItem Content="Широкая" Tag="1400"/>
+                                        <ComboBoxItem Content="Во всю ширину" Tag="100000"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="46"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Скругление ввода"
+                                               VerticalAlignment="Center"/>
+                                    <Slider x:Name="CornerRadiusSlider" Grid.Column="1"
+                                            Style="{StaticResource SettingsRangeSlider}"
+                                            Minimum="0" Maximum="20" SmallChange="1" LargeChange="2"/>
+                                    <TextBlock x:Name="CornerRadiusValue" Grid.Column="2"
+                                               Style="{StaticResource SettingValue}"/>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Анимации"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Движение фона и сворачивание поля ввода"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AnimationsToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="AnimationsToggle_Changed" Unchecked="AnimationsToggle_Changed"/>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Компактное поле ввода"
+                                                   Margin="0,0,0,2"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="Пока поле пустое и мышь далеко, оно сворачивается в полоску и отдаёт место чату"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="CompactComposerToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="CompactComposerToggle_Changed"
+                                              Unchecked="CompactComposerToggle_Changed"/>
+                                </Grid>
+
+                                <StackPanel x:Name="CompactBody" Margin="18,10,0,0"
+                                            IsEnabled="{Binding IsChecked, ElementName=CompactComposerToggle}">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Задержка"
+                                                   VerticalAlignment="Center"/>
+                                        <Slider x:Name="CompactDelaySlider" Grid.Column="1"
+                                                Style="{StaticResource SettingsRangeSlider}"
+                                                Minimum="300" Maximum="5000" SmallChange="50" LargeChange="250"/>
+                                        <TextBlock x:Name="CompactDelayValue" Grid.Column="2"
+                                                   Style="{StaticResource SettingValue}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Ширина полоски"
+                                                   VerticalAlignment="Center"/>
+                                        <Slider x:Name="CompactWidthSlider" Grid.Column="1"
+                                                Style="{StaticResource SettingsRangeSlider}"
+                                                Minimum="30" Maximum="100" SmallChange="1" LargeChange="5"/>
+                                        <TextBlock x:Name="CompactWidthValue" Grid.Column="2"
+                                                   Style="{StaticResource SettingValue}"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Радиус реакции"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}" Text="На каком расстоянии мышь разворачивает"/>
+                                        </StackPanel>
+                                        <Slider x:Name="CompactHoverSlider" Grid.Column="1"
+                                                Style="{StaticResource SettingsRangeSlider}"
+                                                Minimum="40" Maximum="400" SmallChange="5" LargeChange="20"/>
+                                        <TextBlock x:Name="CompactHoverValue" Grid.Column="2"
+                                                   Style="{StaticResource SettingValue}"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <Button x:Name="ResetAppearanceButton" Style="{StaticResource SecondaryButton}"
+                                        HorizontalAlignment="Left" Content="Сбросить оформление"
+                                        Click="ResetAppearanceButton_Click"/>
                             </StackPanel>
                         </ScrollViewer>
 

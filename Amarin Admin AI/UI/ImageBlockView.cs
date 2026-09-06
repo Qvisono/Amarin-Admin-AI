@@ -38,7 +38,8 @@ internal static class ImageBlockView
     /// </summary>
     private static readonly Dictionary<string, List<Border>> Pending = [];
 
-    private static readonly Lazy<HttpClient> Http = new(() => HttpClients.Create(FetchTimeout));
+    private static readonly Lazy<HttpClient> Http =
+        new(() => HttpClients.Create(FetchTimeout, browserIdentity: true));
 
     public static FrameworkElement Create(FrameworkElement host, string url, string? alt)
     {
@@ -197,7 +198,10 @@ internal static class ImageBlockView
 
     private static BitmapSource? Download(Uri target)
     {
-        using var response = Http.Value.Send(new HttpRequestMessage(HttpMethod.Get, target));
+        using var request = new HttpRequestMessage(HttpMethod.Get, target);
+        RemoteImages.ApplyBrowserHeaders(request, target);
+
+        using var response = Http.Value.Send(request);
         if (!response.IsSuccessStatusCode)
         {
             return null;
@@ -297,23 +301,12 @@ internal static class ImageBlockView
         }
     }
 
-    /// <summary>http(s) only — no file://, and nothing that would read off this machine.</summary>
-    private static bool IsFetchable(string url, out Uri target)
-    {
-        target = null!;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            return false;
-        }
-
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        {
-            return false;
-        }
-
-        target = uri;
-        return true;
-    }
+    /// <summary>
+    /// http(s) only — no file://, and nothing pointing back at this machine or the local network.
+    /// The URL comes out of a model's answer, so the rules live in one shared place.
+    /// </summary>
+    private static bool IsFetchable(string url, out Uri target) =>
+        RemoteImages.IsSafeTarget(url, out target);
 
     private static void Remember(string url, BitmapSource source)
     {

@@ -64,6 +64,7 @@ namespace Amarin.UI
             TextOptions.SetTextHintingMode(this, TextHintingMode.Fixed);
 
             new PerformanceOptimizer(this);
+            InitializeAppearance();
 
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
@@ -253,22 +254,6 @@ namespace Amarin.UI
             UiScale.Apply(this, ScaledRoot, percent);
         }
 
-        private void ThemeCard_Checked(object sender, RoutedEventArgs e)
-        {
-            if (_settingsUiLoading || _services is null)
-            {
-                return;
-            }
-
-            if (sender is RadioButton { Tag: string tag } &&
-                Enum.TryParse(tag, ignoreCase: true, out AppTheme theme))
-            {
-                _services.Settings.Theme = theme;
-                _services.SettingsStore.Save(_services.Settings);
-                ThemeManager.Apply(theme);
-            }
-        }
-
         /// <summary>
         /// Re-fetches the ImageSources that were assigned from code: those hold the previous
         /// theme's object and, unlike brushes, do not follow a DynamicResource.
@@ -288,13 +273,6 @@ namespace Amarin.UI
             {
                 RenderSession();
             }
-        }
-
-        private void SelectThemeCard(AppTheme theme)
-        {
-            ThemeCardLight.IsChecked = theme == AppTheme.Light;
-            ThemeCardDark.IsChecked = theme == AppTheme.Dark;
-            ThemeCardSystem.IsChecked = theme == AppTheme.System;
         }
 
         // ───────── Уведомление о завершении ответа ─────────
@@ -777,8 +755,8 @@ namespace Amarin.UI
                 AutoScrollToggle.IsChecked = settings.AutoScroll;
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
-                SelectThemeCard(settings.Theme);
                 ThemeManager.Apply(settings.Theme);
+                LoadAppearanceUi(settings);
                 SelectUiScale(settings.UiScalePercent);
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
@@ -906,7 +884,15 @@ namespace Amarin.UI
             RefreshChatList();
         }
 
-        private void SendButton_Click(object sender, RoutedEventArgs e) => _ = SendAsync();
+        private void SendButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Clicking the button leaves keyboard focus on it, which is both a worse place for
+            // the caret than the field the user is about to type in again, and — with the
+            // compact composer on — enough to hold the pill unfolded for the whole turn,
+            // because focus anywhere on the toolbar suppresses the collapse.
+            FocusMessageInput();
+            _ = SendAsync();
+        }
 
         private void FocusMessageInput()
         {
@@ -1166,6 +1152,7 @@ namespace Amarin.UI
         private void SetBusy(bool busy)
         {
             _busy = busy;
+            _compact?.SetBusy(busy);
             SendButton.IsEnabled = !busy;
             NewChatButton.IsEnabled = !busy;
             ChatListPanel.IsEnabled = !busy;
@@ -1173,6 +1160,11 @@ namespace Amarin.UI
             {
                 _workingTimer.Stop();
                 StopStreamRender();
+
+                // The single place every turn passes through, however it ended — finished,
+                // cancelled or failed. Venice stamps the remaining balance on the headers of
+                // each request, so by now the client holds the figure this turn left behind.
+                _balance?.Show(_services?.Venice.LastBalance);
 
                 // Focusing an element in an inactive window activates that window, so a turn
                 // finishing while the user works elsewhere used to yank the app to the front —
@@ -1297,7 +1289,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (!ChatSessionEdit.DeleteAssistantTurn(_session, message.Id))
+            if (!ChatSessionEdit.DeleteTurn(_session, message.Id))
             {
                 return;
             }
@@ -1541,7 +1533,7 @@ namespace Amarin.UI
             AccountAvatar.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             AccountLabels.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             SideBarScrollViewer.VerticalScrollBarVisibility = collapsed
-                ? ScrollBarVisibility.Hidden
+                ? ScrollBarVisibility.Disabled
                 : ScrollBarVisibility.Auto;
 
             if (_newChatLabel is not null)
@@ -1554,8 +1546,21 @@ namespace Amarin.UI
                 _newChatPlus.Margin = collapsed ? new Thickness(0) : new Thickness(0, 0, 6, 0);
             }
 
+            // The collapsed rail is 42 wide and the button is 30, so a 6px margin on each side
+            // needs exactly 42 — nothing left for layout rounding at fractional UI scales, and
+            // WPF answers an overflow with a square layout clip that shears the right edge off
+            // the rounded hover plate. Collapsed, the horizontal margin goes away and centring
+            // places the button instead: same spot on screen, 12px of slack behind it.
+            SidebarLogoButton.HorizontalAlignment = collapsed
+                ? HorizontalAlignment.Center
+                : HorizontalAlignment.Left;
+            SidebarLogoButton.Margin = collapsed
+                ? new Thickness(0, 6, 0, 6)
+                : new Thickness(6);
+
             UpdateLogoGlyph(SidebarLogoButton.IsMouseOver);
         }
+
 
         private void UpdateLogoGlyph(bool hover)
         {

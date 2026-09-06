@@ -326,4 +326,52 @@
             </DrawingGroup>
         </DrawingImage.Drawing>
     </DrawingImage>
+
+    <DrawingImage x:Key="GLM">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M4,6 V24 H26 V4 H6 Z">
+                <DrawingGroup.Transform>
+                    <TranslateTransform X="-4" Y="-6" />
+                </DrawingGroup.Transform>
+                <GeometryDrawing Brush="#FF16161A" Geometry="F1 M22,18z M0,0z M15.47,7.1L14.17,8.95C13.97,9.24,13.63,9.42,13.27,9.42L6.17,9.42 6.17,7.09C6.16,7.1,15.47,7.1,15.47,7.1z M24.3,7.1L13.14,22.91 5.7,22.91 16.86,7.1z M14.53,22.91L15.84,21.05C16.04,20.76,16.38,20.58,16.74,20.58L23.83,20.58 23.83,22.91 14.53,22.91z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- See AiLogos.Dark.xaml for how the OpacityMask carves the letterforms out of the blob;
+         only the final fill (the ink, not the mask) differs between the two themes. -->
+    <DrawingImage x:Key="MiMo">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M-200.008,-199.727 V312.273 H311.992 V-200.008 H-199.727 Z">
+                <DrawingGroup.Transform>
+                    <TranslateTransform X="200.008" Y="199.727" />
+                </DrawingGroup.Transform>
+                <DrawingGroup>
+                    <DrawingGroup.OpacityMask>
+                        <DrawingBrush ViewportUnits="Absolute" ViewboxUnits="Absolute" Viewport="-200.008,-199.727,512,512" Viewbox="-200.008,-199.727,512,512" Stretch="Uniform" TileMode="None">
+                            <DrawingBrush.Drawing>
+                                <DrawingGroup>
+                                    <GeometryDrawing Brush="#FFFFFFFF" Geometry="F0 M258.626,-146.231C210.322,-194.349 140.867,-199.727 55.992,-199.727 -28.99,-199.727 -98.55,-194.287 -146.834,-146.039 -195.111,-97.811 -200.008,-28.363 -200.008,56.522 -200.008,141.421 -195.111,210.89 -146.814,259.135 -98.533,307.39 -28.981,312.274 55.992,312.274 140.966,312.274 210.506,307.39 258.787,259.135 307.081,210.881 311.992,141.421 311.992,56.522 311.992,-28.377 307.028,-97.9 258.626,-146.136z" />
+                                    <GeometryDrawing Brush="#FF000000" Geometry="F0 M204.546,-41.122C206.305,-41.122,207.769,-39.705,207.769,-37.961L207.769,151.425C207.769,153.14,206.305,154.564,204.546,154.564L163.05,154.564C161.269,154.564,159.822,153.14,159.822,151.425L159.822,-37.961C159.822,-39.704,161.268,-41.122,163.05,-41.122L204.546,-41.122z M24.468,-41.122C55.771,-41.122 88.501,-39.687 104.644,-23.533 120.515,-7.636 122.234,24.016 122.3,54.753L122.3,151.424C122.3,153.139,120.854,154.563,119.081,154.563L77.591,154.563C75.814,154.563,74.362,153.139,74.362,151.424L74.362,53.09C74.318,35.923 73.331,18.28 64.478,9.398 56.858,1.757 42.639,0.00700000000000323 27.853,-0.355999999999996L-47.357,-0.355999999999996C-49.121,-0.355999999999996,-50.565,1.063,-50.565,2.78L-50.565,151.425C-50.565,153.14,-52.027,154.564,-53.802,154.564L-95.318,154.564C-97.092,154.564,-98.519,153.14,-98.519,151.425L-98.519,-37.961C-98.519,-39.704,-97.093,-41.122,-95.318,-41.122L24.468,-41.122z M33.755,34.305C35.521,34.305,36.956,35.718,36.956,37.448L36.956,151.425C36.956,153.14,35.52,154.564,33.755,154.564L-9.829,154.564C-11.621,154.564,-13.057,153.14,-13.057,151.425L-13.057,37.448C-13.057,35.718,-11.621,34.305,-9.829,34.305L33.755,34.305z" />
+                                </DrawingGroup>
+                            </DrawingBrush.Drawing>
+                        </DrawingBrush>
+                    </DrawingGroup.OpacityMask>
+                    <GeometryDrawing Brush="#FF16161A">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry RadiusX="0" RadiusY="0" Rect="-200.008,-199.727,512,512" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="Seed">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
+                <GeometryDrawing Brush="#FF16161A" Geometry="F1 M24,24z M0,0z M4.772,19.044L1,20.004 1,2.995 4.772,3.955 4.772,19.045z M23,20.04L19.221,21 19.221,2 23,2.953 23,20.04z M10.752,19.564L6.98,20.524 6.98,10.504 10.752,11.464 10.752,19.564z M13.217,9.018L16.997,8.058 16.997,18.078 13.217,17.118 13.217,9.018z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
 </ResourceDictionary>

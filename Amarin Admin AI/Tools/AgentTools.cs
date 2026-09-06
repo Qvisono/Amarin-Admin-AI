@@ -18,6 +18,7 @@ internal static class AgentTools
             new FolderAnalysisTool(),
             new WebSearchTool(venice.SearchWebAsync),
             new ScrapeUrlTool(venice.ScrapeUrlAsync),
+            new FetchImageTool(),
             new EventLogTool(),
             new NetworkTool(),
             new ScheduledTaskTool(),

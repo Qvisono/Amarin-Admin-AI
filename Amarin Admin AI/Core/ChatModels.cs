@@ -65,7 +65,20 @@ public sealed class ChatDisplayMessage
 
     public TimeSpan Duration { get; set; }
 
+    /// <summary>
+    /// How long the model spent before the first word of the answer. Shown beside the duration
+    /// when it is worth mentioning; zero for models that start writing immediately.
+    /// </summary>
+    public TimeSpan ThinkingDuration { get; set; }
+
     public VeniceCost? Cost { get; set; }
+
+    /// <summary>
+    /// What the conversation with the model itself cost, with tools and nested agents taken
+    /// out. <see cref="Cost"/> is the sum of this, every tool call's own price and every nested
+    /// agent's — which is exactly the breakdown shown when hovering the price.
+    /// </summary>
+    public VeniceCost? ModelCost { get; set; }
 
     public AssistantStatus Status { get; set; }
 
@@ -98,6 +111,13 @@ public sealed class ToolCallRecord
     /// they survive a restart and travel with an exported chat, exactly like user attachments.
     /// </summary>
     public List<ImageAttachment> Images { get; set; } = [];
+
+    /// <summary>
+    /// What this one call added to the turn's bill. Display only — it is already inside the
+    /// message total, so summing it again would double-count. Set for the tools that actually
+    /// cost money (drawing a picture, scraping a page); null everywhere else.
+    /// </summary>
+    public VeniceCost? Cost { get; set; }
 
     public AgentRunRecord? NestedAgent { get; set; }
 }

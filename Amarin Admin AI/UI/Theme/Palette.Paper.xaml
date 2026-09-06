@@ -1,0 +1,83 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Пресет «Paper» — светлая схема без белого свечения.
+
+        В Light и Silver фон окна около 96% яркости, а панель — чистый #FFFFFF: максимальный
+        контраст с текстом, но на ярком мониторе такая поверхность отражает всю подсветку и
+        выжигает глаза. Здесь фон опущен до 90%, самая светлая поверхность — #F2EEE6, и вся
+        шкала уведена в тёплый бумажный тон (красный канал выше синего на 12–16 единиц).
+        Контраст текста к фону остаётся вдвое выше требований WCAG AA, но белого нет нигде.
+
+        Акцент оставлен чернильным, как в Light: цветная заливка на тёплой бумаге начинает
+        спорить с её собственным тоном, а чёрная ложится на неё естественно.
+    -->
+
+    <!-- Поверхности: тёплая бумага, ни одной белой -->
+    <SolidColorBrush x:Key="Bg.Window"   Color="#FFEAE5DC"/>
+    <SolidColorBrush x:Key="Bg.Sidebar"  Color="#FFE4DED4"/>
+    <SolidColorBrush x:Key="Bg.Panel"    Color="#FFF2EEE6"/>
+    <!-- Как Bg.Panel, но только для поверхностей внутри окна (поле ввода). Существует
+         отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
+         это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
+    <SolidColorBrush x:Key="Bg.Glass"    Color="#FFF2EEE6"/>
+    <SolidColorBrush x:Key="Bg.Card"     Color="#FFE8E3D9"/>
+    <SolidColorBrush x:Key="Bg.Raised"   Color="#FFE1DBD0"/>
+    <SolidColorBrush x:Key="Bg.Hover"    Color="#FFD9D2C5"/>
+    <SolidColorBrush x:Key="Bg.Selected" Color="#FFCFC7B8"/>
+    <SolidColorBrush x:Key="Bg.Track"    Color="#FFC5BCAB"/>
+    <SolidColorBrush x:Key="Bg.Elevated" Color="#FFB6AC9A"/>
+
+    <!-- Рамки -->
+    <SolidColorBrush x:Key="Border.Subtle"  Color="#FFDED8CD"/>
+    <SolidColorBrush x:Key="Border.Default" Color="#FFCFC8BA"/>
+    <SolidColorBrush x:Key="Border.Strong"  Color="#FFA9A090"/>
+
+    <!-- Текст и иконки: тёплый уголь вместо чёрного -->
+    <SolidColorBrush x:Key="Text.Primary"   Color="#FF23211E"/>
+    <SolidColorBrush x:Key="Text.Bright"    Color="#FF2A2723"/>
+    <SolidColorBrush x:Key="Text.Body"      Color="#FF2C2925"/>
+    <SolidColorBrush x:Key="Text.Secondary" Color="#FF3E3A34"/>
+    <SolidColorBrush x:Key="Text.Tertiary"  Color="#FF56514A"/>
+    <SolidColorBrush x:Key="Text.Muted"     Color="#FF6B6459"/>
+    <SolidColorBrush x:Key="Text.Dim"       Color="#FF7E776B"/>
+    <SolidColorBrush x:Key="Text.Faint"     Color="#FF938B7E"/>
+    <SolidColorBrush x:Key="Text.OnAccent"  Color="#FFF2EEE6"/>
+    <SolidColorBrush x:Key="Text.PrimaryTranslucent" Color="#E6000000"/>
+
+    <!-- Акцент (инвертированная заливка основных кнопок), уведён в тёплый уголь -->
+    <SolidColorBrush x:Key="Accent.Fill"        Color="#FF2E2A26"/>
+    <SolidColorBrush x:Key="Accent.FillHover"   Color="#FF14120F"/>
+    <SolidColorBrush x:Key="Accent.FillPressed" Color="#FF4A443D"/>
+
+    <!-- Статусы: те же тона, что в Light, приглушены под бумагу -->
+    <SolidColorBrush x:Key="Status.Success"       Color="#FF1F7A46"/>
+    <SolidColorBrush x:Key="Status.SuccessSoft"   Color="#FF47755C"/>
+    <SolidColorBrush x:Key="Status.Danger"        Color="#FFB62B1C"/>
+    <SolidColorBrush x:Key="Status.DangerStrong"  Color="#FF971E12"/>
+    <SolidColorBrush x:Key="Status.Warning"       Color="#FF8F6012"/>
+    <SolidColorBrush x:Key="Status.WarningBorder" Color="#FFDBC99C"/>
+    <SolidColorBrush x:Key="Status.WarningSurface" Color="#FFEDE4CE"/>
+
+    <!-- Оверлеи и прочее -->
+    <SolidColorBrush x:Key="Overlay.Scrim" Color="#59000000"/>
+    <SolidColorBrush x:Key="Overlay.Glass" Color="#48000000"/>
+
+    <!-- Подложка логотипов: одинакова в обеих темах, логотипы вендоров белые -->
+    <SolidColorBrush x:Key="Brand.LogoChip" Color="#FF23211E"/>
+
+
+    <!-- Подсветка кода и ссылки в markdown -->
+    <SolidColorBrush x:Key="Code.Inline"   Color="#FF7E5612"/>
+    <SolidColorBrush x:Key="Code.Keyword"  Color="#FF1F4C8F"/>
+    <SolidColorBrush x:Key="Code.Control"  Color="#FF6A3A96"/>
+    <SolidColorBrush x:Key="Code.String"   Color="#FF3D6B2E"/>
+    <SolidColorBrush x:Key="Code.Comment"  Color="#FF756D62"/>
+    <SolidColorBrush x:Key="Code.Number"   Color="#FF9A4F1E"/>
+    <SolidColorBrush x:Key="Code.Type"     Color="#FF1D6560"/>
+    <SolidColorBrush x:Key="Code.Variable" Color="#FF5E3E8C"/>
+    <SolidColorBrush x:Key="Code.Function" Color="#FF7E5612"/>
+    <SolidColorBrush x:Key="Code.Operator" Color="#FF6B6459"/>
+    <SolidColorBrush x:Key="Link.Default"  Color="#FF2E2A26"/>
+    <SolidColorBrush x:Key="Link.Hover"    Color="#FF14120F"/>
+</ResourceDictionary>

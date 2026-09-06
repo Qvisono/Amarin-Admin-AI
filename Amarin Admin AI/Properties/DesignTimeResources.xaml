@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Палитра для конструктора XAML, и только для него.
+
+        В работающем приложении палитру, иконки и логотипы вендоров подставляет ThemeManager:
+        он держит три словаря на уровне Application и подменяет их целиком, чтобы тема
+        переключалась на лету. Конструктор ThemeManager не запускает — он вообще не выполняет
+        код приложения, — поэтому без этого файла каждый {DynamicResource} в окнах не находит
+        значения: фон остаётся белым, а иконки рисуются красными крестиками.
+
+        Файл подключается не разметкой, а метаданными Page.ContainsDesignTimeResources в
+        .csproj — это штатный механизм WPF: конструктор подмешивает такой словарь в ресурсы
+        приложения сам, а в собранной программе его никто не загружает. Прежде здесь стоял
+        приём с d:Source прямо в окнах, но конструктор не умеет ставить Source через
+        префикс d: — этих свойств у него ровно фиксированный набор, — и запись молча
+        превращалась в пустой словарь.
+
+        Тёмный вариант выбран потому, что это тема по умолчанию (AppSettings.Theme).
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../UI/Theme/Palette.Dark.xaml"/>
+        <ResourceDictionary Source="../UI/Theme/Icons.Dark.xaml"/>
+        <ResourceDictionary Source="../UI/Theme/AiLogos.Dark.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>

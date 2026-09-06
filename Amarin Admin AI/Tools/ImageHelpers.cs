@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 namespace Amarin.Tools;
@@ -52,6 +53,39 @@ internal static class ImageHelpers
             Convert.ToBase64String(output.ToArray()),
             GuessMimeType(path),
             Path.GetFileName(path));
+    }
+
+    /// <summary>
+    /// Wraps bytes that came off the network. Downscaling keeps a 4K wallpaper from being sent to
+    /// the model as-is; formats GDI+ cannot open (WebP, AVIF) are passed through untouched rather
+    /// than dropped — the model's vision endpoint understands more formats than System.Drawing.
+    /// </summary>
+    public static ImageAttachment FromBytes(byte[] data, string mimeType, string? label = null)
+    {
+        try
+        {
+            using var stream = new MemoryStream(data, writable: false);
+            using var original = new Bitmap(stream);
+            using var resized = Downscale(original);
+            if (ReferenceEquals(resized, original) || resized.Size == original.Size)
+            {
+                return new ImageAttachment(Convert.ToBase64String(data), mimeType, label);
+            }
+
+            using var output = new MemoryStream();
+            var format = mimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
+                ? ImageFormat.Jpeg
+                : ImageFormat.Png;
+            resized.Save(output, format);
+            return new ImageAttachment(
+                Convert.ToBase64String(output.ToArray()),
+                format == ImageFormat.Jpeg ? "image/jpeg" : "image/png",
+                label);
+        }
+        catch (Exception ex) when (ex is ArgumentException or OutOfMemoryException or ExternalException)
+        {
+            return new ImageAttachment(Convert.ToBase64String(data), mimeType, label);
+        }
     }
 
     public static ImageAttachment FromBitmap(Bitmap bitmap, string label, string mimeType = "image/png")
