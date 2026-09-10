@@ -25,7 +25,7 @@ internal sealed class AgentHost : IAgentHost
     {
         var settings = _settings();
         var modelId = ResolveModel(complexity, settings);
-        var options = CloneOptions(_parentOptions, modelId);
+        var options = CloneOptions(_parentOptions, modelId, ReasoningFor(complexity, settings));
 
         var record = new AgentRunRecord
         {
@@ -108,7 +108,14 @@ internal sealed class AgentHost : IAgentHost
         return string.IsNullOrWhiteSpace(model) ? ForcedAgentModelId : model.Trim();
     }
 
-    private static AgentOptions CloneOptions(AgentOptions source, string model) =>
+    private static ReasoningSettings ReasoningFor(string complexity, AppSettings settings)
+    {
+        var heavy = complexity.Equals("heavy", StringComparison.OrdinalIgnoreCase);
+        var slot = heavy ? settings.AgentHeavyReasoning : settings.AgentLiteReasoning;
+        return slot ?? new ReasoningSettings();
+    }
+
+    private static AgentOptions CloneOptions(AgentOptions source, string model, ReasoningSettings reasoning) =>
         new()
         {
             ApiKey = source.ApiKey,
@@ -118,6 +125,8 @@ internal sealed class AgentHost : IAgentHost
             WebSearch = source.WebSearch,
             EnableWebCitations = source.EnableWebCitations,
             EnableXSearch = false,
-            Download = source.Download
+            Download = source.Download,
+            DisableThinking = reasoning.DisableThinking,
+            ReasoningEffort = reasoning.ReasoningEffort
         };
 }

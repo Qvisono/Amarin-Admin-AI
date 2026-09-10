@@ -66,6 +66,14 @@ namespace Amarin.UI
             new PerformanceOptimizer(this);
             InitializeAppearance();
 
+            // Выпадашки чата — под тем же присмотром, что и пикеры в настройках: одна открытая
+            // за раз, клик мимо закрывает.
+            PopupManager.Register(ModelPicker, ModelButton);
+            PopupManager.Register(ActionsPopup, AttachButton);
+
+            WindowMaximizeFix.Attach(this);
+            StateChanged += (_, _) => ApplyWindowStateChrome();
+
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
@@ -85,7 +93,11 @@ namespace Amarin.UI
             Loaded += OnWindowLoaded;
             Activated += (_, _) => OnWindowActivated();
             ThemeManager.EffectiveThemeChanged += OnEffectiveThemeChanged;
-            Closed += (_, _) => ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
+            Closed += (_, _) =>
+            {
+                ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
+                DownloadAccessBroker.SetHandler(null);
+            };
             PreviewTextInput += Window_PreviewTextInput;
             PreviewKeyDown += Window_PreviewKeyDown;
         }
@@ -99,6 +111,7 @@ namespace Amarin.UI
 
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
+            DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             ApplyUiScaleFromSettings();
             if (IsLoaded)
             {
@@ -120,6 +133,13 @@ namespace Amarin.UI
             _modelButtonLightning = ModelButton.Template.FindName("ModelButtonLightning", ModelButton) as System.Windows.Shapes.Path;
             _modelButtonLetter = ModelButton.Template.FindName("ModelButtonLetter", ModelButton) as TextBlock;
             UiScale.AttachCenteredBelowTooltip(Warn);
+            ChatReasoningPicker.SetUsesTools(true);
+            LiteReasoningPicker.SetUsesTools(true);
+            HeavyReasoningPicker.SetUsesTools(true);
+            RouterReasoningPicker.SetUsesTools(false);
+            TitleReasoningPicker.SetUsesTools(false);
+            AgentLiteReasoningPicker.SetUsesTools(true);
+            AgentHeavyReasoningPicker.SetUsesTools(true);
 
             if (_services is null)
             {
@@ -131,6 +151,10 @@ namespace Amarin.UI
             RefreshChatList();
             UpdateModelButton();
             LoadSettingsUi();
+
+            // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
+            UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
+            ScheduleAutoUpdateCheck();
             _ = LoadModelCatalogAsync();
 
             if (!string.IsNullOrWhiteSpace(_services.StartupPrompt))
@@ -175,6 +199,20 @@ namespace Amarin.UI
         private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
         {
             WindowMoveBehavior.HandleMouseLeftButtonDownForMove(this, e);
+        }
+
+        /// <summary>
+        /// Полоски для растягивания у развёрнутого окна только мешают: тянуть его всё равно
+        /// некуда. Вместе с обычным размером они возвращаются. Скруглением углов занимается
+        /// сама Windows, отсюда его трогать нечем.
+        /// </summary>
+        private void ApplyWindowStateChrome()
+        {
+            ResizeGrips.Visibility = WindowState == WindowState.Maximized
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+            PopupManager.CloseAll();
         }
 
         private void SettingsCloseButton_Click(object sender, RoutedEventArgs e)
@@ -588,6 +626,119 @@ namespace Amarin.UI
         private void DomainInput_TextChanged(object sender, TextChangedEventArgs e) =>
             DomainError.Visibility = Visibility.Collapsed;
 
+        // ───────── Запрос разрешения на загрузку ─────────
+
+        private sealed class DomainRequest
+        {
+            public required string Host { get; init; }
+
+            public required TaskCompletionSource<bool> Completion { get; init; }
+        }
+
+        private readonly Queue<DomainRequest> _domainRequests = new();
+        private DomainRequest? _shownDomainRequest;
+
+        /// <summary>
+        /// Инструмент загрузки упёрся в белый список. Показываем запрос и ждём ответа: «да» —
+        /// домен уходит в настройки и загрузка продолжается сама, «нет» — инструмент вернёт отказ.
+        /// Вызывается из фонового потока агента, поэтому всё, что трогает окно, идёт через Ui.
+        /// </summary>
+        private Task<bool> RequestDownloadDomainAsync(string host, CancellationToken cancellationToken)
+        {
+            if (DomainList.Normalize(host) is not { } normalized)
+            {
+                return Task.FromResult(false);
+            }
+
+            var request = new DomainRequest
+            {
+                Host = normalized,
+                Completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+            };
+
+            var registration = cancellationToken.Register(
+                () => Ui(() => CompleteDomainRequest(request, allowed: false)));
+            _ = request.Completion.Task.ContinueWith(
+                _ => registration.Dispose(),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
+            Ui(() =>
+            {
+                _domainRequests.Enqueue(request);
+                ShowNextDomainRequest();
+            });
+
+            return request.Completion.Task;
+        }
+
+        private void ShowNextDomainRequest()
+        {
+            if (_shownDomainRequest is not null)
+            {
+                return;
+            }
+
+            while (_domainRequests.TryDequeue(out var next))
+            {
+                // Отменённые запросы уже завершены — их незачем показывать.
+                if (next.Completion.Task.IsCompleted)
+                {
+                    continue;
+                }
+
+                _shownDomainRequest = next;
+                DownloadRequestText.Text =
+                    "Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. " +
+                    "Без разрешения загрузка не состоится.";
+                DownloadRequestHost.Text = next.Host;
+                DownloadRequestOverlay.Visibility = Visibility.Visible;
+                Chat.IsHitTestVisible = false;
+                return;
+            }
+
+            DownloadRequestOverlay.Visibility = Visibility.Collapsed;
+            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+        }
+
+        private void CompleteDomainRequest(DomainRequest request, bool allowed)
+        {
+            request.Completion.TrySetResult(allowed);
+            if (!ReferenceEquals(_shownDomainRequest, request))
+            {
+                return;
+            }
+
+            _shownDomainRequest = null;
+            ShowNextDomainRequest();
+        }
+
+        private void DownloadRequestAllowButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_shownDomainRequest is not { } request || _services is null)
+            {
+                return;
+            }
+
+            if (!DownloadValidator.IsDomainAllowed(request.Host))
+            {
+                DomainList.TryAdd(AllowedDomains, request.Host, out _);
+                AllowedDomains.Sort(StringComparer.OrdinalIgnoreCase);
+                SaveAllowedDomains();
+            }
+
+            CompleteDomainRequest(request, allowed: true);
+        }
+
+        private void DownloadRequestDenyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_shownDomainRequest is { } request)
+            {
+                CompleteDomainRequest(request, allowed: false);
+            }
+        }
+
         private void ApprovalModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_settingsUiLoading || _services is null)
@@ -613,26 +764,32 @@ namespace Amarin.UI
             if (ReferenceEquals(sender, LiteModelPicker))
             {
                 _services.Settings.LiteModelId = id;
+                LiteReasoningPicker.SetModel(id);
             }
             else if (ReferenceEquals(sender, HeavyModelPicker))
             {
                 _services.Settings.HeavyModelId = id;
+                HeavyReasoningPicker.SetModel(id);
             }
             else if (ReferenceEquals(sender, RouterModelPicker))
             {
                 _services.Settings.RouterModelId = id;
+                RouterReasoningPicker.SetModel(id);
             }
             else if (ReferenceEquals(sender, TitleModelPicker))
             {
                 _services.Settings.TitleModelId = id;
+                TitleReasoningPicker.SetModel(id);
             }
             else if (ReferenceEquals(sender, AgentLiteModelPicker))
             {
                 _services.Settings.AgentLiteModelId = id;
+                AgentLiteReasoningPicker.SetModel(id);
             }
             else if (ReferenceEquals(sender, AgentHeavyModelPicker))
             {
                 _services.Settings.AgentHeavyModelId = id;
+                AgentHeavyReasoningPicker.SetModel(id);
             }
             else
             {
@@ -640,6 +797,65 @@ namespace Amarin.UI
             }
 
             _services.SettingsStore.Save(_services.Settings);
+        }
+
+        private void SettingsReasoningChanged(object sender, ReasoningChoiceChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            var slot = SlotForReasoningPicker(sender);
+            if (slot is null)
+            {
+                return;
+            }
+
+            slot.DisableThinking = e.DisableThinking;
+            slot.ReasoningEffort = e.Effort;
+            _services.SettingsStore.Save(_services.Settings);
+        }
+
+        private ReasoningSettings? SlotForReasoningPicker(object sender)
+        {
+            if (_services is null)
+            {
+                return null;
+            }
+
+            var settings = _services.Settings;
+            if (ReferenceEquals(sender, LiteReasoningPicker))
+            {
+                return settings.LiteReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, HeavyReasoningPicker))
+            {
+                return settings.HeavyReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, RouterReasoningPicker))
+            {
+                return settings.RouterReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, TitleReasoningPicker))
+            {
+                return settings.TitleReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, AgentLiteReasoningPicker))
+            {
+                return settings.AgentLiteReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, AgentHeavyReasoningPicker))
+            {
+                return settings.AgentHeavyReasoning ??= new ReasoningSettings();
+            }
+
+            return null;
         }
 
         private void ChatModelPicker_ModelPicked(object sender, string id)
@@ -656,6 +872,27 @@ namespace Amarin.UI
             }
 
             UpdateModelButton();
+        }
+
+        private void ChatReasoningPicker_ChoiceChanged(object sender, ReasoningChoiceChangedEventArgs e)
+        {
+            if (VeniceModelCatalog.IsAuto(CurrentModelId()))
+            {
+                return;
+            }
+
+            _session.DisableThinking = e.DisableThinking;
+            _session.ReasoningEffort = e.Effort;
+            if (_services is null)
+            {
+                return;
+            }
+
+            var chat = _services.Settings.ChatReasoning ??= new ReasoningSettings();
+            chat.DisableThinking = e.DisableThinking;
+            chat.ReasoningEffort = e.Effort;
+            _services.SettingsStore.Save(_services.Settings);
+            PersistCurrent();
         }
 
         private void ModelPicker_Opened(object sender, EventArgs e)
@@ -695,6 +932,15 @@ namespace Amarin.UI
             {
                 field.SetCatalog(models, error);
             }
+
+            foreach (var picker in SettingsReasoningPickers())
+            {
+                picker.SetCatalog(models);
+            }
+
+            ChatReasoningPicker.SetCatalog(models);
+            UpdateReasoningPicker();
+            BindSettingsReasoningPickers();
         }
 
         private ModelPickerField[] SettingsPickers() =>
@@ -705,6 +951,16 @@ namespace Amarin.UI
             TitleModelPicker,
             AgentLiteModelPicker,
             AgentHeavyModelPicker
+        ];
+
+        private ReasoningPicker[] SettingsReasoningPickers() =>
+        [
+            LiteReasoningPicker,
+            HeavyReasoningPicker,
+            RouterReasoningPicker,
+            TitleReasoningPicker,
+            AgentLiteReasoningPicker,
+            AgentHeavyReasoningPicker
         ];
 
         private void SaveMainPromptButton_Click(object sender, RoutedEventArgs e)
@@ -762,6 +1018,7 @@ namespace Amarin.UI
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
                 LoadAccountUi();
+                LoadUpdatesUi();
                 RefreshAllowedDomainsUi();
 
                 LiteModelPicker.SetSelected(settings.LiteModelId);
@@ -770,6 +1027,7 @@ namespace Amarin.UI
                 TitleModelPicker.SetSelected(settings.TitleModelId);
                 AgentLiteModelPicker.SetSelected(settings.AgentLiteModelId);
                 AgentHeavyModelPicker.SetSelected(settings.AgentHeavyModelId);
+                BindSettingsReasoningPickers();
 
                 MainPromptTextBox.Text = settings.MainPrompt ?? "";
                 TechAiPromptTextBox.Text = string.IsNullOrWhiteSpace(settings.TechAiPrompt)
@@ -1187,6 +1445,7 @@ namespace Amarin.UI
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
+            ApplyChatReasoningDefaults();
             if (persist)
             {
                 PersistCurrent();
@@ -1195,6 +1454,13 @@ namespace Amarin.UI
             RenderSession();
             UpdateModelButton();
             FocusMessageInput();
+        }
+
+        private void ApplyChatReasoningDefaults()
+        {
+            var reasoning = _services?.Settings.ChatReasoning ?? new ReasoningSettings();
+            _session.DisableThinking = reasoning.DisableThinking;
+            _session.ReasoningEffort = reasoning.ReasoningEffort;
         }
 
         private void LoadSession(ChatSession session)
@@ -1584,6 +1850,40 @@ namespace Amarin.UI
 
             ModelBrand.Apply(this, modelId, _modelButtonLogo, _modelButtonLetter, _modelButtonLightning);
             ChatModelPicker.SetSelected(modelId);
+            UpdateReasoningPicker();
+        }
+
+        private void UpdateReasoningPicker()
+        {
+            var modelId = CurrentModelId();
+            var auto = VeniceModelCatalog.IsAuto(modelId);
+            ChatReasoningPicker.SetAutoMode(auto);
+            ChatReasoningPicker.SetModel(modelId);
+            ChatReasoningPicker.SetChoice(_session.DisableThinking, _session.ReasoningEffort);
+            ChatReasoningPicker.Visibility = auto ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void BindSettingsReasoningPickers()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var settings = _services.Settings;
+            BindSlot(LiteReasoningPicker, settings.LiteModelId, settings.LiteReasoning);
+            BindSlot(HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
+            BindSlot(RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);
+            BindSlot(TitleReasoningPicker, settings.TitleModelId, settings.TitleReasoning);
+            BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
+            BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
+        }
+
+        private static void BindSlot(ReasoningPicker picker, string modelId, ReasoningSettings? slot)
+        {
+            var reasoning = slot ?? new ReasoningSettings();
+            picker.SetModel(modelId);
+            picker.SetChoice(reasoning.DisableThinking, reasoning.ReasoningEffort);
         }
 
         private string CurrentModelId()

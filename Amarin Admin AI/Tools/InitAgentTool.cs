@@ -19,14 +19,13 @@ public sealed class InitAgentTool : ITool
     public string Name => ToolName;
 
     public string Description =>
-        "Start a system-administration agent for a concrete task on this PC. " +
-        "Pass complexity as exactly \"lite\" or \"heavy\" — do not pass model names. " +
-        "lite = one status check or listing, no repair. " +
-        "heavy = repair, root-cause diagnosis, many steps. When unsure, use lite. " +
-        "prompt must restate the user's actual request (language, paths, file types, what to measure). " +
-        "Do not copy examples from this description. " +
-        "The agent has the full admin toolset and reports back when done. " +
-        "At most 4 agents may run at once; a fifth call returns an error.";
+        "Start a sysadmin agent on this PC. Invoke this as a tool call, never as chat text. " +
+        "Arguments: one JSON object with exactly two keys, prompt and complexity. " +
+        "No extra keys, no markdown, no text after the closing brace. " +
+        "complexity is exactly \"lite\" or \"heavy\" — never a model name. " +
+        "lite = one status check or listing. heavy = install, repair, diagnosis, many steps. Unsure: lite. " +
+        "prompt restates the user's actual request in the user's language (goal, paths, what to change). " +
+        "The agent does not see the chat. At most 4 agents at once.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -34,12 +33,12 @@ public sealed class InitAgentTool : ITool
           "properties": {
             "prompt": {
               "type": "string",
-              "description": "Full task in the user's language: restate the user's request with paths, file types, and what to measure or change. Do not copy examples from the tool description."
+              "description": "Short complete task in the user's language: restate the user's actual request (goal, paths, what to change). One string. Escape quotes. Do not truncate with ellipsis. Do not copy examples from the tool description. The agent sees only this, not the chat."
             },
             "complexity": {
               "type": "string",
               "enum": ["lite", "heavy"],
-              "description": "lite = one status check or listing, no repair. heavy = repair or long diagnosis. When unsure, lite. Do not pass a model id."
+              "description": "Exactly lite or heavy. lite = one check/listing. heavy = install, repair, many steps. Unsure: lite. Not a model id."
             }
           },
           "required": ["prompt", "complexity"]

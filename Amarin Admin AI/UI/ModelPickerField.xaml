@@ -38,7 +38,7 @@
                VerticalOffset="4"
                HorizontalOffset="-80"
                AllowsTransparency="True"
-               StaysOpen="False"
+               StaysOpen="True"
                PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
             <local:ModelPickerPanel x:Name="Panel" AllowAuto="False" ModelPicked="Panel_ModelPicked"/>

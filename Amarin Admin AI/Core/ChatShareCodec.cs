@@ -213,6 +213,8 @@ internal static class ChatShareCodec
             CreatedAt = session.CreatedAt,
             UpdatedAt = session.UpdatedAt,
             SelectedModelId = session.SelectedModelId,
+            DisableThinking = session.DisableThinking,
+            ReasoningEffort = session.ReasoningEffort,
             Messages = kept,
             ApiMessages = api
         };

@@ -13,6 +13,8 @@ internal sealed class VeniceModelListCache
 
     public string? Error => _error;
 
+    public VeniceModelInfo? Find(string? id) => ReasoningPolicy.Find(_agentic, id);
+
     public async Task<IReadOnlyList<VeniceModelInfo>> GetAgenticAsync(
         CancellationToken cancellationToken = default)
     {

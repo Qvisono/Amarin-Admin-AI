@@ -132,6 +132,13 @@ public sealed class AppearanceSettings
     /// <summary>How close the pointer must come, in pixels, to unfold the pill. 25..400.</summary>
     public double CompactHoverRadius { get; set; } = 40;
 
+    /// <summary>
+    /// Does the pill react to the mouse at all. Off means the pointer is ignored entirely —
+    /// no hover unfolds it and nothing folds it back when the pointer leaves; it opens when the
+    /// caret goes into it and folds again once focus moves away and it is empty.
+    /// </summary>
+    public bool CompactHoverEnabled { get; set; } = true;
+
     public AppearanceSettings Clone() => new()
     {
         Enabled = Enabled,
@@ -157,7 +164,8 @@ public sealed class AppearanceSettings
         CompactComposer = CompactComposer,
         CompactDelayMs = CompactDelayMs,
         CompactWidthPercent = CompactWidthPercent,
-        CompactHoverRadius = CompactHoverRadius
+        CompactHoverRadius = CompactHoverRadius,
+        CompactHoverEnabled = CompactHoverEnabled
     };
 
     /// <summary>

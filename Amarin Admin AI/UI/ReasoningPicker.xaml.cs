@@ -1,0 +1,282 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using Amarin.Core;
+
+namespace Amarin.UI;
+
+public sealed class ReasoningChoiceChangedEventArgs : EventArgs
+{
+    public required bool DisableThinking { get; init; }
+
+    public required string? Effort { get; init; }
+}
+
+public partial class ReasoningPicker : UserControl
+{
+    public static readonly DependencyProperty LabelTextProperty =
+        DependencyProperty.Register(
+            nameof(LabelText),
+            typeof(string),
+            typeof(ReasoningPicker),
+            new PropertyMetadata("Выкл"));
+
+    public static readonly DependencyProperty ShowGaugeIconProperty =
+        DependencyProperty.Register(
+            nameof(ShowGaugeIcon),
+            typeof(bool),
+            typeof(ReasoningPicker),
+            new PropertyMetadata(false, OnShowGaugeIconChanged));
+
+    private readonly string _chipGroup = "ReasoningEffort_" + Guid.NewGuid().ToString("N");
+    private IReadOnlyList<VeniceModelInfo> _catalog = [];
+    private string _modelId = "";
+    private bool _disableThinking = true;
+    private string? _effort;
+    private bool _autoMode;
+    private bool _withTools = true;
+    private bool _suppress;
+
+    public ReasoningPicker()
+    {
+        InitializeComponent();
+        PopupManager.Register(PickerPopup, OpenButton);
+    }
+
+    public string LabelText
+    {
+        get => (string)GetValue(LabelTextProperty);
+        set => SetValue(LabelTextProperty, value);
+    }
+
+    public bool ShowGaugeIcon
+    {
+        get => (bool)GetValue(ShowGaugeIconProperty);
+        set => SetValue(ShowGaugeIconProperty, value);
+    }
+
+    private static void OnShowGaugeIconChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is ReasoningPicker picker)
+        {
+            picker.Refresh(raise: false);
+        }
+    }
+
+    public bool DisableThinking => _disableThinking;
+
+    public string? Effort => _effort;
+
+    public event EventHandler<ReasoningChoiceChangedEventArgs>? ChoiceChanged;
+
+    public void SetChoice(bool disableThinking, string? effort)
+    {
+        _disableThinking = disableThinking;
+        _effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim();
+        Refresh(raise: false);
+    }
+
+    public void SetModel(string modelId)
+    {
+        _modelId = modelId ?? "";
+        Refresh(raise: false);
+    }
+
+    public void SetCatalog(IReadOnlyList<VeniceModelInfo> models)
+    {
+        _catalog = models;
+        Refresh(raise: false);
+    }
+
+    public void SetAutoMode(bool auto)
+    {
+        _autoMode = auto;
+        Refresh(raise: false);
+    }
+
+    /// <summary>
+    /// Chat and agent slots always send function tools. Title/router do not.
+    /// Effort chips that 400 next to tools are hidden when this is true.
+    /// </summary>
+    public void SetUsesTools(bool usesTools)
+    {
+        _withTools = usesTools;
+        Refresh(raise: false);
+    }
+
+    private VeniceModelInfo? CurrentModel() => ReasoningPolicy.Find(_catalog, _modelId);
+
+    private void DisableToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppress)
+        {
+            return;
+        }
+
+        _disableThinking = DisableToggle.IsChecked == true;
+        Raise();
+        Refresh(raise: false);
+    }
+
+    private void EffortChip_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_suppress || sender is not RadioButton { Tag: string effort })
+        {
+            return;
+        }
+
+        _effort = effort;
+        if (_disableThinking)
+        {
+            _disableThinking = false;
+        }
+
+        Raise();
+        Refresh(raise: false);
+    }
+
+    private void Raise()
+    {
+        ChoiceChanged?.Invoke(this, new ReasoningChoiceChangedEventArgs
+        {
+            DisableThinking = _disableThinking,
+            Effort = _effort
+        });
+    }
+
+    private void Refresh(bool raise)
+    {
+        _suppress = true;
+        try
+        {
+            var model = CurrentModel();
+            var choice = new ReasoningChoice(_disableThinking, _effort);
+            LabelText = ReasoningPolicy.ButtonText(choice, model, _autoMode, _withTools);
+            OpenButton?.ApplyTemplate();
+            if (OpenButton?.Template.FindName("Label", OpenButton) is TextBlock buttonLabel)
+            {
+                buttonLabel.Text = LabelText;
+            }
+
+            UpdateGauge(choice, model);
+
+            if (DisableToggle is not null)
+            {
+                DisableToggle.IsChecked = _disableThinking;
+            }
+
+            var options = _autoMode ? [] : ReasoningPolicy.VisibleEffortOptions(model, _withTools);
+            var showEffort = options.Count > 0;
+            if (DisableRow is not null)
+            {
+                DisableRow.Visibility = _autoMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (AutoHint is not null)
+            {
+                AutoHint.Visibility = _autoMode ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (OpenButton is not null)
+            {
+                OpenButton.IsEnabled = !_autoMode;
+                OpenButton.IsHitTestVisible = !_autoMode;
+                OpenButton.Cursor = _autoMode ? Cursors.Arrow : Cursors.Hand;
+                if (_autoMode)
+                {
+                    OpenButton.IsChecked = false;
+                }
+            }
+
+            if (EffortCaption is not null)
+            {
+                EffortCaption.Visibility = showEffort ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            RebuildChips(options, model);
+        }
+        finally
+        {
+            _suppress = false;
+        }
+
+        if (raise)
+        {
+            Raise();
+        }
+    }
+
+    private void RebuildChips(IReadOnlyList<string> options, VeniceModelInfo? model)
+    {
+        if (EffortHost is null)
+        {
+            return;
+        }
+
+        EffortHost.Children.Clear();
+        if (options.Count == 0)
+        {
+            return;
+        }
+
+        var selected = ReasoningPolicy.ClampEffort(_effort, model, _withTools);
+        foreach (var option in options)
+        {
+            var chip = new RadioButton
+            {
+                Style = (Style)FindResource("EffortChip"),
+                GroupName = _chipGroup,
+                Content = ReasoningPolicy.EffortLabel(option),
+                Tag = option,
+                IsChecked = selected is not null &&
+                            option.Equals(selected, StringComparison.OrdinalIgnoreCase),
+                IsEnabled = !_disableThinking
+            };
+            chip.Checked += EffortChip_Checked;
+            EffortHost.Children.Add(chip);
+        }
+    }
+
+    private void UpdateGauge(ReasoningChoice choice, VeniceModelInfo? model)
+    {
+        if (OpenButton?.Template.FindName("GaugeIcon", OpenButton) is not FrameworkElement gauge)
+        {
+            return;
+        }
+
+        gauge.Visibility = ShowGaugeIcon ? Visibility.Visible : Visibility.Collapsed;
+        if (!ShowGaugeIcon)
+        {
+            return;
+        }
+
+        if (OpenButton.Template.FindName("GaugeNeedleRotate", OpenButton) is RotateTransform rotate)
+        {
+            rotate.Angle = NeedleAngle(choice, model);
+        }
+    }
+
+    private double NeedleAngle(ReasoningChoice choice, VeniceModelInfo? model)
+    {
+        if (choice.DisableThinking)
+        {
+            return -72;
+        }
+
+        var effort = ReasoningPolicy.ClampEffort(choice.Effort, model, _withTools)
+                     ?? choice.Effort;
+        return (effort ?? "").Trim().ToLowerInvariant() switch
+        {
+            "none" => -72,
+            "minimal" => -48,
+            "low" => -24,
+            "medium" => 0,
+            "high" => 24,
+            "xhigh" => 48,
+            "max" => 72,
+            _ => 0
+        };
+    }
+}

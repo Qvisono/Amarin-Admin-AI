@@ -156,6 +156,59 @@ public sealed class WebDownloadToolAllowlistTests : IDisposable
     }
 
     [Fact]
+    public async Task A_refused_request_leaves_the_host_blocked()
+    {
+        DownloadValidator.ConfigureAllowedDomains(["github.com"]);
+        DownloadAccessBroker.SetHandler((_, _) => Task.FromResult(false));
+        try
+        {
+            using var http = new HttpClient(new ThrowingHandler());
+            var tool = new WebDownloadTool(http, new DownloadOptions());
+
+            var result = await tool.ExecuteAsync(
+                JsonSchema.Parse("""{"url":"https://evil.example.net/setup.exe"}"""));
+
+            Assert.False(result.Success);
+            Assert.StartsWith(DomainList.BlockedMarker, result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DownloadAccessBroker.SetHandler(null);
+        }
+    }
+
+    [Fact]
+    public async Task Allowing_the_host_lets_the_same_call_go_through()
+    {
+        DownloadValidator.ConfigureAllowedDomains(["github.com"]);
+
+        // Так это делает окно: домен уходит в список, и загрузка продолжается сама —
+        // модели не нужно повторять вызов.
+        DownloadAccessBroker.SetHandler((host, _) =>
+        {
+            DownloadValidator.ConfigureAllowedDomains(["github.com", host]);
+            return Task.FromResult(true);
+        });
+
+        try
+        {
+            using var http = new HttpClient(new ThrowingHandler());
+            var tool = new WebDownloadTool(http, new DownloadOptions());
+
+            var result = await tool.ExecuteAsync(
+                JsonSchema.Parse("""{"url":"https://files.example.net/setup.exe"}"""));
+
+            // Белый список пройден, дело дошло до сети — там заглушка и падает.
+            Assert.False(result.Success);
+            Assert.DoesNotContain(DomainList.BlockedMarker, result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DownloadAccessBroker.SetHandler(null);
+        }
+    }
+
+    [Fact]
     public async Task Allowed_subdomain_passes_the_allowlist_check()
     {
         DownloadValidator.ConfigureAllowedDomains(["example.net"]);

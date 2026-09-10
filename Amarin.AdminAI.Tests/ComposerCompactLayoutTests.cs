@@ -146,4 +146,94 @@ public sealed class ComposerCompactLayoutTests
     public void Text_in_the_box_holds_it_open() =>
         Assert.False(ComposerCompactMode.ShouldCollapse(
             enabled: true, isEmpty: false, toolbarFocused: false, hasAttachments: false, pointerNear: false));
+
+    [Fact]
+    public void A_click_on_the_pill_unfolds_it()
+    {
+        var (collapsedBefore, collapsedAfter) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var compact = Mode(window);
+            var composer = (FrameworkElement)window.FindName("ComposerBorder");
+
+            // Компактный режим включён, мышь при этом полосе безразлична — щелчок всё равно
+            // обязан её развернуть, иначе до кнопок панели не добраться.
+            typeof(ComposerCompactMode)
+                .GetField("_settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(compact, new AppearanceSettings
+                {
+                    CompactComposer = true,
+                    CompactHoverEnabled = false,
+                    AnimationsEnabled = false
+                });
+
+            typeof(ComposerCompactMode)
+                .GetMethod("Collapse", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(compact, [false]);
+            window.UpdateLayout();
+            var before = compact.IsCollapsed;
+
+            composer.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(
+                System.Windows.Input.Mouse.PrimaryDevice,
+                0,
+                System.Windows.Input.MouseButton.Left)
+            {
+                RoutedEvent = UIElement.PreviewMouseDownEvent
+            });
+            window.UpdateLayout();
+            var after = compact.IsCollapsed;
+
+            typeof(ComposerCompactMode)
+                .GetMethod("Expand", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(compact, [false]);
+            window.UpdateLayout();
+            return (before, after);
+        });
+
+        Assert.True(collapsedBefore, "полоска не свернулась перед проверкой");
+        Assert.False(collapsedAfter, "щелчок не развернул полоску");
+    }
+
+    [Fact]
+    public void The_caret_inside_the_empty_box_does_not_hold_it_open()
+    {
+        var wants = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var input = (TextBox)window.FindName("MessageTextBox");
+            input.Text = "";
+            input.Focus();
+            window.UpdateLayout();
+
+            var compact = Mode(window);
+            typeof(ComposerCompactMode)
+                .GetField("_settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(compact, new AppearanceSettings { CompactComposer = true, CompactHoverEnabled = false });
+
+            return (bool)typeof(ComposerCompactMode)
+                .GetMethod("WantsCollapse", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(compact, [])!;
+        });
+
+        // Пустое поле сворачивается, даже когда курсор стоит в нём.
+        Assert.True(wants);
+    }
+
+    [Fact]
+    public void A_pointer_nearby_holds_it_open_while_the_mouse_matters() =>
+        Assert.False(ComposerCompactMode.ShouldCollapse(
+            enabled: true, isEmpty: true, toolbarFocused: false, hasAttachments: false,
+            pointerNear: true, pointerReacts: true));
+
+    [Fact]
+    public void With_the_mouse_switched_off_the_pointer_stops_counting() =>
+        Assert.True(ComposerCompactMode.ShouldCollapse(
+            enabled: true, isEmpty: true, toolbarFocused: false, hasAttachments: false,
+            pointerNear: true, pointerReacts: false));
+
+    [Fact]
+    public void With_the_mouse_switched_off_focus_still_holds_it_open() =>
+        Assert.False(ComposerCompactMode.ShouldCollapse(
+            enabled: true, isEmpty: true, toolbarFocused: true, hasAttachments: false,
+            pointerNear: false, pointerReacts: false));
 }

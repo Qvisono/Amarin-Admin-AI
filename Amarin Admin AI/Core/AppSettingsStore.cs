@@ -34,6 +34,13 @@ public sealed class AppSettingsStore
             changed |= SeedDownloadAllowedDomains(settings);
             settings.Appearance ??= new AppearanceSettings();
             changed |= settings.Appearance.Normalize();
+            settings.ChatReasoning ??= new ReasoningSettings();
+            settings.LiteReasoning ??= new ReasoningSettings();
+            settings.HeavyReasoning ??= new ReasoningSettings();
+            settings.RouterReasoning ??= new ReasoningSettings();
+            settings.TitleReasoning ??= new ReasoningSettings();
+            settings.AgentLiteReasoning ??= new ReasoningSettings();
+            settings.AgentHeavyReasoning ??= new ReasoningSettings();
             if (changed)
             {
                 Save(settings);
@@ -96,7 +103,9 @@ public sealed class AppSettingsStore
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV6) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV7) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV8) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV9))
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV9) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV10) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV11))
         {
             settings.TechAiPrompt = "";
             changed = true;

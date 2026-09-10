@@ -83,7 +83,7 @@
                VerticalOffset="4"
                HorizontalOffset="-70"
                AllowsTransparency="True"
-               StaysOpen="False"
+               StaysOpen="True"
                PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
             <Border Width="228" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"

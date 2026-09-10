@@ -179,10 +179,10 @@ internal sealed partial class ChatEngine
                     IncludeVeniceSystemPrompt = false,
                     EnableWebSearch = "off",
                     EnableXSearch = false,
-                    DisableThinking = true,
                     StripThinkingResponse = true
                 },
-                cancellationToken)
+                cancellationToken,
+                ReasoningChoice.Disabled)
             .ConfigureAwait(false);
 
         return ReasoningSplit.Split(

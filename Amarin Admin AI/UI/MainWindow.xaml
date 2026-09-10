@@ -611,7 +611,7 @@
        Placement="Top"
        VerticalOffset="-8"
        AllowsTransparency="True"
-       StaysOpen="False"
+       StaysOpen="True"
        PopupAnimation="Fade"
        IsOpen="{Binding IsChecked, ElementName=AttachButton, Mode=TwoWay}">
                                     <Border Width="300" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
@@ -716,8 +716,7 @@
                                 </Popup>
                                 
                                 <!-- Селектор модели AI -->
-                                <!-- Селектор модели AI -->
-                                <ToggleButton x:Name="ModelButton" Grid.Column="2" Height="32" Cursor="Hand">
+                                <ToggleButton x:Name="ModelButton" Grid.Column="1" Height="32" Cursor="Hand" Margin="0,0,6,0">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
                                             <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6" Padding="6,0,10,0">
@@ -766,7 +765,7 @@
        Placement="Top"
        VerticalOffset="-8"
        AllowsTransparency="True"
-       StaysOpen="False"
+       StaysOpen="True"
        PopupAnimation="Fade"
        IsOpen="{Binding IsChecked, ElementName=ModelButton, Mode=TwoWay}"
        Opened="ModelPicker_Opened">
@@ -1155,6 +1154,10 @@
                                             </Border>
                                         </Grid>
                                     </Popup>
+
+                                <local:ReasoningPicker x:Name="ChatReasoningPicker" Grid.Column="2" Height="32"
+                                                       VerticalAlignment="Center" ShowGaugeIcon="True"
+                                                       ChoiceChanged="ChatReasoningPicker_ChoiceChanged"/>
 
                                     <!--
                                         Остаток на счету. Высота задана явно, а не растянута по
@@ -1728,7 +1731,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.14.2"
+                                       Text="v1.15.0"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -2279,6 +2282,21 @@
 
                                 <StackPanel x:Name="CompactBody" Margin="18,10,0,0"
                                             IsEnabled="{Binding IsChecked, ElementName=CompactComposerToggle}">
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Реакция на мышь"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}"
+                                                       Text="Выкл — полоска не замечает указатель и разворачивается, только когда в неё ставят курсор"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="CompactHoverToggle" Grid.Column="1"
+                                                  Style="{StaticResource SettingsToggle}"
+                                                  Checked="CompactHoverToggle_Changed"
+                                                  Unchecked="CompactHoverToggle_Changed"/>
+                                    </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="140"/>
@@ -2307,7 +2325,7 @@
                                         <TextBlock x:Name="CompactWidthValue" Grid.Column="2"
                                                    Style="{StaticResource SettingValue}"/>
                                     </Grid>
-                                    <Grid>
+                                    <Grid IsEnabled="{Binding IsChecked, ElementName=CompactHoverToggle}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="140"/>
                                             <ColumnDefinition Width="*"/>
@@ -2422,26 +2440,46 @@
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Модели ответа"/>
                                 <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Лёгкие задачи" VerticalAlignment="Center"/>
-                                    <local:ModelPickerField x:Name="LiteModelPicker" HorizontalAlignment="Right" Width="170"
+                                    <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="LiteModelPicker" Grid.Column="2" Width="170"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Тяжёлые задачи" VerticalAlignment="Center"/>
-                                    <local:ModelPickerField x:Name="HeavyModelPicker" HorizontalAlignment="Right" Width="170"
+                                    <local:ReasoningPicker x:Name="HeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="HeavyModelPicker" Grid.Column="2" Width="170"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <StackPanel Margin="0,0,8,0" VerticalAlignment="Center">
                                         <TextBlock Style="{StaticResource SettingTitle}" Text="Маршрутизатор"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="Анализирует запрос и выбирает одну из моделей выше"/>
                                     </StackPanel>
-                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="1" Width="170" VerticalAlignment="Center"
+                                    <local:ReasoningPicker x:Name="RouterReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="2" Width="170" VerticalAlignment="Center"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
 
@@ -2486,18 +2524,42 @@
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="Служебные модели"/>
                                 <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Заголовки чатов" VerticalAlignment="Center"/>
-                                    <local:ModelPickerField x:Name="TitleModelPicker" HorizontalAlignment="Right" Width="170"
+                                    <local:ReasoningPicker x:Name="TitleReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="TitleModelPicker" Grid.Column="2" Width="170"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — лёгкие задачи" VerticalAlignment="Center"/>
-                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" HorizontalAlignment="Right" Width="170"
+                                    <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2" Width="170"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — тяжёлые задачи" VerticalAlignment="Center"/>
-                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" HorizontalAlignment="Right" Width="170"
+                                    <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2" Width="170"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                             </StackPanel>
@@ -2560,6 +2622,58 @@
                                     <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
                                             Content="Открыть" Click="OpenAppFilesButton_Click"/>
                                 </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <!-- Обновления -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Версия и обновления"/>
+                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDesc}"
+                                                   Text="Проверка ещё не запускалась"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Открыть релиз" Margin="0,0,6,0" Visibility="Collapsed"
+                                                Click="OpenReleaseButton_Click"/>
+                                        <Button x:Name="UpdateNowButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Обновить" Margin="0,0,6,0" Visibility="Collapsed"
+                                                Click="UpdateNowButton_Click"/>
+                                        <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
+                                                Content="Проверить обновления" Click="CheckUpdatesButton_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Полоса загрузки обновления -->
+                                <Grid x:Name="UpdateProgress" Height="4" Margin="0,10,0,0" Visibility="Collapsed">
+                                    <Border CornerRadius="2" Background="{DynamicResource Bg.Card}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition x:Name="UpdateProgressDone" Width="0*"/>
+                                            <ColumnDefinition x:Name="UpdateProgressLeft" Width="1*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                                    </Grid>
+                                </Grid>
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Проверять автоматически"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="При запуске, не чаще раза в 6 часов. Ничего не скачивается: приложение только сообщает о новой версии"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="AutoUpdateToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="AutoUpdateToggle_Changed"
+                                              Unchecked="AutoUpdateToggle_Changed"/>
+                                </Grid>
+
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <!-- Разрешённые сайты -->
@@ -2703,6 +2817,90 @@
             </Viewbox>
         </Grid>
 
+        <!-- ═══════════ ПОДТВЕРЖДЕНИЕ ОБНОВЛЕНИЯ ═══════════ -->
+        <Grid x:Name="UpdateConfirmOverlay" Visibility="Collapsed" Panel.ZIndex="39">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="UpdateConfirmCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock x:Name="UpdateConfirmTitle" Text="Обновить программу" FontSize="15"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="UpdateConfirmText" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}"
+                                   TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <StackPanel>
+                                <TextBlock x:Name="UpdateConfirmFile" FontFamily="Consolas" FontSize="12"
+                                           Foreground="{DynamicResource Text.Body}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="UpdateConfirmFolder" FontFamily="Consolas" FontSize="11"
+                                           Foreground="{DynamicResource Text.Faint}" Margin="0,4,0,0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится."
+                                   FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
+                                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button x:Name="UpdateConfirmCancelButton" Content="Отмена"
+                                    Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="UpdateConfirmCancelButton_Click"/>
+                            <Button x:Name="UpdateConfirmApplyButton" Content="Обновить и перезапустить"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="UpdateConfirmApplyButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ЗАПРОС НА РАЗРЕШЕНИЕ ЗАГРУЗКИ ═══════════ -->
+        <Grid x:Name="DownloadRequestOverlay" Visibility="Collapsed" Panel.ZIndex="38">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="DownloadRequestDenyButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0"
+                                     Fill="{DynamicResource Status.Warning}"/>
+                            <TextBlock Text="Сайт не в белом списке" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Primary}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="DownloadRequestText" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}"
+                                   TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <TextBlock x:Name="DownloadRequestHost" FontFamily="Consolas" FontSize="13"
+                                       Foreground="{DynamicResource Text.Body}"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                        <TextBlock Text="Разрешение сохранится в настройках и распространится на поддомены. Убрать его можно там же, в Data Controls."
+                                   FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
+                                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button x:Name="DownloadRequestDenyButton" Content="Не разрешать"
+                                    Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="DownloadRequestDenyButton_Click"/>
+                            <Button x:Name="DownloadRequestAllowButton" Content="Разрешить и продолжить"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="DownloadRequestAllowButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
         <!-- ═══════════ ПЕРЕИМЕНОВАНИЕ ПРОФИЛЯ ═══════════ -->
         <Grid x:Name="NameOverlay" Visibility="Collapsed" Panel.ZIndex="36">
             <Border Background="{DynamicResource Overlay.Scrim}">
@@ -2833,7 +3031,8 @@
 
         </Grid>
 
-        <Grid>
+        <!-- Полоски для растягивания окна. В развёрнутом виде их прячет ApplyWindowStateChrome. -->
+        <Grid x:Name="ResizeGrips">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition/>

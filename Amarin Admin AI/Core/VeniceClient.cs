@@ -20,6 +20,12 @@ public sealed class VeniceClient
 
     public event Action<string, string>? ModelFallback;
 
+    /// <summary>
+    /// Looks up <c>/models</c> capabilities so fallback can drop <c>reasoning_effort</c> on
+    /// models that reject it (Grok). Null until the catalogue has been loaded.
+    /// </summary>
+    public Func<string, VeniceModelInfo?>? ResolveModelInfo { get; set; }
+
     public string ActiveModel => _options.Model;
 
     public void SetActiveModel(string model)
@@ -50,14 +56,16 @@ public sealed class VeniceClient
         List<ToolDefinition>? tools,
         string? toolChoice,
         VeniceParameters veniceParameters,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        ReasoningChoice? reasoning = null) =>
         CreateChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
             Messages = messages.ToList(),
             Tools = tools,
             ToolChoice = toolChoice,
-            VeniceParameters = veniceParameters
+            VeniceParameters = veniceParameters,
+            ReasoningChoice = reasoning
         }, prepareMessages: true, cancellationToken);
 
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
@@ -104,7 +112,8 @@ public sealed class VeniceClient
         string? toolChoice,
         VeniceParameters veniceParameters,
         Action<string>? onText,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        ReasoningChoice? reasoning = null) =>
         StreamChatCompletionAsync(new ChatCompletionRequest
         {
             Model = _options.Model,
@@ -112,7 +121,8 @@ public sealed class VeniceClient
             Tools = tools,
             ToolChoice = toolChoice,
             Stream = true,
-            VeniceParameters = veniceParameters
+            VeniceParameters = veniceParameters,
+            ReasoningChoice = reasoning
         }, prepareMessages: true, onText, cancellationToken);
 
     private async Task<StreamedChatCompletion> StreamChatCompletionAsync(
@@ -157,38 +167,35 @@ public sealed class VeniceClient
         CancellationToken cancellationToken)
     {
         var payload = BuildPayload(request, model, prepareMessages, stream: false);
-
-        var serializeWatch = Stopwatch.StartNew();
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, VeniceJsonContext.Default.ChatCompletionRequest);
-        var serializeMs = serializeWatch.ElapsedMilliseconds;
-
-        using var content = new ByteArrayContent(bytes);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
-        {
-            Content = content,
-            Version = HttpVersion.Version20,
-            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
-
-        var httpWatch = Stopwatch.StartNew();
-        using var response = await _http.SendAsync(
-                httpRequest,
-                HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken)
-            .ConfigureAwait(false);
-        var httpMs = httpWatch.ElapsedMilliseconds;
-        UpdateBalanceFromHeaders(response);
+        using var response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        PerfLog.Write(
-            $"venice serialize_ms={serializeMs} http_ms={httpMs} status={(int)response.StatusCode} model={model}");
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new VeniceApiException(
-                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            var error = ExtractErrorMessage(body);
+            if (ShouldRetryToolsEffortConflict(payload, model, error))
+            {
+                payload = WithReasoningEffort(payload, ReasoningPolicy.None);
+                using var retry = await PostCompletionAsync(payload, model, cancellationToken)
+                    .ConfigureAwait(false);
+                body = await retry.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                if (!retry.IsSuccessStatusCode)
+                {
+                    throw new VeniceApiException(
+                        $"Venice API error ({(int)retry.StatusCode}): {ExtractErrorMessage(body)}");
+                }
+
+                return ReadCompletion(body);
+            }
+
+            throw new VeniceApiException($"Venice API error ({(int)response.StatusCode}): {error}");
         }
 
+        return ReadCompletion(body);
+    }
+
+    private ChatCompletionResponse ReadCompletion(string body)
+    {
         ChatCompletionResponse result;
         try
         {
@@ -221,103 +228,194 @@ public sealed class VeniceClient
         CancellationToken cancellationToken)
     {
         var payload = BuildPayload(request, model, prepareMessages, stream: true);
+        var response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var status = (int)response.StatusCode;
+            response.Dispose();
+            var error = ExtractErrorMessage(errorBody);
+            if (!ShouldRetryToolsEffortConflict(payload, model, error))
+            {
+                throw new VeniceApiException($"Venice API error ({status}): {error}");
+            }
+
+            payload = WithReasoningEffort(payload, ReasoningPolicy.None);
+            response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                var retryBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                status = (int)response.StatusCode;
+                response.Dispose();
+                throw new VeniceApiException($"Venice API error ({status}): {ExtractErrorMessage(retryBody)}");
+            }
+        }
+
+        using (response)
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken)
+                .ConfigureAwait(false);
+            using var reader = new StreamReader(stream);
+            var accumulator = new ChatStreamAccumulator();
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (line is null)
+                {
+                    break;
+                }
+
+                if (line.Length == 0 || line[0] == ':')
+                {
+                    continue;
+                }
+
+                if (!line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var data = line[5..].TrimStart();
+                if (data.Equals("[DONE]", StringComparison.OrdinalIgnoreCase))
+                {
+                    break;
+                }
+
+                ChatCompletionChunk chunk;
+                try
+                {
+                    chunk = JsonSerializer.Deserialize(data, VeniceJsonContext.Default.ChatCompletionChunk)
+                            ?? new ChatCompletionChunk();
+                }
+                catch (JsonException ex)
+                {
+                    var preview = data.Length > 240 ? data[..240] + "…" : data;
+                    throw new VeniceApiException(
+                        $"Venice API returned non-JSON stream chunk ({ex.Message}). Body: {preview}");
+                }
+
+                var added = accumulator.Apply(chunk);
+                if (added)
+                {
+                    onText?.Invoke(accumulator.Text);
+                }
+            }
+
+            if (accumulator.Cost.HasData)
+            {
+                AddCost(accumulator.Cost);
+            }
+
+            return new StreamedChatCompletion
+            {
+                Text = accumulator.Text,
+                ReasoningText = accumulator.ReasoningText,
+                InlineReasoning = accumulator.InlineReasoning,
+                ThinkingElapsed = accumulator.ThinkingElapsed,
+                ToolCalls = accumulator.BuildToolCalls(),
+                FinishReason = accumulator.FinishReason,
+                Cost = accumulator.Cost,
+                Model = model
+            };
+        }
+    }
+
+    private async Task<HttpResponseMessage> PostCompletionAsync(
+        ChatCompletionRequest payload,
+        string model,
+        CancellationToken cancellationToken)
+    {
+        var serializeWatch = Stopwatch.StartNew();
         var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, VeniceJsonContext.Default.ChatCompletionRequest);
-        using var content = new ByteArrayContent(bytes);
+        var serializeMs = serializeWatch.ElapsedMilliseconds;
+
+        var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
         {
             Content = content,
             Version = HttpVersion.Version20,
             VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
 
-        using var response = await _http.SendAsync(
+        var httpWatch = Stopwatch.StartNew();
+        var response = await _http.SendAsync(
                 httpRequest,
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken)
             .ConfigureAwait(false);
         UpdateBalanceFromHeaders(response);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            throw new VeniceApiException(
-                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(errorBody)}");
-        }
-
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        using var reader = new StreamReader(stream);
-        var accumulator = new ChatStreamAccumulator();
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-            if (line is null)
-            {
-                break;
-            }
-
-            if (line.Length == 0 || line[0] == ':')
-            {
-                continue;
-            }
-
-            if (!line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var data = line[5..].TrimStart();
-            if (data.Equals("[DONE]", StringComparison.OrdinalIgnoreCase))
-            {
-                break;
-            }
-
-            ChatCompletionChunk chunk;
-            try
-            {
-                chunk = JsonSerializer.Deserialize(data, VeniceJsonContext.Default.ChatCompletionChunk)
-                        ?? new ChatCompletionChunk();
-            }
-            catch (JsonException ex)
-            {
-                var preview = data.Length > 240 ? data[..240] + "…" : data;
-                throw new VeniceApiException(
-                    $"Venice API returned non-JSON stream chunk ({ex.Message}). Body: {preview}");
-            }
-
-            var added = accumulator.Apply(chunk);
-            if (added)
-            {
-                onText?.Invoke(accumulator.Text);
-            }
-        }
-
-        if (accumulator.Cost.HasData)
-        {
-            AddCost(accumulator.Cost);
-        }
-
-        return new StreamedChatCompletion
-        {
-            Text = accumulator.Text,
-            ReasoningText = accumulator.ReasoningText,
-            InlineReasoning = accumulator.InlineReasoning,
-            ThinkingElapsed = accumulator.ThinkingElapsed,
-            ToolCalls = accumulator.BuildToolCalls(),
-            FinishReason = accumulator.FinishReason,
-            Cost = accumulator.Cost,
-            Model = model
-        };
+        PerfLog.Write(
+            $"venice serialize_ms={serializeMs} http_ms={httpWatch.ElapsedMilliseconds} status={(int)response.StatusCode} model={model}");
+        return response;
     }
 
-    private static ChatCompletionRequest BuildPayload(
+    private static bool ShouldRetryToolsEffortConflict(
+        ChatCompletionRequest payload,
+        string model,
+        string error)
+    {
+        if (!ReasoningPolicy.IsToolsReasoningEffortConflict(error))
+        {
+            return false;
+        }
+
+        ReasoningPolicy.RememberToolsBlockEffort(model);
+        return !string.Equals(payload.ReasoningEffort, ReasoningPolicy.None, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ChatCompletionRequest WithReasoningEffort(ChatCompletionRequest request, string? effort) =>
+        new()
+        {
+            Model = request.Model,
+            Messages = request.Messages,
+            Tools = request.Tools,
+            ToolChoice = request.ToolChoice,
+            Temperature = request.Temperature,
+            Stream = request.Stream,
+            ReasoningEffort = effort,
+            Reasoning = request.Reasoning,
+            VeniceParameters = request.VeniceParameters,
+            ReasoningChoice = request.ReasoningChoice
+        };
+
+    private ChatCompletionRequest BuildPayload(
         ChatCompletionRequest request,
         string model,
         bool prepareMessages,
-        bool stream) =>
-        new()
+        bool stream)
+    {
+        var venice = request.VeniceParameters;
+        var effort = request.ReasoningEffort;
+        var reasoning = request.Reasoning;
+
+        var hasTools = request.Tools is { Count: > 0 };
+        var info = ResolveModelInfo?.Invoke(model);
+        if (request.ReasoningChoice is { } choice)
+        {
+            var wire = ReasoningPolicy.ToWire(info, choice, hasTools, model);
+            effort = wire.ReasoningEffort;
+            reasoning = null;
+            venice = new VeniceParameters
+            {
+                IncludeVeniceSystemPrompt = venice.IncludeVeniceSystemPrompt,
+                EnableWebSearch = venice.EnableWebSearch,
+                EnableWebCitations = venice.EnableWebCitations,
+                EnableXSearch = venice.EnableXSearch,
+                DisableThinking = wire.DisableThinking,
+                StripThinkingResponse = venice.StripThinkingResponse ?? true
+            };
+        }
+        else if (hasTools && !ReasoningPolicy.AllowsEffortWithTools(info, model))
+        {
+            // Callers that never set ReasoningChoice still 400 on GPT-5.6: the model
+            // defaults to medium, which is illegal next to function tools.
+            effort = ReasoningPolicy.None;
+        }
+
+        return new ChatCompletionRequest
         {
             Model = model,
             Messages = prepareMessages ? ApiContextLimiter.Prepare(request.Messages) : request.Messages,
@@ -325,8 +423,11 @@ public sealed class VeniceClient
             ToolChoice = request.ToolChoice,
             Temperature = request.Temperature,
             Stream = stream,
-            VeniceParameters = request.VeniceParameters
+            ReasoningEffort = effort,
+            Reasoning = reasoning,
+            VeniceParameters = venice
         };
+    }
 
     public async Task<IReadOnlyList<VeniceModelInfo>> ListTextModelsAsync(
         CancellationToken cancellationToken = default)

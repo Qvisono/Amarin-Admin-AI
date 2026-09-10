@@ -102,7 +102,18 @@ internal sealed class ComposerCompactMode
 
         _input.TextChanged += (_, _) => Evaluate();
         _toolbar.IsKeyboardFocusWithinChanged += (_, _) => Evaluate();
-        _composer.MouseEnter += (_, _) => SetPointerNear(true);
+        _composer.MouseEnter += (_, _) =>
+        {
+            if (_settings.CompactHoverEnabled)
+            {
+                SetPointerNear(true);
+            }
+        };
+
+        // Щелчок по полоске разворачивает её всегда — это осознанное действие, а не то же
+        // самое, что проведённый мимо указатель, и настройка реакции на мышь его не касается.
+        // Preview: нажатие надо поймать раньше, чем его разберут текстовое поле и кнопки внутри.
+        _composer.PreviewMouseDown += (_, _) => Unfold();
         _window.PreviewMouseMove += OnPreviewMouseMove;
         _window.MouseLeave += (_, _) => SetPointerNear(false);
         _window.Deactivated += (_, _) => SetPointerNear(false);
@@ -136,18 +147,28 @@ internal sealed class ComposerCompactMode
     /// model streams, the whole toolbar is disabled anyway and the answer is the thing growing on
     /// screen — that is precisely when the freed rows are worth the most.
     /// </remarks>
+    /// <param name="pointerReacts">
+    /// The pill listens to the mouse. Off means <paramref name="pointerNear"/> is not a reason to
+    /// stay open — the pointer is simply not part of the decision any more.
+    /// </param>
     public static bool ShouldCollapse(
         bool enabled,
         bool isEmpty,
         bool toolbarFocused,
         bool hasAttachments,
-        bool pointerNear) =>
-        enabled && isEmpty && !toolbarFocused && !hasAttachments && !pointerNear;
+        bool pointerNear,
+        bool pointerReacts = true) =>
+        enabled && isEmpty && !toolbarFocused && !hasAttachments && (!pointerNear || !pointerReacts);
 
     public void Apply(AppearanceSettings settings)
     {
         _settings = settings ?? new AppearanceSettings();
         _timer.Interval = TimeSpan.FromMilliseconds(_settings.CompactDelayMs);
+
+        if (!_settings.CompactHoverEnabled)
+        {
+            _pointerNear = false;
+        }
 
         if (!_settings.CompactComposer && _collapsed)
         {
@@ -169,6 +190,30 @@ internal sealed class ComposerCompactMode
     /// </summary>
     public void SetBusy(bool busy) => Evaluate();
 
+    /// <summary>
+    /// Разворачивает полоску по прямому действию пользователя — щелчку по ней.
+    /// </summary>
+    /// <remarks>
+    /// Отсчёт до сворачивания начинается заново, поэтому после щелчка есть время добраться до
+    /// кнопок на панели. Пустое поле всё равно свернётся, когда время выйдет: держать его
+    /// открытым из-за одного лишь курсора внутри — не то поведение, которого от него ждут.
+    /// </remarks>
+    public void Unfold()
+    {
+        if (!_settings.CompactComposer)
+        {
+            return;
+        }
+
+        if (_collapsed)
+        {
+            Expand(_settings.AnimationsEnabled);
+        }
+
+        _timer.Stop();
+        _timer.Start();
+    }
+
     public void SetHasAttachments(bool hasAttachments)
     {
         _hasAttachments = hasAttachments;
@@ -180,7 +225,8 @@ internal sealed class ComposerCompactMode
         string.IsNullOrEmpty(_input.Text),
         _toolbar.IsKeyboardFocusWithin,
         _hasAttachments,
-        _pointerNear);
+        _pointerNear,
+        _settings.CompactHoverEnabled);
 
     /// <summary>Re-reads every input and either schedules a collapse or expands immediately.</summary>
     public void Evaluate()
@@ -210,6 +256,14 @@ internal sealed class ComposerCompactMode
     {
         if (!_settings.CompactComposer)
         {
+            return;
+        }
+
+        if (!_settings.CompactHoverEnabled)
+        {
+            // Реакция на мышь выключена: гасим взведённый флаг, иначе поле осталось бы
+            // развёрнутым ровно там, где указатель стоял в момент выключения.
+            SetPointerNear(false);
             return;
         }
 

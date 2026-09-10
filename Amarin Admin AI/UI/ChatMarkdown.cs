@@ -3,7 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using Amarin.Core;
 using Markdig;
+using Markdig.Extensions.Mathematics;
 using Markdig.Extensions.Tables;
 using Markdig.Extensions.TaskLists;
 using Markdig.Syntax;
@@ -26,8 +28,10 @@ namespace Amarin.UI;
 
 internal static class ChatMarkdown
 {
-    // Набор расширений собран вручную: UseAdvancedExtensions() тянет Mathematics (сломает
-    // $var в PowerShell) и Diagrams (проглотит ```mermaid целиком).
+    // Набор расширений собран вручную: UseAdvancedExtensions() тянет Diagrams, а он проглотит
+    // ```mermaid целиком. Mathematics включён ради формул, но $var из PowerShell тоже попадает
+    // под его правило — поэтому содержимое одинарных $ проходит через MathDetection, и всё,
+    // что не похоже на математику, печатается как было, вместе с самими долларами.
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .DisableHtml()
         .UsePipeTables()
@@ -36,6 +40,7 @@ internal static class ChatMarkdown
         .UseTaskLists()
         .UseListExtras()
         .UseAutoLinks()
+        .UseMathematics()
         .Build();
 
     private const double BlockGap = 8;
@@ -168,7 +173,10 @@ internal static class ChatMarkdown
         return range.Text.TrimEnd('\r', '\n');
     }
 
-    private static string Normalize(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n');
+    // Заодно приводит формулы к долларам: модели пишут их и как \(…\) с \[…\], а разметка
+    // понимает только $. Пересчёт идёт до разбора, чтобы Markdig увидел уже готовые формулы.
+    private static string Normalize(string text) =>
+        MathDelimiterNormalizer.ToDollars(text.Replace("\r\n", "\n").Replace('\r', '\n'));
 
     /// <summary>Всё, что нужно знать при построении блоков: кегль, интерлиньяж и хозяин ресурсов.</summary>
     private sealed record RenderContext(FrameworkElement Host, double FontSize, double LineHeight);
@@ -200,6 +208,17 @@ internal static class ChatMarkdown
                 target.Add(BuildHeading(heading, context, first, last));
                 break;
 
+            // MathBlock наследуется от FencedCodeBlock, так что этот случай обязан идти первым:
+            // иначе выключная формула уедет в блок кода.
+            case MathBlock math:
+                target.Add(BuildMathBlock(math.Lines.ToString(), context, last));
+                break;
+
+            // ```math и ```latex — ещё один способ, которым модели оформляют выключную формулу.
+            case FencedCodeBlock fenced when IsMathFence(fenced.Info):
+                target.Add(BuildMathBlock(fenced.Lines.ToString(), context, last));
+                break;
+
             case FencedCodeBlock fenced:
                 target.Add(BuildCode(fenced.Lines.ToString(), fenced.Info, context));
                 break;
@@ -222,6 +241,12 @@ internal static class ChatMarkdown
 
             case ThematicBreakBlock:
                 target.Add(BuildRule());
+                break;
+
+            // «$$…$$» в одну строку разметка отдаёт как инлайн, а не как блок. Абзац, в котором
+            // кроме такой формулы ничего нет, всё равно должен встать отдельной строкой.
+            case ParagraphBlock { Inline: { } display } when IsLoneDisplayMath(display, out var latex):
+                target.Add(BuildMathBlock(latex, context, last));
                 break;
 
             case ParagraphBlock { Inline: { } inline } when HasPicture(inline):
@@ -285,6 +310,85 @@ internal static class ChatMarkdown
 
         AddInlines(paragraph.Inlines, heading.Inline, context);
         return paragraph;
+    }
+
+    /// <summary>Выключная формула: своя строка, по центру колонки.</summary>
+    private static WpfBlock BuildMathBlock(string latex, RenderContext context, bool last)
+    {
+        var formula = MathRenderer.Build(context.Host, latex, context.FontSize * 1.15, display: true, "Text.Primary");
+        formula.HorizontalAlignment = HorizontalAlignment.Center;
+        formula.Margin = new Thickness(0, 4, 0, 4);
+
+        return new BlockUIContainer(formula)
+        {
+            Margin = new Thickness(0, 0, 0, last ? 0 : BlockGap),
+            LineHeight = double.NaN,
+            LineStackingStrategy = LineStackingStrategy.MaxHeight
+        };
+    }
+
+    private static bool IsMathFence(string? info) =>
+        info is not null &&
+        (info.Equals("math", StringComparison.OrdinalIgnoreCase) ||
+         info.Equals("latex", StringComparison.OrdinalIgnoreCase) ||
+         info.Equals("tex", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Абзац целиком состоит из одной формулы <c>$$…$$</c>.</summary>
+    private static bool IsLoneDisplayMath(ContainerInline inline, out string latex)
+    {
+        latex = "";
+        MathInline? found = null;
+
+        foreach (var child in inline)
+        {
+            switch (child)
+            {
+                case MathInline { DelimiterCount: >= 2 } math when found is null:
+                    found = math;
+                    break;
+
+                case LiteralInline literal when literal.Content.ToString().Trim().Length == 0:
+                case LineBreakInline:
+                    break;
+
+                default:
+                    return false;
+            }
+        }
+
+        if (found is null)
+        {
+            return false;
+        }
+
+        latex = found.Content.ToString();
+        return true;
+    }
+
+    /// <summary>
+    /// Формула внутри строки. Не математику (цену, переменную оболочки) возвращаем как текст —
+    /// вместе с долларами, которые её обрамляли.
+    /// </summary>
+    private static WpfInline BuildMathInline(MathInline math, RenderContext context)
+    {
+        var content = math.Content.ToString();
+        var delimiters = new string(math.Delimiter, math.DelimiterCount);
+
+        if (math.DelimiterCount < 2 && !MathDetection.LooksLikeMath(content))
+        {
+            return new Run(delimiters + content + delimiters);
+        }
+
+        var visual = MathRenderer.BuildVisual(context.Host, content, context.FontSize, display: false);
+
+        // InlineUIContainer ставит на базовую линию нижний край элемента, а у формулы под ней
+        // ещё есть свес — отрицательный отступ опускает коробку ровно на его высоту.
+        visual.Element.Margin = new Thickness(1, 0, 1, -visual.Descent);
+
+        return new InlineUIContainer(visual.Element)
+        {
+            BaselineAlignment = BaselineAlignment.Baseline
+        };
     }
 
     private static WpfBlock BuildCode(string code, string? language, RenderContext context) =>
@@ -531,7 +635,28 @@ internal static class ChatMarkdown
     {
         var paragraph = NewParagraph(context, last);
         AddInlines(paragraph.Inlines, inline, context);
+        RelaxLineHeight(paragraph);
         return paragraph;
+    }
+
+    /// <summary>
+    /// Абзац с формулой перестаёт держать строку постоянной высоты. Весь остальной текст
+    /// набирается с жёстким интерлиньяжем — он ровнее, — но дробь выше строки, и на жёстком
+    /// интерлиньяже она наезжает на соседние строки.
+    /// </summary>
+    private static void RelaxLineHeight(WpfParagraph paragraph)
+    {
+        foreach (var inline in paragraph.Inlines)
+        {
+            if (inline is not InlineUIContainer)
+            {
+                continue;
+            }
+
+            paragraph.LineHeight = double.NaN;
+            paragraph.LineStackingStrategy = LineStackingStrategy.MaxHeight;
+            return;
+        }
     }
 
     private static WpfParagraph BuildParagraphFrom(
@@ -545,6 +670,7 @@ internal static class ChatMarkdown
             AddInline(paragraph.Inlines, child, context);
         }
 
+        RelaxLineHeight(paragraph);
         return paragraph;
     }
 
@@ -589,6 +715,10 @@ internal static class ChatMarkdown
         {
             case LiteralInline literal:
                 target.Add(new Run(literal.Content.ToString()));
+                break;
+
+            case MathInline math:
+                target.Add(BuildMathInline(math, context));
                 break;
 
             case CodeInline code:
@@ -843,6 +973,14 @@ internal static class ChatMarkdown
                 }
 
                 break;
+            case MathBlock math:
+                var formula = math.Lines.ToString().Trim();
+                if (formula.Length > 0)
+                {
+                    lines.Add(formula);
+                }
+
+                break;
             case LeafBlock leaf when leaf.Inline is not null:
                 var leafText = InlineText(leaf.Inline);
                 if (leafText.Length > 0)
@@ -891,6 +1029,9 @@ internal static class ChatMarkdown
                     break;
                 case CodeInline code:
                     sb.Append(code.Content);
+                    break;
+                case MathInline math:
+                    sb.Append(math.Content.ToString());
                     break;
                 case AutolinkInline auto:
                     sb.Append(auto.Url);

@@ -28,6 +28,9 @@ public sealed class Wave6ModelPickerTests
                   "optimizedForCode": true,
                   "supportsFunctionCalling": true,
                   "supportsReasoning": true,
+                  "supportsReasoningEffort": true,
+                  "reasoningEffortOptions": ["low", "medium", "high"],
+                  "defaultReasoningEffort": "medium",
                   "supportsVision": true
                 }
               }
@@ -130,6 +133,7 @@ public sealed class Wave6ModelPickerTests
         Assert.Equal("1M", VeniceModelCatalog.FormatContext(1_000_000));
         Assert.Equal("256k", VeniceModelCatalog.FormatContext(256_000));
         Assert.Equal("Авто", VeniceModelCatalog.GetDisplayName("auto"));
+        Assert.Equal("GPT-5.6 Luna", VeniceModelCatalog.GetDisplayName("openai-gpt-56-luna"));
         Assert.Equal("Auto", VeniceModelCatalog.GetLogoResourceKey("auto"));
         Assert.Equal("Auto", VeniceModelCatalog.GetLogoResourceKey("AUTO"));
         Assert.Equal(ModelBrand.AutoLogoMargin, ModelBrand.LogoMargin("Auto"));
@@ -145,6 +149,9 @@ public sealed class Wave6ModelPickerTests
         Assert.Contains("1M", VeniceModelCatalog.BuildTooltip(claude), StringComparison.Ordinal);
         Assert.Contains("Vision", VeniceModelCatalog.BuildTooltip(claude), StringComparison.Ordinal);
         Assert.Contains("Code", VeniceModelCatalog.BuildTooltip(claude), StringComparison.Ordinal);
+        Assert.True(claude.ModelSpec!.Capabilities!.SupportsReasoningEffort);
+        Assert.Equal(["low", "medium", "high"], claude.ModelSpec.Capabilities.ReasoningEffortOptions);
+        Assert.Equal("medium", claude.ModelSpec.Capabilities.DefaultReasoningEffort);
     }
 
     [Theory]

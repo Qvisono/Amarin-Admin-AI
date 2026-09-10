@@ -15,6 +15,8 @@ internal sealed class ChatStreamAccumulator
     private readonly StringBuilder _text = new();
     private readonly StringBuilder _reasoning = new();
     private readonly Dictionary<int, ToolCallBuilder> _toolCalls = [];
+    private readonly List<ToolCallBuilder> _finishedToolCalls = [];
+    private int _toolCallOrder;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
 
     /// <summary>The answer alone: any chain of thought the model inlined is stripped out.</summary>
@@ -106,7 +108,19 @@ internal sealed class ChatStreamAccumulator
             {
                 if (!_toolCalls.TryGetValue(toolDelta.Index, out var builder))
                 {
-                    builder = new ToolCallBuilder();
+                    builder = new ToolCallBuilder { Order = _toolCallOrder++ };
+                    _toolCalls[toolDelta.Index] = builder;
+                }
+
+                // Часть моделей нумерует все вызовы нулём и различает их только по id.
+                // Без этой проверки аргументы двух вызовов склеивались в одну строку —
+                // получалось «{...}{...}», и разбор падал на первой же закрывающей скобке.
+                if (!string.IsNullOrWhiteSpace(toolDelta.Id) &&
+                    !string.IsNullOrWhiteSpace(builder.Id) &&
+                    !string.Equals(builder.Id, toolDelta.Id, StringComparison.Ordinal))
+                {
+                    _finishedToolCalls.Add(builder);
+                    builder = new ToolCallBuilder { Order = _toolCallOrder++ };
                     _toolCalls[toolDelta.Index] = builder;
                 }
 
@@ -122,8 +136,11 @@ internal sealed class ChatStreamAccumulator
 
                 if (toolDelta.Function is not null)
                 {
-                    if (!string.IsNullOrWhiteSpace(toolDelta.Function.Name))
+                    if (!string.IsNullOrWhiteSpace(toolDelta.Function.Name) &&
+                        !string.Equals(builder.Name, toolDelta.Function.Name, StringComparison.Ordinal))
                     {
+                        // Имя приходит либо кусками, либо целиком в каждом чанке. Второй случай
+                        // без этой проверки давал «init_agentinit_agent».
                         builder.Name += toolDelta.Function.Name;
                     }
 
@@ -151,14 +168,18 @@ internal sealed class ChatStreamAccumulator
 
     public List<ToolCall> BuildToolCalls()
     {
-        return _toolCalls
-            .OrderBy(pair => pair.Key)
-            .Select(pair => pair.Value.Build())
+        return _finishedToolCalls
+            .Concat(_toolCalls.OrderBy(pair => pair.Key).Select(pair => pair.Value))
+            .OrderBy(builder => builder.Order)
+            .Select(builder => builder.Build())
             .ToList();
     }
 
     private sealed class ToolCallBuilder
     {
+        /// <summary>Очерёдность появления: слот индекса может переиспользоваться.</summary>
+        public int Order { get; init; }
+
         public string Id { get; set; } = "";
         public string Type { get; set; } = "function";
         public string Name { get; set; } = "";

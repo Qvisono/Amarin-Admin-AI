@@ -8,10 +8,20 @@ internal static class ChatTitle
     public const int MaxLength = 24;
 
     internal const string SystemPrompt = """
-        Reply with a short chat title in Russian.
-        Maximum 24 characters including spaces. Prefer 2 to 4 short words.
-        No quotes, no trailing punctuation, no emoji, no explanation.
+        You name chats. You are not a chatbot and you do not talk to the user.
+        Output only a Russian title: 2 to 4 short words, maximum 24 characters.
+        Never answer the message. Never greet. Never ask. Never explain.
+        No quotes, no trailing punctuation, no emoji, no markdown.
+        Greetings and small talk still get a title (e.g. Приветствие), not a reply.
         """;
+
+    /// <summary>
+    /// Wraps the opening message so the title model cannot treat it as a turn to answer.
+    /// </summary>
+    internal static string UserPrompt(string userText) =>
+        "Below is the first message of a chat. Do not reply to it. Write only the title.\n---\n"
+        + userText.Trim()
+        + "\n---";
 
     public static bool IsDefault(string? title) =>
         string.IsNullOrWhiteSpace(title) ||
@@ -31,7 +41,7 @@ internal static class ChatTitle
             return fallback.Trim();
         }
 
-        return "qwen-3-7-plus";
+        return "openai-gpt-56-luna";
     }
 
     public static string? Sanitize(string? raw)

@@ -91,6 +91,9 @@ public sealed class Wave3ChatToolsTests
         Assert.Contains("re-run init_agent", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("ASCII", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("Never refuse", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("blank slate", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("Call init_agent as a tool", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("Nothing after }", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Equal("", AppSettings.CreateDefault().MainPrompt);
         Assert.Contains("Unicode emoji", Agent.BaseSystemPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(":)", Agent.BaseSystemPrompt, StringComparison.Ordinal);

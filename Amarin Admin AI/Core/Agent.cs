@@ -769,17 +769,8 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             ? action.GetString()
             : null;
 
-    private static JsonElement ParseArguments(string argumentsJson)
-    {
-        var json = string.IsNullOrWhiteSpace(argumentsJson) ? "{}" : argumentsJson.Trim();
-
-        if (json.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new JsonException("tool arguments look like an error string, not JSON");
-        }
-
-        return JsonDocument.Parse(json).RootElement.Clone();
-    }
+    private static JsonElement ParseArguments(string argumentsJson) =>
+        ToolArguments.Parse(argumentsJson);
 
     private static string FormatToolResult(ToolResult result)
     {
@@ -844,7 +835,8 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
                 toolDefinitions,
                 "auto",
                 BuildVeniceParameters(_options),
-                timeoutCts.Token);
+                timeoutCts.Token,
+                _options.Reasoning);
         }
         catch (InvalidOperationException ex)
         {
@@ -882,7 +874,8 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             tools: null,
             toolChoice: "none",
             BuildVeniceParameters(_options),
-            timeoutCts.Token);
+            timeoutCts.Token,
+            _options.Reasoning);
 
         var choice = response.Choices.FirstOrDefault();
         return choice is null
@@ -926,7 +919,6 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             EnableWebSearch = "off",
             EnableWebCitations = options.EnableWebCitations ? true : null,
             EnableXSearch = false,
-            DisableThinking = true,
             StripThinkingResponse = true
         };
 }

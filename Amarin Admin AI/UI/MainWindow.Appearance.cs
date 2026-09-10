@@ -472,6 +472,9 @@ namespace Amarin.UI
         private void CompactComposerToggle_Changed(object sender, RoutedEventArgs e) =>
             Edit(a => a.CompactComposer = CompactComposerToggle.IsChecked == true);
 
+        private void CompactHoverToggle_Changed(object sender, RoutedEventArgs e) =>
+            Edit(a => a.CompactHoverEnabled = CompactHoverToggle.IsChecked == true);
+
         private void FontCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (FontCombo.SelectedItem is ComboBoxItem { Tag: string family })
@@ -645,6 +648,7 @@ namespace Amarin.UI
             AnimationsToggle.IsChecked = appearance.AnimationsEnabled;
 
             CompactComposerToggle.IsChecked = appearance.CompactComposer;
+            CompactHoverToggle.IsChecked = appearance.CompactHoverEnabled;
             CompactDelaySlider.Value = appearance.CompactDelayMs;
             CompactWidthSlider.Value = appearance.CompactWidthPercent;
             CompactHoverSlider.Value = appearance.CompactHoverRadius;

@@ -239,6 +239,7 @@ internal static class VeniceModelCatalog
             "grok-4-6" => "Grok 4.6",
             "grok-4-3" => "Grok 4.3",
             "openai-gpt-53-codex" => "GPT-5.3 Codex",
+            "openai-gpt-56-luna" => "GPT-5.6 Luna",
             "kimi-k2-7-code" => "Kimi K2.7 Code",
             "minimax-m3-preview" => "MiniMax M3 Preview",
             "qwen-3-7-plus" => "Qwen 3.7 Plus",

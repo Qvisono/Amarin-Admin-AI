@@ -218,7 +218,9 @@ internal sealed class AssistantMessageView
         var wasExpanded = _toolsExpander.IsExpanded;
         _toolsExpander.Header = BuildToolsHeader(message);
         _toolsExpander.Content = BuildToolsBody(message);
-        _toolsExpander.IsExpanded = wasExpanded;
+        // Заблокированный домен — единственное, что здесь требует действия пользователя,
+        // а внутри свёрнутого списка инструментов подсказку с кнопкой попросту не видно.
+        _toolsExpander.IsExpanded = wasExpanded || HasBlockedDomain(message);
     }
 
     private Expander CreateToolsExpander() =>
@@ -391,6 +393,14 @@ internal sealed class AssistantMessageView
 
         return grid;
     }
+
+    private static bool HasBlockedDomain(ChatDisplayMessage message) =>
+        message.ToolRounds
+            .SelectMany(round => round.Calls)
+            .Any(call =>
+                !call.Success &&
+                call.Name.Equals("download_file", StringComparison.OrdinalIgnoreCase) &&
+                call.ResultPreview.StartsWith(DomainList.BlockedMarker, StringComparison.Ordinal));
 
     /// <summary>
     /// Offer to allow the host when <c>download_file</c> was refused by the allowlist.

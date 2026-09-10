@@ -73,17 +73,43 @@ public sealed class AppSettings
     /// <summary>Empty means use Venice:Model from the shipped appsettings.json.</summary>
     public string ChatModelId { get; set; } = "";
 
-    public string LiteModelId { get; set; } = "qwen-3-7-plus";
+    public ReasoningSettings ChatReasoning { get; set; } = new();
 
-    public string HeavyModelId { get; set; } = "claude-sonnet-5";
+    public string LiteModelId { get; set; } = "openai-gpt-56-luna";
 
-    public string RouterModelId { get; set; } = "qwen-3-7-plus";
+    public ReasoningSettings LiteReasoning { get; set; } = new() { DisableThinking = false };
 
-    public string TitleModelId { get; set; } = "qwen-3-7-plus";
+    public string HeavyModelId { get; set; } = "grok-4-6";
 
-    public string AgentLiteModelId { get; set; } = "grok-4-3";
+    public ReasoningSettings HeavyReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "medium"
+    };
 
-    public string AgentHeavyModelId { get; set; } = "grok-4-3";
+    public string RouterModelId { get; set; } = "openai-gpt-56-luna";
+
+    public ReasoningSettings RouterReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "medium"
+    };
+
+    public string TitleModelId { get; set; } = "openai-gpt-56-luna";
+
+    public ReasoningSettings TitleReasoning { get; set; } = new();
+
+    public string AgentLiteModelId { get; set; } = "openai-gpt-56-luna";
+
+    public ReasoningSettings AgentLiteReasoning { get; set; } = new() { DisableThinking = false };
+
+    public string AgentHeavyModelId { get; set; } = "grok-4-6";
+
+    public ReasoningSettings AgentHeavyReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "high"
+    };
 
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
     public string MainPrompt { get; set; } = "";
@@ -93,6 +119,16 @@ public sealed class AppSettings
     public string TechAgentPrompt { get; set; } = "";
 
     public SessionMode SessionMode { get; set; } = SessionMode.Continuous;
+
+    /// <summary>
+    /// Спрашивать GitHub о новой версии при запуске, не чаще раза в
+    /// <see cref="UpdateChecker.AutoCheckInterval"/>. Само обновление не скачивается — приложение
+    /// только показывает, что вышла новая версия, и открывает страницу релиза по кнопке.
+    /// </summary>
+    public bool AutoCheckUpdates { get; set; } = true;
+
+    /// <summary>Когда автопроверка последний раз ходила в сеть. UTC; <c>null</c> — ещё ни разу.</summary>
+    public DateTime? LastUpdateCheckUtc { get; set; }
 
     public static AppSettings CreateDefault() => new()
     {

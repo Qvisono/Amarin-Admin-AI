@@ -26,8 +26,23 @@ public sealed class ChatCompletionRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Stream { get; init; }
 
+    [JsonPropertyName("reasoning_effort")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReasoningEffort { get; init; }
+
+    [JsonPropertyName("reasoning")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ReasoningConfig? Reasoning { get; init; }
+
     [JsonPropertyName("venice_parameters")]
     public VeniceParameters VeniceParameters { get; init; } = new();
+
+    /// <summary>
+    /// Caller's intent. Never serialized — <see cref="VeniceClient"/> clamps it per target
+    /// model (including fallback) before the body goes on the wire.
+    /// </summary>
+    [JsonIgnore]
+    public ReasoningChoice? ReasoningChoice { get; init; }
 }
 
 public sealed class VeniceParameters
@@ -54,6 +69,21 @@ public sealed class VeniceParameters
     [JsonPropertyName("strip_thinking_response")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? StripThinkingResponse { get; init; }
+}
+
+/// <summary>
+/// Nested <c>reasoning</c> object on chat completions. Used to flip Venice's
+/// <c>enabled: false</c> switch; effort itself goes on the top-level field.
+/// </summary>
+public sealed class ReasoningConfig
+{
+    [JsonPropertyName("enabled")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Enabled { get; init; }
+
+    [JsonPropertyName("effort")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Effort { get; init; }
 }
 
 public sealed class ChatMessage
@@ -320,6 +350,22 @@ public sealed class VeniceModelCapabilities
 
     [JsonPropertyName("supportsReasoning")]
     public bool SupportsReasoning { get; init; }
+
+    [JsonPropertyName("supportsReasoningEffort")]
+    public bool SupportsReasoningEffort { get; init; }
+
+    /// <summary>
+    /// When false, <c>/chat/completions</c> rejects function tools together with a non-none
+    /// <c>reasoning_effort</c>. Null means the catalogue did not say — we fall back to known families.
+    /// </summary>
+    [JsonPropertyName("supportsReasoningEffortWithTools")]
+    public bool? SupportsReasoningEffortWithTools { get; init; }
+
+    [JsonPropertyName("reasoningEffortOptions")]
+    public List<string>? ReasoningEffortOptions { get; init; }
+
+    [JsonPropertyName("defaultReasoningEffort")]
+    public string? DefaultReasoningEffort { get; init; }
 
     [JsonPropertyName("supportsVision")]
     public bool SupportsVision { get; init; }

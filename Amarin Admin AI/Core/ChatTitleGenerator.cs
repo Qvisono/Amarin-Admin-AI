@@ -40,7 +40,7 @@ internal sealed class ChatTitleGenerator
                     model,
                     [
                         new ChatMessage { Role = "system", Content = ChatContent.Text(ChatTitle.SystemPrompt) },
-                        new ChatMessage { Role = "user", Content = ChatContent.Text(text) }
+                        new ChatMessage { Role = "user", Content = ChatContent.Text(ChatTitle.UserPrompt(text)) }
                     ],
                     tools: null,
                     toolChoice: null,
@@ -49,10 +49,10 @@ internal sealed class ChatTitleGenerator
                         IncludeVeniceSystemPrompt = false,
                         EnableWebSearch = "off",
                         EnableXSearch = false,
-                        DisableThinking = true,
                         StripThinkingResponse = true
                     },
-                    cancellationToken)
+                    cancellationToken,
+                    (_settings().TitleReasoning ?? new ReasoningSettings()).ToChoice())
                 .ConfigureAwait(false);
 
             // A GLM-class model titles the chat by thinking out loud first, and the tags would

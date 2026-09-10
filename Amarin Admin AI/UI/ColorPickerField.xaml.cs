@@ -31,6 +31,7 @@ public partial class ColorPickerField : UserControl
     public ColorPickerField()
     {
         InitializeComponent();
+        PopupManager.Register(PickerPopup, OpenButton);
         BuildSwatches();
         Render();
     }

@@ -27,6 +27,8 @@ public sealed class Wave1PersistenceTests
             settings.AutoScroll = false;
             settings.ApprovalMode = ApprovalMode.AlwaysApprove;
             settings.ChatModelId = "grok-4-6";
+            settings.ChatReasoning.DisableThinking = false;
+            settings.ChatReasoning.ReasoningEffort = "high";
             settings.SessionMode = SessionMode.Isolated;
             settings.MainPrompt = "custom";
             store.Save(settings);
@@ -36,9 +38,17 @@ public sealed class Wave1PersistenceTests
             Assert.False(loaded.AutoScroll);
             Assert.Equal(ApprovalMode.AlwaysApprove, loaded.ApprovalMode);
             Assert.Equal("grok-4-6", loaded.ChatModelId);
+            Assert.False(loaded.ChatReasoning.DisableThinking);
+            Assert.Equal("high", loaded.ChatReasoning.ReasoningEffort);
+            Assert.False(loaded.LiteReasoning.DisableThinking);
             Assert.Equal(SessionMode.Isolated, loaded.SessionMode);
             Assert.Equal("custom", loaded.MainPrompt);
-            Assert.Equal("claude-sonnet-5", loaded.HeavyModelId);
+            Assert.Equal("grok-4-6", loaded.HeavyModelId);
+            Assert.Equal("openai-gpt-56-luna", loaded.LiteModelId);
+            Assert.Equal("medium", loaded.HeavyReasoning.ReasoningEffort);
+            Assert.True(loaded.TitleReasoning.DisableThinking);
+            Assert.False(loaded.AgentLiteReasoning.DisableThinking);
+            Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);
@@ -116,7 +126,7 @@ public sealed class Wave1PersistenceTests
             store.Save(new AppSettings
             {
                 MainPrompt = AppSettingsStore.LegacyPersonalityPrompts[^1],
-                TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV6,
+                TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV10,
                 TechAgentPrompt = "агент кастом"
             });
             loaded = new AppSettingsStore(root).Load();
@@ -137,6 +147,8 @@ public sealed class Wave1PersistenceTests
         {
             var store = new ChatStore(root);
             var session = store.CreateNew("claude-sonnet-5");
+            session.DisableThinking = false;
+            session.ReasoningEffort = "medium";
             session.Title = "Ночная сводка";
             session.Messages.Add(new ChatDisplayMessage
             {
@@ -241,6 +253,8 @@ public sealed class Wave1PersistenceTests
             var loaded = store.TryLoad(session.Id);
             Assert.NotNull(loaded);
             Assert.Equal("Ночная сводка", loaded.Title);
+            Assert.False(loaded.DisableThinking);
+            Assert.Equal("medium", loaded.ReasoningEffort);
             Assert.Equal(2, loaded.Messages.Count);
             Assert.Equal("чекни сеть", loaded.Messages[0].Text);
             Assert.Equal(AssistantStatus.Complete, loaded.Messages[1].Status);

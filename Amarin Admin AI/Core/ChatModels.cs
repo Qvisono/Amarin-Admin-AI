@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Amarin.Tools;
 
 namespace Amarin.Core;
@@ -37,6 +38,14 @@ public sealed class ChatSession
     public DateTime UpdatedAt { get; set; }
 
     public string SelectedModelId { get; set; } = "";
+
+    /// <summary>When true, the chat does not ask the model to think. Default preserves old behaviour.</summary>
+    public bool DisableThinking { get; set; } = true;
+
+    public string? ReasoningEffort { get; set; }
+
+    [JsonIgnore]
+    public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort);
 
     public List<ChatDisplayMessage> Messages { get; set; } = [];
 

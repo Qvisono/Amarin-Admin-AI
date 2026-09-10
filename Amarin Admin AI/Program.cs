@@ -49,8 +49,41 @@ internal static class Program
         var activeProfile = profileStore.Active(registry);
         var dataRoot = profileStore.DataRootFor(activeProfile.Id);
 
+        // Explicit shutdown until the real window exists. WPF hands Application.MainWindow to the
+        // first window created on this thread, which would be the lock screen — and under
+        // OnMainWindowClose, closing it on a *correct* password would shut the app down before
+        // MainWindow ever opened.
+        var app = new Application
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown
+        };
+
+        // Тему берём из настроек активного профиля до всего остального: экран входа должен
+        // выглядеть как приложение, а не как белый прямоугольник.
+        ThemeManager.Initialize(app, new AppSettingsStore(dataRoot).Load().Theme);
+
+        // На экране входа можно выбрать другого пользователя, поэтому настройки читаются
+        // только после него — у выбранного профиля своя папка с чатами и своим settings.json.
+        if (activeProfile.IsLocked)
+        {
+            var unlocked = PasswordWindow.UnlockAtStartup(profileStore, registry);
+            if (unlocked is null)
+            {
+                return 1;
+            }
+
+            if (!string.Equals(unlocked.Id, activeProfile.Id, StringComparison.Ordinal))
+            {
+                registry.ActiveProfileId = unlocked.Id;
+                profileStore.Save(registry);
+                activeProfile = unlocked;
+                dataRoot = profileStore.DataRootFor(activeProfile.Id);
+            }
+        }
+
         var settingsStore = new AppSettingsStore(dataRoot);
         var settings = settingsStore.Load();
+        ThemeManager.Apply(settings.Theme);
 
         // The effective allowlist lives in settings.json; appsettings.json only seeded it.
         if (settings.DownloadAllowedDomains is null)
@@ -78,6 +111,7 @@ internal static class Program
         var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15), browserIdentity: true);
         var venice = new VeniceClient(http, options);
         var models = new VeniceModelListCache(venice);
+        venice.ResolveModelInfo = models.Find;
         var chatStore = new ChatStore(dataRoot);
 
         // Assigned just below. Everything that reads settings goes through the services bag so
@@ -122,24 +156,8 @@ internal static class Program
             StartupPrompt = startup.Prompt
         };
 
-        // Explicit shutdown until the real window exists. WPF hands Application.MainWindow to the
-        // first window created on this thread, which would be the lock screen — and under
-        // OnMainWindowClose, closing it on a *correct* password would shut the app down before
-        // MainWindow ever opened.
-        var app = new Application
-        {
-            ShutdownMode = ShutdownMode.OnExplicitShutdown
-        };
         var disposable = services;
         app.Exit += (_, _) => disposable.Dispose();
-        // Before the lock screen, so the password dialog is themed like the rest of the app.
-        ThemeManager.Initialize(app, settings.Theme);
-
-        if (activeProfile.IsLocked && !PasswordWindow.Unlock(activeProfile))
-        {
-            disposable.Dispose();
-            return 1;
-        }
 
         var window = new MainWindow();
         window.AttachServices(services);

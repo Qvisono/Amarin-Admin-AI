@@ -13,7 +13,9 @@ public sealed class ChatShareCodecTests
             Title = "Диагностика диска",
             CreatedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Local),
             UpdatedAt = new DateTime(2026, 1, 2, 4, 0, 0, DateTimeKind.Local),
-            SelectedModelId = "grok-4-6"
+            SelectedModelId = "grok-4-6",
+            DisableThinking = false,
+            ReasoningEffort = "low"
         };
 
         for (var i = 1; i <= 3; i++)
@@ -54,6 +56,8 @@ public sealed class ChatShareCodecTests
         Assert.Equal(6, decoded!.Messages.Count);
         Assert.Equal(6, decoded.ApiMessages.Count);
         Assert.Equal("grok-4-6", decoded.SelectedModelId);
+        Assert.False(decoded.DisableThinking);
+        Assert.Equal("low", decoded.ReasoningEffort);
         Assert.Equal("ответ 3", decoded.Messages[^1].Text);
         Assert.Equal("grok-4-6", decoded.Messages[^1].ResolvedModelId);
         Assert.Equal(AssistantStatus.Complete, decoded.Messages[^1].Status);

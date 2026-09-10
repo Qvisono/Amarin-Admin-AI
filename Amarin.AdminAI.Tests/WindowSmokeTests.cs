@@ -73,7 +73,8 @@ public sealed class WindowSmokeTests
                 "ChangeAvatarButton", "RemoveAvatarButton", "AccountPasswordHint",
                 "ChatSharingToggle", "ImportChatButton",
                 "AttachedImagesPanel", "AttachedImagesHost", "AttachedImagesWarning",
-                "ComposerBorder", "AttachImageButton",
+                "ComposerBorder", "AttachImageButton", "ChatReasoningPicker",
+                "LiteReasoningPicker", "AgentHeavyReasoningPicker",
                 "ProfileList", "NameInput", "NameSaveButton", "ProfileOverlay", "NameOverlay"
             ];
             return names.Where(name => window.FindName(name) is null).ToList();

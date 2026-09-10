@@ -36,6 +36,7 @@ public sealed class ModelLogoTests
     [InlineData("qwen-3-7-plus", "Qwen")]
     [InlineData("qwen-image", "Qwen")]
     [InlineData("openai-gpt-53-codex", "OpenAI")]
+    [InlineData("openai-gpt-56-luna", "OpenAI")]
     [InlineData("gpt-image-2", "OpenAI")]
     [InlineData("gemini-3-6-flash", "GoogleGemini")]
     [InlineData("gemma-3-27b", "Gemma")]

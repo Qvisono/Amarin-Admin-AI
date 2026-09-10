@@ -22,9 +22,10 @@ public sealed class WebDownloadTool : ITool
     public string Description =>
         "Download a file over http(s) from a host on the user's download allowlist. " +
         "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed). " +
-        "The allowlist is enforced by the app: if the result starts with 'DOMAIN_BLOCKED:', the host is " +
-        "not allowed. In that case STOP — do not retry, do not try mirrors, proxies or another URL. " +
-        "Just tell the user the domain is blocked; the app offers them a button to allow it.";
+        "The allowlist is enforced by the app: a host outside it makes the app ask the user whether to " +
+        "add it, and the download simply proceeds when they agree. If the result still starts with " +
+        "'DOMAIN_BLOCKED:', the user refused — STOP. Do not retry, do not try mirrors, proxies or " +
+        "another URL. Just tell the user the domain stayed blocked.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -90,10 +91,19 @@ public sealed class WebDownloadTool : ITool
 
         if (!DownloadValidator.IsDomainAllowed(uri))
         {
-            return ToolResult.Fail(
-                $"{DomainList.BlockedMarker} {uri.Host} не в белом списке загрузок. " +
-                "Не повторяй попытку, не ищи зеркала и не пробуй другой URL — просто скажи пользователю, " +
-                "что домен заблокирован; приложение само предложит ему добавить домен в список.");
+            // Приложение спрашивает пользователя, добавить ли домен. Согласился — список уже
+            // обновлён, и загрузка идёт дальше как обычная; отказался — остаётся прежний отказ.
+            var allowed = await DownloadAccessBroker.RequestAsync(uri.Host, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!allowed || !DownloadValidator.IsDomainAllowed(uri))
+            {
+                return ToolResult.Fail(
+                    $"{DomainList.BlockedMarker} {uri.Host} не в белом списке загрузок. " +
+                    "Пользователю уже показали запрос на добавление домена, и он его отклонил. " +
+                    "Не повторяй попытку, не ищи зеркала и не пробуй другой URL — просто скажи, " +
+                    "что домен остался заблокированным.");
+            }
         }
 
         if (!DownloadPaths.TryResolveDestination(destinationInput, folder, uri, out var destination, out var pathError))

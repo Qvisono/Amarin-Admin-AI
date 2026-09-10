@@ -9,6 +9,7 @@ public partial class ModelPickerField : UserControl
     public ModelPickerField()
     {
         InitializeComponent();
+        PopupManager.Register(PickerPopup, OpenButton);
     }
 
     public string SelectedModelId { get; private set; } = "";
