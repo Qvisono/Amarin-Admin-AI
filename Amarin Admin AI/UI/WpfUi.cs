@@ -32,7 +32,9 @@ internal sealed class WpfUi : IDisposable
                     ShutdownMode = ShutdownMode.OnExplicitShutdown
                 };
                 application = app;
-                ThemeManager.Initialize(app, new Core.AppSettingsStore().Load().Theme);
+                var startupSettings = new Core.AppSettingsStore().Load();
+                ThemeManager.Initialize(app, startupSettings.Theme);
+                LanguageManager.Initialize(app, startupSettings.LanguageCode);
                 app.Startup += (_, _) =>
                 {
                     try

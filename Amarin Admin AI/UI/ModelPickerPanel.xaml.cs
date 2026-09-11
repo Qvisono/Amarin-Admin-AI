@@ -49,7 +49,7 @@ public partial class ModelPickerPanel : UserControl
     public void ShowLoading()
     {
         _catalogReady = false;
-        _allStatus = "Загрузка...";
+        _allStatus = Loc.Get("S.Common.Loading");
         RebuildAll();
     }
 
@@ -168,7 +168,7 @@ public partial class ModelPickerPanel : UserControl
         AllItems.Children.Clear();
         if (!_catalogReady)
         {
-            AllItems.Children.Add(StatusText(_allStatus ?? "Загрузка..."));
+            AllItems.Children.Add(StatusText(_allStatus ?? Loc.Get("S.Common.Loading")));
             return;
         }
 
@@ -191,8 +191,8 @@ public partial class ModelPickerPanel : UserControl
                 string.IsNullOrWhiteSpace(ModelSearchBox?.Text) &&
                 VisionChip?.IsChecked != true &&
                 CodeChip?.IsChecked != true
-                    ? "Нет доступных моделей"
-                    : "Ничего не найдено"));
+                    ? Loc.Get("S.Models.Empty")
+                    : Loc.Get("S.Common.NothingFound")));
             return;
         }
 

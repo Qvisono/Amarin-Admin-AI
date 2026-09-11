@@ -74,9 +74,10 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_busy)
+            // Тоже про всю программу: после установки она перезапустится и оборвёт все ходы.
+            if (AnyTurnRunning)
             {
-                ShowUpdateStatus("Дождитесь окончания ответа — программа перезапустится.", accent: false);
+                ShowUpdateStatus("Дождитесь окончания ответов — программа перезапустится.", accent: false);
                 return;
             }
 

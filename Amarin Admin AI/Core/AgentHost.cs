@@ -49,10 +49,15 @@ internal sealed class AgentHost : IAgentHost
         // a client that already sent requests (the chat engine's).
         using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
         var venice = new VeniceClient(http, options);
+
+        // Счёт агента — свой, и в ход чата он уже попадает через NestedAgent.Cost. Контекст хода
+        // при этом протекает сюда по AsyncLocal, поэтому его надо закрыть: иначе те же деньги
+        // лягут в ход дважды.
+        using var isolatedCost = VeniceTurnScope.Suppress();
         var tools = AgentTools.Create(venice, _downloadHttp, options.Download);
 
         var label = "Агент " + VeniceModelCatalog.GetDisplayName(modelId);
-        var adapter = new AgentUiAdapter(record, _confirmations, notify, label);
+        var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);
         // Agent-only prompt. Chat companion TechAiPrompt is never passed here.
         var techAgent = settings.TechAgentPrompt;
         var agent = new Agent(

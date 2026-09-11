@@ -11,13 +11,16 @@ using Amarin.Tools;
 
 namespace Amarin.UI
 {
-    public partial class MainWindow : Window, IChatTurnObserver
+    public partial class MainWindow : Window, IChatTurnUi
     {
         private AppServices? _services;
         private ChatSession _session = new();
         private bool _sidebarCollapsed;
-        private bool _busy;
-        private CancellationTokenSource? _turnCts;
+
+        /// <summary>
+        /// Вьюшка ответа в открытом чате. Состояние самого хода живёт в <c>_turns</c>: у окна
+        /// один экран, а ходов может идти несколько.
+        /// </summary>
         private AssistantMessageView? _liveAssistant;
         private readonly DispatcherTimer _workingTimer = new() { Interval = TimeSpan.FromSeconds(1) };
         private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
@@ -25,8 +28,6 @@ namespace Amarin.UI
         // Разметку в живом ответе пересобираем по таймеру, а не на каждую дельту: полная
         // перестройка FlowDocument десятки раз в секунду съела бы UI-поток.
         private readonly DispatcherTimer _streamRender = new() { Interval = TimeSpan.FromMilliseconds(80) };
-        private string _pendingStreamText = "";
-        private string _renderedStreamText = "";
         private readonly Dictionary<string, FrameworkElement> _messageViews = [];
 
         /// <summary>
@@ -72,6 +73,10 @@ namespace Amarin.UI
             PopupManager.Register(ActionsPopup, AttachButton);
 
             WindowMaximizeFix.Attach(this);
+
+            // Второй запуск программы просит это окно показаться. Вешаем здесь, а не в Program:
+            // приём сообщения — дело самого окна, и в тестах оно работает так же, как в бою.
+            SingleInstance.Attach(this, ActivateFromSecondInstance);
             StateChanged += (_, _) => ApplyWindowStateChrome();
 
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
@@ -84,18 +89,17 @@ namespace Amarin.UI
 
             _workingTimer.Tick += (_, _) => UpdateWorkingClock();
             _streamRender.Tick += (_, _) => FlushStreamText();
-            _saveTimer.Tick += (_, _) =>
-            {
-                _saveTimer.Stop();
-                PersistCurrent();
-            };
+            _saveTimer.Tick += (_, _) => FlushPendingPersists();
 
             Loaded += OnWindowLoaded;
             Activated += (_, _) => OnWindowActivated();
             ThemeManager.EffectiveThemeChanged += OnEffectiveThemeChanged;
+            LanguageManager.LanguageChanged += RelocalizeUi;
             Closed += (_, _) =>
             {
+                CancelAllTurns();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
+                LanguageManager.LanguageChanged -= RelocalizeUi;
                 DownloadAccessBroker.SetHandler(null);
             };
             PreviewTextInput += Window_PreviewTextInput;
@@ -246,7 +250,7 @@ namespace Amarin.UI
 
             var confirm = MessageBox.Show(
                 this,
-                "Удалить все сохранённые чаты? Это нельзя отменить.",
+                Loc.Get("S.ChatList.DeleteAllConfirm"),
                 Title,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
@@ -256,7 +260,7 @@ namespace Amarin.UI
                 return;
             }
 
-            CancelTurn();
+            CancelAllTurns();
             _services.ChatStore.DeleteAll();
             StartNewSession(persist: false);
             RefreshChatList();
@@ -305,12 +309,9 @@ namespace Amarin.UI
 
             UpdateModelButton();
 
-            // RenderSession drops _liveAssistant, so never rebuild mid-turn;
-            // the next render picks the new logos up anyway.
-            if (!_busy)
-            {
-                RenderSession();
-            }
+            // Перерисовывать можно и посреди ответа: RenderSession заново привязывается к живому
+            // ходу. Прежде этот охранник оставлял открытый чат со старыми логотипами до конца ответа.
+            RenderSession();
         }
 
         // ───────── Уведомление о завершении ответа ─────────
@@ -420,6 +421,33 @@ namespace Amarin.UI
                 _services?.Settings.UiScalePercent ?? 100,
                 OwnHandle(),
                 () => OpenFromToast(id));
+
+            _toast = toast;
+            toast.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_toast, toast))
+                {
+                    _toast = null;
+                }
+            };
+        }
+
+        /// <summary>
+        /// Сбой в чате, который сейчас не на экране. Карточкой, а не модалкой: модальное окно
+        /// посреди набора в другом чате перехватило бы ввод из-за чужого сетевого сбоя.
+        /// </summary>
+        private void ShowBackgroundTurnError(RunningTurn turn, string message)
+        {
+            _toast?.Close();
+
+            var sessionId = turn.SessionId;
+            var toast = NotificationToast.Show(
+                turn.Assistant?.ResolvedModelId ?? turn.Assistant?.RequestedModelId ?? "",
+                FirstLine(message),
+                Loc.Format("S.Turn.BackgroundFailed", DisplayTitle(turn.Session.Title)),
+                _services?.Settings.UiScalePercent ?? 100,
+                OwnHandle(),
+                () => OpenChat(sessionId));
 
             _toast = toast;
             toast.Closed += (_, _) =>
@@ -689,9 +717,7 @@ namespace Amarin.UI
                 }
 
                 _shownDomainRequest = next;
-                DownloadRequestText.Text =
-                    "Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. " +
-                    "Без разрешения загрузка не состоится.";
+                DownloadRequestText.Text = Loc.Get("S.Confirm.DownloadDesc");
                 DownloadRequestHost.Text = next.Host;
                 DownloadRequestOverlay.Visibility = Visibility.Visible;
                 Chat.IsHitTestVisible = false;
@@ -1017,6 +1043,7 @@ namespace Amarin.UI
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
+            LanguagePicker.SetSelected(settings.LanguageCode);
                 LoadAccountUi();
                 LoadUpdatesUi();
                 RefreshAllowedDomainsUi();
@@ -1109,8 +1136,8 @@ namespace Amarin.UI
                 return;
             }
 
-            CancelTurn();
             PersistCurrent();
+            ClearPendingAttachments();
             StartNewSession(persist: false);
             RenderSession();
             RefreshChatList();
@@ -1302,7 +1329,7 @@ namespace Amarin.UI
             // handles the paste itself and text keeps working exactly as before.
             if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             {
-                if (TryPasteImageFromClipboard())
+                if (TryPasteAttachmentFromClipboard())
                 {
                     e.Handled = true;
                 }
@@ -1326,14 +1353,14 @@ namespace Amarin.UI
 
         private async Task SendAsync()
         {
-            if (_services is null || _busy)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
 
             var text = MessageTextBox.Text.Trim();
-            // Images alone are a valid message — "look at this" needs no words.
-            if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0)
+            // Attachments alone are a valid message — "look at this" needs no words.
+            if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0 && _pendingFiles.Count == 0)
             {
                 return;
             }
@@ -1342,7 +1369,7 @@ namespace Amarin.UI
             {
                 MessageBox.Show(
                     this,
-                    "Не задан API-ключ Venice.ai.\nЗадайте переменную окружения VENICE_API_KEY.",
+                    Loc.Get("S.Turn.NoApiKey"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -1351,13 +1378,13 @@ namespace Amarin.UI
 
             var command = ChatCommands.TryParse(text);
 
-            // The agent works from a text brief and has no vision input, so refuse rather than
-            // send the images off into nothing.
-            if (command is not null && _pendingImages.Count > 0)
+            // The agent works from a text brief and takes no attachments of its own, so refuse
+            // rather than send them off into nothing.
+            if (command is not null && (_pendingImages.Count > 0 || _pendingFiles.Count > 0))
             {
                 MessageBox.Show(
                     this,
-                    "Команда /agent не принимает изображения.\nУберите вложения или отправьте их обычным сообщением.",
+                    Loc.Get("S.Turn.AgentNoAttachments"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -1366,73 +1393,20 @@ namespace Amarin.UI
 
             MessageTextBox.Clear();
             var images = _pendingImages.Count == 0 ? null : _pendingImages.ToArray();
-            ClearPendingImages();
-            _turnCts = new CancellationTokenSource();
-            SetBusy(true);
-            try
-            {
-                if (command is { Name: ChatCommands.Agent } agent)
-                {
-                    await _services.Chat.RunAgentCommandAsync(
-                        _session, text, agent.Argument, agent.Complexity, this, _turnCts.Token);
-                }
-                else
-                {
-                    await _services.Chat.RunTurnAsync(_session, text, images, this, _turnCts.Token);
-                }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                SetBusy(false);
-                _turnCts?.Dispose();
-                _turnCts = null;
-            }
-        }
+            var files = _pendingFiles.Count == 0 ? null : _pendingFiles.ToArray();
+            ClearPendingAttachments();
 
-        private void CancelTurn()
-        {
-            try
+            var session = _session;
+            if (command is { Name: ChatCommands.Agent } agent)
             {
-                _turnCts?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // ignored
+                await RunTurnAsync(session, TurnKind.AgentCommand, (chat, observer, token) =>
+                    _services.Chat.RunAgentCommandAsync(
+                        chat, text, agent.Argument, agent.Complexity, observer, token));
+                return;
             }
 
-            _services?.Confirmations.CancelAll();
-        }
-
-        private void SetBusy(bool busy)
-        {
-            _busy = busy;
-            _compact?.SetBusy(busy);
-            SendButton.IsEnabled = !busy;
-            NewChatButton.IsEnabled = !busy;
-            ChatListPanel.IsEnabled = !busy;
-            if (!busy)
-            {
-                _workingTimer.Stop();
-                StopStreamRender();
-
-                // The single place every turn passes through, however it ended — finished,
-                // cancelled or failed. Venice stamps the remaining balance on the headers of
-                // each request, so by now the client holds the figure this turn left behind.
-                _balance?.Show(_services?.Venice.LastBalance);
-
-                // Focusing an element in an inactive window activates that window, so a turn
-                // finishing while the user works elsewhere used to yank the app to the front —
-                // and, on the way, dismiss the very toast announcing it. The toast and the
-                // taskbar flash are the cues for that case; the caret can wait until they return.
-                if (IsForeground())
-                {
-                    FocusMessageInput();
-                }
-            }
+            await RunTurnAsync(session, TurnKind.Send, (chat, observer, token) =>
+                _services.Chat.RunTurnAsync(chat, text, images, files, observer, token));
         }
 
         private void StartNewSession(bool persist)
@@ -1441,7 +1415,7 @@ namespace Amarin.UI
             _session = _services?.ChatStore.CreateNew(CurrentModelId()) ?? new ChatSession
             {
                 Id = Guid.NewGuid().ToString("N"),
-                Title = "Новый чат",
+                Title = ChatTitle.Default,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
@@ -1480,7 +1454,8 @@ namespace Amarin.UI
             MessagesPanel.Children.Clear();
             _messageViews.Clear();
             _liveAssistant = null;
-            var actions = CreateMessageActions();
+            var actions = CreateMessageActions(_session);
+            var live = FindTurn(_session.Id);
             foreach (var message in _session.Messages)
             {
                 if (message.Role == "user")
@@ -1494,18 +1469,74 @@ namespace Amarin.UI
                 var view = ChatMessageViews.CreateAssistant(this, message, actions);
                 MessagesPanel.Children.Add(view.Root);
                 TrackMessageView(message, view.Root);
+
+                // Вернулись в чат, который ещё отвечает, — подхватываем его вьюшку заново.
+                if (live is not null && message.Id == live.AssistantId)
+                {
+                    _liveAssistant = view;
+                }
+            }
+
+            if (live is not null)
+            {
+                ResumeLiveRendering(live);
             }
 
             MaybeAutoscroll();
         }
 
-        private MessageActions CreateMessageActions() => new()
+        /// <summary>
+        /// Возобновляет показ ответа, который шёл, пока смотрели другой чат.
+        /// </summary>
+        /// <remarks>
+        /// Тело перерисовываем сразу, не дожидаясь тика: у хода, который дописал текст и молча
+        /// крутит инструменты, дельт больше не будет вовсе — пузырь остался бы пустым. Часы
+        /// считаем от начала хода, иначе они обнулялись бы при каждом переключении чата.
+        /// </remarks>
+        private void ResumeLiveRendering(RunningTurn turn)
+        {
+            if (_liveAssistant is null || turn.Finished)
+            {
+                return;
+            }
+
+            _workingStarted = turn.StartedAt;
+            turn.RenderedText = turn.Assistant?.Text ?? turn.PendingText;
+            if (!string.IsNullOrEmpty(turn.RenderedText))
+            {
+                _liveAssistant.SetBody(turn.RenderedText, streaming: true);
+            }
+
+            if (turn.Assistant is not null)
+            {
+                _liveAssistant.UpdateTools(turn.Assistant);
+            }
+
+            _liveAssistant.ShowWorking(DateTime.Now - turn.StartedAt);
+            _liveAssistant.ShowCancelOnly();
+            _workingTimer.Start();
+            _streamRender.Start();
+        }
+
+        /// <summary>Уходим с чата, который ещё отвечает: гасим только показ, сам ход продолжается.</summary>
+        private void StopVisibleRendering()
+        {
+            _workingTimer.Stop();
+            _streamRender.Stop();
+            _liveAssistant = null;
+        }
+
+        /// <param name="session">
+        /// Чат, которому принадлежат кнопки. Захватывается по значению: ряд действий переживает
+        /// перерисовку, и «стоп», собранный для чата А, иначе остановил бы открытый чат Б.
+        /// </param>
+        private MessageActions CreateMessageActions(ChatSession session) => new()
         {
             Copy = CopyMessage,
             CommitEdit = CommitUserEdit,
             Delete = DeleteAssistant,
             Regenerate = RegenerateAssistant,
-            Cancel = _ => CancelTurn(),
+            Cancel = _ => CancelTurn(session.Id),
             Share = ShareMessage,
             Export = ExportMessage,
             SharingEnabled = SharingEnabled,
@@ -1532,7 +1563,7 @@ namespace Amarin.UI
 
         private void CommitUserEdit(ChatDisplayMessage message, string text)
         {
-            if (_busy || _services is null)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
@@ -1550,7 +1581,7 @@ namespace Amarin.UI
 
         private void DeleteAssistant(ChatDisplayMessage message)
         {
-            if (_busy || _services is null)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
@@ -1585,7 +1616,7 @@ namespace Amarin.UI
 
         private void RegenerateAssistant(ChatDisplayMessage message)
         {
-            if (_busy || _services is null)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
@@ -1607,7 +1638,7 @@ namespace Amarin.UI
 
         private async Task ContinueAssistantAsync()
         {
-            if (_services is null || _busy)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
@@ -1616,44 +1647,30 @@ namespace Amarin.UI
             {
                 MessageBox.Show(
                     this,
-                    "Не задан API-ключ Venice.ai.\nЗадайте переменную окружения VENICE_API_KEY.",
+                    Loc.Get("S.Turn.NoApiKey"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 return;
             }
 
-            _turnCts = new CancellationTokenSource();
-            SetBusy(true);
-            try
-            {
-                await _services.Chat.GenerateAssistantAsync(_session, this, _turnCts.Token);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                SetBusy(false);
-                _turnCts?.Dispose();
-                _turnCts = null;
-            }
+            await RunTurnAsync(_session, TurnKind.Continue, (chat, observer, token) =>
+                _services.Chat.GenerateAssistantAsync(chat, observer, token));
         }
 
-        private void MaybeStartTitle(ChatDisplayMessage user)
+        private void MaybeStartTitle(ChatSession session, ChatDisplayMessage user)
         {
-            if (_services is null || !ChatTitle.IsDefault(_session.Title))
+            if (_services is null || !ChatTitle.IsDefault(session.Title))
             {
                 return;
             }
 
-            if (_session.Messages.Count(item => item.Role == "user") != 1)
+            if (session.Messages.Count(item => item.Role == "user") != 1)
             {
                 return;
             }
 
-            var sessionId = _session.Id;
+            var sessionId = session.Id;
             var text = user.Text;
             _ = GenerateTitleAsync(sessionId, text);
         }
@@ -1675,13 +1692,17 @@ namespace Amarin.UI
 
                 Ui(() =>
                 {
-                    if (_session.Id != sessionId)
+                    // Чат мог уйти в фон, пока заголовок придумывался, — ищем его и там.
+                    var session = string.Equals(_session.Id, sessionId, StringComparison.Ordinal)
+                        ? _session
+                        : FindTurn(sessionId)?.Session;
+                    if (session is null)
                     {
                         return;
                     }
 
-                    _session.Title = title;
-                    PersistCurrent();
+                    session.Title = title;
+                    Persist(session);
                     RefreshChatList();
                 });
             }
@@ -1691,6 +1712,9 @@ namespace Amarin.UI
             }
         }
 
+        /// <summary>Слепок списка, по которому видно, изменилось ли в нём хоть что-нибудь.</summary>
+        private string _chatListSignature = "";
+
         private void RefreshChatList()
         {
             if (ChatListPanel is null)
@@ -1698,14 +1722,26 @@ namespace Amarin.UI
                 return;
             }
 
-            ChatListPanel.Children.Clear();
             if (_services is null)
             {
+                ChatListPanel.Children.Clear();
                 return;
             }
 
             var query = SearchBox.Text;
             var items = _services.ChatStore.Search(query);
+
+            // Перерисовка стоит чтения index.json с диска и полной пересборки панели, а зовут её
+            // теперь и фоновые ходы — по несколько раз за секунду. Если ничего не поменялось,
+            // делать нечего.
+            var signature = BuildChatListSignature(query, items);
+            if (signature == _chatListSignature && ChatListPanel.Children.Count > 0)
+            {
+                return;
+            }
+
+            _chatListSignature = signature;
+            ChatListPanel.Children.Clear();
             var today = DateTime.Today;
             var yesterday = today.AddDays(-1);
 
@@ -1736,7 +1772,7 @@ namespace Amarin.UI
                 {
                     var button = new Button
                     {
-                        Content = item.Title,
+                        Content = DisplayTitle(item.Title),
                         Tag = item.Id,
                         Style = item.Id == _session.Id
                             ? (Style)ChatListPanel.FindResource("ChatItemActive")
@@ -1745,41 +1781,96 @@ namespace Amarin.UI
                     button.Click += ChatItem_Click;
                     ChatListPanel.Children.Add(button);
                     AttachChatActions(button, item);
+                    MarkChatWorking(button, item.Id);
                 }
             }
 
-            AddGroup("Закреплённые", items.Where(i => i.IsPinned));
-            AddGroup("Сегодня", items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
-            AddGroup("Вчера", items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
-            AddGroup("Ранее", items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
+            AddGroup(Loc.Get("S.ChatList.Pinned"), items.Where(i => i.IsPinned));
+            AddGroup(Loc.Get("S.ChatList.Today"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
+            AddGroup(Loc.Get("S.ChatList.Yesterday"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
+            AddGroup(Loc.Get("S.ChatList.Earlier"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
             {
-                ChatListPanel.Children.Add(new TextBlock
+                var empty = new TextBlock
                 {
-                    Text = "Ничего не найдено",
+                    Text = Loc.Get("S.Common.NothingFound"),
                     FontSize = 12,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x6A, 0x6A, 0x6A)),
                     Margin = new Thickness(14, 8, 6, 4)
-                });
+                };
+
+                // Через ресурс, а не кистью: захардкоженный серый не менялся вместе с темой.
+                empty.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
+                ChatListPanel.Children.Add(empty);
             }
+        }
+
+        /// <summary>
+        /// Как назвать чат в интерфейсе.
+        /// </summary>
+        /// <remarks>
+        /// На диске заголовок нового чата — постоянная <see cref="ChatTitle.Default"/>, и она же
+        /// служит признаком «заголовок ещё не придуман». Переводить её нельзя: после смены языка
+        /// прежние чаты перестали бы опознаваться как безымянные. Поэтому переводится только показ.
+        /// </remarks>
+        internal static string DisplayTitle(string? title) =>
+            ChatTitle.IsDefault(title) ? Loc.Get("S.ChatList.NewChat") : title!;
+
+        /// <summary>Зажигает точку «думает» у чата, по которому идёт ход.</summary>
+        private void MarkChatWorking(Button row, string sessionId)
+        {
+            if (!IsBusy(sessionId))
+            {
+                return;
+            }
+
+            row.ApplyTemplate();
+            if (row.Template.FindName("Working", row) is FrameworkElement dot)
+            {
+                dot.Visibility = Visibility.Visible;
+            }
+        }
+
+        private string BuildChatListSignature(string query, IReadOnlyList<ChatIndexEntry> items)
+        {
+            var builder = new System.Text.StringBuilder(query).Append('|').Append(_session.Id);
+            foreach (var item in items)
+            {
+                builder.Append('|')
+                    .Append(item.Id).Append('~')
+                    .Append(item.Title).Append('~')
+                    .Append(item.UpdatedAt.Ticks).Append('~')
+                    .Append(item.IsPinned ? '1' : '0').Append('~')
+                    .Append(IsBusy(item.Id) ? '1' : '0');
+            }
+
+            return builder.ToString();
         }
 
         private void ChatItem_Click(object sender, RoutedEventArgs e)
         {
-            if (_services is null || sender is not Button { Tag: string id })
+            if (sender is Button { Tag: string id })
+            {
+                OpenChat(id);
+            }
+        }
+
+        /// <summary>Открыть чат. Ход, идущий в нём или в прежнем, не прерывается.</summary>
+        private void OpenChat(string id)
+        {
+            if (_services is null || id == _session.Id)
             {
                 return;
             }
 
-            if (id == _session.Id)
-            {
-                return;
-            }
-
-            CancelTurn();
             PersistCurrent();
-            var loaded = _services.ChatStore.TryLoad(id);
+
+            // Прикреплённое, но не отправленное, принадлежит тому чату, где его набрали.
+            ClearPendingAttachments();
+
+            // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
+            // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.
+            var loaded = FindTurn(id)?.Session ?? _services.ChatStore.TryLoad(id);
             if (loaded is null)
             {
                 return;
@@ -1901,23 +1992,6 @@ namespace Amarin.UI
             return _services?.Options.Model ?? "claude-sonnet-5";
         }
 
-        private void PersistCurrent()
-        {
-            if (_services is null || string.IsNullOrWhiteSpace(_session.Id) || _session.Messages.Count == 0)
-            {
-                return;
-            }
-
-            _services.ChatStore.Save(_session);
-            RefreshChatList();
-        }
-
-        private void SchedulePersist()
-        {
-            _saveTimer.Stop();
-            _saveTimer.Start();
-        }
-
         private void ChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (_autoScrolling)
@@ -1995,94 +2069,115 @@ namespace Amarin.UI
             Dispatcher.Invoke(action);
         }
 
-        void IChatTurnObserver.OnUserAppended(ChatDisplayMessage user) => Ui(() =>
+        // ═════════ Сообщения хода ═════════
+        // Ходов может идти несколько, поэтому каждый метод первым делом решает, его ли это чат
+        // на экране. Раньше окно само было наблюдателем и всё делало по полю «текущий чат» —
+        // ответ фонового хода записался бы не туда.
+
+        void IChatTurnUi.TurnUserAppended(RunningTurn turn, ChatDisplayMessage user) => Ui(() =>
         {
-            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions()).Root;
+            if (!IsVisibleTurn(turn))
+            {
+                // Список всё равно обновится сохранением, а рисовать нечего.
+                MaybeStartTitle(turn.Session, user);
+                return;
+            }
+
+            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(turn.Session)).Root;
             MessagesPanel.Children.Add(userRoot);
             TrackMessageView(user, userRoot);
-            SchedulePersist();
             MaybeAutoscroll();
             RefreshChatList();
-            MaybeStartTitle(user);
+            MaybeStartTitle(turn.Session, user);
         });
 
-        void IChatTurnObserver.OnAssistantStarted(ChatDisplayMessage assistant) => Ui(() =>
+        void IChatTurnUi.TurnAssistantStarted(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
-            _workingStarted = DateTime.Now;
-            var view = ChatMessageViews.CreateAssistant(this, assistant, CreateMessageActions());
+            if (!IsVisibleTurn(turn))
+            {
+                return;
+            }
+
+            _workingStarted = turn.StartedAt;
+            var view = ChatMessageViews.CreateAssistant(this, assistant, CreateMessageActions(turn.Session));
             _liveAssistant = view;
             MessagesPanel.Children.Add(view.Root);
             TrackMessageView(assistant, view.Root);
             _workingTimer.Start();
-            _pendingStreamText = "";
-            _renderedStreamText = "";
             _streamRender.Start();
             MaybeAutoscroll();
         });
 
-        void IChatTurnObserver.OnAssistantText(ChatDisplayMessage assistant) => Ui(() =>
+        void IChatTurnUi.TurnAssistantText(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
-            if (_liveAssistant is null)
+            if (!IsVisibleTurn(turn) || _liveAssistant is null)
             {
                 return;
             }
 
             // Только копим: перерисует и подкрутит прокрутку следующий тик _streamRender.
-            _pendingStreamText = assistant.Text;
             _liveAssistant.ApplyBranding(this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
         });
 
         /// <summary>Показать накопленный кусок ответа, если он изменился с прошлого тика.</summary>
         private void FlushStreamText()
         {
-            if (_liveAssistant is null || _pendingStreamText == _renderedStreamText)
+            var turn = FindTurn(_session.Id);
+            if (turn is null || _liveAssistant is null || turn.PendingText == turn.RenderedText)
             {
                 return;
             }
 
-            _renderedStreamText = _pendingStreamText;
-            _liveAssistant.SetBody(_renderedStreamText, streaming: true);
+            turn.RenderedText = turn.PendingText;
+            _liveAssistant.SetBody(turn.RenderedText, streaming: true);
 
             // Прокрутка только после перерисовки — иначе она считает высоту прошлого кадра.
             MaybeAutoscroll();
         }
 
-        private void StopStreamRender()
+        void IChatTurnUi.TurnToolsChanged(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
-            _streamRender.Stop();
-            _pendingStreamText = "";
-            _renderedStreamText = "";
-        }
+            if (!IsVisibleTurn(turn))
+            {
+                return;
+            }
 
-        void IChatTurnObserver.OnToolsChanged(ChatDisplayMessage assistant) => Ui(() =>
-        {
             _liveAssistant?.UpdateTools(assistant);
-            SchedulePersist();
             MaybeAutoscroll();
         });
 
-        void IChatTurnObserver.OnAssistantCompleted(ChatDisplayMessage assistant) => Ui(() =>
+        void IChatTurnUi.TurnAssistantCompleted(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
-            _workingTimer.Stop();
-            StopStreamRender();
-            _liveAssistant?.ApplyBranding(this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
-            if (_liveAssistant is not null)
+            if (IsVisibleTurn(turn))
             {
-                _liveAssistant.SetBody(assistant.Text, streaming: false);
-                _liveAssistant.UpdateTools(assistant);
-                _liveAssistant.ShowFinished(assistant);
+                _workingTimer.Stop();
+                _streamRender.Stop();
+                _liveAssistant?.ApplyBranding(
+                    this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
+                if (_liveAssistant is not null)
+                {
+                    _liveAssistant.SetBody(assistant.Text, streaming: false);
+                    _liveAssistant.UpdateTools(assistant);
+                    _liveAssistant.ShowFinished(assistant);
+                }
+
+                _liveAssistant = null;
+                MaybeAutoscroll();
             }
 
-            _liveAssistant = null;
-            PersistCurrent();
-            MaybeAutoscroll();
+            // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат.
             MaybeShowCompletionToast(assistant);
         });
 
-        void IChatTurnObserver.OnAssistantCancelled(ChatDisplayMessage assistant) => Ui(() =>
+        void IChatTurnUi.TurnAssistantCancelled(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
+            if (!IsVisibleTurn(turn))
+            {
+                return;
+            }
+
             _workingTimer.Stop();
-            StopStreamRender();
+            _streamRender.Stop();
             if (_liveAssistant is not null)
             {
                 _liveAssistant.SetBody(assistant.Text, streaming: false);
@@ -2091,15 +2186,24 @@ namespace Amarin.UI
             }
 
             _liveAssistant = null;
-            PersistCurrent();
         });
 
-        void IChatTurnObserver.OnError(string message) => Ui(() =>
+        void IChatTurnUi.TurnError(RunningTurn turn, string message) => Ui(() =>
         {
-            if (!string.IsNullOrWhiteSpace(message))
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            if (IsVisibleTurn(turn))
             {
                 MessageBox.Show(this, message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
+
+            // Модалка посреди набора в другом чате из-за сетевого сбоя в фоновом — это регресс.
+            // Карточка в углу называет чат и не перехватывает ввод.
+            ShowBackgroundTurnError(turn, message);
         });
 
         private void OnConfirmationChanged() => Ui(ShowNextConfirmation);
@@ -2118,6 +2222,7 @@ namespace Amarin.UI
                 return;
             }
 
+            ShowConfirmationChat(request.SessionId);
             ConfirmationAgentText.Text = request.AgentLabel;
             ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
                 ? request.Info.ToolName
@@ -2128,6 +2233,43 @@ namespace Amarin.UI
             ConfirmationExplanationText.Text = explanation ?? "";
             ConfirmationOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
+        }
+
+        /// <summary>
+        /// Называет чат, из которого пришёл вопрос, и даёт перейти в него. Само не переключает:
+        /// выдёргивать человека из того, что он смотрит, хуже, чем показать название.
+        /// </summary>
+        private void ShowConfirmationChat(string? sessionId)
+        {
+            _confirmationSessionId = sessionId;
+            if (string.IsNullOrWhiteSpace(sessionId) ||
+                string.Equals(sessionId, _session.Id, StringComparison.Ordinal))
+            {
+                ConfirmationChatButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var title = FindTurn(sessionId)?.Session.Title
+                        ?? _services?.ChatStore.Search("").FirstOrDefault(item => item.Id == sessionId)?.Title;
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                ConfirmationChatButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            ConfirmationChatButton.Content = Loc.Format("S.Confirm.FromChat", DisplayTitle(title));
+            ConfirmationChatButton.Visibility = Visibility.Visible;
+        }
+
+        private string? _confirmationSessionId;
+
+        private void ConfirmationChatButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_confirmationSessionId is { Length: > 0 } id)
+            {
+                OpenChat(id);
+                ShowConfirmationChat(id);
+            }
         }
 
         private void ConfirmationYesButton_Click(object sender, RoutedEventArgs e) =>

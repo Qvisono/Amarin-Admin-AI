@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Amarin.Tools;
 
 namespace Amarin.Core;
@@ -10,11 +9,26 @@ internal sealed class ConfirmationRequest
     public required DangerousActionInfo Info { get; init; }
 
     public required TaskCompletionSource<bool> Completion { get; init; }
+
+    /// <summary>
+    /// Чат, из которого пришёл вопрос. Нужен, чтобы отмена одного хода не убивала подтверждения
+    /// соседнего и чтобы в окне подтверждения было видно, о каком разговоре речь.
+    /// </summary>
+    public string? SessionId { get; init; }
 }
 
+/// <summary>
+/// Очередь вопросов «выполнить опасное действие?» — по одному на экране, остальные ждут.
+/// </summary>
+/// <remarks>
+/// Список под замком, а не <c>ConcurrentQueue</c>: с несколькими одновременными ходами нужно
+/// уметь выбросить из середины вопросы одного чата, не трогая порядок остальных, а из
+/// <c>ConcurrentQueue</c> элемент из середины не достать.
+/// </remarks>
 internal sealed class ConfirmationQueue
 {
-    private readonly ConcurrentQueue<ConfirmationRequest> _queue = new();
+    private readonly List<ConfirmationRequest> _queue = [];
+    private readonly Lock _gate = new();
     private readonly Func<AppSettings> _settings;
 
     public ConfirmationQueue(Func<AppSettings> settings) => _settings = settings;
@@ -24,6 +38,7 @@ internal sealed class ConfirmationQueue
     public async Task<bool> ConfirmAsync(
         string agentLabel,
         DangerousActionInfo info,
+        string? sessionId = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -38,9 +53,15 @@ internal sealed class ConfirmationQueue
         {
             AgentLabel = agentLabel,
             Info = info,
-            Completion = tcs
+            Completion = tcs,
+            SessionId = sessionId
         };
-        _queue.Enqueue(request);
+
+        lock (_gate)
+        {
+            _queue.Add(request);
+        }
+
         Changed?.Invoke();
 
         await using var registration = cancellationToken.Register(() =>
@@ -61,14 +82,19 @@ internal sealed class ConfirmationQueue
 
     public bool TryPeek(out ConfirmationRequest request)
     {
-        while (_queue.TryPeek(out request!))
+        lock (_gate)
         {
-            if (!request.Completion.Task.IsCompleted)
+            while (_queue.Count > 0)
             {
-                return true;
-            }
+                var head = _queue[0];
+                if (!head.Completion.Task.IsCompleted)
+                {
+                    request = head;
+                    return true;
+                }
 
-            _queue.TryDequeue(out _);
+                _queue.RemoveAt(0);
+            }
         }
 
         request = null!;
@@ -77,12 +103,23 @@ internal sealed class ConfirmationQueue
 
     public void CompleteCurrent(bool approved)
     {
-        while (_queue.TryDequeue(out var request))
+        while (true)
         {
-            if (request.Completion.TrySetResult(approved))
+            ConfirmationRequest? head;
+            lock (_gate)
             {
-                Changed?.Invoke();
-                return;
+                if (_queue.Count == 0)
+                {
+                    break;
+                }
+
+                head = _queue[0];
+                _queue.RemoveAt(0);
+            }
+
+            if (head.Completion.TrySetResult(approved))
+            {
+                break;
             }
         }
 
@@ -91,7 +128,42 @@ internal sealed class ConfirmationQueue
 
     public void CancelAll()
     {
-        while (_queue.TryDequeue(out var request))
+        ConfirmationRequest[] dropped;
+        lock (_gate)
+        {
+            dropped = [.. _queue];
+            _queue.Clear();
+        }
+
+        foreach (var request in dropped)
+        {
+            request.Completion.TrySetCanceled();
+        }
+
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Отменяет вопросы одного чата. Порядок остальных сохраняется: соседний ход продолжает
+    /// ждать своей очереди, а не начинает её заново.
+    /// </summary>
+    public void CancelForSession(string sessionId)
+    {
+        ConfirmationRequest[] dropped;
+        lock (_gate)
+        {
+            dropped = [.. _queue.Where(item =>
+                string.Equals(item.SessionId, sessionId, StringComparison.Ordinal))];
+            _queue.RemoveAll(item =>
+                string.Equals(item.SessionId, sessionId, StringComparison.Ordinal));
+        }
+
+        if (dropped.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var request in dropped)
         {
             request.Completion.TrySetCanceled();
         }
@@ -101,9 +173,18 @@ internal sealed class ConfirmationQueue
 
     private void TryDrop(ConfirmationRequest request)
     {
-        if (_queue.TryPeek(out var head) && ReferenceEquals(head, request))
+        var removed = false;
+        lock (_gate)
         {
-            _queue.TryDequeue(out _);
+            if (_queue.Count > 0 && ReferenceEquals(_queue[0], request))
+            {
+                _queue.RemoveAt(0);
+                removed = true;
+            }
+        }
+
+        if (removed)
+        {
             Changed?.Invoke();
         }
     }

@@ -46,18 +46,18 @@ namespace Amarin.UI
                 Style = (Style)FindResource("AppContextMenu")
             };
 
-            menu.Items.Add(MenuItemFor("Переименовать", () => RenameChat(id)));
-            menu.Items.Add(MenuItemFor(pinned ? "Открепить" : "Закрепить наверху", () => PinChat(id, !pinned)));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChat(id)));
+            menu.Items.Add(MenuItemFor(pinned ? Loc.Get("S.ChatList.Unpin") : Loc.Get("S.ChatList.Pin"), () => PinChat(id, !pinned)));
 
             if (SharingEnabled())
             {
                 menu.Items.Add(Divider());
-                menu.Items.Add(MenuItemFor("Поделиться", () => WithChat(id, s => ShareSession(s, null))));
-                menu.Items.Add(MenuItemFor("Экспорт в JSON", () => WithChat(id, s => ExportSession(s, null))));
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => WithChat(id, s => ShareSession(s, null))));
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.ExportJson"), () => WithChat(id, s => ExportSession(s, null))));
             }
 
             menu.Items.Add(Divider());
-            menu.Items.Add(MenuItemFor("Удалить", () => DeleteChat(id), danger: true));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.Common.Delete"), () => DeleteChat(id), danger: true));
 
             menu.IsOpen = true;
         }
@@ -108,8 +108,8 @@ namespace Amarin.UI
                 : _services.ChatStore.Search("").FirstOrDefault(item => item.Id == id)?.Title ?? "";
 
             OpenNameDialog(
-                "Название чата",
-                "Показывается в списке слева. Хранится только на этом компьютере.",
+                Loc.Get("S.ChatList.NameTitle"),
+                Loc.Get("S.ChatList.NameDesc"),
                 current,
                 title =>
                 {
@@ -153,10 +153,10 @@ namespace Amarin.UI
             }
 
             var entry = _services.ChatStore.Search("").FirstOrDefault(item => item.Id == id);
-            var title = string.IsNullOrWhiteSpace(entry?.Title) ? "этот чат" : $"«{entry!.Title}»";
+            var title = string.IsNullOrWhiteSpace(entry?.Title) ? Loc.Get("S.ChatList.ThisChat") : $"«{entry!.Title}»";
             var answer = MessageBox.Show(
                 this,
-                $"Удалить {title}? Это действие нельзя отменить.",
+                Loc.Format("S.ChatList.DeleteConfirm", title),
                 Title,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -166,14 +166,11 @@ namespace Amarin.UI
                 return;
             }
 
-            var deletingOpen = id == _session.Id;
-            if (deletingOpen)
-            {
-                // Stop any turn still writing into the session we are about to remove, or it
-                // would save itself back to disk on completion.
-                CancelTurn();
-            }
+            // Останавливаем ход удаляемого чата всегда, а не только когда он открыт: фоновый
+            // ход по завершении сохранил бы себя обратно на диск, и чат «воскрес» бы.
+            CancelTurn(id);
 
+            var deletingOpen = id == _session.Id;
             _services.ChatStore.Delete(id);
 
             if (deletingOpen)

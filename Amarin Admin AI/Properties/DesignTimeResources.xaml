@@ -22,5 +22,8 @@
         <ResourceDictionary Source="../UI/Theme/Palette.Dark.xaml"/>
         <ResourceDictionary Source="../UI/Theme/Icons.Dark.xaml"/>
         <ResourceDictionary Source="../UI/Theme/AiLogos.Dark.xaml"/>
+        <!-- Строки: в работе их подставляет LanguageManager, здесь — русские,
+             иначе в конструкторе все подписи станут пустыми. -->
+        <ResourceDictionary Source="../UI/Lang/Strings.ru.xaml"/>
     </ResourceDictionary.MergedDictionaries>
 </ResourceDictionary>

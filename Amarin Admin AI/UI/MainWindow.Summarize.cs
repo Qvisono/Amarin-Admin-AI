@@ -1,4 +1,5 @@
 using System.Windows;
+using Amarin.Core;
 using Amarin.Tools;
 
 namespace Amarin.UI
@@ -18,7 +19,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_busy)
+            if (IsBusy(_session.Id))
             {
                 ShowSummarizeError("Дождитесь окончания текущего ответа.");
                 return;
@@ -64,7 +65,7 @@ namespace Amarin.UI
         /// </summary>
         private async Task RunInfographicAsync(string videoUrl)
         {
-            if (_services is null || _busy)
+            if (_services is null || IsBusy(_session.Id))
             {
                 return;
             }
@@ -80,22 +81,8 @@ namespace Amarin.UI
                 return;
             }
 
-            _turnCts = new CancellationTokenSource();
-            SetBusy(true);
-            try
-            {
-                await _services.Chat.RunVideoInfographicAsync(_session, videoUrl, this, _turnCts.Token);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                SetBusy(false);
-                _turnCts?.Dispose();
-                _turnCts = null;
-            }
+            await RunTurnAsync(_session, TurnKind.Infographic, (chat, observer, token) =>
+                _services.Chat.RunVideoInfographicAsync(chat, videoUrl, observer, token));
         }
 
         private static string TranscriptPrompt(string url) =>

@@ -1,6 +1,13 @@
 namespace Amarin.Core;
 
-internal sealed record ModelTierGroup(string Title, string Subtitle, string[] Models);
+/// <param name="TitleKey">Ключ строки, а не сама строка: список собирается один раз при
+/// загрузке типа, до того как выбран язык, — готовый текст остался бы русским навсегда.</param>
+internal sealed record ModelTierGroup(string TitleKey, string SubtitleKey, string[] Models)
+{
+    public string Title => Loc.Get(TitleKey);
+
+    public string Subtitle => Loc.Get(SubtitleKey);
+}
 
 internal static class VeniceModelCatalog
 {
@@ -13,16 +20,16 @@ internal static class VeniceModelCatalog
     public static readonly ModelTierGroup[] Tiers =
     [
         new(
-            "ФЛАГМАНСКИЕ",
-            "макс. надёжность",
+            "S.Models.TierFlagship",
+            "S.Models.TierFlagshipDesc",
             ["claude-sonnet-5", "grok-4-6"]),
         new(
-            "СРЕДНИЙ УРОВЕНЬ",
-            "цена/качество",
+            "S.Models.TierMiddle",
+            "S.Models.TierMiddleDesc",
             ["openai-gpt-53-codex", "kimi-k2-7-code"]),
         new(
-            "БЮДЖЕТНЫЙ УРОВЕНЬ",
-            "для массовых/простых задач",
+            "S.Models.TierBudget",
+            "S.Models.TierBudgetDesc",
             ["minimax-m3-preview", "qwen-3-7-plus"])
     ];
 
@@ -230,7 +237,7 @@ internal static class VeniceModelCatalog
     {
         if (string.IsNullOrWhiteSpace(modelId) || IsAuto(modelId))
         {
-            return "Авто";
+            return Loc.Get("S.Models.Auto");
         }
 
         return modelId.Trim().ToLowerInvariant() switch

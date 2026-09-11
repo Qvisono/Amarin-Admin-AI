@@ -87,7 +87,7 @@ internal sealed class BalanceBadge
             // Before the first answer of the very first run there is no figure anywhere. A dash
             // is honest; "$0.00" would read as "you are out of money".
             _amount.Text = FormatUsd(null);
-            _plate.ToolTip = "Остаток на счету Venice появится после первого ответа модели.";
+            _plate.ToolTip = Loc.Get("S.Balance.Unknown");
             return;
         }
 
@@ -122,15 +122,17 @@ internal sealed class BalanceBadge
 
     private static string BuildTooltip(VeniceBalance balance)
     {
-        var text = "Остаток на счету Venice: " + balance.Format();
+        // Переносы строк собираются здесь, а не внутри самих подписей: вёрстка подсказки —
+        // не то, что переводчик обязан беречь, да и XAML обрезал бы ведущий перенос.
+        var text = Loc.Get("S.Balance.Title") + " " + balance.Format();
         if (balance.Usd is { } usd && usd < LowUsd)
         {
-            text += usd < CriticalUsd
-                ? "\nСредства почти закончились — генерация картинок может не пройти."
-                : "\nСредств осталось немного.";
+            text += "\n" + (usd < CriticalUsd
+                ? Loc.Get("S.Balance.AlmostOut")
+                : Loc.Get("S.Balance.Low"));
         }
 
-        return text + "\nОбновляется после каждого ответа модели.";
+        return text + "\n" + Loc.Get("S.Balance.Refresh");
     }
 
     private static SolidColorBrush Frozen(Color colour)

@@ -68,6 +68,13 @@ public sealed class ChatDisplayMessage
     /// </summary>
     public List<ImageAttachment> Images { get; set; } = [];
 
+    /// <summary>
+    /// Документы, прикреплённые к сообщению: PDF, таблицы, исходники. Хранятся так же, как
+    /// картинки, — base64 внутри чата. У старых переписок поля в JSON нет, и список выходит
+    /// пустым: чат сериализуется рефлексией, миграция не нужна.
+    /// </summary>
+    public List<FileAttachment> Files { get; set; } = [];
+
     public string? RequestedModelId { get; set; }
 
     public string? ResolvedModelId { get; set; }

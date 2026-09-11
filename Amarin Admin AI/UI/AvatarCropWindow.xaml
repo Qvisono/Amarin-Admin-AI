@@ -32,9 +32,9 @@
                 <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
             </Border.Effect>
             <StackPanel>
-                <TextBlock Text="Область фото профиля" FontSize="15" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource S.Avatar.Title}" FontSize="15" FontWeight="SemiBold"
                            Foreground="{DynamicResource Text.Body}"/>
-                <TextBlock Text="Перетащите изображение мышью, колесо или ползунок — масштаб."
+                <TextBlock Text="{DynamicResource S.Avatar.Desc}"
                            FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap"
                            Foreground="{DynamicResource Text.Faint}"/>
 
@@ -87,9 +87,9 @@
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
                     <Button x:Name="CancelButton" Style="{StaticResource DialogSecondaryButton}"
-                            Content="Отмена" Margin="0,0,8,0" Click="CancelButton_Click"/>
+                            Content="{DynamicResource S.Common.Cancel}" Margin="0,0,8,0" Click="CancelButton_Click"/>
                     <Button x:Name="OkButton" Style="{StaticResource DialogPrimaryButton}"
-                            Content="Применить" Click="OkButton_Click"/>
+                            Content="{DynamicResource S.Common.Apply}" Click="OkButton_Click"/>
                 </StackPanel>
             </StackPanel>
         </Border>

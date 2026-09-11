@@ -617,7 +617,6 @@ internal sealed partial class ChatEngine
     private readonly Func<AppSettings> _settings;
     private readonly ToolRegistry _tools;
     private readonly List<ToolDefinition> _toolDefinitions;
-    private ReasoningChoice _turnReasoning = ReasoningChoice.Disabled;
 
     public ChatEngine(
         VeniceClient venice,
@@ -637,17 +636,31 @@ internal sealed partial class ChatEngine
         string userText,
         IChatTurnObserver observer,
         CancellationToken cancellationToken) =>
-        await RunTurnAsync(session, userText, images: null, observer, cancellationToken)
+        await RunTurnAsync(session, userText, images: null, files: null, observer, cancellationToken)
+            .ConfigureAwait(false);
+
+    public async Task RunTurnAsync(
+        ChatSession session,
+        string userText,
+        IReadOnlyList<ImageAttachment>? images,
+        IChatTurnObserver observer,
+        CancellationToken cancellationToken) =>
+        await RunTurnAsync(session, userText, images, files: null, observer, cancellationToken)
             .ConfigureAwait(false);
 
     /// <param name="images">
     /// Attachments for this turn. A turn carrying images is valid with no text at all —
     /// "look at this" is a complete request.
     /// </param>
+    /// <param name="files">
+    /// Documents for this turn — PDF, spreadsheets, sources. Venice extracts their text on its
+    /// side, so nothing here parses them. Like images, they make a complete request on their own.
+    /// </param>
     public async Task RunTurnAsync(
         ChatSession session,
         string userText,
         IReadOnlyList<ImageAttachment>? images,
+        IReadOnlyList<FileAttachment>? files,
         IChatTurnObserver observer,
         CancellationToken cancellationToken)
     {
@@ -656,7 +669,8 @@ internal sealed partial class ChatEngine
 
         var text = userText.Trim();
         var attachments = images is { Count: > 0 } ? images : null;
-        if (string.IsNullOrWhiteSpace(text) && attachments is null)
+        var documents = files is { Count: > 0 } ? files : null;
+        if (string.IsNullOrWhiteSpace(text) && attachments is null && documents is null)
         {
             return;
         }
@@ -668,15 +682,16 @@ internal sealed partial class ChatEngine
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = now,
             Text = text,
-            Images = attachments is null ? [] : [.. attachments]
+            Images = attachments is null ? [] : [.. attachments],
+            Files = documents is null ? [] : [.. documents]
         };
         session.Messages.Add(user);
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "user",
-            Content = attachments is null
+            Content = attachments is null && documents is null
                 ? ChatContent.Text(text)
-                : ChatContent.VisionMultiple(VisionPrompt(text), attachments)
+                : ChatContent.Multipart(AttachmentPrompt(text, attachments, documents), attachments, documents)
         });
         session.UpdatedAt = now;
         observer.OnUserAppended(user);
@@ -685,11 +700,28 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// The vision content array always leads with a text part, so an image-only turn needs a
-    /// stand-in question rather than an empty string the model has to guess at.
+    /// The content array always leads with a text part, so a turn that is nothing but attachments
+    /// needs a stand-in question rather than an empty string the model has to guess at.
     /// </summary>
-    private static string VisionPrompt(string text) =>
-        string.IsNullOrWhiteSpace(text) ? "Посмотри на изображение." : text;
+    private static string AttachmentPrompt(
+        string text,
+        IReadOnlyList<ImageAttachment>? images,
+        IReadOnlyList<FileAttachment>? files)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            return text;
+        }
+
+        if (files is { Count: > 0 })
+        {
+            return images is { Count: > 0 }
+                ? "Посмотри вложения."
+                : "Прочитай вложенные файлы.";
+        }
+
+        return "Посмотри на изображение.";
+    }
 
     /// <summary>
     /// Handles <c>/agent &lt;prompt&gt;</c>: starts the agent immediately instead of asking the
@@ -730,8 +762,18 @@ internal sealed partial class ChatEngine
         session.UpdatedAt = now;
         observer.OnUserAppended(user);
 
-        _venice.ResetRequestCost();
         var requested = ReadSelectedModel(session);
+
+        // Свой контекст на ход: у команды /agent прежде вообще не выставлялось размышление, и
+        // она молча наследовала то, что осталось от предыдущего хода.
+        var turn = new VeniceTurnContext
+        {
+            RequestedModelId = requested,
+            ModelId = requested,
+            Reasoning = session.Reasoning
+        };
+        using var turnScope = VeniceTurnScope.Push(turn);
+
         var assistant = new ChatDisplayMessage
         {
             Role = "assistant",
@@ -753,11 +795,8 @@ internal sealed partial class ChatEngine
                 var chosen = await RouteAsync(prompt, cancellationToken).ConfigureAwait(false);
                 assistant.ResolvedModelId = chosen;
                 observer.OnAssistantText(assistant);
-                _venice.SetActiveModel(chosen);
-            }
-            else
-            {
-                _venice.SetActiveModel(requested);
+                turn.ModelId = chosen;
+                turn.Reasoning = ResolveAutoReasoning(chosen);
             }
 
             var messages = BuildApiMessages(session);
@@ -801,20 +840,19 @@ internal sealed partial class ChatEngine
                     assistant,
                     observer,
                     clock,
+                    turn,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            FinishAssistant(session, assistant, clock, report);
+            FinishAssistant(session, assistant, clock, report, turn);
             observer.OnAssistantCompleted(assistant);
         }
         catch (OperationCanceledException)
         {
             clock.Stop();
             assistant.Duration = clock.Elapsed;
-            assistant.ResolvedModelId = _venice.ActiveModel;
-            ApplyCosts(
-                assistant,
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
+            assistant.ResolvedModelId = turn.ModelId;
+            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -831,9 +869,7 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            ApplyCosts(
-                assistant,
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
+            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -852,18 +888,28 @@ internal sealed partial class ChatEngine
         var text = lastUser?.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(text))
         {
-            // An image-only turn has no text but is still a real request.
-            if (lastUser is null || lastUser.Images.Count == 0)
+            // An attachment-only turn has no text but is still a real request.
+            if (lastUser is null || (lastUser.Images.Count == 0 && lastUser.Files.Count == 0))
             {
                 return;
             }
 
-            text = VisionPrompt(text);
+            text = AttachmentPrompt(text, lastUser.Images, lastUser.Files);
         }
 
-        _venice.ResetRequestCost();
         var now = DateTime.Now;
         var requested = ReadSelectedModel(session);
+
+        // Модель, размышление и счёт — на ход, а не на приложение. Прежде ResetRequestCost()
+        // на старте второго хода обнулял уже накопленную цену первого.
+        var turn = new VeniceTurnContext
+        {
+            RequestedModelId = requested,
+            ModelId = requested,
+            Reasoning = session.Reasoning
+        };
+        using var turnScope = VeniceTurnScope.Push(turn);
+
         var assistant = new ChatDisplayMessage
         {
             Role = "assistant",
@@ -885,26 +931,19 @@ internal sealed partial class ChatEngine
                 var chosen = await RouteAsync(text, cancellationToken).ConfigureAwait(false);
                 assistant.ResolvedModelId = chosen;
                 observer.OnAssistantText(assistant);
-                _venice.SetActiveModel(chosen);
-                _turnReasoning = ResolveAutoReasoning(chosen);
-            }
-            else
-            {
-                _venice.SetActiveModel(requested);
-                _turnReasoning = session.Reasoning;
+                turn.ModelId = chosen;
+                turn.Reasoning = ResolveAutoReasoning(chosen);
             }
 
-            await RunToolLoopAsync(session, assistant, observer, clock, cancellationToken)
+            await RunToolLoopAsync(session, assistant, observer, clock, turn, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             clock.Stop();
             assistant.Duration = clock.Elapsed;
-            assistant.ResolvedModelId = _venice.ActiveModel;
-            ApplyCosts(
-                assistant,
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
+            assistant.ResolvedModelId = turn.ModelId;
+            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -921,9 +960,7 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            ApplyCosts(
-                assistant,
-                _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost ?? VeniceCost.Zero);
+            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -935,6 +972,7 @@ internal sealed partial class ChatEngine
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
         Stopwatch clock,
+        VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
         var messages = BuildApiMessages(session);
@@ -950,12 +988,13 @@ internal sealed partial class ChatEngine
                     assistant,
                     observer,
                     clock,
+                    turn,
                     cancellationToken)
                 .ConfigureAwait(false);
 
             if (streamed.ToolCalls.Count == 0)
             {
-                FinishAssistant(session, assistant, clock, streamed);
+                FinishAssistant(session, assistant, clock, streamed, turn);
                 observer.OnAssistantCompleted(assistant);
                 return;
             }
@@ -992,9 +1031,10 @@ internal sealed partial class ChatEngine
                 assistant,
                 observer,
                 clock,
+                turn,
                 cancellationToken)
             .ConfigureAwait(false);
-        FinishAssistant(session, assistant, clock, synthesis);
+        FinishAssistant(session, assistant, clock, synthesis, turn);
         observer.OnAssistantCompleted(assistant);
     }
 
@@ -1011,10 +1051,11 @@ internal sealed partial class ChatEngine
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
         Stopwatch clock,
+        VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
         var streamed = await StreamOnceAsync(
-                messages, tools, toolChoice, assistant, observer, clock, cancellationToken)
+                messages, tools, toolChoice, assistant, observer, clock, turn, cancellationToken)
             .ConfigureAwait(false);
 
         if (!IsEmptyCompletion(streamed))
@@ -1028,7 +1069,7 @@ internal sealed partial class ChatEngine
         cancellationToken.ThrowIfCancellationRequested();
 
         var retry = await StreamOnceAsync(
-                messages, tools, toolChoice, assistant, observer, clock, cancellationToken)
+                messages, tools, toolChoice, assistant, observer, clock, turn, cancellationToken)
             .ConfigureAwait(false);
 
         if (!IsEmptyCompletion(retry))
@@ -1066,9 +1107,12 @@ internal sealed partial class ChatEngine
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
         Stopwatch clock,
+        VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
         var streamed = await _venice.StreamChatCompletionAsync(
+                turn.ModelId,
+                turn.RequestedModelId,
                 messages,
                 tools,
                 toolChoice,
@@ -1077,12 +1121,22 @@ internal sealed partial class ChatEngine
                 {
                     assistant.Text = chunk;
                     assistant.Duration = clock.Elapsed;
-                    assistant.ResolvedModelId = _venice.ActiveModel;
+
+                    // Модель этого хода, а не общая: раньше здесь читалось поле клиента, и при
+                    // двух одновременных ходах в шапке чата А мигала модель чата Б.
+                    assistant.ResolvedModelId = turn.ModelId;
                     observer.OnAssistantText(assistant);
                 },
                 cancellationToken,
-                _turnReasoning)
+                turn.Reasoning)
             .ConfigureAwait(false);
+
+        // Сработавшую модель ход запоминает сам — следующий раунд начнёт с неё, а не с той,
+        // что уже отказала. Прежде эту «липкость» держало общее поле клиента.
+        if (!string.IsNullOrWhiteSpace(streamed.Model))
+        {
+            turn.ModelId = streamed.Model;
+        }
 
         assistant.ResolvedModelId = streamed.Model;
         assistant.Duration = clock.Elapsed;
@@ -1213,7 +1267,8 @@ internal sealed partial class ChatEngine
                         {
                             Call = call,
                             Assistant = assistant,
-                            Observer = observer
+                            Observer = observer,
+                            SessionId = session.Id
                         }))
                         {
                             result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
@@ -1341,7 +1396,8 @@ internal sealed partial class ChatEngine
         ChatSession session,
         ChatDisplayMessage assistant,
         Stopwatch clock,
-        StreamedChatCompletion streamed)
+        StreamedChatCompletion streamed,
+        VeniceTurnContext turn)
     {
         clock.Stop();
         assistant.Text = string.IsNullOrWhiteSpace(streamed.Text)
@@ -1353,7 +1409,7 @@ internal sealed partial class ChatEngine
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
-        ApplyCosts(assistant, _venice.RequestCost.HasData ? _venice.RequestCost : streamed.Cost);
+        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
         assistant.Status = AssistantStatus.Complete;
         session.ApiMessages.Add(new ChatMessage
         {
@@ -1431,14 +1487,16 @@ internal sealed partial class ChatEngine
     /// <c>AgentRunScope.Charge</c>, so taking them back out leaves exactly what the model itself
     /// cost. Nested agents run on their own client and are added, not subtracted.
     /// </remarks>
-    private static void ApplyCosts(ChatDisplayMessage assistant, VeniceCost chatCost)
+    internal static void ApplyCosts(ChatDisplayMessage assistant, VeniceCost chatCost)
     {
         var tools = VeniceCost.Zero;
         foreach (var round in assistant.ToolRounds)
         {
             foreach (var call in round.Calls)
             {
-                if (call.Cost is { HasData: true } cost)
+                // Вложенный агент платит из своего клиента, в chatCost его нет — вычитать
+                // его отсюда значило бы увести строку «Модель» в минус.
+                if (call.NestedAgent is null && call.Cost is { HasData: true } cost)
                 {
                     tools = tools.Add(cost);
                 }
@@ -1472,7 +1530,9 @@ internal sealed partial class ChatEngine
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var routerId = FirstNonEmpty(settings.RouterModelId, liteId);
 
-        _venice.SetActiveModel(routerId);
+        // Прежде здесь стоял SetActiveModel(routerId): маршрутизатор на время своего запроса
+        // подменял активную модель всему приложению. Модель запроса и так уходит параметром, а
+        // корень цепочки fallback CreateChatCompletionAsync берёт из неё же.
         try
         {
             var response = await _venice.CreateChatCompletionAsync(

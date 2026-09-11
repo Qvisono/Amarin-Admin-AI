@@ -97,7 +97,7 @@
                 </Border>
 
                 <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="Title2" Text="Ответ готов" FontSize="13" FontWeight="SemiBold"
+                    <TextBlock x:Name="Title2" Text="{DynamicResource S.Toast.Ready}" FontSize="13" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Body}"/>
                     <TextBlock x:Name="Preview" FontSize="12" Margin="0,3,0,0"
                                Foreground="{DynamicResource Text.Muted}"
@@ -110,7 +110,7 @@
 
                 <Button x:Name="CloseButton" Grid.Column="2" Width="20" Height="20"
                         VerticalAlignment="Top" Margin="8,0,0,0" Cursor="Hand"
-                        ToolTip="Закрыть" Click="CloseButton_Click">
+                        ToolTip="{DynamicResource S.Common.Close}" Click="CloseButton_Click">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bg" Background="Transparent" CornerRadius="5">

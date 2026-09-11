@@ -146,7 +146,7 @@ internal sealed class AssistantMessageView
 
         if (message.ThinkingDuration >= ThinkingWorthShowing)
         {
-            Thinking.Text = "думал " + ChatFormat.Duration(message.ThinkingDuration);
+            Thinking.Text = Loc.Format("S.Message.Thought", ChatFormat.Duration(message.ThinkingDuration));
             Thinking.Visibility = Visibility.Visible;
             ThinkingDot.Visibility = Visibility.Visible;
         }
@@ -251,7 +251,7 @@ internal sealed class AssistantMessageView
         header.Children.Add(new TextBlock
         {
             Style = (Style)Host.FindResource("ExpanderHeaderText"),
-            Text = running ? "Запускаю инструменты" : "Инструменты выполнены"
+            Text = Loc.Get(running ? "S.Tools.Running" : "S.Tools.Done")
         });
 
         if (!running && calls.Count > 0)
@@ -300,7 +300,7 @@ internal sealed class AssistantMessageView
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
-                !round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
+                !round.InfoLine.Equals(Loc.Get("S.Tools.Running"), StringComparison.Ordinal))
             {
                 body.Children.Add(BuildInfoRow(round.InfoLine));
             }
@@ -368,7 +368,9 @@ internal sealed class AssistantMessageView
         var preview = new TextBlock
         {
             Style = (Style)Host.FindResource("ToolResult"),
-            Text = string.IsNullOrWhiteSpace(call.ResultPreview) ? "готово" : call.ResultPreview
+            Text = string.IsNullOrWhiteSpace(call.ResultPreview)
+                ? Loc.Get("S.Tools.CallDone")
+                : call.ResultPreview
         };
         Grid.SetColumn(name, 1);
         Grid.SetColumn(preview, 2);
@@ -385,7 +387,7 @@ internal sealed class AssistantMessageView
                 Style = (Style)Host.FindResource("ToolResult"),
                 Text = price,
                 Margin = new Thickness(8, 0, 0, 0),
-                ToolTip = $"Стоимость вызова {call.Name}"
+                ToolTip = Loc.Format("S.Tools.CallCost", call.Name)
             };
             Grid.SetColumn(cost, 3);
             grid.Children.Add(cost);
@@ -441,7 +443,7 @@ internal sealed class AssistantMessageView
         });
         row.Children.Add(new TextBlock
         {
-            Text = $"Домен {host} заблокирован",
+            Text = Loc.Format("S.Tools.DomainBlocked", host),
             FontSize = 12,
             Foreground = (Brush)Host.FindResource("Text.Secondary"),
             VerticalAlignment = VerticalAlignment.Center,
@@ -451,7 +453,7 @@ internal sealed class AssistantMessageView
         var allow = new Button
         {
             Style = (Style)Host.FindResource("InlineLinkButton"),
-            Content = "Добавить в белый список"
+            Content = Loc.Get("S.Tools.AddToAllowlist")
         };
         allow.Click += (_, _) => Callbacks?.AddDownloadDomain?.Invoke(host);
         row.Children.Add(allow);
@@ -481,9 +483,12 @@ internal sealed class AssistantMessageView
             FontSize = 12,
             Margin = new Thickness(6, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
-            Text = running
-                ? "· выполняется"
-                : "· " + agent.ToolRounds.SelectMany(round => round.Calls).Count() + " инструментов"
+            // Точку-разделитель собираем здесь: она вёрстка, а не текст для перевода.
+            Text = "· " + (running
+                ? Loc.Get("S.Tools.AgentRunning")
+                : Loc.Format(
+                    "S.Tools.AgentToolsCount",
+                    agent.ToolRounds.SelectMany(round => round.Calls).Count()))
         };
         suffix.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
         if (running)
@@ -512,7 +517,7 @@ internal sealed class AssistantMessageView
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
-                !round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
+                !round.InfoLine.Equals(Loc.Get("S.Tools.Running"), StringComparison.Ordinal))
             {
                 inner.Children.Add(BuildInfoRow(round.InfoLine));
             }
@@ -660,9 +665,9 @@ internal static class ChatMessageViews
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, -14, 0, 16)
         };
-        var copy = IconAction(host, "Copy", "Копировать");
+        var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
-        var edit = IconAction(host, "Compose", "Изменить");
+        var edit = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
         row.Children.Add(copy);
         row.Children.Add(edit);
 
@@ -671,6 +676,11 @@ internal static class ChatMessageViews
         if (message.Images.Count > 0)
         {
             root.Children.Add(CreateImageStrip(host, message));
+        }
+
+        if (message.Files.Count > 0)
+        {
+            root.Children.Add(CreateFileStrip(message));
         }
 
         root.Children.Add(bubble);
@@ -812,7 +822,7 @@ internal static class ChatMessageViews
             ChatMarkdown.Write(body, host, message.Text, 13.5, 21);
         }
 
-        var cancel = IconAction(host, "Cancel", "Остановить");
+        var cancel = IconAction(host, "Cancel", Loc.Get("S.Message.Stop"));
         cancel.Click += (_, _) => actions?.Cancel?.Invoke(message);
 
         var row = new StackPanel
@@ -821,31 +831,31 @@ internal static class ChatMessageViews
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(0, 10, 0, 0)
         };
-        var regenerate = IconAction(host, "Regenerate", "Повторить");
+        var regenerate = IconAction(host, "Regenerate", Loc.Get("S.Message.Regenerate"));
         regenerate.Click += (_, _) => actions?.Regenerate?.Invoke(message);
         row.Children.Add(regenerate);
-        var copy = IconAction(host, "Copy", "Копировать");
+        var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         row.Children.Add(copy);
         var sharingOn = actions?.SharingEnabled?.Invoke() ?? true;
-        var share = IconAction(host, "Upload", "Поделиться диалогом до этого ответа");
+        var share = IconAction(host, "Upload", Loc.Get("S.Message.Share"));
         share.Click += (_, _) => actions?.Share?.Invoke(message);
         HideIf(share, !sharingOn);
         row.Children.Add(share);
-        var export = IconAction(host, "ExportJson", "Экспорт диалога в JSON");
+        var export = IconAction(host, "ExportJson", Loc.Get("S.Message.Export"));
         export.Click += (_, _) => actions?.Export?.Invoke(message);
         HideIf(export, !sharingOn);
         row.Children.Add(export);
-        var compress = IconAction(host, "Compress", "Сжать");
+        var compress = IconAction(host, "Compress", Loc.Get("S.Message.Compress"));
         compress.IsEnabled = false;
         row.Children.Add(compress);
-        var expand = IconAction(host, "Expand", "Расширить");
+        var expand = IconAction(host, "Expand", Loc.Get("S.Message.Expand"));
         expand.IsEnabled = false;
         row.Children.Add(expand);
-        var compose = IconAction(host, "Compose", "Изменить");
+        var compose = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
         compose.IsEnabled = false;
         row.Children.Add(compose);
-        var delete = IconAction(host, "Delete", "Удалить");
+        var delete = IconAction(host, "Delete", Loc.Get("S.Common.Delete"));
         delete.Click += (_, _) => actions?.Delete?.Invoke(message);
         row.Children.Add(delete);
         row.Children.Add(cancel);
@@ -1053,6 +1063,71 @@ internal static class ChatMessageViews
                 frame.Child = new Image { Source = source, Stretch = Stretch.UniformToFill };
             }
 
+            strip.Children.Add(frame);
+        }
+
+        return strip;
+    }
+
+    /// <summary>
+    /// Карточки документов, отправленных с сообщением. Показываются над пузырём — так видно,
+    /// что именно ушло модели, даже после перезагрузки чата с диска.
+    /// </summary>
+    private static FrameworkElement CreateFileStrip(ChatDisplayMessage message)
+    {
+        var strip = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 0, 0, 6)
+        };
+
+        foreach (var file in message.Files)
+        {
+            var frame = new Border
+            {
+                MaxWidth = 220,
+                Margin = new Thickness(6, 0, 0, 6),
+                CornerRadius = new CornerRadius(8),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(10, 7, 12, 7),
+                ToolTip = $"{file.FileName} — {AttachmentTypes.FormatSize(file.SizeBytes)}"
+            };
+            frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+            frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+            RoundedClip.SetRadius(frame, 8);
+
+            var rows = new StackPanel();
+
+            var kind = new TextBlock
+            {
+                Text = MainWindow.FileBadge(file.FileName),
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold
+            };
+            kind.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
+
+            var name = new TextBlock
+            {
+                Text = file.FileName,
+                FontSize = 11.5,
+                Margin = new Thickness(0, 1, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
+
+            var size = new TextBlock
+            {
+                Text = AttachmentTypes.FormatSize(file.SizeBytes),
+                FontSize = 10.5,
+                Margin = new Thickness(0, 1, 0, 0)
+            };
+            size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+
+            rows.Children.Add(kind);
+            rows.Children.Add(name);
+            rows.Children.Add(size);
+            frame.Child = rows;
             strip.Children.Add(frame);
         }
 

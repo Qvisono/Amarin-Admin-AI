@@ -11,13 +11,40 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        CrashHandler.InstallProcessWide();
+
         var startup = StartupArgs.Parse(args);
-        if (startup.SmokeTools)
+
+        // Замок держим до конца процесса: программа на пользователя одна, иначе два экземпляра
+        // дерутся за profiles.json и общий chats/index.json.
+        using var single = SingleInstance.TryAcquire();
+        var route = StartupRouter.Decide(startup, () => single.IsOwner);
+
+        if (route == StartupRoute.SmokeTools)
         {
             return RunSmokeTools();
         }
 
-        return RunWpf(startup);
+        if (route == StartupRoute.HandedOff)
+        {
+            // --model намеренно не передаём: он пишет модель в настройки всей программы, и
+            // менять её у работающего окна из ярлыка за спиной пользователя хуже, чем не менять.
+            SingleInstanceHandoff.Write(AppPaths.Root, startup.Prompt);
+            SingleInstance.Activate();
+            return 0;
+        }
+
+        try
+        {
+            return RunWpf(startup);
+        }
+        catch (Exception ex)
+        {
+            // Сбой до появления окна — битый profiles.json, недоступная папка настроек —
+            // раньше закрывал программу молча, ещё до того как человек что-то увидел.
+            CrashHandler.ReportStartupFailure(ex);
+            return 1;
+        }
     }
 
     private static int RunWpf(StartupArgs startup)
@@ -28,6 +55,10 @@ internal static class Program
         var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
                      ?? configuration["VENICE_API_KEY"]
                      ?? string.Empty;
+
+        // Ключ уезжает в заголовок Authorization и в сообщения HTTP-исключений, а отчёт об
+        // аварии человек пересылает — вырезаем его из отчёта.
+        CrashHandler.Secret = apiKey;
 
         var options = new AgentOptions
         {
@@ -58,9 +89,15 @@ internal static class Program
             ShutdownMode = ShutdownMode.OnExplicitShutdown
         };
 
+        CrashHandler.InstallUi(app);
+
         // Тему берём из настроек активного профиля до всего остального: экран входа должен
         // выглядеть как приложение, а не как белый прямоугольник.
-        ThemeManager.Initialize(app, new AppSettingsStore(dataRoot).Load().Theme);
+        var startupSettings = new AppSettingsStore(dataRoot).Load();
+        ThemeManager.Initialize(app, startupSettings.Theme);
+
+        // Язык — до экрана входа: он тоже часть интерфейса и обязан быть на выбранном языке.
+        LanguageManager.Initialize(app, startupSettings.LanguageCode);
 
         // На экране входа можно выбрать другого пользователя, поэтому настройки читаются
         // только после него — у выбранного профиля своя папка с чатами и своим settings.json.
@@ -84,6 +121,7 @@ internal static class Program
         var settingsStore = new AppSettingsStore(dataRoot);
         var settings = settingsStore.Load();
         ThemeManager.Apply(settings.Theme);
+        LanguageManager.Apply(settings.LanguageCode);
 
         // The effective allowlist lives in settings.json; appsettings.json only seeded it.
         if (settings.DownloadAllowedDomains is null)

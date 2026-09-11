@@ -56,6 +56,17 @@ internal sealed partial class ChatEngine
         session.UpdatedAt = now;
         observer.OnUserAppended(user);
 
+        // Свой контекст, как у обычного хода: инфографика тоже тратит деньги, а брифовый запрос
+        // прежде уходил на модель, которую оставил в клиенте предыдущий ход чата.
+        var briefModel = ReadSelectedModel(session);
+        var turn = new VeniceTurnContext
+        {
+            RequestedModelId = briefModel,
+            ModelId = briefModel,
+            Reasoning = ReasoningChoice.Disabled
+        };
+        using var turnScope = VeniceTurnScope.Push(turn);
+
         var assistant = new ChatDisplayMessage
         {
             Role = "assistant",
@@ -91,7 +102,7 @@ internal sealed partial class ChatEngine
             }
 
             Progress("Выделяю главное…");
-            var imagePrompt = await BuildInfographicPromptAsync(transcript.Text, cancellationToken)
+            var imagePrompt = await BuildInfographicPromptAsync(briefModel, transcript.Text, cancellationToken)
                 .ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(imagePrompt))
             {
@@ -116,7 +127,7 @@ internal sealed partial class ChatEngine
             assistant.Text = $"![Инфографика]({handle})";
             assistant.Images = [image with { Label = handle }];
             assistant.Duration = clock.Elapsed;
-            assistant.Cost = _venice.RequestCost.HasData ? _venice.RequestCost : assistant.Cost;
+            assistant.Cost = turn.Total.HasData ? turn.Total : assistant.Cost;
             assistant.Status = AssistantStatus.Complete;
 
             session.ApiMessages.Add(new ChatMessage
@@ -164,10 +175,13 @@ internal sealed partial class ChatEngine
     /// chat's own model but goes through <see cref="VeniceClient.CreateChatCompletionAsync"/>
     /// directly with no tools, so nothing here touches the tool loop or the session's history.
     /// </summary>
-    private async Task<string> BuildInfographicPromptAsync(string transcript, CancellationToken cancellationToken)
+    private async Task<string> BuildInfographicPromptAsync(
+        string model,
+        string transcript,
+        CancellationToken cancellationToken)
     {
         var response = await _venice.CreateChatCompletionAsync(
-                _venice.ActiveModel,
+                model,
                 [
                     new ChatMessage { Role = "system", Content = ChatContent.Text(BriefSystemPrompt) },
                     new ChatMessage { Role = "user", Content = ChatContent.Text(transcript) }

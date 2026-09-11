@@ -310,22 +310,22 @@ internal static class ReasoningPolicy
     {
         if (choice.DisableThinking)
         {
-            return "Выкл";
+            return Loc.Get("S.Reasoning.Off");
         }
 
         if (autoMode)
         {
-            return "Вкл";
+            return Loc.Get("S.Reasoning.On");
         }
 
         var options = VisibleEffortOptions(model, withTools);
         if (options.Count == 0)
         {
-            return "Вкл";
+            return Loc.Get("S.Reasoning.On");
         }
 
         var effort = ClampEffort(choice.Effort, model, withTools);
-        return string.IsNullOrWhiteSpace(effort) ? "Вкл" : EffortLabel(effort);
+        return string.IsNullOrWhiteSpace(effort) ? Loc.Get("S.Reasoning.On") : EffortLabel(effort);
     }
 
     public static bool FamilyBlocksEffortWithTools(string? modelId)

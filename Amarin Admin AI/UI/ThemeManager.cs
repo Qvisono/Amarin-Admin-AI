@@ -43,10 +43,17 @@ internal static class ThemeManager
     /// </summary>
     internal const int OverrideSlot = 3;
 
-    private static void EnsureSlots(Application application)
+    /// <summary>
+    /// 4 — строки интерфейса, их подменяет <see cref="LanguageManager"/>. Отдельным слотом
+    /// поверх остальных: ключи у него свои (<c>S.*</c>), с цветами не пересекаются, а слот 3
+    /// сдвигать нельзя — <see cref="AppearanceManager"/> пишет в него по номеру.
+    /// </summary>
+    internal const int StringsSlot = 4;
+
+    internal static void EnsureSlots(Application application)
     {
         var dictionaries = application.Resources.MergedDictionaries;
-        while (dictionaries.Count <= OverrideSlot)
+        while (dictionaries.Count <= StringsSlot)
         {
             dictionaries.Add(new ResourceDictionary());
         }
@@ -97,6 +104,15 @@ internal static class ThemeManager
     {
         Source = new Uri(PackPrefix + name + ".xaml", UriKind.Absolute)
     };
+
+    /// <summary>
+    /// Палитра «на свой страх» для окон, которые могут открыться до <see cref="Initialize"/> —
+    /// сейчас это <see cref="CrashWindow"/> при сбое на старте. Без неё каждый DynamicResource
+    /// вернёт null, и окно нарисуется прозрачным на прозрачном фоне, то есть «не появится».
+    /// Такой словарь кладут в ресурсы самого окна, и только когда приложение палитру ещё не
+    /// подставило: на уровне окна он перекрыл бы общую тему и она перестала бы переключаться.
+    /// </summary>
+    internal static ResourceDictionary LoadFallbackPalette() => Load("Palette.Dark");
 
     private static bool IsSystemLight()
     {

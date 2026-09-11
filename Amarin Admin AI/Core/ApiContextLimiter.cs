@@ -14,7 +14,7 @@ internal static class ApiContextLimiter
             prepared.Add(NormalizeMessage(messages[i]));
         }
 
-        ReplaceStaleVisionMessages(prepared);
+        ReplaceStaleAttachmentMessages(prepared);
         TruncateToolMessages(prepared);
         return prepared;
     }
@@ -73,31 +73,41 @@ internal static class ApiContextLimiter
         }
     }
 
-    private static void ReplaceStaleVisionMessages(List<ChatMessage> messages)
+    /// <summary>
+    /// В контексте остаётся только самое свежее сообщение с вложениями, прежние заменяются
+    /// строкой-заметкой.
+    /// </summary>
+    /// <remarks>
+    /// Вложение едет в запрос целиком, base64. Без этой замены каждый следующий ход длинной
+    /// переписки заново тащил бы и все картинки, и все документы — на десятимегабайтном PDF
+    /// это мегабайты трафика на каждую реплику. Существо ответа при этом не теряется: то, что
+    /// модель вычитала из файла, уже написано в её предыдущем сообщении.
+    /// </remarks>
+    private static void ReplaceStaleAttachmentMessages(List<ChatMessage> messages)
     {
-        var visionIndexes = new List<int>();
+        var indexes = new List<int>();
         for (var i = 0; i < messages.Count; i++)
         {
             if (messages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase) &&
-                ContainsVisionContent(messages[i].Content))
+                ContainsAttachmentContent(messages[i].Content))
             {
-                visionIndexes.Add(i);
+                indexes.Add(i);
             }
         }
 
-        if (visionIndexes.Count <= 1)
+        if (indexes.Count <= 1)
         {
             return;
         }
 
-        for (var i = 0; i < visionIndexes.Count - 1; i++)
+        for (var i = 0; i < indexes.Count - 1; i++)
         {
-            var index = visionIndexes[i];
+            var index = indexes[i];
             var original = messages[index];
             messages[index] = new ChatMessage
             {
                 Role = original.Role,
-                Content = ChatContent.Text("[Изображение уже было передано модели на предыдущем шаге]"),
+                Content = ChatContent.Text(StaleNote(original.Content)),
                 ToolCalls = original.ToolCalls,
                 ToolCallId = original.ToolCallId,
                 Name = original.Name
@@ -105,7 +115,42 @@ internal static class ApiContextLimiter
         }
     }
 
-    private static bool ContainsVisionContent(JsonElement? content)
+    /// <summary>Заметка вместо вложений. Файлы называет по именам — модель на них ссылается.</summary>
+    private static string StaleNote(JsonElement? content)
+    {
+        var names = FileNames(content);
+        var note = names.Count > 0
+            ? $"[Файлы уже были переданы модели: {string.Join(", ", names)}]"
+            : "[Изображение уже было передано модели на предыдущем шаге]";
+
+        var text = ChatContent.ReadText(content);
+        return string.IsNullOrWhiteSpace(text) ? note : text + "\n\n" + note;
+    }
+
+    private static List<string> FileNames(JsonElement? content)
+    {
+        var names = new List<string>();
+        if (content is null || content.Value.ValueKind != JsonValueKind.Array)
+        {
+            return names;
+        }
+
+        foreach (var part in content.Value.EnumerateArray())
+        {
+            if (part.TryGetProperty("type", out var typeProp) &&
+                typeProp.GetString() == "file" &&
+                part.TryGetProperty("file", out var file) &&
+                file.TryGetProperty("filename", out var name) &&
+                name.GetString() is { Length: > 0 } value)
+            {
+                names.Add(value);
+            }
+        }
+
+        return names;
+    }
+
+    private static bool ContainsAttachmentContent(JsonElement? content)
     {
         if (content is null || content.Value.ValueKind != JsonValueKind.Array)
         {
@@ -115,7 +160,7 @@ internal static class ApiContextLimiter
         foreach (var part in content.Value.EnumerateArray())
         {
             if (part.TryGetProperty("type", out var typeProp) &&
-                typeProp.GetString() == "image_url")
+                typeProp.GetString() is "image_url" or "file")
             {
                 return true;
             }

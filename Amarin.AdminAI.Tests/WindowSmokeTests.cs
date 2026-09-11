@@ -72,8 +72,8 @@ public sealed class WindowSmokeTests
                 "ChangeNameButton", "ChangePasswordButton", "RemovePasswordButton", "LockOnStartupToggle",
                 "ChangeAvatarButton", "RemoveAvatarButton", "AccountPasswordHint",
                 "ChatSharingToggle", "ImportChatButton",
-                "AttachedImagesPanel", "AttachedImagesHost", "AttachedImagesWarning",
-                "ComposerBorder", "AttachImageButton", "ChatReasoningPicker",
+                "AttachmentsPanel", "AttachmentsHost", "AttachmentsWarning",
+                "ComposerBorder", "AttachFileButton", "ChatReasoningPicker",
                 "LiteReasoningPicker", "AgentHeavyReasoningPicker",
                 "ProfileList", "NameInput", "NameSaveButton", "ProfileOverlay", "NameOverlay"
             ];

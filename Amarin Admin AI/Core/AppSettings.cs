@@ -40,6 +40,13 @@ public sealed class AppSettings
     /// <summary>Colour scheme. <see cref="AppTheme.System"/> follows the Windows app theme.</summary>
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
+    /// <summary>
+    /// Язык интерфейса: <c>ru</c>, <c>en</c> или код языка, переведённого моделью. Настройка
+    /// профиля, как и тема; сами файлы переводов общие для всех профилей. Неизвестный код
+    /// приводится к русскому при загрузке.
+    /// </summary>
+    public string LanguageCode { get; set; } = "ru";
+
     /// <summary>Uniform UI zoom, percent. Allowed: 80, 90, 100, 110, 125, 150, 175, 200, 225, 250.</summary>
     public int UiScalePercent { get; set; } = 100;
 

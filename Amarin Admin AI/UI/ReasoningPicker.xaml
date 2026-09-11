@@ -63,29 +63,36 @@
                 <ControlTemplate TargetType="ToggleButton">
                     <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6" Padding="6,0,10,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Grid x:Name="GaugeIcon" Width="20" Height="20" Margin="0,0,5,0"
+                            <!--
+                                Спидометр силы размышления. Геометрию обеих дуг строит код
+                                (ReasoningPicker.UpdateGauge) из одного набора констант: дуга
+                                уровня обязана лечь ровно на фоновую, а два независимых набора
+                                чисел — в разметке и в коде — рано или поздно разъезжаются.
+                                Прежний рисунок был полукругом радиусом 8 со стрелкой длиной 7.5,
+                                прижатым к низу бокса: стрелка почти упиралась в дугу, а ось
+                                стояла на полупиксельных координатах.
+                            -->
+                            <Grid x:Name="GaugeIcon" Width="20" Height="20" Margin="0,0,6,0"
                                   Visibility="Collapsed" SnapsToDevicePixels="True" UseLayoutRounding="True">
-                                <Path Width="20" Height="20" Stretch="None"
-                                      Stroke="{DynamicResource Text.Muted}" StrokeThickness="1.6"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent">
-                                    <Path.Data>
-                                        <PathGeometry>
-                                            <PathFigure StartPoint="2,16" IsClosed="False">
-                                                <ArcSegment Point="18,16" Size="8,8" IsLargeArc="False"
-                                                            SweepDirection="Clockwise"/>
-                                            </PathFigure>
-                                        </PathGeometry>
-                                    </Path.Data>
-                                </Path>
-                                <Path Width="20" Height="20" Stretch="None" Data="M 10,16 L 10,8.5"
+                                <Path x:Name="GaugeTrack" Width="20" Height="20" Stretch="None"
+                                      Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                <Path x:Name="GaugeProgress" Width="20" Height="20" Stretch="None"
+                                      Stroke="{DynamicResource Accent.Fill}" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                <Path x:Name="GaugeNeedle" Width="20" Height="20" Stretch="None"
+                                      Data="M 10,12 L 10,7.4"
                                       Stroke="{DynamicResource Text.Secondary}" StrokeThickness="1.6"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round">
                                     <Path.RenderTransform>
-                                        <RotateTransform x:Name="GaugeNeedleRotate" Angle="-70" CenterX="10" CenterY="16"/>
+                                        <RotateTransform x:Name="GaugeNeedleRotate" Angle="-110"
+                                                         CenterX="10" CenterY="12"/>
                                     </Path.RenderTransform>
                                 </Path>
-                                <Ellipse Width="3" Height="3" HorizontalAlignment="Left" VerticalAlignment="Top"
-                                         Margin="8.5,14.5,0,0" Fill="{DynamicResource Text.Secondary}"/>
+                                <Ellipse x:Name="GaugeHub" Width="3" Height="3"
+                                         HorizontalAlignment="Left" VerticalAlignment="Top"
+                                         Margin="8.5,10.5,0,0"
+                                         Fill="{DynamicResource Text.Secondary}"/>
                             </Grid>
                             <TextBlock x:Name="Label" Text="{Binding LabelText, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                        FontSize="12" Foreground="{DynamicResource Text.Secondary}"
@@ -123,7 +130,7 @@
                 </Border.Effect>
                 <StackPanel>
                     <Grid x:Name="DisableRow" Margin="0,0,0,8">
-                        <TextBlock Text="Disable thinking" FontSize="12.5"
+                        <TextBlock Text="{DynamicResource S.Reasoning.Disable}" FontSize="12.5"
                                    Foreground="{DynamicResource Text.Secondary}"
                                    VerticalAlignment="Center"/>
                         <CheckBox x:Name="DisableToggle" HorizontalAlignment="Right"
@@ -132,11 +139,11 @@
                                   Unchecked="DisableToggle_Changed"/>
                     </Grid>
                     <TextBlock x:Name="AutoHint"
-                               Text="Disable thinking и сила размышления для Авто задаются у лёгкой и тяжёлой модели в Customize"
+                               Text="{DynamicResource S.Reasoning.AutoHint}"
                                FontSize="11" Foreground="{DynamicResource Text.Faint}"
                                TextWrapping="Wrap" Margin="0,0,0,4"
                                Visibility="Collapsed"/>
-                    <TextBlock x:Name="EffortCaption" Text="Сила размышления" FontSize="11"
+                    <TextBlock x:Name="EffortCaption" Text="{DynamicResource S.Reasoning.Effort}" FontSize="11"
                                Foreground="{DynamicResource Text.Muted}" Margin="0,2,0,6"
                                Visibility="Collapsed"/>
                     <WrapPanel x:Name="EffortHost"/>

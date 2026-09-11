@@ -4,6 +4,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Amarin.Core;
+// System.IO подключён неявно, и System.Windows.Shapes.Path с ним конфликтует.
+using Path = System.Windows.Shapes.Path;
 
 namespace Amarin.UI;
 
@@ -239,6 +241,16 @@ public partial class ReasoningPicker : UserControl
         }
     }
 
+    // ── Спидометр ────────────────────────────────────────────────────────────────
+    // Одни константы на разметку и на обе дуги: развёртка 220° вокруг точки (10,12)
+    // в боксе 20×20. У прежнего рисунка стрелка ходила ±72° по полукругу, то есть
+    // занимала треть шкалы и никогда не доходила до её краёв.
+    private const double GaugeCenterX = 10;
+    private const double GaugeCenterY = 12;
+    private const double GaugeRadius = 6.5;
+    private const double GaugeStartAngle = -110;
+    private const double GaugeSweep = 220;
+
     private void UpdateGauge(ReasoningChoice choice, VeniceModelInfo? model)
     {
         if (OpenButton?.Template.FindName("GaugeIcon", OpenButton) is not FrameworkElement gauge)
@@ -252,31 +264,91 @@ public partial class ReasoningPicker : UserControl
             return;
         }
 
+        var fraction = GaugeFraction(choice, model);
+        var angle = GaugeStartAngle + (fraction * GaugeSweep);
+
+        if (OpenButton.Template.FindName("GaugeTrack", OpenButton) is Path track)
+        {
+            track.Data = BuildArc(GaugeStartAngle, GaugeStartAngle + GaugeSweep);
+        }
+
+        if (OpenButton.Template.FindName("GaugeProgress", OpenButton) is Path progress)
+        {
+            // На нуле дуга вырождается в точку: у ArcSegment с совпадающими концами
+            // поведение не определено, поэтому просто прячем её.
+            var visible = !choice.DisableThinking && fraction > 0.001;
+            progress.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+            if (visible)
+            {
+                progress.Data = BuildArc(GaugeStartAngle, angle);
+            }
+        }
+
         if (OpenButton.Template.FindName("GaugeNeedleRotate", OpenButton) is RotateTransform rotate)
         {
-            rotate.Angle = NeedleAngle(choice, model);
+            rotate.Angle = angle;
+        }
+
+        // Выключенное размышление — приглушённая стрелка: шкала на нуле и без цвета
+        // читается как «не думает», а не как «думает на минимуме».
+        var needleBrush = choice.DisableThinking ? "Text.Dim" : "Text.Secondary";
+        if (OpenButton.Template.FindName("GaugeNeedle", OpenButton) is Path needle)
+        {
+            needle.SetResourceReference(Shape.StrokeProperty, needleBrush);
+        }
+
+        if (OpenButton.Template.FindName("GaugeHub", OpenButton) is Ellipse hub)
+        {
+            hub.SetResourceReference(Shape.FillProperty, needleBrush);
         }
     }
 
-    private double NeedleAngle(ReasoningChoice choice, VeniceModelInfo? model)
+    /// <summary>Доля шкалы, которую занимает выбранный уровень: 0 — начало, 1 — упор.</summary>
+    private double GaugeFraction(ReasoningChoice choice, VeniceModelInfo? model)
     {
         if (choice.DisableThinking)
         {
-            return -72;
+            return 0;
         }
 
         var effort = ReasoningPolicy.ClampEffort(choice.Effort, model, _withTools)
                      ?? choice.Effort;
         return (effort ?? "").Trim().ToLowerInvariant() switch
         {
-            "none" => -72,
-            "minimal" => -48,
-            "low" => -24,
-            "medium" => 0,
-            "high" => 24,
-            "xhigh" => 48,
-            "max" => 72,
-            _ => 0
+            "none" => 0,
+            "minimal" => 1d / 6,
+            "low" => 2d / 6,
+            "medium" => 3d / 6,
+            "high" => 4d / 6,
+            "xhigh" => 5d / 6,
+            "max" => 1,
+            _ => 3d / 6
         };
+    }
+
+    private static Geometry BuildArc(double fromAngle, double toAngle)
+    {
+        var figure = new PathFigure { StartPoint = PointOnDial(fromAngle), IsClosed = false };
+        figure.Segments.Add(new ArcSegment
+        {
+            Point = PointOnDial(toAngle),
+            Size = new Size(GaugeRadius, GaugeRadius),
+            IsLargeArc = Math.Abs(toAngle - fromAngle) > 180,
+            SweepDirection = SweepDirection.Clockwise
+        });
+
+        var geometry = new PathGeometry();
+        geometry.Figures.Add(figure);
+        geometry.Freeze();
+        return geometry;
+    }
+
+    /// <summary>Угол отсчитывается от «вверх» по часовой стрелке, как у настоящей шкалы.</summary>
+    private static Point PointOnDial(double angleDegrees)
+    {
+        var radians = angleDegrees * Math.PI / 180;
+        return new Point(
+            GaugeCenterX + (GaugeRadius * Math.Sin(radians)),
+            GaugeCenterY - (GaugeRadius * Math.Cos(radians)));
     }
 }

@@ -553,7 +553,9 @@ namespace Amarin.UI
 
         private void SwitchToProfile(string profileId)
         {
-            if (_services is null || _busy)
+            // Здесь занята программа, а не чат: UseProfile перекореняет ChatStore, и ход,
+            // идущий в фоне, сохранил бы свой чат уже в папку нового профиля.
+            if (_services is null || AnyTurnRunning)
             {
                 return;
             }
@@ -579,7 +581,7 @@ namespace Amarin.UI
             _services.UseProfile(ProfileStore.DataRootFor(target.Id));
 
             ProfileOverlay.Visibility = Visibility.Collapsed;
-            ClearPendingImages();
+            ClearPendingAttachments();
             StartNewSession(persist: false);
             RefreshChatList();
             LoadSettingsUi();

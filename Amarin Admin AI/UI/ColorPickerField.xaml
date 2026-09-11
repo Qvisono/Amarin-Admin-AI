@@ -153,13 +153,13 @@
                         </Border>
                         <Button x:Name="ClearButton" Grid.Column="1" Margin="6,0,0,0" Height="26"
                                 Cursor="Hand" Click="ClearButton_Click"
-                                ToolTip="Вернуть цвет темы">
+                                ToolTip="{DynamicResource S.Colour.ResetTip}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
                                             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
                                             CornerRadius="6" Padding="10,0">
-                                        <TextBlock Text="Сброс" FontSize="11" VerticalAlignment="Center"
+                                        <TextBlock Text="{DynamicResource S.Colour.Reset}" FontSize="11" VerticalAlignment="Center"
                                                    Foreground="{DynamicResource Text.Secondary}"/>
                                     </Border>
                                     <ControlTemplate.Triggers>

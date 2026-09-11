@@ -26,19 +26,12 @@ public sealed class VeniceClient
     /// </summary>
     public Func<string, VeniceModelInfo?>? ResolveModelInfo { get; set; }
 
+    /// <summary>
+    /// Модель по умолчанию — та, с которой запустилось приложение. Ход чата ею не пользуется:
+    /// у него своя, в <see cref="VeniceTurnContext"/>. Раньше рядом стоял и сеттер, общий на всё
+    /// приложение, — два одновременных хода перетоптали бы друг другу модель.
+    /// </summary>
     public string ActiveModel => _options.Model;
-
-    public void SetActiveModel(string model)
-    {
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            throw new ArgumentException("Model is required.", nameof(model));
-        }
-
-        var normalized = model.Trim();
-        _options.Model = normalized;
-        _primaryModel = normalized;
-    }
 
     public VeniceClient(HttpClient http, AgentOptions options)
     {
@@ -78,7 +71,9 @@ public sealed class VeniceClient
         bool prepareMessages,
         CancellationToken cancellationToken)
     {
-        var startingModel = _options.Model;
+        // Метод берёт модель параметром и кладёт её в запрос — значит и перебор обязан начинаться
+        // с неё. Раньше он стартовал с поля клиента, то есть с модели, которую никто не просил.
+        var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
         VeniceApiException? lastOverload = null;
 
         foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, _primaryModel))
@@ -106,7 +101,14 @@ public sealed class VeniceClient
             ?? new VeniceApiException("Все модели в цепочке fallback перегружены. Повторите запрос позже.");
     }
 
+    /// <param name="model">Модель этого хода. Съезжает сама, если сработал fallback.</param>
+    /// <param name="primaryModel">
+    /// Модель, которую ход запросил изначально, — корень цепочки fallback. Отдельно от
+    /// <paramref name="model"/>: без неё перебор после отказа начался бы с уже упавшей модели.
+    /// </param>
     public Task<StreamedChatCompletion> StreamChatCompletionAsync(
+        string model,
+        string primaryModel,
         IReadOnlyList<ChatMessage> messages,
         List<ToolDefinition>? tools,
         string? toolChoice,
@@ -116,25 +118,26 @@ public sealed class VeniceClient
         ReasoningChoice? reasoning = null) =>
         StreamChatCompletionAsync(new ChatCompletionRequest
         {
-            Model = _options.Model,
+            Model = model,
             Messages = messages.ToList(),
             Tools = tools,
             ToolChoice = toolChoice,
             Stream = true,
             VeniceParameters = veniceParameters,
             ReasoningChoice = reasoning
-        }, prepareMessages: true, onText, cancellationToken);
+        }, primaryModel, prepareMessages: true, onText, cancellationToken);
 
     private async Task<StreamedChatCompletion> StreamChatCompletionAsync(
         ChatCompletionRequest request,
+        string primaryModel,
         bool prepareMessages,
         Action<string>? onText,
         CancellationToken cancellationToken)
     {
-        var startingModel = _options.Model;
+        var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
         VeniceApiException? lastOverload = null;
 
-        foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, _primaryModel))
+        foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, primaryModel))
         {
             try
             {
@@ -144,7 +147,8 @@ public sealed class VeniceClient
 
                 if (!model.Equals(startingModel, StringComparison.OrdinalIgnoreCase))
                 {
-                    _options.Model = model;
+                    // Модель клиента не трогаем: ходов может идти несколько, и сработавшую
+                    // каждый запоминает сам — по StreamedChatCompletion.Model.
                     ModelFallback?.Invoke(startingModel, model);
                 }
 
@@ -498,6 +502,9 @@ public sealed class VeniceClient
             RequestCost = RequestCost.Add(cost);
         }
 
+        // Свой счёт у каждого хода чата: один общий RequestCost на несколько одновременных
+        // ходов не делится. Сам он остаётся — им пользуется агент, у которого клиент на прогон.
+        VeniceTurnScope.Current?.Add(cost);
         AgentRunScope.Charge(cost);
     }
 
@@ -670,12 +677,15 @@ public sealed class VeniceClient
 
     public async Task<string> SearchWebAsync(string query, CancellationToken cancellationToken = default)
     {
+        // Поиск раньше «случайно» попадал на модель чата: её только что записал SetActiveModel.
+        // Теперь поле клиента не дрейфует, поэтому модель хода берём из его собственного контекста.
+        var model = VeniceTurnScope.Current?.ModelId ?? _options.Model;
         var useXSearch = _options.EnableXSearch
-            ?? _options.Model.Contains("grok", StringComparison.OrdinalIgnoreCase);
+            ?? model.Contains("grok", StringComparison.OrdinalIgnoreCase);
 
         var response = await CreateChatCompletionAsync(new ChatCompletionRequest
         {
-            Model = _options.Model,
+            Model = model,
             Messages =
             [
                 new ChatMessage

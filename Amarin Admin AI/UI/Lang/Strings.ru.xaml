@@ -1,0 +1,347 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        Строки интерфейса — русский. Источник истины: с него переводят остальные.
+
+        Словарь подставляется LanguageManager-ом в слот 4 ресурсов приложения; разметка
+        читает его через {DynamicResource S.Ключ}, код — через Loc. Русский всегда лежит
+        снизу как основа: если в переводе ключа не хватит, подпись останется русской,
+        а не исчезнет.
+
+        Наборы ключей всех языков обязаны совпадать — это проверяет LocalizationTests.
+    -->
+
+    <system:String x:Key="S.Account.Avatar" xml:space="preserve">Изображение профиля</system:String>
+    <system:String x:Key="S.Account.Guest" xml:space="preserve">Гость</system:String>
+    <system:String x:Key="S.Account.LocalMode" xml:space="preserve">Локальный режим</system:String>
+    <system:String x:Key="S.Account.Password" xml:space="preserve">Пароль</system:String>
+    <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Пароль при запуске</system:String>
+    <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Чаты на диске не шифруются</system:String>
+    <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Не задан</system:String>
+    <system:String x:Key="S.Account.SwitchProfile" xml:space="preserve">Сменить</system:String>
+    <system:String x:Key="S.Account.UserName" xml:space="preserve">Имя пользователя</system:String>
+
+    <system:String x:Key="S.Actions.AttachSubtitle" xml:space="preserve">Фото, PDF, документы</system:String>
+    <system:String x:Key="S.Actions.AttachTitle" xml:space="preserve">Attach image/document</system:String>
+    <system:String x:Key="S.Actions.CreateInfographic" xml:space="preserve">Create Infographic</system:String>
+    <system:String x:Key="S.Actions.RawTranscript" xml:space="preserve">Raw Transcript</system:String>
+    <system:String x:Key="S.Actions.Start" xml:space="preserve">Начать</system:String>
+    <system:String x:Key="S.Actions.SummarizeSubtitle" xml:space="preserve">YouTube-ссылка</system:String>
+    <system:String x:Key="S.Actions.SummarizeTitle" xml:space="preserve">Summarize video</system:String>
+    <system:String x:Key="S.Actions.Title" xml:space="preserve">Actions</system:String>
+
+    <system:String x:Key="S.Appearance.Accent" xml:space="preserve">Акцентный цвет</system:String>
+    <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Заливка основных кнопок. «По теме» — цвет из палитры</system:String>
+    <system:String x:Key="S.Appearance.Angle" xml:space="preserve">Наклон</system:String>
+    <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Анимации</system:String>
+    <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Движение фона и сворачивание поля ввода</system:String>
+    <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Фон</system:String>
+    <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Яркость фото</system:String>
+    <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Ширина колонки чата</system:String>
+    <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Длинные строки труднее читать — узкая колонка помогает</system:String>
+    <system:String x:Key="S.Appearance.Colours" xml:space="preserve">Цвета</system:String>
+    <system:String x:Key="S.Appearance.CompactComposer" xml:space="preserve">Компактное поле ввода</system:String>
+    <system:String x:Key="S.Appearance.CompactComposerDesc" xml:space="preserve">Пока поле пустое и мышь далеко, оно сворачивается в полоску и отдаёт место чату</system:String>
+    <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Толщина кристалла</system:String>
+    <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Оформление</system:String>
+    <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Фон за интерфейсом, стекло и свой акцентный цвет. Выключено — чистая палитра темы</system:String>
+    <system:String x:Key="S.Appearance.Delay" xml:space="preserve">Задержка</system:String>
+    <system:String x:Key="S.Appearance.File" xml:space="preserve">Файл</system:String>
+    <system:String x:Key="S.Appearance.FitFill" xml:space="preserve">Заполнить</system:String>
+    <system:String x:Key="S.Appearance.FitTile" xml:space="preserve">Плиткой</system:String>
+    <system:String x:Key="S.Appearance.FitWhole" xml:space="preserve">Целиком</system:String>
+    <system:String x:Key="S.Appearance.FollowSystem" xml:space="preserve">Следовать теме Windows</system:String>
+    <system:String x:Key="S.Appearance.FollowSystemDesc" xml:space="preserve">Переключаться между Light и Dark вместе с системой</system:String>
+    <system:String x:Key="S.Appearance.Font" xml:space="preserve">Шрифт</system:String>
+    <system:String x:Key="S.Appearance.FontDesc" xml:space="preserve">Гарнитуры поставляются вместе с приложением</system:String>
+    <system:String x:Key="S.Appearance.FontSystem" xml:space="preserve">Системный</system:String>
+    <system:String x:Key="S.Appearance.Frost" xml:space="preserve">Матовость</system:String>
+    <system:String x:Key="S.Appearance.Glass" xml:space="preserve">Стекло</system:String>
+    <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон</system:String>
+    <system:String x:Key="S.Appearance.Gradient" xml:space="preserve">Градиент</system:String>
+    <system:String x:Key="S.Appearance.Image" xml:space="preserve">Изображение</system:String>
+    <system:String x:Key="S.Appearance.ImageFit" xml:space="preserve">Вписывание</system:String>
+    <system:String x:Key="S.Appearance.InputRadius" xml:space="preserve">Скругление ввода</system:String>
+    <system:String x:Key="S.Appearance.Interface" xml:space="preserve">Интерфейс</system:String>
+    <system:String x:Key="S.Appearance.Motion" xml:space="preserve">Движение</system:String>
+    <system:String x:Key="S.Appearance.MotionAurora" xml:space="preserve">Перелив</system:String>
+    <system:String x:Key="S.Appearance.MotionDesc" xml:space="preserve">Отключается при удалённом сеансе и без аппаратного ускорения</system:String>
+    <system:String x:Key="S.Appearance.MotionDrift" xml:space="preserve">Вращение</system:String>
+    <system:String x:Key="S.Appearance.MotionPulse" xml:space="preserve">Пульс</system:String>
+    <system:String x:Key="S.Appearance.MouseReaction" xml:space="preserve">Реакция на мышь</system:String>
+    <system:String x:Key="S.Appearance.MouseReactionDesc" xml:space="preserve">Выкл — полоска не замечает указатель и разворачивается, только когда в неё ставят курсор</system:String>
+    <system:String x:Key="S.Appearance.PanelDensity" xml:space="preserve">Плотность панелей</system:String>
+    <system:String x:Key="S.Appearance.PhotoBlur" xml:space="preserve">Размытие фото</system:String>
+    <system:String x:Key="S.Appearance.Presets" xml:space="preserve">Готовые сочетания</system:String>
+    <system:String x:Key="S.Appearance.ReactionRadius" xml:space="preserve">Радиус реакции</system:String>
+    <system:String x:Key="S.Appearance.ReactionRadiusDesc" xml:space="preserve">На каком расстоянии мышь разворачивает</system:String>
+    <system:String x:Key="S.Appearance.Reset" xml:space="preserve">Сбросить оформление</system:String>
+    <system:String x:Key="S.Appearance.Saturation" xml:space="preserve">Насыщенность</system:String>
+    <system:String x:Key="S.Appearance.Sheen" xml:space="preserve">Блик по диагонали</system:String>
+    <system:String x:Key="S.Appearance.Speed" xml:space="preserve">Скорость</system:String>
+    <system:String x:Key="S.Appearance.StripWidth" xml:space="preserve">Ширина полоски</system:String>
+    <system:String x:Key="S.Appearance.Theme" xml:space="preserve">Тема</system:String>
+    <system:String x:Key="S.Appearance.ThemeDesc" xml:space="preserve">Цветовая палитра приложения</system:String>
+    <system:String x:Key="S.Appearance.UiScale" xml:space="preserve">Масштаб интерфейса</system:String>
+    <system:String x:Key="S.Appearance.UiScaleDesc" xml:space="preserve">Размер элементов и текста</system:String>
+    <system:String x:Key="S.Appearance.Vignette" xml:space="preserve">Виньетка</system:String>
+    <system:String x:Key="S.Appearance.VignetteDesc" xml:space="preserve">Затемняет края, чтобы текст не терялся на светлом фото</system:String>
+    <system:String x:Key="S.Appearance.WidthFull" xml:space="preserve">Во всю ширину</system:String>
+    <system:String x:Key="S.Appearance.WidthNarrow" xml:space="preserve">Узкая</system:String>
+    <system:String x:Key="S.Appearance.WidthNormal" xml:space="preserve">Обычная</system:String>
+    <system:String x:Key="S.Appearance.WidthWide" xml:space="preserve">Широкая</system:String>
+
+    <system:String x:Key="S.Attach.ChooseFiles" xml:space="preserve">Выберите файлы</system:String>
+    <system:String x:Key="S.Attach.ClipboardUnreadable" xml:space="preserve">Изображение из буфера не читается.</system:String>
+    <system:String x:Key="S.Attach.Dropped" xml:space="preserve">Перетащенное изображение</system:String>
+    <system:String x:Key="S.Attach.FileBadge" xml:space="preserve">ФАЙЛ</system:String>
+    <system:String x:Key="S.Attach.FileMissing" xml:space="preserve">{0}: файл не найден.</system:String>
+    <system:String x:Key="S.Attach.FileTooBig" xml:space="preserve">{0} — {1}, это больше предела в {2}.</system:String>
+    <system:String x:Key="S.Attach.FileUnreadable" xml:space="preserve">{0}: файл не читается.</system:String>
+    <system:String x:Key="S.Attach.FilterAll" xml:space="preserve">Изображения и документы</system:String>
+    <system:String x:Key="S.Attach.FilterAnyFile" xml:space="preserve">Все файлы</system:String>
+    <system:String x:Key="S.Attach.FilterDocuments" xml:space="preserve">Документы</system:String>
+    <system:String x:Key="S.Attach.FilterImages" xml:space="preserve">Изображения</system:String>
+    <system:String x:Key="S.Attach.NoVision" xml:space="preserve">Модель {0} не поддерживает изображения — выберите модель с поддержкой vision.</system:String>
+    <system:String x:Key="S.Attach.NotAnImage" xml:space="preserve">{0}: не изображение или не читается.</system:String>
+    <system:String x:Key="S.Attach.Pasted" xml:space="preserve">Вставленное изображение</system:String>
+    <system:String x:Key="S.Attach.RemoveFile" xml:space="preserve">Убрать файл</system:String>
+    <system:String x:Key="S.Attach.RemoveImage" xml:space="preserve">Убрать изображение</system:String>
+    <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">Можно прикрепить не больше {0} документов — лишние пропущены.</system:String>
+    <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">Можно прикрепить не больше {0} изображений — лишние пропущены.</system:String>
+    <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} не влезает: вместе с прикреплённым вышло бы {1} при пределе {2}.</system:String>
+    <system:String x:Key="S.Attach.UnsupportedFormat" xml:space="preserve">{0}: формат {1} модель не читает.</system:String>
+
+    <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок — масштаб.</system:String>
+    <system:String x:Key="S.Avatar.Title" xml:space="preserve">Область фото профиля</system:String>
+
+    <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Средства почти закончились — генерация картинок может не пройти.</system:String>
+    <system:String x:Key="S.Balance.Low" xml:space="preserve">Средств осталось немного.</system:String>
+    <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Обновляется после каждого ответа модели.</system:String>
+    <system:String x:Key="S.Balance.Title" xml:space="preserve">Остаток на счету Venice:</system:String>
+    <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
+
+    <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Режим работы</system:String>
+    <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">Режим работы для ИИ агента. Normal - спрашивать всегда</system:String>
+    <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
+    <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
+    <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">Всплывающее окно в правом нижнем углу, когда модель закончила генерацию, а окно не в фокусе</system:String>
+    <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Звук уведомления</system:String>
+    <system:String x:Key="S.Behavior.NotifySoundDesc" xml:space="preserve">Короткий системный сигнал вместе с уведомлением</system:String>
+
+    <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
+
+    <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Удалить все сохранённые чаты? Это нельзя отменить.</system:String>
+    <system:String x:Key="S.ChatList.DeleteConfirm" xml:space="preserve">Удалить {0}? Это действие нельзя отменить.</system:String>
+    <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Ранее</system:String>
+    <system:String x:Key="S.ChatList.ExportJson" xml:space="preserve">Экспорт в JSON</system:String>
+    <system:String x:Key="S.ChatList.NameDesc" xml:space="preserve">Показывается в списке слева. Хранится только на этом компьютере.</system:String>
+    <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Название чата</system:String>
+    <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">Новый чат</system:String>
+    <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Закрепить наверху</system:String>
+    <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Закреплённые</system:String>
+    <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
+    <system:String x:Key="S.ChatList.Share" xml:space="preserve">Поделиться</system:String>
+    <system:String x:Key="S.ChatList.ThisChat" xml:space="preserve">этот чат</system:String>
+    <system:String x:Key="S.ChatList.Today" xml:space="preserve">Сегодня</system:String>
+    <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Открепить</system:String>
+    <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Вчера</system:String>
+
+    <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
+
+    <system:String x:Key="S.Colour.Reset" xml:space="preserve">Сброс</system:String>
+    <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>
+
+    <system:String x:Key="S.Common.Add" xml:space="preserve">Добавить</system:String>
+    <system:String x:Key="S.Common.Apply" xml:space="preserve">Применить</system:String>
+    <system:String x:Key="S.Common.Cancel" xml:space="preserve">Отмена</system:String>
+    <system:String x:Key="S.Common.Change" xml:space="preserve">Изменить</system:String>
+    <system:String x:Key="S.Common.Choose" xml:space="preserve">Выбрать</system:String>
+    <system:String x:Key="S.Common.Close" xml:space="preserve">Закрыть</system:String>
+    <system:String x:Key="S.Common.Continue" xml:space="preserve">Продолжить</system:String>
+    <system:String x:Key="S.Common.Copy" xml:space="preserve">Копировать</system:String>
+    <system:String x:Key="S.Common.Delete" xml:space="preserve">Удалить</system:String>
+    <system:String x:Key="S.Common.Edit" xml:space="preserve">Изменить</system:String>
+    <system:String x:Key="S.Common.Loading" xml:space="preserve">Загрузка...</system:String>
+    <system:String x:Key="S.Common.No" xml:space="preserve">Нет</system:String>
+    <system:String x:Key="S.Common.None" xml:space="preserve">Нет</system:String>
+    <system:String x:Key="S.Common.NotChosen" xml:space="preserve">Не выбрано</system:String>
+    <system:String x:Key="S.Common.NothingFound" xml:space="preserve">Ничего не найдено</system:String>
+    <system:String x:Key="S.Common.Open" xml:space="preserve">Открыть</system:String>
+    <system:String x:Key="S.Common.Remove" xml:space="preserve">Убрать</system:String>
+    <system:String x:Key="S.Common.Save" xml:space="preserve">Сохранить</system:String>
+    <system:String x:Key="S.Common.Yes" xml:space="preserve">Да</system:String>
+
+    <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
+
+    <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. Без разрешения загрузка не состоится.</system:String>
+    <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
+    <system:String x:Key="S.Confirm.Title" xml:space="preserve">Требуется подтверждение</system:String>
+
+    <system:String x:Key="S.Cost.Model" xml:space="preserve">Модель</system:String>
+    <system:String x:Key="S.Cost.Total" xml:space="preserve">Итого</system:String>
+
+    <system:String x:Key="S.Crash.ClipboardBusy" xml:space="preserve">Буфер занят</system:String>
+    <system:String x:Key="S.Crash.Close" xml:space="preserve">Закрыть</system:String>
+    <system:String x:Key="S.Crash.Continue" xml:space="preserve">Продолжить</system:String>
+    <system:String x:Key="S.Crash.Copied" xml:space="preserve">Скопировано</system:String>
+    <system:String x:Key="S.Crash.Copy" xml:space="preserve">Скопировать детали</system:String>
+    <system:String x:Key="S.Crash.Details" xml:space="preserve">Подробности</system:String>
+    <system:String x:Key="S.Crash.Generic" xml:space="preserve">Произошла непредвиденная ошибка.</system:String>
+    <system:String x:Key="S.Crash.Headline" xml:space="preserve">Что-то пошло не так</system:String>
+    <system:String x:Key="S.Crash.IoFailure" xml:space="preserve">Не удалось прочитать или записать файл.</system:String>
+    <system:String x:Key="S.Crash.LogPath" xml:space="preserve">Отчёт записан в {0}</system:String>
+    <system:String x:Key="S.Crash.Network" xml:space="preserve">Сбой сети.</system:String>
+    <system:String x:Key="S.Crash.NoAccess" xml:space="preserve">Нет доступа к файлу или папке.</system:String>
+    <system:String x:Key="S.Crash.NoLog" xml:space="preserve">Журнал сбоев записать не удалось.</system:String>
+    <system:String x:Key="S.Crash.OutOfMemory" xml:space="preserve">Закончилась память.</system:String>
+    <system:String x:Key="S.Crash.Quit" xml:space="preserve">Закрыть программу</system:String>
+
+    <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Агент — тяжёлые задачи</system:String>
+    <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Агент — лёгкие задачи</system:String>
+    <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
+    <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Модели ответа</system:String>
+    <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Заголовки чатов</system:String>
+    <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Тяжёлые задачи</system:String>
+    <system:String x:Key="S.Customize.Light" xml:space="preserve">Лёгкие задачи</system:String>
+    <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Основной промпт ИИ</system:String>
+    <system:String x:Key="S.Customize.Router" xml:space="preserve">Маршрутизатор</system:String>
+    <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Анализирует запрос и выбирает одну из моделей выше</system:String>
+    <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Служебные модели</system:String>
+    <system:String x:Key="S.Customize.SystemPrompts" xml:space="preserve">System-промпты</system:String>
+    <system:String x:Key="S.Customize.TechPrompt" xml:space="preserve">Технический промпт ИИ</system:String>
+
+    <system:String x:Key="S.Data.Allowlist" xml:space="preserve">Разрешённые источники загрузки</system:String>
+    <system:String x:Key="S.Data.AllowlistDesc" xml:space="preserve">Загрузка с других сайтов отклоняется. Поддомены разрешены автоматически</system:String>
+    <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">Список пуст — любые загрузки заблокированы</system:String>
+    <system:String x:Key="S.Data.AllowlistRemove" xml:space="preserve">Удалить из списка</system:String>
+    <system:String x:Key="S.Data.AppFiles" xml:space="preserve">Файлы приложения</system:String>
+    <system:String x:Key="S.Data.AppFilesDesc" xml:space="preserve">Папка с настройками, чатами и логами</system:String>
+    <system:String x:Key="S.Data.DeleteAll" xml:space="preserve">Удалить все данные</system:String>
+    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Настройки, чаты, аккаунты — безвозвратно</system:String>
+    <system:String x:Key="S.Data.DeleteChats" xml:space="preserve">Удалить все чаты</system:String>
+    <system:String x:Key="S.Data.DeleteChatsDesc" xml:space="preserve">Удаляет все сохранённые переписки</system:String>
+    <system:String x:Key="S.Data.Import" xml:space="preserve">Импорт чата</system:String>
+    <system:String x:Key="S.Data.ImportDesc" xml:space="preserve">Открыть экспортированный .json или файл .amrnchat как новый чат</system:String>
+    <system:String x:Key="S.Data.OpenFile" xml:space="preserve">Открыть файл</system:String>
+    <system:String x:Key="S.Data.Sharing" xml:space="preserve">Обмен чатами по ссылке</system:String>
+    <system:String x:Key="S.Data.SharingDesc" xml:space="preserve">Кнопки «Поделиться» и «Экспорт» под ответами. Код и JSON не шифруются</system:String>
+
+    <system:String x:Key="S.Domain.Desc" xml:space="preserve">Агенту будет разрешено скачивать файлы с этого домена и его поддоменов.</system:String>
+    <system:String x:Key="S.Domain.Title" xml:space="preserve">Добавить домен в белый список</system:String>
+
+    <system:String x:Key="S.Download.Allow" xml:space="preserve">Разрешить и продолжить</system:String>
+    <system:String x:Key="S.Download.Desc" xml:space="preserve">Разрешение сохранится в настройках и распространится на поддомены. Убрать его можно там же, в Data Controls.</system:String>
+    <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
+    <system:String x:Key="S.Download.Title" xml:space="preserve">Сайт не в белом списке</system:String>
+
+    <system:String x:Key="S.Language.Desc" xml:space="preserve">Русский и английский встроены. «New language» — перевод целиком моделью, он сохранится и появится в этом списке.</system:String>
+    <system:String x:Key="S.Language.Done" xml:space="preserve">Готово — язык добавлен.</system:String>
+    <system:String x:Key="S.Language.Failed" xml:space="preserve">Перевод не удался: {0}</system:String>
+    <system:String x:Key="S.Language.ModelRefused" xml:space="preserve">Модель {0} не ответила: {1}</system:String>
+    <system:String x:Key="S.Language.NameDesc" xml:space="preserve">Назовите язык так, как он называется сам: Deutsch, Français, 日本語. Перевод займёт минуту.</system:String>
+    <system:String x:Key="S.Language.NameTitle" xml:space="preserve">Новый язык</system:String>
+    <system:String x:Key="S.Language.NativeName" xml:space="preserve">Русский</system:String>
+    <system:String x:Key="S.Language.NeedName" xml:space="preserve">Назовите язык.</system:String>
+    <system:String x:Key="S.Language.New" xml:space="preserve">New language</system:String>
+    <system:String x:Key="S.Language.NoNetwork" xml:space="preserve">Нет связи с Venice — перевод не состоялся.</system:String>
+    <system:String x:Key="S.Language.NothingTranslated" xml:space="preserve">Модель не вернула ни одной пригодной строки.</system:String>
+    <system:String x:Key="S.Language.Progress" xml:space="preserve">Перевод: {0} из {1} частей</system:String>
+    <system:String x:Key="S.Language.Title" xml:space="preserve">Язык интерфейса</system:String>
+
+    <system:String x:Key="S.Message.Compress" xml:space="preserve">Сжать</system:String>
+    <system:String x:Key="S.Message.Expand" xml:space="preserve">Расширить</system:String>
+    <system:String x:Key="S.Message.Export" xml:space="preserve">Экспорт диалога в JSON</system:String>
+    <system:String x:Key="S.Message.NoText" xml:space="preserve">Ответ без текста</system:String>
+    <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Повторить</system:String>
+    <system:String x:Key="S.Message.Share" xml:space="preserve">Поделиться диалогом до этого ответа</system:String>
+    <system:String x:Key="S.Message.Stop" xml:space="preserve">Остановить</system:String>
+    <system:String x:Key="S.Message.Thought" xml:space="preserve">думал {0}</system:String>
+
+    <system:String x:Key="S.Models.Auto" xml:space="preserve">Авто</system:String>
+    <system:String x:Key="S.Models.AutoTip" xml:space="preserve">Маршрутизатор сам выберет модель</system:String>
+    <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>
+    <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Поиск...</system:String>
+    <system:String x:Key="S.Models.TabAll" xml:space="preserve">Все</system:String>
+    <system:String x:Key="S.Models.TabRecommended" xml:space="preserve">Рекомендованы</system:String>
+    <system:String x:Key="S.Models.TierBudget" xml:space="preserve">БЮДЖЕТНЫЙ УРОВЕНЬ</system:String>
+    <system:String x:Key="S.Models.TierBudgetDesc" xml:space="preserve">для массовых/простых задач</system:String>
+    <system:String x:Key="S.Models.TierFlagship" xml:space="preserve">ФЛАГМАНСКИЕ</system:String>
+    <system:String x:Key="S.Models.TierFlagshipDesc" xml:space="preserve">макс. надёжность</system:String>
+    <system:String x:Key="S.Models.TierMiddle" xml:space="preserve">СРЕДНИЙ УРОВЕНЬ</system:String>
+    <system:String x:Key="S.Models.TierMiddleDesc" xml:space="preserve">цена/качество</system:String>
+
+    <system:String x:Key="S.Name.Desc" xml:space="preserve">Отображается в настройках. Хранится только на этом компьютере.</system:String>
+    <system:String x:Key="S.Name.Title" xml:space="preserve">Имя пользователя</system:String>
+
+    <system:String x:Key="S.Password.Prompt" xml:space="preserve">Введите пароль</system:String>
+    <system:String x:Key="S.Password.SwitchUser" xml:space="preserve">Сменить пользователя</system:String>
+
+    <system:String x:Key="S.Profiles.Desc" xml:space="preserve">У каждого профиля свои чаты и настройки. Данные хранятся локально.</system:String>
+    <system:String x:Key="S.Profiles.New" xml:space="preserve">Новый профиль</system:String>
+    <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
+
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">Disable thinking и сила размышления для Авто задаются у лёгкой и тяжёлой модели в Customize</system:String>
+    <system:String x:Key="S.Reasoning.Disable" xml:space="preserve">Disable thinking</system:String>
+    <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Сила размышления</system:String>
+    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Выкл</system:String>
+    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Вкл</system:String>
+
+    <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
+    <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
+    <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
+    <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
+    <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
+    <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
+    <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
+
+    <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Свернуть панель</system:String>
+    <system:String x:Key="S.Sidebar.NewChat" xml:space="preserve">New Chat</system:String>
+    <system:String x:Key="S.Sidebar.Search" xml:space="preserve">Поиск</system:String>
+
+    <system:String x:Key="S.Size.Bytes" xml:space="preserve">{0} Б</system:String>
+    <system:String x:Key="S.Size.Kilobytes" xml:space="preserve">{0} КБ</system:String>
+    <system:String x:Key="S.Size.Megabytes" xml:space="preserve">{0} МБ</system:String>
+    <system:String x:Key="S.Size.NoExtension" xml:space="preserve">без расширения</system:String>
+
+    <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
+
+    <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
+    <system:String x:Key="S.Tools.AgentRunning" xml:space="preserve">выполняется</system:String>
+    <system:String x:Key="S.Tools.AgentToolsCount" xml:space="preserve">{0} инструментов</system:String>
+    <system:String x:Key="S.Tools.CallCost" xml:space="preserve">Стоимость вызова {0}</system:String>
+    <system:String x:Key="S.Tools.CallDone" xml:space="preserve">готово</system:String>
+    <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
+    <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
+    <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
+
+    <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
+    <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» — ответ не получен</system:String>
+    <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа — дождитесь одного из них.</system:String>
+    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Не задан API-ключ Venice.ai.&#10;Задайте переменную окружения VENICE_API_KEY.</system:String>
+
+    <system:String x:Key="S.Update.Confirm" xml:space="preserve">Обновить и перезапустить</system:String>
+    <system:String x:Key="S.Update.Desc" xml:space="preserve">Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится.</system:String>
+    <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>
+
+    <system:String x:Key="S.Updates.Auto" xml:space="preserve">Проверять автоматически</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Ничего не скачивается: приложение только сообщает о новой версии</system:String>
+    <system:String x:Key="S.Updates.Check" xml:space="preserve">Проверить обновления</system:String>
+    <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">Проверка ещё не запускалась</system:String>
+    <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Открыть релиз</system:String>
+    <system:String x:Key="S.Updates.Title" xml:space="preserve">Версия и обновления</system:String>
+    <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
+
+    <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
+    <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
+
+</ResourceDictionary>

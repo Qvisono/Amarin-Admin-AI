@@ -37,7 +37,7 @@ internal static class CostBreakdownTooltip
         var line = 0;
         var model = VeniceModelCatalog.GetDisplayName(
             message.ResolvedModelId ?? message.RequestedModelId ?? "");
-        AddRow(rows, ref line, string.IsNullOrWhiteSpace(model) ? "Модель" : model, message.ModelCost, bold: false);
+        AddRow(rows, ref line, string.IsNullOrWhiteSpace(model) ? Loc.Get("S.Cost.Model") : model, message.ModelCost, bold: false);
 
         foreach (var round in message.ToolRounds)
         {
@@ -76,7 +76,7 @@ internal static class CostBreakdownTooltip
             rows.Children.Add(rule);
             line++;
 
-            AddRow(rows, ref line, "Итого", message.Cost, bold: true);
+            AddRow(rows, ref line, Loc.Get("S.Cost.Total"), message.Cost, bold: true);
         }
 
         return Chrome(rows);

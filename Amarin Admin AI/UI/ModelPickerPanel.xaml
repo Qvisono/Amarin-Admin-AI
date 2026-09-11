@@ -133,9 +133,9 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <RadioButton x:Name="TabRecommended" Style="{StaticResource PickerTab}"
-                                 Content="Рекомендованы" IsChecked="True"/>
+                                 Content="{DynamicResource S.Models.TabRecommended}" IsChecked="True"/>
                     <RadioButton x:Name="TabAll" Grid.Column="1" Style="{StaticResource PickerTab}"
-                                 Content="Все"/>
+                                 Content="{DynamicResource S.Models.TabAll}"/>
                 </Grid>
             </Border>
 
@@ -154,7 +154,7 @@
                 </ScrollViewer.Style>
                 <StackPanel Margin="0,2,0,2">
                     <Button x:Name="AutoItem" Style="{StaticResource ModelItem}"
-                            ToolTip="Маршрутизатор сам выберет модель"
+                            ToolTip="{DynamicResource S.Models.AutoTip}"
                             Click="AutoItem_Click">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -164,7 +164,7 @@
                             </Grid.ColumnDefinitions>
                             <Image x:Name="AutoLogo" Width="15" Height="15"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="Авто"/>
+                            <TextBlock Grid.Column="1" Style="{StaticResource ModelName}" Text="{DynamicResource S.Models.Auto}"/>
                             <Path x:Name="AutoCheck" Grid.Column="2" Style="{StaticResource SelectedCheck}"
                                   Visibility="Collapsed"/>
                         </Grid>
@@ -204,7 +204,7 @@
                                      VerticalContentAlignment="Center" FontSize="11"
                                      Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
                                      TextChanged="ModelSearchBox_TextChanged"/>
-                            <TextBlock Text="Поиск..." FontSize="11" Foreground="{DynamicResource Text.Faint}"
+                            <TextBlock Text="{DynamicResource S.Models.SearchPlaceholder}" FontSize="11" Foreground="{DynamicResource Text.Faint}"
                                        Margin="8,0" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

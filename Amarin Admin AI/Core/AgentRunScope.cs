@@ -7,6 +7,12 @@ internal sealed class AgentRunContext
     public required ChatDisplayMessage Assistant { get; init; }
 
     public required IChatTurnObserver Observer { get; init; }
+
+    /// <summary>
+    /// Чат, чей ход вызвал инструмент. Отсюда его узнаёт очередь подтверждений: с несколькими
+    /// одновременными ходами вопрос обязан знать, из какого разговора он пришёл.
+    /// </summary>
+    public string? SessionId { get; init; }
 }
 
 internal static class AgentRunScope

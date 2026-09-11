@@ -81,10 +81,29 @@
                                    TextTrimming="CharacterEllipsis"
                                    TextWrapping="NoWrap"
                                    Margin="0,0,2,0"/>
+                                            <!-- Пульсирующая точка: чат отвечает, пока мы
+                                                 смотрим другой. Под курсором уступает место
+                                                 кнопке действий — они стоят в одной точке. -->
+                                            <Ellipse x:Name="Working" Width="7" Height="7"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 Margin="0,0,7,0" Visibility="Collapsed"
+                                 Fill="{DynamicResource Accent.Fill}">
+                                                <Ellipse.Triggers>
+                                                    <EventTrigger RoutedEvent="Loaded">
+                                                        <BeginStoryboard>
+                                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                <DoubleAnimation
+                                                     Storyboard.TargetProperty="Opacity"
+                                                     From="1" To="0.25" Duration="0:0:0.7"/>
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </EventTrigger>
+                                                </Ellipse.Triggers>
+                                            </Ellipse>
                                             <Button x:Name="Actions" Width="22" Height="22"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
                                 Visibility="Collapsed"
-                                ToolTip="Действия" Cursor="Hand">
+                                ToolTip="{DynamicResource S.Chat.RowActions}" Cursor="Hand">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Border x:Name="ActionsBg" Background="Transparent" CornerRadius="4">
@@ -107,6 +126,7 @@
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Working" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
                                         <!-- Keep the affordance up while its menu is open, or it
@@ -171,7 +191,7 @@
                                 </Button>
 
                                 <Button x:Name="CollapseSidebarButton" Margin="6" Height="30" Width="30" HorizontalAlignment="Right"
-                                        Cursor="Hand" ToolTip="Свернуть панель" Click="CollapseSidebarButton_Click">
+                                        Cursor="Hand" ToolTip="{DynamicResource S.Sidebar.Collapse}" Click="CollapseSidebarButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
@@ -206,7 +226,7 @@
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Width="10" Height="10" Stretch="Uniform"
                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                <TextBlock x:Name="NewChatLabel" Text="New Chat" FontSize="11.5"
+                                                <TextBlock x:Name="NewChatLabel" Text="{DynamicResource S.Sidebar.NewChat}" FontSize="11.5"
                                        Foreground="{DynamicResource Text.OnAccent}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
@@ -254,7 +274,7 @@
                  VerticalContentAlignment="Center" FontSize="12"
                  Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
                  TextChanged="SearchBox_TextChanged"/>
-                                    <TextBlock Grid.Column="1" Text="Поиск" FontSize="12" Foreground="{DynamicResource Text.Faint}"
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource S.Sidebar.Search}" FontSize="12" Foreground="{DynamicResource Text.Faint}"
                    VerticalAlignment="Center" IsHitTestVisible="False">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -292,9 +312,9 @@
                             </Border>
 
                             <StackPanel x:Name="AccountLabels" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <TextBlock x:Name="SidebarAccountName" Text="Гость" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"
+                                <TextBlock x:Name="SidebarAccountName" Text="{DynamicResource S.Account.Guest}" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"
                                            TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                                <TextBlock x:Name="SidebarAccountMode" Text="Локальный режим" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
+                                <TextBlock x:Name="SidebarAccountMode" Text="{DynamicResource S.Account.LocalMode}" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
                             </StackPanel>
 
                             <Button x:Name="SettingsButton" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
@@ -522,17 +542,17 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- ===== ПРИКРЕПЛЁННЫЕ ИЗОБРАЖЕНИЯ ===== -->
-                            <StackPanel x:Name="AttachedImagesHost" Grid.Row="0" Visibility="Collapsed"
+                            <!-- ===== ПРИКРЕПЛЁННЫЕ ВЛОЖЕНИЯ ===== -->
+                            <StackPanel x:Name="AttachmentsHost" Grid.Row="0" Visibility="Collapsed"
                                         Margin="0,0,0,8">
-                                <ItemsControl x:Name="AttachedImagesPanel">
+                                <ItemsControl x:Name="AttachmentsPanel">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <WrapPanel Orientation="Horizontal"/>
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                 </ItemsControl>
-                                <TextBlock x:Name="AttachedImagesWarning" Visibility="Collapsed"
+                                <TextBlock x:Name="AttachmentsWarning" Visibility="Collapsed"
                                            FontSize="11" Margin="2,6,0,0" TextWrapping="Wrap"
                                            Foreground="{DynamicResource Status.Warning}"/>
                             </StackPanel>
@@ -548,7 +568,7 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      Padding="0"
                      PreviewKeyDown="MessageTextBox_PreviewKeyDown"/>
-                                <TextBlock x:Name="ComposerPlaceholder" Text="Спросите что-нибудь..." FontSize="14.5"
+                                <TextBlock x:Name="ComposerPlaceholder" Text="{DynamicResource S.Composer.Placeholder}" FontSize="14.5"
                        Foreground="{DynamicResource Text.Faint}" IsHitTestVisible="False">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -620,11 +640,11 @@
                                             <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
                                         </Border.Effect>
                                         <StackPanel>
-                                            <TextBlock Text="Actions" FontSize="12.5" FontWeight="SemiBold"
+                                            <TextBlock Text="{DynamicResource S.Actions.Title}" FontSize="12.5" FontWeight="SemiBold"
                        Foreground="{DynamicResource Text.Muted}" Margin="8,6,8,4"/>
 
-                                            <Button x:Name="AttachImageButton" Style="{StaticResource ActionItem}"
-                                                    Click="AttachImageButton_Click">
+                                            <Button x:Name="AttachFileButton" Style="{StaticResource ActionItem}"
+                                                    Click="AttachFileButton_Click">
                                                 <StackPanel Orientation="Horizontal">
                                                     <Border Style="{StaticResource ActionBadge}">
                                                         <Image Source="{DynamicResource attach}" Margin="6" RenderTransformOrigin="0.5,0.5">
@@ -639,8 +659,8 @@
                                                         </Image>
                                                     </Border>
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="Attach image/document"/>
-                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="Фото, PDF, документы"/>
+                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="{DynamicResource S.Actions.AttachTitle}"/>
+                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="{DynamicResource S.Actions.AttachSubtitle}"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Button>
@@ -652,8 +672,8 @@
                                                         <TextBlock Style="{StaticResource ActionBadgeIcon}" Text="▶"/>
                                                     </Border>
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="Summarize video"/>
-                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="YouTube-ссылка"/>
+                                                        <TextBlock Style="{StaticResource ActionTitle}" Text="{DynamicResource S.Actions.SummarizeTitle}"/>
+                                                        <TextBlock Style="{StaticResource ActionSubtitle}" Text="{DynamicResource S.Actions.SummarizeSubtitle}"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </ToggleButton>
@@ -698,9 +718,9 @@
                                                             <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
                                                         <RadioButton x:Name="RawTranscriptOption" Grid.Column="0" Style="{StaticResource SegmentedOption}"
-                     Content="Raw Transcript" IsChecked="True" Margin="0,0,3,0"/>
+                     Content="{DynamicResource S.Actions.RawTranscript}" IsChecked="True" Margin="0,0,3,0"/>
                                                         <RadioButton x:Name="InfographicOption" Grid.Column="1" Style="{StaticResource SegmentedOption}"
-                     Content="Create Infographic" Margin="3,0,0,0"/>
+                     Content="{DynamicResource S.Actions.CreateInfographic}" Margin="3,0,0,0"/>
                                                     </Grid>
 
                                                     <TextBlock x:Name="SummarizeError" FontSize="11" Margin="2,8,0,0"
@@ -708,7 +728,7 @@
                      Foreground="{DynamicResource Status.Danger}"/>
 
                                                     <Button x:Name="SummarizeStartButton" Style="{StaticResource PrimaryActionButton}"
-                     Content="Начать" Margin="0,10,0,0" Click="SummarizeStartButton_Click"/>
+                     Content="{DynamicResource S.Actions.Start}" Margin="0,10,0,0" Click="SummarizeStartButton_Click"/>
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
@@ -1269,7 +1289,7 @@
                                            Foreground="{DynamicResource Status.Warning}"
                                            VerticalAlignment="Top"
                                            Margin="0,1,8,0"/>
-                                                        <TextBlock Text="Not running as administrator: many features are unavailable"
+                                                        <TextBlock Text="{DynamicResource S.Chrome.NotAdmin}"
                                            FontSize="11.5"
                                            Foreground="{DynamicResource Text.Secondary}"
                                            TextWrapping="Wrap"
@@ -1319,7 +1339,7 @@
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Width="9" Height="7" Stretch="Uniform"
                               Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Сохранить" FontSize="11.5"
+                                        <TextBlock Text="{DynamicResource S.Settings.SavePrompt}" FontSize="11.5"
                                    Foreground="{DynamicResource Text.OnAccent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
@@ -1721,17 +1741,17 @@
                     BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,0,1,0">
                         <Grid>
                             <StackPanel>
-                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="GENERAL" Margin="18,16,8,4"/>
-                                <RadioButton x:Name="NavAccount" Style="{StaticResource SettingsNavItem}" Content="Account"/>
-                                <RadioButton x:Name="NavAppearance" Style="{StaticResource SettingsNavItem}" Content="Appearance"/>
-                                <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="Behavior" IsChecked="True"/>
-                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="MODEL"/>
-                                <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="Customize"/>
-                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="DATA &amp; INFO"/>
-                                <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="Data Controls"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.General}" Margin="18,16,8,4"/>
+                                <RadioButton x:Name="NavAccount" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Account}"/>
+                                <RadioButton x:Name="NavAppearance" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Appearance}"/>
+                                <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Behavior}" IsChecked="True"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
+                                <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
+                                <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.15.0"
+                                       Text="v1.15.2"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -1778,7 +1798,7 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="Account"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Account.Title}"/>
 
                                 <!-- Карточка аккаунта -->
                                 <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
@@ -1799,47 +1819,47 @@
                                             </Grid>
                                         </Border>
                                         <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="AccountNameText" Text="Гость" FontSize="13" FontWeight="SemiBold"
+                                            <TextBlock x:Name="AccountNameText" Text="{DynamicResource S.Account.Guest}" FontSize="13" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Text.Body}"/>
-                                            <TextBlock x:Name="AccountModeText" Text="Локальный режим" FontSize="11"
+                                            <TextBlock x:Name="AccountModeText" Text="{DynamicResource S.Account.LocalMode}" FontSize="11"
                                                        Foreground="{DynamicResource Text.Faint}"/>
                                         </StackPanel>
                                         <Button x:Name="SwitchAccountButton" Grid.Column="2" Style="{StaticResource SecondaryButton}"
-                                                Content="Сменить" Click="SwitchAccountButton_Click"/>
+                                                Content="{DynamicResource S.Account.SwitchProfile}" Click="SwitchAccountButton_Click"/>
                                     </Grid>
                                 </Border>
 
                                 <Grid>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Изображение профиля" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.Avatar}" VerticalAlignment="Center"/>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                         <Button x:Name="RemoveAvatarButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Убрать" Margin="0,0,6,0" Click="RemoveAvatarButton_Click"/>
+                                                Content="{DynamicResource S.Common.Remove}" Margin="0,0,6,0" Click="RemoveAvatarButton_Click"/>
                                         <Button x:Name="ChangeAvatarButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Изменить" Click="ChangeAvatarButton_Click"/>
+                                                Content="{DynamicResource S.Common.Change}" Click="ChangeAvatarButton_Click"/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <StackPanel Margin="0,0,120,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Имя пользователя"/>
-                                        <TextBlock x:Name="AccountNameHint" Style="{StaticResource SettingDesc}" Text="Гость"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.UserName}"/>
+                                        <TextBlock x:Name="AccountNameHint" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Account.Guest}"/>
                                     </StackPanel>
                                     <Button x:Name="ChangeNameButton" Style="{StaticResource SecondaryButton}"
                                             HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Content="Изменить" Click="ChangeNameButton_Click"/>
+                                            Content="{DynamicResource S.Common.Change}" Click="ChangeNameButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <StackPanel Margin="0,0,180,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.Password}"/>
                                         <TextBlock x:Name="AccountPasswordHint" Style="{StaticResource SettingDesc}"
-                                                   Text="Не задан"/>
+                                                   Text="{DynamicResource S.Account.PasswordNotSet}"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                         <Button x:Name="RemovePasswordButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Удалить" Margin="0,0,6,0" Click="RemovePasswordButton_Click"/>
+                                                Content="{DynamicResource S.Common.Delete}" Margin="0,0,6,0" Click="RemovePasswordButton_Click"/>
                                         <Button x:Name="ChangePasswordButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Изменить" Click="ChangePasswordButton_Click"/>
+                                                Content="{DynamicResource S.Common.Change}" Click="ChangePasswordButton_Click"/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -1849,9 +1869,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Пароль при запуске"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.PasswordAtStartup}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Блокирует вход в приложение. Чаты на диске не шифруются"/>
+                                           Text="{DynamicResource S.Account.PasswordAtStartupDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
                                               Checked="LockOnStartupToggle_Changed" Unchecked="LockOnStartupToggle_Changed"/>
@@ -1872,7 +1892,7 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="Appearance"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Appearance.Title}"/>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -1880,8 +1900,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Масштаб интерфейса"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Размер элементов и текста"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.UiScale}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.UiScaleDesc}"/>
                                     </StackPanel>
                                     <ComboBox x:Name="UiScaleComboBox" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                       MinWidth="110" SelectedIndex="2"
@@ -1901,9 +1921,9 @@
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="Тема"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Theme}"/>
                                 <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Цветовая палитра приложения"
+                                           Text="{DynamicResource S.Appearance.ThemeDesc}"
                                            Margin="0,0,0,8"/>
                                 <!-- Карточки строятся кодом из ThemeCatalog.Presets: новая тема = одна строка в каталоге -->
                                 <WrapPanel x:Name="ThemeCardsHost" Orientation="Horizontal"/>
@@ -1913,9 +1933,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Следовать теме Windows"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.FollowSystem}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Переключаться между Light и Dark вместе с системой"/>
+                                                   Text="{DynamicResource S.Appearance.FollowSystemDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="ThemeFollowSystemToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -1931,9 +1951,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Оформление" Margin="0,0,0,2"/>
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Customisation}" Margin="0,0,0,2"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Фон за интерфейсом, стекло и свой акцентный цвет. Выключено — чистая палитра темы"/>
+                                                   Text="{DynamicResource S.Appearance.CustomisationDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="AppearanceEnabledToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -1950,9 +1970,9 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Акцентный цвет"/>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Accent}"/>
                                             <TextBlock Style="{StaticResource SettingDesc}"
-                                                       Text="Заливка основных кнопок. «По теме» — цвет из палитры"/>
+                                                       Text="{DynamicResource S.Appearance.AccentDesc}"/>
                                         </StackPanel>
                                         <local:ColorPickerField x:Name="AccentPicker" Grid.Column="1" Width="118"
                                                                 VerticalAlignment="Center"/>
@@ -1960,23 +1980,23 @@
 
                                     <Border Style="{StaticResource SettingsDivider}"/>
 
-                                    <TextBlock Style="{StaticResource SectionTitle}" Text="Фон"/>
+                                    <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Backdrop}"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
                                         <RadioButton x:Name="BackdropNone" Style="{StaticResource SettingsSegment}"
-                                                     Content="Нет" Tag="None" Checked="BackdropMode_Checked"/>
+                                                     Content="{DynamicResource S.Common.None}" Tag="None" Checked="BackdropMode_Checked"/>
                                         <RadioButton x:Name="BackdropGradient" Style="{StaticResource SettingsSegment}"
-                                                     Content="Градиент" Tag="Gradient" Checked="BackdropMode_Checked"/>
+                                                     Content="{DynamicResource S.Appearance.Gradient}" Tag="Gradient" Checked="BackdropMode_Checked"/>
                                         <RadioButton x:Name="BackdropImage" Style="{StaticResource SettingsSegment}"
-                                                     Content="Изображение" Tag="Image" Checked="BackdropMode_Checked"/>
+                                                     Content="{DynamicResource S.Appearance.Image}" Tag="Image" Checked="BackdropMode_Checked"/>
                                     </StackPanel>
 
                                     <!-- ── Градиент ── -->
                                     <StackPanel x:Name="GradientPanel" Visibility="Collapsed">
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Готовые сочетания"
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.Presets}"
                                                    Margin="0,0,0,6"/>
                                         <WrapPanel x:Name="GradientPresetsHost" Margin="0,0,0,10"/>
 
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Цвета" Margin="0,0,0,6"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Colours}" Margin="0,0,0,6"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                             <local:ColorPickerField x:Name="GradientColor1" Width="106" Margin="0,0,6,0"/>
                                             <local:ColorPickerField x:Name="GradientColor2" Width="106" Margin="0,0,6,0"/>
@@ -1990,7 +2010,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Наклон"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Angle}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="GradientAngleSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2005,17 +2025,17 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Движение"/>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Motion}"/>
                                                 <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="Отключается при удалённом сеансе и без аппаратного ускорения"/>
+                                                           Text="{DynamicResource S.Appearance.MotionDesc}"/>
                                             </StackPanel>
                                             <ComboBox x:Name="MotionCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                                       MinWidth="130" VerticalAlignment="Center"
                                                       SelectionChanged="MotionCombo_SelectionChanged">
-                                                <ComboBoxItem Content="Нет" Tag="None"/>
-                                                <ComboBoxItem Content="Вращение" Tag="Drift"/>
-                                                <ComboBoxItem Content="Перелив" Tag="Aurora"/>
-                                                <ComboBoxItem Content="Пульс" Tag="Pulse"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Common.None}" Tag="None"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.MotionDrift}" Tag="Drift"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.MotionAurora}" Tag="Aurora"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.MotionPulse}" Tag="Pulse"/>
                                             </ComboBox>
                                         </Grid>
 
@@ -2025,7 +2045,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Скорость"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Speed}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="MotionSpeedSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2043,15 +2063,15 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Файл"/>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.File}"/>
                                                 <TextBlock x:Name="BackgroundImageName" Style="{StaticResource SettingDesc}"
-                                                           Text="Не выбрано" TextTrimming="CharacterEllipsis"/>
+                                                           Text="{DynamicResource S.Common.NotChosen}" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Button x:Name="RemoveBackgroundButton" Style="{StaticResource SecondaryButton}"
-                                                        Content="Убрать" Margin="0,0,6,0" Click="RemoveBackgroundButton_Click"/>
+                                                        Content="{DynamicResource S.Common.Remove}" Margin="0,0,6,0" Click="RemoveBackgroundButton_Click"/>
                                                 <Button x:Name="ChooseBackgroundButton" Style="{StaticResource SecondaryButton}"
-                                                        Content="Выбрать" Click="ChooseBackgroundButton_Click"/>
+                                                        Content="{DynamicResource S.Common.Choose}" Click="ChooseBackgroundButton_Click"/>
                                             </StackPanel>
                                         </Grid>
 
@@ -2060,14 +2080,14 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Вписывание"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ImageFit}"
                                                        VerticalAlignment="Center"/>
                                             <ComboBox x:Name="ImageFitCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                                       MinWidth="130" VerticalAlignment="Center"
                                                       SelectionChanged="ImageFitCombo_SelectionChanged">
-                                                <ComboBoxItem Content="Заполнить" Tag="Fill"/>
-                                                <ComboBoxItem Content="Целиком" Tag="Fit"/>
-                                                <ComboBoxItem Content="Плиткой" Tag="Tile"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.FitFill}" Tag="Fill"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.FitWhole}" Tag="Fit"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.FitTile}" Tag="Tile"/>
                                             </ComboBox>
                                         </Grid>
 
@@ -2077,7 +2097,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Яркость фото"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Brightness}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="ImageBrightnessSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2092,7 +2112,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Насыщенность"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Saturation}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="ImageSaturationSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2108,8 +2128,8 @@
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Толщина кристалла"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="Размытие фото"/>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.CrystalDepth}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.PhotoBlur}"/>
                                             </StackPanel>
                                             <Slider x:Name="ImageBlurSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2122,9 +2142,9 @@
                                     <!-- ── Стекло ── -->
                                     <StackPanel x:Name="GlassPanel" Visibility="Collapsed">
                                         <Border Style="{StaticResource SettingsDivider}"/>
-                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Стекло"/>
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Glass}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон"
+                                                   Text="{DynamicResource S.Appearance.GlassDesc}"
                                                    Margin="0,0,0,8"/>
 
                                         <Grid Margin="0,0,0,8">
@@ -2133,7 +2153,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Плотность панелей"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.PanelDensity}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="GlassOpacitySlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2148,7 +2168,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="46"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Матовость"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Frost}"
                                                        VerticalAlignment="Center"/>
                                             <Slider x:Name="GlassFrostSlider" Grid.Column="1"
                                                     Style="{StaticResource SettingsRangeSlider}"
@@ -2162,7 +2182,7 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Блик по диагонали"
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Sheen}"
                                                        VerticalAlignment="Center"/>
                                             <CheckBox x:Name="GlassSheenToggle" Grid.Column="1"
                                                       Style="{StaticResource SettingsToggle}"
@@ -2175,9 +2195,9 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="Виньетка"/>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Vignette}"/>
                                                 <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="Затемняет края, чтобы текст не терялся на светлом фото"/>
+                                                           Text="{DynamicResource S.Appearance.VignetteDesc}"/>
                                             </StackPanel>
                                             <CheckBox x:Name="VignetteToggle" Grid.Column="1"
                                                       Style="{StaticResource SettingsToggle}"
@@ -2188,7 +2208,7 @@
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="Интерфейс"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Interface}"/>
 
                                 <Grid Margin="0,2,0,8">
                                     <Grid.ColumnDefinitions>
@@ -2196,14 +2216,14 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Шрифт"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Font}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Гарнитуры поставляются вместе с приложением"/>
+                                                   Text="{DynamicResource S.Appearance.FontDesc}"/>
                                     </StackPanel>
                                     <ComboBox x:Name="FontCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                               MinWidth="130" VerticalAlignment="Center"
                                               SelectionChanged="FontCombo_SelectionChanged">
-                                        <ComboBoxItem Content="Системный" Tag=""/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.FontSystem}" Tag=""/>
                                         <ComboBoxItem Content="Urbanist" Tag="Urbanist"/>
                                         <ComboBoxItem Content="Outfit" Tag="Outfit"/>
                                         <ComboBoxItem Content="Rubik" Tag="Rubik"/>
@@ -2217,17 +2237,17 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Ширина колонки чата"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ChatWidth}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Длинные строки труднее читать — узкая колонка помогает"/>
+                                                   Text="{DynamicResource S.Appearance.ChatWidthDesc}"/>
                                     </StackPanel>
                                     <ComboBox x:Name="ChatWidthCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                               MinWidth="130" VerticalAlignment="Center"
                                               SelectionChanged="ChatWidthCombo_SelectionChanged">
-                                        <ComboBoxItem Content="Узкая" Tag="760"/>
-                                        <ComboBoxItem Content="Обычная" Tag="1070"/>
-                                        <ComboBoxItem Content="Широкая" Tag="1400"/>
-                                        <ComboBoxItem Content="Во всю ширину" Tag="100000"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNarrow}" Tag="760"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNormal}" Tag="1070"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.WidthWide}" Tag="1400"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.WidthFull}" Tag="100000"/>
                                     </ComboBox>
                                 </Grid>
 
@@ -2237,7 +2257,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="46"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Скругление ввода"
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.InputRadius}"
                                                VerticalAlignment="Center"/>
                                     <Slider x:Name="CornerRadiusSlider" Grid.Column="1"
                                             Style="{StaticResource SettingsRangeSlider}"
@@ -2252,9 +2272,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Анимации"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Animations}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Движение фона и сворачивание поля ввода"/>
+                                                   Text="{DynamicResource S.Appearance.AnimationsDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="AnimationsToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -2269,10 +2289,10 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SectionTitle}" Text="Компактное поле ввода"
+                                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.CompactComposer}"
                                                    Margin="0,0,0,2"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="Пока поле пустое и мышь далеко, оно сворачивается в полоску и отдаёт место чату"/>
+                                                   Text="{DynamicResource S.Appearance.CompactComposerDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="CompactComposerToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -2288,9 +2308,9 @@
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Реакция на мышь"/>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.MouseReaction}"/>
                                             <TextBlock Style="{StaticResource SettingDesc}"
-                                                       Text="Выкл — полоска не замечает указатель и разворачивается, только когда в неё ставят курсор"/>
+                                                       Text="{DynamicResource S.Appearance.MouseReactionDesc}"/>
                                         </StackPanel>
                                         <CheckBox x:Name="CompactHoverToggle" Grid.Column="1"
                                                   Style="{StaticResource SettingsToggle}"
@@ -2303,7 +2323,7 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="46"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Задержка"
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Delay}"
                                                    VerticalAlignment="Center"/>
                                         <Slider x:Name="CompactDelaySlider" Grid.Column="1"
                                                 Style="{StaticResource SettingsRangeSlider}"
@@ -2317,7 +2337,7 @@
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="46"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Ширина полоски"
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.StripWidth}"
                                                    VerticalAlignment="Center"/>
                                         <Slider x:Name="CompactWidthSlider" Grid.Column="1"
                                                 Style="{StaticResource SettingsRangeSlider}"
@@ -2332,8 +2352,8 @@
                                             <ColumnDefinition Width="46"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="Радиус реакции"/>
-                                            <TextBlock Style="{StaticResource SettingDesc}" Text="На каком расстоянии мышь разворачивает"/>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ReactionRadius}"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.ReactionRadiusDesc}"/>
                                         </StackPanel>
                                         <Slider x:Name="CompactHoverSlider" Grid.Column="1"
                                                 Style="{StaticResource SettingsRangeSlider}"
@@ -2346,7 +2366,7 @@
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <Button x:Name="ResetAppearanceButton" Style="{StaticResource SecondaryButton}"
-                                        HorizontalAlignment="Left" Content="Сбросить оформление"
+                                        HorizontalAlignment="Left" Content="{DynamicResource S.Appearance.Reset}"
                                         Click="ResetAppearanceButton_Click"/>
                             </StackPanel>
                         </ScrollViewer>
@@ -2364,10 +2384,10 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="Behavior"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Behavior.Title}"/>
 
                                 <Grid>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Автопрокрутка чата" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.AutoScroll}" VerticalAlignment="Center"/>
                                     <CheckBox x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -2377,9 +2397,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Уведомлять о завершении ответа"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.NotifyOnComplete}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Всплывающее окно в правом нижнем углу, когда модель закончила генерацию, а окно не в фокусе"/>
+                                           Text="{DynamicResource S.Behavior.NotifyOnCompleteDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="NotifyOnCompleteToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
@@ -2393,9 +2413,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Звук уведомления"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.NotifySound}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Короткий системный сигнал вместе с уведомлением"/>
+                                           Text="{DynamicResource S.Behavior.NotifySoundDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="NotifySoundToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
@@ -2409,9 +2429,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Режим работы"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.ApprovalMode}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-       Text="Режим работы для ИИ агента. Normal - спрашивать всегда"/>
+       Text="{DynamicResource S.Behavior.ApprovalModeDesc}"/>
                                     </StackPanel>
                                     <ComboBox x:Name="ApprovalModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
                                       MinWidth="140" SelectedIndex="1" VerticalAlignment="Center"
@@ -2419,6 +2439,23 @@
                                         <ComboBoxItem Content="Always approve" Tag="AlwaysApprove"/>
                                         <ComboBoxItem Content="Normal" Tag="Normal"/>
                                     </ComboBox>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Language.Title}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+       Text="{DynamicResource S.Language.Desc}"/>
+                                    </StackPanel>
+                                    <local:LanguagePickerField x:Name="LanguagePicker" Grid.Column="1"
+                                                               MinWidth="170" VerticalAlignment="Center"
+                                                               LanguagePicked="LanguagePicker_LanguagePicked"
+                                                               NewLanguageRequested="LanguagePicker_NewLanguageRequested"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -2436,16 +2473,16 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="Customize"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Customize.Title}"/>
 
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="Модели ответа"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.AnswerModels}"/>
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Лёгкие задачи" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Light}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
@@ -2458,7 +2495,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Тяжёлые задачи" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Heavy}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="HeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
@@ -2472,9 +2509,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,8,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Маршрутизатор"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Router}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Анализирует запрос и выбирает одну из моделей выше"/>
+                                           Text="{DynamicResource S.Customize.RouterDesc}"/>
                                     </StackPanel>
                                     <local:ReasoningPicker x:Name="RouterReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
@@ -2485,7 +2522,7 @@
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="System-промпты"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.SystemPrompts}"/>
 
                                 <!-- Основной промпт ИИ -->
                                 <Grid Margin="0,0,0,6">
@@ -2493,7 +2530,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Основной промпт ИИ" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.MainPrompt}" VerticalAlignment="Center"/>
                                     <Button x:Name="SaveMainPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveMainPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
@@ -2504,7 +2541,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт ИИ" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.TechPrompt}" VerticalAlignment="Center"/>
                                     <Button x:Name="SaveTechAiPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAiPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="TechAiPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
@@ -2515,21 +2552,21 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Технический промпт агента" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentPrompt}" VerticalAlignment="Center"/>
                                     <Button x:Name="SaveTechAgentPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAgentPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="Служебные модели"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.ServiceModels}"/>
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Заголовки чатов" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.ChatTitles}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="TitleReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
@@ -2542,7 +2579,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — лёгкие задачи" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentLight}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
@@ -2555,7 +2592,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="Агент — тяжёлые задачи" VerticalAlignment="Center"/>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentHeavy}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
@@ -2578,7 +2615,7 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="Data Controls"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Data.Title}"/>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -2586,9 +2623,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Обмен чатами по ссылке"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Sharing}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Кнопки «Поделиться» и «Экспорт» под ответами. Код и JSON не шифруются"/>
+                                           Text="{DynamicResource S.Data.SharingDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="ChatSharingToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -2602,12 +2639,12 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Импорт чата"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Import}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Открыть экспортированный .json или файл .amrnchat как новый чат"/>
+                                           Text="{DynamicResource S.Data.ImportDesc}"/>
                                     </StackPanel>
                                     <Button x:Name="ImportChatButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                            Content="Открыть файл" Click="ImportChatButton_Click"/>
+                                            Content="{DynamicResource S.Data.OpenFile}" Click="ImportChatButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -2616,11 +2653,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Файлы приложения"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Папка с настройками, чатами и логами"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.AppFiles}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AppFilesDesc}"/>
                                     </StackPanel>
                                     <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                            Content="Открыть" Click="OpenAppFilesButton_Click"/>
+                                            Content="{DynamicResource S.Common.Open}" Click="OpenAppFilesButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -2631,19 +2668,19 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Версия и обновления"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Title}"/>
                                         <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDesc}"
-                                                   Text="Проверка ещё не запускалась"/>
+                                                   Text="{DynamicResource S.Updates.NeverChecked}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                         <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Открыть релиз" Margin="0,0,6,0" Visibility="Collapsed"
+                                                Content="{DynamicResource S.Updates.OpenRelease}" Margin="0,0,6,0" Visibility="Collapsed"
                                                 Click="OpenReleaseButton_Click"/>
                                         <Button x:Name="UpdateNowButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Обновить" Margin="0,0,6,0" Visibility="Collapsed"
+                                                Content="{DynamicResource S.Updates.Update}" Margin="0,0,6,0" Visibility="Collapsed"
                                                 Click="UpdateNowButton_Click"/>
                                         <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
-                                                Content="Проверить обновления" Click="CheckUpdatesButton_Click"/>
+                                                Content="{DynamicResource S.Updates.Check}" Click="CheckUpdatesButton_Click"/>
                                     </StackPanel>
                                 </Grid>
 
@@ -2664,9 +2701,9 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Проверять автоматически"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Auto}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="При запуске, не чаще раза в 6 часов. Ничего не скачивается: приложение только сообщает о новой версии"/>
+                                                   Text="{DynamicResource S.Updates.AutoDesc}"/>
                                     </StackPanel>
                                     <CheckBox x:Name="AutoUpdateToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
@@ -2679,8 +2716,8 @@
                                 <!-- Разрешённые сайты -->
                                 <Grid Margin="0,0,0,8">
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,34,0">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Разрешённые источники загрузки"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Загрузка с других сайтов отклоняется. Поддомены разрешены автоматически"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Allowlist}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AllowlistDesc}"/>
                                     </StackPanel>
                                     <Button x:Name="AddDomainButton" Style="{StaticResource SecondaryButton}"
                                             HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -2691,7 +2728,7 @@
                                 CornerRadius="8" Padding="4">
                                     <Grid>
                                         <TextBlock x:Name="AllowedDomainsEmpty" Margin="8,7"
-                                                   Text="Список пуст — любые загрузки заблокированы"
+                                                   Text="{DynamicResource S.Data.AllowlistEmpty}"
                                                    FontSize="12" Foreground="{DynamicResource Text.Faint}"
                                                    Visibility="Collapsed"/>
                                         <ScrollViewer MaxHeight="152" VerticalScrollBarVisibility="Auto">
@@ -2705,7 +2742,7 @@
                                                                        TextTrimming="CharacterEllipsis"/>
                                                             <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
                                                                     Content="–" Width="22" Height="22" Padding="0"
-                                                                    Tag="{Binding}" ToolTip="Удалить из списка"
+                                                                    Tag="{Binding}" ToolTip="{DynamicResource S.Data.AllowlistRemove}"
                                                                     Click="RemoveDomainButton_Click"/>
                                                         </Grid>
                                                     </DataTemplate>
@@ -2722,11 +2759,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Удалить все чаты"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}" Text="Удаляет все сохранённые переписки"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteChats}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.DeleteChatsDesc}"/>
                                     </StackPanel>
                                     <Button x:Name="DeleteAllChatsButton" Grid.Column="1" Style="{StaticResource DangerButton}"
-                                            Content="Удалить" Click="DeleteAllChatsButton_Click"/>
+                                            Content="{DynamicResource S.Common.Delete}" Click="DeleteAllChatsButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -2735,11 +2772,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="Удалить все данные"/>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteAll}"/>
                                         <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="Настройки, чаты, аккаунты — безвозвратно"/>
+                                           Text="{DynamicResource S.Data.DeleteAllDesc}"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="Удалить"/>
+                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="{DynamicResource S.Common.Delete}"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -2757,8 +2794,13 @@
                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
                     Padding="20,18">
                 <StackPanel>
-                    <TextBlock Text="Требуется подтверждение" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource S.Confirm.Title}" FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,12"/>
+                    <!-- Из какого чата пришёл вопрос: спрашивать могут сразу несколько, и
+                         «удалить папку X» без имени разговора — опасная неизвестность. -->
+                    <Button x:Name="ConfirmationChatButton" Style="{StaticResource InlineLinkButton}"
+                            HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
+                            Click="ConfirmationChatButton_Click"/>
                     <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Tertiary}" Margin="0,0,0,8" TextWrapping="Wrap"/>
                     <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
@@ -2766,10 +2808,10 @@
                     <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
                                TextWrapping="Wrap" Margin="0,0,0,16"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="ConfirmationNoButton" Content="Нет"
+                        <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
                                 Style="{StaticResource DialogSecondaryButton}"
                                 Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
-                        <Button x:Name="ConfirmationYesButton" Content="Да"
+                        <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Common.Yes}"
                                 Style="{StaticResource DialogPrimaryButton}"
                                 Click="ConfirmationYesButton_Click"/>
                     </StackPanel>
@@ -2788,9 +2830,9 @@
                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                     BorderThickness="1" CornerRadius="10" Padding="20,18">
                 <StackPanel>
-                    <TextBlock Text="Добавить домен в белый список" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource S.Domain.Title}" FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                    <TextBlock Text="Агенту будет разрешено скачивать файлы с этого домена и его поддоменов."
+                    <TextBlock Text="{DynamicResource S.Domain.Desc}"
                                FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
                                TextWrapping="Wrap" Margin="0,0,0,14"/>
                     <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
@@ -2805,10 +2847,10 @@
                     <TextBlock x:Name="DomainError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
                                TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                        <Button x:Name="DomainCancelButton" Content="Отмена"
+                        <Button x:Name="DomainCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                 Style="{StaticResource DialogSecondaryButton}"
                                 Margin="0,0,8,0" Click="DomainCancelButton_Click"/>
-                        <Button x:Name="DomainAddButton" Content="Добавить"
+                        <Button x:Name="DomainAddButton" Content="{DynamicResource S.Common.Add}"
                                 Style="{StaticResource DialogPrimaryButton}"
                                 Click="DomainAddButton_Click"/>
                     </StackPanel>
@@ -2827,7 +2869,7 @@
                         Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                         BorderThickness="1" CornerRadius="10" Padding="20,18">
                     <StackPanel>
-                        <TextBlock x:Name="UpdateConfirmTitle" Text="Обновить программу" FontSize="15"
+                        <TextBlock x:Name="UpdateConfirmTitle" Text="{DynamicResource S.Update.Title}" FontSize="15"
                                    FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
                                    Margin="0,0,0,6"/>
                         <TextBlock x:Name="UpdateConfirmText" FontSize="12.5"
@@ -2844,14 +2886,14 @@
                                            TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится."
+                        <TextBlock Text="{DynamicResource S.Update.Desc}"
                                    FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
                                    TextWrapping="Wrap" Margin="0,10,0,0"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button x:Name="UpdateConfirmCancelButton" Content="Отмена"
+                            <Button x:Name="UpdateConfirmCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="UpdateConfirmCancelButton_Click"/>
-                            <Button x:Name="UpdateConfirmApplyButton" Content="Обновить и перезапустить"
+                            <Button x:Name="UpdateConfirmApplyButton" Content="{DynamicResource S.Update.Confirm}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="UpdateConfirmApplyButton_Click"/>
                         </StackPanel>
@@ -2873,7 +2915,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                             <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0"
                                      Fill="{DynamicResource Status.Warning}"/>
-                            <TextBlock Text="Сайт не в белом списке" FontSize="15" FontWeight="SemiBold"
+                            <TextBlock Text="{DynamicResource S.Download.Title}" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource Text.Primary}"/>
                         </StackPanel>
                         <TextBlock x:Name="DownloadRequestText" FontSize="12.5"
@@ -2885,14 +2927,14 @@
                                        Foreground="{DynamicResource Text.Body}"
                                        TextTrimming="CharacterEllipsis"/>
                         </Border>
-                        <TextBlock Text="Разрешение сохранится в настройках и распространится на поддомены. Убрать его можно там же, в Data Controls."
+                        <TextBlock Text="{DynamicResource S.Download.Desc}"
                                    FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
                                    TextWrapping="Wrap" Margin="0,10,0,0"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button x:Name="DownloadRequestDenyButton" Content="Не разрешать"
+                            <Button x:Name="DownloadRequestDenyButton" Content="{DynamicResource S.Download.Refuse}"
                                     Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="DownloadRequestDenyButton_Click"/>
-                            <Button x:Name="DownloadRequestAllowButton" Content="Разрешить и продолжить"
+                            <Button x:Name="DownloadRequestAllowButton" Content="{DynamicResource S.Download.Allow}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="DownloadRequestAllowButton_Click"/>
                         </StackPanel>
@@ -2911,10 +2953,10 @@
                         Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                         BorderThickness="1" CornerRadius="10" Padding="20,18">
                     <StackPanel>
-                        <TextBlock x:Name="NameDialogTitle" Text="Имя пользователя" FontSize="15" FontWeight="SemiBold"
+                        <TextBlock x:Name="NameDialogTitle" Text="{DynamicResource S.Name.Title}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
                         <TextBlock x:Name="NameDialogSubtitle"
-                                   Text="Отображается в настройках. Хранится только на этом компьютере."
+                                   Text="{DynamicResource S.Name.Desc}"
                                    FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
                                    TextWrapping="Wrap" Margin="0,0,0,14"/>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
@@ -2928,9 +2970,9 @@
                         <TextBlock x:Name="NameError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
                                    TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="Отмена" Style="{StaticResource DialogSecondaryButton}"
+                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="NameCancelButton_Click"/>
-                            <Button x:Name="NameSaveButton" Content="Сохранить"
+                            <Button x:Name="NameSaveButton" Content="{DynamicResource S.Common.Save}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="NameSaveButton_Click"/>
                         </StackPanel>
@@ -2949,9 +2991,9 @@
                         Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                         BorderThickness="1" CornerRadius="10" Padding="20,18">
                     <StackPanel>
-                        <TextBlock Text="Профили" FontSize="15" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource S.Profiles.Title}" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                        <TextBlock Text="У каждого профиля свои чаты и настройки. Данные хранятся локально."
+                        <TextBlock Text="{DynamicResource S.Profiles.Desc}"
                                    FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
                                    TextWrapping="Wrap" Margin="0,0,0,14"/>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
@@ -2961,9 +3003,9 @@
                             </ScrollViewer>
                         </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="Новый профиль" Style="{StaticResource DialogSecondaryButton}"
+                            <Button Content="{DynamicResource S.Profiles.New}" Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="CreateProfileButton_Click"/>
-                            <Button Content="Закрыть" Style="{StaticResource DialogPrimaryButton}"
+                            <Button Content="{DynamicResource S.Common.Close}" Style="{StaticResource DialogPrimaryButton}"
                                     Click="ProfileCloseButton_Click"/>
                         </StackPanel>
                     </StackPanel>
@@ -3012,18 +3054,18 @@
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="ImageViewerPrevButton" Content="←" Width="32"
                             Style="{StaticResource DialogSecondaryButton}" Margin="0,0,4,0"
-                            ToolTip="Предыдущая" Click="ImageViewerPrevButton_Click"/>
+                            ToolTip="{DynamicResource S.Viewer.Previous}" Click="ImageViewerPrevButton_Click"/>
                     <TextBlock x:Name="ImageViewerCounter" VerticalAlignment="Center"
                                MinWidth="44" TextAlignment="Center" FontSize="12"
                                Foreground="{DynamicResource Text.Muted}"/>
                     <Button x:Name="ImageViewerNextButton" Content="→" Width="32"
                             Style="{StaticResource DialogSecondaryButton}" Margin="4,0,10,0"
-                            ToolTip="Следующая" Click="ImageViewerNextButton_Click"/>
-                    <Button Content="Сохранить" Style="{StaticResource DialogSecondaryButton}"
+                            ToolTip="{DynamicResource S.Viewer.Next}" Click="ImageViewerNextButton_Click"/>
+                    <Button Content="{DynamicResource S.Common.Save}" Style="{StaticResource DialogSecondaryButton}"
                             Margin="0,0,4,0" Click="ImageViewerSaveButton_Click"/>
-                    <Button Content="Копировать" Style="{StaticResource DialogSecondaryButton}"
+                    <Button Content="{DynamicResource S.Common.Copy}" Style="{StaticResource DialogSecondaryButton}"
                             Margin="0,0,4,0" Click="ImageViewerCopyButton_Click"/>
-                    <Button Content="Закрыть" Style="{StaticResource DialogPrimaryButton}"
+                    <Button Content="{DynamicResource S.Common.Close}" Style="{StaticResource DialogPrimaryButton}"
                             Click="ImageViewerCloseButton_Click"/>
                 </StackPanel>
             </Border>

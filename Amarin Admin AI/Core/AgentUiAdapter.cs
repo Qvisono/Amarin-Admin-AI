@@ -8,17 +8,20 @@ internal sealed class AgentUiAdapter : IAgentUi
     private readonly ConfirmationQueue _confirmations;
     private readonly Action _changed;
     private readonly string _agentLabel;
+    private readonly string? _sessionId;
 
     public AgentUiAdapter(
         AgentRunRecord record,
         ConfirmationQueue confirmations,
         Action changed,
-        string agentLabel)
+        string agentLabel,
+        string? sessionId = null)
     {
         _record = record;
         _confirmations = confirmations;
         _changed = changed;
         _agentLabel = agentLabel;
+        _sessionId = sessionId;
     }
 
     public void Warn(string message) => AppendInfo(message);
@@ -107,7 +110,7 @@ internal sealed class AgentUiAdapter : IAgentUi
     public Task<bool> ConfirmDangerousActionAsync(
         DangerousActionInfo info,
         CancellationToken cancellationToken = default) =>
-        _confirmations.ConfirmAsync(_agentLabel, info, cancellationToken);
+        _confirmations.ConfirmAsync(_agentLabel, info, _sessionId, cancellationToken);
 
     private void AppendInfo(string message)
     {

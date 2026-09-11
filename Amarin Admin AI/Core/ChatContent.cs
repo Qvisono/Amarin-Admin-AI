@@ -11,17 +11,51 @@ internal static class ChatContent
     public static JsonElement Vision(string prompt, string base64, string mimeType = "image/png") =>
         VisionMultiple(prompt, [new Tools.ImageAttachment(base64, mimeType)]);
 
-    public static JsonElement VisionMultiple(string prompt, IReadOnlyList<Tools.ImageAttachment> images)
+    public static JsonElement VisionMultiple(string prompt, IReadOnlyList<Tools.ImageAttachment> images) =>
+        Multipart(prompt, images, files: null);
+
+    /// <summary>
+    /// Сообщение из нескольких частей: текст, картинки и документы.
+    /// </summary>
+    /// <remarks>
+    /// Формат OpenAI-совместимый. Текстовая часть обязана идти первой — без неё часть моделей
+    /// спотыкается на массиве содержимого. Документы уходят частью <c>file</c>: Venice сам
+    /// извлекает из них текст (PDF, DOCX, XLSX, исходники), поэтому разбирать их в программе
+    /// не нужно, а <c>filename</c> модель видит и на него ссылается в ответе.
+    /// </remarks>
+    public static JsonElement Multipart(
+        string prompt,
+        IReadOnlyList<Tools.ImageAttachment>? images,
+        IReadOnlyList<Tools.FileAttachment>? files)
     {
         var parts = new List<object> { new { type = "text", text = prompt } };
 
-        foreach (var image in images)
+        if (images is not null)
         {
-            parts.Add(new
+            foreach (var image in images)
             {
-                type = "image_url",
-                image_url = new { url = $"data:{image.MimeType};base64,{image.Base64}" }
-            });
+                parts.Add(new
+                {
+                    type = "image_url",
+                    image_url = new { url = $"data:{image.MimeType};base64,{image.Base64}" }
+                });
+            }
+        }
+
+        if (files is not null)
+        {
+            foreach (var file in files)
+            {
+                parts.Add(new
+                {
+                    type = "file",
+                    file = new
+                    {
+                        file_data = $"data:{file.MimeType};base64,{file.Base64}",
+                        filename = file.FileName
+                    }
+                });
+            }
         }
 
         return JsonSerializer.SerializeToElement(parts);
