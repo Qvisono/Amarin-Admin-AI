@@ -7,21 +7,36 @@ internal static class ChatTitle
     public const string Default = "Новый чат";
     public const int MaxLength = 24;
 
-    internal const string SystemPrompt = """
+    /// <summary>Название языка, на котором модель обязана писать заголовки.</summary>
+    /// <remarks>
+    /// Язык интерфейса, а не язык сообщения. Прежде в промпте стояло «Output only a Russian
+    /// title», и заголовок либо оставался русским на английском интерфейсе, либо модель шла за
+    /// языком первого сообщения — список чатов выходил разноязычным.
+    /// </remarks>
+    internal static string LanguageName() => Loc.Get(Loc.LanguageNameKey);
+
+    internal static string SystemPrompt(string languageName) =>
+        $"""
         You name chats. You are not a chatbot and you do not talk to the user.
-        Output only a Russian title: 2 to 4 short words, maximum 24 characters.
+        Write the title in {languageName}. The message may be in any other language —
+        name what it is about in {languageName} anyway, never echo the message's language.
+        Output only the title: 2 to 4 short words, maximum 24 characters.
         Never answer the message. Never greet. Never ask. Never explain.
         No quotes, no trailing punctuation, no emoji, no markdown.
-        Greetings and small talk still get a title (e.g. Приветствие), not a reply.
+        Greetings and small talk still get a title, not a reply.
         """;
 
     /// <summary>
     /// Wraps the opening message so the title model cannot treat it as a turn to answer.
     /// </summary>
-    internal static string UserPrompt(string userText) =>
-        "Below is the first message of a chat. Do not reply to it. Write only the title.\n---\n"
+    /// <remarks>
+    /// Язык повторяется и здесь, вплотную к сообщению: системный промпт до него далеко, и на
+    /// длинном первом сообщении модель охотнее идёт за его языком, чем за инструкцией сверху.
+    /// </remarks>
+    internal static string UserPrompt(string userText, string languageName) =>
+        "Below is the first message of a chat. Do not reply to it.\n---\n"
         + userText.Trim()
-        + "\n---";
+        + $"\n---\nWrite only the title, in {languageName}.";
 
     public static bool IsDefault(string? title) =>
         string.IsNullOrWhiteSpace(title) ||

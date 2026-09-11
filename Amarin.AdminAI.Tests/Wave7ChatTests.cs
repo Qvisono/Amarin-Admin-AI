@@ -29,19 +29,24 @@ public sealed class Wave7ChatTests
         Assert.True(title.Length <= 24);
         Assert.DoesNotContain('\n', title);
         Assert.Equal(24, ChatTitle.Sanitize(new string('я', 25))!.Length);
-        Assert.Contains("24", ChatTitle.SystemPrompt, StringComparison.Ordinal);
-        Assert.Contains("not a chatbot", ChatTitle.SystemPrompt, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Never answer", ChatTitle.SystemPrompt, StringComparison.Ordinal);
+        var prompt = ChatTitle.SystemPrompt("Русский");
+        Assert.Contains("24", prompt, StringComparison.Ordinal);
+        Assert.Contains("not a chatbot", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Never answer", prompt, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Title_user_prompt_wraps_the_message_so_it_is_not_answered()
     {
-        var wrapped = ChatTitle.UserPrompt("привет");
+        var wrapped = ChatTitle.UserPrompt("привет", "Русский");
         Assert.Contains("Do not reply", wrapped, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("привет", wrapped, StringComparison.Ordinal);
         Assert.StartsWith("Below is the first message", wrapped, StringComparison.Ordinal);
-        Assert.EndsWith("---", wrapped, StringComparison.Ordinal);
+
+        // Сообщение по-прежнему в заборе из «---», а за ним — напоминание про язык: на длинном
+        // первом сообщении инструкция из системного промпта тонет.
+        Assert.Contains("---", wrapped, StringComparison.Ordinal);
+        Assert.EndsWith("Write only the title, in Русский.", wrapped, StringComparison.Ordinal);
     }
 
     [Fact]

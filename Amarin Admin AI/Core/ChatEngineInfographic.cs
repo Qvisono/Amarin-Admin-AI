@@ -57,8 +57,10 @@ internal sealed partial class ChatEngine
         observer.OnUserAppended(user);
 
         // Свой контекст, как у обычного хода: инфографика тоже тратит деньги, а брифовый запрос
-        // прежде уходил на модель, которую оставил в клиенте предыдущий ход чата.
-        var briefModel = ReadSelectedModel(session);
+        // прежде уходил на модель, которую оставил в клиенте предыдущий ход чата. «Авто» тут
+        // разворачивается в настоящую модель: в отличие от обычного хода маршрутизатора здесь
+        // нет, и «auto» уходила в запрос как есть — Venice отвечала на неё 404.
+        var briefModel = ResolveForSingleShot(ReadSelectedModel(session));
         var turn = new VeniceTurnContext
         {
             RequestedModelId = briefModel,

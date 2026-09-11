@@ -278,6 +278,7 @@
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Остановить</system:String>
     <system:String x:Key="S.Message.Thought" xml:space="preserve">думал {0}</system:String>
 
+    <system:String x:Key="S.Message.Working" xml:space="preserve">Размышляю {0}</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">Маршрутизатор сам выберет модель</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>

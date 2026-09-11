@@ -32,7 +32,11 @@ public sealed class Wave2ChatTests
     {
         Assert.Equal("4s", ChatFormat.Duration(TimeSpan.FromSeconds(4)));
         Assert.Equal("3m4s", ChatFormat.Duration(TimeSpan.FromSeconds(184)));
-        Assert.Equal("Working 3s", ChatFormat.Working(TimeSpan.FromSeconds(3.2)));
+        // Подпись переводится, а тест живёт вне WPF-коллекции и языком не управляет —
+        // поэтому здесь проверяется только число: 3,2 секунды это «3», а не «4».
+        var working = ChatFormat.Working(TimeSpan.FromSeconds(3.2));
+        Assert.Contains("3", working, StringComparison.Ordinal);
+        Assert.DoesNotContain("4", working, StringComparison.Ordinal);
         Assert.Equal("$0,0236", ChatFormat.Cost(new VeniceCost { Usd = 0.0236m, HasData = true }));
         Assert.Equal("", ChatFormat.Cost(VeniceCost.Zero));
         Assert.Equal("07:01", ChatFormat.Clock(new DateTime(2026, 8, 30, 7, 1, 0)));

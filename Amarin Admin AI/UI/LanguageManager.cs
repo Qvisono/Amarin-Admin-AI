@@ -209,7 +209,7 @@ internal static class UserLanguageStore
     public static string? NameOf(string code) => Read(code)?.GetValueOrDefault(NameKey);
 
     /// <summary>Служебный ключ: не подпись интерфейса, а имя самого языка для списка.</summary>
-    public const string NameKey = "S.Language.NativeName";
+    public const string NameKey = Loc.LanguageNameKey;
 
     public static ResourceDictionary? TryLoad(string code)
     {

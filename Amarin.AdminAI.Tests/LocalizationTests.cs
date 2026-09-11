@@ -185,6 +185,74 @@ public sealed class LocalizationTests
     }
 
     [Fact]
+    public void The_working_counter_is_translated()
+    {
+        // Счётчик над ответом собирался литералом «Working {n}s» прямо в ChatFormat, поэтому
+        // на любом языке оставался английским — по-русски он должен говорить «Размышляю».
+        var russian = Load("ru");
+        var english = Load("en");
+
+        Assert.Equal("Размышляю {0}", russian["S.Message.Working"]);
+        Assert.Equal("Working {0}", english["S.Message.Working"]);
+
+        // Буква «s» подставляется кодом вместе с числом и в словарь не попадает: иначе перевод
+        // на новый язык тронул бы её — модель переводит значения как текст — и оторвал бы
+        // пробелом от числа.
+        Assert.EndsWith("{0}", russian["S.Message.Working"], StringComparison.Ordinal);
+        Assert.EndsWith("{0}", english["S.Message.Working"], StringComparison.Ordinal);
+
+        // Язык фикстура держит русским, поэтому подпись обязана прийти из словаря, а не из
+        // литерала. Язык здесь намеренно не переключается: Loc общий на процесс, а соседние
+        // тесты вне WPF-коллекции идут параллельно и читают из него свои подписи.
+        Assert.Equal("Размышляю 3s", ChatFormat.Working(TimeSpan.FromSeconds(3.2)));
+    }
+
+    [Fact]
+    public void The_completion_toast_says_the_same_thing_as_the_chat()
+    {
+        // В карточке уведомления длительность писалась русскими «с» и «мин» литералами: на
+        // другом языке они оставались русскими, а об одном и том же ходе карточка и шапка
+        // ответа говорили по-разному — «4,2 с» против «4s».
+        Assert.Equal("4s", ChatFormat.Duration(TimeSpan.FromSeconds(4.2)));
+        Assert.EndsWith("4s", MainWindow.BuildToastMeta("grok-4-6", TimeSpan.FromSeconds(4.2)),
+            StringComparison.Ordinal);
+        Assert.EndsWith("1m5s", MainWindow.BuildToastMeta("grok-4-6", TimeSpan.FromSeconds(65)),
+            StringComparison.Ordinal);
+
+        // Ход без длительности — только имя модели, без висящего в воздухе разделителя.
+        Assert.DoesNotContain("·", MainWindow.BuildToastMeta("grok-4-6", TimeSpan.Zero),
+            StringComparison.Ordinal);
+
+        // Пустой ответ подписывался литералом, хотя ключ для него давно есть.
+        Assert.Equal(Loc.Get("S.Message.NoText"), MainWindow.FirstLine("   "));
+        Assert.Equal("Ответ без текста", MainWindow.FirstLine(null));
+    }
+
+    [Fact]
+    public void Chat_titles_are_asked_for_in_the_interface_language()
+    {
+        // В промпте стояло «Output only a Russian title»: на английском интерфейсе заголовок
+        // оставался русским, а на длинном первом сообщении модель шла за его языком, и список
+        // чатов выходил разноязычным.
+        var japanese = ChatTitle.SystemPrompt("日本語");
+
+        Assert.Contains("日本語", japanese, StringComparison.Ordinal);
+        Assert.DoesNotContain("Russian", japanese, StringComparison.Ordinal);
+
+        // Язык повторяется вплотную к сообщению: инструкция сверху тонет в длинном тексте.
+        Assert.Contains("日本語", ChatTitle.UserPrompt("Привет", "日本語"), StringComparison.Ordinal);
+
+        // Имя языка приходит из того же словаря, что и весь интерфейс, — значит переведённый
+        // моделью язык приносит его с собой и отдельной настройки не требует.
+        Assert.Equal(Loc.LanguageNameKey, UserLanguageStore.NameKey);
+        Assert.Equal("Русский", Load("ru")[Loc.LanguageNameKey]);
+        Assert.Equal("English", Load("en")[Loc.LanguageNameKey]);
+
+        // Язык фикстура держит русским, поэтому и просить модель обязаны по-русски.
+        Assert.Equal("Русский", ChatTitle.LanguageName());
+    }
+
+    [Fact]
     public void An_unknown_language_quietly_falls_back_to_russian()
     {
         Assert.Equal("ru", LanguageManager.Normalize("klingon"));

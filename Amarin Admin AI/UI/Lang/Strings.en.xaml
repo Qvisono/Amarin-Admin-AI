@@ -278,6 +278,7 @@
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Stop</system:String>
     <system:String x:Key="S.Message.Thought" xml:space="preserve">thought for {0}</system:String>
 
+    <system:String x:Key="S.Message.Working" xml:space="preserve">Working {0}</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">The router will pick a model</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>

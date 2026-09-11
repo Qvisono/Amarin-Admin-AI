@@ -23,6 +23,7 @@ internal sealed class ChatTitleGenerator
 
         var settings = _settings();
         var model = ChatTitle.ResolveModel(settings, _options.Model);
+        var language = ChatTitle.LanguageName();
         var options = new AgentOptions
         {
             ApiKey = _options.ApiKey,
@@ -39,8 +40,8 @@ internal sealed class ChatTitleGenerator
             var response = await venice.CreateChatCompletionAsync(
                     model,
                     [
-                        new ChatMessage { Role = "system", Content = ChatContent.Text(ChatTitle.SystemPrompt) },
-                        new ChatMessage { Role = "user", Content = ChatContent.Text(ChatTitle.UserPrompt(text)) }
+                        new ChatMessage { Role = "system", Content = ChatContent.Text(ChatTitle.SystemPrompt(language)) },
+                        new ChatMessage { Role = "user", Content = ChatContent.Text(ChatTitle.UserPrompt(text, language)) }
                     ],
                     tools: null,
                     toolChoice: null,

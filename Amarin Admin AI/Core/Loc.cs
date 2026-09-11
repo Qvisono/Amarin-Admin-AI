@@ -12,6 +12,13 @@ namespace Amarin.Core;
 /// </remarks>
 internal static class Loc
 {
+    /// <summary>Название текущего языка на нём самом: «Русский», «English», «日本語».</summary>
+    /// <remarks>
+    /// Не для показа, а для подстановки в промпты: модель должна знать, на каком языке писать.
+    /// Перевод на новый язык кладёт сюда имя, которое человек назвал в диалоге.
+    /// </remarks>
+    public const string LanguageNameKey = "S.Language.NativeName";
+
     private static readonly Lock Gate = new();
 
     // Русский как запас: без интерфейса — в тестах, в консольном прогоне — словарь языка никто

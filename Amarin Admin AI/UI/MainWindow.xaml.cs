@@ -493,7 +493,7 @@ namespace Amarin.UI
             ScrollToMessage(messageId);
         }
 
-        private static string FirstLine(string? text)
+        internal static string FirstLine(string? text)
         {
             var line = (text ?? "")
                 .Replace("\r\n", "\n", StringComparison.Ordinal)
@@ -501,13 +501,20 @@ namespace Amarin.UI
                 .FirstOrDefault(l => !string.IsNullOrWhiteSpace(l));
             if (string.IsNullOrWhiteSpace(line))
             {
-                return "Ответ без текста";
+                return Loc.Get("S.Message.NoText");
             }
 
             return line.Length <= 160 ? line : line[..160] + "…";
         }
 
-        private static string BuildToastMeta(string modelId, TimeSpan duration)
+        /// <summary>Подпись под текстом в карточке уведомления: модель и сколько шёл ответ.</summary>
+        /// <remarks>
+        /// Длительность берётся тем же <see cref="ChatFormat.Duration"/>, что и шапка ответа:
+        /// «4s», «1m5s». Прежде здесь стояли русские «с» и «мин» литералами — на другом языке
+        /// они такими и оставались, да и об одном и том же ходе карточка и чат говорили
+        /// по-разному. Единицы намеренно не переводятся и от числа не отрываются.
+        /// </remarks>
+        internal static string BuildToastMeta(string modelId, TimeSpan duration)
         {
             var name = VeniceModelCatalog.GetDisplayName(modelId);
             if (duration <= TimeSpan.Zero)
@@ -515,9 +522,7 @@ namespace Amarin.UI
                 return name;
             }
 
-            var elapsed = duration.TotalSeconds < 60
-                ? $"{duration.TotalSeconds:0.#} с"
-                : $"{(int)duration.TotalMinutes} мин {duration.Seconds} с";
+            var elapsed = ChatFormat.Duration(duration);
             return string.IsNullOrWhiteSpace(name) ? elapsed : $"{name} · {elapsed}";
         }
 

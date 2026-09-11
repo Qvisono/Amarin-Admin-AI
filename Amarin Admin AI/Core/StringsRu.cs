@@ -259,6 +259,7 @@ internal static class StringsRu
             ["S.Message.Share"] = "Поделиться диалогом до этого ответа",
             ["S.Message.Stop"] = "Остановить",
             ["S.Message.Thought"] = "думал {0}",
+            ["S.Message.Working"] = "Размышляю {0}",
             ["S.Models.Auto"] = "Авто",
             ["S.Models.AutoTip"] = "Маршрутизатор сам выберет модель",
             ["S.Models.Empty"] = "Нет доступных моделей",

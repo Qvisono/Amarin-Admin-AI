@@ -1523,10 +1523,22 @@ internal sealed partial class ChatEngine
         return _options.Model;
     }
 
+    /// <summary>Дешёвая модель: и запас маршрутизатора, и выбор для служебных запросов.</summary>
+    private string LiteModelId() =>
+        FirstNonEmpty(_settings().LiteModelId, _options.Model, "openai-gpt-56-luna");
+
+    /// <summary>
+    /// Модель для одиночного служебного запроса. «Авто» здесь нельзя: это не модель, а просьба
+    /// выбрать её, и Venice отвечает на неё 404. Гонять ради одного запроса маршрутизатор
+    /// незачем — берём ту же дешёвую модель, на которую он и сам сваливается при отказе.
+    /// </summary>
+    private string ResolveForSingleShot(string modelId) =>
+        VeniceModelCatalog.IsAuto(modelId) ? LiteModelId() : modelId;
+
     private async Task<string> RouteAsync(string userText, CancellationToken cancellationToken)
     {
         var settings = _settings();
-        var liteId = FirstNonEmpty(settings.LiteModelId, _options.Model, "openai-gpt-56-luna");
+        var liteId = LiteModelId();
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var routerId = FirstNonEmpty(settings.RouterModelId, liteId);
 
