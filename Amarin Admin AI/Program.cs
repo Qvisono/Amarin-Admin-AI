@@ -159,7 +159,10 @@ internal static class Program
         AppSettings ReadSettings() => services?.SettingsStore.Load() ?? settingsStore.Load();
 
         var confirmations = new ConfirmationQueue(ReadSettings);
-        var agentHost = new AgentHost(options, downloadHttp, ReadSettings, confirmations);
+        // Общий на программу: реестр нужен и хосту (записаться), и движку чата (остановить или
+        // пересадить того, кто уже работает).
+        var runningAgents = new AgentRegistry();
+        var agentHost = new AgentHost(options, downloadHttp, ReadSettings, confirmations, runningAgents);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
@@ -173,7 +176,7 @@ internal static class Program
             new YouTubeTranscriptTool(),
             new InitAgentTool(new AgentSlotLimiter(), agentHost)
         ]);
-        var engine = new ChatEngine(venice, options, ReadSettings, chatTools);
+        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents);
         var titles = new ChatTitleGenerator(http, options, ReadSettings);
 
         services = new AppServices

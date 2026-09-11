@@ -51,12 +51,46 @@ internal sealed class AgentUiAdapter : IAgentUi
         AppendInfo(message);
     }
 
+    public void UserNote(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        var round = CurrentRound();
+        if (round is null)
+        {
+            round = new ToolRound();
+            _record.ToolRounds.Add(round);
+        }
+
+        round.FollowUpNote = Loc.Get("S.Tools.AgentHeard") + " " + text.Trim();
+        Notify();
+    }
+
     public void AssistantMessage(string text)
     {
-        if (!string.IsNullOrWhiteSpace(text))
+        if (string.IsNullOrWhiteSpace(text))
         {
-            _record.ReportText = text;
+            return;
         }
+
+        // ReportText stays: it is the agent's final answer, handed back to the caller as the
+        // tool result, and a test pins its round trip. But it is overwritten by every later
+        // round and never drawn, so the same text is also pinned to the round it belongs to -
+        // that is the copy the expander shows.
+        _record.ReportText = text;
+
+        var round = CurrentRound();
+        if (round is null || RoundIsSettled(round))
+        {
+            round = new ToolRound();
+            _record.ToolRounds.Add(round);
+        }
+
+        round.ModelNote = ThinkingNote.Shorten(text);
+        Notify();
     }
 
     public void ToolCall(string name, string argumentsJson)
@@ -73,7 +107,8 @@ internal sealed class AgentUiAdapter : IAgentUi
             Id = Guid.NewGuid().ToString("N"),
             Name = name,
             ArgumentsJson = argumentsJson,
-            Status = ToolCallStatus.Running
+            Status = ToolCallStatus.Running,
+            StartedAt = DateTime.Now
         });
         Notify();
     }
@@ -95,6 +130,15 @@ internal sealed class AgentUiAdapter : IAgentUi
         call.Success = result.Success;
         call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
         call.ResultPreview = ChatToolPreview.Summarize(result);
+        call.ResultText = ChatToolPreview.ForJournal(result);
+
+        // Measured from the record, not a stopwatch: the agent reports the result on whichever
+        // thread finished it, and there is no scope here that outlives the call.
+        if (call.StartedAt != default)
+        {
+            call.Duration = DateTime.Now - call.StartedAt;
+        }
+
         Notify();
     }
 

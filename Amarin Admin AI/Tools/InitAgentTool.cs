@@ -22,8 +22,9 @@ public sealed class InitAgentTool : ITool
         "Start a sysadmin agent on this PC. Invoke this as a tool call, never as chat text. " +
         "Arguments: one JSON object with exactly two keys, prompt and complexity. " +
         "No extra keys, no markdown, no text after the closing brace. " +
-        "complexity is exactly \"lite\" or \"heavy\" — never a model name. " +
-        "lite = one status check or listing. heavy = install, repair, diagnosis, many steps. Unsure: lite. " +
+        "complexity is exactly \"fast\", \"lite\" or \"heavy\" — never a model name. " +
+        "fast = trivial work, or the user asked to hurry. lite = one status check or listing. " +
+        "heavy = install, repair, diagnosis, many steps. Unsure: lite. " +
         "prompt restates the user's actual request in the user's language (goal, paths, what to change). " +
         "The agent does not see the chat. At most 4 agents at once.";
 
@@ -37,8 +38,8 @@ public sealed class InitAgentTool : ITool
             },
             "complexity": {
               "type": "string",
-              "enum": ["lite", "heavy"],
-              "description": "Exactly lite or heavy. lite = one check/listing. heavy = install, repair, many steps. Unsure: lite. Not a model id."
+              "enum": ["fast", "lite", "heavy"],
+              "description": "Exactly fast, lite or heavy. fast = trivial, or the user asked to hurry. lite = one check/listing. heavy = install, repair, many steps. Unsure: lite. Not a model id."
             }
           },
           "required": ["prompt", "complexity"]
@@ -57,9 +58,9 @@ public sealed class InitAgentTool : ITool
             ? complexityProp.GetString()?.Trim().ToLowerInvariant()
             : null;
 
-        if (complexity is not "lite" and not "heavy")
+        if (complexity is not "fast" and not "lite" and not "heavy")
         {
-            return ToolResult.Fail("complexity must be exactly \"lite\" or \"heavy\".");
+            return ToolResult.Fail("complexity must be exactly \"fast\", \"lite\" or \"heavy\".");
         }
 
         if (!_limiter.TryEnter())

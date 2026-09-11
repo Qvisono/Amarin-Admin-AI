@@ -185,6 +185,16 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
     public SessionMode SessionMode { get; set; } = SessionMode.Continuous;
 
+    /// <summary>
+    /// Что человек дописал в чат уже после того, как агента запустили. Возвращает всё
+    /// накопленное и очищает очередь; null — агент работает без связи с чатом, как в тестах.
+    /// </summary>
+    /// <remarks>
+    /// Уточнение доходит до агента, пока оно ещё что-то меняет. Иначе агент час копает не тот
+    /// диск, а «не тот, D!» ждёт конца его работы — то есть ровно того, что просили не делать.
+    /// </remarks>
+    internal Func<IReadOnlyList<string>>? TakeNotes { get; set; }
+
     public Agent(
         VeniceClient client,
         ToolRegistry tools,
@@ -334,6 +344,7 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
             toolsUsed = true;
 
             await ExecuteToolCallsAsync(assistantMessage.ToolCalls, messages, cancellationToken);
+            FoldNotes(messages);
 
             if (round < _options.MaxToolRounds)
             {
@@ -372,6 +383,29 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         CompleteRequest();
         SaveSessionHistory(messages);
         return OkResult(finalAssistantText);
+    }
+
+    /// <summary>
+    /// Кладёт дописанное человеком в разговор агента.
+    /// </summary>
+    /// <remarks>
+    /// Только здесь: ответы инструментов уже в списке и идут сплошным блоком за сообщением
+    /// ассистента с tool_calls, как того требует API. Вклиниться раньше — значит разорвать эту
+    /// пару, и запрос будет отвергнут целиком.
+    /// </remarks>
+    private void FoldNotes(List<ChatMessage> messages)
+    {
+        foreach (var note in TakeNotes?.Invoke() ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(note))
+            {
+                continue;
+            }
+
+            var text = note.Trim();
+            messages.Add(new ChatMessage { Role = "user", Content = ChatContent.Text(text) });
+            _ui.UserNote(text);
+        }
     }
 
     private AgentRunResult OkResult(string? text) => new()

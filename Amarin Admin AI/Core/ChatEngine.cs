@@ -78,6 +78,311 @@ internal sealed partial class ChatEngine
         Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
         No markdown fences, no comments, no second object, no trailing text.
         Escape " and \\ inside prompt. Do not cut the prompt with "...".
+        complexity is exactly "fast", "lite" or "heavy". Never pass a model id.
+        fast = trivial and self-contained, or the user asked to hurry ("быстро",
+        "по-быстрому", "срочно", "не тяни"). Hurry is a tier, not a word: pass complexity
+        "fast" instead of writing "СРОЧНО" into the prompt. The agent reads that prompt, and
+        shouting in it changes nothing while the slow model stays just as slow.
+        lite = one check/listing. heavy = install, repair, diagnosis, many steps.
+        Unsure -> lite. Speed is not worth a wrong answer: when the task touches the system,
+        pick the tier the work needs, not the one that finishes first.
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool, write one short line of your own: what you are about to
+        do and what you are after. Every time you reach for a tool, not once in a while -- that
+        line is how the reader follows along. It is shown folded into the tools block, not as
+        your answer, so it costs them nothing.
+        One or two sentences, your normal voice, present tense. The goal ("хочу понять, кто
+        держит порт"), the surprise ("странно, службы вообще нет") or the next move --
+        whichever is true right now.
+        Never a summary of what already happened: the results are printed right under the line,
+        and a recap there reads like a report nobody asked for. No lists, no headings, no plan
+        for the whole task. Skip the line entirely when there is genuinely nothing to say --
+        "сейчас вызову инструмент" is not worth writing.
+
+        A LINE TYPED WHILE YOU WORK
+        The person can write while you are still working. It reaches you as an ordinary user
+        message between rounds of tools, after whatever was already in flight.
+        Say in your next short line that you saw it ("вижу, дописали про диск D") and work
+        to it from there on. Never ignore it, and never answer it as if it had been there all
+        along.
+        While an agent is running, that line is also read for it: a correction or a new
+        condition ("диск D, а не C", "только не трогай загрузки") is handed to the agent
+        itself and reaches it at its next step, without losing what it has already found.
+        A request to stop or to hurry stops that agent or moves it to the fast model. The
+        tool result says which of these happened.
+        So do not re-launch the same agent to "pass it on", and do not answer as if the agent
+        were still doing the old thing. Say in one sentence what actually happened to it.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
+    /// <summary>Tech prompt before the follow-up rules; migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV14 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
+        No markdown fences, no comments, no second object, no trailing text.
+        Escape " and \\ inside prompt. Do not cut the prompt with "...".
+        complexity is exactly "fast", "lite" or "heavy". Never pass a model id.
+        fast = trivial and self-contained, or the user asked to hurry ("быстро", "по-быстрому").
+        lite = one check/listing. heavy = install, repair, diagnosis, many steps.
+        Unsure -> lite. Speed is not worth a wrong answer: when the task touches the system,
+        pick the tier the work needs, not the one that finishes first.
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool you may write one short line of your own -- what you are
+        about to look at, or what just struck you as odd. It is shown folded into the tools block,
+        not as your answer, so it costs the reader nothing.
+        One sentence, your normal voice, and only when it actually says something. Skip the line
+        entirely when there is nothing to say -- "сейчас вызову инструмент" is not worth writing.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
+    /// <summary>Tech prompt before the fast agent tier; migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV13 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
+        No markdown fences, no comments, no second object, no trailing text.
+        Escape " and \\ inside prompt. Do not cut the prompt with "...".
+        complexity is exactly "lite" or "heavy". lite = one check/listing. heavy =
+        install, repair, diagnosis, many steps. Unsure -> lite. Never pass a model id.
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool you may write one short line of your own -- what you are
+        about to look at, or what just struck you as odd. It is shown folded into the tools block,
+        not as your answer, so it costs the reader nothing.
+        One sentence, your normal voice, and only when it actually says something. Skip the line
+        entirely when there is nothing to say -- "сейчас вызову инструмент" is not worth writing.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
+    /// <summary>Tech prompt before the "one remark while tools run" rule; migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV12 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
+        No markdown fences, no comments, no second object, no trailing text.
+        Escape " and \\ inside prompt. Do not cut the prompt with "...".
         complexity is exactly "lite" or "heavy". lite = one check/listing. heavy =
         install, repair, diagnosis, many steps. Unsure -> lite. Never pass a model id.
         prompt: one short complete string in the user's language. Restate the user's actual request:
@@ -617,18 +922,25 @@ internal sealed partial class ChatEngine
     private readonly Func<AppSettings> _settings;
     private readonly ToolRegistry _tools;
     private readonly List<ToolDefinition> _toolDefinitions;
+    private readonly AgentRegistry? _agents;
 
+    /// <param name="agents">
+    /// Агенты, работающие прямо сейчас. Нужны, чтобы дописанное во время работы сообщение могло
+    /// их остановить или пересадить на другую модель. Null — сообщение просто ждёт границы раунда.
+    /// </param>
     public ChatEngine(
         VeniceClient venice,
         AgentOptions options,
         Func<AppSettings> settings,
-        ToolRegistry tools)
+        ToolRegistry tools,
+        AgentRegistry? agents = null)
     {
         _venice = venice;
         _options = options;
         _settings = settings;
         _tools = tools;
         _toolDefinitions = tools.GetDefinitions();
+        _agents = agents;
     }
 
     public async Task RunTurnAsync(
@@ -935,8 +1247,35 @@ internal sealed partial class ChatEngine
                 turn.Reasoning = ResolveAutoReasoning(chosen);
             }
 
-            await RunToolLoopAsync(session, assistant, observer, clock, turn, cancellationToken)
-                .ConfigureAwait(false);
+            while (true)
+            {
+                var folded = await RunToolLoopAsync(
+                        session, assistant, observer, clock, turn, cancellationToken)
+                    .ConfigureAwait(false);
+
+                // Typed while the answer itself was streaming: the loop above had already passed
+                // its last round boundary, so the follow-up gets an answer of its own rather than
+                // waiting for the person to notice nothing happened and send it again.
+                if (!folded && !DrainQueued(session, observer, messages: null))
+                {
+                    break;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                clock.Restart();
+                assistant = new ChatDisplayMessage
+                {
+                    Role = "assistant",
+                    Id = Guid.NewGuid().ToString("N"),
+                    CreatedAt = DateTime.Now,
+                    RequestedModelId = requested,
+                    ResolvedModelId = turn.ModelId,
+                    Status = AssistantStatus.Streaming,
+                    Text = ""
+                };
+                session.Messages.Add(assistant);
+                observer.OnAssistantStarted(assistant);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -967,7 +1306,59 @@ internal sealed partial class ChatEngine
         }
     }
 
-    private async Task RunToolLoopAsync(
+    /// <summary>
+    /// Folds whatever the user typed mid-turn into the context the next request will carry.
+    /// </summary>
+    /// <remarks>
+    /// The display side of these messages already belongs to the window: it built them, put them
+    /// in the transcript and drew them the moment they were typed. Only the API copy is made here,
+    /// which is why nothing calls <c>OnUserAppended</c> — that would draw them a second time.
+    /// </remarks>
+    /// <param name="taken">
+    /// Lines the round's watcher has already pulled off the queue — pulled early so that a
+    /// request to stop an agent could still be acted on. They enter the context here, ahead of
+    /// anything typed since, because that is the order they were written in.
+    /// </param>
+    private static bool DrainQueued(
+        ChatSession session,
+        IChatTurnObserver observer,
+        List<ChatMessage>? messages,
+        IReadOnlyList<string>? taken = null)
+    {
+        var folded = false;
+        foreach (var early in taken ?? [])
+        {
+            Fold(early);
+        }
+
+        while (observer.TryTakeQueuedMessage(out var text))
+        {
+            Fold(text);
+        }
+
+        return folded;
+
+        void Fold(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            var message = new ChatMessage { Role = "user", Content = ChatContent.Text(text.Trim()) };
+            messages?.Add(ChatMessageCloner.CloneForStorage(message));
+            session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(message));
+            session.UpdatedAt = DateTime.Now;
+            folded = true;
+        }
+    }
+
+    /// <returns>
+    /// True when the loop stopped early because a follow-up was folded in: the caller closes this
+    /// answer and opens the next one, so the person's line is not buried under a reply that goes
+    /// on growing above it.
+    /// </returns>
+    private async Task<bool> RunToolLoopAsync(
         ChatSession session,
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
@@ -996,7 +1387,7 @@ internal sealed partial class ChatEngine
             {
                 FinishAssistant(session, assistant, clock, streamed, turn);
                 observer.OnAssistantCompleted(assistant);
-                return;
+                return false;
             }
 
             var apiAssistant = new ChatMessage
@@ -1012,15 +1403,43 @@ internal sealed partial class ChatEngine
             session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
 
             var toolRound = CreateRound(streamed.ToolCalls);
+
+            // The model often says something before reaching for a tool. That text lives in
+            // assistant.Text, which the next round overwrites wholesale (StreamOnceAsync assigns
+            // rather than appends), so it is copied onto the round now or lost for good.
+            toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
             assistant.ToolRounds.Add(toolRound);
             observer.OnToolsChanged(assistant);
 
-            await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
-                .ConfigureAwait(false);
+            // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
+            // пока раунд идёт, его ещё можно исполнить — остановить агента или пересадить его.
+            var early = new List<string>();
+            using var watch = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
+            try
+            {
+                await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                await watch.CancelAsync().ConfigureAwait(false);
+                await watcher.ConfigureAwait(false);
+            }
 
             toolRound.InfoLine = "Инструменты завершены — запрашиваю ответ модели";
             observer.OnToolsChanged(assistant);
             cancellationToken.ThrowIfCancellationRequested();
+
+            // The only safe seam for a follow-up. The round's assistant message and every tool
+            // reply that answers it are already in `messages`, so the roles stay in the order the
+            // API demands, and ExecuteRoundAsync has been awaited — the agents this round started
+            // have finished, and nothing in flight is lost by the model changing its mind now.
+            if (DrainQueued(session, observer, messages, early))
+            {
+                CloseAssistantForFollowUp(session, assistant, clock, turn, observer);
+                return true;
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -1036,6 +1455,170 @@ internal sealed partial class ChatEngine
             .ConfigureAwait(false);
         FinishAssistant(session, assistant, clock, synthesis, turn);
         observer.OnAssistantCompleted(assistant);
+        return false;
+    }
+
+    /// <summary>
+    /// Чем решается судьба работающих агентов. Подменяется только в тестах: живой путь уходит
+    /// в сеть за быстрой моделью, и без подмены проверять было бы нечего.
+    /// </summary>
+    internal Func<string, IReadOnlyList<RunningAgent>, CancellationToken, Task<FollowUpDecision>>?
+        FollowUpDecider
+    { get; set; }
+
+    /// <summary>Как часто раунд оглядывается на композер, пока работают инструменты.</summary>
+    private static readonly TimeSpan FollowUpPoll = TimeSpan.FromMilliseconds(400);
+
+    /// <summary>
+    /// Слушает композер, пока идёт раунд инструментов, и решает судьбу работающих агентов.
+    /// </summary>
+    /// <remarks>
+    /// Граница раунда — единственное место, где дописанное сообщение можно положить в
+    /// стенограмму, но не единственное, где оно нужно: агент живёт внутри вызова инструмента и
+    /// к границе уже отработает. Просьба «стоп» или «быстрее», дождавшаяся границы, опаздывает
+    /// ровно на всю работу, которую просили не делать. Поэтому строка снимается с очереди сразу
+    /// (в контекст она попадёт всё равно — <see cref="DrainQueued"/> получит её списком), а
+    /// решение принимает отдельный короткий запрос: основная модель в этот момент занята
+    /// ожиданием инструментов и ответить не может.
+    /// <para>
+    /// Ни одна ошибка отсюда не должна ронять ход: это помощник, а не часть ответа.
+    /// </para>
+    /// </remarks>
+    private async Task WatchFollowUpsAsync(
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        IChatTurnObserver observer,
+        ToolRound round,
+        List<string> taken,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(FollowUpPoll, cancellationToken).ConfigureAwait(false);
+
+                var fresh = new List<string>();
+                while (observer.TryTakeQueuedMessage(out var text))
+                {
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        fresh.Add(text.Trim());
+                    }
+                }
+
+                if (fresh.Count == 0)
+                {
+                    continue;
+                }
+
+                taken.AddRange(fresh);
+
+                // Человеку видно, что его услышали, ещё до того, как модель что-то скажет.
+                round.FollowUpNote = Loc.Get("S.Tools.FollowUpSeen");
+                observer.OnToolsChanged(assistant);
+
+                var running = _agents?.ListFor(session.Id) ?? [];
+                if (running.Count == 0)
+                {
+                    continue;
+                }
+
+                var decide = FollowUpDecider ?? DecideOnFollowUpAsync;
+                var decision = await decide(
+                        string.Join(Environment.NewLine, fresh), running, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (decision.Kind == AgentInterruptKind.None)
+                {
+                    continue;
+                }
+
+                foreach (var id in decision.AgentIds)
+                {
+                    var agent = running.FirstOrDefault(item =>
+                        string.Equals(item.Id, id, StringComparison.Ordinal));
+                    if (agent is null)
+                    {
+                        continue;
+                    }
+
+                    // Вводная не прерывает: агент дорабатывает шаг и читает её на границе раунда.
+                    // Прервать его ради уточнения значило бы выбросить то, что он уже нашёл.
+                    if (decision.Kind == AgentInterruptKind.Tell)
+                    {
+                        agent.Tell(decision.Message);
+                    }
+                    else
+                    {
+                        agent.Request(new AgentInterrupt(decision.Kind, decision.Complexity));
+                    }
+                }
+
+                round.FollowUpNote = string.IsNullOrWhiteSpace(decision.Note)
+                    ? Loc.Get(decision.Kind switch
+                    {
+                        AgentInterruptKind.Stop => "S.Tools.AgentStopped",
+                        AgentInterruptKind.Tell => "S.Tools.AgentTold",
+                        _ => "S.Tools.AgentSwitched"
+                    })
+                    : decision.Note;
+                observer.OnToolsChanged(assistant);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Раунд закончился или ход отменили — обычный конец наблюдения.
+        }
+        catch (Exception)
+        {
+            // Сбой помощника не имеет права стать сбоем ответа.
+        }
+    }
+
+    /// <summary>Быстрая модель из настроек: решение нужно за секунды и почти даром.</summary>
+    private async Task<FollowUpDecision> DecideOnFollowUpAsync(
+        string text,
+        IReadOnlyList<RunningAgent> agents,
+        CancellationToken cancellationToken)
+    {
+        var settings = _settings();
+        var modelId = string.IsNullOrWhiteSpace(settings.AgentFastModelId)
+            ? AgentHost.ForcedAgentModelId
+            : settings.AgentFastModelId.Trim();
+
+        // Свой HttpClient по той же причине, что и у агента: VeniceClient правит BaseAddress и
+        // Authorization и не делит клиента с тем, кто уже отправлял запросы.
+        using var http = HttpClients.Create(TimeSpan.FromMinutes(1));
+        return await FollowUpDirector
+            .DecideAsync(new VeniceClient(http, _options), modelId, text, agents, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ends the answer at the point a follow-up was folded into the context.
+    /// </summary>
+    /// <remarks>
+    /// Written by hand rather than through <see cref="FinishAssistant"/>, which would append a
+    /// second assistant message to the transcript: this round's assistant message — the one
+    /// carrying the tool calls — is already there, and a duplicate after the tool replies is
+    /// rejected by the API. The text is dropped because whatever the model said this round is
+    /// already kept as the round's own remark, and showing it twice reads like a stutter.
+    /// </remarks>
+    private static void CloseAssistantForFollowUp(
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        Stopwatch clock,
+        VeniceTurnContext turn,
+        IChatTurnObserver observer)
+    {
+        assistant.Text = "";
+        assistant.Duration = clock.Elapsed;
+        assistant.ResolvedModelId = turn.ModelId;
+        assistant.Status = AssistantStatus.Complete;
+        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+        session.UpdatedAt = DateTime.Now;
+        observer.OnAssistantContinued(assistant);
     }
 
     /// <summary>
@@ -1247,6 +1830,8 @@ internal sealed partial class ChatEngine
             tasks[i] = Task.Run(async () =>
             {
                 call.Status = ToolCallStatus.Running;
+                call.StartedAt = DateTime.Now;
+                var callClock = Stopwatch.StartNew();
                 observer.OnToolsChanged(assistant);
 
                 ToolResult result;
@@ -1294,6 +1879,8 @@ internal sealed partial class ChatEngine
                 call.Success = result.Success;
                 call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
                 call.ResultPreview = ChatToolPreview.Summarize(result);
+                call.ResultText = ChatToolPreview.ForJournal(result);
+                call.Duration = callClock.Elapsed;
                 observer.OnToolsChanged(assistant);
             });
         }
@@ -1411,6 +1998,17 @@ internal sealed partial class ChatEngine
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
         ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
         assistant.Status = AssistantStatus.Complete;
+
+        // prompt_tokens counts what this request carried, so the index is stamped before the answer
+        // joins the history: whatever is appended after it is what the gauge estimates on top.
+        // Guarded on a real number — a model that stayed quiet about usage must not reset the anchor
+        // to zero and send the ring back to a pure guess.
+        if (streamed.PromptTokens > 0)
+        {
+            session.LastPromptTokens = streamed.PromptTokens;
+            session.LastPromptTokensApiIndex = session.ApiMessages.Count;
+        }
+
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "assistant",
@@ -1617,6 +2215,12 @@ internal sealed partial class ChatEngine
         messages.AddRange(ChatMessageCloner.CloneAll(session.ApiMessages));
         return messages;
     }
+
+    /// <summary>
+    /// The system prompt the next request would carry. Exposed so the context gauge can weigh it:
+    /// it is a real slice of the window, and rebuilding it in the UI would fork the logic.
+    /// </summary>
+    internal string CurrentSystemPrompt() => BuildSystemPrompt();
 
     private string BuildSystemPrompt()
     {

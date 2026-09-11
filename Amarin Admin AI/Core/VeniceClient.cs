@@ -321,6 +321,8 @@ public sealed class VeniceClient
                 ToolCalls = accumulator.BuildToolCalls(),
                 FinishReason = accumulator.FinishReason,
                 Cost = accumulator.Cost,
+                PromptTokens = accumulator.PromptTokens,
+                TotalTokens = accumulator.TotalTokens,
                 Model = model
             };
         }
@@ -427,6 +429,7 @@ public sealed class VeniceClient
             ToolChoice = request.ToolChoice,
             Temperature = request.Temperature,
             Stream = stream,
+            StreamOptions = stream ? new StreamOptions() : null,
             ReasoningEffort = effort,
             Reasoning = reasoning,
             VeniceParameters = venice

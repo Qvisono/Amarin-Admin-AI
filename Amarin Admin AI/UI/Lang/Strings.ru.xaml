@@ -194,10 +194,17 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
 
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">Что будет выполнено — {0} стр.</system:String>
+    <system:String x:Key="S.Confirm.Details" xml:space="preserve">Технические подробности</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. Без разрешения загрузка не состоится.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Требуется подтверждение</system:String>
 
+    <system:String x:Key="S.Context.Estimate" xml:space="preserve">Число примерное: точное Venice сообщает после ответа модели.</system:String>
+    <system:String x:Key="S.Context.Filling" xml:space="preserve">Контекст заполняется. Для длинной задачи лучше начать новый чат.</system:String>
+    <system:String x:Key="S.Context.Full" xml:space="preserve">Контекст почти полон — начало разговора скоро выпадет из памяти модели.</system:String>
+    <system:String x:Key="S.Context.Title" xml:space="preserve">Контекст: {0} из {1} ({2}%)</system:String>
+    <system:String x:Key="S.Context.Unknown" xml:space="preserve">Заполненность контекста появится, когда станет известна модель.</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Модель</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Итого</system:String>
 
@@ -217,6 +224,7 @@
     <system:String x:Key="S.Crash.OutOfMemory" xml:space="preserve">Закончилась память.</system:String>
     <system:String x:Key="S.Crash.Quit" xml:space="preserve">Закрыть программу</system:String>
 
+    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Агент — быстрые задачи</system:String>
     <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Агент — тяжёлые задачи</system:String>
     <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Агент — лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
@@ -255,6 +263,36 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Сайт не в белом списке</system:String>
 
+    <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Аргументы</system:String>
+    <system:String x:Key="S.Journal.Ask" xml:space="preserve">Спросить ИИ</system:String>
+    <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">Модель ничего не ответила. Попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.Journal.Asking" xml:space="preserve">Спрашиваю…</system:String>
+    <system:String x:Key="S.Journal.Back" xml:space="preserve">Назад к списку</system:String>
+    <system:String x:Key="S.Journal.ByAgent" xml:space="preserve">Выполнил {0}</system:String>
+    <system:String x:Key="S.Journal.Count" xml:space="preserve">Действий: {0}</system:String>
+    <system:String x:Key="S.Journal.CountFiltered" xml:space="preserve">Найдено {0} из {1}</system:String>
+    <system:String x:Key="S.Journal.Loading" xml:space="preserve">Читаю историю…</system:String>
+    <system:String x:Key="S.Journal.NoActionsAnywhere" xml:space="preserve">Модель ещё ничего не делала с этим компьютером.</system:String>
+    <system:String x:Key="S.Journal.NoActionsHere" xml:space="preserve">В этом чате модель ничего не делала с компьютером. Переключитесь на все чаты, чтобы увидеть остальные.</system:String>
+    <system:String x:Key="S.Journal.NoMatches" xml:space="preserve">Ничего не нашлось. Попробуйте другой запрос.</system:String>
+    <system:String x:Key="S.Journal.NoResult" xml:space="preserve">Результат не сохранён.</system:String>
+    <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">Точек отката пока нет. Они создаются сами перед опасными изменениями в системе.</system:String>
+    <system:String x:Key="S.Journal.Open" xml:space="preserve">Журнал действий</system:String>
+    <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Открыть чат</system:String>
+    <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Не удалось прочитать историю. Проверьте доступ к папке с данными программы.</system:String>
+    <system:String x:Key="S.Journal.Result" xml:space="preserve">Результат</system:String>
+    <system:String x:Key="S.Journal.Scope.All" xml:space="preserve">Все чаты</system:String>
+    <system:String x:Key="S.Journal.Scope.Chat" xml:space="preserve">Этот чат</system:String>
+    <system:String x:Key="S.Journal.SearchHint" xml:space="preserve">Поиск по инструменту, аргументам и результату</system:String>
+    <system:String x:Key="S.Journal.Snapshot.NoLabel" xml:space="preserve">Без названия</system:String>
+    <system:String x:Key="S.Journal.Snapshot.Tooltip" xml:space="preserve">Точка отката на диске:</system:String>
+    <system:String x:Key="S.Journal.StatusDone" xml:space="preserve">выполнен</system:String>
+    <system:String x:Key="S.Journal.StatusFailed" xml:space="preserve">ошибка</system:String>
+    <system:String x:Key="S.Journal.StatusRunning" xml:space="preserve">выполняется</system:String>
+    <system:String x:Key="S.Journal.Tab.Actions" xml:space="preserve">Действия</system:String>
+    <system:String x:Key="S.Journal.Tab.Snapshots" xml:space="preserve">Точки отката</system:String>
+    <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Время приблизительное: у этой записи нет собственной отметки, взято время сообщения.</system:String>
+    <system:String x:Key="S.Journal.Title" xml:space="preserve">Что модель делала с компьютером</system:String>
     <system:String x:Key="S.Language.Desc" xml:space="preserve">Русский и английский встроены. «New language» — перевод целиком моделью, он сохранится и появится в этом списке.</system:String>
     <system:String x:Key="S.Language.Done" xml:space="preserve">Готово — язык добавлен.</system:String>
     <system:String x:Key="S.Language.Failed" xml:space="preserve">Перевод не удался: {0}</system:String>
@@ -350,12 +388,17 @@
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
+    <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">Вводная от пользователя:</system:String>
     <system:String x:Key="S.Tools.AgentRunning" xml:space="preserve">выполняется</system:String>
+    <system:String x:Key="S.Tools.AgentStopped" xml:space="preserve">Останавливаю агента по вашей просьбе</system:String>
+    <system:String x:Key="S.Tools.AgentSwitched" xml:space="preserve">Пересаживаю агента на другую модель</system:String>
+    <system:String x:Key="S.Tools.AgentTold" xml:space="preserve">Передаю уточнение агенту</system:String>
     <system:String x:Key="S.Tools.AgentToolsCount" xml:space="preserve">{0} инструментов</system:String>
     <system:String x:Key="S.Tools.CallCost" xml:space="preserve">Стоимость вызова {0}</system:String>
     <system:String x:Key="S.Tools.CallDone" xml:space="preserve">готово</system:String>
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
+    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение — учитываю</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
@@ -363,6 +406,9 @@
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа — дождитесь одного из них.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Не задан API-ключ Venice.ai.&#10;Задайте переменную окружения VENICE_API_KEY.</system:String>
 
+    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу — дождитесь его окончания.</system:String>
+    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу — дождитесь его окончания.</system:String>
+    <system:String x:Key="S.Turn.Queued" xml:space="preserve">Отправлено. Модель учтёт это на следующем шаге.</system:String>
     <system:String x:Key="S.Update.Confirm" xml:space="preserve">Обновить и перезапустить</system:String>
     <system:String x:Key="S.Update.Desc" xml:space="preserve">Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>

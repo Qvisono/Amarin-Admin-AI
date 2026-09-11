@@ -343,10 +343,27 @@ namespace Amarin.UI
                     VeniceModelCatalog.GetDisplayName(CurrentModelId())));
             }
 
+            // Подпись хода живёт здесь же: строка под композером одна, и два источника,
+            // независимо дёргающие её видимость, гасили друг друга.
+            if (_composerNotices.TryGetValue(_session.Id, out var notice) &&
+                !string.IsNullOrWhiteSpace(notice))
+            {
+                notes.Add(notice);
+            }
+
             AttachmentsWarning.Text = string.Join(" ", notes);
             AttachmentsWarning.Visibility = notes.Count == 0
                 ? Visibility.Collapsed
                 : Visibility.Visible;
+
+            if (notes.Count > 0)
+            {
+                AttachmentsHost.Visibility = Visibility.Visible;
+            }
+            else if (_pendingImages.Count == 0 && _pendingFiles.Count == 0)
+            {
+                AttachmentsHost.Visibility = Visibility.Collapsed;
+            }
         }
 
         private bool CurrentModelSupportsVision()

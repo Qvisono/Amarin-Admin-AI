@@ -49,6 +49,8 @@ public sealed class Wave1PersistenceTests
             Assert.True(loaded.TitleReasoning.DisableThinking);
             Assert.False(loaded.AgentLiteReasoning.DisableThinking);
             Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
+            Assert.Equal("deepseek-v4-flash-0731-fast", loaded.AgentFastModelId);
+            Assert.True(loaded.AgentFastReasoning.DisableThinking);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);

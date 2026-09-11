@@ -13,10 +13,11 @@ internal static class ChatCommands
     public const string Agent = "agent";
     public const string Heavy = "heavy";
     public const string Lite = "lite";
+    public const string Fast = "fast";
 
     /// <summary>
-    /// Recognises <c>/agent &lt;prompt&gt;</c> (heavy by default), plus <c>/agent lite …</c> and
-    /// <c>/agent-lite …</c> for the cheap model. Returns null when the input is not a command,
+    /// Recognises <c>/agent &lt;prompt&gt;</c> (heavy by default), plus <c>/agent lite …</c>,
+    /// <c>/agent-lite …</c> and the same pair for <c>fast</c>. Returns null when the input is not a command,
     /// including <c>/agent</c> with no prompt — there is nothing to run, so it stays plain text.
     /// </summary>
     public static ChatCommand? TryParse(string? input)
@@ -36,6 +37,10 @@ internal static class ChatCommands
         {
             complexity = Lite;
         }
+        else if (verb.Equals($"{Agent}-{Fast}", StringComparison.OrdinalIgnoreCase))
+        {
+            complexity = Fast;
+        }
         else if (verb.Equals($"{Agent}-{Heavy}", StringComparison.OrdinalIgnoreCase))
         {
             complexity = Heavy;
@@ -47,6 +52,7 @@ internal static class ChatCommands
             var (word, tail) = SplitFirstWord(rest);
             if (tail.Length > 0 &&
                 (word.Equals(Lite, StringComparison.OrdinalIgnoreCase) ||
+                 word.Equals(Fast, StringComparison.OrdinalIgnoreCase) ||
                  word.Equals(Heavy, StringComparison.OrdinalIgnoreCase)))
             {
                 complexity = word.ToLowerInvariant();

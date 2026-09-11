@@ -23,6 +23,16 @@ public interface IAgentUi
 
     void AssistantMessage(string text);
 
+    /// <summary>
+    /// Вводная от человека, дописанная уже во время работы агента.
+    /// </summary>
+    /// <remarks>
+    /// Не <see cref="Info"/>: тот пишет в строку состояния раунда, которую движок агента тут же
+    /// переписывает своим «инструменты завершены», — сказанное человеком мелькнуло бы и пропало.
+    /// Реализация по умолчанию оставлена ради тех, кому эта разница не нужна.
+    /// </remarks>
+    void UserNote(string text) => Info(text);
+
     void ToolCall(string name, string argumentsJson);
 
     void ToolResult(string name, ToolResult result);

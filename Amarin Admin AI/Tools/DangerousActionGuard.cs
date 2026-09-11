@@ -18,7 +18,15 @@ public sealed record DangerousActionInfo(
     string Details,
     DangerousRiskLevel RiskLevel,
     /// <summary>Plain-language explanation from the model (shown as «Объяснение»).</summary>
-    string Explanation = "");
+    string Explanation = "",
+    /// <summary>
+    /// Everything that will actually run or be written: the script, the file's contents, the
+    /// registry data. Never truncated — the summary above is the short form, and a person
+    /// approving a change is entitled to see the whole of what they are approving.
+    /// </summary>
+    string CodeText = "",
+    /// <summary>Highlighting hint for <c>CodeHighlighter</c>; empty renders as plain monospace.</summary>
+    string CodeLanguage = "");
 
 internal static partial class DangerousActionGuard
 {
@@ -44,6 +52,9 @@ internal static partial class DangerousActionGuard
             "registry" => IsRegistryWrite(arguments),
             "windows_service" => IsServiceControl(arguments),
             "filesystem" => IsFileWrite(arguments),
+            // write_file wraps its arguments into a filesystem/write call and executes it
+            // directly, so checking only "filesystem" let every file it wrote through unasked.
+            "write_file" => true,
             "run_powershell" => PowerShellAttemptsDanger(arguments),
             "windows_process" => IsProcessStop(arguments),
             "scheduled_task" => IsTaskMutation(arguments),
@@ -97,6 +108,7 @@ internal static partial class DangerousActionGuard
         var changeSummary = BuildChangeSummary(toolName, action, arguments);
         var risk = GetRiskLevel(toolName, action, arguments);
         var explanation = ExtractExplanation(arguments, changeSummary);
+        var (codeText, codeLanguage) = ExtractCode(toolName, arguments);
         var unlistedDownloadHost = TryGetUnlistedDownloadHost(toolName, arguments);
 
         if (unlistedDownloadHost is not null)
@@ -215,7 +227,9 @@ internal static partial class DangerousActionGuard
             changeSummary,
             sb.ToString().TrimEnd(),
             risk,
-            explanation);
+            explanation,
+            codeText,
+            codeLanguage);
     }
 
     /// <summary>
@@ -239,6 +253,75 @@ internal static partial class DangerousActionGuard
         return changeSummary;
     }
 
+    /// <summary>
+    /// Pulls out the body the tool is about to run or write.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately separate from <see cref="BuildChangeSummary"/> and the details block, both of
+    /// which truncate: a summary is meant to be short, but the thing being approved is not. Before
+    /// this existed a file write showed only its path, so a .bat could be approved without a single
+    /// line of it ever reaching the screen.
+    /// </remarks>
+    private static (string Text, string Language) ExtractCode(string toolName, JsonElement arguments)
+    {
+        var (field, language) = toolName.ToLowerInvariant() switch
+        {
+            "run_powershell" => ("command", "powershell"),
+            "filesystem" or "write_file" => ("content", LanguageFromPath(arguments)),
+            "registry" => ("value_data", "ini"),
+            "scheduled_task" => ("command", "powershell"),
+            _ => ("", "")
+        };
+
+        if (field.Length == 0 ||
+            !arguments.TryGetProperty(field, out var value) ||
+            value.ValueKind != JsonValueKind.String)
+        {
+            return ("", "");
+        }
+
+        var text = value.GetString() ?? "";
+        return string.IsNullOrWhiteSpace(text) ? ("", "") : (text, language);
+    }
+
+    /// <summary>
+    /// Highlighting hint from the file's extension. Unknown extensions return empty on purpose:
+    /// <c>CodeHighlighter</c> renders those as plain monospace, which is better than colouring a
+    /// .bat as if it were C#.
+    /// </summary>
+    private static string LanguageFromPath(JsonElement arguments)
+    {
+        if (!arguments.TryGetProperty("path", out var pathProp) ||
+            pathProp.ValueKind != JsonValueKind.String)
+        {
+            return "";
+        }
+
+        var path = pathProp.GetString() ?? "";
+        var dot = path.LastIndexOf('.');
+        if (dot < 0 || dot == path.Length - 1)
+        {
+            return "";
+        }
+
+        return path[(dot + 1)..].ToLowerInvariant() switch
+        {
+            "ps1" or "psm1" => "powershell",
+            "bat" or "cmd" => "bat",
+            "py" => "python",
+            "json" => "json",
+            "xml" or "csproj" => "xml",
+            "reg" or "ini" => "ini",
+            "cs" => "csharp",
+            "js" => "javascript",
+            "ts" => "typescript",
+            "sql" => "sql",
+            "html" or "htm" => "html",
+            "css" => "css",
+            _ => ""
+        };
+    }
+
     private static string BuildChangeSummary(string toolName, string action, JsonElement arguments)
     {
         return toolName.ToLowerInvariant() switch
@@ -247,7 +330,7 @@ internal static partial class DangerousActionGuard
                           FormatField(arguments, "path", prefix: " по пути "),
             "windows_service" => $"Управление службой{FormatField(arguments, "service_name", prefix: ": ")}" +
                                  (string.IsNullOrWhiteSpace(action) ? "" : $" → {action}"),
-            "filesystem" => $"Запись в файл{FormatField(arguments, "path", prefix: ": ")}",
+            "filesystem" or "write_file" => $"Запись в файл{FormatField(arguments, "path", prefix: ": ")}",
             "run_powershell" => $"Выполнение PowerShell{FormatField(arguments, "command", prefix: ": ", max: 120)}",
             "windows_process" => $"Завершение процесса{FormatField(arguments, "process_name", prefix: ": ")}" +
                                  FormatField(arguments, "pid", prefix: " PID "),

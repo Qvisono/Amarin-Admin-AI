@@ -45,6 +45,14 @@ internal sealed class ChatStreamAccumulator
 
     public VeniceCost Cost { get; private set; } = VeniceCost.Zero;
 
+    /// <summary>
+    /// Context the model read, straight from the stream's trailing usage chunk. Zero when Venice
+    /// sent no usage at all.
+    /// </summary>
+    public int PromptTokens { get; private set; }
+
+    public int TotalTokens { get; private set; }
+
     public bool Apply(ChatCompletionChunk chunk)
     {
         if (chunk.Error is not null)
@@ -55,6 +63,18 @@ internal sealed class ChatStreamAccumulator
         if (chunk.Cost is not null)
         {
             Cost = Cost.Add(chunk.Cost.ToCost());
+        }
+
+        // Before the choice is picked, not after: the usage chunk carries an empty "choices" and
+        // the early return below would drop it on the floor.
+        if (chunk.Usage?.PromptTokens > 0)
+        {
+            PromptTokens = chunk.Usage.PromptTokens.Value;
+        }
+
+        if (chunk.Usage?.TotalTokens > 0)
+        {
+            TotalTokens = chunk.Usage.TotalTokens.Value;
         }
 
         var choice = chunk.Choices.FirstOrDefault();

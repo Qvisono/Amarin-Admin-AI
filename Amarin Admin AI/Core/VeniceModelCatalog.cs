@@ -222,6 +222,7 @@ internal static class VeniceModelCatalog
             "openai-gpt-53-codex" => "GPT-5.3 Codex",
             "openai-gpt-56-luna" => "GPT-5.6 Luna",
             "kimi-k2-7-code" => "Kimi K2.7 Code",
+            "deepseek-v4-flash-0731-fast" => "DeepSeek V4 Flash",
             "minimax-m3-preview" => "MiniMax M3 Preview",
             "qwen-3-7-plus" => "Qwen 3.7 Plus",
             _ => Humanize(modelId.Trim())

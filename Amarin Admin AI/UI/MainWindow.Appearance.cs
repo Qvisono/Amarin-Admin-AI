@@ -49,6 +49,7 @@ namespace Amarin.UI
         private AppearanceManager? _appearance;
         private ComposerCompactMode? _compact;
         private BalanceBadge? _balance;
+        private ContextRing? _context;
 
         /// <summary>
         /// Saturation needs a pixel pass over the whole picture, so dragging its slider is
@@ -73,6 +74,7 @@ namespace Amarin.UI
                 ComposerPlaceholder,
                 MessageTextBox);
             _balance = new BalanceBadge(BalanceBadge, BalanceCoin, BalanceAmount, new BalanceStore());
+            _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 
             _appearanceDebounce.Tick += (_, _) =>
             {

@@ -27,6 +27,23 @@ internal static class ChatToolPreview
         return lines.Count == 1 ? first : $"{first} (+ещё {lines.Count - 1})";
     }
 
+    /// <summary>
+    /// The output as the journal shows it: whole, but capped.
+    /// </summary>
+    /// <remarks>
+    /// A chat file already carries base64 images; letting a directory listing of ten thousand
+    /// lines in beside them would make conversations that no longer open quickly. The cap is well
+    /// past anything a person reads in one sitting, and the summary above still says what happened.
+    /// </remarks>
+    public static string ForJournal(ToolResult result)
+    {
+        const int maxChars = 4_000;
+        var output = result.Output ?? "";
+        return output.Length <= maxChars
+            ? output
+            : output[..maxChars] + "\n… [обрезано для журнала]";
+    }
+
     public static string FormatForApi(ToolResult result)
     {
         const int maxChars = 12_000;

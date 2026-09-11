@@ -106,6 +106,15 @@ public sealed class AppSettings
 
     public ReasoningSettings TitleReasoning { get; set; } = new();
 
+    /// <summary>
+    /// The cheap tier, for work that does not need a flagship or that the user asked to hurry.
+    /// Thinking is off by default: the whole point of this slot is the answer arriving sooner,
+    /// and a reasoning pass would spend exactly what it saves.
+    /// </summary>
+    public string AgentFastModelId { get; set; } = "deepseek-v4-flash-0731-fast";
+
+    public ReasoningSettings AgentFastReasoning { get; set; } = new() { DisableThinking = true };
+
     public string AgentLiteModelId { get; set; } = "openai-gpt-56-luna";
 
     public ReasoningSettings AgentLiteReasoning { get; set; } = new() { DisableThinking = false };

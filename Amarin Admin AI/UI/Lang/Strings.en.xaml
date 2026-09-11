@@ -194,10 +194,17 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Ask anything...</system:String>
 
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">What will run — {0} lines</system:String>
+    <system:String x:Key="S.Confirm.Details" xml:space="preserve">Technical details</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The agent wants to download a file from a site that is not on the allowlist. Without permission the download will not happen.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">From chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Confirmation required</system:String>
 
+    <system:String x:Key="S.Context.Estimate" xml:space="preserve">Approximate: Venice reports the exact figure after a model answers.</system:String>
+    <system:String x:Key="S.Context.Filling" xml:space="preserve">The context is filling up. Consider a new chat for a long task.</system:String>
+    <system:String x:Key="S.Context.Full" xml:space="preserve">The context is nearly full — the start of the conversation will drop out soon.</system:String>
+    <system:String x:Key="S.Context.Title" xml:space="preserve">Context: {0} of {1} ({2}%)</system:String>
+    <system:String x:Key="S.Context.Unknown" xml:space="preserve">Context usage appears once the model is known.</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Model</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Total</system:String>
 
@@ -217,6 +224,7 @@
     <system:String x:Key="S.Crash.OutOfMemory" xml:space="preserve">Out of memory.</system:String>
     <system:String x:Key="S.Crash.Quit" xml:space="preserve">Close the app</system:String>
 
+    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Agent — fast tasks</system:String>
     <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Agent — heavy tasks</system:String>
     <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Agent — light tasks</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Technical agent prompt</system:String>
@@ -255,6 +263,36 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Do not allow</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Site is not on the allowlist</system:String>
 
+    <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Arguments</system:String>
+    <system:String x:Key="S.Journal.Ask" xml:space="preserve">Ask the model</system:String>
+    <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">The model answered with nothing. Try again.</system:String>
+    <system:String x:Key="S.Journal.Asking" xml:space="preserve">Asking…</system:String>
+    <system:String x:Key="S.Journal.Back" xml:space="preserve">Back to the list</system:String>
+    <system:String x:Key="S.Journal.ByAgent" xml:space="preserve">Run by {0}</system:String>
+    <system:String x:Key="S.Journal.Count" xml:space="preserve">Actions: {0}</system:String>
+    <system:String x:Key="S.Journal.CountFiltered" xml:space="preserve">Found {0} of {1}</system:String>
+    <system:String x:Key="S.Journal.Loading" xml:space="preserve">Reading the history…</system:String>
+    <system:String x:Key="S.Journal.NoActionsAnywhere" xml:space="preserve">The model has not done anything to this computer yet.</system:String>
+    <system:String x:Key="S.Journal.NoActionsHere" xml:space="preserve">The model did nothing to the computer in this chat. Switch to all chats to see the rest.</system:String>
+    <system:String x:Key="S.Journal.NoMatches" xml:space="preserve">Nothing matched. Try another query.</system:String>
+    <system:String x:Key="S.Journal.NoResult" xml:space="preserve">The result was not kept.</system:String>
+    <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">No restore points yet. They are taken automatically before risky changes to the system.</system:String>
+    <system:String x:Key="S.Journal.Open" xml:space="preserve">Action journal</system:String>
+    <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Open the chat</system:String>
+    <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Could not read the history. Check access to the program data folder.</system:String>
+    <system:String x:Key="S.Journal.Result" xml:space="preserve">Result</system:String>
+    <system:String x:Key="S.Journal.Scope.All" xml:space="preserve">All chats</system:String>
+    <system:String x:Key="S.Journal.Scope.Chat" xml:space="preserve">This chat</system:String>
+    <system:String x:Key="S.Journal.SearchHint" xml:space="preserve">Search by tool, arguments and result</system:String>
+    <system:String x:Key="S.Journal.Snapshot.NoLabel" xml:space="preserve">Untitled</system:String>
+    <system:String x:Key="S.Journal.Snapshot.Tooltip" xml:space="preserve">Restore point on disk:</system:String>
+    <system:String x:Key="S.Journal.StatusDone" xml:space="preserve">done</system:String>
+    <system:String x:Key="S.Journal.StatusFailed" xml:space="preserve">failed</system:String>
+    <system:String x:Key="S.Journal.StatusRunning" xml:space="preserve">running</system:String>
+    <system:String x:Key="S.Journal.Tab.Actions" xml:space="preserve">Actions</system:String>
+    <system:String x:Key="S.Journal.Tab.Snapshots" xml:space="preserve">Restore points</system:String>
+    <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Approximate time: this record has no stamp of its own, so the message time is used.</system:String>
+    <system:String x:Key="S.Journal.Title" xml:space="preserve">What the model did to this computer</system:String>
     <system:String x:Key="S.Language.Desc" xml:space="preserve">Russian and English ship with the app. "New language" has a model translate the whole interface; the result is saved and joins this list.</system:String>
     <system:String x:Key="S.Language.Done" xml:space="preserve">Done — the language was added.</system:String>
     <system:String x:Key="S.Language.Failed" xml:space="preserve">The translation failed: {0}</system:String>
@@ -350,12 +388,17 @@
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>
+    <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">New input from the user:</system:String>
     <system:String x:Key="S.Tools.AgentRunning" xml:space="preserve">running</system:String>
+    <system:String x:Key="S.Tools.AgentStopped" xml:space="preserve">Stopping the agent, as you asked</system:String>
+    <system:String x:Key="S.Tools.AgentSwitched" xml:space="preserve">Moving the agent to another model</system:String>
+    <system:String x:Key="S.Tools.AgentTold" xml:space="preserve">Passing your note to the agent</system:String>
     <system:String x:Key="S.Tools.AgentToolsCount" xml:space="preserve">{0} tools</system:String>
     <system:String x:Key="S.Tools.CallCost" xml:space="preserve">Cost of the {0} call</system:String>
     <system:String x:Key="S.Tools.CallDone" xml:space="preserve">done</system:String>
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Domain {0} is blocked</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Tools finished</system:String>
+    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message — taking it in</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
@@ -363,6 +406,9 @@
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running — wait for one of them.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No Venice.ai API key.&#10;Set the VENICE_API_KEY environment variable.</system:String>
 
+    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Attachments cannot join an answer already in progress — wait for it to finish.</system:String>
+    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">A command cannot join an answer already in progress — wait for it to finish.</system:String>
+    <system:String x:Key="S.Turn.Queued" xml:space="preserve">Sent. The model will take it into account on its next step.</system:String>
     <system:String x:Key="S.Update.Confirm" xml:space="preserve">Update and restart</system:String>
     <system:String x:Key="S.Update.Desc" xml:space="preserve">The file is downloaded from GitHub, checked against its checksum and replaces the app in its folder. The previous version stays alongside until the next start. After the replacement the app will restart.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Update the app</system:String>

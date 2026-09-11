@@ -281,6 +281,11 @@ internal sealed class AssistantMessageView
                 body.Children.Add(new Border { Style = (Style)Host.FindResource("ToolStepDivider") });
             }
 
+            if (!string.IsNullOrWhiteSpace(round.ModelNote))
+            {
+                body.Children.Add(BuildNoteRow(round.ModelNote));
+            }
+
             foreach (var call in round.Calls)
             {
                 body.Children.Add(BuildCallRow(call));
@@ -297,6 +302,13 @@ internal sealed class AssistantMessageView
                         body.Children.Add(notice);
                     }
                 }
+            }
+
+            // Стоит после вызовов, потому что и случается после них: человек дописал что-то,
+            // пока раунд работал.
+            if (!string.IsNullOrWhiteSpace(round.FollowUpNote))
+            {
+                body.Children.Add(BuildNoteRow(round.FollowUpNote));
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
@@ -507,6 +519,11 @@ internal sealed class AssistantMessageView
         var inner = new StackPanel();
         foreach (var round in agent.ToolRounds)
         {
+            if (!string.IsNullOrWhiteSpace(round.ModelNote))
+            {
+                inner.Children.Add(BuildNoteRow(round.ModelNote));
+            }
+
             foreach (var nested in round.Calls)
             {
                 inner.Children.Add(BuildCallRow(nested));
@@ -514,6 +531,11 @@ internal sealed class AssistantMessageView
                 {
                     inner.Children.Add(BuildResultRow(nested));
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(round.FollowUpNote))
+            {
+                inner.Children.Add(BuildNoteRow(round.FollowUpNote));
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
@@ -559,6 +581,36 @@ internal sealed class AssistantMessageView
             Style = (Style)Host.FindResource("ToolIcon"),
             Text = "⚙"
         };
+    }
+
+    /// <summary>
+    /// The model's own aside, as opposed to <see cref="BuildInfoRow"/>, which is the engine
+    /// reporting on itself. Brighter and quoted rather than dim and prefixed with an info sign:
+    /// the two sit in the same list, and if they looked alike the model would read as a program
+    /// and the program as the model.
+    /// </summary>
+    private Grid BuildNoteRow(string text)
+    {
+        var grid = new Grid { Style = (Style)Host.FindResource("ToolRow") };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var quote = new TextBlock
+        {
+            Style = (Style)Host.FindResource("ToolIcon"),
+            Text = "“"
+        };
+        var label = new TextBlock
+        {
+            FontSize = 12.5,
+            VerticalAlignment = VerticalAlignment.Center,
+            Text = text,
+            TextWrapping = TextWrapping.Wrap
+        };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
+        Grid.SetColumn(label, 1);
+        grid.Children.Add(quote);
+        grid.Children.Add(label);
+        return grid;
     }
 
     private Grid BuildInfoRow(string text)

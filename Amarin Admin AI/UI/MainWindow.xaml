@@ -353,9 +353,41 @@
                     </Grid.RowDefinitions>
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
               x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="27,18,20,10" MaxWidth="1070" x:Name="MessagesPanel">
+                        <StackPanel Margin="27,18,58,10" MaxWidth="1070" x:Name="MessagesPanel">
                         </StackPanel>
                     </ScrollViewer>
+
+                    <!--
+                        Журнал действий этого чата. Лежит поверх ленты, а не в тулбаре композера:
+                        тулбар целиком уезжает в компактном режиме, и кнопка пропадала бы вместе с
+                        ним. Отсюда и непрозрачный фон со скруглением — сообщения проезжают под
+                        кнопкой, и без подложки текст читался бы сквозь иконку. Правое поле 28, а
+                        не 20 как у ленты: между кнопкой и краем должна помещаться полоса
+                        прокрутки, иначе они наезжают друг на друга на длинном чате.
+                    -->
+                    <Button x:Name="JournalButton" Grid.Row="0" Width="30" Height="30"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,12,28,0" Cursor="Hand"
+                            ToolTip="{DynamicResource S.Journal.Open}"
+                            Click="JournalButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Image x:Name="Icon" Source="{DynamicResource Journal}"
+                                           Width="15" Height="15" Stretch="Uniform" Opacity="0.55"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Icon" Property="Opacity" Value="1"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <!--
                         VerticalAlignment="Bottom" и ClipToBounds нужны компактному режиму: при
                         Stretch заданная высота центрируется в строке, и полоска зависла бы над
@@ -1188,8 +1220,44 @@
                                         форма. Видна всегда: до первого ответа Venice цифра берётся
                                         из кэша на диске, а если и его нет — стоит прочерк.
                                     -->
-                                    <Border x:Name="BalanceBadge" Grid.Column="3"
-                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    <!--
+                                        Кольцо контекста и остаток на счету — один ряд показаний.
+                                        Обёрнуты в общую панель, потому что оба жмутся вправо в
+                                        одну звёздную колонку: два независимых HorizontalAlignment
+                                        встали бы друг на друга.
+                                    -->
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center">
+
+                                    <!--
+                                        Заполненность контекстного окна. Геометрию обеих дуг
+                                        строит код (ContextRing): дуга прогресса обязана лечь
+                                        ровно на фоновую, а два набора чисел — в разметке и в
+                                        коде — рано или поздно разъезжаются. Форма повторяет
+                                        плашку баланса справа, цвета ставит ContextRing.
+                                    -->
+                                    <Border x:Name="ContextBadge"
+                                            VerticalAlignment="Center"
+                                            Height="28" CornerRadius="8" Padding="8,0,10,0"
+                                            BorderThickness="1" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Grid Width="18" Height="18" Margin="0,0,6,0"
+                                                  VerticalAlignment="Center"
+                                                  SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                                <Path x:Name="ContextTrack" Width="18" Height="18" Stretch="None"
+                                                      StrokeThickness="2"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                                <Path x:Name="ContextProgress" Width="18" Height="18" Stretch="None"
+                                                      StrokeThickness="2"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                            </Grid>
+                                            <TextBlock x:Name="ContextAmount" Text="—" FontSize="12"
+                                                       FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border x:Name="BalanceBadge"
+                                            VerticalAlignment="Center"
                                             Height="28" CornerRadius="8" Padding="8,0,10,0"
                                             BorderThickness="1" Margin="0,0,8,0">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -1214,6 +1282,8 @@
                                                        FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
+
+                                    </StackPanel>
 
                                     <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
                                     <Button.Template>
@@ -1728,7 +1798,7 @@
 
             <!-- Окно -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="640" Height="460" Background="{DynamicResource Bg.Panel}"
+            <Border Width="690" Height="460" Background="{DynamicResource Bg.Panel}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -1751,7 +1821,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.16.1"
+                                       Text="v1.16.2"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -2579,6 +2649,19 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentFast}" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2" Width="170"
+                                              ModelPicked="SettingsModelPicked"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentLight}" VerticalAlignment="Center"/>
                                     <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
                                                            Margin="8,0" VerticalAlignment="Center"
@@ -2787,10 +2870,319 @@
             </Viewbox>
         </Grid>
 
+        <!--
+            Журнал действий. ZIndex 34: выше подтверждения (30), но ниже диалога домена (35) —
+            из журнала можно открыть чат, а тот способен тут же спросить про домен, и вопрос
+            обязан лечь поверх. Карточка шире обычных диалогов на 420: это таблица, а не вопрос.
+        -->
+        <Grid x:Name="JournalOverlay" Visibility="Collapsed" Panel.ZIndex="34"
+              Focusable="True" PreviewKeyDown="Journal_PreviewKeyDown">
+            <Grid.Resources>
+                <!-- ===== Вкладка / переключатель охвата ===== -->
+                <Style x:Key="JournalTab" TargetType="ToggleButton">
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="12,0"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Margin" Value="0,0,6,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        Padding="{TemplateBinding Padding}">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
+                                               Foreground="{DynamicResource Text.Tertiary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                                        <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Строка журнала ===== -->
+                <!--
+                    Высота строки фиксирована, а длинные значения обрезаются многоточием: при
+                    переменной высоте VirtualizingStackPanel не может заранее посчитать полосу
+                    прокрутки, и она прыгала бы на каждом шаге. Полный текст — в подсказке.
+                -->
+                <Style x:Key="JournalRowButton" TargetType="Button">
+                    <Setter Property="Height" Value="46"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="8,0">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Grid.Resources>
+
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="JournalCloseButton_Click"/>
+            </Border>
+
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="760" Height="560" Background="{DynamicResource Bg.Panel}"
+                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
+                        Padding="20,18">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- ===== ЗАГОЛОВОК ===== -->
+                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="JournalBackButton" Width="24" Height="24" Cursor="Hand"
+                                        Visibility="Collapsed" Margin="0,0,8,0"
+                                        ToolTip="{DynamicResource S.Journal.Back}"
+                                        Click="JournalBackButton_Click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                                <Path x:Name="Icon" Data="M5,0 L0,5 L5,10"
+                                                      Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.6"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"
+                                                      Width="7" Height="12" Stretch="Uniform"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                                    <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <TextBlock x:Name="JournalTitleText" Text="{DynamicResource S.Journal.Title}"
+                                           FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button x:Name="JournalCloseButton" Width="26" Height="26"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Cursor="Hand" Click="JournalCloseButton_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bg" Background="Transparent" CornerRadius="6">
+                                            <Path x:Name="Icon" Data="M0,0 L8,8 M8,0 L0,8"
+                                                  Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                  Width="9" Height="9" Stretch="Uniform"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                                <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
+                        <!-- ===== ВКЛАДКИ И ОХВАТ ===== -->
+                        <Grid x:Name="JournalTabsRow" Grid.Row="1" Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="JournalActionsTab" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Tab.Actions}" IsChecked="True"
+                                              Click="JournalActionsTab_Click"/>
+                                <ToggleButton x:Name="JournalSnapshotsTab" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Tab.Snapshots}"
+                                              Click="JournalSnapshotsTab_Click"/>
+                            </StackPanel>
+                            <StackPanel x:Name="JournalScopePanel" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <ToggleButton x:Name="JournalScopeChat" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Scope.Chat}" IsChecked="True"
+                                              Click="JournalScopeChat_Click"/>
+                                <ToggleButton x:Name="JournalScopeAll" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Scope.All}" Margin="0"
+                                              Click="JournalScopeAll_Click"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ===== ПОИСК ===== -->
+                        <Border Grid.Row="2" x:Name="JournalSearchBox" Margin="0,0,0,10"
+                                Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,6">
+                            <Grid>
+                                <TextBlock x:Name="JournalSearchPlaceholder"
+                                           Text="{DynamicResource S.Journal.SearchHint}" FontSize="12.5"
+                                           Foreground="{DynamicResource Text.Faint}" VerticalAlignment="Center"
+                                           IsHitTestVisible="False"/>
+                                <TextBox x:Name="JournalSearch" Background="Transparent" BorderThickness="0"
+                                         FontSize="12.5" Foreground="{DynamicResource Text.Body}"
+                                         CaretBrush="{DynamicResource Text.Bright}"
+                                         TextChanged="JournalSearch_TextChanged"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- ===== СПИСОК ===== -->
+                        <Grid Grid.Row="3">
+                            <ItemsControl x:Name="JournalList"
+                                          VirtualizingStackPanel.IsVirtualizing="True"
+                                          VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                          ScrollViewer.CanContentScroll="True">
+                                <ItemsControl.Template>
+                                    <ControlTemplate TargetType="ItemsControl">
+                                        <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsPresenter/>
+                                        </ScrollViewer>
+                                    </ControlTemplate>
+                                </ItemsControl.Template>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource JournalRowButton}"
+                                                ToolTip="{Binding Tooltip}" Click="JournalRow_Click">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.RowSpan="2" Text="{Binding Glyph}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="0,0,9,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Status.Success}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsFailure}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsPending}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+
+                                                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Title}"
+                                                           FontSize="12.5" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Text.Body}"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Bottom"/>
+                                                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Subtitle}"
+                                                           FontSize="11" FontFamily="Consolas"
+                                                           Foreground="{DynamicResource Text.Faint}"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Top"/>
+
+                                                <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding Timestamp}"
+                                                           FontSize="11" Foreground="{DynamicResource Text.Dim}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                           Margin="10,0,0,0"/>
+                                                <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding Trailer}"
+                                                           FontSize="11" Foreground="{DynamicResource Text.Faint}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="200"
+                                                           Margin="10,0,0,0"/>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock x:Name="JournalEmpty" Visibility="Collapsed"
+                                       FontSize="12.5" Foreground="{DynamicResource Text.Faint}"
+                                       TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                            <!--
+                                Подробности одной записи. Лежат в той же ячейке, что и список, и
+                                подменяют его: отдельное окно поверх модалки — уже третий слой,
+                                из которого непонятно, куда возвращает Esc.
+                            -->
+                            <ScrollViewer x:Name="JournalDetails" Visibility="Collapsed"
+                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock x:Name="JournalDetailTitle" FontSize="13.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Text.Body}" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="JournalDetailMeta" FontSize="11.5" Margin="0,4,0,0"
+                                               Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button x:Name="JournalAskButton" Style="{StaticResource DialogPrimaryButton}"
+                                                Content="{DynamicResource S.Journal.Ask}" Margin="0,0,8,0"
+                                                Click="JournalAskButton_Click"/>
+                                        <Button x:Name="JournalOpenChatButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Content="{DynamicResource S.Journal.OpenChat}"
+                                                Click="JournalOpenChatButton_Click"/>
+                                    </StackPanel>
+
+                                    <Border x:Name="JournalAnswerBox" Visibility="Collapsed" Margin="0,12,0,0"
+                                            Background="{DynamicResource Bg.Card}"
+                                            BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                            CornerRadius="8" Padding="12,10">
+                                        <TextBlock x:Name="JournalAnswerText" FontSize="12.5" TextWrapping="Wrap"
+                                                   LineHeight="18" Foreground="{DynamicResource Text.Body}"/>
+                                    </Border>
+
+                                    <TextBlock Text="{DynamicResource S.Journal.Arguments}" Margin="0,16,0,6"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Text.Faint}"/>
+                                    <ContentControl x:Name="JournalArgumentsHost"/>
+
+                                    <TextBlock Text="{DynamicResource S.Journal.Result}" Margin="0,14,0,6"
+                                               FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Text.Faint}"/>
+                                    <ContentControl x:Name="JournalResultHost" Margin="0,0,0,4"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ===== ПОДВАЛ ===== -->
+                        <TextBlock Grid.Row="4" x:Name="JournalFooter" Margin="0,12,0,0"
+                                   FontSize="11" Foreground="{DynamicResource Text.Faint}"/>
+                    </Grid>
+                </Border>
+            </Viewbox>
+        </Grid>
+
         <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="30">
             <Border Background="{DynamicResource Overlay.Scrim}"/>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="420" MinHeight="180" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <!--
+                Шире обычных 420 и с потолком высоты: сюда кладётся блок кода, а карточка живёт
+                внутри Viewbox со Stretch="Uniform" — без MaxHeight длинный скрипт растянул бы её,
+                и Viewbox ужал бы весь диалог вместе с кнопками до нечитаемого.
+            -->
+            <Border x:Name="ConfirmationCard"
+                    Width="460" MinHeight="180" MaxHeight="560" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
                     Padding="20,18">
                 <StackPanel>
@@ -2806,8 +3198,15 @@
                     <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
                                TextWrapping="Wrap" Margin="0,0,0,8"/>
                     <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                               TextWrapping="Wrap" Margin="0,0,0,16"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                               TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <!--
+                        Что именно выполнится, целиком, и технические подробности. Наполняются из
+                        кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
+                        диалоге хуже, чем его отсутствие.
+                    -->
+                    <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,0,0,8"/>
+                    <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,0,0,8"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                         <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
                                 Style="{StaticResource DialogSecondaryButton}"
                                 Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>

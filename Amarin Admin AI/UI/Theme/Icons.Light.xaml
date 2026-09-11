@@ -155,4 +155,23 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <!--
+        Журнал действий. Строки с маркерами — самая узнаваемая метафора списка записей и
+        единственная, что не путается с соседями: скобки уже заняты экспортом в JSON, два
+        листа — копированием. Маркеры залиты, а строки обведены пером: на 13 px заливка
+        мельче пера не различается, и без этого перепада иконка схлопывается в решётку.
+    -->
+    <DrawingImage x:Key="Journal">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
+                <GeometryDrawing Brush="#FF1A1A1A" Geometry="F1 M24,24z M0,0z M6,5.85 C6.635145,5.85 7.15,6.364855 7.15,7 C7.15,7.635145 6.635145,8.15 6,8.15 C5.364855,8.15 4.85,7.635145 4.85,7 C4.85,6.364855 5.364855,5.85 6,5.85 Z M6,10.85 C6.635145,10.85 7.15,11.364855 7.15,12 C7.15,12.635145 6.635145,13.15 6,13.15 C5.364855,13.15 4.85,12.635145 4.85,12 C4.85,11.364855 5.364855,10.85 6,10.85 Z M6,15.85 C6.635145,15.85 7.15,16.364855 7.15,17 C7.15,17.635145 6.635145,18.15 6,18.15 C5.364855,18.15 4.85,17.635145 4.85,17 C4.85,16.364855 5.364855,15.85 6,15.85 Z" />
+                <GeometryDrawing Geometry="F1 M24,24z M0,0z M10.5,7 L19,7 M10.5,12 L19,12 M10.5,17 L19,17">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#FF1A1A1A" Thickness="2.1" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
 </ResourceDictionary>

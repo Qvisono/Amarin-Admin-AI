@@ -75,6 +75,9 @@ public sealed class WindowSmokeTests
                 "AttachmentsPanel", "AttachmentsHost", "AttachmentsWarning",
                 "ComposerBorder", "AttachFileButton", "ChatReasoningPicker",
                 "LiteReasoningPicker", "AgentHeavyReasoningPicker",
+                "AgentFastReasoningPicker", "AgentFastModelPicker",
+                "JournalButton", "JournalOverlay", "JournalDetails", "JournalAskButton",
+                "ConfirmationCodeHost", "ConfirmationDetailsHost",
                 "ProfileList", "NameInput", "NameSaveButton", "ProfileOverlay", "NameOverlay"
             ];
             return names.Where(name => window.FindName(name) is null).ToList();

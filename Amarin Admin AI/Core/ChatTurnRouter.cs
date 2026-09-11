@@ -16,9 +16,15 @@ internal interface IChatTurnUi
 
     void TurnAssistantCompleted(RunningTurn turn, ChatDisplayMessage assistant);
 
+    /// <summary>Ответ закрыт ради дописанного сообщения — ход на этом не кончился.</summary>
+    void TurnAssistantContinued(RunningTurn turn, ChatDisplayMessage assistant);
+
     void TurnAssistantCancelled(RunningTurn turn, ChatDisplayMessage assistant);
 
     void TurnError(RunningTurn turn, string message);
+
+    /// <summary>Ход забрал сообщение, дописанное во время работы: обещание «учту» исполнено.</summary>
+    void TurnQueuedTaken(RunningTurn turn);
 }
 
 /// <summary>
@@ -56,6 +62,10 @@ internal sealed class ChatTurnRouter(
         turn.AssistantId = assistant.Id;
         turn.PendingText = assistant.Text;
         turn.RenderedText = "";
+
+        // A queued follow-up can start a second answer inside one turn, and the flag set by the
+        // first one would otherwise keep the live view from ever rebinding to this one.
+        turn.Finished = false;
         ui.TurnAssistantStarted(turn, assistant);
     }
 
@@ -82,6 +92,16 @@ internal sealed class ChatTurnRouter(
         ui.TurnAssistantCompleted(turn, assistant);
     }
 
+    public void OnAssistantContinued(ChatDisplayMessage assistant)
+    {
+        turn.Assistant = assistant;
+        turn.PendingText = assistant.Text;
+
+        // Finished намеренно не трогаем: следующий ответ этого же хода начнётся через мгновение.
+        save(turn.Session);
+        ui.TurnAssistantContinued(turn, assistant);
+    }
+
     public void OnAssistantCancelled(ChatDisplayMessage assistant)
     {
         turn.Assistant = assistant;
@@ -92,4 +112,15 @@ internal sealed class ChatTurnRouter(
     }
 
     public void OnError(string message) => ui.TurnError(turn, message);
+
+    public bool TryTakeQueuedMessage(out string text)
+    {
+        if (!turn.TryTakeQueued(out text))
+        {
+            return false;
+        }
+
+        ui.TurnQueuedTaken(turn);
+        return true;
+    }
 }

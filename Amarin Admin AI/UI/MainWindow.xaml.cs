@@ -142,6 +142,7 @@ namespace Amarin.UI
             HeavyReasoningPicker.SetUsesTools(true);
             RouterReasoningPicker.SetUsesTools(false);
             TitleReasoningPicker.SetUsesTools(false);
+            AgentFastReasoningPicker.SetUsesTools(true);
             AgentLiteReasoningPicker.SetUsesTools(true);
             AgentHeavyReasoningPicker.SetUsesTools(true);
 
@@ -812,6 +813,11 @@ namespace Amarin.UI
                 _services.Settings.TitleModelId = id;
                 TitleReasoningPicker.SetModel(id);
             }
+            else if (ReferenceEquals(sender, AgentFastModelPicker))
+            {
+                _services.Settings.AgentFastModelId = id;
+                AgentFastReasoningPicker.SetModel(id);
+            }
             else if (ReferenceEquals(sender, AgentLiteModelPicker))
             {
                 _services.Settings.AgentLiteModelId = id;
@@ -874,6 +880,11 @@ namespace Amarin.UI
             if (ReferenceEquals(sender, TitleReasoningPicker))
             {
                 return settings.TitleReasoning ??= new ReasoningSettings();
+            }
+
+            if (ReferenceEquals(sender, AgentFastReasoningPicker))
+            {
+                return settings.AgentFastReasoning ??= new ReasoningSettings();
             }
 
             if (ReferenceEquals(sender, AgentLiteReasoningPicker))
@@ -972,6 +983,7 @@ namespace Amarin.UI
             ChatReasoningPicker.SetCatalog(models);
             UpdateReasoningPicker();
             BindSettingsReasoningPickers();
+            RefreshContextRing();
         }
 
         private ModelPickerField[] SettingsPickers() =>
@@ -980,6 +992,7 @@ namespace Amarin.UI
             HeavyModelPicker,
             RouterModelPicker,
             TitleModelPicker,
+            AgentFastModelPicker,
             AgentLiteModelPicker,
             AgentHeavyModelPicker
         ];
@@ -990,6 +1003,7 @@ namespace Amarin.UI
             HeavyReasoningPicker,
             RouterReasoningPicker,
             TitleReasoningPicker,
+            AgentFastReasoningPicker,
             AgentLiteReasoningPicker,
             AgentHeavyReasoningPicker
         ];
@@ -1057,7 +1071,8 @@ namespace Amarin.UI
                 HeavyModelPicker.SetSelected(settings.HeavyModelId);
                 RouterModelPicker.SetSelected(settings.RouterModelId);
                 TitleModelPicker.SetSelected(settings.TitleModelId);
-                AgentLiteModelPicker.SetSelected(settings.AgentLiteModelId);
+                AgentFastModelPicker.SetSelected(settings.AgentFastModelId);
+            AgentLiteModelPicker.SetSelected(settings.AgentLiteModelId);
                 AgentHeavyModelPicker.SetSelected(settings.AgentHeavyModelId);
                 BindSettingsReasoningPickers();
 
@@ -1199,6 +1214,15 @@ namespace Amarin.UI
         {
             if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) ||
                 Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+            {
+                return true;
+            }
+
+            // Checked before anything reads the focused element, and without reading it: the
+            // overlay takes focus itself when it opens, but between that and the first click there
+            // is a moment with nothing focused at all, and the early return below would hand those
+            // keystrokes to the composer -- including the Escape meant to close the journal.
+            if (JournalOverlay.Visibility == Visibility.Visible)
             {
                 return true;
             }
@@ -1358,7 +1382,7 @@ namespace Amarin.UI
 
         private async Task SendAsync()
         {
-            if (_services is null || IsBusy(_session.Id))
+            if (_services is null)
             {
                 return;
             }
@@ -1393,6 +1417,13 @@ namespace Amarin.UI
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
+                return;
+            }
+
+            // If the turn finished in the moment between the check and the call, QueueFollowUp
+            // says so and the message goes out as an ordinary one instead of vanishing.
+            if (IsBusy(_session.Id) && QueueFollowUp(text, command is not null))
+            {
                 return;
             }
 
@@ -1487,6 +1518,9 @@ namespace Amarin.UI
                 ResumeLiveRendering(live);
             }
 
+            // Подпись под композером принадлежит чату: при переходе показывается его, а не
+            // та, что осталась от разговора, из которого ушли.
+            UpdateAttachmentWarning();
             MaybeAutoscroll();
         }
 
@@ -1617,6 +1651,61 @@ namespace Amarin.UI
 
             StartNewSession(persist: false);
             RefreshChatList();
+        }
+
+        /// <summary>
+        /// Hands a line to the turn already running in this chat instead of refusing it.
+        /// </summary>
+        /// <remarks>
+        /// The engine folds it into the context on the next round boundary, so the work in flight
+        /// — the tool that is running, the agents it started — is not disturbed. Drawn here rather
+        /// than by the engine: the person needs to see the line land the moment they press Enter,
+        /// and a round can take a minute.
+        /// </remarks>
+        /// <returns>False when there is no longer a turn to queue onto.</returns>
+        private bool QueueFollowUp(string text, bool isCommand)
+        {
+            if (FindTurn(_session.Id) is not { } turn)
+            {
+                return false;
+            }
+
+            // A slash command picks its own kind of turn, and there is no second turn to pick.
+            // Folding "/agent …" in as plain text would silently mean something else.
+            if (isCommand)
+            {
+                ShowComposerNotice(Loc.Get("S.Turn.NoCommandWhileBusy"));
+                return true;
+            }
+
+            // Attachments travel in a multipart message built when the turn starts; the context
+            // for this one was snapshotted rounds ago and there is nowhere to graft them on.
+            if (_pendingImages.Count > 0 || _pendingFiles.Count > 0)
+            {
+                ShowComposerNotice(Loc.Get("S.Turn.NoAttachmentsWhileBusy"));
+                return true;
+            }
+
+            MessageTextBox.Clear();
+
+            var user = new ChatDisplayMessage
+            {
+                Role = "user",
+                Id = Guid.NewGuid().ToString("N"),
+                CreatedAt = DateTime.Now,
+                Text = text
+            };
+            _session.Messages.Add(user);
+
+            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session)).Root;
+            MessagesPanel.Children.Add(userRoot);
+            TrackMessageView(user, userRoot);
+            MaybeAutoscroll();
+            RefreshChatList();
+
+            turn.Enqueue(text);
+            ShowComposerNotice(Loc.Get("S.Turn.Queued"));
+            return true;
         }
 
         private void RegenerateAssistant(ChatDisplayMessage message)
@@ -1946,6 +2035,7 @@ namespace Amarin.UI
 
             ModelBrand.Apply(this, modelId, _modelButtonLogo, _modelButtonLetter, _modelButtonLightning);
             ChatModelPicker.SetSelected(modelId);
+            RefreshContextRing();
             UpdateReasoningPicker();
         }
 
@@ -1971,6 +2061,7 @@ namespace Amarin.UI
             BindSlot(HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
             BindSlot(RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);
             BindSlot(TitleReasoningPicker, settings.TitleModelId, settings.TitleReasoning);
+            BindSlot(AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
             BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
             BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
         }
@@ -2155,24 +2246,41 @@ namespace Amarin.UI
         {
             if (IsVisibleTurn(turn))
             {
-                _workingTimer.Stop();
-                _streamRender.Stop();
-                _liveAssistant?.ApplyBranding(
-                    this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
-                if (_liveAssistant is not null)
-                {
-                    _liveAssistant.SetBody(assistant.Text, streaming: false);
-                    _liveAssistant.UpdateTools(assistant);
-                    _liveAssistant.ShowFinished(assistant);
-                }
-
-                _liveAssistant = null;
-                MaybeAutoscroll();
+                CloseVisibleAnswer(assistant);
             }
 
             // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат.
             MaybeShowCompletionToast(assistant);
         });
+
+        /// <summary>
+        /// Ответ закрыт ради дописанного сообщения: следующий пойдёт под ним. Всё как при
+        /// завершении, кроме уведомления, — ход продолжается, и «ответ готов» было бы неправдой.
+        /// </summary>
+        void IChatTurnUi.TurnAssistantContinued(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
+        {
+            if (IsVisibleTurn(turn))
+            {
+                CloseVisibleAnswer(assistant);
+            }
+        });
+
+        private void CloseVisibleAnswer(ChatDisplayMessage assistant)
+        {
+            _workingTimer.Stop();
+            _streamRender.Stop();
+            _liveAssistant?.ApplyBranding(
+                this, assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "");
+            if (_liveAssistant is not null)
+            {
+                _liveAssistant.SetBody(assistant.Text, streaming: false);
+                _liveAssistant.UpdateTools(assistant);
+                _liveAssistant.ShowFinished(assistant);
+            }
+
+            _liveAssistant = null;
+            MaybeAutoscroll();
+        }
 
         void IChatTurnUi.TurnAssistantCancelled(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
         {
@@ -2232,10 +2340,7 @@ namespace Amarin.UI
             ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
                 ? request.Info.ToolName
                 : request.Info.ChangeSummary;
-            var explanation = string.IsNullOrWhiteSpace(request.Info.Explanation)
-                ? request.Info.Details
-                : request.Info.Explanation;
-            ConfirmationExplanationText.Text = explanation ?? "";
+            FillConfirmationBody(request.Info);
             ConfirmationOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
         }

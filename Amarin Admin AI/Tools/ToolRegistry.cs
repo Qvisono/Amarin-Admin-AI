@@ -16,6 +16,7 @@ public sealed class ToolRegistry
         "registry",
         "windows_service",
         "filesystem",
+        "write_file",
         "run_powershell",
         "windows_process",
         "scheduled_task",

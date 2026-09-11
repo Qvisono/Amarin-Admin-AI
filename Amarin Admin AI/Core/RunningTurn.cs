@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Amarin.Core;
 
 /// <summary>Откуда взялся ход. Нужно там, где обращение к нему зависит от происхождения.</summary>
@@ -27,6 +29,17 @@ internal enum TurnKind
 /// </remarks>
 internal sealed class RunningTurn
 {
+    /// <summary>
+    /// What the user typed while this turn was still working. The engine drains it on a round
+    /// boundary, which is why it is a queue and not a single slot — three quick lines in a row
+    /// must reach the model in the order they were written.
+    /// </summary>
+    /// <remarks>
+    /// Concurrent because the composer fills it on the UI thread while the engine empties it on
+    /// whichever thread the tool round finished on.
+    /// </remarks>
+    private readonly ConcurrentQueue<string> _queued = new();
+
     public required ChatSession Session { get; init; }
 
     public required CancellationTokenSource Cancellation { get; init; }
@@ -56,4 +69,16 @@ internal sealed class RunningTurn
     public string RenderedText { get; set; } = "";
 
     public bool Finished { get; set; }
+
+    public bool HasQueued => !_queued.IsEmpty;
+
+    public void Enqueue(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            _queued.Enqueue(text.Trim());
+        }
+    }
+
+    public bool TryTakeQueued(out string text) => _queued.TryDequeue(out text!);
 }

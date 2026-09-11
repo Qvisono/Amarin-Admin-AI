@@ -26,6 +26,15 @@ public sealed class ChatCompletionRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Stream { get; init; }
 
+    /// <summary>
+    /// Asks for the token count on a streamed answer. Only ever set alongside
+    /// <see cref="Stream"/>: a non-streaming request reports usage on its own, and some models
+    /// reject the field outright when there is no stream to attach it to.
+    /// </summary>
+    [JsonPropertyName("stream_options")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public StreamOptions? StreamOptions { get; init; }
+
     [JsonPropertyName("reasoning_effort")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ReasoningEffort { get; init; }
@@ -43,6 +52,29 @@ public sealed class ChatCompletionRequest
     /// </summary>
     [JsonIgnore]
     public ReasoningChoice? ReasoningChoice { get; init; }
+}
+
+public sealed class StreamOptions
+{
+    [JsonPropertyName("include_usage")]
+    public bool IncludeUsage { get; init; } = true;
+}
+
+/// <summary>
+/// How many tokens the request actually cost. <see cref="PromptTokens"/> is the whole context the
+/// model read — system prompt, history, tool results — which is exactly what the context ring
+/// shows; counting it locally can only ever be a guess.
+/// </summary>
+public sealed class VeniceUsage
+{
+    [JsonPropertyName("prompt_tokens")]
+    public int? PromptTokens { get; init; }
+
+    [JsonPropertyName("completion_tokens")]
+    public int? CompletionTokens { get; init; }
+
+    [JsonPropertyName("total_tokens")]
+    public int? TotalTokens { get; init; }
 }
 
 public sealed class VeniceParameters
@@ -164,6 +196,9 @@ public sealed class ChatCompletionResponse
     [JsonPropertyName("cost")]
     public VeniceCostResponse? Cost { get; init; }
 
+    [JsonPropertyName("usage")]
+    public VeniceUsage? Usage { get; init; }
+
     [JsonPropertyName("error")]
     public VeniceError? Error { get; init; }
 }
@@ -193,6 +228,13 @@ public sealed class ChatCompletionChunk
 
     [JsonPropertyName("cost")]
     public VeniceCostResponse? Cost { get; init; }
+
+    /// <summary>
+    /// Arrives once, on a trailing chunk whose <see cref="Choices"/> is empty. Anything that reads
+    /// it after picking a choice out of the list will never see it.
+    /// </summary>
+    [JsonPropertyName("usage")]
+    public VeniceUsage? Usage { get; init; }
 
     [JsonPropertyName("error")]
     public VeniceError? Error { get; init; }
@@ -276,6 +318,14 @@ public sealed class StreamedChatCompletion
     public string? FinishReason { get; init; }
 
     public VeniceCost Cost { get; init; } = VeniceCost.Zero;
+
+    /// <summary>
+    /// Context the model read for this request, as counted by Venice. Zero when the API stayed
+    /// quiet about it — the caller then falls back to an estimate rather than showing nothing.
+    /// </summary>
+    public int PromptTokens { get; init; }
+
+    public int TotalTokens { get; init; }
 
     public string Model { get; init; } = "";
 }

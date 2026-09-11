@@ -231,12 +231,18 @@
     </Style>
     <Style x:Key="ToolsExpander" TargetType="Expander">
         <Setter Property="Margin" Value="0,0,0,8"/>
+        <!-- Оба были зашиты в шаблон. В ленте чата блок обязан жаться влево по своей ширине, а в
+             диалоге подтверждения — растягиваться на карточку; из сеттеров это переопределяется
+             у экземпляра, из шаблона не переопределялось никак. -->
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="MinWidth" Value="280"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Expander">
                     <Border Background="{DynamicResource Bg.Sidebar}" BorderBrush="{DynamicResource Border.Subtle}"
                             BorderThickness="1" CornerRadius="8"
-                            HorizontalAlignment="Left" MinWidth="280">
+                            HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                            MinWidth="{TemplateBinding MinWidth}">
                         <StackPanel>
                             <ToggleButton IsChecked="{Binding IsExpanded,
                                 RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"

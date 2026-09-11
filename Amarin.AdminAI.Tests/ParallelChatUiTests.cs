@@ -405,7 +405,9 @@ public sealed class ParallelChatUiTests : IDisposable
     public void A_second_turn_in_the_same_chat_is_refused()
     {
         // Один чат — один ход: ApiMessages это линейная стенограмма, два хода вперемешку дают
-        // историю, которую ни человек, ни модель не прочитают.
+        // историю, которую ни человек, ни модель не прочитают. Дописать в идущий ход теперь можно,
+        // но через очередь самого хода (RunningTurn.Enqueue) — второй RunningTurn всё так же не
+        // заводится, и проверка ниже сторожит именно это.
         var grew = With(
             (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
             harness =>
@@ -451,6 +453,101 @@ public sealed class ParallelChatUiTests : IDisposable
 
         Assert.False(started, "четвёртый ход всё-таки стартовал");
         Assert.Contains("дождитесь", notice, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_promise_to_take_a_line_in_belongs_to_the_chat_it_was_typed_in()
+    {
+        // Строка под композером одна на окно, а чатов много: «отправлено, учту» из одного
+        // разговора висела над всеми остальными.
+        var (typed, elsewhere, returned) = With(
+            (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
+            harness =>
+            {
+                var mine = Session("s1", "Первый");
+                var other = Session("s2", "Второй");
+                harness.Services.ChatStore.Save(mine);
+                harness.Services.ChatStore.Save(other);
+
+                Set(harness.Window, "_session", mine);
+                Register(harness.Window, mine);
+                Call(harness.Window, "QueueFollowUp", "и ещё про диск D", false);
+
+                var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
+                var here = warning.Text;
+
+                Set(harness.Window, "_session", other);
+                Call(harness.Window, "RenderSession");
+                var away = (warning.Text, warning.Visibility);
+
+                Set(harness.Window, "_session", mine);
+                Call(harness.Window, "RenderSession");
+                return (here, away, warning.Text);
+            });
+
+        Assert.NotEqual("", typed);
+        Assert.Equal("", elsewhere.Item1);
+        Assert.Equal(Visibility.Collapsed, elsewhere.Item2);
+
+        // И возвращается вместе с чатом: сообщение всё ещё ждёт своей очереди.
+        Assert.Equal(typed, returned);
+    }
+
+    [Fact]
+    public void The_promise_comes_down_when_the_turn_actually_takes_the_line()
+    {
+        // Прежде подпись висела до конца ответа, хотя обещание «учту» исполнялось раньше —
+        // в момент, когда движок забирал строку с очереди.
+        var (before, after) = With(
+            (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
+            harness =>
+            {
+                var chat = Session("s1");
+                harness.Services.ChatStore.Save(chat);
+                Set(harness.Window, "_session", chat);
+                var turn = Register(harness.Window, chat);
+                Call(harness.Window, "QueueFollowUp", "посмотри ещё диск D", false);
+
+                var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
+                var shown = warning.Text;
+
+                var router = new ChatTurnRouter(turn, _ => { }, _ => { }, harness.Window);
+                Assert.True(((IChatTurnObserver)router).TryTakeQueuedMessage(out _));
+
+                return (shown, warning.Text);
+            });
+
+        Assert.NotEqual("", before);
+        Assert.Equal("", after);
+    }
+
+    [Fact]
+    public void A_line_the_turn_never_got_to_is_still_put_into_the_transcript()
+    {
+        // Пузырь такого сообщения человек уже видит — он рисуется в момент отправки. Пропав из
+        // стенограммы, оно осталось бы на экране непрочитанным, и следующий ответ выглядел бы
+        // так, будто модель прочитала его и не ответила.
+        var (api, notice) = With(
+            (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
+            harness =>
+            {
+                var chat = Session("s1");
+                harness.Services.ChatStore.Save(chat);
+                Set(harness.Window, "_session", chat);
+                var turn = Register(harness.Window, chat);
+                Call(harness.Window, "QueueFollowUp", "и ещё про диск D", false);
+
+                // Ход обрывается раньше, чем движок дошёл до границы раунда.
+                Call(harness.Window, "FinishTurn", turn);
+
+                var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
+                return (chat.ApiMessages.Select(m => ChatContent.ReadText(m.Content)).ToList(), warning.Text);
+            });
+
+        Assert.Equal(["и ещё про диск D"], api);
+
+        // И обещание «учту» снимается вместе с ходом: учитывать его больше некому.
+        Assert.Equal("", notice);
     }
 
     [Fact]

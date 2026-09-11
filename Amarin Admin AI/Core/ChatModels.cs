@@ -50,6 +50,17 @@ public sealed class ChatSession
     public List<ChatDisplayMessage> Messages { get; set; } = [];
 
     public List<ChatMessage> ApiMessages { get; set; } = [];
+
+    /// <summary>
+    /// Context the model read on the last request, as Venice counted it. Kept with
+    /// <see cref="LastPromptTokensApiIndex"/> so the gauge can add an estimate for whatever was
+    /// appended since instead of showing a number that went stale the moment the user typed.
+    /// Zero on chats saved before the field existed, and on chats that never got an answer.
+    /// </summary>
+    public int LastPromptTokens { get; set; }
+
+    /// <summary>Length of <see cref="ApiMessages"/> when <see cref="LastPromptTokens"/> was measured.</summary>
+    public int LastPromptTokensApiIndex { get; set; }
 }
 
 public sealed class ChatDisplayMessage
@@ -105,6 +116,28 @@ public sealed class ToolRound
 {
     public string InfoLine { get; set; } = "";
 
+    /// <summary>
+    /// What the model said before running this round of tools - its own remark, not the engine's
+    /// status line.
+    /// </summary>
+    /// <remarks>
+    /// Kept apart from <see cref="InfoLine"/> because the engine overwrites that one with
+    /// "инструменты завершены" as soon as the round ends, and a remark stored there would not
+    /// survive its own round. Empty on chats saved before the field existed.
+    /// </remarks>
+    public string ModelNote { get; set; } = "";
+
+    /// <summary>
+    /// Что случилось с сообщением, дописанным человеком, пока шёл этот раунд: замечено, агент
+    /// остановлен, агент пересажен на другую модель.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="InfoLine"/> по той же причине, что и <see cref="ModelNote"/>:
+    /// движок переписывает InfoLine в конце раунда, и запись об услышанной просьбе исчезла бы
+    /// вместе с ней. Пусто у чатов, сохранённых до появления поля.
+    /// </remarks>
+    public string FollowUpNote { get; set; } = "";
+
     public List<ToolCallRecord> Calls { get; set; } = [];
 }
 
@@ -118,9 +151,25 @@ public sealed class ToolCallRecord
 
     public string ResultPreview { get; set; } = "";
 
+    /// <summary>
+    /// The tool's output in full, capped — what the journal opens when a row is clicked.
+    /// Empty on calls recorded before the field existed; the journal falls back to the summary.
+    /// </summary>
+    public string ResultText { get; set; } = "";
+
     public bool Success { get; set; }
 
     public ToolCallStatus Status { get; set; }
+
+    /// <summary>
+    /// When the tool actually started running. Default on calls recorded before the field
+    /// existed — the journal falls back to the owning message's timestamp there rather than
+    /// sorting every old action to the year zero.
+    /// </summary>
+    public DateTime StartedAt { get; set; }
+
+    /// <summary>How long it ran. Zero when unknown, same as above.</summary>
+    public TimeSpan Duration { get; set; }
 
     /// <summary>
     /// Pictures the tool produced — a generated image, a screenshot. Stored inline as base64 so

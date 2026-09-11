@@ -12,6 +12,13 @@ namespace Amarin.UI
     /// чата его отменяло. Реестр живёт в окне, а не отдельным сервисом: и все точки старта, и все
     /// точки финиша — методы окна, так что сервис пришлось бы связывать двусторонним интерфейсом
     /// с единственным потребителем. Словарь читается и меняется только с потока диспетчера.
+    /// <para>
+    /// «По одному на чат» осталось в силе и после того, как в идущий ход разрешили дописывать:
+    /// новое сообщение не заводит второй <see cref="RunningTurn"/>, а встаёт в очередь этого же
+    /// (<see cref="RunningTurn.Enqueue"/>) и вливается в контекст на границе раунда. Стенограмма
+    /// <c>ApiMessages</c> от этого остаётся линейной — два хода вперемешку дали бы историю,
+    /// которую не прочитают ни человек, ни модель.
+    /// </para>
     /// </remarks>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow
@@ -31,6 +38,16 @@ namespace Amarin.UI
 
         /// <summary>Чаты, которые ждут отложенной записи на диск.</summary>
         private readonly Dictionary<string, ChatSession> _dirtySessions = [];
+
+        /// <summary>
+        /// Короткая подпись под композером — по чату, в котором её вызвали.
+        /// </summary>
+        /// <remarks>
+        /// Подпись одна на окно, а чатов много: «отправлено, учту» из одного разговора висела над
+        /// всеми остальными и не гасла, потому что гасить её было некому. Здесь она привязана к
+        /// чату, показывается только в нём и снимается в тот момент, когда ход забрал сообщение.
+        /// </remarks>
+        private readonly Dictionary<string, string> _composerNotices = [];
 
         /// <summary>Идёт ли ход в этом чате. В одном чате больше одного хода не бывает.</summary>
         internal bool IsBusy(string sessionId) => _turns.ContainsKey(sessionId);
@@ -109,6 +126,8 @@ namespace Amarin.UI
 
             _turns.Remove(turn.SessionId);
             turn.Finished = true;
+            RescueQueued(turn);
+            ClearComposerNotice(turn.SessionId);
 
             try
             {
@@ -136,6 +155,32 @@ namespace Amarin.UI
             if (IsVisibleTurn(turn) && IsForeground())
             {
                 FocusMessageInput();
+            }
+        }
+
+        /// <summary>
+        /// Дописанное, до чего ход не дожил, кладётся в стенограмму прямо здесь.
+        /// </summary>
+        /// <remarks>
+        /// Пузырь такого сообщения человек уже видит: он рисуется в момент отправки. Если ход
+        /// оборвали (отмена, сбой сети) раньше, чем движок забрал строку, она пропала бы только
+        /// из контекста — на экране осталась бы, и следующий ответ выглядел бы так, будто модель
+        /// её прочитала и пропустила мимо ушей.
+        /// </remarks>
+        private static void RescueQueued(RunningTurn turn)
+        {
+            while (turn.TryTakeQueued(out var text))
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                turn.Session.ApiMessages.Add(new ChatMessage
+                {
+                    Role = "user",
+                    Content = ChatContent.Text(text.Trim())
+                });
             }
         }
 
@@ -171,12 +216,33 @@ namespace Amarin.UI
             _services?.Confirmations.CancelAll();
         }
 
+        /// <summary>
+        /// Заполненность контекста открытого чата. Считается на месте, а не хранится: число
+        /// меняется и от ответа модели, и от смены модели под тем же разговором.
+        /// </summary>
+        private void RefreshContextRing()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            _context?.Show(ContextGauge.Measure(
+                _session,
+                _services.Chat.CurrentSystemPrompt(),
+                _services.Models.Find(CurrentModelId())));
+        }
+
         /// <summary>Кнопки композера по состоянию открытого чата.</summary>
         private void UpdateComposerChrome()
         {
             var busy = IsBusy(_session.Id);
+            RefreshContextRing();
             _compact?.SetBusy(busy);
-            SendButton.IsEnabled = !busy;
+
+            // Stays live while the chat answers: a second line is no longer refused, it is queued
+            // and folded into the context at the next round boundary.
+            SendButton.IsEnabled = true;
 
             // «Новый чат» и список больше не гаснут: открыть другой разговор и писать в нём
             // можно, пока этот отвечает, — ради этого всё и затевалось.
@@ -193,10 +259,30 @@ namespace Amarin.UI
         /// </summary>
         private void ShowComposerNotice(string text)
         {
-            AttachmentsWarning.Text = text;
-            AttachmentsWarning.Visibility = Visibility.Visible;
-            AttachmentsHost.Visibility = Visibility.Visible;
+            _composerNotices[_session.Id] = text;
+            UpdateAttachmentWarning();
         }
+
+        /// <summary>Снимает подпись того чата, которому она принадлежала.</summary>
+        private void ClearComposerNotice(string sessionId)
+        {
+            if (_composerNotices.Remove(sessionId))
+            {
+                UpdateAttachmentWarning();
+            }
+        }
+
+        /// <summary>
+        /// Ход забрал дописанное сообщение — значит, модель его увидела, и обещание «учту»
+        /// исполнено. Держать подпись дальше значило бы врать: она висела бы до конца ответа.
+        /// </summary>
+        void IChatTurnUi.TurnQueuedTaken(RunningTurn turn) => Ui(() =>
+        {
+            if (!turn.HasQueued)
+            {
+                ClearComposerNotice(turn.SessionId);
+            }
+        });
 
         /// <summary>
         /// Второй запуск программы попросил показаться. Поднимаем окно и забираем то, что он
