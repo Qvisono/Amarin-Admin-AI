@@ -81,7 +81,7 @@ internal static class PowerShellProcessRunner
         }
         catch
         {
-            // ignore
+            // Процесс мог завершиться сам между HasExited и Kill.
         }
     }
 }

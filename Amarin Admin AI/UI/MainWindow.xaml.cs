@@ -56,9 +56,9 @@ namespace Amarin.UI
         public MainWindow()
         {
             InitializeComponent();
-            Title = $"Amarin Admin AI v{RuntimeContext.AppVersionDisplay}";
+            Title = $"Amarin Admin AI v{RuntimeContext.AppVersion}";
             TitleText.Text = Title;
-            SettingsVersionText.Text = $"v{RuntimeContext.AppVersionDisplay}";
+            SettingsVersionText.Text = $"v{RuntimeContext.AppVersion}";
 
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);

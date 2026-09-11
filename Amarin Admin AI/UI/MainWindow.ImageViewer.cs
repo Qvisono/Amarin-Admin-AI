@@ -20,8 +20,6 @@ namespace Amarin.UI
         private Point _viewerOffsetStart;
         private bool _viewerDragging;
 
-        internal bool IsImageViewerOpen => ImageViewerOverlay.Visibility == Visibility.Visible;
-
         /// <summary>Opens the viewer on one already-decoded picture.</summary>
         internal void ShowImage(BitmapSource image, string? label)
         {

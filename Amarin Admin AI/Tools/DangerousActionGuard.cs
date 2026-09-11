@@ -64,7 +64,7 @@ internal static partial class DangerousActionGuard
     }
 
     /// <summary>
-    /// System snapshot for /undo — only when rollback can restore meaningful state.
+    /// System snapshot before the change — only when rollback can restore meaningful state.
     /// Downloads, file writes, and process stops are confirmed but not snapshotted.
     /// </summary>
     public static bool RequiresUndoSnapshot(string toolName, JsonElement arguments) =>
@@ -142,7 +142,7 @@ internal static partial class DangerousActionGuard
             action.Equals("chkdsk_fix", StringComparison.OrdinalIgnoreCase))
         {
             sb.AppendLine("Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.");
-            sb.AppendLine("Откат (/undo) не применим.");
+            sb.AppendLine("Откат снимком сессии не применим.");
         }
 
         if (toolName.Equals("disk_space", StringComparison.OrdinalIgnoreCase) &&
@@ -165,14 +165,14 @@ internal static partial class DangerousActionGuard
             }
 
             sb.AppendLine("Параметр path на cleanup НЕ влияет — произвольные пути не удаляются.");
-            sb.AppendLine("Откат (/undo) не применим.");
+            sb.AppendLine("Откат снимком сессии не применим.");
         }
 
         if (toolName.Equals("software_inventory", StringComparison.OrdinalIgnoreCase) &&
             action is "install" or "upgrade" or "upgrade_all" or "uninstall")
         {
             sb.AppendLine("Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.");
-            sb.AppendLine("Откат (/undo) не применим — winget install/uninstall не откатывается снимком сессии.");
+            sb.AppendLine("Откат снимком сессии не применим — winget install/uninstall снимком не откатывается.");
         }
 
         if (toolName.Equals("firewall_rules", StringComparison.OrdinalIgnoreCase) &&
@@ -184,7 +184,7 @@ internal static partial class DangerousActionGuard
                 sb.AppendLine($"name: {Truncate(n.GetString() ?? "", 120)}");
             }
 
-            sb.AppendLine("Перед изменением создаётся снимок сессии (/undo: службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).");
+            sb.AppendLine("Перед изменением создаётся снимок сессии (службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).");
         }
 
         if (toolName.Equals("windows_features", StringComparison.OrdinalIgnoreCase) &&
@@ -197,7 +197,7 @@ internal static partial class DangerousActionGuard
             }
 
             sb.AppendLine("PreviousState будет в ответе тулы — для ручного отката (enable/disable обратно).");
-            sb.AppendLine("Снимок сессии (/undo) восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.");
+            sb.AppendLine("Снимок сессии восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.");
             sb.AppendLine("Машина НЕ перезагружается автоматически; при RestartNeeded=True — reboot вручную.");
         }
 
@@ -206,7 +206,7 @@ internal static partial class DangerousActionGuard
         {
             sb.AppendLine("Изменение локальных учёток/членства в группах.");
             sb.AppendLine("PreviousEnabled / previous members будут в ответе тулы — для ручного отката.");
-            sb.AppendLine("Снимок сессии (/undo) — службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
+            sb.AppendLine("Снимок сессии — службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
             sb.AppendLine("Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.");
         }
 
@@ -217,15 +217,6 @@ internal static partial class DangerousActionGuard
             risk,
             explanation);
     }
-
-    public static DangerousActionInfo DescribeUndo(string description) =>
-        new(
-            "change_rollback",
-            "Восстановление служб, задач планировщика и реестра из снимка",
-            description,
-            DangerousRiskLevel.High,
-            "Вернёт ранее сохранённое состояние служб, задач планировщика и выбранных ключей реестра. " +
-            "Файлы, установленные программы и произвольные изменения PowerShell этим снимком не откатываются.");
 
     /// <summary>
     /// Prefer model-supplied <c>explanation</c>; fall back to the structured change summary.

@@ -340,7 +340,7 @@ public sealed class LocalUsersTool : ITool
               else { Disable-LocalUser -Name $name -ErrorAction Stop }
               $after = Get-LocalUser -Name $name
               Write-Output "NewEnabled: $($after.Enabled)"
-              Write-Output 'Done. /undo does not re-apply user Enabled.'
+              Write-Output 'Done. The session snapshot does not re-apply user Enabled.'
               exit 0
             } catch {
               $msg = $_.Exception.Message
@@ -424,7 +424,7 @@ public sealed class LocalUsersTool : ITool
                 Write-Output ("  {0}" -f $_.Name)
               }
             } catch {}
-            Write-Output 'Done. /undo does not restore group membership.'
+            Write-Output 'Done. The session snapshot does not restore group membership.'
             exit 0
             """;
     }

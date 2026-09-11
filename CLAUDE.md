@@ -28,12 +28,11 @@ dotnet publish "Amarin Admin AI/Amarin Admin AI.csproj" -c Release -r win-x64 \
 `Amarin-Admin-AI-v<версия>-win-x64.exe` и выкладывается как единственное вложение релиза
 (`gh release create v<версия> <файл> --notes-file release/release-notes-v<версия>.md`).
 
-Версия живёт в трёх местах и меняется вместе: `<Version>` в csproj, `Text="v…"` у
-`SettingsVersionText` в `MainWindow.xaml`, комментарий в `RuntimeContext`. В интерфейсе версия
-берётся из сборки, разметка — только заготовка для конструктора.
+Версия живёт в двух местах и меняется вместе: `<Version>` в csproj и `Text="v…"` у
+`SettingsVersionText` в `MainWindow.xaml`. В интерфейсе версия берётся из сборки
+(`RuntimeContext.AppVersion`), разметка — только заготовка для конструктора.
 
-Сборка идёт с девятью давними предупреждениями (устаревший API PDFsharp, NU1510, недостижимый код).
-Новых добавлять не нужно; если ваше изменение добавило предупреждение — это ваш баг.
+Сборка идёт без единого предупреждения. Держите так: любое новое предупреждение — ваш баг.
 
 ## Карта проекта
 
@@ -88,9 +87,10 @@ dotnet publish "Amarin Admin AI/Amarin Admin AI.csproj" -c Release -r win-x64 \
 с нужным значением, а не масштабирует разметку. Всё, что считает размеры в пикселях или ловит
 сообщения окна, обязано это учитывать.
 
-**`WindowMoveBehavior.EnableNativeWindowMoveBehavior` — мёртвый код.** Не вызывайте его: внутри
-свой обработчик `WM_GETMINMAXINFO`, который подерётся с `WindowMaximizeFix`, и координаты у него
-неверны на втором мониторе. Используется только `HandleMouseLeftButtonDownForMove`.
+**`WM_GETMINMAXINFO` перехватывает только `WindowMaximizeFix`.** В `WindowMoveBehavior` жил
+второй такой обработчик — он дрался за то же сообщение и врал с координатами на втором мониторе;
+его удалили. От `WindowMoveBehavior` осталось перетаскивание окна, и заводить там второй
+перехватчик заново не нужно.
 
 **Выпадашки регистрируются в `PopupManager`.** `StaysOpen="False"` здесь не работает: он гасит
 попап тем же нажатием, которым `ClickMode="Press"` его открывает, и не видит кликов в чужом окне

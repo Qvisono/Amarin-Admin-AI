@@ -154,7 +154,7 @@ public sealed partial class DiskSpaceTool : ITool
             }
             catch
             {
-                // skip
+                // Съёмный или сетевой диск мог отвалиться между GetDrives и чтением размера.
             }
         }
 
@@ -204,7 +204,7 @@ public sealed partial class DiskSpaceTool : ITool
             }
             catch
             {
-                // skip
+                // Файл мог исчезнуть или оказаться занят между Exists и FileInfo.
             }
         }
 
@@ -271,13 +271,13 @@ public sealed partial class DiskSpaceTool : ITool
                     }
                     catch
                     {
-                        // skip entry
+                        // Отдельная запись может быть недоступна или исчезнуть на ходу — обход продолжается.
                     }
                 }
             }
             catch
             {
-                // skip directory
+                // Целиком закрытый каталог (System Volume Information и подобные) просто не считаем.
             }
         }
 

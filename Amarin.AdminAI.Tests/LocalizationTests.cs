@@ -81,6 +81,73 @@ public sealed class LocalizationTests
         }
     }
 
+    [Theory]
+    [InlineData("UI", "PasswordWindow.xaml.cs")]
+    [InlineData("UI", "MainWindow.Account.cs")]
+    public void The_login_and_account_screens_hold_no_literal_russian(string folder, string file)
+    {
+        // Эти два экрана написали до локализации, и подписи так и остались литералами: при
+        // японском интерфейсе «Войти», «Локальный режим» и «Задан» показывались по-русски.
+        // Разметка тянет строки через DynamicResource сама, а вот всё, что эти файлы пишут
+        // в интерфейс из кода, обязано идти через Loc — иначе язык до них не доходит.
+        var relative = Path.Combine(folder, file);
+        var lines = File.ReadAllLines(ProjectFile(relative));
+        var offenders = new List<string>();
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            foreach (System.Text.RegularExpressions.Match match in
+                     System.Text.RegularExpressions.Regex.Matches(lines[i], LiteralWithCyrillic))
+            {
+                offenders.Add($"{relative}:{i + 1} {match.Value}");
+            }
+        }
+
+        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
+    }
+
+    private const string LiteralWithCyrillic = "\"[^\"\n]*[А-Яа-яЁё][^\"\n]*\"";
+
+    [Fact]
+    public void The_account_and_password_screens_are_translated()
+    {
+        // Ключ можно завести и оставить русское значение в en.xaml — набор ключей при этом
+        // совпадёт, и главный страж ничего не заметит.
+        var russian = Load("ru");
+        var english = Load("en");
+
+        var untranslated = russian
+            .Where(pair => pair.Key.StartsWith("S.Account.", StringComparison.Ordinal) ||
+                           pair.Key.StartsWith("S.Password.", StringComparison.Ordinal))
+            .Where(pair => english[pair.Key] == pair.Value)
+            .Select(pair => pair.Key)
+            .ToList();
+
+        Assert.True(untranslated.Count == 0, $"не переведено: {string.Join(", ", untranslated)}");
+    }
+
+    private static string ProjectFile(string relative)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(directory.FullName, "Amarin Admin AI", relative);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException(relative);
+    }
+
     private static string Placeholders(string value) =>
         string.Concat(System.Text.RegularExpressions.Regex
             .Matches(value, @"\{\d+\}")

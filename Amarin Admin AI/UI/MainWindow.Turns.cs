@@ -152,7 +152,7 @@ namespace Amarin.UI
             }
             catch (ObjectDisposedException)
             {
-                // ignored
+                // Ход мог завершиться сам и освободить CancellationTokenSource.
             }
 
             _services?.Confirmations.CancelForSession(sessionId);

@@ -3,8 +3,13 @@ using System.Windows;
 namespace Amarin.UI;
 
 /// <summary>
-/// Runs WPF on a dedicated STA thread so the console UI can keep running.
+/// Поднимает настоящее WPF-приложение на отдельном STA-потоке — этим живут оконные тесты.
 /// </summary>
+/// <remarks>
+/// xUnit гоняет тесты на потоках пула, а WPF требует STA и собственный насос сообщений.
+/// Потому окна и создаются здесь, а свойства зависимостей читаются только через
+/// <see cref="Invoke"/> — снаружи будет «поток не владеет объектом».
+/// </remarks>
 internal sealed class WpfUi : IDisposable
 {
     private readonly Thread _uiThread;

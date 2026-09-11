@@ -140,7 +140,7 @@ public sealed class PerformanceTool : ITool
         }
         catch
         {
-            // invalid
+            // Путь может не быть корнем тома — info остаётся null, это проверяется ниже.
         }
 
         if (info is null || !info.IsReady)
@@ -215,7 +215,7 @@ public sealed class PerformanceTool : ITool
             }
             catch
             {
-                // skip
+                // Съёмный или сетевой диск мог отвалиться между GetDrives и чтением размера.
             }
         }
     }

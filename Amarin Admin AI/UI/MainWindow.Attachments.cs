@@ -536,7 +536,5 @@ namespace Amarin.UI
             }
         }
 
-        /// <summary>Измеренный размер строки миниатюр — им пользуются пузыри сообщений.</summary>
-        internal static Size ThumbnailBox => new(ThumbnailSize, ThumbnailSize);
     }
 }

@@ -14,15 +14,32 @@
     -->
 
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Изображение профиля</system:String>
+    <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Удалить профиль «{0}» вместе со всеми его чатами?&#10;&#10;Это необратимо.</system:String>
+    <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Доп. профиль</system:String>
     <system:String x:Key="S.Account.Guest" xml:space="preserve">Гость</system:String>
+    <system:String x:Key="S.Account.ImageUnreadable" xml:space="preserve">Не удалось прочитать это изображение. Попробуйте PNG или JPEG.</system:String>
+    <system:String x:Key="S.Account.Images" xml:space="preserve">Изображения</system:String>
     <system:String x:Key="S.Account.LocalMode" xml:space="preserve">Локальный режим</system:String>
+    <system:String x:Key="S.Account.ModeExtra" xml:space="preserve">Локальный режим · дополнительный профиль</system:String>
+    <system:String x:Key="S.Account.ModeMain" xml:space="preserve">Локальный режим · основной профиль</system:String>
+    <system:String x:Key="S.Account.NameEmpty" xml:space="preserve">Имя не может быть пустым.</system:String>
+    <system:String x:Key="S.Account.NewProfile" xml:space="preserve">Новый профиль</system:String>
+    <system:String x:Key="S.Account.NewProfileDesc" xml:space="preserve">У нового профиля будет свой пустой список чатов и свои настройки.</system:String>
     <system:String x:Key="S.Account.Password" xml:space="preserve">Пароль</system:String>
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Пароль при запуске</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Чаты на диске не шифруются</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Не задан</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Пароль сохранён.&#10;&#10;Он блокирует вход в приложение, но не шифрует чаты — файлы в папке приложения остаются доступными для чтения.</system:String>
+    <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Задан</system:String>
+    <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">текущий</system:String>
+    <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">с паролем</system:String>
+    <system:String x:Key="S.Account.ProfileMain" xml:space="preserve">основной</system:String>
+    <system:String x:Key="S.Account.SetPassword" xml:space="preserve">Задать</system:String>
+    <system:String x:Key="S.Account.SetPasswordFirst" xml:space="preserve">Сначала задайте пароль.</system:String>
     <system:String x:Key="S.Account.SwitchProfile" xml:space="preserve">Сменить</system:String>
     <system:String x:Key="S.Account.UserName" xml:space="preserve">Имя пользователя</system:String>
 
+    <system:String x:Key="S.Account.UserNameDesc" xml:space="preserve">Отображается в настройках. Хранится только на этом компьютере.</system:String>
     <system:String x:Key="S.Actions.AttachSubtitle" xml:space="preserve">Фото, PDF, документы</system:String>
     <system:String x:Key="S.Actions.AttachTitle" xml:space="preserve">Attach image/document</system:String>
     <system:String x:Key="S.Actions.CreateInfographic" xml:space="preserve">Create Infographic</system:String>
@@ -155,6 +172,7 @@
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>
 
     <system:String x:Key="S.Common.Add" xml:space="preserve">Добавить</system:String>
+    <system:String x:Key="S.Common.AllFiles" xml:space="preserve">Все файлы</system:String>
     <system:String x:Key="S.Common.Apply" xml:space="preserve">Применить</system:String>
     <system:String x:Key="S.Common.Cancel" xml:space="preserve">Отмена</system:String>
     <system:String x:Key="S.Common.Change" xml:space="preserve">Изменить</system:String>
@@ -276,9 +294,24 @@
     <system:String x:Key="S.Name.Desc" xml:space="preserve">Отображается в настройках. Хранится только на этом компьютере.</system:String>
     <system:String x:Key="S.Name.Title" xml:space="preserve">Имя пользователя</system:String>
 
+    <system:String x:Key="S.Password.Chosen" xml:space="preserve">выбран</system:String>
+    <system:String x:Key="S.Password.ConfirmAction" xml:space="preserve">Подтвердить</system:String>
+    <system:String x:Key="S.Password.CurrentDesc" xml:space="preserve">Подтвердите текущий пароль, чтобы изменить настройки входа.</system:String>
+    <system:String x:Key="S.Password.CurrentTitle" xml:space="preserve">Текущий пароль</system:String>
+    <system:String x:Key="S.Password.LoginTitle" xml:space="preserve">Вход · {0}</system:String>
+    <system:String x:Key="S.Password.Mismatch" xml:space="preserve">Пароли не совпадают.</system:String>
+    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">Пароль блокирует вход в приложение. Он не шифрует чаты — файлы на диске остаются доступными для чтения. Забытый пароль восстановить нельзя.</system:String>
+    <system:String x:Key="S.Password.NewTitle" xml:space="preserve">Новый пароль</system:String>
+    <system:String x:Key="S.Password.NoPassword" xml:space="preserve">без пароля</system:String>
     <system:String x:Key="S.Password.Prompt" xml:space="preserve">Введите пароль</system:String>
+    <system:String x:Key="S.Password.Protected" xml:space="preserve">Профиль «{0}» защищён паролем.</system:String>
+    <system:String x:Key="S.Password.Required" xml:space="preserve">требуется пароль</system:String>
+    <system:String x:Key="S.Password.SignIn" xml:space="preserve">Войти</system:String>
     <system:String x:Key="S.Password.SwitchUser" xml:space="preserve">Сменить пользователя</system:String>
 
+    <system:String x:Key="S.Password.TooManyAttempts" xml:space="preserve">Слишком много неудачных попыток.</system:String>
+    <system:String x:Key="S.Password.TooShort" xml:space="preserve">Пароль должен содержать не менее 4 символов.</system:String>
+    <system:String x:Key="S.Password.Wrong" xml:space="preserve">Неверный пароль. Осталось попыток: {0}.</system:String>
     <system:String x:Key="S.Profiles.Desc" xml:space="preserve">У каждого профиля свои чаты и настройки. Данные хранятся локально.</system:String>
     <system:String x:Key="S.Profiles.New" xml:space="preserve">Новый профиль</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>

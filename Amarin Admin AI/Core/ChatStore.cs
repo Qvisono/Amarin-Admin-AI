@@ -17,8 +17,6 @@ public sealed class ChatStore
         _indexFile = Path.Combine(_chatsDirectory, "index.json");
     }
 
-    public string RootDirectory => _root;
-
     public ChatSession CreateNew(string? selectedModelId = null)
     {
         var now = DateTime.Now;

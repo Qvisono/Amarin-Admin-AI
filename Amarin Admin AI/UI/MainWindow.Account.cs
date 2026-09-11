@@ -43,17 +43,17 @@ namespace Amarin.UI
             var profile = ActiveProfile;
             AccountNameText.Text = profile.Name;
             AccountNameHint.Text = profile.Name;
-            AccountModeText.Text = ProfileStore.IsDefault(profile.Id)
-                ? "Локальный режим · основной профиль"
-                : "Локальный режим · дополнительный профиль";
+            var isDefault = ProfileStore.IsDefault(profile.Id);
+            AccountModeText.Text = Loc.Get(isDefault ? "S.Account.ModeMain" : "S.Account.ModeExtra");
             SidebarAccountName.Text = profile.Name;
-            SidebarAccountMode.Text = ProfileStore.IsDefault(profile.Id)
-                ? "Локальный режим"
-                : "Доп. профиль";
+            SidebarAccountMode.Text = Loc.Get(
+                isDefault ? "S.Account.LocalMode" : "S.Account.ExtraProfileShort");
 
-            AccountPasswordHint.Text = profile.HasPassword ? "Задан" : "Не задан";
+            AccountPasswordHint.Text = Loc.Get(
+                profile.HasPassword ? "S.Account.PasswordSet" : "S.Account.PasswordNotSet");
             RemovePasswordButton.IsEnabled = profile.HasPassword;
-            ChangePasswordButton.Content = profile.HasPassword ? "Изменить" : "Задать";
+            ChangePasswordButton.Content = Loc.Get(
+                profile.HasPassword ? "S.Common.Change" : "S.Account.SetPassword");
             LockOnStartupToggle.IsChecked = profile.LockOnStartup;
             LockOnStartupToggle.IsEnabled = profile.HasPassword;
 
@@ -137,10 +137,12 @@ namespace Amarin.UI
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Изображение профиля",
+                Title = Loc.Get("S.Account.Avatar"),
                 // No .webp: the WIC codec for it is not present on every Windows install, and a
                 // missing one surfaces as an unhelpful decoder error rather than a refusal here.
-                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|Все файлы|*.*"
+                // Фильтр собирается из кусков: перевод целиком сломал бы разметку «имя|маска».
+                Filter = Loc.Get("S.Account.Images") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|" +
+                         Loc.Get("S.Common.AllFiles") + "|*.*"
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -157,7 +159,7 @@ namespace Amarin.UI
                 {
                     MessageBox.Show(
                         this,
-                        "Не удалось прочитать это изображение. Попробуйте PNG или JPEG.",
+                        Loc.Get("S.Account.ImageUnreadable"),
                         Title,
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
@@ -251,8 +253,8 @@ namespace Amarin.UI
         {
             var profile = ActiveProfile;
             OpenNameDialog(
-                "Имя пользователя",
-                "Отображается в настройках. Хранится только на этом компьютере.",
+                Loc.Get("S.Account.UserName"),
+                Loc.Get("S.Account.UserNameDesc"),
                 profile.Name,
                 name =>
                 {
@@ -288,7 +290,7 @@ namespace Amarin.UI
             var name = NameInput.Text.Trim();
             if (name.Length == 0)
             {
-                NameError.Text = "Имя не может быть пустым.";
+                NameError.Text = Loc.Get("S.Account.NameEmpty");
                 NameError.Visibility = Visibility.Visible;
                 return;
             }
@@ -339,8 +341,7 @@ namespace Amarin.UI
 
             MessageBox.Show(
                 this,
-                "Пароль сохранён.\n\nОн блокирует вход в приложение, но не шифрует чаты — " +
-                "файлы в папке приложения остаются доступными для чтения.",
+                Loc.Get("S.Account.PasswordSaved"),
                 Title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -376,7 +377,7 @@ namespace Amarin.UI
                 LockOnStartupToggle.IsChecked = false;
                 MessageBox.Show(
                     this,
-                    "Сначала задайте пароль.",
+                    Loc.Get("S.Account.SetPasswordFirst"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -402,9 +403,9 @@ namespace Amarin.UI
         {
             ProfileOverlay.Visibility = Visibility.Collapsed;
             OpenNameDialog(
-                "Новый профиль",
-                "У нового профиля будет свой пустой список чатов и свои настройки.",
-                "Новый профиль",
+                Loc.Get("S.Account.NewProfile"),
+                Loc.Get("S.Account.NewProfileDesc"),
+                Loc.Get("S.Account.NewProfile"),
                 name =>
                 {
                     var created = ProfileStore.Create(_services!.ProfileRegistry, name);
@@ -468,17 +469,17 @@ namespace Amarin.UI
             var notes = new List<string>();
             if (active)
             {
-                notes.Add("текущий");
+                notes.Add(Loc.Get("S.Account.ProfileCurrent"));
             }
 
             if (profile.HasPassword)
             {
-                notes.Add("с паролем");
+                notes.Add(Loc.Get("S.Account.ProfileHasPassword"));
             }
 
             if (ProfileStore.IsDefault(profile.Id))
             {
-                notes.Add("основной");
+                notes.Add(Loc.Get("S.Account.ProfileMain"));
             }
 
             if (notes.Count > 0)
@@ -501,7 +502,7 @@ namespace Amarin.UI
             {
                 var open = new Button
                 {
-                    Content = "Открыть",
+                    Content = Loc.Get("S.Common.Open"),
                     Style = (Style)FindResource("DialogSecondaryButton"),
                     Margin = new Thickness(0, 0, 6, 0)
                 };
@@ -515,7 +516,7 @@ namespace Amarin.UI
             {
                 var delete = new Button
                 {
-                    Content = "Удалить",
+                    Content = Loc.Get("S.Common.Delete"),
                     Style = (Style)FindResource("DialogSecondaryButton")
                 };
                 delete.Click += (_, _) => DeleteProfile(profile);
@@ -531,7 +532,7 @@ namespace Amarin.UI
         {
             var confirm = MessageBox.Show(
                 this,
-                $"Удалить профиль «{profile.Name}» вместе со всеми его чатами?\n\nЭто необратимо.",
+                Loc.Format("S.Account.DeleteProfileConfirm", profile.Name),
                 Title,
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);

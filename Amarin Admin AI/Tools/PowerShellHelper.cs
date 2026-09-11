@@ -70,7 +70,7 @@ internal static partial class PowerShellHelper
                 }
                 catch
                 {
-                    // ignore
+                    // Процесс мог завершиться сам между проверкой таймаута и Kill.
                 }
 
                 return ToolResult.Fail($"PowerShell timed out after {timeoutSeconds} seconds.");

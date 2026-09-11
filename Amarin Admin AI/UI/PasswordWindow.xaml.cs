@@ -49,9 +49,9 @@ public partial class PasswordWindow : Window
 
         var window = new PasswordWindow(profile, confirmTwice: false)
         {
-            HeadingText = { Text = "Введите пароль" },
-            SubtitleText = { Text = $"Профиль «{profile.Name}» защищён паролем." },
-            OkButton = { Content = "Войти" }
+            HeadingText = { Text = Loc.Get("S.Password.Prompt") },
+            SubtitleText = { Text = Loc.Format("S.Password.Protected", profile.Name) },
+            OkButton = { Content = Loc.Get("S.Password.SignIn") }
         };
         if (owner is not null)
         {
@@ -71,9 +71,9 @@ public partial class PasswordWindow : Window
         {
             Owner = owner,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            HeadingText = { Text = "Текущий пароль" },
-            SubtitleText = { Text = "Подтвердите текущий пароль, чтобы изменить настройки входа." },
-            OkButton = { Content = "Подтвердить" }
+            HeadingText = { Text = Loc.Get("S.Password.CurrentTitle") },
+            SubtitleText = { Text = Loc.Get("S.Password.CurrentDesc") },
+            OkButton = { Content = Loc.Get("S.Password.ConfirmAction") }
         };
 
         return window.ShowDialog() == true;
@@ -86,13 +86,9 @@ public partial class PasswordWindow : Window
         {
             Owner = owner,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            HeadingText = { Text = "Новый пароль" },
-            SubtitleText =
-            {
-                Text = "Пароль блокирует вход в приложение. Он не шифрует чаты — файлы на диске " +
-                       "остаются доступными для чтения. Забытый пароль восстановить нельзя."
-            },
-            OkButton = { Content = "Сохранить" }
+            HeadingText = { Text = Loc.Get("S.Password.NewTitle") },
+            SubtitleText = { Text = Loc.Get("S.Password.NewDesc") },
+            OkButton = { Content = Loc.Get("S.Common.Save") }
         };
         window.SecondBox.Tag = "confirm";
 
@@ -113,7 +109,7 @@ public partial class PasswordWindow : Window
         var active = profiles.Active(registry);
         var window = new PasswordWindow(active, confirmTwice: false)
         {
-            OkButton = { Content = "Войти" }
+            OkButton = { Content = Loc.Get("S.Password.SignIn") }
         };
         window.EnableProfileSwitching(profiles, registry);
         window.SelectProfile(active);
@@ -205,10 +201,10 @@ public partial class PasswordWindow : Window
             Foreground = Brush("Text.Body", Color.FromRgb(0xDC, 0xDC, 0xDC))
         });
 
-        var note = profile.IsLocked ? "требуется пароль" : "без пароля";
+        var note = Loc.Get(profile.IsLocked ? "S.Password.Required" : "S.Password.NoPassword");
         if (_verifyAgainst is not null && profile.Id == _verifyAgainst.Id)
         {
-            note += " · выбран";
+            note += " · " + Loc.Get("S.Password.Chosen");
         }
 
         labels.Children.Add(new TextBlock
@@ -288,8 +284,8 @@ public partial class PasswordWindow : Window
         _verifyAgainst = profile;
         _attempts = 0;
         UnlockedProfile = profile;
-        HeadingText.Text = "Вход · " + profile.Name;
-        SubtitleText.Text = $"Профиль «{profile.Name}» защищён паролем.";
+        HeadingText.Text = Loc.Format("S.Password.LoginTitle", profile.Name);
+        SubtitleText.Text = Loc.Format("S.Password.Protected", profile.Name);
         ErrorText.Visibility = Visibility.Collapsed;
         FirstBox.Clear();
         FirstBox.Focus();
@@ -325,13 +321,13 @@ public partial class PasswordWindow : Window
         {
             if (password.Length < 4)
             {
-                ShowError("Пароль должен содержать не менее 4 символов.");
+                ShowError(Loc.Get("S.Password.TooShort"));
                 return;
             }
 
             if (!string.Equals(password, SecondBox.Password, StringComparison.Ordinal))
             {
-                ShowError("Пароли не совпадают.");
+                ShowError(Loc.Get("S.Password.Mismatch"));
                 SecondBox.Clear();
                 SecondBox.Focus();
                 return;
@@ -353,12 +349,12 @@ public partial class PasswordWindow : Window
             // idle guessing so the dialog cannot be hammered forever.
             if (_attempts >= MaxAttempts)
             {
-                ShowError("Слишком много неудачных попыток.");
+                ShowError(Loc.Get("S.Password.TooManyAttempts"));
                 DialogResult = false;
                 return;
             }
 
-            ShowError($"Неверный пароль. Осталось попыток: {MaxAttempts - _attempts}.");
+            ShowError(Loc.Format("S.Password.Wrong", MaxAttempts - _attempts));
             return;
         }
 

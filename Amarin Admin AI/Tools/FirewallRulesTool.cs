@@ -455,7 +455,7 @@ public sealed class FirewallRulesTool : ITool
               $rule = New-NetFirewallRule @params
               Write-Output "Created: DisplayName=$($rule.DisplayName); Name=$($rule.Name); Direction=$($rule.Direction); Action=$($rule.Action); Protocol={{protoPs}}; LocalPort=$port; Program=$prog"
               Write-Output "Description=$($rule.Description)"
-              Write-Output 'Undo: delete this rule by Name/DisplayName (session /undo snapshot may not restore firewall rules).'
+              Write-Output 'Undo: delete this rule by Name/DisplayName (the session snapshot may not restore firewall rules).'
               exit 0
             } catch {
               $msg = $_.Exception.Message

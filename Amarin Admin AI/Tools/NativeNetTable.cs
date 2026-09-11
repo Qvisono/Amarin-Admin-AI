@@ -48,7 +48,7 @@ internal static class NativeNetTable
             }
             catch
             {
-                // ignore
+                // Процесс мог закрыться между перечислением и чтением имени.
             }
             finally
             {

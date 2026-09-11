@@ -65,9 +65,7 @@ internal sealed class AgentHost : IAgentHost
             tools,
             options,
             adapter,
-            new SessionActionLog(),
             new SessionUndoTracker(),
-            new SessionReportCollector(),
             string.IsNullOrWhiteSpace(techAgent) ? null : techAgent)
         {
             SessionMode = SessionMode.Isolated

@@ -69,7 +69,7 @@ internal static class ChangeRollbackStore
 
     public static string CompareServices(IReadOnlyList<ServiceSnapshotEntry> old, IReadOnlyList<ServiceSnapshotEntry> current)
     {
-        // Service names should be unique, but de-dupe anyway — duplicate keys must not crash /undo.
+        // Service names should be unique, but de-dupe anyway — duplicate keys must not crash a restore.
         var oldMap = ToFirstMap(old, s => s.Name ?? string.Empty);
         var sb = new StringBuilder();
 
@@ -464,7 +464,7 @@ internal static class ChangeRollbackStore
                 }
                 catch
                 {
-                    // ignore
+                    // Процесс мог завершиться сам между проверкой таймаута и Kill.
                 }
 
                 return ToolResult.Fail($"{fileName} timed out after {timeoutSeconds} seconds.");

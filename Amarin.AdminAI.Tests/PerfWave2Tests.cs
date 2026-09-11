@@ -27,14 +27,14 @@ public sealed class PerfWave2Tests
     public void Parallel_safe_for_read_tools_only()
     {
         using var empty = JsonDocument.Parse("{}");
-        Assert.True(Agent.IsParallelSafeToolCall("system_info", empty.RootElement, readOnlyMode: false));
+        Assert.True(Agent.IsParallelSafeToolCall("system_info", empty.RootElement));
         Assert.True(Agent.IsParallelSafeToolCall("performance",
-            JsonDocument.Parse("""{"action":"summary"}""").RootElement, readOnlyMode: false));
+            JsonDocument.Parse("""{"action":"summary"}""").RootElement));
 
         Assert.False(Agent.IsParallelSafeToolCall("download_file",
-            JsonDocument.Parse("""{"url":"https://example.com/a.exe"}""").RootElement, readOnlyMode: false));
+            JsonDocument.Parse("""{"url":"https://example.com/a.exe"}""").RootElement));
         Assert.False(Agent.IsParallelSafeToolCall("windows_service",
-            JsonDocument.Parse("""{"action":"stop","service_name":"wuauserv"}""").RootElement, readOnlyMode: false));
+            JsonDocument.Parse("""{"action":"stop","service_name":"wuauserv"}""").RootElement));
     }
 
     [Fact]

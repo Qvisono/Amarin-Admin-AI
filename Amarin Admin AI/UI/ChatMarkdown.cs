@@ -167,12 +167,6 @@ internal static class ChatMarkdown
         }
     }
 
-    public static string ReadPlain(RichTextBox box)
-    {
-        var range = new TextRange(box.Document.ContentStart, box.Document.ContentEnd);
-        return range.Text.TrimEnd('\r', '\n');
-    }
-
     // Заодно приводит формулы к долларам: модели пишут их и как \(…\) с \[…\], а разметка
     // понимает только $. Пересчёт идёт до разбора, чтобы Markdig увидел уже готовые формулы.
     private static string Normalize(string text) =>

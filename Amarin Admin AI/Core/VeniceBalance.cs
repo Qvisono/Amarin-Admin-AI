@@ -1,11 +1,13 @@
-using System.Text.Json.Serialization;
-
 namespace Amarin.Core;
 
+/// <summary>Остаток на ключе Venice — столько, сколько отдают заголовки ответа.</summary>
+/// <remarks>
+/// <c>DiemEpochAllocation</c> заполняется только из старых файлов <c>balance.json</c>:
+/// отдельный запрос за балансом больше не делается, а в заголовках этого поля нет.
+/// </remarks>
 public sealed class VeniceBalance
 {
     public bool CanConsume { get; init; }
-    public string? ConsumptionCurrency { get; init; }
     public decimal? Usd { get; init; }
     public decimal? Diem { get; init; }
     public decimal? DiemEpochAllocation { get; init; }
@@ -28,37 +30,4 @@ public sealed class VeniceBalance
 
         return parts.Count > 0 ? string.Join(" · ", parts) : "нет данных";
     }
-}
-
-internal sealed class VeniceBalanceResponse
-{
-    [JsonPropertyName("canConsume")]
-    public bool CanConsume { get; init; }
-
-    [JsonPropertyName("consumptionCurrency")]
-    public string? ConsumptionCurrency { get; init; }
-
-    [JsonPropertyName("balances")]
-    public VeniceBalancesResponse? Balances { get; init; }
-
-    [JsonPropertyName("diemEpochAllocation")]
-    public decimal? DiemEpochAllocation { get; init; }
-
-    public VeniceBalance ToBalance() => new()
-    {
-        CanConsume = CanConsume,
-        ConsumptionCurrency = ConsumptionCurrency,
-        Usd = Balances?.Usd,
-        Diem = Balances?.Diem,
-        DiemEpochAllocation = DiemEpochAllocation
-    };
-}
-
-internal sealed class VeniceBalancesResponse
-{
-    [JsonPropertyName("usd")]
-    public decimal? Usd { get; init; }
-
-    [JsonPropertyName("diem")]
-    public decimal? Diem { get; init; }
 }

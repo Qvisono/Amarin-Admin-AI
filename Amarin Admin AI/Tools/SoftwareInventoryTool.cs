@@ -303,7 +303,7 @@ public sealed partial class SoftwareInventoryTool : ITool
                 }
                 catch
                 {
-                    // ignore
+                    // Каталог из PATH может быть недоступен — ищем дальше в следующем.
                 }
             }
             else if (File.Exists(c))

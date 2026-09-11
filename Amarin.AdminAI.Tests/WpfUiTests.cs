@@ -12,6 +12,6 @@ public sealed class WpfUiTests
     [Fact]
     public void Start_shows_empty_main_window()
     {
-        Assert.Equal($"Amarin Admin AI v{RuntimeContext.AppVersionDisplay}", _wpf.Ui.MainWindowTitle);
+        Assert.Equal($"Amarin Admin AI v{RuntimeContext.AppVersion}", _wpf.Ui.MainWindowTitle);
     }
 }

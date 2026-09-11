@@ -4,7 +4,7 @@ using System.Globalization;
 namespace Amarin.Core;
 
 /// <summary>
-/// Opt-in timings for AMARIN_PERF_LOG. Never writes to the Spectre REPL.
+/// Opt-in timings for AMARIN_PERF_LOG.
 /// Enabled when the env var is 1/true/yes/on. Logs to stderr and
 /// %LOCALAPPDATA%\AmarinAdminAI\perf.log.
 /// </summary>

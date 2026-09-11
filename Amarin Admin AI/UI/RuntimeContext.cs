@@ -5,11 +5,9 @@ namespace Amarin.UI;
 
 internal static class RuntimeContext
 {
+    /// <summary>Три числа из версии сборки — их показывают в заголовке окна и в настройках.</summary>
     public static string AppVersion =>
         Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
-
-    /// <summary>Shown in the window title and in Settings. Plain version — 1.15.2 is a full release.</summary>
-    public static string AppVersionDisplay => AppVersion;
 
     public static bool IsAdministrator()
     {

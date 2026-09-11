@@ -1,8 +1,13 @@
 namespace Amarin.UI;
 
 /// <summary>
-/// CLI flags used by the quick-chat bar and scripts.
+/// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>
+/// и <c>--smoke-tools</c>.
 /// </summary>
+/// <remarks>
+/// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
+/// запрос, который не помещается в командную строку, и оставлять его на диске незачем.
+/// </remarks>
 internal sealed class StartupArgs
 {
     public string? Model { get; private set; }

@@ -118,6 +118,14 @@ namespace Amarin.UI
             UpdateModelButton();
             UpdateReasoningPicker();
 
+            // Панель аккаунта и подпись под именем в боковой колонке пишутся из кода —
+            // без этого «Локальный режим» и «Задан» остаются на прежнем языке до перезапуска.
+            LoadAccountUi();
+            if (ProfileOverlay.Visibility == Visibility.Visible)
+            {
+                RefreshProfileList();
+            }
+
             // Список собирается заново по слепку; после смены языка он обязан пересобраться,
             // иначе заголовки групп останутся на прежнем.
             _chatListSignature = "";

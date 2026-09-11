@@ -8,7 +8,7 @@ namespace Amarin.UI;
 /// Finds the window that owns a chat element and asks it to open the image viewer.
 /// <para>
 /// The view builders take their host as a plain <see cref="FrameworkElement"/> — they are also
-/// exercised from tests and from the console renderer — so they cannot depend on
+/// exercised from tests — so they cannot depend on
 /// <see cref="MainWindow"/> directly. Walking up to the owning window keeps the click wiring in
 /// one place and makes a missing viewer a no-op rather than a crash.
 /// </para>

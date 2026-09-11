@@ -2,6 +2,13 @@ using Amarin.Tools;
 
 namespace Amarin.Core;
 
+/// <summary>
+/// Следит за тем, чтобы перед первым изменением в запросе агента появился снимок системы.
+/// </summary>
+/// <remarks>
+/// Снимок снимается один раз на запрос, а не на каждый вызов инструмента: три правки реестра
+/// подряд иначе дали бы три снимка служб и задач, каждый по несколько секунд.
+/// </remarks>
 public sealed class SessionUndoTracker
 {
     private string? _activeSnapshotId;
@@ -9,14 +16,9 @@ public sealed class SessionUndoTracker
     private string? _activeUserRequest;
 
     private string? _undoSnapshotId;
-    private string? _undoUserRequest;
-    private DateTime? _undoCreatedAt;
 
+    /// <summary>Был ли за сессию запрос, который что-то изменил и успел снять снимок.</summary>
     public bool HasUndoPoint => !string.IsNullOrWhiteSpace(_undoSnapshotId);
-
-    public string? UndoSnapshotId => _undoSnapshotId;
-
-    public string? LastCompletedUndoSnapshotId { get; private set; }
 
     public void BeginRequest(string userRequest)
     {
@@ -48,91 +50,12 @@ public sealed class SessionUndoTracker
 
     public void CompleteRequest()
     {
-        LastCompletedUndoSnapshotId = null;
-
+        // Снимок засчитывается точкой отката только если изменения действительно случились:
+        // инструмент мог запросить снимок и тут же отказаться от записи.
         if (_activeHadMutations && !string.IsNullOrWhiteSpace(_activeSnapshotId))
         {
             _undoSnapshotId = _activeSnapshotId;
-            _undoUserRequest = _activeUserRequest;
-            _undoCreatedAt = DateTime.Now;
-            LastCompletedUndoSnapshotId = _activeSnapshotId;
         }
-    }
-
-    public string DescribeUndoPoint()
-    {
-        if (!HasUndoPoint)
-        {
-            return "Нет доступной точки отката.";
-        }
-
-        return
-            $"Откат последнего запроса с изменениями\n\n" +
-            $"Запрос: {Truncate(_undoUserRequest ?? "—", 200)}\n" +
-            $"Снимок: {_undoSnapshotId}\n" +
-            $"Создан: {_undoCreatedAt:yyyy-MM-dd HH:mm:ss}\n\n" +
-            "Будут восстановлены службы, задачи планировщика и ключи реестра из снимка.";
-    }
-
-    public UndoResult Undo()
-    {
-        if (!HasUndoPoint)
-        {
-            return UndoResult.Fail("Нет точки отката для последнего запроса с изменениями.");
-        }
-
-        var snapshotId = _undoSnapshotId!;
-
-        // Always clear undo point once attempted — partial failures must not leave a crashing loop.
-        _undoSnapshotId = null;
-        _undoUserRequest = null;
-        _undoCreatedAt = null;
-
-        try
-        {
-            ToolResult restore;
-            try
-            {
-                restore = ChangeRollbackOperations.RestoreSnapshot(snapshotId);
-            }
-            catch (Exception ex)
-            {
-                return UndoResult.Fail($"Ошибка восстановления снимка {snapshotId}: {ex.Message}");
-            }
-
-            string? compareText = null;
-            try
-            {
-                var compare = ChangeRollbackOperations.CompareSnapshot(snapshotId);
-                compareText = compare.Success
-                    ? compare.Output
-                    : $"Сравнение снимка не удалось: {compare.Output}";
-            }
-            catch (Exception ex)
-            {
-                // Compare must never crash the process — restore may already have succeeded.
-                compareText = $"Сравнение снимка не удалось: {ex.Message}";
-            }
-
-            return restore.Success
-                ? UndoResult.Ok(restore.Output, compareText)
-                : UndoResult.Fail(restore.Output);
-        }
-        catch (Exception ex)
-        {
-            return UndoResult.Fail($"Откат прерван: {ex.Message}");
-        }
-    }
-
-    public void Clear()
-    {
-        _activeSnapshotId = null;
-        _activeHadMutations = false;
-        _activeUserRequest = null;
-        _undoSnapshotId = null;
-        _undoUserRequest = null;
-        _undoCreatedAt = null;
-        LastCompletedUndoSnapshotId = null;
     }
 
     private static string Truncate(string text, int max) =>
@@ -153,10 +76,4 @@ public sealed record SnapshotEnsureResult(
 
     public static SnapshotEnsureResult Failed(string message) =>
         new(false, false, null, message);
-}
-
-public sealed record UndoResult(bool Success, string RestoreOutput, string? CompareOutput)
-{
-    public static UndoResult Ok(string restore, string? compare) => new(true, restore, compare);
-    public static UndoResult Fail(string message) => new(false, message, null);
 }

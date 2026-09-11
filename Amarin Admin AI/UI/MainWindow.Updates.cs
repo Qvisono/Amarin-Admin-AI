@@ -29,7 +29,7 @@ namespace Amarin.UI
             }
 
             AutoUpdateToggle.IsChecked = _services.Settings.AutoCheckUpdates;
-            ShowUpdateStatus($"Установлена версия {RuntimeContext.AppVersionDisplay}", accent: false);
+            ShowUpdateStatus($"Установлена версия {RuntimeContext.AppVersion}", accent: false);
             OpenReleaseButton.Visibility = Visibility.Collapsed;
             UpdateNowButton.Visibility = Visibility.Collapsed;
         }
@@ -91,7 +91,7 @@ namespace Amarin.UI
             _pendingUpdate = plan;
             UpdateConfirmTitle.Text = $"Обновить до версии {_latestRelease.Version}";
             UpdateConfirmText.Text =
-                $"Установлена {RuntimeContext.AppVersionDisplay}, доступна {_latestRelease.Version}. " +
+                $"Установлена {RuntimeContext.AppVersion}, доступна {_latestRelease.Version}. " +
                 $"Будет скачано {Megabytes(plan.Asset.Size)} и записано на место текущей программы.";
             UpdateConfirmFile.Text = plan.Asset.Name;
             UpdateConfirmFolder.Text = plan.Folder;
@@ -278,7 +278,7 @@ namespace Amarin.UI
                 if (manual)
                 {
                     ShowUpdateStatus(
-                        $"Установлена последняя версия — {RuntimeContext.AppVersionDisplay}",
+                        $"Установлена последняя версия — {RuntimeContext.AppVersion}",
                         accent: false);
                 }
 
@@ -292,12 +292,12 @@ namespace Amarin.UI
                 ? Visibility.Collapsed
                 : Visibility.Visible;
             ShowUpdateStatus(
-                $"Доступна версия {result.Latest.Version} — установлена {RuntimeContext.AppVersionDisplay}",
+                $"Доступна версия {result.Latest.Version} — установлена {RuntimeContext.AppVersion}",
                 accent: true);
 
             // Метка у номера версии в боковой колонке настроек: единственное место, где
             // о новой версии видно, не открывая эту страницу.
-            SettingsVersionText.Text = $"v{RuntimeContext.AppVersionDisplay} · есть обновление";
+            SettingsVersionText.Text = $"v{RuntimeContext.AppVersion} · есть обновление";
             SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
         }
 

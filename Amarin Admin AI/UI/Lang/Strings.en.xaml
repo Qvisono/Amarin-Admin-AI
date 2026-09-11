@@ -14,15 +14,32 @@
     -->
 
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Profile picture</system:String>
+    <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Delete the profile “{0}” together with all of its chats?&#10;&#10;This cannot be undone.</system:String>
+    <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Extra profile</system:String>
     <system:String x:Key="S.Account.Guest" xml:space="preserve">Guest</system:String>
+    <system:String x:Key="S.Account.ImageUnreadable" xml:space="preserve">Could not read this image. Try PNG or JPEG.</system:String>
+    <system:String x:Key="S.Account.Images" xml:space="preserve">Images</system:String>
     <system:String x:Key="S.Account.LocalMode" xml:space="preserve">Local mode</system:String>
+    <system:String x:Key="S.Account.ModeExtra" xml:space="preserve">Local mode · additional profile</system:String>
+    <system:String x:Key="S.Account.ModeMain" xml:space="preserve">Local mode · main profile</system:String>
+    <system:String x:Key="S.Account.NameEmpty" xml:space="preserve">The name cannot be empty.</system:String>
+    <system:String x:Key="S.Account.NewProfile" xml:space="preserve">New profile</system:String>
+    <system:String x:Key="S.Account.NewProfileDesc" xml:space="preserve">A new profile gets its own empty chat list and its own settings.</system:String>
     <system:String x:Key="S.Account.Password" xml:space="preserve">Password</system:String>
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Password at startup</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Locks entry to the app. Chats on disk are not encrypted</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Not set</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Password saved.&#10;&#10;It locks access to the app but does not encrypt chats — the files in the app folder stay readable.</system:String>
+    <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Set</system:String>
+    <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">current</system:String>
+    <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">password set</system:String>
+    <system:String x:Key="S.Account.ProfileMain" xml:space="preserve">main</system:String>
+    <system:String x:Key="S.Account.SetPassword" xml:space="preserve">Set</system:String>
+    <system:String x:Key="S.Account.SetPasswordFirst" xml:space="preserve">Set a password first.</system:String>
     <system:String x:Key="S.Account.SwitchProfile" xml:space="preserve">Switch</system:String>
     <system:String x:Key="S.Account.UserName" xml:space="preserve">User name</system:String>
 
+    <system:String x:Key="S.Account.UserNameDesc" xml:space="preserve">Shown in settings. Stored on this computer only.</system:String>
     <system:String x:Key="S.Actions.AttachSubtitle" xml:space="preserve">Photos, PDF, documents</system:String>
     <system:String x:Key="S.Actions.AttachTitle" xml:space="preserve">Attach image/document</system:String>
     <system:String x:Key="S.Actions.CreateInfographic" xml:space="preserve">Create Infographic</system:String>
@@ -155,6 +172,7 @@
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Back to the theme colour</system:String>
 
     <system:String x:Key="S.Common.Add" xml:space="preserve">Add</system:String>
+    <system:String x:Key="S.Common.AllFiles" xml:space="preserve">All files</system:String>
     <system:String x:Key="S.Common.Apply" xml:space="preserve">Apply</system:String>
     <system:String x:Key="S.Common.Cancel" xml:space="preserve">Cancel</system:String>
     <system:String x:Key="S.Common.Change" xml:space="preserve">Change</system:String>
@@ -276,9 +294,24 @@
     <system:String x:Key="S.Name.Desc" xml:space="preserve">Shown in the settings. Kept on this computer only.</system:String>
     <system:String x:Key="S.Name.Title" xml:space="preserve">User name</system:String>
 
+    <system:String x:Key="S.Password.Chosen" xml:space="preserve">selected</system:String>
+    <system:String x:Key="S.Password.ConfirmAction" xml:space="preserve">Confirm</system:String>
+    <system:String x:Key="S.Password.CurrentDesc" xml:space="preserve">Confirm the current password to change the sign-in settings.</system:String>
+    <system:String x:Key="S.Password.CurrentTitle" xml:space="preserve">Current password</system:String>
+    <system:String x:Key="S.Password.LoginTitle" xml:space="preserve">Sign in · {0}</system:String>
+    <system:String x:Key="S.Password.Mismatch" xml:space="preserve">The passwords do not match.</system:String>
+    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">The password locks access to the app. It does not encrypt chats — the files on disk stay readable. A forgotten password cannot be recovered.</system:String>
+    <system:String x:Key="S.Password.NewTitle" xml:space="preserve">New password</system:String>
+    <system:String x:Key="S.Password.NoPassword" xml:space="preserve">no password</system:String>
     <system:String x:Key="S.Password.Prompt" xml:space="preserve">Enter the password</system:String>
+    <system:String x:Key="S.Password.Protected" xml:space="preserve">The profile “{0}” is password-protected.</system:String>
+    <system:String x:Key="S.Password.Required" xml:space="preserve">password required</system:String>
+    <system:String x:Key="S.Password.SignIn" xml:space="preserve">Sign in</system:String>
     <system:String x:Key="S.Password.SwitchUser" xml:space="preserve">Switch user</system:String>
 
+    <system:String x:Key="S.Password.TooManyAttempts" xml:space="preserve">Too many failed attempts.</system:String>
+    <system:String x:Key="S.Password.TooShort" xml:space="preserve">The password must be at least 4 characters long.</system:String>
+    <system:String x:Key="S.Password.Wrong" xml:space="preserve">Wrong password. Attempts left: {0}.</system:String>
     <system:String x:Key="S.Profiles.Desc" xml:space="preserve">Each profile has its own chats and settings. The data is kept locally.</system:String>
     <system:String x:Key="S.Profiles.New" xml:space="preserve">New profile</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>

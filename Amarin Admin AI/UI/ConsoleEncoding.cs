@@ -3,13 +3,21 @@ using System.Text;
 
 namespace Amarin.UI;
 
+/// <summary>
+/// Готовит консоль, которую <c>--smoke-tools</c> открывает через <c>AllocConsole</c>.
+/// </summary>
+/// <remarks>
+/// Единственный уцелевший обломок консольной версии программы: окно, выданное
+/// <c>AllocConsole</c>, приходит с кодовой страницей OEM, и русские названия инструментов
+/// в отчёте смоук-теста выводятся кракозябрами, пока сюда не придёт UTF-8.
+/// </remarks>
 internal static class ConsoleEncoding
 {
     private const int StdOutputHandle = -11;
     private const int StdErrorHandle = -12;
     private const uint EnableVirtualTerminalProcessing = 0x0004;
 
-    public static bool IsVirtualTerminalEnabled { get; private set; }
+    private static bool _virtualTerminalEnabled;
 
     public static void Configure()
     {
@@ -29,13 +37,13 @@ internal static class ConsoleEncoding
         var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         Console.InputEncoding = utf8;
         Console.OutputEncoding = utf8;
-        IsVirtualTerminalEnabled = TryEnableVirtualTerminalProcessing();
+        _virtualTerminalEnabled = TryEnableVirtualTerminalProcessing();
         ResetTerminalState();
     }
 
-    public static void WriteAnsi(string sequence)
+    private static void WriteAnsi(string sequence)
     {
-        if (!IsVirtualTerminalEnabled)
+        if (!_virtualTerminalEnabled)
         {
             return;
         }
@@ -47,7 +55,7 @@ internal static class ConsoleEncoding
         }
         catch
         {
-            // ignore console reset failures
+            // Поток вывода могли перенаправить в закрытый канал — это не повод падать.
         }
     }
 
@@ -64,7 +72,7 @@ internal static class ConsoleEncoding
         }
         catch
         {
-            // ignore console reset failures
+            // Консоли может не быть вовсе — тогда сбрасывать нечего.
         }
     }
 
