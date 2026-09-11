@@ -22,6 +22,11 @@ namespace Amarin.UI
         /// </summary>
         private const double ConfirmationCodeMaxHeight = 220;
 
+        /// <summary>
+        /// Раскладка тела диалога. Нарочно синхронная и без сети: запрос к модели за разъяснением
+        /// живёт отдельно (<see cref="ExplainConfirmation"/>), иначе окно нельзя было бы ни
+        /// разложить, ни проверить, не сходив за ответом.
+        /// </summary>
         private void FillConfirmationBody(DangerousActionInfo info)
         {
             // Explanation and details used to share one line, with Details as the fallback. That
@@ -36,6 +41,78 @@ namespace Amarin.UI
             FillCodeHost(info);
             FillDetailsHost(info);
         }
+
+        /// <summary>
+        /// Заказывает у модели разъяснение к скрипту и дописывает его в уже открытое окно.
+        /// </summary>
+        /// <remarks>
+        /// Кнопки «Да» и «Нет» живые с первого кадра: ответ доезжает сам по себе и ни на что,
+        /// кроме этой строки, не влияет. Отмена — по образцу <c>AskAboutEntryAsync</c> в журнале,
+        /// но с одной добавкой: очередь подтверждений адресная, и пока ответ идёт, в окне уже
+        /// может стоять вопрос из соседнего чата. Поэтому пришедший текст сверяется с самим
+        /// запросом, а не только с токеном.
+        /// </remarks>
+        private async void ExplainConfirmation(ConfirmationRequest request)
+        {
+            CancelConfirmationExplain();
+
+            ConfirmationAiText.Text = "";
+            ConfirmationAiText.Visibility = Visibility.Collapsed;
+
+            if (_services is null || !ActionExplainer.IsWorthExplaining(request.Info))
+            {
+                return;
+            }
+
+            var cancellation = new CancellationTokenSource();
+            _confirmExplain = cancellation;
+            _confirmExplainFor = request;
+
+            ConfirmationAiText.Text = Loc.Get("S.Confirm.Explaining");
+            ConfirmationAiText.Visibility = Visibility.Visible;
+
+            string answer;
+            try
+            {
+                answer = await ActionExplainer.ExplainAsync(
+                        _services.Venice,
+                        _services.Settings.AgentFastModelId,
+                        request.Info,
+                        cancellation.Token)
+                    .ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (cancellation.IsCancellationRequested ||
+                !ReferenceEquals(_confirmExplain, cancellation) ||
+                !ReferenceEquals(_confirmExplainFor, request))
+            {
+                return;
+            }
+
+            ConfirmationAiText.Text = answer;
+        }
+
+        private void CancelConfirmationExplain()
+        {
+            try
+            {
+                _confirmExplain?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            _confirmExplain?.Dispose();
+            _confirmExplain = null;
+            _confirmExplainFor = null;
+        }
+
+        private CancellationTokenSource? _confirmExplain;
+        private ConfirmationRequest? _confirmExplainFor;
 
         private void FillCodeHost(DangerousActionInfo info)
         {

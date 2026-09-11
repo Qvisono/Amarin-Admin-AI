@@ -40,6 +40,37 @@ namespace Amarin.UI
         private readonly Dictionary<string, ChatSession> _dirtySessions = [];
 
         /// <summary>
+        /// Чаты, в которых ответ доспел, пока смотрели другой.
+        /// </summary>
+        /// <remarks>
+        /// Полем окна, а не на самой строке списка: <see cref="RefreshChatList"/> пересобирает
+        /// панель целиком, и всё, что лежало бы на кнопке, пропадало бы при первой же перерисовке.
+        /// По той же причине набор входит в <see cref="BuildChatListSignature"/> — иначе панель
+        /// сочла бы, что ничего не изменилось, и не перерисовалась бы вовсе.
+        /// </remarks>
+        private readonly HashSet<string> _attention = new(StringComparer.Ordinal);
+
+        /// <summary>Зажечь метку «ответ готов» — только если чат сейчас не на экране.</summary>
+        private void MarkAttention(RunningTurn turn)
+        {
+            if (IsVisibleTurn(turn))
+            {
+                return;
+            }
+
+            if (_attention.Add(turn.SessionId))
+            {
+                RefreshChatList();
+            }
+        }
+
+        /// <summary>
+        /// Забыть метку удалённого чата. Без этого его идентификатор остался бы в наборе до
+        /// перезапуска: список чатов фильтруется поиском, и вычистить набор по нему нельзя.
+        /// </summary>
+        private void ForgetAttention(string sessionId) => _attention.Remove(sessionId);
+
+        /// <summary>
         /// Короткая подпись под композером — по чату, в котором её вызвали.
         /// </summary>
         /// <remarks>

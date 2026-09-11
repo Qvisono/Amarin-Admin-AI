@@ -78,11 +78,18 @@ internal static class AttachmentTypes
             : extension.ToLowerInvariant();
     }
 
-    /// <summary>«2,4 МБ» — так размер читается в карточке и в предупреждении.</summary>
+    /// <summary>
+    /// «2,4 МБ» — так размер читается в карточке, в предупреждении и в разбивке по данным.
+    /// </summary>
+    /// <remarks>
+    /// Гигабайты появились вместе с этой разбивкой: сама программа весит под сотню мегабайт, а
+    /// история переписки с картинками уходит и дальше — без этого разряда получалось «1234,5 МБ».
+    /// </remarks>
     public static string FormatSize(long bytes) => bytes switch
     {
         < 1024 => Loc.Format("S.Size.Bytes", bytes),
         < 1024 * 1024 => Loc.Format("S.Size.Kilobytes", $"{bytes / 1024.0:0.#}"),
-        _ => Loc.Format("S.Size.Megabytes", $"{bytes / (1024.0 * 1024.0):0.#}")
+        < 1024 * 1024 * 1024 => Loc.Format("S.Size.Megabytes", $"{bytes / (1024.0 * 1024.0):0.#}"),
+        _ => Loc.Format("S.Size.Gigabytes", $"{bytes / (1024.0 * 1024.0 * 1024.0):0.##}")
     };
 }

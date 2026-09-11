@@ -172,6 +172,7 @@ namespace Amarin.UI
 
             var deletingOpen = id == _session.Id;
             _services.ChatStore.Delete(id);
+            ForgetAttention(id);
 
             if (deletingOpen)
             {

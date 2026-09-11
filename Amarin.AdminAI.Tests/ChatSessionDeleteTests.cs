@@ -131,9 +131,11 @@ public sealed class ChatSessionDeleteTests
         Assert.Equal(["u1", "a1", "u3", "a3"], session.Messages.Select(m => m.Id));
 
         // Whatever survived, every tool result still answers a call that is also still there.
+        // Набор строк, а не строк-с-возможным-null: ToolCallId объявлен nullable, и без явного
+        // приведения xUnit подбирал перегрузку Contains<string?> — сборка ругалась CS8620.
         var announced = session.ApiMessages
             .SelectMany(item => item.ToolCalls ?? [])
-            .Select(call => call.Id)
+            .Select(call => (string?)call.Id)
             .ToHashSet();
         Assert.All(
             session.ApiMessages.Where(item => item.Role == "tool"),

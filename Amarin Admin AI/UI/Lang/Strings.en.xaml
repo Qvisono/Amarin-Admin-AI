@@ -196,6 +196,9 @@
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">What will run — {0} lines</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Technical details</system:String>
+    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">The model said nothing about this script — read it yourself.</system:String>
+    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">The explanation did not arrive — read the script yourself.</system:String>
+    <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Working out what the script does…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The agent wants to download a file from a site that is not on the allowlist. Without permission the download will not happen.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">From chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Confirmation required</system:String>
@@ -254,6 +257,22 @@
     <system:String x:Key="S.Data.OpenFile" xml:space="preserve">Open file</system:String>
     <system:String x:Key="S.Data.Sharing" xml:space="preserve">Share chats by link</system:String>
     <system:String x:Key="S.Data.SharingDesc" xml:space="preserve">The Share and Export buttons under answers. The code and JSON are not encrypted</system:String>
+    <system:String x:Key="S.Data.Usage" xml:space="preserve">Disk usage</system:String>
+    <system:String x:Key="S.Data.Usage.App" xml:space="preserve">The application itself</system:String>
+    <system:String x:Key="S.Data.Usage.Appearance" xml:space="preserve">Avatar and backdrop</system:String>
+    <system:String x:Key="S.Data.Usage.Attachments" xml:space="preserve">attachments among them</system:String>
+    <system:String x:Key="S.Data.Usage.Chats" xml:space="preserve">Chats</system:String>
+    <system:String x:Key="S.Data.Usage.Counting" xml:space="preserve">Measuring…</system:String>
+    <system:String x:Key="S.Data.Usage.Desc" xml:space="preserve">Application data and diagnostic logs</system:String>
+    <system:String x:Key="S.Data.Usage.Empty" xml:space="preserve">Nothing on disk yet</system:String>
+    <system:String x:Key="S.Data.Usage.Files" xml:space="preserve">files: {0}</system:String>
+    <system:String x:Key="S.Data.Usage.Languages" xml:space="preserve">Interface languages</system:String>
+    <system:String x:Key="S.Data.Usage.Logs" xml:space="preserve">Crash logs</system:String>
+    <system:String x:Key="S.Data.Usage.Other" xml:space="preserve">Other</system:String>
+    <system:String x:Key="S.Data.Usage.Refresh" xml:space="preserve">Measure again</system:String>
+    <system:String x:Key="S.Data.Usage.Settings" xml:space="preserve">Settings and profiles</system:String>
+    <system:String x:Key="S.Data.Usage.Shared" xml:space="preserve">Exported chats</system:String>
+    <system:String x:Key="S.Data.Usage.Snapshots" xml:space="preserve">Rollback snapshots</system:String>
 
     <system:String x:Key="S.Domain.Desc" xml:space="preserve">The agent will be allowed to download files from this domain and its subdomains.</system:String>
     <system:String x:Key="S.Domain.Title" xml:space="preserve">Add a domain to the allowlist</system:String>
@@ -381,6 +400,7 @@
     <system:String x:Key="S.Sidebar.Search" xml:space="preserve">Search</system:String>
 
     <system:String x:Key="S.Size.Bytes" xml:space="preserve">{0} B</system:String>
+    <system:String x:Key="S.Size.Gigabytes" xml:space="preserve">{0} GB</system:String>
     <system:String x:Key="S.Size.Kilobytes" xml:space="preserve">{0} KB</system:String>
     <system:String x:Key="S.Size.Megabytes" xml:space="preserve">{0} MB</system:String>
     <system:String x:Key="S.Size.NoExtension" xml:space="preserve">no extension</system:String>
@@ -415,11 +435,47 @@
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Check automatically</system:String>
     <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. Nothing is downloaded: the app only reports a new version</system:String>
+    <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available — {1} is installed</system:String>
+    <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
+    <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
+    <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Could not release the program file: {0}</system:String>
     <system:String x:Key="S.Updates.Check" xml:space="preserve">Check for updates</system:String>
+    <system:String x:Key="S.Updates.CheckFailed" xml:space="preserve">The check did not go through</system:String>
+    <system:String x:Key="S.Updates.Checking" xml:space="preserve">Checking…</system:String>
+    <system:String x:Key="S.Updates.ConfirmText" xml:space="preserve">{0} is installed, {1} is available. {2} will be downloaded and written over the current program.</system:String>
+    <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Update to version {0}</system:String>
+    <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
+    <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Downloading {0} %</system:String>
+    <system:String x:Key="S.Updates.Failed" xml:space="preserve">The update did not happen: {0}</system:String>
+    <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub turned the check down. Open the release page by hand.</system:String>
+    <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">The update check must not carry somebody else's key.</system:String>
+    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match — the file was deleted.</system:String>
+    <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
+    <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
+    <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">No check has run yet</system:String>
+    <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">No connection to GitHub: {0}</system:String>
+    <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Could not work out the program folder.</system:String>
+    <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Could not work out the program file.</system:String>
+    <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">The release carries no recognisable version.</system:String>
+    <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">The release has no ready Windows build.</system:String>
+    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">No write access to the program folder ({0}). Run the update as administrator or update by hand.</system:String>
+    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">The release file is not hosted on GitHub — the update was cancelled.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Open release</system:String>
+    <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Could not make sense of the GitHub answer.</system:String>
+    <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
+    <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">The new version is installed, but starting it did not work: {0}</system:String>
+    <system:String x:Key="S.Updates.RollbackFailed" xml:space="preserve">The update failed ({0}), and the previous version could not be put back. The old file is next to it: {1}</system:String>
+    <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · update available</system:String>
+    <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">The size did not match: expected {0} bytes, got {1}.</system:String>
+    <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub answered {0}.</system:String>
+    <system:String x:Key="S.Updates.Timeout" xml:space="preserve">The check took too long.</system:String>
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Version and updates</system:String>
+    <system:String x:Key="S.Updates.TooBig" xml:space="preserve">The release file is implausibly large.</system:String>
+    <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">an unknown amount</system:String>
+    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">The latest version is installed — {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Update</system:String>
+    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish — the program will restart.</system:String>
 
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>

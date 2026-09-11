@@ -43,9 +43,9 @@
     <SolidColorBrush x:Key="Text.PrimaryTranslucent" Color="#E6000000"/>
 
     <!-- Акцент: системный синий -->
-    <SolidColorBrush x:Key="Accent.Fill"        Color="#FF007AFF"/>
-    <SolidColorBrush x:Key="Accent.FillHover"   Color="#FF0A6FE0"/>
-    <SolidColorBrush x:Key="Accent.FillPressed" Color="#FF3395FF"/>
+    <SolidColorBrush x:Key="Accent.Fill"        Color="#FF006FEB"/>
+    <SolidColorBrush x:Key="Accent.FillHover"   Color="#FF0059C4"/>
+    <SolidColorBrush x:Key="Accent.FillPressed" Color="#FF2E88F2"/>
 
     <!-- Статусы -->
     <SolidColorBrush x:Key="Status.Success"       Color="#FF248A3D"/>

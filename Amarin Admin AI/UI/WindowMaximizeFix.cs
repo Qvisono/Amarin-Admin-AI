@@ -22,6 +22,13 @@ namespace Amarin.UI;
 /// нашего же пересчёта масштаба интерфейса. Поэтому каждое изменение положения развёрнутого
 /// окна дополнительно правится в <c>WM_WINDOWPOSCHANGING</c>.
 /// </para>
+/// <para>
+/// Тем же ответом задаётся и минимальный размер. Отвечая на <c>WM_GETMINMAXINFO</c>, мы ставим
+/// <c>handled</c> и тем самым отключаем штатную обработку WPF — а она как раз и переносила
+/// <see cref="FrameworkElement.MinWidth"/> в <c>ptMinTrackSize</c>. Пока эти два поля не
+/// заполнялись здесь, минимума у окна не было вовсе: система разрешала сжать его до
+/// собственного минимума (порядка 130×40), и разметка обрезалась.
+/// </para>
 /// </remarks>
 internal static class WindowMaximizeFix
 {
@@ -63,7 +70,8 @@ internal static class WindowMaximizeFix
             return false;
         }
 
-        source.AddHook(Hook);
+        source.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            Hook(window, source, hwnd, msg, wParam, lParam, ref handled));
         return true;
     }
 
@@ -98,12 +106,19 @@ internal static class WindowMaximizeFix
         return true;
     }
 
-    private static IntPtr Hook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private static IntPtr Hook(
+        Window window,
+        HwndSource source,
+        IntPtr hwnd,
+        int msg,
+        IntPtr wParam,
+        IntPtr lParam,
+        ref bool handled)
     {
         switch (msg)
         {
             case WM_GETMINMAXINFO:
-                return OnGetMinMaxInfo(hwnd, lParam, ref handled);
+                return OnGetMinMaxInfo(window, source, hwnd, lParam, ref handled);
 
             case WM_WINDOWPOSCHANGING:
                 ClampMaximized(hwnd, lParam);
@@ -163,30 +178,76 @@ internal static class WindowMaximizeFix
         }
     }
 
-    private static IntPtr OnGetMinMaxInfo(IntPtr hwnd, IntPtr lParam, ref bool handled)
+    private static IntPtr OnGetMinMaxInfo(
+        Window window,
+        HwndSource source,
+        IntPtr hwnd,
+        IntPtr lParam,
+        ref bool handled)
     {
-        if (lParam == IntPtr.Zero || !TryGetWorkArea(hwnd, out var work, out var monitor))
+        if (lParam == IntPtr.Zero)
         {
             return IntPtr.Zero;
         }
 
         var info = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        var changed = ApplyMinimumSize(window, source, ref info);
 
-        // Позиция считается от левого верхнего угла монитора, а не рабочего стола:
-        // на втором мониторе rcMonitor.left уже не ноль.
-        info.ptMaxPosition.x = (int)(work.X - monitor.X);
-        info.ptMaxPosition.y = (int)(work.Y - monitor.Y);
-        info.ptMaxSize.x = (int)work.Width;
-        info.ptMaxSize.y = (int)work.Height;
+        if (TryGetWorkArea(hwnd, out var work, out var monitor))
+        {
+            // Позиция считается от левого верхнего угла монитора, а не рабочего стола:
+            // на втором мониторе rcMonitor.left уже не ноль.
+            info.ptMaxPosition.x = (int)(work.X - monitor.X);
+            info.ptMaxPosition.y = (int)(work.Y - monitor.Y);
+            info.ptMaxSize.x = (int)work.Width;
+            info.ptMaxSize.y = (int)work.Height;
 
-        // Без ограничения дорожки Windows всё равно разрешит развёрнутому окну быть больше
-        // рабочей области — панель задач снова окажется накрытой.
-        info.ptMaxTrackSize.x = (int)work.Width;
-        info.ptMaxTrackSize.y = (int)work.Height;
+            // Без ограничения дорожки Windows всё равно разрешит развёрнутому окну быть больше
+            // рабочей области — панель задач снова окажется накрытой.
+            info.ptMaxTrackSize.x = (int)work.Width;
+            info.ptMaxTrackSize.y = (int)work.Height;
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return IntPtr.Zero;
+        }
 
         Marshal.StructureToPtr(info, lParam, fDeleteOld: true);
         handled = true;
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Переносит <see cref="FrameworkElement.MinWidth"/> и <see cref="FrameworkElement.MinHeight"/>
+    /// в аппаратные пиксели дорожки изменения размера.
+    /// </summary>
+    /// <remarks>
+    /// Пересчёт обязательно через <c>CompositionTarget.TransformToDevice</c>, а не через реальный
+    /// DPI монитора: <see cref="UiScale"/> масштабирует интерфейс подделанным <c>WM_DPICHANGED</c>
+    /// и заодно переписывает минимумы окна (<c>850 / factor</c>). Произведение одного на другое
+    /// постоянно, поэтому физический минимум остаётся тем же самым при любом масштабе — а взятый
+    /// в обход преобразования он бы уезжал вслед за масштабом.
+    /// </remarks>
+    private static bool ApplyMinimumSize(Window window, HwndSource source, ref MINMAXINFO info)
+    {
+        if (source.CompositionTarget is not { } target)
+        {
+            return false;
+        }
+
+        var scale = target.TransformToDevice;
+        var width = window.MinWidth * scale.M11;
+        var height = window.MinHeight * scale.M22;
+        if (double.IsNaN(width) || double.IsNaN(height) || width <= 0 || height <= 0)
+        {
+            return false;
+        }
+
+        info.ptMinTrackSize.x = (int)Math.Ceiling(width);
+        info.ptMinTrackSize.y = (int)Math.Ceiling(height);
+        return true;
     }
 
     private static bool TryGetWorkAreaForRect(WINDOWPOS position, out Rect work)

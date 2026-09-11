@@ -187,6 +187,65 @@ public sealed class AppearanceThemeTests
         Assert.Empty(problems);
     }
 
+    /// <summary>
+    /// WCAG relative luminance — gamma-corrected, unlike <see cref="AppearanceManager.Luminance"/>,
+    /// which is a cheap Rec. 709 approximation for picking black-or-white and would overstate the
+    /// contrast of mid-tone accents.
+    /// </summary>
+    private static double Relative(System.Windows.Media.Color color)
+    {
+        static double Channel(byte value)
+        {
+            var part = value / 255.0;
+            return part <= 0.03928 ? part / 12.92 : Math.Pow((part + 0.055) / 1.055, 2.4);
+        }
+
+        return (0.2126 * Channel(color.R)) + (0.7152 * Channel(color.G)) + (0.0722 * Channel(color.B));
+    }
+
+    private static double Contrast(System.Windows.Media.Color first, System.Windows.Media.Color second)
+    {
+        var a = Relative(first);
+        var b = Relative(second);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
+    [Fact]
+    public void Body_text_and_accent_buttons_stay_readable_in_every_preset()
+    {
+        // A new palette is four dozen hand-picked colours, and the two pairs that decide whether
+        // the app is usable at all are body text on the window and the caption on a filled button.
+        // The rest is a matter of taste; these two are not.
+        var problems = _wpf.Ui.Invoke(() =>
+        {
+            var failures = new List<string>();
+
+            foreach (var preset in ThemeCatalog.Presets)
+            {
+                var palette = LoadPalette(preset.PaletteName);
+
+                System.Windows.Media.Color Color(string key) =>
+                    ((System.Windows.Media.SolidColorBrush)palette[key]).Color;
+
+                var body = Contrast(Color("Text.Body"), Color("Bg.Window"));
+                if (body < 4.5)
+                {
+                    failures.Add($"{preset.PaletteName}: Text.Body on Bg.Window is {body:F2}:1");
+                }
+
+                var onAccent = Contrast(Color("Text.OnAccent"), Color("Accent.Fill"));
+                if (onAccent < 4.5)
+                {
+                    failures.Add($"{preset.PaletteName}: Text.OnAccent on Accent.Fill is {onAccent:F2}:1");
+                }
+            }
+
+            return failures;
+        });
+
+        Assert.Empty(problems);
+    }
+
     [Fact]
     public void Backdrop_host_does_not_intercept_the_window_drag()
     {

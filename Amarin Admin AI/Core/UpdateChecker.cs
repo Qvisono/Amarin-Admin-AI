@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
@@ -62,6 +64,9 @@ public static class UpdateChecker
     public const string ReleasesPageUrl =
         "https://github.com/Qvisono/Amarin-Admin-AI/releases/latest";
 
+    /// <summary>Чем программа представляется GitHub. Без этого заголовка он отвечает 403.</summary>
+    private const string ProductToken = "Amarin-Admin-AI";
+
     /// <summary>Как часто автопроверка ходит в сеть.</summary>
     public static readonly TimeSpan AutoCheckInterval = TimeSpan.FromHours(6);
 
@@ -74,8 +79,16 @@ public static class UpdateChecker
     /// GitHub на чужой Bearer отвечает 401, а ключ при этом уезжает на посторонний сервер.
     /// Поэтому обновления ходят своим клиентом, у которого никакой авторизации нет.
     /// </remarks>
-    private static readonly Lazy<HttpClient> Client =
-        new(() => HttpClients.Create(TimeSpan.FromSeconds(30)));
+    private static readonly Lazy<HttpClient> Client = new(() =>
+    {
+        var client = HttpClients.Create(TimeSpan.FromSeconds(30));
+
+        // User-Agent и на клиенте, а не только на самом запросе: GitHub отвечает 403 на любой
+        // запрос без него, а запросов теперь два — к API и к странице релиза по редиректу.
+        // Версию к нему приписывает уже сам запрос, здесь важно только, чтобы заголовок был.
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", ProductToken);
+        return client;
+    });
 
     /// <summary>
     /// Тег релиза в версию: <c>v1.14.2</c>, <c>1.14</c>, <c>v2.0.0-beta.1</c>. Недостающие
@@ -129,7 +142,7 @@ public static class UpdateChecker
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
             {
-                return UpdateCheckResult.Failed("Неожиданный ответ GitHub.");
+                return UpdateCheckResult.Failed(Loc.Get("S.Updates.BadAnswer"));
             }
 
             var tag = root.TryGetProperty("tag_name", out var tagProp) && tagProp.ValueKind == JsonValueKind.String
@@ -139,7 +152,7 @@ public static class UpdateChecker
             var version = ParseTag(tag);
             if (version is null)
             {
-                return UpdateCheckResult.Failed("В релизе нет распознаваемой версии.");
+                return UpdateCheckResult.Failed(Loc.Get("S.Updates.NoVersionInRelease"));
             }
 
             var page = root.TryGetProperty("html_url", out var urlProp) && urlProp.ValueKind == JsonValueKind.String
@@ -164,7 +177,7 @@ public static class UpdateChecker
         }
         catch (JsonException)
         {
-            return UpdateCheckResult.Failed("Не удалось разобрать ответ GitHub.");
+            return UpdateCheckResult.Failed(Loc.Get("S.Updates.ParseFailed"));
         }
     }
 
@@ -233,38 +246,157 @@ public static class UpdateChecker
         Version current,
         CancellationToken cancellationToken = default)
     {
-        if (http.DefaultRequestHeaders.Authorization is not null)
-        {
-            return UpdateCheckResult.Failed("Проверка обновлений не должна ходить с чужим ключом.");
-        }
-
         ArgumentNullException.ThrowIfNull(http);
         ArgumentNullException.ThrowIfNull(current);
+
+        if (http.DefaultRequestHeaders.Authorization is not null)
+        {
+            return UpdateCheckResult.Failed(Loc.Get("S.Updates.ForeignKey"));
+        }
 
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUrl);
             // GitHub отвечает 403 на запрос без User-Agent — заголовок обязателен, а не вежлив.
-            request.Headers.UserAgent.ParseAdd("Amarin-Admin-AI/" + Normalize(current));
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             request.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
             using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                return UpdateCheckResult.Failed($"GitHub ответил {(int)response.StatusCode}.");
+                var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                return ReadRelease(json, current);
             }
 
-            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            return ReadRelease(json, current);
+            if (response.StatusCode is not (HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests))
+            {
+                return UpdateCheckResult.Failed(Loc.Format("S.Updates.Status", (int)response.StatusCode));
+            }
+
+            var refusal = DescribeRefusal(response.Headers);
+            return await FallBackToReleasePageAsync(http, current, cancellationToken).ConfigureAwait(false)
+                   ?? UpdateCheckResult.Failed(refusal);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return UpdateCheckResult.Failed("Проверка заняла слишком много времени.");
+            return UpdateCheckResult.Failed(Loc.Get("S.Updates.Timeout"));
         }
         catch (HttpRequestException ex)
         {
-            return UpdateCheckResult.Failed("Нет связи с GitHub: " + ex.Message);
+            return UpdateCheckResult.Failed(Loc.Format("S.Updates.NoConnection", ex.Message));
         }
+    }
+
+    /// <summary>
+    /// Что сказать человеку про отказ. 403 от <c>api.github.com</c> — это почти всегда
+    /// исчерпанный лимит анонимных запросов: шестьдесят в час на адрес, и за общим NAT или
+    /// VPN его выбирают чужие запросы. «GitHub ответил 403» такому человеку не говорит ничего.
+    /// </summary>
+    internal static string DescribeRefusal(HttpHeaders headers) =>
+        TryReadRateLimitReset(headers, out var reset)
+            ? Loc.Format("S.Updates.RateLimited", reset.ToLocalTime().ToString("t", CultureInfo.CurrentCulture))
+            : Loc.Get("S.Updates.Forbidden");
+
+    /// <summary>
+    /// Когда GitHub снова начнёт отвечать. Читается из <c>x-ratelimit-*</c>; отделено от сети,
+    /// чтобы проверяться тестами.
+    /// </summary>
+    internal static bool TryReadRateLimitReset(HttpHeaders headers, out DateTimeOffset reset)
+    {
+        reset = default;
+        if (headers is null)
+        {
+            return false;
+        }
+
+        // Лимитом считается только явный ноль остатка: 403 бывает и по другим причинам, и
+        // называть время в них было бы прямой ложью.
+        if (!TryReadHeader(headers, "x-ratelimit-remaining", out var remaining) || remaining != 0)
+        {
+            return false;
+        }
+
+        if (!TryReadHeader(headers, "x-ratelimit-reset", out var seconds) || seconds <= 0)
+        {
+            return false;
+        }
+
+        reset = DateTimeOffset.FromUnixTimeSeconds(seconds);
+        return true;
+    }
+
+    private static bool TryReadHeader(HttpHeaders headers, string name, out long value)
+    {
+        value = 0;
+        return headers.TryGetValues(name, out var found) &&
+               long.TryParse(
+                   found.FirstOrDefault(),
+                   NumberStyles.Integer,
+                   CultureInfo.InvariantCulture,
+                   out value);
+    }
+
+    /// <summary>
+    /// Узнаёт версию без API — по тому, куда перенаправляет <c>/releases/latest</c>.
+    /// </summary>
+    /// <remarks>
+    /// Эта страница не считается лимитом API, поэтому для человека, упёршегося в лимит, она и
+    /// есть починка, а не сообщение о поломке. Ссылок на файлы сборки оттуда нет, так что
+    /// <see cref="ReleaseInfo.Assets"/> остаётся пустым: обновиться одной кнопкой не выйдет,
+    /// но «доступна версия такая-то» и «открыть релиз» работают.
+    /// </remarks>
+    private static async Task<UpdateCheckResult?> FallBackToReleasePageAsync(
+        HttpClient http,
+        Version current,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesPageUrl);
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
+
+            // Тело страницы не нужно — нужен только адрес, на котором осел редирект.
+            using var response = await http
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+
+            return response.IsSuccessStatusCode
+                ? ReadTaggedUrl(response.RequestMessage?.RequestUri?.ToString(), current)
+                : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Разбирает адрес вида <c>.../releases/tag/v1.17.0</c>. Отделено от сети ради тестов.
+    /// </summary>
+    internal static UpdateCheckResult? ReadTaggedUrl(string? url, Version current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+
+        const string marker = "/releases/tag/";
+        var text = url ?? "";
+        var cut = text.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (cut < 0)
+        {
+            return null;
+        }
+
+        var tag = text[(cut + marker.Length)..].Split(['?', '#'])[0].Trim('/');
+        var version = ParseTag(tag);
+        if (version is null)
+        {
+            return null;
+        }
+
+        return new UpdateCheckResult
+        {
+            Latest = new ReleaseInfo(tag, version, text, null, null, []),
+            UpdateAvailable = version > Normalize(current)
+        };
     }
 }

@@ -63,13 +63,13 @@ public static class UpdateInstaller
 
         if (release.WindowsBuild is not { } asset)
         {
-            error = "У релиза нет готовой сборки для Windows.";
+            error = Loc.Get("S.Updates.NoWindowsBuild");
             return false;
         }
 
         if (!IsTrustedUrl(asset.Url))
         {
-            error = "Файл релиза лежит не на GitHub — обновление отменено.";
+            error = Loc.Get("S.Updates.NotOnGitHub");
             return false;
         }
 
@@ -78,22 +78,21 @@ public static class UpdateInstaller
             !path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
             !File.Exists(path))
         {
-            error = "Не удалось определить файл программы.";
+            error = Loc.Get("S.Updates.NoExePath");
             return false;
         }
 
         var folder = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(folder))
         {
-            error = "Не удалось определить папку программы.";
+            error = Loc.Get("S.Updates.NoExeFolder");
             return false;
         }
 
         var work = Path.Combine(folder, WorkFolderName);
         if (!TryEnsureWritable(work, out var writeError))
         {
-            error = $"Нет прав на запись в папку программы ({writeError}). " +
-                    "Запустите обновление от имени администратора или обновитесь вручную.";
+            error = Loc.Format("S.Updates.NoWriteAccess", writeError);
             return false;
         }
 
@@ -128,13 +127,13 @@ public static class UpdateInstaller
 
             if (!response.IsSuccessStatusCode)
             {
-                return (UpdateStepResult.Failed($"GitHub ответил {(int)response.StatusCode}."), null);
+                return (UpdateStepResult.Failed(Loc.Format("S.Updates.Status", (int)response.StatusCode)), null);
             }
 
             var expected = plan.Asset.Size > 0 ? plan.Asset.Size : response.Content.Headers.ContentLength ?? 0;
             if (expected > MaxBytes)
             {
-                return (UpdateStepResult.Failed("Файл релиза неправдоподобно велик."), null);
+                return (UpdateStepResult.Failed(Loc.Get("S.Updates.TooBig")), null);
             }
 
             var hash = await CopyAsync(response, partial, expected, progress, cancellationToken)
@@ -145,14 +144,14 @@ public static class UpdateInstaller
             {
                 File.Delete(partial);
                 return (UpdateStepResult.Failed(
-                    $"Размер не совпал: ждали {plan.Asset.Size} байт, получили {actualSize}."), null);
+                    Loc.Format("S.Updates.SizeMismatch", plan.Asset.Size, actualSize)), null);
             }
 
             if (plan.Asset.Sha256 is { Length: 64 } expectedHash &&
                 !hash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
             {
                 File.Delete(partial);
-                return (UpdateStepResult.Failed("Контрольная сумма не совпала — файл удалён."), null);
+                return (UpdateStepResult.Failed(Loc.Get("S.Updates.HashMismatch")), null);
             }
 
             File.Move(partial, target, overwrite: true);
@@ -187,7 +186,7 @@ public static class UpdateInstaller
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return UpdateStepResult.Failed("Не удалось освободить файл программы: " + ex.Message);
+            return UpdateStepResult.Failed(Loc.Format("S.Updates.CannotFreeExe", ex.Message));
         }
 
         try
@@ -204,11 +203,10 @@ public static class UpdateInstaller
             catch (Exception rollback) when (rollback is IOException or UnauthorizedAccessException)
             {
                 return UpdateStepResult.Failed(
-                    $"Обновление не встало ({ex.Message}), и вернуть прежнюю версию не вышло. " +
-                    $"Прежний файл лежит рядом: {backup}");
+                    Loc.Format("S.Updates.RollbackFailed", ex.Message, backup));
             }
 
-            return UpdateStepResult.Failed("Не удалось поставить новый файл: " + ex.Message);
+            return UpdateStepResult.Failed(Loc.Format("S.Updates.InstallFailed", ex.Message));
         }
     }
 
@@ -266,7 +264,7 @@ public static class UpdateInstaller
                 total += read;
                 if (total > MaxBytes)
                 {
-                    throw new IOException("Файл оказался больше допустимого размера.");
+                    throw new IOException(Loc.Get("S.Updates.TooBig"));
                 }
 
                 hasher.TransformBlock(buffer, 0, read, null, 0);

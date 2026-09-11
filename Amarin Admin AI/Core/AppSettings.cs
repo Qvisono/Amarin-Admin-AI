@@ -10,11 +10,17 @@ public enum ApprovalMode
 /// Palette preset. The first three are the originals and keep their names in settings.json;
 /// the rest are the shipped colour presets. See <see cref="ThemeCatalog"/> for what each maps to.
 /// </summary>
+/// <remarks>
+/// The order here is free: <see cref="AppJson"/> serialises enums as camelCase strings, so a theme
+/// written into <c>settings.json</c> is found by name and not by position. What the grid in the
+/// settings looks like is decided by <see cref="ThemeCatalog.Presets"/>, not by this list.
+/// </remarks>
 public enum AppTheme
 {
     System,
     Light,
     Dark,
+    Obsidian,
     Midnight,
     Nord,
     Cobalt,
@@ -30,7 +36,12 @@ public enum AppTheme
     Sepia,
     Silver,
     Graphite,
-    Paper
+    Paper,
+    Ocean,
+    Forest,
+    Plum,
+    Sand,
+    Steel
 }
 
 public sealed class AppSettings

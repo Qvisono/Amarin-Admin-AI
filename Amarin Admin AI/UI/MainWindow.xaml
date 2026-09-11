@@ -27,12 +27,21 @@
         </ResourceDictionary>
     </Window.Resources>
     <shell:WindowChrome.WindowChrome>
-        <shell:WindowChrome 
+        <!--
+            ResizeBorderThickness отличен от нуля намеренно: по краю окна WindowChrome сам
+            отвечает на WM_NCHITTEST кодами HTLEFT…HTBOTTOMRIGHT, и размер меняет система.
+            Отсюда родные курсоры, прилипание к краям экрана и разворот по вертикали двойным
+            щелчком по кромке. Раньше на этом месте лежал слой из восьми прозрачных Border,
+            пересылавших WM_NCLBUTTONDOWN руками: он стоял последним ребёнком корневого Grid и
+            съедал полосу в 5 DIP по всему периметру, включая оверлеи.
+            CaptionHeight остаётся нулевым — перетаскиванием занимается WindowMoveBehavior.
+        -->
+        <shell:WindowChrome
     CornerRadius="18"
     GlassFrameThickness="1"
     UseAeroCaptionButtons="False"
     CaptionHeight="0"
-    ResizeBorderThickness="0" />
+    ResizeBorderThickness="6" />
     </shell:WindowChrome.WindowChrome>
     <Grid Background="{DynamicResource Bg.Window}" MouseDown="Grid_MouseDown">
         <!--
@@ -75,6 +84,18 @@
                                     <Border x:Name="Bg" Background="{TemplateBinding Background}"
                         CornerRadius="6" Padding="9,0,4,0">
                                         <Grid>
+                                            <!--
+                                                Вспышка «ответ готов». Заливка акцентная и
+                                                проступает прозрачностью поверх собственного фона
+                                                строки — поэтому одинаково читается и на чёрном
+                                                Obsidian, и на светлой Sakura, без единого цвета,
+                                                заданного отдельно под тему. Отрицательные поля
+                                                гасят Padding родителя, чтобы вспыхивала вся
+                                                плашка, а не её середина.
+                                            -->
+                                            <Border x:Name="Flash" CornerRadius="6" Opacity="0"
+                                 IsHitTestVisible="False" Margin="-9,0,-4,0"
+                                 Background="{DynamicResource Accent.Fill}"/>
                                             <TextBlock x:Name="Title" Text="{TemplateBinding Content}"
                                    FontSize="12.5" Foreground="{DynamicResource Text.Tertiary}"
                                    VerticalAlignment="Center"
@@ -100,6 +121,14 @@
                                                     </EventTrigger>
                                                 </Ellipse.Triggers>
                                             </Ellipse>
+                                            <!-- Стойкая точка «ответ готов»: в отличие от Working
+                                                 не пульсирует и держится до открытия чата. Стоит
+                                                 в той же точке, что и Working с Actions, — все
+                                                 трое одновременно не показываются. -->
+                                            <Ellipse x:Name="Done" Width="7" Height="7"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                                 Margin="0,0,7,0" Visibility="Collapsed"
+                                 Fill="{DynamicResource Accent.Fill}"/>
                                             <Button x:Name="Actions" Width="22" Height="22"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
                                 Visibility="Collapsed"
@@ -123,10 +152,35 @@
                                         </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
+                                        <!--
+                                            Ответ доспел в этом чате, пока смотрели другой. Пульс
+                                            повторяется трижды и гаснет: чат, ответивший час назад,
+                                            мигать уже не должен, — а точка Done остаётся, пока
+                                            чат не откроют. Порядок важен: этот триггер стоит
+                                            первым, и IsMouseOver ниже перекрывает его точку.
+                                        -->
+                                        <Trigger Property="local:ChatRowState.NeedsAttention" Value="True">
+                                            <Setter TargetName="Done" Property="Visibility" Value="Visible"/>
+                                            <Trigger.EnterActions>
+                                                <BeginStoryboard x:Name="FlashRun">
+                                                    <Storyboard>
+                                                        <DoubleAnimation
+                                                            Storyboard.TargetName="Flash"
+                                                            Storyboard.TargetProperty="Opacity"
+                                                            From="0" To="0.22" Duration="0:0:0.45"
+                                                            AutoReverse="True" RepeatBehavior="3x"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </Trigger.EnterActions>
+                                            <Trigger.ExitActions>
+                                                <StopStoryboard BeginStoryboardName="FlashRun"/>
+                                            </Trigger.ExitActions>
+                                        </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="Working" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="Done" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
                                         <!-- Keep the affordance up while its menu is open, or it
@@ -1821,7 +1875,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.16.2"
+                                       Text="v1.17.0"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -2700,6 +2754,67 @@
                             <StackPanel Margin="20,14,20,16">
                                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Data.Title}"/>
 
+                                <!-- Занято на диске -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Usage}"/>
+                                        <TextBlock x:Name="UsageSummaryText" Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Data.Usage.Desc}"/>
+                                    </StackPanel>
+                                    <Button x:Name="UsageRefreshButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                            Content="{DynamicResource S.Data.Usage.Refresh}" Click="UsageRefreshButton_Click"/>
+                                </Grid>
+                                <!--
+                                    Строки разбивки собираются кодом: их состав зависит от того,
+                                    что у человека реально лежит на диске, и пустая категория в
+                                    списке была бы шумом. Полоска доли — Bg.Track под Accent.Fill,
+                                    ширина звёздными колонками, как у полосы загрузки обновления.
+                                -->
+                                <ItemsControl x:Name="UsageList" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="{Binding Indent}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                                    <TextBlock Text="{Binding Label}" FontSize="12.5"
+                                                               Foreground="{DynamicResource Text.Tertiary}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <Grid Height="4" Margin="0,4,0,0">
+                                                        <Border CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="{Binding Share}"/>
+                                                                <ColumnDefinition Width="{Binding Rest}"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                                                        </Grid>
+                                                    </Grid>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Size}" FontSize="12.5"
+                                                               HorizontalAlignment="Right"
+                                                               Foreground="{DynamicResource Text.Secondary}"/>
+                                                    <TextBlock Text="{Binding Files}" FontSize="11"
+                                                               HorizontalAlignment="Right" Margin="0,1,0,0"
+                                                               Foreground="{DynamicResource Text.Faint}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="UsageAppText" FontSize="12"
+                                           Margin="0,2,0,0"
+                                           Foreground="{DynamicResource Text.Faint}"/>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -3198,7 +3313,16 @@
                     <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
                                TextWrapping="Wrap" Margin="0,0,0,8"/>
                     <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                               TextWrapping="Wrap" Margin="0,0,0,12"/>
+                               TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <!--
+                        Разъяснение от ИИ: то же, что в журнале умеет кнопка «Спросить ИИ», только
+                        здесь оно спрашивается само и заранее. Поле explanation у инструмента —
+                        просьба к модели, а не обязанность, и чаще всего оно пустое; человек при
+                        этом жмёт «Да» под текстом скрипта, который никто ему не объяснил.
+                        Обычный TextBlock: текст пришёл от модели и остаётся текстом.
+                    -->
+                    <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                               TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
                     <!--
                         Что именно выполнится, целиком, и технические подробности. Наполняются из
                         кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
@@ -3470,37 +3594,6 @@
             </Border>
         </Grid>
 
-        </Grid>
-
-        <!-- Полоски для растягивания окна. В развёрнутом виде их прячет ApplyWindowStateChrome. -->
-        <Grid x:Name="ResizeGrips">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition/>
-                <ColumnDefinition Width="5"/>
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="5"/>
-                <RowDefinition/>
-                <RowDefinition Height="5"/>
-            </Grid.RowDefinitions>
-
-            <Border Grid.Column="0" Grid.RowSpan="3" Cursor="SizeWE"   Tag="Left"/>
-            <Border Grid.Column="2" Grid.RowSpan="3" Cursor="SizeWE"   Tag="Right"/>
-            <Border Grid.Row="0" Grid.ColumnSpan="3"  Cursor="SizeNS"   Tag="Top"/>
-            <Border Grid.Row="2" Grid.ColumnSpan="3"  Cursor="SizeNS"   Tag="Bottom"/>
-
-            <Border Grid.Row="0" Grid.Column="0" Cursor="SizeNWSE" Tag="TopLeft"/>
-            <Border Grid.Row="0" Grid.Column="2" Cursor="SizeNESW" Tag="TopRight"/>
-            <Border Grid.Row="2" Grid.Column="0" Cursor="SizeNESW" Tag="BottomLeft"/>
-            <Border Grid.Row="2" Grid.Column="2" Cursor="SizeNWSE" Tag="BottomRight"/>
-
-            <Grid.Resources>
-                <Style TargetType="Border">
-                    <Setter Property="Background" Value="Transparent"/>
-                    <EventSetter Event="MouseLeftButtonDown" Handler="ResizeBorder_MouseLeftButtonDown"/>
-                </Style>
-            </Grid.Resources>
         </Grid>
     </Grid>
 </Window>

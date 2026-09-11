@@ -84,12 +84,18 @@ public sealed class LocalizationTests
     [Theory]
     [InlineData("UI", "PasswordWindow.xaml.cs")]
     [InlineData("UI", "MainWindow.Account.cs")]
+    [InlineData("UI", "MainWindow.Updates.cs")]
+    [InlineData("Core", "UpdateChecker.cs")]
+    [InlineData("Core", "UpdateInstaller.cs")]
     public void The_login_and_account_screens_hold_no_literal_russian(string folder, string file)
     {
-        // Эти два экрана написали до локализации, и подписи так и остались литералами: при
+        // Эти экраны написали до локализации, и подписи так и остались литералами: при
         // японском интерфейсе «Войти», «Локальный режим» и «Задан» показывались по-русски.
         // Разметка тянет строки через DynamicResource сама, а вот всё, что эти файлы пишут
         // в интерфейс из кода, обязано идти через Loc — иначе язык до них не доходит.
+        //
+        // Страница обновлений и оба её файла в Core доехали до релиза целиком по-русски именно
+        // потому, что их в этом списке не было: девятнадцать литералов, которые никто не искал.
         var relative = Path.Combine(folder, file);
         var lines = File.ReadAllLines(ProjectFile(relative));
         var offenders = new List<string>();
@@ -362,5 +368,6 @@ public sealed class LocalizationTests
     private static bool IsFilledFromCode(string name) =>
         name is "AttachmentsWarning" or "ConfirmationAgentText" or "ConfirmationSummaryText"
             or "ConfirmationExplanationText" or "DomainError" or "NameError" or "UpdateStatusText"
-            or "SummarizeError" or "BalanceAmount" or "AllowedDomainsEmpty";
+            or "SummarizeError" or "BalanceAmount" or "AllowedDomainsEmpty" or "UsageAppText"
+            or "ConfirmationAiText";
 }

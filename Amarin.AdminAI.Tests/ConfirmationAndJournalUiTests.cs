@@ -59,6 +59,33 @@ public sealed class ConfirmationAndJournalUiTests
     }
 
     [Fact]
+    public void The_answer_buttons_do_not_wait_for_the_ai_explanation()
+    {
+        // Разъяснение к скрипту заказывается у модели и доезжает в уже открытое окно. Диалог —
+        // последнее место, где человек может сказать «нет», и ставить это «нет» в зависимость от
+        // удалённого ответа нельзя: сеть может не ответить вовсе.
+        var state = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            Fill(window, Info("Remove-Item -Recurse C:/Temp", "powershell"));
+            window.UpdateLayout();
+
+            var ai = Named<TextBlock>(window, "ConfirmationAiText");
+            return (
+                ai.Visibility,
+                Yes: Named<Button>(window, "ConfirmationYesButton").IsEnabled,
+                No: Named<Button>(window, "ConfirmationNoButton").IsEnabled);
+        });
+
+        Assert.True(state.Yes);
+        Assert.True(state.No);
+
+        // Сама раскладка тела в сеть не ходит: строка остаётся пустой, пока запрос не заказан
+        // отдельно. Иначе окно нельзя было бы ни разложить, ни проверить, не сходив за ответом.
+        Assert.Equal(Visibility.Collapsed, state.Visibility);
+    }
+
+    [Fact]
     public void A_call_with_nothing_to_run_shows_no_empty_block()
     {
         var visibility = _wpf.Ui.Invoke(() =>

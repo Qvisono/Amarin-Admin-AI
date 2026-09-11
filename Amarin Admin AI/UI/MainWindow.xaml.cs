@@ -173,15 +173,6 @@ namespace Amarin.UI
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public void ResizeBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Border { Tag: string direction } && e.LeftButton == MouseButtonState.Pressed)
-            {
-                ResizeWindowLogic.ResizeWindow(direction, this);
-            }
-        }
-
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Application.Current?.Shutdown();
@@ -207,16 +198,12 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Полоски для растягивания у развёрнутого окна только мешают: тянуть его всё равно
-        /// некуда. Вместе с обычным размером они возвращаются. Скруглением углов занимается
-        /// сама Windows, отсюда его трогать нечем.
+        /// Разворот и сворачивание гасят открытые попапы: они висят отдельными окнами и остаются
+        /// на прежнем месте экрана. Кромку для растягивания здесь трогать нечем — ею заведует
+        /// <c>WindowChrome</c>, и у развёрнутого окна она отключается сама.
         /// </summary>
         private void ApplyWindowStateChrome()
         {
-            ResizeGrips.Visibility = WindowState == WindowState.Maximized
-                ? Visibility.Collapsed
-                : Visibility.Visible;
-
             PopupManager.CloseAll();
         }
 
@@ -263,6 +250,7 @@ namespace Amarin.UI
 
             CancelAllTurns();
             _services.ChatStore.DeleteAll();
+            _attention.Clear();
             StartNewSession(persist: false);
             RefreshChatList();
         }
@@ -1088,6 +1076,11 @@ namespace Amarin.UI
             {
                 _settingsUiLoading = false;
             }
+
+            // После снятия флага и вне try: обход диска асинхронный, и держать на нём
+            // _settingsUiLoading значило бы глушить обработчики всех остальных настроек,
+            // пока он идёт.
+            _ = RefreshDataUsageAsync();
         }
 
         private void ApplyUiScaleFromSettings()
@@ -1647,6 +1640,7 @@ namespace Amarin.UI
             if (_services is not null && !string.IsNullOrWhiteSpace(id))
             {
                 _services.ChatStore.Delete(id);
+                ForgetAttention(id);
             }
 
             StartNewSession(persist: false);
@@ -1876,6 +1870,7 @@ namespace Amarin.UI
                     ChatListPanel.Children.Add(button);
                     AttachChatActions(button, item);
                     MarkChatWorking(button, item.Id);
+                    ChatRowState.SetNeedsAttention(button, _attention.Contains(item.Id));
                 }
             }
 
@@ -1935,7 +1930,8 @@ namespace Amarin.UI
                     .Append(item.Title).Append('~')
                     .Append(item.UpdatedAt.Ticks).Append('~')
                     .Append(item.IsPinned ? '1' : '0').Append('~')
-                    .Append(IsBusy(item.Id) ? '1' : '0');
+                    .Append(IsBusy(item.Id) ? '1' : '0').Append('~')
+                    .Append(_attention.Contains(item.Id) ? '1' : '0');
             }
 
             return builder.ToString();
@@ -1961,6 +1957,10 @@ namespace Amarin.UI
 
             // Прикреплённое, но не отправленное, принадлежит тому чату, где его набрали.
             ClearPendingAttachments();
+
+            // Метку «ответ готов» снимаем до загрузки: RefreshChatList ниже уже нарисует строку
+            // без неё, и лишней перерисовки не будет.
+            _attention.Remove(id);
 
             // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
             // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.
@@ -2251,6 +2251,10 @@ namespace Amarin.UI
 
             // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат.
             MaybeShowCompletionToast(assistant);
+
+            // А метка в списке — ровно на тот случай, когда тоста не будет: его глушат, пока окно
+            // в фокусе, и фоновый ответ до сих пор не оставлял по себе никакого следа.
+            MarkAttention(turn);
         });
 
         /// <summary>
@@ -2330,6 +2334,7 @@ namespace Amarin.UI
 
             if (!_services.Confirmations.TryPeek(out var request))
             {
+                CancelConfirmationExplain();
                 ConfirmationOverlay.Visibility = Visibility.Collapsed;
                 Chat.IsHitTestVisible = true;
                 return;
@@ -2341,6 +2346,7 @@ namespace Amarin.UI
                 ? request.Info.ToolName
                 : request.Info.ChangeSummary;
             FillConfirmationBody(request.Info);
+            ExplainConfirmation(request);
             ConfirmationOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
         }

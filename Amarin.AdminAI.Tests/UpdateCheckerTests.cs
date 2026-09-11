@@ -104,4 +104,88 @@ public sealed class UpdateCheckerTests
         Assert.True(settings.AutoCheckUpdates);
         Assert.Null(settings.LastUpdateCheckUtc);
     }
+
+    private static HttpResponseMessage Refusal(string? remaining, string? reset)
+    {
+        var response = new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden);
+        if (remaining is not null)
+        {
+            response.Headers.TryAddWithoutValidation("x-ratelimit-remaining", remaining);
+        }
+
+        if (reset is not null)
+        {
+            response.Headers.TryAddWithoutValidation("x-ratelimit-reset", reset);
+        }
+
+        return response;
+    }
+
+    [Fact]
+    public void An_exhausted_limit_is_read_out_of_the_headers()
+    {
+        // 403 от api.github.com — это почти всегда исчерпанный лимит анонимных запросов
+        // (60 в час на адрес), и за общим NAT его выбирают чужие. «GitHub ответил 403»
+        // человеку в этой ситуации не говорит ничего.
+        var moment = DateTimeOffset.UtcNow.AddMinutes(37);
+        using var response = Refusal("0", moment.ToUnixTimeSeconds().ToString());
+
+        Assert.True(UpdateChecker.TryReadRateLimitReset(response.Headers, out var reset));
+        Assert.Equal(moment.ToUnixTimeSeconds(), reset.ToUnixTimeSeconds());
+        Assert.NotEqual(
+            UpdateChecker.DescribeRefusal(response.Headers),
+            Amarin.Core.Loc.Get("S.Updates.Forbidden"));
+    }
+
+    [Theory]
+    [InlineData("7", "1893456000")]   // лимит ещё есть — значит, отказ не из-за него
+    [InlineData("0", null)]           // ноль без времени: сказать, когда пробовать, нечего
+    [InlineData(null, "1893456000")]
+    [InlineData("0", "мусор")]
+    public void A_forbidden_without_a_real_limit_does_not_invent_a_time(string? remaining, string? reset)
+    {
+        using var response = Refusal(remaining, reset);
+
+        Assert.False(UpdateChecker.TryReadRateLimitReset(response.Headers, out _));
+        Assert.Equal(Amarin.Core.Loc.Get("S.Updates.Forbidden"), UpdateChecker.DescribeRefusal(response.Headers));
+    }
+
+    [Fact]
+    public void The_version_can_still_be_read_off_the_release_page_redirect()
+    {
+        // Запасной путь для упёршегося в лимит: /releases/latest перенаправляет на тег, и эта
+        // страница лимитом API не считается.
+        var result = UpdateChecker.ReadTaggedUrl(
+            "https://github.com/Qvisono/Amarin-Admin-AI/releases/tag/v1.17.0",
+            new Version(1, 16, 2));
+
+        Assert.NotNull(result);
+        Assert.True(result!.Ok);
+        Assert.True(result.UpdateAvailable);
+        Assert.Equal(new Version(1, 17, 0), result.Latest!.Version);
+
+        // Ссылок на файлы сборки на странице нет — значит, кнопка «Обновить» не появится,
+        // а «Открыть релиз» появится. Пустой список здесь и есть этот признак.
+        Assert.Empty(result.Latest.Assets);
+        Assert.Null(result.Latest.WindowsBuild);
+    }
+
+    [Theory]
+    [InlineData("https://github.com/Qvisono/Amarin-Admin-AI/releases")]
+    [InlineData("https://github.com/Qvisono/Amarin-Admin-AI/releases/tag/latest")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void An_address_without_a_tag_gives_nothing(string? url) =>
+        Assert.Null(UpdateChecker.ReadTaggedUrl(url, new Version(1, 16, 2)));
+
+    [Fact]
+    public void The_same_version_on_the_release_page_is_not_an_update()
+    {
+        var result = UpdateChecker.ReadTaggedUrl(
+            "https://github.com/Qvisono/Amarin-Admin-AI/releases/tag/v1.16.2?a=b",
+            new Version(1, 16, 2));
+
+        Assert.NotNull(result);
+        Assert.False(result!.UpdateAvailable);
+    }
 }

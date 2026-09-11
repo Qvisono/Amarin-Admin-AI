@@ -196,6 +196,9 @@
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">Что будет выполнено — {0} стр.</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Технические подробности</system:String>
+    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">Модель ничего не ответила про этот скрипт — читайте его сами.</system:String>
+    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">Разъяснение получить не вышло — читайте скрипт сами.</system:String>
+    <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Разбираем, что делает скрипт…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. Без разрешения загрузка не состоится.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Требуется подтверждение</system:String>
@@ -254,6 +257,22 @@
     <system:String x:Key="S.Data.OpenFile" xml:space="preserve">Открыть файл</system:String>
     <system:String x:Key="S.Data.Sharing" xml:space="preserve">Обмен чатами по ссылке</system:String>
     <system:String x:Key="S.Data.SharingDesc" xml:space="preserve">Кнопки «Поделиться» и «Экспорт» под ответами. Код и JSON не шифруются</system:String>
+    <system:String x:Key="S.Data.Usage" xml:space="preserve">Занято на диске</system:String>
+    <system:String x:Key="S.Data.Usage.App" xml:space="preserve">Сама программа</system:String>
+    <system:String x:Key="S.Data.Usage.Appearance" xml:space="preserve">Аватар и фон</system:String>
+    <system:String x:Key="S.Data.Usage.Attachments" xml:space="preserve">из них вложения</system:String>
+    <system:String x:Key="S.Data.Usage.Chats" xml:space="preserve">Чаты</system:String>
+    <system:String x:Key="S.Data.Usage.Counting" xml:space="preserve">Считаем…</system:String>
+    <system:String x:Key="S.Data.Usage.Desc" xml:space="preserve">Данные программы и журналы диагностики</system:String>
+    <system:String x:Key="S.Data.Usage.Empty" xml:space="preserve">Данных на диске пока нет</system:String>
+    <system:String x:Key="S.Data.Usage.Files" xml:space="preserve">файлов: {0}</system:String>
+    <system:String x:Key="S.Data.Usage.Languages" xml:space="preserve">Языки интерфейса</system:String>
+    <system:String x:Key="S.Data.Usage.Logs" xml:space="preserve">Журналы сбоев</system:String>
+    <system:String x:Key="S.Data.Usage.Other" xml:space="preserve">Прочее</system:String>
+    <system:String x:Key="S.Data.Usage.Refresh" xml:space="preserve">Пересчитать</system:String>
+    <system:String x:Key="S.Data.Usage.Settings" xml:space="preserve">Настройки и профили</system:String>
+    <system:String x:Key="S.Data.Usage.Shared" xml:space="preserve">Экспортированные чаты</system:String>
+    <system:String x:Key="S.Data.Usage.Snapshots" xml:space="preserve">Снимки для отката</system:String>
 
     <system:String x:Key="S.Domain.Desc" xml:space="preserve">Агенту будет разрешено скачивать файлы с этого домена и его поддоменов.</system:String>
     <system:String x:Key="S.Domain.Title" xml:space="preserve">Добавить домен в белый список</system:String>
@@ -381,6 +400,7 @@
     <system:String x:Key="S.Sidebar.Search" xml:space="preserve">Поиск</system:String>
 
     <system:String x:Key="S.Size.Bytes" xml:space="preserve">{0} Б</system:String>
+    <system:String x:Key="S.Size.Gigabytes" xml:space="preserve">{0} ГБ</system:String>
     <system:String x:Key="S.Size.Kilobytes" xml:space="preserve">{0} КБ</system:String>
     <system:String x:Key="S.Size.Megabytes" xml:space="preserve">{0} МБ</system:String>
     <system:String x:Key="S.Size.NoExtension" xml:space="preserve">без расширения</system:String>
@@ -415,11 +435,47 @@
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Проверять автоматически</system:String>
     <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Ничего не скачивается: приложение только сообщает о новой версии</system:String>
+    <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} — установлена {1}</system:String>
+    <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Неожиданный ответ GitHub.</system:String>
+    <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Не удалось открыть браузер: {0}</system:String>
+    <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Не удалось освободить файл программы: {0}</system:String>
     <system:String x:Key="S.Updates.Check" xml:space="preserve">Проверить обновления</system:String>
+    <system:String x:Key="S.Updates.CheckFailed" xml:space="preserve">Проверить не удалось</system:String>
+    <system:String x:Key="S.Updates.Checking" xml:space="preserve">Проверяем…</system:String>
+    <system:String x:Key="S.Updates.ConfirmText" xml:space="preserve">Установлена {0}, доступна {1}. Будет скачано {2} и записано на место текущей программы.</system:String>
+    <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Обновить до версии {0}</system:String>
+    <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Загрузка отменена.</system:String>
+    <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Скачивание {0} %</system:String>
+    <system:String x:Key="S.Updates.Failed" xml:space="preserve">Обновление не состоялось: {0}</system:String>
+    <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub отклонил проверку. Откройте страницу релиза вручную.</system:String>
+    <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">Проверка обновлений не должна ходить с чужим ключом.</system:String>
+    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">Контрольная сумма не совпала — файл удалён.</system:String>
+    <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
+    <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
+    <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">Проверка ещё не запускалась</system:String>
+    <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">Нет связи с GitHub: {0}</system:String>
+    <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Не удалось определить папку программы.</system:String>
+    <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Не удалось определить файл программы.</system:String>
+    <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">В релизе нет распознаваемой версии.</system:String>
+    <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">У релиза нет готовой сборки для Windows.</system:String>
+    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Нет прав на запись в папку программы ({0}). Запустите обновление от имени администратора или обновитесь вручную.</system:String>
+    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">Файл релиза лежит не на GitHub — обновление отменено.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Открыть релиз</system:String>
+    <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Не удалось разобрать ответ GitHub.</system:String>
+    <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка — после {0}.</system:String>
+    <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">Новая версия установлена, но запустить её не вышло: {0}</system:String>
+    <system:String x:Key="S.Updates.RollbackFailed" xml:space="preserve">Обновление не встало ({0}), и вернуть прежнюю версию не вышло. Прежний файл лежит рядом: {1}</system:String>
+    <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · есть обновление</system:String>
+    <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">Размер не совпал: ждали {0} байт, получили {1}.</system:String>
+    <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub ответил {0}.</system:String>
+    <system:String x:Key="S.Updates.Timeout" xml:space="preserve">Проверка заняла слишком много времени.</system:String>
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Версия и обновления</system:String>
+    <system:String x:Key="S.Updates.TooBig" xml:space="preserve">Файл релиза неправдоподобно велик.</system:String>
+    <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">неизвестно сколько</system:String>
+    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">Установлена последняя версия — {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
+    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов — программа перезапустится.</system:String>
 
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
