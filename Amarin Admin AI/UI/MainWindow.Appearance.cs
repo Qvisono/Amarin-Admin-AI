@@ -37,11 +37,16 @@ namespace Amarin.UI
             ("Slate",    ["#0D0F12", "#1C232C", "#101519"], 130),
             ("Amethyst", ["#0F0A17", "#271540", "#140C24"], 125),
             ("Plum",     ["#100812", "#33163A", "#170C19"], 122),
+            ("Neon",     ["#07060B", "#2A1040", "#0C0A12"], 125),
             ("Rosé",     ["#130A11", "#3C1628", "#1A0C15"], 120),
+            ("Quartz",   ["#100E11", "#301826", "#0C0B0D"], 118),
             ("Crimson",  ["#130C0C", "#3B161A", "#1A0E0E"], 118),
             ("Ember",    ["#130F0A", "#3B2010", "#1A1109"], 112),
+            ("Ochre",    ["#1B1915", "#3E3016", "#171511"], 115),
+            ("Rust",     ["#110F0E", "#3A1C0C", "#0C0B0A"], 112),
             ("Emerald",  ["#0A1411", "#123C2A", "#0C1E19"], 150),
             ("Forest",   ["#050F09", "#123A24", "#08160E"], 148),
+            ("Terminal", ["#0E100F", "#0E3220", "#080C0A"], 150),
             ("Silver",   ["#E9EEF6", "#FAFBFC", "#EFF0F5"], 140),
             ("Steel",    ["#E6EBF1", "#F9FBFC", "#EDF1F5"], 142),
             ("Frost",    ["#E2EEF7", "#F7FBFD", "#EBF3F8"], 150),
@@ -49,7 +54,9 @@ namespace Amarin.UI
             ("Mint",     ["#E4F2EA", "#F6FCF9", "#EDF7F2"], 150),
             ("Paper",    ["#E4DCCC", "#F2ECE1", "#E9E1D3"], 135),
             ("Sand",     ["#F0E7D6", "#FBF6EC", "#F4EEE1"], 132),
-            ("Sepia",    ["#EEE1D0", "#F8F2E9", "#F1E8DA"], 128)
+            ("Sepia",    ["#EEE1D0", "#F8F2E9", "#F1E8DA"], 128),
+            ("Ink",      ["#EBE6DB", "#FBF8F2", "#F2EEE5"], 130),
+            ("Contrast", ["#ECECEC", "#FFFFFF", "#F4F4F4"], 140)
         ];
 
         private AppearanceManager? _appearance;

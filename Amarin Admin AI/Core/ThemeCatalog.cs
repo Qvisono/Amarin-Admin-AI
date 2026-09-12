@@ -43,11 +43,16 @@ public static class ThemeCatalog
         new(AppTheme.Slate, "Slate", "Slate", false, "#101215", "#1E2228", "#B4C2D2"),
         new(AppTheme.Amethyst, "Amethyst", "Amethyst", false, "#100C18", "#1C1630", "#C7A8FF"),
         new(AppTheme.Plum, "Plum", "Plum", false, "#120A12", "#291D2E", "#E4A0D0"),
+        new(AppTheme.Neon, "Neon", "Neon", false, "#08070C", "#1A1725", "#FF4FD8"),
         new(AppTheme.Rose, "Rosé", "Rose", false, "#130A0E", "#311E27", "#FF9EC4"),
+        new(AppTheme.Quartz, "Quartz", "Quartz", false, "#121013", "#242126", "#FF6FA8"),
         new(AppTheme.Crimson, "Crimson", "Crimson", false, "#120F0F", "#251E1F", "#FF8E8E"),
         new(AppTheme.Ember, "Ember", "Ember", false, "#12100E", "#24211E", "#FFB067"),
+        new(AppTheme.Ochre, "Ochre", "Ochre", false, "#1D1B17", "#302D26", "#D79921"),
+        new(AppTheme.Rust, "Rust", "Rust", false, "#121110", "#242221", "#E2652A"),
         new(AppTheme.Emerald, "Emerald", "Emerald", false, "#0A1310", "#141F1B", "#6FE0B0"),
         new(AppTheme.Forest, "Forest", "Forest", false, "#07100B", "#12291C", "#8FD694"),
+        new(AppTheme.Terminal, "Terminal", "Terminal", false, "#101211", "#1D2320", "#3BD16F"),
         new(AppTheme.Silver, "Silver", "Silver", true, "#F2F2F7", "#EBEBF0", "#006FEB"),
         new(AppTheme.Steel, "Steel", "Steel", true, "#F4F6F8", "#E7ECF1", "#3F6E9C"),
         new(AppTheme.Frost, "Frost", "Frost", true, "#F2F6FA", "#E7EEF5", "#1B4F87"),
@@ -55,7 +60,9 @@ public static class ThemeCatalog
         new(AppTheme.Mint, "Mint", "Mint", true, "#F2F8F5", "#E6F1EC", "#17694F"),
         new(AppTheme.Paper, "Paper", "Paper", true, "#EAE5DC", "#E1DBD0", "#2E2A26"),
         new(AppTheme.Sand, "Sand", "Sand", true, "#FAF6EF", "#F0E9DC", "#8A5F33"),
-        new(AppTheme.Sepia, "Sepia", "Sepia", true, "#F6F2ED", "#F1E9E0", "#6B4A28")
+        new(AppTheme.Sepia, "Sepia", "Sepia", true, "#F6F2ED", "#F1E9E0", "#6B4A28"),
+        new(AppTheme.Ink, "Ink", "Ink", true, "#F4F1EA", "#F2EFE7", "#B33A2B"),
+        new(AppTheme.Contrast, "Contrast", "Contrast", true, "#FFFFFF", "#EBEBEB", "#0B4FA8")
     ];
 
     /// <summary>

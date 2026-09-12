@@ -41,7 +41,14 @@ public enum AppTheme
     Forest,
     Plum,
     Sand,
-    Steel
+    Steel,
+    Terminal,
+    Rust,
+    Neon,
+    Ochre,
+    Quartz,
+    Ink,
+    Contrast
 }
 
 public sealed class AppSettings
