@@ -283,4 +283,28 @@ public sealed class AppearanceThemeTests
         Assert.True(bottomAligned, "ComposerBorder must be bottom-aligned");
         Assert.True(toolbarRowIsAuto, "the toolbar row must be Auto-sized");
     }
+    /// <summary>Насыщенность цвета: размах между самым ярким и самым тёмным каналом.</summary>
+    private static int Chroma(System.Windows.Media.Color color) =>
+        Math.Max(color.R, Math.Max(color.G, color.B)) - Math.Min(color.R, Math.Min(color.G, color.B));
+
+    [Fact]
+    public void Forest_keeps_its_green_in_the_states_and_not_in_the_fills()
+    {
+        // Forest пересобрана так, что зелёными остались только то, что отвечает на действие,
+        // и рамки. Если зелёный снова уйдёт в панель и карточку, тема вернётся к «всё приложение
+        // зелёное» — ровно к тому, на что жаловались.
+        var (panel, card, hover, selected, border) = _wpf.Ui.Invoke(() =>
+        {
+            var palette = LoadPalette("Forest");
+            int Of(string key) =>
+                Chroma(((System.Windows.Media.SolidColorBrush)palette[key]).Color);
+            return (Of("Bg.Panel"), Of("Bg.Card"), Of("Bg.Hover"), Of("Bg.Selected"), Of("Border.Default"));
+        });
+
+        var fill = Math.Max(panel, card);
+        Assert.True(hover >= fill * 3, $"наведение {hover}, заливка {fill}");
+        Assert.True(selected >= fill * 3, $"выделение {selected}, заливка {fill}");
+        Assert.True(border >= fill * 3, $"рамка {border}, заливка {fill}");
+    }
+
 }

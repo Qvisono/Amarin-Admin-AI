@@ -17,6 +17,9 @@ internal static class UiScale
     private const int MdtEffectiveDpi = 0;
 
     private static int _percent = 100;
+    /// <summary>Окно, к которому <see cref="_percent"/> уже применён. Слабая — статика не
+    /// должна держать закрытое окно живым.</summary>
+    private static WeakReference<Window>? _scaled;
     private static bool _popupHooked;
     private static bool _wndHooked;
     private static bool _pushingDpi;
@@ -59,7 +62,21 @@ internal static class UiScale
     public static void Apply(Window window, FrameworkElement? scaledRoot, int percent)
     {
         ArgumentNullException.ThrowIfNull(window);
-        _percent = Normalize(percent);
+
+        // Повторный вызов с тем же масштабом — обычное дело: он идёт на каждое открытие настроек.
+        // А присваивание LayoutTransform, даже тождественного, инвалидирует раскладку всего
+        // интерфейса вместе с лентой чата.
+        var normalized = Normalize(percent);
+        if (normalized == _percent &&
+            _scaled is not null &&
+            _scaled.TryGetTarget(out var scaled) &&
+            ReferenceEquals(window, scaled))
+        {
+            return;
+        }
+
+        _percent = normalized;
+        _scaled = new WeakReference<Window>(window);
         if (scaledRoot is not null)
         {
             scaledRoot.LayoutTransform = Transform.Identity;

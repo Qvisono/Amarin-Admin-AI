@@ -250,4 +250,41 @@ public sealed class DataUsageTests
         Assert.Equal("1,5 ГБ", AttachmentTypes.FormatSize((long)(1.5 * 1024 * 1024 * 1024)).Replace('.', ','));
         Assert.DoesNotContain("МБ", AttachmentTypes.FormatSize(3L * 1024 * 1024 * 1024), StringComparison.Ordinal);
     }
+    [Fact]
+    public void A_small_chat_after_a_big_one_is_counted_by_its_own_length()
+    {
+        // Буфер чтения теперь один на весь обход и дорастает до самого большого файла: иначе
+        // каждый чат с вложениями уезжал в кучу больших объектов отдельным массивом, а её сборка
+        // останавливает и поток интерфейса. Ловушка ровно одна — прочитать из общего буфера
+        // больше, чем в файле, и приписать маленькому чату хвост предыдущего.
+        var app = NewTempRoot();
+        var local = NewTempRoot();
+        try
+        {
+            void WriteChat(string name, int payload) =>
+                WriteText(
+                    Path.Combine(app, "chats", name),
+                    $$"""{ "display": [ { "base64": "{{new string('A', payload)}}" } ] }""");
+
+            WriteChat("a.json", 64);
+            WriteChat("b.json", 8192);
+            WriteChat("c.json", 64);
+
+            var report = DataUsage.Measure(app, local, exePath: null);
+
+            Assert.Equal(64 + 8192 + 64, report.AttachmentBytes);
+        }
+        finally
+        {
+            Cleanup(app);
+            Cleanup(local);
+        }
+    }
+
+    private static void WriteText(string path, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    }
+
 }

@@ -257,8 +257,10 @@ namespace Amarin.UI
 
         private void Button_Click_3(object sender, RoutedEventArgs e)
         {
-            LoadSettingsUi();
+            // Панель показываем первой: вся загрузка шла до этой строки, и человек несколько
+            // кадров смотрел на замерший интерфейс, прежде чем настройки вообще появлялись.
             SettingsOverlay.Visibility = Visibility.Visible;
+            LoadSettingsUi();
         }
 
         private void AutoScrollToggle_Changed(object sender, RoutedEventArgs e)
@@ -286,8 +288,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Re-fetches the ImageSources that were assigned from code: those hold the previous
-        /// theme's object and, unlike brushes, do not follow a DynamicResource.
+        /// Re-fetches the ImageSources that were assigned from code — action icons and model
+        /// logos: those hold the previous theme's object and do not follow a DynamicResource.
         /// </summary>
         private void OnEffectiveThemeChanged()
         {
@@ -298,9 +300,10 @@ namespace Amarin.UI
 
             UpdateModelButton();
 
-            // Перерисовывать можно и посреди ответа: RenderSession заново привязывается к живому
-            // ходу. Прежде этот охранник оставлял открытый чат со старыми логотипами до конца ответа.
-            RenderSession();
+            // Перечитываем картинки, а не собираем ленту заново: всё остальное в сообщениях
+            // сидит на ресурсах и перекрашивается само, а перестройка стоила бы повторного
+            // разбора всей переписки — это и был лаг при переключении темы.
+            ThemeImages.Refresh(this);
         }
 
         // ───────── Уведомление о завершении ответа ─────────
@@ -1036,6 +1039,8 @@ namespace Amarin.UI
                 return;
             }
 
+            using var timer = PerfLog.Measure("settings_open");
+
             _settingsUiLoading = true;
             try
             {
@@ -1077,10 +1082,14 @@ namespace Amarin.UI
                 _settingsUiLoading = false;
             }
 
-            // После снятия флага и вне try: обход диска асинхронный, и держать на нём
-            // _settingsUiLoading значило бы глушить обработчики всех остальных настроек,
-            // пока он идёт.
-            _ = RefreshDataUsageAsync();
+            // Обход диска — только когда открыта его собственная страница. Считать при каждом
+            // заходе в настройки значило читать все файлы чатов ради разбивки, которую человек
+            // чаще всего и не смотрит. Флаг снят и вызов вне try: обход асинхронный, и держать на
+            // нём _settingsUiLoading значило бы глушить обработчики всех остальных настроек.
+            if (NavData.IsChecked == true)
+            {
+                _ = RefreshDataUsageAsync();
+            }
         }
 
         private void ApplyUiScaleFromSettings()

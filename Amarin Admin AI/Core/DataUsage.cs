@@ -74,6 +74,12 @@ public static class DataUsage
             files[key] = files.GetValueOrDefault(key) + 1;
         }
 
+        // Один буфер на весь обход, а не массив на каждый файл: вложения лежат base64 внутри
+        // chats/<id>.json, поэтому чтение целиком отправляло в кучу больших объектов по
+        // многомегабайтному массиву на каждый чат. Их сборка останавливает и поток интерфейса —
+        // работа идёт в фоне, а подлагивает на экране.
+        var buffer = Array.Empty<byte>();
+
         foreach (var file in Walk(appRoot, cancellationToken))
         {
             var key = ClassifyAppFile(Relative(appRoot, file.FullName));
@@ -81,7 +87,7 @@ public static class DataUsage
 
             if (key == ChatsKey)
             {
-                attachments += CountAttachmentBytes(file.FullName);
+                attachments += CountAttachmentBytes(file, ref buffer);
             }
         }
 
@@ -204,11 +210,29 @@ public static class DataUsage
         return total;
     }
 
-    private static long CountAttachmentBytes(string path)
+    /// <param name="buffer">
+    /// Общий буфер обхода: дорастает до самого большого файла чата и переиспользуется дальше.
+    /// </param>
+    private static long CountAttachmentBytes(FileInfo file, ref byte[] buffer)
     {
         try
         {
-            return CountAttachmentBytes(File.ReadAllBytes(path));
+            using var stream = file.OpenRead();
+            var length = stream.Length;
+            if (length <= 0 || length > int.MaxValue)
+            {
+                return 0;
+            }
+
+            var size = (int)length;
+            if (buffer.Length < size)
+            {
+                buffer = new byte[size];
+            }
+
+            // Файл мог укоротиться между Walk и чтением — считаем то, что дочитали.
+            var read = stream.ReadAtLeast(buffer.AsSpan(0, size), size, throwOnEndOfStream: false);
+            return CountAttachmentBytes(buffer.AsSpan(0, read));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OutOfMemoryException)
         {

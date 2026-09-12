@@ -110,11 +110,28 @@ namespace Amarin.UI
         private static string FirstLetter(string? name) =>
             string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
 
+        /// <summary>Последний раскодированный аватар и отпечаток файла, из которого он взят.</summary>
+        /// <remarks>
+        /// Кэш WPF ниже отключён намеренно: файл аватара переписывается на месте, и по одному и
+        /// тому же URI показалась бы старая картинка. Свой ключ со временем записи и размером
+        /// обходит ту же ловушку честно — а заходят сюда на каждое открытие настроек.
+        /// </remarks>
+        private static (string Path, DateTime Written, long Length, BitmapImage Image)? _avatar;
+
         /// <summary>Loads the file fully into memory so it is not left locked on disk.</summary>
         private static BitmapImage? LoadAvatar(string path)
         {
             try
             {
+                var info = new FileInfo(path);
+                if (_avatar is { } cached &&
+                    string.Equals(cached.Path, path, StringComparison.OrdinalIgnoreCase) &&
+                    cached.Written == info.LastWriteTimeUtc &&
+                    cached.Length == info.Length)
+                {
+                    return cached.Image;
+                }
+
                 var image = new BitmapImage();
                 image.BeginInit();
                 image.CacheOption = BitmapCacheOption.OnLoad;
@@ -123,6 +140,7 @@ namespace Amarin.UI
                 image.DecodePixelWidth = 144;
                 image.EndInit();
                 image.Freeze();
+                _avatar = (path, info.LastWriteTimeUtc, info.Length, image);
                 return image;
             }
             catch (Exception ex) when (ex is IOException or NotSupportedException or ArgumentException)

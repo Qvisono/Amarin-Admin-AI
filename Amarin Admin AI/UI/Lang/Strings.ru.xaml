@@ -203,6 +203,7 @@
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Требуется подтверждение</system:String>
 
+    <system:String x:Key="S.Context.Auto" xml:space="preserve">«Авто»: модель выбирается при ответе, поэтому показан меньший из двух потолков.</system:String>
     <system:String x:Key="S.Context.Estimate" xml:space="preserve">Число примерное: точное Venice сообщает после ответа модели.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">Контекст заполняется. Для длинной задачи лучше начать новый чат.</system:String>
     <system:String x:Key="S.Context.Full" xml:space="preserve">Контекст почти полон — начало разговора скоро выпадет из памяти модели.</system:String>

@@ -58,13 +58,18 @@ public partial class LanguagePickerField : UserControl
             return;
         }
 
+        // Один вызов на перестройку. Каждый Available() заново перечитывает папку языков и ради
+        // одного названия разбирает словарь перевода целиком, а сюда заходят на каждое открытие
+        // настроек — второй такой проход был чистой платой ни за что.
+        var available = LanguageManager.Available();
+
         LanguageList.Children.Clear();
-        foreach (var language in LanguageManager.Available())
+        foreach (var language in available)
         {
             LanguageList.Children.Add(CreateItem(language));
         }
 
-        var current = LanguageManager.Available()
+        var current = available
             .FirstOrDefault(item => string.Equals(item.Code, _code, StringComparison.OrdinalIgnoreCase));
         SelectedLabel.Text = current?.NativeName ?? _code;
     }

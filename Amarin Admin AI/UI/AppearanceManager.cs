@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -66,6 +67,7 @@ internal sealed class AppearanceManager : IDisposable
     private Storyboard? _motion;
     private int _imageGeneration;
     private bool _disposed;
+    private string? _appliedKey;
 
     public AppearanceManager(Window window, Panel host)
     {
@@ -118,6 +120,19 @@ internal sealed class AppearanceManager : IDisposable
         ArgumentNullException.ThrowIfNull(settings);
         _settings = settings;
 
+        // Открытие настроек прогоняло этот метод целиком — с перекраской фона и перезапуском
+        // сториборда, — хотя оформление уже применено и ничего не менялось. Ключ снимается с
+        // самих настроек, поэтому поля, которые добавят потом, попадут в него сами; палитра в
+        // ключе потому, что от неё зависят выводимые цвета стекла.
+        var key = BuildKey();
+        if (key == _appliedKey)
+        {
+            return;
+        }
+
+        _appliedKey = key;
+        using var timer = PerfLog.Measure("appearance_apply");
+
         var mode = settings.Enabled ? settings.BackdropMode : BackdropMode.None;
         if (mode == BackdropMode.Image && string.IsNullOrWhiteSpace(settings.BackgroundImagePath))
         {
@@ -140,6 +155,13 @@ internal sealed class AppearanceManager : IDisposable
             StartMotion(mode);
         }
     }
+
+    /// <summary>
+    /// Отпечаток того, что сейчас нарисовано. Палитра входит в него, потому что цвета стекла
+    /// выводятся из неё, а не только из настроек оформления.
+    /// </summary>
+    private string BuildKey() =>
+        ThemeManager.Current.PaletteName + "|" + JsonSerializer.Serialize(_settings, AppJson.Options);
 
     // ───────────────────────── фон ─────────────────────────
 
@@ -636,7 +658,36 @@ internal sealed class AppearanceManager : IDisposable
             dictionaries.Add(new ResourceDictionary());
         }
 
+        // Подмена словаря приложения инвалидирует каждый DynamicResource во всём дереве. При
+        // выключенном оформлении надстройки пусты всегда, и этот обход шёл на каждую смену темы
+        // впустую; сверить пару десятков кистей несопоставимо дешевле.
+        if (SameColours(dictionaries[ThemeManager.OverrideSlot], overrides))
+        {
+            return;
+        }
+
         dictionaries[ThemeManager.OverrideSlot] = overrides;
+    }
+
+    /// <summary>Одинаковы ли два набора надстроек — по ключам и по цвету кистей.</summary>
+    private static bool SameColours(ResourceDictionary current, ResourceDictionary next)
+    {
+        if (current.Count != next.Count)
+        {
+            return false;
+        }
+
+        foreach (var key in next.Keys)
+        {
+            if (next[key] is not SolidColorBrush fresh ||
+                current[key] is not SolidColorBrush existing ||
+                existing.Color != fresh.Color)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static SolidColorBrush Frozen(Color color)
@@ -699,6 +750,10 @@ internal sealed class AppearanceManager : IDisposable
         }
 
         WriteOverrides();
+
+        // Нарисовано теперь по новой палитре — отпечаток обязан это отражать, иначе следующее
+        // открытие настроек перекрасит всё заново на ровном месте.
+        _appliedKey = BuildKey();
     }
 
     private void OnVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e) =>

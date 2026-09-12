@@ -18,6 +18,7 @@ internal static class ThemeManager
     private static AppTheme _theme = AppTheme.Dark;
     private static bool _systemHooked;
     private static string _paletteName = "";
+    private static string _iconSuffix = "";
 
     /// <summary>Theme actually painted right now, after resolving <see cref="AppTheme.System"/>.</summary>
     public static bool IsLight { get; private set; }
@@ -80,13 +81,35 @@ internal static class ThemeManager
             return;
         }
 
+        using var timer = PerfLog.Measure("theme_apply");
+
         IsLight = preset.IsLight;
         Current = preset;
         _paletteName = preset.PaletteName;
         var suffix = preset.IsLight ? "Light" : "Dark";
-        dictionaries[0] = Load($"Palette.{preset.PaletteName}");
-        dictionaries[1] = Load($"Icons.{suffix}");
-        dictionaries[2] = Load($"AiLogos.{suffix}");
+
+        // Каждое присваивание в MergedDictionaries — свой обход дерева с инвалидацией всех
+        // DynamicResource, а их здесь под восемь сотен. BeginInit/EndInit откладывает
+        // оповещение до конца, и на смену темы приходится один обход вместо трёх.
+        var resources = _application.Resources;
+        resources.BeginInit();
+        try
+        {
+            dictionaries[0] = Load($"Palette.{preset.PaletteName}");
+
+            // Иконки и логотипы зависят только от светлоты. Между двумя тёмными пресетами это
+            // те же самые 87 КБ BAML, и раньше они разбирались заново на каждое переключение.
+            if (suffix != _iconSuffix || dictionaries[1].Count == 0)
+            {
+                _iconSuffix = suffix;
+                dictionaries[1] = Load($"Icons.{suffix}");
+                dictionaries[2] = Load($"AiLogos.{suffix}");
+            }
+        }
+        finally
+        {
+            resources.EndInit();
+        }
 
         // Brushes follow through DynamicResource, but ImageSources assigned from code
         // (model logos) hold the old object and must be re-fetched.
@@ -100,10 +123,31 @@ internal static class ThemeManager
         Uri.EscapeDataString(typeof(ThemeManager).Assembly.GetName().Name ?? "") +
         ";component/UI/Theme/";
 
-    private static ResourceDictionary Load(string name) => new()
+    private static readonly Dictionary<string, ResourceDictionary> Loaded = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Разбор словаря стоит дорого — у <c>AiLogos.*</c> это 73 КБ векторных <c>Geometry</c> —
+    /// а содержимое у них неизменное, поэтому экземпляр переиспользуется.
+    /// </summary>
+    /// <remarks>
+    /// Экземпляр общий: тот, кто запишет что-нибудь прямо в словарь из
+    /// <c>Application.Resources.MergedDictionaries[0]</c>, испортит палитру всем последующим
+    /// применениям темы, а не только своему. Тему меняют через <see cref="Apply"/>.
+    /// </remarks>
+    private static ResourceDictionary Load(string name)
     {
-        Source = new Uri(PackPrefix + name + ".xaml", UriKind.Absolute)
-    };
+        if (Loaded.TryGetValue(name, out var cached))
+        {
+            return cached;
+        }
+
+        var dictionary = new ResourceDictionary
+        {
+            Source = new Uri(PackPrefix + name + ".xaml", UriKind.Absolute)
+        };
+        Loaded[name] = dictionary;
+        return dictionary;
+    }
 
     /// <summary>
     /// Палитра «на свой страх» для окон, которые могут открыться до <see cref="Initialize"/> —

@@ -1872,10 +1872,10 @@
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
-                                <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}"/>
+                                <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.18.0"
+                                       Text="v1.17.1"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"

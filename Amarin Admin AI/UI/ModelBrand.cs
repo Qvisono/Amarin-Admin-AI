@@ -51,7 +51,7 @@ internal static class ModelBrand
         {
             if (image is not null)
             {
-                image.Source = source;
+                ThemeImages.Assign(image, key, source);
                 ApplyLogoBox(image, key);
                 image.Visibility = Visibility.Visible;
             }

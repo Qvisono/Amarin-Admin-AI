@@ -6,7 +6,10 @@ namespace Amarin.Core;
 /// <param name="Used">Tokens the next request would carry.</param>
 /// <param name="Max">What the model accepts; zero when the catalogue has not said yet.</param>
 /// <param name="IsEstimate">True when any part of <paramref name="Used"/> was guessed locally.</param>
-public readonly record struct ContextUsage(int Used, int Max, bool IsEstimate)
+/// <param name="IsFloor">
+/// Потолок взят по худшему из нескольких возможных моделей — это случай «Авто».
+/// </param>
+public readonly record struct ContextUsage(int Used, int Max, bool IsEstimate, bool IsFloor = false)
 {
     public static ContextUsage Unknown => new(0, 0, true);
 
@@ -34,12 +37,42 @@ internal static class ContextGauge
     /// </summary>
     private const double CharsPerToken = 4;
 
-    public static ContextUsage Measure(ChatSession? session, string? systemPrompt, VeniceModelInfo? model)
+    public static ContextUsage Measure(ChatSession? session, string? systemPrompt, VeniceModelInfo? model) =>
+        Measure(session, systemPrompt, [model]);
+
+    /// <summary>
+    /// То же, но когда моделей может быть несколько. Так выглядит «Авто»: маршрутизатор выбирает
+    /// между быстрой и тяжёлой моделью уже во время ответа, и до первого ответа честного одного
+    /// числа не существует.
+    /// </summary>
+    /// <remarks>
+    /// Берётся меньшее из окон, а не большее: кольцо существует, чтобы предупредить до того, как
+    /// модель начнёт молча забывать начало разговора, и ошибаться оно должно в сторону
+    /// осторожности. Раньше «Авто» просто не находилось в каталоге моделей — <c>Find("auto")</c>
+    /// возвращает null, потому что это не модель, а просьба выбрать её, — и кольцо показывало
+    /// прочерк в каждом чате, где выбрано «Авто».
+    /// </remarks>
+    public static ContextUsage Measure(
+        ChatSession? session, string? systemPrompt, IReadOnlyList<VeniceModelInfo?> candidates)
     {
-        var max = model?.ModelSpec?.AvailableContextTokens ?? model?.ContextLength ?? 0;
+        var max = 0;
+        var known = 0;
+        foreach (var candidate in candidates ?? [])
+        {
+            var ceiling = candidate?.ModelSpec?.AvailableContextTokens ?? candidate?.ContextLength ?? 0;
+            if (ceiling <= 0)
+            {
+                continue;
+            }
+
+            known++;
+            max = max == 0 ? ceiling : Math.Min(max, ceiling);
+        }
+
+        var floor = known > 1;
         if (session is null)
         {
-            return new ContextUsage(0, Math.Max(max, 0), true);
+            return new ContextUsage(0, Math.Max(max, 0), true, floor);
         }
 
         var anchor = session.LastPromptTokens;
@@ -47,14 +80,14 @@ internal static class ContextGauge
         {
             // Nothing measured yet: the whole conversation is a guess, system prompt included.
             var estimated = EstimateTokens(session.ApiMessages, 0) + EstimateTokens(systemPrompt);
-            return new ContextUsage(estimated, Math.Max(max, 0), true);
+            return new ContextUsage(estimated, Math.Max(max, 0), true, floor);
         }
 
         // A reopened chat can have fewer messages than when the count was taken (messages get
         // deleted, turns get rolled back); clamping keeps the tail estimate from reading backwards.
         var from = Math.Clamp(session.LastPromptTokensApiIndex, 0, session.ApiMessages.Count);
         var tail = EstimateTokens(session.ApiMessages, from);
-        return new ContextUsage(anchor + tail, Math.Max(max, 0), tail > 0);
+        return new ContextUsage(anchor + tail, Math.Max(max, 0), tail > 0, floor);
     }
 
     private static int EstimateTokens(IReadOnlyList<ChatMessage> messages, int fromIndex)

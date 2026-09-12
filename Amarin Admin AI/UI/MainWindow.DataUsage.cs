@@ -44,8 +44,10 @@ namespace Amarin.UI
             }
 
             // Предыдущий обход отменяем: страницу открывают и закрывают быстрее, чем он успевает.
+            // Отменяем, но не освобождаем: его токеном ещё пользуется незавершённая задача, и
+            // Dispose здесь дал бы ей ObjectDisposedException вместо обычной отмены. Освобождает
+            // тот обход, которому источник принадлежит, — в своём finally.
             _usageScan?.Cancel();
-            _usageScan?.Dispose();
             var scan = new CancellationTokenSource();
             _usageScan = scan;
 
@@ -140,6 +142,14 @@ namespace Amarin.UI
         }
 
         private void UsageRefreshButton_Click(object sender, RoutedEventArgs e) =>
+            _ = RefreshDataUsageAsync();
+
+        /// <summary>
+        /// Человек перешёл на страницу «Файлы приложения». Считаем здесь, а не при открытии
+        /// настроек: страница запоминается между открытиями, так что вернувшийся на неё увидит
+        /// свежий счёт, а остальные за него не платят.
+        /// </summary>
+        private void NavData_Checked(object sender, RoutedEventArgs e) =>
             _ = RefreshDataUsageAsync();
     }
 }

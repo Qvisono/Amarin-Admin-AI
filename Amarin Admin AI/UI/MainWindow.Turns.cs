@@ -258,10 +258,18 @@ namespace Amarin.UI
                 return;
             }
 
+            // «Авто» — не модель, и Find по нему ничего не находит: кольцо показывало прочерк
+            // в каждом чате, где выбрано «Авто». Потолок берём по обеим моделям, между которыми
+            // маршрутизатор и выбирает.
+            var modelId = CurrentModelId();
+            var candidates = VeniceModelCatalog.IsAuto(modelId)
+                ? _services.Chat.AutoCandidateModelIds().Select(_services.Models.Find).ToList()
+                : [_services.Models.Find(modelId)];
+
             _context?.Show(ContextGauge.Measure(
                 _session,
                 _services.Chat.CurrentSystemPrompt(),
-                _services.Models.Find(CurrentModelId())));
+                candidates));
         }
 
         /// <summary>Кнопки композера по состоянию открытого чата.</summary>

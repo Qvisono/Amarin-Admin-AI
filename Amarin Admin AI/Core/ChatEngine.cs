@@ -2126,6 +2126,17 @@ internal sealed partial class ChatEngine
         FirstNonEmpty(_settings().LiteModelId, _options.Model, "openai-gpt-56-luna");
 
     /// <summary>
+    /// Модели, между которыми выбирает «Авто», — ровно те две, что возвращает
+    /// <see cref="RouteAsync"/>. Знание о маршрутизации живёт здесь, а не в интерфейсе: кольцу
+    /// контекста нужен потолок ещё до того, как маршрутизатор отработал.
+    /// </summary>
+    internal IReadOnlyList<string> AutoCandidateModelIds()
+    {
+        var lite = LiteModelId();
+        return [lite, FirstNonEmpty(_settings().HeavyModelId, lite)];
+    }
+
+    /// <summary>
     /// Модель для одиночного служебного запроса. «Авто» здесь нельзя: это не модель, а просьба
     /// выбрать её, и Venice отвечает на неё 404. Гонять ради одного запроса маршрутизатор
     /// незачем — берём ту же дешёвую модель, на которую он и сам сваливается при отказе.

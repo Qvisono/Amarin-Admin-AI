@@ -177,4 +177,31 @@ public sealed class ContextGaugeTests
         Assert.Contains("\"stream_options\":{\"include_usage\":true}", streamed, StringComparison.Ordinal);
         Assert.DoesNotContain("stream_options", plain, StringComparison.Ordinal);
     }
+    [Fact]
+    public void Auto_reads_against_the_smaller_of_the_two_models_it_can_pick()
+    {
+        // «Авто» — не модель, а просьба выбрать её, и в каталоге его нет: Find возвращал null,
+        // потолок получался нулевой, и кольцо показывало прочерк в каждом чате, где выбрано «Авто» —
+        // и заметнее всего это было в новых, где другого числа взять ещё негде.
+        var session = new ChatSession();
+        session.ApiMessages.Add(User(new string('a', 400)));
+
+        var usage = ContextGauge.Measure(
+            session, "", [Model(contextLength: 200_000), Model(contextLength: 32_000)]);
+
+        // Меньший из двух: кольцо предупреждает о переполнении и ошибаться обязано в сторону осторожности.
+        Assert.Equal(32_000, usage.Max);
+        Assert.True(usage.HasScale);
+        Assert.True(usage.IsFloor);
+    }
+
+    [Fact]
+    public void One_known_model_is_not_a_worst_case()
+    {
+        var usage = ContextGauge.Measure(new ChatSession(), "проба", [Model(contextLength: 32_000), null]);
+
+        Assert.Equal(32_000, usage.Max);
+        Assert.False(usage.IsFloor);
+    }
+
 }

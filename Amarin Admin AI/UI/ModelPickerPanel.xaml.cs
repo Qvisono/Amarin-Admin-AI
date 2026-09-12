@@ -19,6 +19,7 @@ public partial class ModelPickerPanel : UserControl
     private string _selectedId = "";
     private string? _allStatus;
     private bool _catalogReady;
+    private bool _listsDirty = true;
 
     public ModelPickerPanel()
     {
@@ -28,6 +29,7 @@ public partial class ModelPickerPanel : UserControl
         TabRecommended.GroupName = group;
         TabAll.GroupName = group;
         Loaded += OnLoaded;
+        IsVisibleChanged += (_, _) => EnsureLists();
     }
 
     public bool AllowAuto
@@ -50,7 +52,7 @@ public partial class ModelPickerPanel : UserControl
     {
         _catalogReady = false;
         _allStatus = Loc.Get("S.Common.Loading");
-        RebuildAll();
+        InvalidateLists();
     }
 
     public void SetCatalog(IReadOnlyList<VeniceModelInfo> models, string? error = null)
@@ -58,8 +60,7 @@ public partial class ModelPickerPanel : UserControl
         _catalog = models;
         _catalogReady = true;
         _allStatus = error;
-        RebuildRecommended();
-        RebuildAll();
+        InvalidateLists();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -67,8 +68,7 @@ public partial class ModelPickerPanel : UserControl
         SmoothScroll.SetIsEnabled(RecommendedScroll, true);
         SmoothScroll.SetIsEnabled(AllScroll, true);
         ApplyAllowAuto();
-        RebuildRecommended();
-        RebuildAll();
+        InvalidateLists();
     }
 
     private static void OnAllowAutoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -95,7 +95,7 @@ public partial class ModelPickerPanel : UserControl
     {
         if (AutoLogo is not null && TryFindResource("Auto") is ImageSource source)
         {
-            AutoLogo.Source = source;
+            ThemeImages.Assign(AutoLogo, "Auto", source);
             ModelBrand.ApplyLogoBox(AutoLogo, "Auto");
         }
     }
@@ -122,6 +122,33 @@ public partial class ModelPickerPanel : UserControl
                 : Visibility.Collapsed;
         }
 
+        InvalidateLists();
+    }
+
+    /// <summary>
+    /// Помечает списки к пересборке и собирает их, только если панель на экране.
+    /// </summary>
+    /// <remarks>
+    /// Панель живёт внутри <see cref="System.Windows.Controls.Primitives.Popup"/>, и в настройках
+    /// таких полей семь. Раньше каждое открытие настроек перестраивало у всех семи оба списка
+    /// целиком — сотни кнопок с подсказками создавались в закрытых попапах и тут же уходили в
+    /// мусор. Видимой панель становится ровно тогда, когда попап открыли, поэтому хозяевам
+    /// панели ничего знать об этом не нужно.
+    /// </remarks>
+    private void InvalidateLists()
+    {
+        _listsDirty = true;
+        EnsureLists();
+    }
+
+    private void EnsureLists()
+    {
+        if (!_listsDirty || !IsVisible)
+        {
+            return;
+        }
+
+        _listsDirty = false;
         RebuildRecommended();
         RebuildAll();
     }
@@ -267,12 +294,12 @@ public partial class ModelPickerPanel : UserControl
             var size = key.Equals("Grok", StringComparison.Ordinal) ? 13 : 15;
             var glyph = new Image
             {
-                Source = source,
                 Width = size,
                 Height = size,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            ThemeImages.Assign(glyph, key, source);
             ModelBrand.ApplyLogoBox(glyph, key);
             return glyph;
         }

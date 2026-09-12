@@ -126,6 +126,11 @@ internal sealed class ContextRing
         var text = Loc.Format("S.Context.Title", usage.Used.ToString("#,0", CultureInfo.InvariantCulture)
             .Replace(",", " "), VeniceModelCatalog.FormatContext(usage.Max), percent);
 
+        if (usage.IsFloor)
+        {
+            text += "\n" + Loc.Get("S.Context.Auto");
+        }
+
         if (usage.IsEstimate)
         {
             text += "\n" + Loc.Get("S.Context.Estimate");

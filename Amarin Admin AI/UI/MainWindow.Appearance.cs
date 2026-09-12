@@ -30,22 +30,22 @@ namespace Amarin.UI
             ("Dark",     ["#0E0E10", "#1E1E24", "#080809"], 135),
             ("Obsidian", ["#000000", "#141418", "#050505"], 135),
             ("Graphite", ["#161719", "#232A38", "#101115"], 140),
-            ("Midnight", ["#090D18", "#1B2547", "#0B1022"], 140),
+            ("Midnight", ["#080B11", "#182448", "#0A0E1B"], 140),
             ("Nord",     ["#0E141A", "#1D2E39", "#101C24"], 150),
             ("Cobalt",   ["#050F1A", "#0E2E48", "#07161F"], 145),
             ("Ocean",    ["#04121A", "#0D3646", "#061820"], 145),
             ("Slate",    ["#0D0F12", "#1C232C", "#101519"], 130),
-            ("Amethyst", ["#0F0A17", "#271540", "#140C24"], 125),
-            ("Plum",     ["#100812", "#33163A", "#170C19"], 122),
+            ("Amethyst", ["#0E0A12", "#241640", "#120D1A"], 125),
+            ("Plum",     ["#120810", "#3A1030", "#180C16"], 122),
             ("Neon",     ["#07060B", "#2A1040", "#0C0A12"], 125),
-            ("Rosé",     ["#130A11", "#3C1628", "#1A0C15"], 120),
+            ("Rosé",     ["#1C1416", "#3E2229", "#241A1C"], 120),
             ("Quartz",   ["#100E11", "#301826", "#0C0B0D"], 118),
             ("Crimson",  ["#130C0C", "#3B161A", "#1A0E0E"], 118),
             ("Ember",    ["#130F0A", "#3B2010", "#1A1109"], 112),
             ("Ochre",    ["#1B1915", "#3E3016", "#171511"], 115),
             ("Rust",     ["#110F0E", "#3A1C0C", "#0C0B0A"], 112),
-            ("Emerald",  ["#0A1411", "#123C2A", "#0C1E19"], 150),
-            ("Forest",   ["#050F09", "#123A24", "#08160E"], 148),
+            ("Emerald",  ["#0A100F", "#0F3328", "#0C1614"], 150),
+            ("Forest",   ["#0B0D0C", "#12301F", "#0E1110"], 148),
             ("Terminal", ["#0E100F", "#0E3220", "#080C0A"], 150),
             ("Silver",   ["#E9EEF6", "#FAFBFC", "#EFF0F5"], 140),
             ("Steel",    ["#E6EBF1", "#F9FBFC", "#EDF1F5"], 142),
@@ -72,6 +72,9 @@ namespace Amarin.UI
             new() { Interval = TimeSpan.FromMilliseconds(160) };
 
         private bool _appearanceDebouncePending;
+
+        /// <summary>Имя семейства, которое уже стоит на окне. null — ещё ни разу не ставили.</summary>
+        private string? _fontFamily;
 
         private void InitializeAppearance()
         {
@@ -213,8 +216,11 @@ namespace Amarin.UI
             }
 
             _services.Settings.Theme = theme;
-            _services.SettingsStore.Save(_services.Settings);
+
+            // Перекрашиваем раньше записи: WriteAtomic пишет временный файл и переименовывает
+            // его, и при живом антивирусе эти десятки миллисекунд стояли прямо перед перекраской.
             ThemeManager.Apply(theme);
+            _services.SettingsStore.Save(_services.Settings);
         }
 
         private void ThemeFollowSystemToggle_Changed(object sender, RoutedEventArgs e)
@@ -235,9 +241,9 @@ namespace Amarin.UI
                 _services.Settings.Theme = ThemeManager.Current.Theme;
             }
 
-            _services.SettingsStore.Save(_services.Settings);
             ThemeManager.Apply(_services.Settings.Theme);
             SyncThemeCards(_services.Settings.Theme);
+            _services.SettingsStore.Save(_services.Settings);
         }
 
         private void SyncThemeCards(AppTheme theme)
@@ -718,15 +724,23 @@ namespace Amarin.UI
         /// </summary>
         private void ApplyInterfaceOptions(AppearanceSettings appearance)
         {
-            if (string.IsNullOrWhiteSpace(appearance.FontFamily))
+            // У FontFamily нет равенства по значению: новый объект с тем же именем WPF считает
+            // изменением наследуемого свойства и перемеряет всё дерево окна вместе с лентой чата.
+            // А заходят сюда на каждое открытие настроек, где шрифт почти всегда тот же самый.
+            var family = appearance.FontFamily ?? "";
+            if (!string.Equals(family, _fontFamily, StringComparison.Ordinal))
             {
-                ClearValue(FontFamilyProperty);
-            }
-            else
-            {
-                // The families ship with the app as Resource-built TTFs; the trailing fallback is
-                // what renders if a face ever fails to load.
-                FontFamily = new FontFamily($"pack://application:,,,/Fonts/#{appearance.FontFamily}, Segoe UI");
+                _fontFamily = family;
+                if (string.IsNullOrWhiteSpace(family))
+                {
+                    ClearValue(FontFamilyProperty);
+                }
+                else
+                {
+                    // The families ship with the app as Resource-built TTFs; the trailing fallback
+                    // is what renders if a face ever fails to load.
+                    FontFamily = new FontFamily($"pack://application:,,,/Fonts/#{family}, Segoe UI");
+                }
             }
 
             MessagesPanel.MaxWidth = appearance.ChatColumnWidth <= 0 ? 1070 : appearance.ChatColumnWidth;

@@ -203,6 +203,7 @@
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">From chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Confirmation required</system:String>
 
+    <system:String x:Key="S.Context.Auto" xml:space="preserve">Auto: the model is chosen while answering, so the smaller of the two ceilings is shown.</system:String>
     <system:String x:Key="S.Context.Estimate" xml:space="preserve">Approximate: Venice reports the exact figure after a model answers.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">The context is filling up. Consider a new chat for a long task.</system:String>
     <system:String x:Key="S.Context.Full" xml:space="preserve">The context is nearly full — the start of the conversation will drop out soon.</system:String>

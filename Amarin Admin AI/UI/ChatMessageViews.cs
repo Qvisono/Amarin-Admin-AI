@@ -564,7 +564,8 @@ internal sealed class AssistantMessageView
         var key = VeniceModelCatalog.GetLogoResourceKey(modelId ?? "");
         if (key is not null && Host.TryFindResource(key) is ImageSource source)
         {
-            var glyph = new Image { Source = source, Width = size, Height = size };
+            var glyph = new Image { Width = size, Height = size };
+            ThemeImages.Assign(glyph, key, source);
             ModelBrand.ApplyLogoBox(glyph, key);
             return new Border
             {
@@ -1228,7 +1229,7 @@ internal static class ChatMessageViews
         };
         if (host.TryFindResource(resourceKey) is ImageSource source)
         {
-            image.Source = source;
+            ThemeImages.Assign(image, resourceKey, source);
         }
 
         button.Content = image;
