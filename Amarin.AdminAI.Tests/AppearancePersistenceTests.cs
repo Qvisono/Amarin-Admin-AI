@@ -28,6 +28,7 @@ public sealed class AppearancePersistenceTests
             settings.Appearance.FontFamily = "Rubik";
             settings.Appearance.CompactComposer = true;
             settings.Appearance.CompactWidthPercent = 45;
+            settings.Appearance.Grain = 0.3;
             store.Save(settings);
 
             var loaded = new AppSettingsStore(root).Load();
@@ -43,6 +44,7 @@ public sealed class AppearancePersistenceTests
             Assert.Equal("Rubik", loaded.Appearance.FontFamily);
             Assert.True(loaded.Appearance.CompactComposer);
             Assert.Equal(45, loaded.Appearance.CompactWidthPercent);
+            Assert.Equal(0.3, loaded.Appearance.Grain);
 
             // Untouched fields keep their shipped defaults.
             Assert.True(loaded.Appearance.AnimationsEnabled);
@@ -71,6 +73,11 @@ public sealed class AppearancePersistenceTests
             Assert.False(loaded.Appearance.Enabled);
             Assert.Equal(BackdropMode.None, loaded.Appearance.BackdropMode);
             Assert.Equal(125, loaded.UiScalePercent);
+
+            // Зерна в старом файле нет и быть не может — и пустое значение обязано остаться
+            // пустым, а не превратиться в ноль: ноль значил бы «человек выключил зерно», и
+            // матовая тема потом не показала бы его никогда.
+            Assert.Null(loaded.Appearance.Grain);
         }
         finally
         {
@@ -93,6 +100,7 @@ public sealed class AppearancePersistenceTests
                     "enabled": true,
                     "glassOpacity": 0.0,
                     "imageBlur": 9000,
+                    "grain": 4,
                     "accentColor": "not a colour",
                     "gradientColors": ["#zzzzzz"]
                   }
@@ -104,6 +112,7 @@ public sealed class AppearancePersistenceTests
 
             Assert.Equal(0.15, loaded.Appearance.GlassOpacity);
             Assert.Equal(80, loaded.Appearance.ImageBlur);
+            Assert.Equal(1.0, loaded.Appearance.Grain);
             Assert.Equal("", loaded.Appearance.AccentColor);
             Assert.Equal(2, loaded.Appearance.GradientColors.Count);
 

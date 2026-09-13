@@ -53,6 +53,14 @@
         -->
         <Grid x:Name="BackdropHost" Panel.ZIndex="-1" IsHitTestVisible="False"
               ClipToBounds="True" Visibility="Collapsed"/>
+        <!--
+            Матовое зерно: тонкая текстура поверх всего окна, которую собирает GrainOverlay.
+            ZIndex="99" держит слой над ScaledRoot независимо от порядка в разметке — тем же
+            приёмом, каким BackdropHost держится под ним, — а IsHitTestVisible="False" не даёт
+            ему съесть перетаскивание окна за пустое место (Grid_MouseDown).
+        -->
+        <Rectangle x:Name="GrainLayer" Panel.ZIndex="99" IsHitTestVisible="False"
+                   Visibility="Collapsed"/>
         <Grid x:Name="ScaledRoot">
             <Grid>
             <Grid.ColumnDefinitions>
@@ -1875,7 +1883,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.17.1"
+                                       Text="v1.19.0"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -2388,6 +2396,29 @@
                                             Minimum="0" Maximum="20" SmallChange="1" LargeChange="2"/>
                                     <TextBlock x:Name="CornerRadiusValue" Grid.Column="2"
                                                Style="{StaticResource SettingValue}"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Grain}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Appearance.GrainDesc}"/>
+                                    </StackPanel>
+                                    <Grid Grid.Column="1" Width="176" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="46"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Slider x:Name="GrainSlider"
+                                                Style="{StaticResource SettingsRangeSlider}"
+                                                Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"/>
+                                        <TextBlock x:Name="GrainValue" Grid.Column="1"
+                                                   Style="{StaticResource SettingValue}"/>
+                                    </Grid>
                                 </Grid>
 
                                 <Grid>

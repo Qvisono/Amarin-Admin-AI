@@ -30,6 +30,7 @@ namespace Amarin.UI
             ("Dark",     ["#0E0E10", "#1E1E24", "#080809"], 135),
             ("Obsidian", ["#000000", "#141418", "#050505"], 135),
             ("Graphite", ["#161719", "#232A38", "#101115"], 140),
+            ("Matte",    ["#141518", "#1F2329", "#101113"], 138),
             ("Midnight", ["#080B11", "#182448", "#0A0E1B"], 140),
             ("Nord",     ["#0E141A", "#1D2E39", "#101C24"], 150),
             ("Cobalt",   ["#050F1A", "#0E2E48", "#07161F"], 145),
@@ -47,7 +48,14 @@ namespace Amarin.UI
             ("Emerald",  ["#0A100F", "#0F3328", "#0C1614"], 150),
             ("Forest",   ["#0B0D0C", "#12301F", "#0E1110"], 148),
             ("Terminal", ["#0E100F", "#0E3220", "#080C0A"], 150),
+            // Семейство Edge: концы нейтральные, цвет только в средней полосе — тем же
+            // правилом, по которому в самих палитрах он сидит в акценте, а не в заливке.
+            ("Edge Blue",    ["#0C0C0E", "#141A2A", "#08080A"], 135),
+            ("Edge Lime",    ["#0C0C0E", "#17200E", "#08080A"], 135),
+            ("Edge Amber",   ["#0C0C0E", "#221A0C", "#08080A"], 135),
+            ("Edge Magenta", ["#0C0C0E", "#22101B", "#08080A"], 135),
             ("Silver",   ["#E9EEF6", "#FAFBFC", "#EFF0F5"], 140),
+            ("Matte Light", ["#E8EAEE", "#F6F7F9", "#ECEEF1"], 138),
             ("Steel",    ["#E6EBF1", "#F9FBFC", "#EDF1F5"], 142),
             ("Frost",    ["#E2EEF7", "#F7FBFD", "#EBF3F8"], 150),
             ("Sakura",   ["#F5E5EC", "#FDF7F9", "#F8EEF2"], 125),
@@ -60,6 +68,7 @@ namespace Amarin.UI
         ];
 
         private AppearanceManager? _appearance;
+        private GrainOverlay? _grain;
         private ComposerCompactMode? _compact;
         private BalanceBadge? _balance;
         private ContextRing? _context;
@@ -79,6 +88,7 @@ namespace Amarin.UI
         private void InitializeAppearance()
         {
             _appearance = new AppearanceManager(this, BackdropHost);
+            _grain = new GrainOverlay(this, GrainLayer);
             _compact = new ComposerCompactMode(
                 this,
                 ComposerBorder,
@@ -220,6 +230,16 @@ namespace Amarin.UI
             // Перекрашиваем раньше записи: WriteAtomic пишет временный файл и переименовывает
             // его, и при живом антивирусе эти десятки миллисекунд стояли прямо перед перекраской.
             ThemeManager.Apply(theme);
+
+            // Сам слой зерна обновит EffectiveThemeChanged, но ползунок про это не знает: пока
+            // человек его не трогал, он обязан показывать то, что тема действительно нарисовала.
+            if (_services.Settings.Appearance.Grain is null)
+            {
+                _settingsUiLoading = true;
+                GrainSlider.Value = GrainOverlay.Effective(_services.Settings.Appearance);
+                _settingsUiLoading = false;
+            }
+
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -365,6 +385,7 @@ namespace Amarin.UI
             Bind(GlassOpacitySlider, GlassOpacityValue, v => $"{v * 100:0}%", (a, v) => a.GlassOpacity = v);
             Bind(GlassFrostSlider, GlassFrostValue, v => $"{v * 100:0}%", (a, v) => a.GlassFrost = v);
             Bind(CornerRadiusSlider, CornerRadiusValue, v => $"{v:0}", (a, v) => a.CornerRadius = v);
+            Bind(GrainSlider, GrainValue, v => $"{v * 100:0}%", (a, v) => a.Grain = v);
             Bind(CompactDelaySlider, CompactDelayValue, v => $"{v / 1000:0.0}с", (a, v) => a.CompactDelayMs = (int)v);
             Bind(CompactWidthSlider, CompactWidthValue, v => $"{v:0}%", (a, v) => a.CompactWidthPercent = v);
             Bind(CompactHoverSlider, CompactHoverValue, v => $"{v:0}", (a, v) => a.CompactHoverRadius = v);
@@ -666,6 +687,10 @@ namespace Amarin.UI
             SelectByTag(FontCombo, appearance.FontFamily);
             SelectByTag(ChatWidthCombo, appearance.ChatColumnWidth.ToString(CultureInfo.InvariantCulture));
             CornerRadiusSlider.Value = appearance.CornerRadius;
+
+            // Пустое значение означает «как хочет тема», и ползунку надо показать именно то,
+            // что человек увидит на экране, а не ноль.
+            GrainSlider.Value = GrainOverlay.Effective(appearance);
             AnimationsToggle.IsChecked = appearance.AnimationsEnabled;
 
             CompactComposerToggle.IsChecked = appearance.CompactComposer;
@@ -710,6 +735,7 @@ namespace Amarin.UI
             }
 
             ApplyInterfaceOptions(settings.Appearance);
+            _grain?.Apply(settings.Appearance);
             _compact?.Apply(settings.Appearance);
 
             if (save)

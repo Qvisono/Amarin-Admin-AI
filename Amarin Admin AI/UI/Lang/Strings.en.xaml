@@ -78,6 +78,8 @@
     <system:String x:Key="S.Appearance.Glass" xml:space="preserve">Glass</system:String>
     <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Popup menus and dialogs stay opaque — the desktop shows through them, not the backdrop</system:String>
     <system:String x:Key="S.Appearance.Gradient" xml:space="preserve">Gradient</system:String>
+    <system:String x:Key="S.Appearance.Grain" xml:space="preserve">Grain</system:String>
+    <system:String x:Key="S.Appearance.GrainDesc" xml:space="preserve">Matte micro-texture over the interface</system:String>
     <system:String x:Key="S.Appearance.Image" xml:space="preserve">Image</system:String>
     <system:String x:Key="S.Appearance.ImageFit" xml:space="preserve">Fitting</system:String>
     <system:String x:Key="S.Appearance.InputRadius" xml:space="preserve">Input rounding</system:String>

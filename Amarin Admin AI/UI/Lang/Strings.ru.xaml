@@ -78,6 +78,8 @@
     <system:String x:Key="S.Appearance.Glass" xml:space="preserve">Стекло</system:String>
     <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон</system:String>
     <system:String x:Key="S.Appearance.Gradient" xml:space="preserve">Градиент</system:String>
+    <system:String x:Key="S.Appearance.Grain" xml:space="preserve">Зерно</system:String>
+    <system:String x:Key="S.Appearance.GrainDesc" xml:space="preserve">Матовая микротекстура поверх интерфейса</system:String>
     <system:String x:Key="S.Appearance.Image" xml:space="preserve">Изображение</system:String>
     <system:String x:Key="S.Appearance.ImageFit" xml:space="preserve">Вписывание</system:String>
     <system:String x:Key="S.Appearance.InputRadius" xml:space="preserve">Скругление ввода</system:String>

@@ -107,6 +107,19 @@ public sealed class AppearanceSettings
     public double CornerRadius { get; set; } = 6;
 
     /// <summary>
+    /// Матовое зерно поверх окна, 0..1. <c>null</c> — брать значение темы: матовые пресеты
+    /// просят своё, остальные тридцать один — ноль, и выглядят ровно как раньше.
+    /// <para>
+    /// Нужен именно nullable, а не ноль по умолчанию: иначе "я ничего не выбирал" и
+    /// "я увёл ползунок в ноль" неразличимы, и выбор темы Matte либо молча перетирал бы
+    /// осознанный ноль, либо никогда не показывал бы зерно. Двигая ползунок, человек
+    /// переходит на явное значение; «Сбросить оформление» возвращает null, то есть снова
+    /// к теме.
+    /// </para>
+    /// </summary>
+    public double? Grain { get; set; }
+
+    /// <summary>
     /// Interface font. Empty means the Windows default; otherwise one of the families shipped in
     /// <c>Fonts/</c> — <c>Urbanist</c>, <c>Outfit</c>, <c>Rubik</c>, <c>Arimo</c>.
     /// </summary>
@@ -158,6 +171,7 @@ public sealed class AppearanceSettings
         GlassSheen = GlassSheen,
         Vignette = Vignette,
         CornerRadius = CornerRadius,
+        Grain = Grain,
         FontFamily = FontFamily,
         ChatColumnWidth = ChatColumnWidth,
         AnimationsEnabled = AnimationsEnabled,
@@ -185,6 +199,11 @@ public sealed class AppearanceSettings
         GlassOpacity = Clamp(GlassOpacity, 0.15, 1.0);
         GlassFrost = Clamp(GlassFrost, 0.0, 0.6);
         CornerRadius = Clamp(CornerRadius, 0, 20);
+        if (Grain is { } grain)
+        {
+            Grain = Clamp(grain, 0, 1);
+        }
+
         ChatColumnWidth = Clamp(ChatColumnWidth, 480, 100000);
         CompactDelayMs = (int)Clamp(CompactDelayMs, 300, 5000);
         CompactWidthPercent = Clamp(CompactWidthPercent, 30, 100);
@@ -243,5 +262,5 @@ public sealed class AppearanceSettings
         string.Join('|',
             GradientAngle, MotionSpeed, ImageBrightness, ImageSaturation, ImageBlur,
             GlassOpacity, GlassFrost, CornerRadius, ChatColumnWidth, CompactDelayMs, CompactWidthPercent,
-            CompactHoverRadius, AccentColor, string.Join(',', GradientColors));
+            CompactHoverRadius, AccentColor, Grain, string.Join(',', GradientColors));
 }

@@ -79,6 +79,8 @@ internal static class StringsRu
             ["S.Appearance.Glass"] = "Стекло",
             ["S.Appearance.GlassDesc"] = "Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон",
             ["S.Appearance.Gradient"] = "Градиент",
+            ["S.Appearance.Grain"] = "Зерно",
+            ["S.Appearance.GrainDesc"] = "Матовая микротекстура поверх интерфейса",
             ["S.Appearance.Image"] = "Изображение",
             ["S.Appearance.ImageFit"] = "Вписывание",
             ["S.Appearance.InputRadius"] = "Скругление ввода",

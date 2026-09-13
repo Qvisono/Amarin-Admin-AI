@@ -48,7 +48,13 @@ public enum AppTheme
     Ochre,
     Quartz,
     Ink,
-    Contrast
+    Contrast,
+    Matte,
+    MatteLight,
+    EdgeBlue,
+    EdgeLime,
+    EdgeAmber,
+    EdgeMagenta
 }
 
 public sealed class AppSettings
