@@ -99,6 +99,13 @@ namespace Amarin.UI
                 ComposerToolbar,
                 ComposerPlaceholder,
                 MessageTextBox);
+
+            // Ссылку не храним намеренно: объект жив, пока живы подписки на SizeChanged области
+            // чата, а тех держит само окно. Поле пришлось бы читать ради предупреждения CS0414.
+            _ = new ComposerHeightLimiter(
+                Chat, ComposerBorder, ComposerLayout, ComposerInputRow, ComposerToolbar,
+                AttachmentsHost, MessageTextBox);
+
             _balance = new BalanceBadge(BalanceBadge, BalanceCoin, BalanceAmount, new BalanceStore());
             _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 

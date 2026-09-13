@@ -1210,6 +1210,11 @@ namespace Amarin.UI
 
             MessageTextBox.Focus();
             MessageTextBox.CaretIndex = MessageTextBox.Text?.Length ?? 0;
+
+            // Высота поля ограничена, и длинный текст в нём прокручивается. Каретку в конец
+            // ставим мы сами, а сама по себе она в кадр не приезжает — без этого человек видел бы
+            // начало чужого промпта и не понимал, куда он печатает.
+            MessageTextBox.ScrollToEnd();
         }
 
         private bool ShouldKeepKeyboardFocus()
@@ -1298,6 +1303,7 @@ namespace Amarin.UI
 
             box.Text = current.Insert(start, text);
             box.CaretIndex = start + text.Length;
+            box.ScrollToEnd();
         }
 
         private void Window_PreviewTextInput(object sender, TextCompositionEventArgs e)
