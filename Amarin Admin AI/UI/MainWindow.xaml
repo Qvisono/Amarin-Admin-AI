@@ -1883,7 +1883,7 @@
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
                             </StackPanel>
                             <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.19.1"
+                                       Text="v1.19.2"
                                        FontSize="10.5"
                                        Foreground="{DynamicResource Text.Faint}"
                                        Margin="18,0,8,14"
@@ -2876,6 +2876,32 @@
                                             Content="{DynamicResource S.Data.OpenFile}" Click="ImportChatButton_Click"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <!--
+                                    Экспорт и импорт всех данных. Стоит рядом с импортом одного
+                                    чата: две соседние задачи, и человек, пришедший «перенести
+                                    переписку», видит обе сразу. Две кнопки в ряд — как у
+                                    обновлений ниже.
+                                -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Bundle.Row}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Bundle.RowDesc}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="DataExportButton" Style="{StaticResource SecondaryButton}"
+                                                Content="{DynamicResource S.Bundle.Export}" Margin="0,0,6,0"
+                                                Click="DataExportButton_Click"/>
+                                        <Button x:Name="DataImportButton" Style="{StaticResource SecondaryButton}"
+                                                Content="{DynamicResource S.Bundle.Import}"
+                                                Click="DataImportButton_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -3410,6 +3436,141 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ЭКСПОРТ ДАННЫХ ═══════════ -->
+        <!--
+            ZIndex 31: выше вопроса о действии (30) — окно человек открыл сам, и фоновый вопрос
+            от модели не должен лечь поверх списка галочек; тот же выбор уже сделан для
+            DomainOverlay. Ниже всего остального: с экспортом ничто из этого одновременно не
+            живёт, а если появится вопрос о загрузке — он важнее.
+        -->
+        <Grid x:Name="DataExportOverlay" Visibility="Collapsed" Panel.ZIndex="31"
+              Focusable="True" PreviewKeyDown="DataExport_PreviewKeyDown">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="DataExportCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border x:Name="DataExportCard" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource S.Bundle.Export.Title}" FontSize="15"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock Text="{DynamicResource S.Bundle.Export.Desc}" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <!--
+                            Строки категорий собираются кодом: их состав зависит от того, что
+                            реально лежит на диске, и пустая категория в списке была бы шумом —
+                            тот же мотив, что у разбивки «Занято на диске».
+                        -->
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="8" Padding="4">
+                            <StackPanel x:Name="ExportCategoryList"/>
+                        </Border>
+
+                        <TextBlock x:Name="ExportSummaryText" FontSize="12" Margin="0,10,0,0"
+                                   Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="ExportErrorText" FontSize="12" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource Status.Danger}" TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button x:Name="DataExportCancelButton" Content="{DynamicResource S.Common.Cancel}"
+                                    Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                    Click="DataExportCancelButton_Click"/>
+                            <Button x:Name="DataExportSaveButton" Content="{DynamicResource S.Bundle.Export.Save}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="DataExportSaveButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ИМПОРТ ДАННЫХ ═══════════ -->
+        <!-- ZIndex 32: на слой выше экспорта, чтобы два родственных окна нельзя было перепутать. -->
+        <Grid x:Name="DataImportOverlay" Visibility="Collapsed" Panel.ZIndex="32"
+              Focusable="True" PreviewKeyDown="DataImport_PreviewKeyDown">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="DataImportCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border x:Name="DataImportCard" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource S.Bundle.Import.Title}" FontSize="15"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   Margin="0,0,0,10"/>
+
+                        <!-- Что в архиве: сводка читается из описи, без распаковки. -->
+                        <StackPanel x:Name="ImportChoicePanel">
+                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,10">
+                                <TextBlock x:Name="ImportMetaText" FontSize="12"
+                                           Foreground="{DynamicResource Text.Tertiary}" TextWrapping="Wrap"/>
+                            </Border>
+
+                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="8" Padding="4">
+                                <StackPanel x:Name="ImportCategoryList"/>
+                            </Border>
+
+                            <TextBlock Text="{DynamicResource S.Bundle.Import.Mode}" FontSize="12"
+                                       FontWeight="SemiBold" Foreground="{DynamicResource Text.Muted}"
+                                       Margin="0,14,0,8"/>
+                            <RadioButton x:Name="ImportMergeChoice" GroupName="DataImportMode"
+                                         Style="{StaticResource DialogChoiceCard}" IsChecked="True"
+                                         Margin="0,0,0,6" Checked="ImportModeChoice_Checked">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource S.Bundle.Import.Merge}" FontSize="12.5"
+                                               FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"/>
+                                    <TextBlock Text="{DynamicResource S.Bundle.Import.MergeDesc}" FontSize="11.5"
+                                               Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="ImportReplaceChoice" GroupName="DataImportMode"
+                                         Style="{StaticResource DialogChoiceCard}"
+                                         Checked="ImportModeChoice_Checked">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource S.Bundle.Import.Replace}" FontSize="12.5"
+                                               FontWeight="SemiBold" Foreground="{DynamicResource Text.Body}"/>
+                                    <TextBlock Text="{DynamicResource S.Bundle.Import.ReplaceDesc}" FontSize="11.5"
+                                               Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
+                                               Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <TextBlock Text="{DynamicResource S.Bundle.Import.SecurityKept}" FontSize="11.5"
+                                       Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"
+                                       Margin="0,12,0,0"/>
+                        </StackPanel>
+
+                        <!-- Итог показывается здесь же: отдельное системное окно поверх своего
+                             выглядит как сбой, а не как ответ на нажатую кнопку. -->
+                        <TextBlock x:Name="ImportDoneText" FontSize="12.5" Margin="0,4,0,0"
+                                   Foreground="{DynamicResource Text.Body}" TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+                        <TextBlock x:Name="ImportErrorText" FontSize="12" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource Status.Danger}" TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button x:Name="DataImportCancelButton" Content="{DynamicResource S.Common.Cancel}"
+                                    Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                    Click="DataImportCancelButton_Click"/>
+                            <Button x:Name="DataImportApplyButton" Content="{DynamicResource S.Bundle.Import.Apply}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="DataImportApplyButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </Viewbox>
         </Grid>
 

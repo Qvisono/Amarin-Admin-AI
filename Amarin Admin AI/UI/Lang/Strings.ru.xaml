@@ -150,6 +150,60 @@
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Звук уведомления</system:String>
     <system:String x:Key="S.Behavior.NotifySoundDesc" xml:space="preserve">Короткий системный сигнал вместе с уведомлением</system:String>
 
+    <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Оформление</system:String>
+    <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Изображение профиля и фон окна</system:String>
+    <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Чаты</system:String>
+    <system:String x:Key="S.Bundle.Cat.ChatsDesc" xml:space="preserve">Переписки вместе с вложениями и закреплениями</system:String>
+    <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Языки интерфейса</system:String>
+    <system:String x:Key="S.Bundle.Cat.LanguagesDesc" xml:space="preserve">Переводы, добавленные к встроенным</system:String>
+    <system:String x:Key="S.Bundle.Cat.Profiles" xml:space="preserve">Профили</system:String>
+    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">Список аккаунтов и данные остальных профилей. Пароли не переносятся</system:String>
+    <system:String x:Key="S.Bundle.Cat.Settings" xml:space="preserve">Настройки</system:String>
+    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Модели, промпты, поведение и масштаб интерфейса</system:String>
+    <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">В архиве нет данных.</system:String>
+    <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">Архив сделан более новой версией программы. Обновитесь и попробуйте снова.</system:String>
+    <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">Это не архив. Выберите файл, сделанный кнопкой «Экспорт».</system:String>
+    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">Архив не похож на данные Amarin — в нём нет описи.</system:String>
+    <system:String x:Key="S.Bundle.Error.TooLarge" xml:space="preserve">Архив слишком большой или распаковывается в подозрительно много данных.</system:String>
+    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">Файл не читается — возможно, он повреждён или занят другой программой.</system:String>
+    <system:String x:Key="S.Bundle.Error.WriteFailed" xml:space="preserve">Не удалось записать данные на диск. Данные остались прежними.</system:String>
+    <system:String x:Key="S.Bundle.Export" xml:space="preserve">Экспорт</system:String>
+    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Отметьте, что положить в архив. Архив не шифруется — храните его там же, где личные файлы.</system:String>
+    <system:String x:Key="S.Bundle.Export.DialogTitle" xml:space="preserve">Куда сохранить архив</system:String>
+    <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Архив сохранён:&#10;{0}</system:String>
+    <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">В этих категориях пока нечего сохранять</system:String>
+    <system:String x:Key="S.Bundle.Export.Failed" xml:space="preserve">Не удалось записать архив. Проверьте, есть ли на диске место и не открыт ли файл другой программой.</system:String>
+    <system:String x:Key="S.Bundle.Export.Save" xml:space="preserve">Сохранить архив</system:String>
+    <system:String x:Key="S.Bundle.Export.Summary" xml:space="preserve">Всего {0} в {1} файлах</system:String>
+    <system:String x:Key="S.Bundle.Export.Title" xml:space="preserve">Экспорт данных</system:String>
+    <system:String x:Key="S.Bundle.Export.Working" xml:space="preserve">Собираем архив…</system:String>
+    <system:String x:Key="S.Bundle.FileKind" xml:space="preserve">Данные Amarin (ZIP)</system:String>
+    <system:String x:Key="S.Bundle.Import" xml:space="preserve">Импорт</system:String>
+    <system:String x:Key="S.Bundle.Import.Apply" xml:space="preserve">Импортировать</system:String>
+    <system:String x:Key="S.Bundle.Import.Busy" xml:space="preserve">Сейчас идёт ответ модели. Дождитесь его окончания и повторите импорт.</system:String>
+    <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">чатов: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Выберите архив с данными</system:String>
+    <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Готово. Перенесено: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">В архиве не нашлось ничего нового — данные не изменились.</system:String>
+    <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">языков: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Добавить к моим</system:String>
+    <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Ваши данные останутся. Добавится только то, чего у вас нет: чаты под новыми именами, отсутствующие профили и языки. Настройки и оформление не изменятся.</system:String>
+    <system:String x:Key="S.Bundle.Import.Meta" xml:space="preserve">Создан {0} · версия {1} · {2}</system:String>
+    <system:String x:Key="S.Bundle.Import.Mode" xml:space="preserve">Что сделать с содержимым архива</system:String>
+    <system:String x:Key="S.Bundle.Import.ProfilesCount" xml:space="preserve">профилей: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.ProfilesNote" xml:space="preserve">Новые профили появятся в списке аккаунтов; текущий профиль не менялся.</system:String>
+    <system:String x:Key="S.Bundle.Import.Replace" xml:space="preserve">Заменить мои</system:String>
+    <system:String x:Key="S.Bundle.Import.ReplaceDesc" xml:space="preserve">Ваши чаты, настройки, оформление и языки будут заменены содержимым архива. Отменить это нельзя.</system:String>
+    <system:String x:Key="S.Bundle.Import.SecurityKept" xml:space="preserve">Пароли профилей, разрешённые источники загрузки и режим подтверждений остаются вашими.</system:String>
+    <system:String x:Key="S.Bundle.Import.SettingsKeptHint" xml:space="preserve">Ваши настройки не изменятся</system:String>
+    <system:String x:Key="S.Bundle.Import.Skipped" xml:space="preserve">Пропущено повреждённых файлов: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Title" xml:space="preserve">Импорт данных</system:String>
+    <system:String x:Key="S.Bundle.Import.Working" xml:space="preserve">Переносим данные…</system:String>
+    <system:String x:Key="S.Bundle.ImportedSuffix" xml:space="preserve">(из архива)</system:String>
+    <system:String x:Key="S.Bundle.NothingChosen" xml:space="preserve">Отметьте хотя бы одну категорию</system:String>
+    <system:String x:Key="S.Bundle.Row" xml:space="preserve">Экспорт и импорт данных</system:String>
+    <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Сохранить всё, что хранит программа, в один архив — или загрузить данные обратно</system:String>
+
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
 
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Удалить все сохранённые чаты? Это нельзя отменить.</system:String>

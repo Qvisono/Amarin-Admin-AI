@@ -458,6 +458,97 @@
         </Setter>
     </Style>
 
+    <!-- ═══════════ ГАЛОЧКА И КАРТОЧКА ВЫБОРА В ДИАЛОГАХ ═══════════ -->
+    <!-- Живут здесь, а не в SettingsOverlay.Resources: окна экспорта и импорта лежат на
+         верхнем уровне MainWindow, рядом с DomainOverlay, и до ресурсов страницы настроек
+         не дотянутся.
+
+         Настоящая квадратная галочка в программе появилась только здесь: все CheckBox до
+         этого перерисованы в тумблер SettingsToggle, а тумблер в списке «что положить в
+         архив» читается как пять независимых настроек, а не как выбор из набора. -->
+
+    <Style x:Key="DialogCheckBox" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <!-- Кликается вся строка, а не квадрат 16×16: попасть мышью в подпись
+                         заметно легче, а промах по галочке здесь ничего не переключает. -->
+                    <Border x:Name="Row" Background="Transparent" CornerRadius="6" Padding="8,7">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="Box" Width="16" Height="16" CornerRadius="4"
+                                    VerticalAlignment="Top" Margin="0,1,10,0"
+                                    Background="{DynamicResource Bg.Card}"
+                                    BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1">
+                                <Path x:Name="Tick" Data="M0,3.2 L2.8,6 L8,0.6"
+                                      Stroke="{DynamicResource Text.OnAccent}" StrokeThickness="1.8"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Stretch="Uniform"
+                                      Width="9" Height="7" Opacity="0"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter TargetName="Tick" Property="Opacity" Value="1"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent.FillHover}"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Box" Property="Opacity" Value="0.4"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Выбор из двух режимов карточками, а не точками: под каждым вариантом стоит описание
+         в две строки, и точка рядом с абзацем теряется. -->
+    <Style x:Key="DialogChoiceCard" TargetType="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Card" Background="{DynamicResource Bg.Card}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="8" Padding="12,10">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ═══════════ КОНТЕКСТНОЕ МЕНЮ ═══════════ -->
     <!-- Форма взята у ActionsPopup и ModelPickerPanel, чтобы меню читалось как часть
          программы, а не как системное. HasDropShadow=True обязателен: без него Popup меню

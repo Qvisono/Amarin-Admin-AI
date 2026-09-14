@@ -85,8 +85,12 @@ public sealed class LocalizationTests
     [InlineData("UI", "PasswordWindow.xaml.cs")]
     [InlineData("UI", "MainWindow.Account.cs")]
     [InlineData("UI", "MainWindow.Updates.cs")]
+    [InlineData("UI", "MainWindow.DataBundle.cs")]
     [InlineData("Core", "UpdateChecker.cs")]
     [InlineData("Core", "UpdateInstaller.cs")]
+    [InlineData("Core", "DataBundle.cs")]
+    [InlineData("Core", "DataBundleExporter.cs")]
+    [InlineData("Core", "DataBundleImporter.cs")]
     public void The_login_and_account_screens_hold_no_literal_russian(string folder, string file)
     {
         // Эти экраны написали до локализации, и подписи так и остались литералами: при
@@ -130,6 +134,23 @@ public sealed class LocalizationTests
         var untranslated = russian
             .Where(pair => pair.Key.StartsWith("S.Account.", StringComparison.Ordinal) ||
                            pair.Key.StartsWith("S.Password.", StringComparison.Ordinal))
+            .Where(pair => english[pair.Key] == pair.Value)
+            .Select(pair => pair.Key)
+            .ToList();
+
+        Assert.True(untranslated.Count == 0, $"не переведено: {string.Join(", ", untranslated)}");
+    }
+
+    [Fact]
+    public void The_export_and_import_labels_are_translated()
+    {
+        // Тот же страж, что у экрана входа: набор ключей сойдётся и с русским значением в
+        // en.xaml, а в английском интерфейсе окно экспорта останется наполовину русским.
+        var russian = Load("ru");
+        var english = Load("en");
+
+        var untranslated = russian
+            .Where(pair => pair.Key.StartsWith("S.Bundle.", StringComparison.Ordinal))
             .Where(pair => english[pair.Key] == pair.Value)
             .Select(pair => pair.Key)
             .ToList();

@@ -150,6 +150,60 @@
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Notification sound</system:String>
     <system:String x:Key="S.Behavior.NotifySoundDesc" xml:space="preserve">A short system chime along with the notification</system:String>
 
+    <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Profile picture and window backdrop</system:String>
+    <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Chats</system:String>
+    <system:String x:Key="S.Bundle.Cat.ChatsDesc" xml:space="preserve">Conversations with their attachments and pins</system:String>
+    <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Interface languages</system:String>
+    <system:String x:Key="S.Bundle.Cat.LanguagesDesc" xml:space="preserve">Translations added on top of the built-in ones</system:String>
+    <system:String x:Key="S.Bundle.Cat.Profiles" xml:space="preserve">Profiles</system:String>
+    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">The account list and the other profiles' data. Passwords are not carried over</system:String>
+    <system:String x:Key="S.Bundle.Cat.Settings" xml:space="preserve">Settings</system:String>
+    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Models, prompts, behaviour and interface scale</system:String>
+    <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">The archive holds no data.</system:String>
+    <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">The archive was made by a newer version of the app. Update and try again.</system:String>
+    <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">This is not an archive. Choose a file made by the Export button.</system:String>
+    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">The archive does not look like Amarin data — it has no manifest.</system:String>
+    <system:String x:Key="S.Bundle.Error.TooLarge" xml:space="preserve">The archive is too large, or it unpacks into suspiciously much data.</system:String>
+    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">The file cannot be read — it may be damaged or held by another program.</system:String>
+    <system:String x:Key="S.Bundle.Error.WriteFailed" xml:space="preserve">Could not write the data to disk. Your data was left as it was.</system:String>
+    <system:String x:Key="S.Bundle.Export" xml:space="preserve">Export</system:String>
+    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Tick what goes into the archive. It is not encrypted — keep it where you keep personal files.</system:String>
+    <system:String x:Key="S.Bundle.Export.DialogTitle" xml:space="preserve">Where to save the archive</system:String>
+    <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Archive saved:&#10;{0}</system:String>
+    <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">Nothing to save in these categories yet</system:String>
+    <system:String x:Key="S.Bundle.Export.Failed" xml:space="preserve">Could not write the archive. Check for free space and that the file is not open elsewhere.</system:String>
+    <system:String x:Key="S.Bundle.Export.Save" xml:space="preserve">Save archive</system:String>
+    <system:String x:Key="S.Bundle.Export.Summary" xml:space="preserve">{0} across {1} files</system:String>
+    <system:String x:Key="S.Bundle.Export.Title" xml:space="preserve">Export data</system:String>
+    <system:String x:Key="S.Bundle.Export.Working" xml:space="preserve">Building the archive…</system:String>
+    <system:String x:Key="S.Bundle.FileKind" xml:space="preserve">Amarin data (ZIP)</system:String>
+    <system:String x:Key="S.Bundle.Import" xml:space="preserve">Import</system:String>
+    <system:String x:Key="S.Bundle.Import.Apply" xml:space="preserve">Import</system:String>
+    <system:String x:Key="S.Bundle.Import.Busy" xml:space="preserve">A model turn is running. Wait for it to finish, then import again.</system:String>
+    <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">chats: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Choose a data archive</system:String>
+    <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Done. Imported: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">Nothing new in the archive — your data is unchanged.</system:String>
+    <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">languages: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Add to mine</system:String>
+    <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Your data stays. Only what you do not have is added: chats under new names, missing profiles and languages. Settings and appearance are left alone.</system:String>
+    <system:String x:Key="S.Bundle.Import.Meta" xml:space="preserve">Created {0} · version {1} · {2}</system:String>
+    <system:String x:Key="S.Bundle.Import.Mode" xml:space="preserve">What to do with the archive contents</system:String>
+    <system:String x:Key="S.Bundle.Import.ProfilesCount" xml:space="preserve">profiles: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.ProfilesNote" xml:space="preserve">The new profiles appear in the account list; your current profile is unchanged.</system:String>
+    <system:String x:Key="S.Bundle.Import.Replace" xml:space="preserve">Replace mine</system:String>
+    <system:String x:Key="S.Bundle.Import.ReplaceDesc" xml:space="preserve">Your chats, settings, appearance and languages are replaced by the archive. This cannot be undone.</system:String>
+    <system:String x:Key="S.Bundle.Import.SecurityKept" xml:space="preserve">Profile passwords, the download allowlist and the confirmation mode stay yours.</system:String>
+    <system:String x:Key="S.Bundle.Import.SettingsKeptHint" xml:space="preserve">Your settings stay as they are</system:String>
+    <system:String x:Key="S.Bundle.Import.Skipped" xml:space="preserve">Damaged files skipped: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Title" xml:space="preserve">Import data</system:String>
+    <system:String x:Key="S.Bundle.Import.Working" xml:space="preserve">Moving the data in…</system:String>
+    <system:String x:Key="S.Bundle.ImportedSuffix" xml:space="preserve">(from archive)</system:String>
+    <system:String x:Key="S.Bundle.NothingChosen" xml:space="preserve">Tick at least one category</system:String>
+    <system:String x:Key="S.Bundle.Row" xml:space="preserve">Export and import data</system:String>
+    <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Save everything the app stores into one archive, or load it back</system:String>
+
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Actions</system:String>
 
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Delete every saved chat? This cannot be undone.</system:String>
