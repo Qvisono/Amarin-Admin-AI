@@ -69,6 +69,15 @@ internal static class AttachmentTypes
             ? mime
             : "application/octet-stream";
 
+    /// <summary>Расширение заглавными — короткая метка, по которой файл узнают с одного взгляда.</summary>
+    public static string Badge(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        return string.IsNullOrEmpty(extension)
+            ? Loc.Get("S.Attach.FileBadge")
+            : extension.TrimStart('.').ToUpperInvariant();
+    }
+
     /// <summary>Расширение в том виде, в каком его показывают человеку в отказе.</summary>
     public static string DescribeExtension(string path)
     {

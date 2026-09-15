@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -1787,11 +1787,7 @@ namespace Amarin.UI
 
             try
             {
-                var title = await _services.Titles.GenerateAsync(userText);
-                if (string.IsNullOrWhiteSpace(title))
-                {
-                    return;
-                }
+                var draft = await _services.Titles.GenerateAsync(userText);
 
                 Ui(() =>
                 {
@@ -1804,7 +1800,28 @@ namespace Amarin.UI
                         return;
                     }
 
-                    session.Title = title;
+                    // Цену записываем даже тогда, когда сам заголовок не удался: деньги
+                    // потрачены, а человек видит в списке всё тот же «Новый чат».
+                    var repriced = ChatTitleCost.Book(session, draft.Cost);
+                    var renamed = !string.IsNullOrWhiteSpace(draft.Title);
+                    if (!renamed && !repriced)
+                    {
+                        return;
+                    }
+
+                    if (renamed)
+                    {
+                        session.Title = draft.Title!;
+                    }
+
+                    // Счёт уже закрытого ответа изменился. Ценник и его разбивка собираются при
+                    // отрисовке из самого сообщения, а типизированной ссылки на завершённую
+                    // вьюшку окно не держит, — обновить их можно только перерисовав чат.
+                    if (repriced && string.Equals(_session.Id, sessionId, StringComparison.Ordinal))
+                    {
+                        RenderSession();
+                    }
+
                     Persist(session);
                     RefreshChatList();
                 });

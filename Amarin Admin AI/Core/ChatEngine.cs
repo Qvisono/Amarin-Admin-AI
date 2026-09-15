@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Amarin.Tools;
 
@@ -12,6 +12,283 @@ internal sealed partial class ChatEngine
     /// <see cref="AppSettings.TechAgentPrompt"/>.
     /// </summary>
     internal const string DefaultTechPrompt = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        ATTACHMENTS
+        - What the user attaches arrives with the message itself. A picture you
+          simply see; a document's text is already in front of you, pulled out
+          for you. Never reach for read_file to "open" an attachment -- it does
+          not sit on a path you can reach, the call fails, and you end up telling
+          the user you have no access to a file they can see right there.
+        - Under the user's text comes the list of what came with it: name, kind,
+          size, and the real path on disk when it is known. Use that path only for
+          questions about the file itself -- where it lies, how old it is, what
+          else is in that folder -- and then through init_agent, not read_file.
+        - read_file is for files the user names in words, and it wants an absolute
+          path. A bare name is resolved against the program's own folder, not the
+          user's, and will not be found there.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
+        No markdown fences, no comments, no second object, no trailing text.
+        Escape " and \\ inside prompt. Do not cut the prompt with "...".
+        complexity is exactly "fast", "lite" or "heavy". Never pass a model id.
+        Pick the tier by how hard the work is, and most local work is not hard.
+        fast = trivial and self-contained, or the user asked to hurry ("быстро",
+        "по-быстрому", "срочно", "не тяни"). Hurry is a tier, not a word: pass complexity
+        "fast" instead of writing "СРОЧНО" into the prompt. The agent reads that prompt, and
+        shouting in it changes nothing while the slow model stays just as slow.
+        lite = one thing looked up or done on this PC, even when it takes a few commands:
+        running processes, Windows services, free disk space, an open port, what is in a
+        folder, system info, the tail of an event log, a single PowerShell one-liner,
+        opening a page in the browser and reading it back.
+        heavy = the outcome is uncertain and a wrong move costs something: repair, install or
+        uninstall, an unknown cause to diagnose, the registry or boot settings, work long
+        enough that it has to stay coherent across many steps.
+        Unsure -> lite. A long message, a numbered list of small requests, or a polite
+        "передай агенту" is not a reason to go up a tier -- weigh the work, not the wording.
+        Speed is not worth a wrong answer: when the task touches the system, pick the tier
+        the work needs, not the one that finishes first.
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool, write one short line of your own: what you are about to
+        do and what you are after. Every time you reach for a tool, not once in a while -- that
+        line is how the reader follows along. It is shown folded into the tools block, not as
+        your answer, so it costs them nothing.
+        One or two sentences, your normal voice, present tense. The goal ("хочу понять, кто
+        держит порт"), the surprise ("странно, службы вообще нет") or the next move --
+        whichever is true right now.
+        Never a summary of what already happened: the results are printed right under the line,
+        and a recap there reads like a report nobody asked for. No lists, no headings, no plan
+        for the whole task. Skip the line entirely when there is genuinely nothing to say --
+        "сейчас вызову инструмент" is not worth writing.
+
+        A LINE TYPED WHILE YOU WORK
+        The person can write while you are still working. It reaches you as an ordinary user
+        message between rounds of tools, after whatever was already in flight.
+        Say in your next short line that you saw it ("вижу, дописали про диск D") and work
+        to it from there on. Never ignore it, and never answer it as if it had been there all
+        along.
+        While an agent is running, that line is also read for it: a correction or a new
+        condition ("диск D, а не C", "только не трогай загрузки") is handed to the agent
+        itself and reaches it at its next step, without losing what it has already found.
+        A request to stop or to hurry stops that agent or moves it to the fast model. The
+        tool result says which of these happened.
+        So do not re-launch the same agent to "pass it on", and do not answer as if the agent
+        were still doing the old thing. Say in one sentence what actually happened to it.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent.
+        Whether to call the agent and which tier to give it are two separate decisions.
+        Before spending a heavy one, look at the MODELS block of this prompt: when the heavy
+        agent is the same model you are already running on, sending routine work there gains
+        nothing and bills the user twice.
+        """;
+
+    /// <summary>Tech prompt before the model briefing and the tier discipline; migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV16 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        ATTACHMENTS
+        - What the user attaches arrives with the message itself. A picture you
+          simply see; a document's text is already in front of you, pulled out
+          for you. Never reach for read_file to "open" an attachment -- it does
+          not sit on a path you can reach, the call fails, and you end up telling
+          the user you have no access to a file they can see right there.
+        - Under the user's text comes the list of what came with it: name, kind,
+          size, and the real path on disk when it is known. Use that path only for
+          questions about the file itself -- where it lies, how old it is, what
+          else is in that folder -- and then through init_agent, not read_file.
+        - read_file is for files the user names in words, and it wants an absolute
+          path. A bare name is resolved against the program's own folder, not the
+          user's, and will not be found there.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, keys complexity and prompt only. Nothing after }.
+        No markdown fences, no comments, no second object, no trailing text.
+        Escape " and \\ inside prompt. Do not cut the prompt with "...".
+        complexity is exactly "fast", "lite" or "heavy". Never pass a model id.
+        fast = trivial and self-contained, or the user asked to hurry ("быстро",
+        "по-быстрому", "срочно", "не тяни"). Hurry is a tier, not a word: pass complexity
+        "fast" instead of writing "СРОЧНО" into the prompt. The agent reads that prompt, and
+        shouting in it changes nothing while the slow model stays just as slow.
+        lite = one check/listing. heavy = install, repair, diagnosis, many steps.
+        Unsure -> lite. Speed is not worth a wrong answer: when the task touches the system,
+        pick the tier the work needs, not the one that finishes first.
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool, write one short line of your own: what you are about to
+        do and what you are after. Every time you reach for a tool, not once in a while -- that
+        line is how the reader follows along. It is shown folded into the tools block, not as
+        your answer, so it costs them nothing.
+        One or two sentences, your normal voice, present tense. The goal ("хочу понять, кто
+        держит порт"), the surprise ("странно, службы вообще нет") or the next move --
+        whichever is true right now.
+        Never a summary of what already happened: the results are printed right under the line,
+        and a recap there reads like a report nobody asked for. No lists, no headings, no plan
+        for the whole task. Skip the line entirely when there is genuinely nothing to say --
+        "сейчас вызову инструмент" is not worth writing.
+
+        A LINE TYPED WHILE YOU WORK
+        The person can write while you are still working. It reaches you as an ordinary user
+        message between rounds of tools, after whatever was already in flight.
+        Say in your next short line that you saw it ("вижу, дописали про диск D") and work
+        to it from there on. Never ignore it, and never answer it as if it had been there all
+        along.
+        While an agent is running, that line is also read for it: a correction or a new
+        condition ("диск D, а не C", "только не трогай загрузки") is handed to the agent
+        itself and reaches it at its next step, without losing what it has already found.
+        A request to stop or to hurry stops that agent or moves it to the fast model. The
+        tool result says which of these happened.
+        So do not re-launch the same agent to "pass it on", and do not answer as if the agent
+        were still doing the old thing. Say in one sentence what actually happened to it.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent
+        """;
+
+    /// <summary>Tech prompt before the attachments rules; migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV15 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
         talk, thorough ones for real tasks. Match the user's language and energy.
@@ -907,11 +1184,40 @@ internal sealed partial class ChatEngine
         Do not invent tool names. You cannot ask the user via a tool.
         """;
 
+    /// <summary>
+    /// Правила выбора между лёгкой и тяжёлой моделью для «Авто».
+    /// </summary>
+    /// <remarks>
+    /// Первая строка дословная: по ней тесты отличают запрос маршрутизатора от запроса чата
+    /// в теле HTTP (<c>ParallelTurnTests</c>). Прежний текст описывал heavy формой сообщения
+    /// («many steps»), и список из четырёх примеров арифметики честно попадал под это правило —
+    /// человек платил флагману за сложение. Теперь мерой служит самый трудный шаг, а не длина.
+    /// Названия самих моделей дописываются на лету: см. <see cref="ModelBriefing.ForRouter"/>.
+    /// </remarks>
     internal const string RouterSystemPrompt = """
         Classify the user request. Reply with exactly one word: lite or heavy.
         When unsure, reply lite.
-        lite = jokes, chat, explanations, short how-to, one local status check.
-        heavy = boot failure, repair, long diagnosis, large refactor, many steps.
+
+        Judge the hardest single step, not how much text or how many items arrived.
+        A list of easy questions is still easy: five sums in one message are five easy sums.
+        Counting sub-questions and calling the total "complex" is the mistake to avoid.
+
+        lite = chat, jokes, opinions, explanations, definitions, translation, short how-to,
+        arithmetic of any length or precision, unit / colour / encoding conversion, a fact or
+        a date to recall, one PowerShell one-liner, a routine local status check (a process,
+        a service, free space, a port, an event-log tail, system info) -- however many of
+        these arrive at once, and in any mix.
+
+        heavy = the answer needs reasoning that can go wrong quietly: an unknown cause behind
+        ambiguous symptoms, a boot or repair job, subtle debugging, writing or reworking a long
+        piece of code, planning against several constraints that fight each other. Pick it when a
+        cheap wrong answer would cost more than the expensive right one.
+
+        Asking to hand the work to an agent says nothing about difficulty: classify the work
+        itself. Urgency, politeness, length and numbered formatting say nothing either.
+
+        The two models are named below. heavy is the user's expensive slot -- choose it only
+        when lite would actually get this wrong.
         Do not explain.
         """;
 
@@ -1003,36 +1309,15 @@ internal sealed partial class ChatEngine
             Role = "user",
             Content = attachments is null && documents is null
                 ? ChatContent.Text(text)
-                : ChatContent.Multipart(AttachmentPrompt(text, attachments, documents), attachments, documents)
+                : ChatContent.Multipart(
+                    ChatContent.BuildPrompt(text, attachments, documents),
+                    attachments,
+                    documents)
         });
         session.UpdatedAt = now;
         observer.OnUserAppended(user);
 
         await GenerateAssistantAsync(session, observer, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// The content array always leads with a text part, so a turn that is nothing but attachments
-    /// needs a stand-in question rather than an empty string the model has to guess at.
-    /// </summary>
-    private static string AttachmentPrompt(
-        string text,
-        IReadOnlyList<ImageAttachment>? images,
-        IReadOnlyList<FileAttachment>? files)
-    {
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            return text;
-        }
-
-        if (files is { Count: > 0 })
-        {
-            return images is { Count: > 0 }
-                ? "Посмотри вложения."
-                : "Прочитай вложенные файлы.";
-        }
-
-        return "Посмотри на изображение.";
     }
 
     /// <summary>
@@ -1104,14 +1389,19 @@ internal sealed partial class ChatEngine
         {
             if (VeniceModelCatalog.IsAuto(requested))
             {
-                var chosen = await RouteAsync(prompt, cancellationToken).ConfigureAwait(false);
-                assistant.ResolvedModelId = chosen;
+                var decision = await RouteAsync(
+                        prompt,
+                        ChatSessionEdit.PreviousUser(session)?.Text,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                assistant.ResolvedModelId = decision.ModelId;
                 observer.OnAssistantText(assistant);
-                turn.ModelId = chosen;
-                turn.Reasoning = ResolveAutoReasoning(chosen);
+                turn.ModelId = decision.ModelId;
+                turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
+                turn.RouterCost = decision.Cost;
             }
 
-            var messages = BuildApiMessages(session);
+            var messages = BuildApiMessages(session, turn.ModelId);
 
             // Forge the tool call the chat model would normally have made. Everything
             // downstream — slot limiting, the nested-agent card, cost roll-up — is the
@@ -1164,7 +1454,7 @@ internal sealed partial class ChatEngine
             clock.Stop();
             assistant.Duration = clock.Elapsed;
             assistant.ResolvedModelId = turn.ModelId;
-            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+            Settle(session, assistant, turn);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -1181,7 +1471,7 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+            Settle(session, assistant, turn);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -1206,7 +1496,9 @@ internal sealed partial class ChatEngine
                 return;
             }
 
-            text = AttachmentPrompt(text, lastUser.Images, lastUser.Files);
+            // Роутеру модели нужна суть просьбы, а не перечень вложений, — потому подставная
+            // строка, а не полный ChatContent.BuildPrompt.
+            text = ChatContent.StandIn(lastUser.Images, lastUser.Files);
         }
 
         var now = DateTime.Now;
@@ -1240,11 +1532,16 @@ internal sealed partial class ChatEngine
         {
             if (VeniceModelCatalog.IsAuto(requested))
             {
-                var chosen = await RouteAsync(text, cancellationToken).ConfigureAwait(false);
-                assistant.ResolvedModelId = chosen;
+                var decision = await RouteAsync(
+                        text,
+                        ChatSessionEdit.PreviousUser(session)?.Text,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                assistant.ResolvedModelId = decision.ModelId;
                 observer.OnAssistantText(assistant);
-                turn.ModelId = chosen;
-                turn.Reasoning = ResolveAutoReasoning(chosen);
+                turn.ModelId = decision.ModelId;
+                turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
+                turn.RouterCost = decision.Cost;
             }
 
             while (true)
@@ -1282,7 +1579,7 @@ internal sealed partial class ChatEngine
             clock.Stop();
             assistant.Duration = clock.Elapsed;
             assistant.ResolvedModelId = turn.ModelId;
-            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+            Settle(session, assistant, turn);
             assistant.Status = AssistantStatus.Cancelled;
             MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
@@ -1299,7 +1596,7 @@ internal sealed partial class ChatEngine
                 assistant.Text = ex.Message;
             }
 
-            ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+            Settle(session, assistant, turn);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
             observer.OnAssistantCompleted(assistant);
@@ -1366,7 +1663,7 @@ internal sealed partial class ChatEngine
         VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
-        var messages = BuildApiMessages(session);
+        var messages = BuildApiMessages(session, turn.ModelId);
 
         for (var round = 1; round <= _options.MaxToolRounds; round++)
         {
@@ -1616,7 +1913,7 @@ internal sealed partial class ChatEngine
         assistant.Duration = clock.Elapsed;
         assistant.ResolvedModelId = turn.ModelId;
         assistant.Status = AssistantStatus.Complete;
-        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
+        Settle(session, assistant, turn);
         session.UpdatedAt = DateTime.Now;
         observer.OnAssistantContinued(assistant);
     }
@@ -1996,6 +2293,9 @@ internal sealed partial class ChatEngine
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
+        // streamed.Cost — запасной путь на случай, если ход почему-то не накопил своего счёта.
+        assistant.RouterCost ??= turn.RouterCost;
+        ChatTitleCost.Attach(session, assistant);
         ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
         assistant.Status = AssistantStatus.Complete;
 
@@ -2072,6 +2372,12 @@ internal sealed partial class ChatEngine
             }
         }
 
+        // Заголовок считался в стороне от хода, в chatCost его нет: прибавляем, а не вычитаем.
+        if (assistant.TitleCost is { HasData: true } title)
+        {
+            total = total.Add(title);
+        }
+
         return total;
     }
 
@@ -2101,8 +2407,31 @@ internal sealed partial class ChatEngine
             }
         }
 
+        // Маршрутизатор платит тем же клиентом, что и разговор, поэтому его деньги уже внутри
+        // chatCost. Без этого вычитания строка «Модель» показывала бы ещё и выбор модели, а
+        // сумма строк перестала бы сходиться с «Итого» под ними.
+        var router = assistant.RouterCost is { HasData: true } routed ? routed : VeniceCost.Zero;
+
         assistant.Cost = SumCosts(chatCost, assistant);
-        assistant.ModelCost = chatCost.Subtract(tools);
+        assistant.ModelCost = chatCost.Subtract(tools).Subtract(router);
+    }
+
+    /// <summary>
+    /// Закрывает счёт сообщения: переносит на него то, что относится ко всему ходу
+    /// (маршрутизатор) и ко всему чату (заголовок), и только потом складывает.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ApplyCosts"/> обязан оставаться пересчётом, а не прибавлением: по одному и
+    /// тому же сообщению можно пройти второй раз — например, отмена после того, как ответ уже
+    /// закрыт ради дописанного сообщения. Правка, делающая его инкрементальным, молча удвоит
+    /// счёт и здесь, и в <see cref="ChatTitleCost"/>.
+    /// </remarks>
+    private static void Settle(ChatSession session, ChatDisplayMessage assistant, VeniceTurnContext turn)
+    {
+        // ??= а не =: на втором проходе переписывать нечего.
+        assistant.RouterCost ??= turn.RouterCost;
+        ChatTitleCost.Attach(session, assistant);
+        ApplyCosts(assistant, turn.Total.HasData ? turn.Total : assistant.Cost ?? VeniceCost.Zero);
     }
 
     private string ReadSelectedModel(ChatSession session)
@@ -2144,12 +2473,29 @@ internal sealed partial class ChatEngine
     private string ResolveForSingleShot(string modelId) =>
         VeniceModelCatalog.IsAuto(modelId) ? LiteModelId() : modelId;
 
-    private async Task<string> RouteAsync(string userText, CancellationToken cancellationToken)
+    /// <summary>Что решил маршрутизатор и во что обошлось само решение.</summary>
+    /// <remarks>
+    /// Не голая строка, потому что у выбора модели есть цена, и в разбивке под сообщением она
+    /// должна стоять отдельной строкой, а не растворяться в «Модели».
+    /// </remarks>
+    internal sealed record RouterDecision(string ModelId, VeniceCost? Cost);
+
+    private async Task<RouterDecision> RouteAsync(
+        string userText,
+        string? previousUserText,
+        CancellationToken cancellationToken)
     {
         var settings = _settings();
         var liteId = LiteModelId();
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var routerId = FirstNonEmpty(settings.RouterModelId, liteId);
+
+        // Маршрутизатор судит о трудности — значит должен знать, между кем выбирает. Блок идёт
+        // последним: последний абзац промпта обещает, что модели названы ниже.
+        var system = RouterSystemPrompt
+                     + Environment.NewLine
+                     + Environment.NewLine
+                     + ModelBriefing.ForRouter(liteId, heavyId, _venice.ResolveModelInfo);
 
         // Прежде здесь стоял SetActiveModel(routerId): маршрутизатор на время своего запроса
         // подменял активную модель всему приложению. Модель запроса и так уходит параметром, а
@@ -2159,8 +2505,12 @@ internal sealed partial class ChatEngine
             var response = await _venice.CreateChatCompletionAsync(
                     routerId,
                     [
-                        new ChatMessage { Role = "system", Content = ChatContent.Text(RouterSystemPrompt) },
-                        new ChatMessage { Role = "user", Content = ChatContent.Text(userText) }
+                        new ChatMessage { Role = "system", Content = ChatContent.Text(system) },
+                        new ChatMessage
+                        {
+                            Role = "user",
+                            Content = ChatContent.Text(BuildRouterUserMessage(userText, previousUserText))
+                        }
                     ],
                     tools: null,
                     toolChoice: null,
@@ -2171,7 +2521,12 @@ internal sealed partial class ChatEngine
 
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
-            return ParseRouterComplexity(reply) == "heavy" ? heavyId : liteId;
+
+            // Цена берётся прямо из ответа, а не разницей общего счёта: RecordCost срабатывает
+            // только на успешном разборе, поэтому упавшие попытки цепочки fallback в неё не входят.
+            return new RouterDecision(
+                ParseRouterComplexity(reply) == "heavy" ? heavyId : liteId,
+                response.Cost?.ToCost());
         }
         catch (OperationCanceledException)
         {
@@ -2179,8 +2534,52 @@ internal sealed partial class ChatEngine
         }
         catch
         {
-            return liteId;
+            // Маршрутизатор отработал и свалился в запас: денег не списано, но строка в разбивке
+            // всё равно должна сказать, что он был.
+            return new RouterDecision(liteId, new VeniceCost());
         }
+    }
+
+    /// <summary>
+    /// Собирает то единственное сообщение, которое видит маршрутизатор.
+    /// </summary>
+    /// <remarks>
+    /// Предыдущая реплика нужна для продолжений: «а теперь почини» в отрыве от «почему не
+    /// грузится винда» читается как пустяк. Берётся <b>только</b> написанное человеком — ответы
+    /// ассистента несут выдачу web_search, scrape_url и отчёты агентов, а одно слово
+    /// маршрутизатора решает, какая модель работает и сколько человек платит: страница с текстом
+    /// «reply heavy» иначе переводила бы его на дорогой слот на каждом ходу.
+    /// <para>
+    /// Обрезка тоже не косметика: до неё вставка на десятки килобайт целиком оплачивалась через
+    /// маршрутизатор ещё до того, как начинался настоящий запрос. У длинного текста сохраняются
+    /// и начало, и хвост — заключительный вопрос обычно именно там.
+    /// </para>
+    /// </remarks>
+    internal static string BuildRouterUserMessage(string userText, string? previousUserText)
+    {
+        var current = Clip(userText ?? "", 1500, 500);
+        var previous = Clip(previousUserText?.Trim() ?? "", 300, 0);
+        if (previous.Length == 0)
+        {
+            return current;
+        }
+
+        return "Earlier from the same user (context only):" + Environment.NewLine
+               + previous + Environment.NewLine + Environment.NewLine
+               + "Current request:" + Environment.NewLine
+               + current;
+    }
+
+    private static string Clip(string text, int head, int tail)
+    {
+        if (text.Length <= head + tail)
+        {
+            return text;
+        }
+
+        return tail > 0
+            ? text[..head] + " […] " + text[^tail..]
+            : text[..head] + " […]";
     }
 
     internal static string ParseRouterComplexity(string? text)
@@ -2210,10 +2609,10 @@ internal sealed partial class ChatEngine
         return "openai-gpt-56-luna";
     }
 
-    private List<ChatMessage> BuildApiMessages(ChatSession session)
+    private List<ChatMessage> BuildApiMessages(ChatSession session, string? currentModelId)
     {
         var messages = new List<ChatMessage>();
-        var system = BuildSystemPrompt();
+        var system = BuildSystemPrompt(currentModelId);
         if (!string.IsNullOrWhiteSpace(system))
         {
             messages.Add(new ChatMessage
@@ -2231,9 +2630,15 @@ internal sealed partial class ChatEngine
     /// The system prompt the next request would carry. Exposed so the context gauge can weigh it:
     /// it is a real slice of the window, and rebuilding it in the UI would fork the logic.
     /// </summary>
-    internal string CurrentSystemPrompt() => BuildSystemPrompt();
+    internal string CurrentSystemPrompt() => BuildSystemPrompt(currentModelId: null);
 
-    private string BuildSystemPrompt()
+    /// <param name="currentModelId">
+    /// Модель, на которой идёт ход, — она попадает в блок MODELS. Явным аргументом, а не через
+    /// <see cref="VeniceTurnScope"/>: тот ambient и с несколькими одновременными ходами протёк
+    /// бы в чужой запрос, а аргумент протечь не может. Null у кольца контекста, которое
+    /// собирает промпт вне хода.
+    /// </param>
+    private string BuildSystemPrompt(string? currentModelId)
     {
         // Chat companion only: main + TechAiPrompt. Agent uses TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
@@ -2244,9 +2649,26 @@ internal sealed partial class ChatEngine
             tech = DefaultTechPrompt;
         }
 
-        return main.Length == 0
-            ? tech
-            : main + Environment.NewLine + Environment.NewLine + tech;
+        // Блок дописывается здесь, а не живёт внутри DefaultTechPrompt, по двум причинам:
+        // идентификаторы моделей — настройки, а тот текст константа; и половина пользы — для
+        // тех, кто однажды сохранил свой технический промпт и носит замороженную копию, куда
+        // правка константы не дойдёт никогда.
+        var models = ModelBriefing.ForChat(
+            currentModelId,
+            FirstNonEmpty(settings.AgentFastModelId, settings.LiteModelId),
+            FirstNonEmpty(settings.AgentLiteModelId, settings.LiteModelId),
+            FirstNonEmpty(settings.AgentHeavyModelId, settings.HeavyModelId),
+            _venice.ResolveModelInfo);
+
+        var parts = new List<string>();
+        if (main.Length > 0)
+        {
+            parts.Add(main);
+        }
+
+        parts.Add(tech);
+        parts.Add(models);
+        return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
 
     private static JsonElement ParseArguments(string argumentsJson) =>

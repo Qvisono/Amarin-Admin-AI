@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Amarin.Core;
 using Amarin.Tools;
 
@@ -136,6 +136,39 @@ public sealed class FastAgentTierTests
         settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV14;
         Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
         Assert.Equal("", settings.TechAiPrompt);
+    }
+
+    [Fact]
+    public void The_tier_discipline_reaches_people_who_saved_the_previous_default()
+    {
+        // Модель завышала уровень агента на рутине: прежний текст описывал lite как «одну
+        // проверку», и любая работа из нескольких команд читалась как heavy.
+        Assert.Contains(
+            "weigh the work, not the wording", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains(
+            "MODELS block of this prompt", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "weigh the work, not the wording",
+            ChatEngine.LegacyDefaultTechPromptV16,
+            StringComparison.Ordinal);
+
+        var settings = AppSettings.CreateDefault();
+        settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV16;
+        Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
+        Assert.Equal("", settings.TechAiPrompt);
+    }
+
+    [Fact]
+    public void The_archived_prompt_is_the_old_text_and_not_a_copy_of_the_new_one()
+    {
+        // Архив копируется вручную, и копия, случайно совпавшая с новым текстом, сделала бы
+        // миграцию тихой пустышкой: сохранённый старый промпт не совпал бы ни с чем и остался
+        // бы у человека навсегда.
+        Assert.NotEqual(ChatEngine.DefaultTechPrompt, ChatEngine.LegacyDefaultTechPromptV16);
+        Assert.Contains(
+            "lite = one check/listing.", ChatEngine.LegacyDefaultTechPromptV16, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "lite = one check/listing.", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-namespace Amarin.Core;
+﻿namespace Amarin.Core;
 
 /// <summary>
 /// Русские строки интерфейса, встроенные в код.
@@ -125,6 +125,8 @@ internal static class StringsRu
             ["S.Attach.FilterImages"] = "Изображения",
             ["S.Attach.NoVision"] = "Модель {0} не поддерживает изображения — выберите модель с поддержкой vision.",
             ["S.Attach.NotAnImage"] = "{0}: не изображение или не читается.",
+            ["S.Attach.OpenFailed"] = "{0}: не удалось открыть файл.",
+            ["S.Attach.OpenFile"] = "Нажмите, чтобы открыть",
             ["S.Attach.Pasted"] = "Вставленное изображение",
             ["S.Attach.RemoveFile"] = "Убрать файл",
             ["S.Attach.RemoveImage"] = "Убрать изображение",
@@ -254,7 +256,9 @@ internal static class StringsRu
             ["S.Context.Full"] = "Контекст почти полон — начало разговора скоро выпадет из памяти модели.",
             ["S.Context.Title"] = "Контекст: {0} из {1} ({2}%)",
             ["S.Context.Unknown"] = "Заполненность контекста появится, когда станет известна модель.",
+            ["S.Cost.ChatTitle"] = "Заголовок чата",
             ["S.Cost.Model"] = "Модель",
+            ["S.Cost.Router"] = "Маршрутизатор",
             ["S.Cost.Total"] = "Итого",
             ["S.Crash.ClipboardBusy"] = "Буфер занят",
             ["S.Crash.Close"] = "Закрыть",

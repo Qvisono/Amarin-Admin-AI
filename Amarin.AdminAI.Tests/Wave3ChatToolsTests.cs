@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Amarin.Core;
 using Amarin.Tools;
 
@@ -121,6 +121,7 @@ public sealed class Wave3ChatToolsTests
     {
         var tool = new InitAgentTool(new AgentSlotLimiter(), new FakeHost());
         Assert.Contains("user's actual request", tool.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("still lite", tool.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("list services", tool.Description, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Do not copy examples", tool.ParametersSchema.GetRawText(), StringComparison.Ordinal);
     }

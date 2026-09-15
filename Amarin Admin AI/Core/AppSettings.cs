@@ -1,4 +1,4 @@
-namespace Amarin.Core;
+﻿namespace Amarin.Core;
 
 public enum ApprovalMode
 {
@@ -120,10 +120,14 @@ public sealed class AppSettings
 
     public string RouterModelId { get; set; } = "openai-gpt-56-luna";
 
+    /// <summary>
+    /// Маршрутизатор отвечает одним словом, и размышление перед ним только оплачивается.
+    /// Хуже того: на списке мелких подзадач рассуждающая модель уговаривала себя на «heavy» —
+    /// пунктов же много, — и человек платил флагману за сложение.
+    /// </summary>
     public ReasoningSettings RouterReasoning { get; set; } = new()
     {
-        DisableThinking = false,
-        ReasoningEffort = "medium"
+        DisableThinking = true
     };
 
     public string TitleModelId { get; set; } = "openai-gpt-56-luna";

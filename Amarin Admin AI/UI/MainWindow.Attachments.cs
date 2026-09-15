@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Windows;
@@ -9,7 +8,6 @@ using System.Windows.Media.Imaging;
 using Amarin.Core;
 using Amarin.Tools;
 using Image = System.Windows.Controls.Image;
-using Size = System.Windows.Size;
 
 namespace Amarin.UI
 {
@@ -89,15 +87,13 @@ namespace Amarin.UI
                 return;
             }
 
-            if (e.Data.GetData(DataFormats.Bitmap) is BitmapSource bitmap)
-            {
-                AddImageFromBitmapSource(bitmap, Loc.Get("S.Attach.Dropped"));
-            }
+            AddImage(ClipboardImages.TryRead(e.Data, Loc.Get("S.Attach.Dropped")));
         }
 
-        private static bool HasDroppableAttachment(IDataObject data)
+        /// <summary>internal ради теста: разбор переносимого объекта проверяется без окна.</summary>
+        internal static bool HasDroppableAttachment(IDataObject data)
         {
-            if (data.GetDataPresent(DataFormats.Bitmap))
+            if (ClipboardImages.Contains(data))
             {
                 return true;
             }
@@ -125,9 +121,12 @@ namespace Amarin.UI
                     }
                 }
 
-                if (Clipboard.ContainsImage() && Clipboard.GetImage() is { } image)
+                // Через объект целиком, а не Clipboard.GetImage(): тот берёт CF_DIB, из которого
+                // картинка приезжала прозрачной — серой плашкой в композере и чёрным у модели.
+                var data = Clipboard.GetDataObject();
+                if (ClipboardImages.Contains(data))
                 {
-                    AddImageFromBitmapSource(image, Loc.Get("S.Attach.Pasted"));
+                    AddImage(ClipboardImages.TryRead(data, Loc.Get("S.Attach.Pasted")));
                     return true;
                 }
             }
@@ -234,7 +233,8 @@ namespace Amarin.UI
                     Convert.ToBase64String(bytes),
                     AttachmentTypes.GuessMimeType(path),
                     name,
-                    info.Length));
+                    info.Length,
+                    info.FullName));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
             {
@@ -242,30 +242,21 @@ namespace Amarin.UI
             }
         }
 
-        private void AddImageFromBitmapSource(BitmapSource source, string label)
+        /// <summary>Готовое вложение из буфера или перетаскивания; <c>null</c> — разобрать не вышло.</summary>
+        private void AddImage(ImageAttachment? attachment)
         {
             _attachmentNotes.Clear();
-            if (_pendingImages.Count >= MaxAttachedImages)
-            {
-                Note(Loc.Format("S.Attach.TooManyImages", MaxAttachedImages));
-                RefreshAttachments();
-                return;
-            }
-
-            try
-            {
-                using var stream = new MemoryStream();
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(source));
-                encoder.Save(stream);
-                stream.Position = 0;
-
-                using var bitmap = new Bitmap(stream);
-                _pendingImages.Add(ImageHelpers.FromBitmap(bitmap, label));
-            }
-            catch (Exception ex) when (ex is IOException or ArgumentException or ExternalException)
+            if (attachment is null)
             {
                 Note(Loc.Get("S.Attach.ClipboardUnreadable"));
+            }
+            else if (_pendingImages.Count >= MaxAttachedImages)
+            {
+                Note(Loc.Format("S.Attach.TooManyImages", MaxAttachedImages));
+            }
+            else
+            {
+                _pendingImages.Add(attachment);
             }
 
             RefreshAttachments();
@@ -418,7 +409,7 @@ namespace Amarin.UI
 
         /// <summary>
         /// Карточка документа: та же плитка, что у картинки, но вместо снимка — расширение,
-        /// имя и размер. Предпросмотра у документа нет, поэтому по карточке не кликают.
+        /// имя и размер. По клику файл открывается в системном приложении.
         /// </summary>
         private FrameworkElement CreateFileCard(FileAttachment attachment)
         {
@@ -431,7 +422,13 @@ namespace Amarin.UI
                 CornerRadius = new CornerRadius(6),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(10, 0, 20, 0),
-                ToolTip = $"{attachment.FileName} — {AttachmentTypes.FormatSize(attachment.SizeBytes)}"
+                Cursor = Cursors.Hand,
+                ToolTip = DescribeFile(attachment)
+            };
+            frame.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                AttachmentOpener.Open(this, attachment);
             };
             RoundedClip.SetRadius(frame, 6);
             frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
@@ -475,12 +472,16 @@ namespace Amarin.UI
         }
 
         /// <summary>Расширение заглавными — короткая метка, по которой файл узнают с одного взгляда.</summary>
-        internal static string FileBadge(string fileName)
+        internal static string FileBadge(string fileName) => AttachmentTypes.Badge(fileName);
+
+        /// <summary>Подсказка карточки: имя, размер и — пока файл на месте — путь к нему.</summary>
+        internal static string DescribeFile(FileAttachment attachment)
         {
-            var extension = Path.GetExtension(fileName);
-            return string.IsNullOrEmpty(extension)
-                ? Loc.Get("S.Attach.FileBadge")
-                : extension.TrimStart('.').ToUpperInvariant();
+            var head = $"{attachment.FileName} — {AttachmentTypes.FormatSize(attachment.SizeBytes)}";
+            var location = AttachmentOpener.DescribeLocation(attachment);
+            return location is null
+                ? $"{head}\n{Loc.Get("S.Attach.OpenFile")}"
+                : $"{head}\n{location}\n{Loc.Get("S.Attach.OpenFile")}";
         }
 
         private Button CreateRemoveButton(Action remove, string tooltip)

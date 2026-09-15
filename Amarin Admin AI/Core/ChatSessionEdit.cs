@@ -1,4 +1,4 @@
-namespace Amarin.Core;
+﻿namespace Amarin.Core;
 
 internal static class ChatSessionEdit
 {
@@ -125,19 +125,23 @@ internal static class ChatSessionEdit
 
         TruncateApiToMatchDisplay(session);
         var images = session.Messages[index].Images;
+        var files = session.Messages[index].Files;
         for (var i = session.ApiMessages.Count - 1; i >= 0; i--)
         {
             if (session.ApiMessages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
             {
-                // Rewriting the text must not silently drop the images the user attached.
+                // Rewriting the text must not silently drop what the user attached. Documents
+                // were being dropped here: the rebuild read Images only, so the card stayed in
+                // the transcript while the PDF itself vanished from the model's context.
                 session.ApiMessages[i] = new ChatMessage
                 {
                     Role = "user",
-                    Content = images.Count == 0
+                    Content = images.Count == 0 && files.Count == 0
                         ? ChatContent.Text(text)
-                        : ChatContent.VisionMultiple(
-                            string.IsNullOrWhiteSpace(text) ? "Посмотри на изображение." : text,
-                            images)
+                        : ChatContent.Multipart(
+                            ChatContent.BuildPrompt(text, images, files),
+                            images,
+                            files)
                 };
                 break;
             }
@@ -149,6 +153,19 @@ internal static class ChatSessionEdit
 
     public static ChatDisplayMessage? LastUser(ChatSession session) =>
         session.Messages.LastOrDefault(item => item.Role.Equals("user", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Реплика человека перед последней; null, если она в разговоре первая.</summary>
+    /// <remarks>
+    /// Нужна маршрутизатору «Авто»: продолжение вроде «а теперь почини» само по себе выглядит
+    /// пустяком, и без предыдущей строки он уводит настоящий ремонт на дешёвую модель.
+    /// </remarks>
+    public static ChatDisplayMessage? PreviousUser(ChatSession session)
+    {
+        var users = session.Messages
+            .Where(item => item.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return users.Count >= 2 ? users[^2] : null;
+    }
 
     private static int UserCount(ChatSession session) =>
         session.Messages.Count(item => item.Role.Equals("user", StringComparison.OrdinalIgnoreCase));

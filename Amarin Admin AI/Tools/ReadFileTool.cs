@@ -25,22 +25,49 @@ public sealed class ReadFileTool : ITool
         }
         """);
 
-    public Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
+    public async Task<ToolResult> ExecuteAsync(
+        JsonElement arguments,
+        CancellationToken cancellationToken = default)
     {
         if (!arguments.TryGetProperty("path", out var pathProp) ||
             string.IsNullOrWhiteSpace(pathProp.GetString()))
         {
-            return Task.FromResult(ToolResult.Fail("Missing required parameter: path"));
+            return ToolResult.Fail("Missing required parameter: path");
         }
 
-        var rawPath = pathProp.GetString();
+        var rawPath = pathProp.GetString()!;
         if (!PathResolver.TryResolve(rawPath, out var resolved, out var error))
         {
-            return Task.FromResult(ToolResult.Fail(error!));
+            return ToolResult.Fail(error!);
         }
 
         var action = Directory.Exists(resolved) ? "list" : "read";
         var wrapped = JsonSerializer.SerializeToElement(new { action, path = resolved });
-        return _filesystem.ExecuteAsync(wrapped, cancellationToken);
+        var result = await _filesystem.ExecuteAsync(wrapped, cancellationToken).ConfigureAwait(false);
+        return result.Success ? result : Explain(result, rawPath, resolved);
+    }
+
+    /// <summary>
+    /// Дописывает к отказу причину, по которой путь оказался не тем, что имела в виду модель.
+    /// </summary>
+    /// <remarks>
+    /// Относительный путь раскрывается от рабочей папки процесса, то есть от папки с программой.
+    /// Модель, попросив «Вопросы к зачёту.pdf», получала «File not found: …\bin\…\Вопросы к
+    /// зачёту.pdf», делала вывод, что доступа к файлам нет, и сообщала об этом человеку. Отказ
+    /// инструмента модель читает, поэтому он должен говорить, что делать дальше.
+    /// </remarks>
+    private static ToolResult Explain(ToolResult result, string rawPath, string resolved)
+    {
+        if (Path.IsPathRooted(rawPath.Trim()))
+        {
+            return result;
+        }
+
+        return ToolResult.Fail(
+            $"{result.Output}\n" +
+            $"'{rawPath}' is a relative path, so it was resolved against the program's own " +
+            $"folder ({Environment.CurrentDirectory}), which is almost certainly not where the " +
+            "user meant. Pass an absolute path instead. If this was a file attached to the " +
+            "message, do not read it at all — its contents are already in the conversation.");
     }
 }

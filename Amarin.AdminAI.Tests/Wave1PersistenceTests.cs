@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Windows;
 using Amarin.Core;
 using Amarin.Tools;
@@ -8,6 +8,49 @@ namespace Amarin.AdminAI.Tests;
 
 public sealed class Wave1PersistenceTests
 {
+    [Fact]
+    public void Router_thinking_is_off_out_of_the_box()
+    {
+        // Маршрутизатор отвечает одним словом, и проход размышления перед ним только
+        // оплачивается — а на списке мелких подзадач ещё и уговаривает себя на «heavy».
+        var fresh = AppSettings.CreateDefault().RouterReasoning;
+        Assert.True(fresh.DisableThinking);
+        Assert.Null(fresh.ReasoningEffort);
+    }
+
+    [Theory]
+    // Прежнее заводское значение — переписываем.
+    [InlineData(false, "medium", true, null)]
+    // Выбранное руками — не трогаем ни в каком виде.
+    [InlineData(false, "high", false, "high")]
+    [InlineData(false, null, false, null)]
+    [InlineData(true, "medium", true, "medium")]
+    public void The_old_router_default_stops_thinking_and_a_chosen_one_does_not(
+        bool disableThinking,
+        string? effort,
+        bool expectedDisabled,
+        string? expectedEffort)
+    {
+        var root = NewTempRoot();
+        try
+        {
+            var store = new AppSettingsStore(root);
+            var settings = store.Load();
+            settings.RouterReasoning.DisableThinking = disableThinking;
+            settings.RouterReasoning.ReasoningEffort = effort;
+            store.Save(settings);
+
+            var loaded = new AppSettingsStore(root).Load().RouterReasoning;
+
+            Assert.Equal(expectedDisabled, loaded.DisableThinking);
+            Assert.Equal(expectedEffort, loaded.ReasoningEffort);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void Agent_system_prompt_does_not_mention_ask_user()
     {
@@ -51,6 +94,7 @@ public sealed class Wave1PersistenceTests
             Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
             Assert.Equal("deepseek-v4-flash-0731-fast", loaded.AgentFastModelId);
             Assert.True(loaded.AgentFastReasoning.DisableThinking);
+            Assert.True(loaded.RouterReasoning.DisableThinking);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);

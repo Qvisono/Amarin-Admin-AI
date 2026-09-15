@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Amarin.Core;
@@ -35,6 +35,15 @@ internal static class CostBreakdownTooltip
         rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var line = 0;
+
+        // Порядок строк — хронология трат: сперва выбрали модель, потом с ней говорили.
+        // Условие именно «цена записана», а не «выбрана Авто»: RequestedModelId равен "auto" и
+        // у второго ответа хода, и у старых переписок, где цены маршрутизатора не сохранено.
+        if (message.RouterCost is not null)
+        {
+            AddRow(rows, ref line, Loc.Get("S.Cost.Router"), message.RouterCost, bold: false);
+        }
+
         var model = VeniceModelCatalog.GetDisplayName(
             message.ResolvedModelId ?? message.RequestedModelId ?? "");
         AddRow(rows, ref line, string.IsNullOrWhiteSpace(model) ? Loc.Get("S.Cost.Model") : model, message.ModelCost, bold: false);
@@ -57,6 +66,14 @@ internal static class CostBreakdownTooltip
                     AddRow(rows, ref line, call.Name, call.Cost, bold: false);
                 }
             }
+        }
+
+        // Строже строки маршрутизатора намеренно: та существует ради факта, что выбор был, а
+        // эта — только потому, что потрачены деньги. «$0 Заголовок чата» под каждым ответом,
+        // за который никто не платил, был бы шумом.
+        if (message.TitleCost is { HasData: true })
+        {
+            AddRow(rows, ref line, Loc.Get("S.Cost.ChatTitle"), message.TitleCost, bold: false);
         }
 
         // With a single line there is nothing to add up, and a total under it would just repeat

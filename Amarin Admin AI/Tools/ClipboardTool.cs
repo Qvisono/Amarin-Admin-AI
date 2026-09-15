@@ -63,10 +63,9 @@ public sealed class ClipboardTool : ITool
 
         if (format is "image" or "auto" && ClipboardNative.HasImage())
         {
-            using var bitmap = ClipboardNative.TryGetBitmap();
-            if (bitmap is not null)
+            var attachment = ReadClipboardImage();
+            if (attachment is not null)
             {
-                var attachment = ImageHelpers.FromBitmap(bitmap, "clipboard");
                 return ToolResult.WithImages(
                     "В буфере обмена изображение. Оно прикреплено для анализа.",
                     [attachment]);
@@ -92,6 +91,26 @@ public sealed class ClipboardTool : ITool
         }
 
         return ToolResult.Fail("Не удалось прочитать буфер обмена в запрошенном формате.");
+    }
+
+    /// <summary>
+    /// Картинка из буфера: сперва готовый PNG, и только потом CF_DIB.
+    /// </summary>
+    /// <remarks>
+    /// CF_DIB не обещает прозрачности в старшем байте пикселя, а Telegram, Discord и Chromium
+    /// оставляют там нули — модель получала насквозь прозрачный PNG и видела чёрный
+    /// прямоугольник. Зарегистрированный формат «PNG» те же программы кладут рядом, и он целый.
+    /// </remarks>
+    private static ImageAttachment? ReadClipboardImage()
+    {
+        var png = ClipboardNative.TryGetPng();
+        if (png is { Length: > 0 })
+        {
+            return ImageHelpers.FromBytes(png, "image/png", "clipboard");
+        }
+
+        using var bitmap = ClipboardNative.TryGetBitmap();
+        return bitmap is null ? null : ImageHelpers.FromBitmap(bitmap, "clipboard");
     }
 
     private static ToolResult ReadClipboardFiles(IReadOnlyList<string> files, bool readFilePreview)

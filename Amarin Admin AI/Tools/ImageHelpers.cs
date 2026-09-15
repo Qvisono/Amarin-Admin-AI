@@ -44,10 +44,20 @@ internal static class ImageHelpers
             return null;
         }
 
+        // Порядок using ломать нельзя: Bitmap, созданный из потока, требует, чтобы поток жил
+        // всё время жизни растра, иначе Save падает с "A generic error occurred in GDI+".
         using var stream = File.OpenRead(path);
         using var original = new Bitmap(stream);
-        using var resized = Downscale(original);
+
+        // Прозрачность сводим на белое: модель кладёт прозрачное на чёрное, и логотип в PNG
+        // без фона приезжал ей чёрным по чёрному. Файл с диска — не буфер обмена, нулевая
+        // альфа тут осмысленна, поэтому подкладываем фон, а не «оживляем» канал.
+        using var opaque = ImageAlpha.TryComposite(original, Color.White);
+        using var resized = Downscale(opaque ?? original);
         using var output = new MemoryStream();
+
+        // Сведённая на фон картинка непрозрачна, но исходный формат мог быть без альфы вовсе
+        // (JPEG) — формат сохраняем тот же, что у файла, чтобы не раздувать вложение.
         resized.Save(output, GetImageFormat(path));
         return new ImageAttachment(
             Convert.ToBase64String(output.ToArray()),
@@ -60,14 +70,21 @@ internal static class ImageHelpers
     /// the model as-is; formats GDI+ cannot open (WebP, AVIF) are passed through untouched rather
     /// than dropped — the model's vision endpoint understands more formats than System.Drawing.
     /// </summary>
+    /// <remarks>
+    /// Прозрачность здесь тоже сводится на белое, и ради этого приходится перекодировать даже
+    /// картинку, которую не надо уменьшать: модель кладёт прозрачное на чёрное, и PNG без фона
+    /// приезжал ей чёрным прямоугольником. Байты остаются нетронутыми только там, где менять
+    /// нечего — непрозрачная картинка нужного размера, или формат, который GDI+ не открывает.
+    /// </remarks>
     public static ImageAttachment FromBytes(byte[] data, string mimeType, string? label = null)
     {
         try
         {
             using var stream = new MemoryStream(data, writable: false);
             using var original = new Bitmap(stream);
-            using var resized = Downscale(original);
-            if (ReferenceEquals(resized, original) || resized.Size == original.Size)
+            using var opaque = ImageAlpha.TryComposite(original, Color.White);
+            using var resized = Downscale(opaque ?? original);
+            if (opaque is null && resized.Size == original.Size)
             {
                 return new ImageAttachment(Convert.ToBase64String(data), mimeType, label);
             }
@@ -88,9 +105,17 @@ internal static class ImageHelpers
         }
     }
 
+    /// <summary>
+    /// Растр из памяти: буфер обмена, перетаскивание, снимок экрана.
+    /// </summary>
+    /// <remarks>
+    /// Починка альфы идёт до уменьшения намеренно: на мусорном канале (нули по всей картинке)
+    /// билинейная интерполяция в <see cref="Downscale"/> считает с нулевыми весами.
+    /// </remarks>
     public static ImageAttachment FromBitmap(Bitmap bitmap, string label, string mimeType = "image/png")
     {
-        using var resized = Downscale(bitmap);
+        using var opaque = ImageAlpha.TryFlatten(bitmap, Color.White);
+        using var resized = Downscale(opaque ?? bitmap);
         using var stream = new MemoryStream();
         resized.Save(stream, ImageFormat.Png);
         return new ImageAttachment(Convert.ToBase64String(stream.ToArray()), mimeType, label);

@@ -61,6 +61,73 @@ internal static class ChatContent
         return JsonSerializer.SerializeToElement(parts);
     }
 
+    /// <summary>
+    /// Текстовая часть сообщения с вложениями: сам текст плюс перечень того, что приложено.
+    /// </summary>
+    /// <remarks>
+    /// Без этого перечня модель не понимала, что содержимое файла уже лежит у неё в контексте:
+    /// на «прочти файл» она брала <c>read_file</c> с голым именем, тот раскрывал относительный
+    /// путь от рабочей папки программы и отвечал «File not found: …\bin\…», после чего модель
+    /// сообщала человеку, что доступа к файлу нет. Перечень называет имя, размер и настоящий
+    /// путь — путь нужен на вопросы про сам файл (где лежит, когда изменён), а не про его текст.
+    /// Ещё он переживает выброс вложений из истории: <see cref="ApiContextLimiter"/> сохраняет
+    /// текстовую часть, поэтому имена и пути остаются в контексте и после того, как base64 ушёл.
+    /// </remarks>
+    public static string BuildPrompt(
+        string text,
+        IReadOnlyList<Tools.ImageAttachment>? images,
+        IReadOnlyList<Tools.FileAttachment>? files)
+    {
+        var prompt = string.IsNullOrWhiteSpace(text) ? StandIn(images, files) : text.Trim();
+        if (files is not { Count: > 0 })
+        {
+            return prompt;
+        }
+
+        var sb = new StringBuilder(prompt);
+        sb.AppendLine().AppendLine().AppendLine("[Вложения к этому сообщению]");
+        foreach (var file in files)
+        {
+            sb.Append("- ")
+                .Append(file.FileName)
+                .Append(" — ")
+                .Append(AttachmentTypes.Badge(file.FileName))
+                .Append(", ")
+                .Append(AttachmentTypes.FormatSize(file.SizeBytes));
+
+            // Путь пишем, только если файл и правда там лежит: у чата, открытого на другой
+            // машине или после переезда файла, путь врал бы, и модель послала бы туда агента.
+            if (!string.IsNullOrWhiteSpace(file.SourcePath) && File.Exists(file.SourcePath))
+            {
+                sb.Append(", ").Append(file.SourcePath);
+            }
+
+            sb.AppendLine();
+        }
+
+        sb.AppendLine(
+            "Содержимое этих файлов передано вместе с сообщением — открывать их инструментом не нужно.");
+        sb.Append(
+            "Путь указан на случай вопросов про сам файл на диске, а не про его содержимое.");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Массив содержимого всегда начинается с текста, поэтому ход из одних вложений нуждается
+    /// в подставной просьбе, а не в пустой строке, которую модели приходится угадывать.
+    /// </summary>
+    public static string StandIn(
+        IReadOnlyList<Tools.ImageAttachment>? images,
+        IReadOnlyList<Tools.FileAttachment>? files)
+    {
+        if (files is { Count: > 0 })
+        {
+            return images is { Count: > 0 } ? "Посмотри вложения." : "Прочитай вложенные файлы.";
+        }
+
+        return "Посмотри на изображение.";
+    }
+
     public static JsonElement? Clone(JsonElement? content) =>
         content is null ? null : content.Value.Clone();
 

@@ -211,7 +211,105 @@ public sealed class AttachmentFileTests
         Assert.Equal(["spec.pdf"], FileNamesOf(content));
 
         // Заглушка вместо пустого текста: первая часть массива обязана быть текстовой.
-        Assert.Equal("Прочитай вложенные файлы.", sentParts[0].GetProperty("text").GetString());
+        Assert.StartsWith(
+            "Прочитай вложенные файлы.",
+            sentParts[0].GetProperty("text").GetString(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_text_part_names_what_came_with_the_message()
+    {
+        // Без этого перечня модель не понимала, что содержимое файла уже у неё в контексте:
+        // на «прочти файл» она брала read_file с голым именем и получала «File not found».
+        var prompt = ChatContent.BuildPrompt("ответь на вопросы", images: null, files: [Pdf("зачёт.pdf", 118_681)]);
+
+        Assert.StartsWith("ответь на вопросы", prompt, StringComparison.Ordinal);
+        Assert.Contains("зачёт.pdf", prompt, StringComparison.Ordinal);
+        Assert.Contains("PDF", prompt, StringComparison.Ordinal);
+        Assert.Contains(AttachmentTypes.FormatSize(118_681), prompt, StringComparison.Ordinal);
+        Assert.Contains("открывать их инструментом не нужно", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_real_path_reaches_the_model_only_while_the_file_is_where_it_says()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "amarin-attach-" + Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "данные");
+        try
+        {
+            var here = Pdf("здесь.pdf") with { SourcePath = path };
+            var gone = Pdf("уехал.pdf") with { SourcePath = Path.Combine(Path.GetTempPath(), "нет-такого.pdf") };
+
+            Assert.Contains(path, ChatContent.BuildPrompt("глянь", null, [here]), StringComparison.Ordinal);
+
+            // Врущий путь хуже отсутствующего: по нему модель отправила бы агента впустую.
+            var missing = ChatContent.BuildPrompt("глянь", null, [gone]);
+            Assert.Contains("уехал.pdf", missing, StringComparison.Ordinal);
+            Assert.DoesNotContain("нет-такого.pdf", missing, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void A_message_with_no_attachments_gets_no_manifest()
+    {
+        Assert.Equal("просто вопрос", ChatContent.BuildPrompt("просто вопрос", null, null));
+        Assert.Equal(
+            "посмотри",
+            ChatContent.BuildPrompt("посмотри", [new ImageAttachment("aW1n", "image/png")], null));
+    }
+
+    [Fact]
+    public void Editing_the_text_of_a_message_keeps_its_documents()
+    {
+        // Пересборка читала только Images: карточка документа в ленте оставалась, а сам PDF
+        // пропадал из контекста модели — она отвечала по памяти о прошлом ходе.
+        var session = new ChatSession { Id = "s" };
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "user",
+            Id = "m1",
+            CreatedAt = DateTime.Now,
+            Text = "старый вопрос",
+            Files = [Pdf("договор.pdf")]
+        });
+        session.ApiMessages.Add(new ChatMessage
+        {
+            Role = "user",
+            Content = ChatContent.Multipart("старый вопрос", null, [Pdf("договор.pdf")])
+        });
+
+        Assert.True(ChatSessionEdit.ReplaceUserText(session, "m1", "новый вопрос"));
+
+        var content = session.ApiMessages[0].Content!.Value;
+        Assert.Equal(["договор.pdf"], FileNamesOf(content));
+        Assert.StartsWith(
+            "новый вопрос",
+            content.EnumerateArray().First().GetProperty("text").GetString(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_older_chat_without_the_source_path_still_loads()
+    {
+        const string json = """
+            {
+              "base64": "JVBERg==",
+              "mimeType": "application/pdf",
+              "fileName": "старый.pdf",
+              "sizeBytes": 2048
+            }
+            """;
+
+        var file = JsonSerializer.Deserialize<FileAttachment>(json, AppJson.Options);
+
+        Assert.NotNull(file);
+        Assert.Equal("старый.pdf", file.FileName);
+        Assert.Null(file.SourcePath);
     }
 
     /// <summary>Имена файлов из содержимого сообщения — JSON экранирует кириллицу, сравнивать надо разобранное.</summary>

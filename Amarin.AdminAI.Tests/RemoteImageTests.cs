@@ -13,9 +13,17 @@ namespace Amarin.AdminAI.Tests;
 /// </summary>
 public sealed class RemoteImageTests
 {
-    /// <summary>A 1x1 transparent PNG.</summary>
+    /// <summary>
+    /// A 1x1 opaque PNG.
+    /// </summary>
+    /// <remarks>
+    /// Opaque on purpose: a transparent one no longer comes back byte for byte. Transparency is
+    /// now flattened onto white before the picture is handed to the model, because the model
+    /// composites what is transparent onto black and saw a black rectangle instead of the image.
+    /// Only a picture with nothing to change is passed through untouched.
+    /// </remarks>
     private static readonly byte[] PixelPng = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==");
 
     [Theory]
     [InlineData("http://127.0.0.1/x.png")]

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace Amarin.Core;
 
@@ -38,6 +38,7 @@ public sealed class AppSettingsStore
             settings.LiteReasoning ??= new ReasoningSettings();
             settings.HeavyReasoning ??= new ReasoningSettings();
             settings.RouterReasoning ??= new ReasoningSettings();
+            changed |= MigrateRouterReasoning(settings);
             settings.TitleReasoning ??= new ReasoningSettings();
             settings.AgentFastReasoning ??= new ReasoningSettings();
             settings.AgentLiteReasoning ??= new ReasoningSettings();
@@ -87,6 +88,33 @@ public sealed class AppSettingsStore
         """
     ];
 
+    /// <summary>
+    /// До 1.19.4 маршрутизатор по умолчанию думал на «medium». Сохранённый файл держит это
+    /// значение и после смены умолчания, поэтому прежнее умолчание переписывается один раз.
+    /// </summary>
+    /// <remarks>
+    /// Отличающее условие — ровно та пара, что отгружалась: размышление включено и сила
+    /// «medium». Всё остальное человек выставил руками в настройках, и трогать это нельзя.
+    /// Откуда взялось значение, в settings.json не записано, так что осознанный выбор «думает,
+    /// medium» неотличим от нетронутого слота и один раз потеряется — это принятый размен
+    /// против флага-маркера, который остался бы в настройках навсегда ради одного релиза.
+    /// Вызывается после заживления null: пустой слот и так означает «размышление выключено»,
+    /// и считать его требующим миграции значило бы переписывать файл при каждом запуске.
+    /// </remarks>
+    internal static bool MigrateRouterReasoning(AppSettings settings)
+    {
+        var slot = settings.RouterReasoning;
+        if (slot is null || slot.DisableThinking ||
+            !string.Equals(slot.ReasoningEffort?.Trim(), "medium", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        slot.DisableThinking = true;
+        slot.ReasoningEffort = null;
+        return true;
+    }
+
     internal static bool MigrateLegacyChatPrompts(AppSettings settings)
     {
         var changed = false;
@@ -109,7 +137,9 @@ public sealed class AppSettingsStore
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV11) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV12) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV13) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV14))
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV14) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV15) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV16))
         {
             settings.TechAiPrompt = "";
             changed = true;

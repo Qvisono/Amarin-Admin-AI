@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Amarin.Core;
 
 namespace Amarin.Tools;
@@ -23,8 +23,13 @@ public sealed class InitAgentTool : ITool
         "Arguments: one JSON object with exactly two keys, prompt and complexity. " +
         "No extra keys, no markdown, no text after the closing brace. " +
         "complexity is exactly \"fast\", \"lite\" or \"heavy\" — never a model name. " +
-        "fast = trivial work, or the user asked to hurry. lite = one status check or listing. " +
-        "heavy = install, repair, diagnosis, many steps. Unsure: lite. " +
+        "Choose it by how hard the work is, not by how long the request is. " +
+        "fast = trivial work, or the user asked to hurry. " +
+        "lite = one thing checked or done here: processes, Windows services, free space, a port, " +
+        "a folder, system info, an event-log tail, one PowerShell one-liner. " +
+        "Several such items in one request are still lite. " +
+        "heavy = repair, install, an unknown cause to diagnose, registry or boot changes, " +
+        "long multi-step work. Unsure: lite. " +
         "prompt restates the user's actual request in the user's language (goal, paths, what to change). " +
         "The agent does not see the chat. At most 4 agents at once.";
 
@@ -39,7 +44,7 @@ public sealed class InitAgentTool : ITool
             "complexity": {
               "type": "string",
               "enum": ["fast", "lite", "heavy"],
-              "description": "Exactly fast, lite or heavy. fast = trivial, or the user asked to hurry. lite = one check/listing. heavy = install, repair, many steps. Unsure: lite. Not a model id."
+              "description": "Exactly fast, lite or heavy. Judge the difficulty, not the length of the request: several small checks in one message are still lite. fast = trivial, or the user asked to hurry. lite = one check or action on this PC (processes, services, disk space, a port, system info, one PowerShell one-liner). heavy = repair, install, an unknown cause, registry or boot, long multi-step work. Unsure: lite. Not a model id."
             }
           },
           "required": ["prompt", "complexity"]

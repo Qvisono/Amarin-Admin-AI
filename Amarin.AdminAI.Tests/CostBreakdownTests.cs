@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using Amarin.Core;
@@ -120,14 +120,21 @@ public sealed class CostBreakdownTests
     [Fact]
     public void The_rows_add_up_to_the_total()
     {
-        var message = Turn();
-        var parts = new[] { message.ModelCost!.Usd }
-            .Concat(message.ToolRounds
-                .SelectMany(round => round.Calls)
-                .Select(call => call.NestedAgent?.Cost?.Usd ?? call.Cost?.Usd ?? 0m))
-            .Sum();
+        foreach (var message in new[] { Turn(), AutoTurn() })
+        {
+            var parts = new[]
+                {
+                    message.ModelCost!.Usd,
+                    message.RouterCost?.Usd ?? 0m,
+                    message.TitleCost?.Usd ?? 0m
+                }
+                .Concat(message.ToolRounds
+                    .SelectMany(round => round.Calls)
+                    .Select(call => call.NestedAgent?.Cost?.Usd ?? call.Cost?.Usd ?? 0m))
+                .Sum();
 
-        Assert.Equal(message.Cost!.Usd, parts);
+            Assert.Equal(message.Cost!.Usd, parts);
+        }
     }
 
     [Fact]
@@ -148,6 +155,83 @@ public sealed class CostBreakdownTests
         });
 
         Assert.DoesNotContain("Итого", lines);
+    }
+
+    /// <summary>Ход на «Авто»: маршрутизатор выбирал модель, а чат ещё и получил заголовок.</summary>
+    private static ChatDisplayMessage AutoTurn() => new()
+    {
+        Role = "assistant",
+        Id = "a2",
+        RequestedModelId = "auto",
+        ResolvedModelId = "claude-sonnet-5",
+        Text = "готово",
+        Status = AssistantStatus.Complete,
+        RouterCost = Usd(0.001m),
+        TitleCost = Usd(0.0004m),
+        ModelCost = Usd(0.02m),
+        Cost = Usd(0.0214m)
+    };
+
+    [Fact]
+    public void The_router_row_is_shown_only_for_a_routed_turn()
+    {
+        var (routed, plain) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            return (Lines(CostBreakdownTooltip.Build(window, AutoTurn())),
+                    Lines(CostBreakdownTooltip.Build(window, Turn())));
+        });
+
+        Assert.Contains("Маршрутизатор", routed);
+        Assert.DoesNotContain("Маршрутизатор", plain);
+    }
+
+    [Fact]
+    public void The_chat_title_is_billed_on_the_answer_it_was_written_for()
+    {
+        var (withTitle, without) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            return (Lines(CostBreakdownTooltip.Build(window, AutoTurn())),
+                    Lines(CostBreakdownTooltip.Build(window, Turn())));
+        });
+
+        Assert.Contains("Заголовок чата", withTitle);
+        Assert.DoesNotContain("Заголовок чата", without);
+    }
+
+    [Fact]
+    public void The_router_money_is_not_inside_the_model_row()
+    {
+        // Прежде цена маршрутизатора молча увеличивала строку «Модель», и «Авто» выглядела
+        // дороже, чем она есть.
+        var message = AutoTurn();
+        ChatEngine.ApplyCosts(message, Usd(0.021m));
+
+        Assert.Equal(0.02m, message.ModelCost!.Usd);
+        Assert.Equal(0.0214m, message.Cost!.Usd);
+    }
+
+    [Fact]
+    public void A_routed_turn_without_tools_still_gets_a_total_line()
+    {
+        // Строк стало две, и свести их теперь есть во что: «Итого» появляется само.
+        var lines = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            return Lines(CostBreakdownTooltip.Build(window, new ChatDisplayMessage
+            {
+                Role = "assistant",
+                RequestedModelId = "auto",
+                ResolvedModelId = "claude-sonnet-5",
+                RouterCost = Usd(0.001m),
+                ModelCost = Usd(0.004m),
+                Cost = Usd(0.005m)
+            }));
+        });
+
+        Assert.Contains("Маршрутизатор", lines);
+        Assert.Contains("Итого", lines);
     }
 
     [Fact]

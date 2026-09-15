@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Amarin.Tools;
 
 namespace Amarin.Core;
@@ -61,6 +61,15 @@ public sealed class ChatSession
 
     /// <summary>Length of <see cref="ApiMessages"/> when <see cref="LastPromptTokens"/> was measured.</summary>
     public int LastPromptTokensApiIndex { get; set; }
+
+    /// <summary>Во что обошёлся придуманный заголовок этой переписки.</summary>
+    /// <remarks>
+    /// Живёт на чате, а не только на сообщении: заголовок считается в отрыве от хода, и его
+    /// цена может стать известна раньше, чем появился первый ответ, — тогда она ждёт здесь.
+    /// Остаётся и после того, как её записали в сообщение: пересозданный первый ответ подберёт
+    /// её заново.
+    /// </remarks>
+    public VeniceCost? TitleCost { get; set; }
 }
 
 public sealed class ChatDisplayMessage
@@ -106,6 +115,27 @@ public sealed class ChatDisplayMessage
     /// agent's — which is exactly the breakdown shown when hovering the price.
     /// </summary>
     public VeniceCost? ModelCost { get; set; }
+
+    /// <summary>
+    /// Во что обошёлся сам выбор модели, когда ход шёл на «Авто». По наличию этого поля строка
+    /// «Маршрутизатор» и появляется в разбивке — отдельного признака «ход маршрутизировался» нет.
+    /// </summary>
+    /// <remarks>
+    /// Маршрутизатор платит тем же клиентом, что и разговор, и до этого поля его деньги молча
+    /// сидели внутри строки «Модель»: «Авто» выглядела дороже, чем она есть. У переписок,
+    /// сохранённых раньше, поле пустое — чат сериализуется рефлексией, миграция не нужна.
+    /// </remarks>
+    public VeniceCost? RouterCost { get; set; }
+
+    /// <summary>
+    /// Цена придуманного заголовка чата, записанная на это сообщение. Заполняется только у
+    /// первого ответа: заголовок сочиняется один раз, по первому вопросу.
+    /// </summary>
+    /// <remarks>
+    /// В отличие от маршрутизатора эта трата в счёт хода не входит — у генератора свой клиент,
+    /// поэтому её прибавляют, а не вычитают.
+    /// </remarks>
+    public VeniceCost? TitleCost { get; set; }
 
     public AssistantStatus Status { get; set; }
 

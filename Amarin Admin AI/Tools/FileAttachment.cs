@@ -13,4 +13,16 @@ namespace Amarin.Tools;
 /// <param name="MimeType">MIME по расширению — Venice выбирает по нему разборщик.</param>
 /// <param name="FileName">Имя с расширением; показывается в карточке и уходит в запрос.</param>
 /// <param name="SizeBytes">Размер исходного файла, до кодирования.</param>
-public sealed record FileAttachment(string Base64, string MimeType, string FileName, long SizeBytes);
+/// <param name="SourcePath">
+/// Откуда файл взяли. Пятый параметр со значением по умолчанию, а не обязательный: старые
+/// <c>chats/*.json</c> написаны без него и должны читаться по-прежнему. Нужен для двух вещей —
+/// открыть документ по клику из ленты и назвать модели настоящий путь, когда её спросят про
+/// сам файл, а не про его содержимое. Без пути «посмотри свойства этого файла» было
+/// невыполнимо: от вложения оставалось одно имя.
+/// </param>
+public sealed record FileAttachment(
+    string Base64,
+    string MimeType,
+    string FileName,
+    long SizeBytes,
+    string? SourcePath = null);

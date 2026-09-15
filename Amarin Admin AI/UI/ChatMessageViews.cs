@@ -733,7 +733,7 @@ internal static class ChatMessageViews
 
         if (message.Files.Count > 0)
         {
-            root.Children.Add(CreateFileStrip(message));
+            root.Children.Add(CreateFileStrip(host, message));
         }
 
         root.Children.Add(bubble);
@@ -1126,7 +1126,11 @@ internal static class ChatMessageViews
     /// Карточки документов, отправленных с сообщением. Показываются над пузырём — так видно,
     /// что именно ушло модели, даже после перезагрузки чата с диска.
     /// </summary>
-    private static FrameworkElement CreateFileStrip(ChatDisplayMessage message)
+    /// <remarks>
+    /// По карточке кликают: содержимое файла лежит в самом чате, поэтому открыть документ можно
+    /// и тогда, когда оригинал переехал, — см. <see cref="AttachmentOpener"/>.
+    /// </remarks>
+    private static FrameworkElement CreateFileStrip(FrameworkElement host, ChatDisplayMessage message)
     {
         var strip = new WrapPanel
         {
@@ -1144,7 +1148,13 @@ internal static class ChatMessageViews
                 CornerRadius = new CornerRadius(8),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(10, 7, 12, 7),
-                ToolTip = $"{file.FileName} — {AttachmentTypes.FormatSize(file.SizeBytes)}"
+                Cursor = System.Windows.Input.Cursors.Hand,
+                ToolTip = MainWindow.DescribeFile(file)
+            };
+            frame.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                AttachmentOpener.Open(host, file);
             };
             frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
             frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");

@@ -11,6 +11,17 @@ internal static class ClipboardNative
     private const uint CfHdrop = 15;
     private const uint CfDib = 8;
 
+    /// <summary>BITMAPINFOHEADER — минимум, с которого вообще можно что-то прочитать.</summary>
+    private const int HeaderMinSize = 40;
+
+    /// <summary>BITMAPV5HEADER: только он обещает, что старший байт пикселя — прозрачность.</summary>
+    private const int HeaderV5Size = 124;
+
+    /// <summary>bV5AlphaMask идёт четвёртой маской, сразу за красной, зелёной и синей.</summary>
+    private const int AlphaMaskOffset = 52;
+
+    private const uint BiBitfields = 3;
+
     public static bool HasText() => IsFormatAvailable(CfUnicodeText);
     public static bool HasFiles() => IsFormatAvailable(CfHdrop);
     public static bool HasImage() => IsFormatAvailable(CfDib);
@@ -87,6 +98,59 @@ internal static class ClipboardNative
         }
     }
 
+    /// <summary>
+    /// Готовые байты PNG из зарегистрированного формата «PNG», если он в буфере есть.
+    /// </summary>
+    /// <remarks>
+    /// Telegram, Discord, SwarmUI и всё на Chromium кладут в буфер сразу несколько представлений
+    /// одной картинки. CF_DIB среди них худшее: старший байт пикселя там по формату не определён.
+    /// Настоящий PNG со здоровой прозрачностью лежит рядом, и брать надо его.
+    /// </remarks>
+    public static byte[]? TryGetPng()
+    {
+        var format = RegisterClipboardFormat("PNG");
+        if (format == 0 || !IsClipboardFormatAvailable(format) || !OpenClipboard(IntPtr.Zero))
+        {
+            return null;
+        }
+
+        try
+        {
+            var handle = GetClipboardData(format);
+            if (handle == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            var size = (int)GlobalSize(handle);
+            if (size <= 0)
+            {
+                return null;
+            }
+
+            var pointer = GlobalLock(handle);
+            if (pointer == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                var bytes = new byte[size];
+                Marshal.Copy(pointer, bytes, 0, size);
+                return bytes;
+            }
+            finally
+            {
+                GlobalUnlock(handle);
+            }
+        }
+        finally
+        {
+            CloseClipboard();
+        }
+    }
+
     public static Bitmap? TryGetBitmap()
     {
         if (!OpenClipboard(IntPtr.Zero))
@@ -123,15 +187,51 @@ internal static class ClipboardNative
         }
     }
 
+    /// <summary>
+    /// Разбирает CF_DIB/CF_DIBV5 из готовых байтов.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от версии с HGLOBAL потому, что настоящий буфер обмена — состояние всей машины
+    /// и в тестах его трогать нельзя, а собранный руками заголовок — можно.
+    /// </remarks>
+    internal static Bitmap? TryDecodeDib(byte[] dib)
+    {
+        if (dib is null || dib.Length < HeaderMinSize)
+        {
+            return null;
+        }
+
+        var handle = GCHandle.Alloc(dib, GCHandleType.Pinned);
+        try
+        {
+            return DibToBitmap(handle.AddrOfPinnedObject());
+        }
+        catch (Exception ex) when (ex is ArgumentException or OutOfMemoryException or ExternalException)
+        {
+            // Заголовок бывает врущим: ширина, высота или смещение уводят за конец буфера.
+            return null;
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
     private static bool IsFormatAvailable(uint format) =>
         IsClipboardFormatAvailable(format);
 
-    private static Bitmap DibToBitmap(IntPtr dibPtr)
+    private static Bitmap? DibToBitmap(IntPtr dibPtr)
     {
         var bmi = Marshal.PtrToStructure<BitmapInfoHeader>(dibPtr);
-        var pixelOffset = (int)bmi.HeaderSize + GetColorTableSize(bmi);
+        if (bmi.Width <= 0 || bmi.Height == 0 || bmi.HeaderSize < HeaderMinSize)
+        {
+            return null;
+        }
+
+        var pixelOffset = (int)bmi.HeaderSize + GetMaskSize(bmi) + GetColorTableSize(bmi);
         var stride = ((bmi.Width * bmi.BitCount + 31) / 32) * 4;
         var pixelData = IntPtr.Add(dibPtr, pixelOffset);
+        var trustAlpha = HasAlphaMask(dibPtr, bmi);
 
         var bitmap = new Bitmap(bmi.Width, Math.Abs(bmi.Height), PixelFormat.Format32bppArgb);
         var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
@@ -147,7 +247,7 @@ internal static class ClipboardNative
                 var srcY = topDown ? y : height - 1 - y;
                 var srcRow = IntPtr.Add(pixelData, srcY * stride);
                 var destRow = bmpData.Scan0 + y * bmpData.Stride;
-                CopyRow(srcRow, destRow, bmi.Width, bmi.BitCount, bmpData.Stride);
+                CopyRow(srcRow, destRow, bmi.Width, bmi.BitCount, trustAlpha);
             }
         }
         finally
@@ -157,6 +257,33 @@ internal static class ClipboardNative
 
         return bitmap;
     }
+
+    /// <summary>
+    /// Есть ли в заголовке обещание, что старший байт пикселя — это прозрачность.
+    /// </summary>
+    /// <remarks>
+    /// В BITMAPINFOHEADER с BI_RGB такого обещания нет: старший байт 32-битного пикселя форматом
+    /// не определён, и Telegram, Discord и всё на Chromium оставляют там нули. Читая их как
+    /// альфу, программа отдавала модели насквозь прозрачный PNG — та видела чёрный
+    /// прямоугольник. Верим только BITMAPV5HEADER с непустой bV5AlphaMask.
+    /// </remarks>
+    private static bool HasAlphaMask(IntPtr dibPtr, BitmapInfoHeader bmi)
+    {
+        if (bmi.BitCount != 32 || bmi.HeaderSize < HeaderV5Size)
+        {
+            return false;
+        }
+
+        return Marshal.ReadInt32(dibPtr, AlphaMaskOffset) != 0;
+    }
+
+    /// <summary>Маски каналов лежат между заголовком и пикселями — но только у BI_BITFIELDS.</summary>
+    /// <remarks>
+    /// Без этих двенадцати байт смещение пикселей занижено, и картинка из Chromium (он кладёт
+    /// ровно BI_BITFIELDS) приезжала сдвинутой. У V4/V5 маски уже внутри заголовка.
+    /// </remarks>
+    private static int GetMaskSize(BitmapInfoHeader bmi) =>
+        bmi.Compression == BiBitfields && bmi.HeaderSize == HeaderMinSize ? 12 : 0;
 
     private static int GetColorTableSize(BitmapInfoHeader bmi)
     {
@@ -169,7 +296,7 @@ internal static class ClipboardNative
         return colors * 4;
     }
 
-    private static void CopyRow(IntPtr srcRow, IntPtr destRow, int width, ushort bitCount, int destStride)
+    private static void CopyRow(IntPtr srcRow, IntPtr destRow, int width, ushort bitCount, bool trustAlpha)
     {
         unsafe
         {
@@ -183,7 +310,11 @@ internal static class ClipboardNative
                         b = ((byte*)srcRow)[x * 4];
                         g = ((byte*)srcRow)[x * 4 + 1];
                         r = ((byte*)srcRow)[x * 4 + 2];
-                        a = ((byte*)srcRow)[x * 4 + 3];
+                        if (trustAlpha)
+                        {
+                            a = ((byte*)srcRow)[x * 4 + 3];
+                        }
+
                         break;
                     case 24:
                         b = ((byte*)srcRow)[x * 3];
@@ -215,8 +346,14 @@ internal static class ClipboardNative
     [DllImport("user32.dll")]
     private static extern bool IsClipboardFormatAvailable(uint format);
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint RegisterClipboardFormat(string lpszFormat);
+
     [DllImport("kernel32.dll")]
     private static extern IntPtr GlobalLock(IntPtr hMem);
+
+    [DllImport("kernel32.dll")]
+    private static extern nuint GlobalSize(IntPtr hMem);
 
     [DllImport("kernel32.dll")]
     private static extern bool GlobalUnlock(IntPtr hMem);

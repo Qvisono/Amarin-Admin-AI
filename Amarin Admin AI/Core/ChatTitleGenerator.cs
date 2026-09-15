@@ -1,4 +1,11 @@
-namespace Amarin.Core;
+﻿namespace Amarin.Core;
+
+/// <summary>Придуманный заголовок и то, во что обошлось его сочинение.</summary>
+/// <remarks>
+/// Цена возвращается наружу, потому что платил за неё человек, а в программе этих денег до сих
+/// пор не было видно нигде. Заголовок мог и не получиться — цена от этого никуда не девается.
+/// </remarks>
+internal sealed record ChatTitleDraft(string? Title, VeniceCost? Cost);
 
 internal sealed class ChatTitleGenerator
 {
@@ -13,13 +20,19 @@ internal sealed class ChatTitleGenerator
         _settings = settings;
     }
 
-    public async Task<string?> GenerateAsync(string userText, CancellationToken cancellationToken = default)
+    public async Task<ChatTitleDraft> GenerateAsync(string userText, CancellationToken cancellationToken = default)
     {
         var text = userText.Trim();
         if (string.IsNullOrWhiteSpace(text))
         {
-            return null;
+            return new ChatTitleDraft(null, null);
         }
+
+        // Заголовок считается рядом с ходом, но платит за себя сам, и в разбивке стоит своей
+        // строкой. Сегодня контекст хода сюда не протекает — OnUserAppended срабатывает до
+        // VeniceTurnScope.Push, — но гарантия эта висит на порядке двух строк в чужом методе:
+        // протечёт, и цена заголовка окажется и в счёте хода, и прибавленной ещё раз.
+        using var isolated = VeniceTurnScope.Suppress();
 
         var settings = _settings();
         var model = ChatTitle.ResolveModel(settings, _options.Model);
@@ -60,7 +73,7 @@ internal sealed class ChatTitleGenerator
             // end up in the sidebar.
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
-            return ChatTitle.Sanitize(reply);
+            return new ChatTitleDraft(ChatTitle.Sanitize(reply), response.Cost?.ToCost());
         }
         catch (OperationCanceledException)
         {
@@ -68,7 +81,7 @@ internal sealed class ChatTitleGenerator
         }
         catch
         {
-            return null;
+            return new ChatTitleDraft(null, null);
         }
     }
 }

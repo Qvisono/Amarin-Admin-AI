@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -218,6 +218,11 @@ public sealed class Wave6ModelPickerTests
         Assert.Equal("Готово", observer.Assistant.Text);
         Assert.True(observer.Assistant.Cost?.HasData);
         Assert.Equal(0.021m, observer.Assistant.Cost?.Usd);
+
+        // Итог не изменился — он и есть доказательство, что маршрутизатор не посчитан дважды,
+        // — но теперь его цена стоит своей строкой, а не прячется внутри «Модели».
+        Assert.Equal(0.001m, observer.Assistant.RouterCost?.Usd);
+        Assert.Equal(0.02m, observer.Assistant.ModelCost?.Usd);
         Assert.Contains("auto", observer.Resolved);
         Assert.Contains("claude-sonnet-5", observer.Resolved);
         Assert.True(handler.Bodies.Exists(b => !b.Contains("\"stream\":true", StringComparison.Ordinal)));
