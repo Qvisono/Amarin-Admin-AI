@@ -59,6 +59,42 @@ public sealed class SingleInstanceTests
     }
 
     [Fact]
+    public void Applying_an_update_never_consults_the_lock_either()
+    {
+        // Подмену просит живая программа, а замок держит как раз она: спросив его, повышенный
+        // процесс ушёл бы передавать ей запрос вместо работы — и обновление не состоялось бы.
+        var asked = false;
+        var route = StartupRouter.Decide(
+            StartupArgs.Parse(["--apply-update", @"C:\tmp\new.exe"]),
+            () =>
+            {
+                asked = true;
+                return false;
+            });
+
+        Assert.Equal(StartupRoute.ApplyUpdate, route);
+        Assert.False(asked, "шлюз спросили там, где он не нужен");
+    }
+
+    [Theory]
+    [InlineData("--await-exit", "4242")]
+    [InlineData("--await-exit=4242", null)]
+    public void The_pid_to_wait_for_is_read_from_the_command_line(string first, string? second)
+    {
+        // Так возвращается программа после обновления: новый процесс ждёт, пока старый отпустит
+        // замок, иначе видит живого владельца и молча выходит.
+        var args = second is null ? new[] { first } : [first, second];
+
+        Assert.Equal(4242, StartupArgs.Parse(args).AwaitExitPid);
+    }
+
+    [Theory]
+    [InlineData("--await-exit", "не число")]
+    [InlineData("--await-exit", "-1")]
+    public void A_nonsense_pid_is_no_pid_at_all(string first, string second) =>
+        Assert.Null(StartupArgs.Parse([first, second]).AwaitExitPid);
+
+    [Fact]
     public void A_normal_start_runs_or_hands_off_by_the_lock()
     {
         Assert.Equal(StartupRoute.Run, StartupRouter.Decide(StartupArgs.Parse([]), () => true));

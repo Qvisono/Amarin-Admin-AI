@@ -57,6 +57,7 @@
     <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Анимации</system:String>
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Движение фона и сворачивание поля ввода</system:String>
     <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Фон</system:String>
+    <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">Такой формат картинки программа не переносит в архив данных. Подойдут: {0}</system:String>
     <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Яркость фото</system:String>
     <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Ширина колонки чата</system:String>
     <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Длинные строки труднее читать — узкая колонка помогает</system:String>
@@ -155,6 +156,8 @@
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Звук уведомления</system:String>
     <system:String x:Key="S.Behavior.NotifySoundDesc" xml:space="preserve">Короткий системный сигнал вместе с уведомлением</system:String>
 
+    <system:String x:Key="S.Behavior.RememberWindow" xml:space="preserve">Запоминать размер окна</system:String>
+    <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">При следующем запуске окно откроется того же размера, каким его закрыли</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Изображение профиля и фон окна</system:String>
     <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Чаты</system:String>
@@ -567,7 +570,7 @@
     <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Проверять автоматически</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Ничего не скачивается: приложение только сообщает о новой версии</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Проверка только узнаёт номер последней версии — скачивание начинаете вы</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} — установлена {1}</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Неожиданный ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Не удалось открыть браузер: {0}</system:String>
@@ -579,6 +582,8 @@
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Обновить до версии {0}</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Загрузка отменена.</system:String>
     <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Скачивание {0} %</system:String>
+    <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Подмена файла от имени администратора не удалась.</system:String>
+    <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Без прав администратора файл программы не заменить.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">Обновление не состоялось: {0}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub отклонил проверку. Откройте страницу релиза вручную.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">Проверка обновлений не должна ходить с чужим ключом.</system:String>
@@ -586,14 +591,17 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
+    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем — ярлыки и запуск от имени администратора не потеряются.</system:String>
+    <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Папку программы правит только администратор, поэтому Windows спросит разрешение.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">Проверка ещё не запускалась</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">Нет связи с GitHub: {0}</system:String>
     <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Не удалось определить папку программы.</system:String>
     <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Не удалось определить файл программы.</system:String>
     <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">В релизе нет распознаваемой версии.</system:String>
     <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">У релиза нет готовой сборки для Windows.</system:String>
-    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Нет прав на запись в папку программы ({0}). Запустите обновление от имени администратора или обновитесь вручную.</system:String>
+    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Не удалось подготовить папку для загрузки ({0}). Скачайте новую версию вручную.</system:String>
     <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">Файл релиза лежит не на GitHub — обновление отменено.</system:String>
+    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">Этот файл не из загрузок обновления — подмена отменена.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Открыть релиз</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Не удалось разобрать ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка — после {0}.</system:String>
@@ -608,6 +616,7 @@
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">неизвестно сколько</system:String>
     <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">Установлена последняя версия — {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
+    <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Обновить с правами</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов — программа перезапустится.</system:String>
 
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель — эта убрана из списка до перезапуска.</system:String>

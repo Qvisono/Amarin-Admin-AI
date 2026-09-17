@@ -1,8 +1,8 @@
 namespace Amarin.UI;
 
 /// <summary>
-/// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>
-/// и <c>--smoke-tools</c>.
+/// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
+/// <c>--smoke-tools</c>, <c>--await-exit</c> и <c>--apply-update</c>.
 /// </summary>
 /// <remarks>
 /// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
@@ -13,6 +13,28 @@ internal sealed class StartupArgs
     public string? Model { get; private set; }
     public string? Prompt { get; private set; }
     public bool SmokeTools { get; private set; }
+
+    /// <summary>
+    /// Дождаться выхода этого процесса перед всем остальным; <c>null</c> — ждать некого.
+    /// </summary>
+    /// <remarks>
+    /// Так возвращается программа после обновления. Старый процесс запускает новый и только
+    /// потом закрывается, а замок единственного экземпляра держится до конца процесса: без
+    /// ожидания новый видит живого владельца, уходит по ветке передачи запроса и выходит —
+    /// человек остаётся вообще без окна.
+    /// </remarks>
+    public int? AwaitExitPid { get; private set; }
+
+    /// <summary>
+    /// Поставить этот файл на место программы и сразу выйти; <c>null</c> — обычный запуск.
+    /// </summary>
+    /// <remarks>
+    /// Тот случай, когда папка программы пишется только администратором: обычный процесс
+    /// скачивает и сверяет файл сам, а через UAC поднимается только подмена — и ничего больше.
+    /// Целью служит собственный <see cref="Environment.ProcessPath"/>: повышенный процесс
+    /// запускается из того самого exe, который и надо заменить.
+    /// </remarks>
+    public string? ApplyUpdateFrom { get; private set; }
 
     public static StartupArgs Parse(string[] args)
     {
@@ -36,6 +58,18 @@ internal sealed class StartupArgs
             if (TryTakeValue(args, ref i, "--prompt", "-p", out var prompt))
             {
                 result.Prompt = prompt;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--await-exit", out var pid))
+            {
+                result.AwaitExitPid = int.TryParse(pid, out var parsed) && parsed > 0 ? parsed : null;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--apply-update", out var incoming))
+            {
+                result.ApplyUpdateFrom = string.IsNullOrWhiteSpace(incoming) ? null : incoming;
                 continue;
             }
 

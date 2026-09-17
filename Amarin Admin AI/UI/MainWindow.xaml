@@ -1780,7 +1780,9 @@
                                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                         BorderThickness="1" CornerRadius="8" Padding="0,3"
                                         MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
-                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <!-- Та же плавная прокрутка, что у списков моделей и страниц настроек. -->
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                          local:SmoothScroll.IsEnabled="True">
                                                 <ItemsPresenter/>
                                             </ScrollViewer>
                                         </Border>
@@ -1812,7 +1814,7 @@
                             <ControlTemplate TargetType="TextBox">
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="6" Padding="8,6">
-                                    <ScrollViewer x:Name="PART_ContentHost"/>
+                                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsKeyboardFocusWithin" Value="True">
@@ -2008,7 +2010,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.20.0"
+                                               Text="v1.20.1"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -2144,7 +2146,7 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ APPEARANCE ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="AppearancePageScroll" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2659,7 +2661,7 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ BEHAVIOR ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="BehaviorPageScroll" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2676,6 +2678,22 @@
                                 <Grid>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.AutoScroll}" VerticalAlignment="Center"/>
                                     <CheckBox x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.RememberWindow}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="{DynamicResource S.Behavior.RememberWindowDesc}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="RememberWindowSizeToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}" IsChecked="True"
+                                              Checked="RememberWindowSizeToggle_Changed"
+                                              Unchecked="RememberWindowSizeToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -2748,7 +2766,7 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ CUSTOMIZE ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="CustomizePageScroll" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2963,7 +2981,7 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ DATA CONTROLS ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="DataPageScroll" VerticalScrollBarVisibility="Auto">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3178,7 +3196,7 @@
                                                    Text="{DynamicResource S.Data.AllowlistEmpty}"
                                                    FontSize="12" Foreground="{DynamicResource Text.Faint}"
                                                    Visibility="Collapsed"/>
-                                        <ScrollViewer MaxHeight="152" VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer x:Name="AllowedDomainsScroll" MaxHeight="152" VerticalScrollBarVisibility="Auto">
                                             <ItemsControl x:Name="AllowedDomainsList">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -3813,9 +3831,17 @@
                                            TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
+                        <!--
+                            Заполняется из кода: сюда попадает и обещание не трогать имя файла,
+                            и предупреждение про права администратора, когда папка программы
+                            обычному процессу не по зубам.
+                        -->
+                        <TextBlock x:Name="UpdateConfirmNote" FontSize="11.5"
+                                   Foreground="{DynamicResource Text.Faint}"
+                                   TextWrapping="Wrap" Margin="0,10,0,0"/>
                         <TextBlock Text="{DynamicResource S.Update.Desc}"
                                    FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
-                                   TextWrapping="Wrap" Margin="0,10,0,0"/>
+                                   TextWrapping="Wrap" Margin="0,6,0,0"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                             <Button x:Name="UpdateConfirmCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"

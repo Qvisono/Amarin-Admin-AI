@@ -326,8 +326,7 @@ public sealed class DataBundleExporter
     }
 
     private static bool IsAllowedImage(string name, long bytes) =>
-        bytes <= DataBundle.MaxImageBytes &&
-        DataBundle.ImageExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
+        bytes <= DataBundle.MaxImageBytes && DataBundle.IsSupportedImageName(name);
 
     private static int CountItems(DataCategory category, IEnumerable<Source> sources) => category switch
     {

@@ -1,4 +1,4 @@
-<UserControl x:Class="Amarin.UI.SettingsInfoPage"
+﻿<UserControl x:Class="Amarin.UI.SettingsInfoPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Amarin.UI">
@@ -111,7 +111,7 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="InfoPageScroll" VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="20,14,20,18">
             <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Info.Title}"/>
             <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Intro}" Margin="0,0,0,16"/>

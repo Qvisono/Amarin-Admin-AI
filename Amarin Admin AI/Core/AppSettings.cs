@@ -187,13 +187,33 @@ public sealed class AppSettings
 
     /// <summary>
     /// Спрашивать GitHub о новой версии при запуске, не чаще раза в
-    /// <see cref="UpdateChecker.AutoCheckInterval"/>. Само обновление не скачивается — приложение
-    /// только показывает, что вышла новая версия, и открывает страницу релиза по кнопке.
+    /// <see cref="UpdateChecker.AutoCheckInterval"/>. Проверка только узнаёт номер последней
+    /// версии; скачивание и установку начинает человек кнопкой и подтверждает отдельным окном.
     /// </summary>
     public bool AutoCheckUpdates { get; set; } = true;
 
     /// <summary>Когда автопроверка последний раз ходила в сеть. UTC; <c>null</c> — ещё ни разу.</summary>
     public DateTime? LastUpdateCheckUtc { get; set; }
+
+    /// <summary>Открывать окно того же размера, каким его закрыли в прошлый раз.</summary>
+    public bool RememberWindowSize { get; set; } = true;
+
+    /// <summary>
+    /// Размер окна в физических пикселях экрана; <c>0</c> — ещё не сохранён.
+    /// </summary>
+    /// <remarks>
+    /// Пиксели, а не <c>Width</c> и <c>Height</c> окна. Масштаб интерфейса здесь сделан
+    /// поддельным DPI: при 150 % окно шириной 1140 единиц занимает 1710 настоящих пикселей.
+    /// Сохранив логическую величину, программа меняла бы размер окна от одной только смены
+    /// масштаба или переезда на монитор с другим DPI.
+    /// </remarks>
+    public int WindowPixelWidth { get; set; }
+
+    /// <inheritdoc cref="WindowPixelWidth"/>
+    public int WindowPixelHeight { get; set; }
+
+    /// <summary>Окно было закрыто развёрнутым.</summary>
+    public bool WindowMaximized { get; set; }
 
     public static AppSettings CreateDefault() => new()
     {

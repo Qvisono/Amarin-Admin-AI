@@ -560,6 +560,20 @@ namespace Amarin.UI
                 return;
             }
 
+            // Через «Все файлы» выбрать можно что угодно, но архив данных забирает картинки
+            // оформления только по закрытому списку расширений. Файл вне его тихо не доехал бы
+            // до второй машины, и человек узнал бы об этом, только развернув там копию.
+            if (!DataBundle.IsSupportedImageName(dialog.FileName))
+            {
+                MessageBox.Show(
+                    this,
+                    Loc.Format("S.Appearance.BackgroundBadFormat", string.Join(", ", DataBundle.ImageExtensions)),
+                    Title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 // Copied into the profile, like the avatar: the backdrop then survives the
@@ -567,8 +581,7 @@ namespace Amarin.UI
                 var root = ProfileStore.DataRootFor(ActiveProfile.Id);
                 Directory.CreateDirectory(root);
 
-                var extension = Path.GetExtension(dialog.FileName);
-                var fileName = BackgroundFileStem + (string.IsNullOrEmpty(extension) ? ".img" : extension);
+                var fileName = BackgroundFileStem + Path.GetExtension(dialog.FileName);
                 var target = Path.Combine(root, fileName);
 
                 RemoveStoredBackgrounds(root, keep: fileName);

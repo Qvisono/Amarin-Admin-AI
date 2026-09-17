@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -15,6 +16,9 @@ internal static class Program
 
         var startup = StartupArgs.Parse(args);
 
+        // Ожидание — до замка, иначе оно бессмысленно: ждём мы как раз того, кто замок держит.
+        WaitForPreviousInstance(startup.AwaitExitPid);
+
         // Замок держим до конца процесса: программа на пользователя одна, иначе два экземпляра
         // дерутся за profiles.json и общий chats/index.json.
         using var single = SingleInstance.TryAcquire();
@@ -23,6 +27,16 @@ internal static class Program
         if (route == StartupRoute.SmokeTools)
         {
             return RunSmokeTools();
+        }
+
+        if (route == StartupRoute.ApplyUpdate)
+        {
+            // Единственная работа этого запуска — подменить файл и выйти. Ни окна, ни настроек,
+            // ни чатов: процесс поднят через UAC, и делать под администратором что-то ещё он не
+            // должен.
+            return UpdateInstaller.ApplyElevated(startup.ApplyUpdateFrom, Environment.ProcessPath).Ok
+                ? 0
+                : 1;
         }
 
         if (route == StartupRoute.HandedOff)
@@ -44,6 +58,34 @@ internal static class Program
             // раньше закрывал программу молча, ещё до того как человек что-то увидел.
             CrashHandler.ReportStartupFailure(ex);
             return 1;
+        }
+    }
+
+    /// <summary>
+    /// Ждёт, пока прежний экземпляр отпустит замок. Так возвращается программа после обновления.
+    /// </summary>
+    /// <remarks>
+    /// Старый процесс запускает новый и только потом закрывается — иначе, упав раньше, он не
+    /// успел бы никого запустить. Замок при этом держится до конца процесса, и без ожидания
+    /// новый экземпляр видит живого владельца, отдаёт ему запрос и выходит: человек остаётся
+    /// вообще без окна. Потолок в полминуты на случай, если тот процесс завис: лучше поднять
+    /// второе окно, чем не подняться совсем.
+    /// </remarks>
+    private static void WaitForPreviousInstance(int? pid)
+    {
+        if (pid is not { } id)
+        {
+            return;
+        }
+
+        try
+        {
+            using var previous = Process.GetProcessById(id);
+            previous.WaitForExit(TimeSpan.FromSeconds(30));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            // Процесса уже нет — ровно то, чего мы ждали.
         }
     }
 
@@ -203,6 +245,12 @@ internal static class Program
 
         var window = new MainWindow();
         window.AttachServices(services);
+
+        // Строго здесь: AttachServices уже применил масштаб интерфейса (а тот приходит окну
+        // поддельным WM_DPICHANGED и переписал бы выставленный размер), а Show() ещё не
+        // случился — иначе окно мигнёт на экране прежними размерами.
+        WindowGeometry.Restore(window, settings);
+
         // Claim the slot the lock screen may have taken, then restore the normal close-to-exit
         // behaviour now that the window it refers to is the one the user actually sees.
         app.MainWindow = window;

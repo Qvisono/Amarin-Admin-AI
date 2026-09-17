@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Amarin.Core;
@@ -6,29 +8,59 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Проверка обновлений на странице Data &amp; Info: кнопка и автопроверка при запуске.
-    /// Скачиванием и установкой приложение не занимается — найденный релиз открывается
-    /// в браузере, решение остаётся за пользователем.
+    /// Обновление на странице Data &amp; Info: проверка, загрузка и подмена файла одной кнопкой.
+    /// Ничего из этого не происходит само — загрузку начинает человек, подтвердив её в отдельном
+    /// окне, а автопроверка только спрашивает GitHub о номере последней версии.
     /// </summary>
     public partial class MainWindow
     {
+        /// <summary>Отказ UAC: человек нажал «Нет». Обычный ответ, а не сбой.</summary>
+        private const int ErrorCancelled = 1223;
+
         private string? _releasePageUrl;
         private bool _updateCheckRunning;
         private ReleaseInfo? _latestRelease;
+
+        /// <summary>
+        /// Последний найденный релиз.
+        /// </summary>
+        /// <remarks>
+        /// Открыто наружу ради теста: убедиться, что открытие настроек больше не стирает
+        /// находку, можно только подсунув её и открыв страницу.
+        /// </remarks>
+        internal ReleaseInfo? LatestRelease
+        {
+            get => _latestRelease;
+            set => _latestRelease = value;
+        }
         private UpdatePlan? _pendingUpdate;
         private CancellationTokenSource? _updateDownload;
 
         private static Version CurrentVersion =>
             Version.TryParse(RuntimeContext.AppVersion, out var version) ? version : new Version(1, 0, 0);
 
-        private void LoadUpdatesUi()
+        /// <summary>
+        /// Приводит строку обновлений в порядок при каждом открытии настроек.
+        /// </summary>
+        /// <remarks>
+        /// Найденный релиз пересказывается заново, а не забывается. Раньше здесь безусловно
+        /// гасли обе кнопки: автопроверка при запуске находила новую версию и показывала
+        /// «Обновить», человек шёл в настройки — и открытие страницы стирало находку. Обновиться
+        /// можно было, только нажав «Проверить» ещё раз, уже внутри открытой страницы.
+        /// </remarks>
+        internal void LoadUpdatesUi()
         {
-            if (_services is null)
+            if (_services is not null)
             {
+                AutoUpdateToggle.IsChecked = _services.Settings.AutoCheckUpdates;
+            }
+
+            if (_latestRelease is { } found && found.Version > UpdateChecker.Normalize(CurrentVersion))
+            {
+                ShowFoundRelease(found);
                 return;
             }
 
-            AutoUpdateToggle.IsChecked = _services.Settings.AutoCheckUpdates;
             ShowUpdateStatus(Loc.Format("S.Updates.Installed", RuntimeContext.AppVersion), accent: false);
             OpenReleaseButton.Visibility = Visibility.Collapsed;
             UpdateNowButton.Visibility = Visibility.Collapsed;
@@ -54,7 +86,7 @@ namespace Amarin.UI
             {
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
             }
-            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
                 ShowUpdateStatus(Loc.Format("S.Updates.BrowserFailed", ex.Message), accent: false);
             }
@@ -95,8 +127,14 @@ namespace Amarin.UI
                 RuntimeContext.AppVersion,
                 _latestRelease.Version,
                 DownloadSize(plan.Asset.Size));
-            UpdateConfirmFile.Text = plan.Asset.Name;
+            UpdateConfirmFile.Text = Path.GetFileName(plan.ExePath);
             UpdateConfirmFolder.Text = plan.Folder;
+            UpdateConfirmNote.Text = plan.NeedsElevation
+                ? Loc.Get("S.Updates.KeepsFileName") + " " + Loc.Get("S.Updates.NeedsAdmin")
+                : Loc.Get("S.Updates.KeepsFileName");
+            UpdateConfirmApplyButton.Content = plan.NeedsElevation
+                ? Loc.Get("S.Updates.UpdateAsAdmin")
+                : Loc.Get("S.Update.Confirm");
             UpdateConfirmOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
         }
@@ -163,7 +201,10 @@ namespace Amarin.UI
                 // Чат сохраняем до подмены: дальше процесс уже завершается.
                 PersistCurrent();
 
-                var swap = UpdateInstaller.Swap(file, plan.ExePath);
+                var swap = plan.NeedsElevation
+                    ? await SwapWithElevationAsync(plan, file)
+                    : UpdateInstaller.Swap(file, plan.ExePath);
+
                 if (!swap.Ok)
                 {
                     ShowUpdateStatus(Loc.Format("S.Updates.Failed", swap.Error), accent: false);
@@ -190,13 +231,69 @@ namespace Amarin.UI
             }
         }
 
-        private void Restart(string exePath)
+        /// <summary>
+        /// Просит права только на подмену файла и ждёт, пока она закончится.
+        /// </summary>
+        /// <remarks>
+        /// Через UAC поднимается отдельный короткий запуск той же программы: он переставляет файл
+        /// и выходит. Новую версию запускает потом этот, обычный процесс — иначе программа после
+        /// обновления осталась бы работать с правами администратора, о которых человек не просил.
+        /// Он для этого и жив: переименовать работающий exe Windows позволяет.
+        /// </remarks>
+        private static async Task<UpdateStepResult> SwapWithElevationAsync(UpdatePlan plan, string file)
         {
+            var start = new ProcessStartInfo
+            {
+                FileName = plan.ExePath,
+                UseShellExecute = true,
+                Verb = "runas"
+            };
+            start.ArgumentList.Add("--apply-update");
+            start.ArgumentList.Add(file);
+
             try
             {
-                Process.Start(new ProcessStartInfo { FileName = exePath, UseShellExecute = true });
+                using var elevated = Process.Start(start);
+                if (elevated is null)
+                {
+                    return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
+                }
+
+                await elevated.WaitForExitAsync();
+                return elevated.ExitCode == 0
+                    ? UpdateStepResult.Success
+                    : UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
             }
-            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
+            {
+                return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationRefused"));
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+            {
+                return UpdateStepResult.Failed(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Запускает новую версию и закрывается.
+        /// </summary>
+        /// <remarks>
+        /// <c>--await-exit</c> обязателен. Замок единственного экземпляра держится до конца
+        /// процесса, а закрыться раньше, чем запустить преемника, этот процесс не может: без
+        /// ожидания новый видит живого владельца, отдаёт ему запрос и выходит — оба процесса
+        /// исчезают, и человек остаётся без окна.
+        /// </remarks>
+        private void Restart(string exePath)
+        {
+            var start = new ProcessStartInfo { FileName = exePath, UseShellExecute = true };
+            start.ArgumentList.Add("--await-exit");
+            start.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+
+            try
+            {
+                Process.Start(start);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
                 ShowUpdateStatus(
                     Loc.Format("S.Updates.RestartFailed", ex.Message),
@@ -293,12 +390,19 @@ namespace Amarin.UI
 
             _latestRelease = result.Latest;
             _releasePageUrl = result.Latest.PageUrl;
+            ShowFoundRelease(result.Latest);
+        }
+
+        /// <summary>Показывает найденный релиз. Общее для проверки и для открытия настроек.</summary>
+        private void ShowFoundRelease(ReleaseInfo release)
+        {
+            _releasePageUrl ??= release.PageUrl;
             OpenReleaseButton.Visibility = Visibility.Visible;
-            UpdateNowButton.Visibility = result.Latest.WindowsBuild is null
+            UpdateNowButton.Visibility = release.WindowsBuild is null
                 ? Visibility.Collapsed
                 : Visibility.Visible;
             ShowUpdateStatus(
-                Loc.Format("S.Updates.Available", result.Latest.Version, RuntimeContext.AppVersion),
+                Loc.Format("S.Updates.Available", release.Version, RuntimeContext.AppVersion),
                 accent: true);
 
             // Метка у номера версии в боковой колонке настроек: единственное место, где

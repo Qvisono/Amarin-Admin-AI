@@ -83,6 +83,15 @@ namespace Amarin.UI
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
+            // Страницы настроек — тем же скроллом, что колонка и чат. Список разрешённых
+            // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
+            // за это отвечает сам SmoothScroll.
+            SmoothScroll.SetIsEnabled(AppearancePageScroll, true);
+            SmoothScroll.SetIsEnabled(BehaviorPageScroll, true);
+            SmoothScroll.SetIsEnabled(CustomizePageScroll, true);
+            SmoothScroll.SetIsEnabled(DataPageScroll, true);
+            SmoothScroll.SetIsEnabled(AllowedDomainsScroll, true);
+
             Warn.Visibility = RuntimeContext.IsAdministrator()
                 ? Visibility.Collapsed
                 : Visibility.Visible;
@@ -95,6 +104,9 @@ namespace Amarin.UI
             Activated += (_, _) => OnWindowActivated();
             ThemeManager.EffectiveThemeChanged += OnEffectiveThemeChanged;
             LanguageManager.LanguageChanged += RelocalizeUi;
+            // На Closing, а не на Closed: размер снимается через хэндл окна, а к Closed окно
+            // с ним уже расстаётся.
+            Closing += (_, _) => SaveWindowGeometry();
             Closed += (_, _) =>
             {
                 CancelAllTurns();
@@ -1158,6 +1170,7 @@ namespace Amarin.UI
                 AutoScrollToggle.IsChecked = settings.AutoScroll;
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
+                RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;
                 ThemeManager.Apply(settings.Theme);
                 LoadAppearanceUi(settings);
                 SelectUiScale(settings.UiScalePercent);

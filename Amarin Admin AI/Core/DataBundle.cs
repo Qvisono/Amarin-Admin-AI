@@ -140,9 +140,23 @@ public static class DataBundle
     /// <summary>Папка неосновных профилей — и в архиве, и на диске.</summary>
     public const string ProfilesFolder = "profiles";
 
-    /// <summary>Картинки оформления кладутся байтами, поэтому список расширений закрытый.</summary>
+    /// <summary>
+    /// Картинки оформления кладутся байтами, поэтому список расширений закрытый.
+    /// </summary>
+    /// <remarks>
+    /// На импорте это единственное, что мешает приехать под именем <c>background.exe</c> чему
+    /// угодно: категорию такому файлу классификатор даёт по началу имени, а не по содержимому.
+    /// Поэтому список закрыт и он же служит правилом для выбора фона и аватара — файл, который
+    /// экспорт не заберёт, на диск попадать не должен вовсе. <c>.webp</c> сюда не входит
+    /// намеренно: его кодек есть не на каждой установке Windows.
+    /// </remarks>
     public static readonly string[] ImageExtensions =
         [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff"];
+
+    /// <summary>Возьмёт ли архив картинку оформления с таким именем.</summary>
+    public static bool IsSupportedImageName(string? name) =>
+        !string.IsNullOrWhiteSpace(name) &&
+        ImageExtensions.Contains(Path.GetExtension(name), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Потолок на картинку оформления: аватар и фон столько не весят никогда.</summary>
     public const long MaxImageBytes = 64L * 1024 * 1024;

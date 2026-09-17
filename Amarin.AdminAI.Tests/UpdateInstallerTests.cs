@@ -156,6 +156,63 @@ public sealed class UpdateInstallerTests : IDisposable
     }
 
     [Fact]
+    public void The_updated_program_keeps_the_path_and_the_name_it_had()
+    {
+        // На этом держатся ярлыки, закреплённая иконка и флаг «Запускать от имени
+        // администратора»: Windows привязывает его к полному пути файла. Переименуй программу
+        // под новый номер версии — и человек потеряет всё это молча.
+        var exe = ExeIn("Amarin-Admin-AI-v1.20.0-win-x64.exe", "старая версия");
+        var incoming = Path.Combine(_root, "Amarin-Admin-AI-v1.20.1-win-x64.exe");
+        File.WriteAllText(incoming, "новая версия");
+
+        Assert.True(UpdateInstaller.Swap(incoming, exe).Ok);
+
+        Assert.Equal("новая версия", File.ReadAllText(exe));
+        Assert.False(File.Exists(incoming), "новое имя рядом со старым появляться не должно");
+    }
+
+    [Fact]
+    public void A_writable_folder_needs_no_administrator()
+    {
+        Assert.True(UpdateInstaller.TryPlan(Release(), ExeIn("app.exe"), out var plan, out var error), error);
+
+        Assert.False(plan.NeedsElevation);
+        Assert.Equal(Path.Combine(_root, UpdateInstaller.WorkFolderName), plan.WorkDirectory);
+    }
+
+    [Fact]
+    public void Only_a_file_from_the_update_folder_may_be_installed_with_rights()
+    {
+        // Этот путь идёт от администратора, поэтому «переложи что угодно поверх чего угодно» он
+        // давать не должен.
+        var exe = ExeIn("app.exe");
+        var work = Path.Combine(_root, UpdateInstaller.WorkFolderName);
+        Directory.CreateDirectory(work);
+        var ours = Path.Combine(work, "incoming.exe");
+        File.WriteAllText(ours, "новая версия");
+        var stranger = ExeIn("stranger.exe", "чужое");
+
+        // Временная папка сверяется по имени: при повышении из обычной учётной записи процесс
+        // идёт от администратора, и %TEMP% у него уже свой.
+        var elsewhere = Path.Combine(_root, "чужой-temp", UpdateInstaller.TempWorkFolderName);
+        Directory.CreateDirectory(elsewhere);
+        var fromAnotherTemp = Path.Combine(elsewhere, "incoming.exe");
+        File.WriteAllText(fromAnotherTemp, "новая версия");
+
+        Assert.True(UpdateInstaller.IsUpdateWorkFile(ours, exe));
+        Assert.True(UpdateInstaller.IsUpdateWorkFile(fromAnotherTemp, exe));
+        Assert.False(UpdateInstaller.IsUpdateWorkFile(stranger, exe));
+        Assert.False(UpdateInstaller.IsUpdateWorkFile(Path.Combine(work, "note.txt"), exe));
+
+        var refused = UpdateInstaller.ApplyElevated(stranger, exe);
+        Assert.False(refused.Ok);
+        Assert.Equal("программа", File.ReadAllText(exe));
+
+        Assert.True(UpdateInstaller.ApplyElevated(ours, exe).Ok);
+        Assert.Equal("новая версия", File.ReadAllText(exe));
+    }
+
+    [Fact]
     public void A_failed_swap_puts_the_old_program_back()
     {
         var exe = ExeIn("app.exe", "старая версия");

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using KeyEventHandler = System.Windows.Input.KeyEventHandler;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
@@ -15,7 +16,15 @@ using ScrollViewer = System.Windows.Controls.ScrollViewer;
 
 namespace Amarin.UI
 {
-    internal static class SmoothScroll
+    /// <summary>
+    /// Плавная прокрутка колесом: инерция, трение и резинка на краю.
+    /// </summary>
+    /// <remarks>
+    /// Публичный — ради разметки: внутри шаблонов (выпадашка <c>DarkComboBox</c>, поле
+    /// <c>PromptTextBox</c>) включать её больше неоткуда, а attached-свойство из markup видно
+    /// только у публичного типа. Тем же и <see cref="RoundedClip"/>.
+    /// </remarks>
+    public static class SmoothScroll
     {
         public static readonly DependencyProperty IsEnabledProperty =
             DependencyProperty.RegisterAttached(
@@ -201,8 +210,38 @@ namespace Amarin.UI
                 _bar = null;
             }
 
+            /// <summary>
+            /// Колесо: разгон в свою сторону — либо, если крутить нечего или незачем, передача
+            /// дальше.
+            /// </summary>
+            /// <remarks>
+            /// <para>
+            /// Слушаем <c>PreviewMouseWheel</c>, а он туннелирующий: до вложенного списка событие
+            /// идёт через нас, и безусловное <c>e.Handled</c> у страницы настроек забирало колесо
+            /// себе прежде, чем его увидят список разрешённых источников, поле промпта или
+            /// раскрытая выпадашка. Со стороны это выглядело как «внутри ничего не листается, а
+            /// листается страница за ним». Поэтому первым делом смотрим, кому событие вообще
+            /// адресовано.
+            /// </para>
+            /// <para>
+            /// Обратный случай — вложенный список, докрученный до края: колесо должно продолжить
+            /// страницу за ним, как это делает обычный WPF. Инерция при этом неприкосновенна:
+            /// пока она идёт, край краем не считается, там работает резинка.
+            /// </para>
+            /// </remarks>
             private void OnWheel(object sender, MouseWheelEventArgs e)
             {
+                if (AimedDeeper(e))
+                {
+                    return;
+                }
+
+                if (IsStuckFor(e.Delta))
+                {
+                    HandOver(e);
+                    return;
+                }
+
                 e.Handled = true;
                 SeedVirtual();
 
@@ -210,6 +249,94 @@ namespace Amarin.UI
                 var pixels = -e.Delta / 120.0 * notch;
                 _velocity += pixels * Impulse;
                 EnsureTicking();
+            }
+
+            /// <summary>
+            /// Событие метит не в нас, а во что-то внутри, что прокручивается само.
+            /// </summary>
+            /// <remarks>
+            /// Выпадашка живёт в своём окне, поэтому сравнением источников она и ловится: путь по
+            /// визуальным родителям из неё в страницу не ведёт, а маршрут события — ведёт.
+            /// </remarks>
+            private bool AimedDeeper(MouseWheelEventArgs e)
+            {
+                if (e.OriginalSource is not DependencyObject source)
+                {
+                    return false;
+                }
+
+                if (source is Visual visual &&
+                    !ReferenceEquals(
+                        PresentationSource.FromVisual(visual),
+                        PresentationSource.FromVisual(_viewer)))
+                {
+                    return true;
+                }
+
+                for (var node = source; node is not null && !ReferenceEquals(node, _viewer); node = Up(node))
+                {
+                    // Уступаем только тому, кому вправду есть что прокрутить. Иначе колесо
+                    // застревало бы на всякой мелочи со своим скроллом: у блока кода в чате
+                    // внутри RichTextBox, у короткого промпта — пустой PART_ContentHost.
+                    if (node is ScrollViewer
+                        {
+                            VerticalScrollBarVisibility: not ScrollBarVisibility.Disabled,
+                            ScrollableHeight: > 0
+                        })
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private static DependencyObject? Up(DependencyObject node) =>
+                node is Visual or Visual3D
+                    ? VisualTreeHelper.GetParent(node)
+                    : LogicalTreeHelper.GetParent(node);
+
+            /// <summary>
+            /// Отдаёт колесо ближайшему прокручиваемому предку.
+            /// </summary>
+            /// <remarks>
+            /// Не «оставить событие как есть»: пузырьковый <c>MouseWheel</c> до предка всё равно
+            /// не дойдёт — его по дороге забирает собственный <c>OnMouseWheel</c> этого
+            /// ScrollViewer, и колесо просто залипало бы. Сначала пробуем туннелем, чтобы предок
+            /// со своим плавным скроллом принял событие так же, как принял бы своё; не принял —
+            /// отдаём обычным путём.
+            /// </remarks>
+            private void HandOver(MouseWheelEventArgs e)
+            {
+                if (CodeBlockView.OuterScroller(_viewer) is not { } outer)
+                {
+                    // Отдавать некому — крутим сами, ради резинки на краю.
+                    e.Handled = true;
+                    SeedVirtual();
+                    _velocity += -e.Delta / 120.0 * Math.Max(1, SystemParameters.WheelScrollLines) * 16.0 * Impulse;
+                    EnsureTicking();
+                    return;
+                }
+
+                e.Handled = true;
+
+                var tunnelled = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+                {
+                    RoutedEvent = UIElement.PreviewMouseWheelEvent,
+                    Source = outer
+                };
+                outer.RaiseEvent(tunnelled);
+
+                if (tunnelled.Handled)
+                {
+                    return;
+                }
+
+                outer.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+                {
+                    RoutedEvent = UIElement.MouseWheelEvent,
+                    Source = outer
+                });
             }
 
             private void OnKeyDown(object sender, KeyEventArgs e)
@@ -329,6 +456,26 @@ namespace Amarin.UI
                     BindTemplateParts();
                 if (_translate is not null && _translate.Y != ty)
                     _translate.Y = ty;
+            }
+
+            /// <summary>Прокручивать в эту сторону нечего: содержимое влезло целиком или мы на краю.</summary>
+            private bool IsStuckFor(int delta)
+            {
+                // Пока идёт инерция, краем это не считается: там ещё не отработала резинка, и
+                // отдать колесо родителю посреди броска значило бы дёрнуть сразу оба списка.
+                if (_ticking)
+                {
+                    return false;
+                }
+
+                var max = GetMaxOffset();
+                if (max <= 0)
+                {
+                    return true;
+                }
+
+                var offset = _viewer.VerticalOffset;
+                return delta > 0 ? offset <= 0.5 : offset >= max - 0.5;
             }
 
             private void SeedVirtual()

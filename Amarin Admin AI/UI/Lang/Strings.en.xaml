@@ -57,6 +57,7 @@
     <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Animations</system:String>
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Backdrop motion and folding of the input box</system:String>
     <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Backdrop</system:String>
+    <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">The data archive does not carry this image format. Use one of: {0}</system:String>
     <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Photo brightness</system:String>
     <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Chat column width</system:String>
     <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Long lines are harder to read — a narrow column helps</system:String>
@@ -155,6 +156,8 @@
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Notification sound</system:String>
     <system:String x:Key="S.Behavior.NotifySoundDesc" xml:space="preserve">A short system chime along with the notification</system:String>
 
+    <system:String x:Key="S.Behavior.RememberWindow" xml:space="preserve">Remember the window size</system:String>
+    <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">Next launch opens the window at the size it was closed at</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Profile picture and window backdrop</system:String>
     <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Chats</system:String>
@@ -567,7 +570,7 @@
     <system:String x:Key="S.Update.Title" xml:space="preserve">Update the app</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Check automatically</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. Nothing is downloaded: the app only reports a new version</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. The check only learns the latest version number — downloading is up to you</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available — {1} is installed</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
@@ -579,6 +582,8 @@
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Update to version {0}</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
     <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Downloading {0} %</system:String>
+    <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Replacing the file as administrator did not work.</system:String>
+    <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Without administrator rights the program file cannot be replaced.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">The update did not happen: {0}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub turned the check down. Open the release page by hand.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">The update check must not carry somebody else's key.</system:String>
@@ -586,14 +591,17 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
+    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name — shortcuts and the run-as-administrator flag survive.</system:String>
+    <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Only an administrator may write to the program folder, so Windows will ask for permission.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">No check has run yet</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">No connection to GitHub: {0}</system:String>
     <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Could not work out the program folder.</system:String>
     <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Could not work out the program file.</system:String>
     <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">The release carries no recognisable version.</system:String>
     <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">The release has no ready Windows build.</system:String>
-    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">No write access to the program folder ({0}). Run the update as administrator or update by hand.</system:String>
+    <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Could not prepare a folder for the download ({0}). Download the new version by hand.</system:String>
     <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">The release file is not hosted on GitHub — the update was cancelled.</system:String>
+    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">This file did not come from an update download — the swap was cancelled.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Open release</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Could not make sense of the GitHub answer.</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
@@ -608,6 +616,7 @@
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">an unknown amount</system:String>
     <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">The latest version is installed — {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Update</system:String>
+    <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Update as administrator</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish — the program will restart.</system:String>
 
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model — this one is out of the list until the app restarts.</system:String>
