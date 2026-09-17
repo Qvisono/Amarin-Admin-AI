@@ -13,6 +13,8 @@
         Наборы ключей всех языков обязаны совпадать — это проверяет LocalizationTests.
     -->
 
+    <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
+    <system:String x:Key="S.About.GithubHint" xml:space="preserve">Открыть страницу проекта на GitHub</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Изображение профиля</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Удалить профиль «{0}» вместе со всеми его чатами?&#10;&#10;Это необратимо.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Доп. профиль</system:String>
@@ -343,6 +345,58 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Сайт не в белом списке</system:String>
 
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах — пока модель отвечает в одном, в соседнем можно работать.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Переписка и вложения</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. Отказ — обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Подтверждение опасных действий</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а в шапке — остаток на балансе Venice. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Стоимость и баланс</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере — никуда больше они не уходят. На соседней странице Data Controls видно, сколько места они занимают; оттуда же всё выгружается одним архивом и возвращается обратно.</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Где лежат данные</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в шапке чата, там же — уровень размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор — на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Модель и уровень размышления</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице Appearance — темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Профили и оформление</system:String>
+    <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Как пользоваться программой</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Модель не просто отвечает: она читает и пишет файлы, запускает PowerShell, смотрит журналы Windows, ищет в интернете. Отчёт о каждом вызове инструмента виден прямо в переписке — его можно развернуть и посмотреть, что именно было сделано.</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Инструменты</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">Программа разговаривает с моделями Venice.ai и по их командам управляет этим компьютером. Чтобы она заработала, нужен ключ Venice — ниже пять шагов от регистрации до первого ответа.</system:String>
+    <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Документация Venice</system:String>
+    <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Репозиторий проекта</system:String>
+    <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения — в репозиторий проекта.</system:String>
+    <system:String x:Key="S.Info.Links.Title" xml:space="preserve">Если что-то не сходится</system:String>
+    <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Не присылайте ключ в чат: сообщение уходит модели, а потом остаётся в истории переписки на диске.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки.</system:String>
+    <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Из отчёта об аварии ключ вырезается сам, так что отчёт можно пересылать спокойно.</system:String>
+    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк — отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
+    <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Заводите переменную для текущего пользователя, а не для всей системы: системную видит любая учётная запись на компьютере.</system:String>
+    <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Ключ — как пароль</system:String>
+    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Подключение Venice.ai</system:String>
+    <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">Первый ответ: ключ принят, программа работает</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Запрос подтверждения перед необратимым действием</system:String>
+    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">Тарифы Venice и что входит в каждый</system:String>
+    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">Переменная VENICE_API_KEY среди переменных среды пользователя</system:String>
+    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">Готовый ключ показывают один раз — скопируйте его сразу</system:String>
+    <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">Раздел API Keys: здесь создаётся ключ</system:String>
+    <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Скриншот пока не добавлен: {0}</system:String>
+    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Выбор модели и уровня размышления в шапке чата</system:String>
+    <system:String x:Key="S.Info.Shot.Signup" xml:space="preserve">Страница входа и регистрации на venice.ai</system:String>
+    <system:String x:Key="S.Info.Step1.Button" xml:space="preserve">Открыть venice.ai</system:String>
+    <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Откройте venice.ai и зарегистрируйтесь — почтой или кошельком. Доступ к API есть на любом тарифе, включая бесплатный, и включать его отдельно не надо.</system:String>
+    <system:String x:Key="S.Info.Step1.Title" xml:space="preserve">Заведите учётную запись на Venice.ai</system:String>
+    <system:String x:Key="S.Info.Step2.Button" xml:space="preserve">Тарифы и цены</system:String>
+    <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">Запросы через API тратят средства со счёта Venice: кредиты, которые начисляет платный тариф, или доллары, положенные на счёт. Сто кредитов — это один доллар. На бесплатном тарифе кредитов не начисляют, поэтому до пополнения ответов не будет. Цены у Venice указаны за миллион токенов: лёгкие модели стоят центы, самые сильные — доллары.</system:String>
+    <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Положите денег на счёт</system:String>
+    <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Открыть API Keys</system:String>
+    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Откройте раздел API на сайте Venice — там же виден остаток на счёте. Нажмите «Generate New API Key» и оставьте тип «Inference Only»: для работы этого достаточно, а «Admin» даёт ключу лишнюю власть над учётной записью. Целиком ключ показывают ровно один раз — скопируйте сразу. Потерянный не восстанавливают: удаляют и выпускают новый.</system:String>
+    <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Создайте API-ключ</system:String>
+    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">setx VENICE_API_KEY "сюда-ваш-ключ"</system:String>
+    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Заведите переменную в окне «Изменение переменных среды текущего пользователя» или одной командой в PowerShell:</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Поля для ключа в программе нет намеренно: тогда его пришлось бы где-то хранить. Ключ читается из переменной окружения VENICE_API_KEY — она принадлежит вашей учётной записи Windows и другим пользователям компьютера не видна.</system:String>
+    <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Отдайте ключ программе</system:String>
+    <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ — ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, — значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
+    <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Проверьте</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Аргументы</system:String>
     <system:String x:Key="S.Journal.Ask" xml:space="preserve">Спросить ИИ</system:String>
     <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">Модель ничего не ответила. Попробуйте ещё раз.</system:String>
@@ -435,17 +489,21 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">Новый профиль</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
 
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">Disable thinking и сила размышления для Авто задаются у лёгкой и тяжёлой модели в Customize</system:String>
-    <system:String x:Key="S.Reasoning.Disable" xml:space="preserve">Disable thinking</system:String>
+    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся от лёгкой и тяжёлой модели — их настраивают на странице Customize</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Сила размышления</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Выкл</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Вкл</system:String>
+    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
+    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
+    <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Размышление</system:String>
+    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
+    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
@@ -453,6 +511,7 @@
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
+    <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
@@ -538,6 +597,7 @@
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов — программа перезапустится.</system:String>
 
+    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель — эта убрана из списка до перезапуска.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
 

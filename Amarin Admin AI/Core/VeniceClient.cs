@@ -177,6 +177,11 @@ public sealed class VeniceClient
         if (!response.IsSuccessStatusCode)
         {
             var error = ExtractErrorMessage(body);
+            if (NoteToolGrammarFailure(payload, model, error, out var friendly))
+            {
+                throw new VeniceApiException(friendly);
+            }
+
             if (ShouldRetryToolsEffortConflict(payload, model, error))
             {
                 payload = WithReasoningEffort(payload, ReasoningPolicy.None);
@@ -239,6 +244,11 @@ public sealed class VeniceClient
             var status = (int)response.StatusCode;
             response.Dispose();
             var error = ExtractErrorMessage(errorBody);
+            if (NoteToolGrammarFailure(payload, model, error, out var friendly))
+            {
+                throw new VeniceApiException(friendly);
+            }
+
             if (!ShouldRetryToolsEffortConflict(payload, model, error))
             {
                 throw new VeniceApiException($"Venice API error ({status}): {error}");
@@ -300,6 +310,15 @@ public sealed class VeniceClient
                         $"Venice API returned non-JSON stream chunk ({ex.Message}). Body: {preview}");
                 }
 
+                // Отказ грамматики вызовов приезжает по потоку с кодом 200, а не четырёхсоткой:
+                // ветка выше про неуспешный HTTP его не видит, и в чат попадал кусок грамматики
+                // на пол-экрана. Ловим до Apply — накопитель не знает, какая это была модель.
+                if (chunk.Error is { } chunkError &&
+                    NoteToolGrammarFailure(payload, model, chunkError.Message ?? "", out var streamFriendly))
+                {
+                    throw new VeniceApiException(streamFriendly);
+                }
+
                 var added = accumulator.Apply(chunk);
                 if (added)
                 {
@@ -356,6 +375,32 @@ public sealed class VeniceClient
         PerfLog.Write(
             $"venice serialize_ms={serializeMs} http_ms={httpWatch.ElapsedMilliseconds} status={(int)response.StatusCode} model={model}");
         return response;
+    }
+
+    /// <summary>
+    /// Ловит отказ компилятора грамматики вызовов и подменяет его понятной строкой.
+    /// </summary>
+    /// <remarks>
+    /// Повтора без инструментов здесь нет намеренно: программа тем и занята, что даёт модели
+    /// управлять компьютером, и ход без инструментов был бы не починкой, а тихой подменой —
+    /// модель ответила бы текстом о действиях, которых не совершала. Вместо этого модель
+    /// запоминается и уходит из списка, а человек получает строку о том, что делать.
+    /// </remarks>
+    private static bool NoteToolGrammarFailure(
+        ChatCompletionRequest payload,
+        string model,
+        string error,
+        out string friendly)
+    {
+        friendly = "";
+        if (payload.Tools is not { Count: > 0 } || !VeniceToolSupport.IsToolGrammarFailure(error))
+        {
+            return false;
+        }
+
+        VeniceToolSupport.Remember(model);
+        friendly = VeniceToolSupport.FailureText(model);
+        return true;
     }
 
     private static bool ShouldRetryToolsEffortConflict(

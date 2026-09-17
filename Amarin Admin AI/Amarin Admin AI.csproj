@@ -8,7 +8,7 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.19.4</Version>
+    <Version>1.19.5</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -20,6 +20,12 @@
   <ItemGroup>
     <Resource Include="jeklE-removebg-preview_1.ico" />
     <Resource Include="Fonts\*.ttf" />
+    <!--
+      Скриншоты гайда на странице Info. Маской, а не поимённо: картинки добавляют по мере
+      того, как их снимают, и забытый Include означал бы молча пустое место на странице.
+      GuideShot ищет файл в коде, поэтому отсутствие любого из них — не ошибка сборки.
+    -->
+    <Resource Include="Assets\Guide\*.png" />
   </ItemGroup>
 
   <!--

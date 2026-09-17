@@ -23,7 +23,7 @@ public partial class ReasoningPicker : UserControl
             nameof(LabelText),
             typeof(string),
             typeof(ReasoningPicker),
-            new PropertyMetadata("Выкл"));
+            new PropertyMetadata("Без размышления"));
 
     public static readonly DependencyProperty ShowGaugeIconProperty =
         DependencyProperty.Register(
@@ -110,14 +110,15 @@ public partial class ReasoningPicker : UserControl
 
     private VeniceModelInfo? CurrentModel() => ReasoningPolicy.Find(_catalog, _modelId);
 
-    private void DisableToggle_Changed(object sender, RoutedEventArgs e)
+    private void ThinkingToggle_Changed(object sender, RoutedEventArgs e)
     {
         if (_suppress)
         {
             return;
         }
 
-        _disableThinking = DisableToggle.IsChecked == true;
+        // Тумблер положительный, поле хранит отрицание — инверсия ровно здесь, в одном месте.
+        _disableThinking = ThinkingToggle.IsChecked != true;
         Raise();
         Refresh(raise: false);
     }
@@ -164,9 +165,16 @@ public partial class ReasoningPicker : UserControl
 
             UpdateGauge(choice, model);
 
-            if (DisableToggle is not null)
+            if (ThinkingToggle is not null)
             {
-                DisableToggle.IsChecked = _disableThinking;
+                ThinkingToggle.IsChecked = !_disableThinking;
+            }
+
+            if (ThinkingHint is not null)
+            {
+                ThinkingHint.Text = Loc.Get(_disableThinking
+                    ? "S.Reasoning.ToggleOff"
+                    : "S.Reasoning.ToggleOn");
             }
 
             var options = _autoMode ? [] : ReasoningPolicy.VisibleEffortOptions(model, _withTools);
@@ -174,6 +182,11 @@ public partial class ReasoningPicker : UserControl
             if (DisableRow is not null)
             {
                 DisableRow.Visibility = _autoMode ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            if (ThinkingHint is not null)
+            {
+                ThinkingHint.Visibility = _autoMode ? Visibility.Collapsed : Visibility.Visible;
             }
 
             if (AutoHint is not null)

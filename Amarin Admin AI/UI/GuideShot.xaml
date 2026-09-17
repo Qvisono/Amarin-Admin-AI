@@ -1,0 +1,45 @@
+<UserControl x:Class="Amarin.UI.GuideShot"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI"
+             x:Name="Root"
+             HorizontalAlignment="Left">
+    <StackPanel Margin="0,10,0,2">
+        <!--
+            Рамка рисуется всегда, содержимое подменяется: пока картинки нет, на её месте
+            стоит заглушка того же вида, и страница не переверстается, когда файл появится.
+        -->
+        <Border Background="{DynamicResource Bg.Raised}"
+                BorderBrush="{DynamicResource Border.Default}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="3"
+                MaxWidth="452"
+                HorizontalAlignment="Left">
+            <Grid>
+                <Image x:Name="Shot" Stretch="Uniform" Visibility="Collapsed"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                <Border x:Name="Missing" MinHeight="72" MinWidth="240" CornerRadius="6"
+                        Background="{DynamicResource Bg.Card}"
+                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                        SnapsToDevicePixels="True">
+                    <!--
+                        Без x:Name намеренно: LocalizationTests обходит дерево настроек и валится
+                        на именованном видимом TextBlock, который заполняют из кода. Привязка к
+                        свойству контрола этой проверке не мешает.
+                    -->
+                    <TextBlock Text="{Binding Placeholder, ElementName=Root}"
+                               FontSize="11" Foreground="{DynamicResource Text.Faint}"
+                               TextWrapping="Wrap" TextAlignment="Center"
+                               Margin="14,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <TextBlock Text="{Binding Caption, ElementName=Root}"
+                   FontSize="11" Foreground="{DynamicResource Text.Dim}"
+                   TextWrapping="Wrap" Margin="2,5,0,0" MaxWidth="452"
+                   HorizontalAlignment="Left"/>
+    </StackPanel>
+</UserControl>

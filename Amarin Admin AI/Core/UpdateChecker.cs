@@ -64,6 +64,13 @@ public static class UpdateChecker
     public const string ReleasesPageUrl =
         "https://github.com/Qvisono/Amarin-Admin-AI/releases/latest";
 
+    /// <summary>Страница репозитория: сюда ведёт ссылка «Github» в настройках.</summary>
+    /// <remarks>
+    /// Живёт рядом с адресами обновлений намеренно: owner и repo здесь одни и те же, и при
+    /// переезде репозитория чинить надо одно место, а не два разошедшихся.
+    /// </remarks>
+    public const string RepositoryUrl = "https://github.com/Qvisono/Amarin-Admin-AI";
+
     /// <summary>Чем программа представляется GitHub. Без этого заголовка он отвечает 403.</summary>
     private const string ProductToken = "Amarin-Admin-AI";
 

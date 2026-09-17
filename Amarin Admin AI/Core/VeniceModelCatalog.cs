@@ -35,7 +35,14 @@ internal static class VeniceModelCatalog
 
     private static readonly string[] ExcludedModels =
     [
-        "grok-41-fast"
+        "grok-41-fast",
+
+        // Inkling заявляет supportsFunctionCalling, но 400-ит на любом наборе инструментов:
+        // Venice не может собрать для него грамматику вызовов (см. VeniceToolSupport).
+        // Проверено запросами — падает и на одном инструменте без параметров, и при любом
+        // имени. Инструменты уходят в каждом ходе, так что в списке это была бы кнопка,
+        // которая всегда возвращает ошибку. Строку убрать, когда Venice починит.
+        "inkling"
     ];
 
     private static bool IsExcluded(string model) =>
@@ -55,6 +62,14 @@ internal static class VeniceModelCatalog
                 continue;
             }
 
+            // Модель уже отказала на грамматике вызовов в этом запуске — второй раз её не
+            // предлагаем. Список сбрасывается при перезапуске, поэтому почин на стороне
+            // Venice подхватится сам.
+            if (VeniceToolSupport.IsBroken(model.Id))
+            {
+                continue;
+            }
+
             if (model.ModelSpec?.Offline == true)
             {
                 continue;
@@ -70,6 +85,35 @@ internal static class VeniceModelCatalog
         }
 
         return result;
+    }
+
+    /// <summary>Можно ли ещё выбрать эту модель, судя по загруженному каталогу.</summary>
+    /// <remarks>
+    /// «Авто» — не модель, а просьба выбрать её, в каталоге её нет и быть не должно.
+    /// Пустой каталог означает, что список не доехал (сеть, ключ), и тогда судить не о чем:
+    /// иначе разовый сбой сети стёр бы человеку все выбранные модели.
+    /// </remarks>
+    public static bool IsSelectable(IReadOnlyList<VeniceModelInfo>? catalog, string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id) || IsAuto(id))
+        {
+            return true;
+        }
+
+        if (catalog is null || catalog.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var model in catalog)
+        {
+            if (id.Trim().Equals(model.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static bool HasVision(VeniceModelInfo model) =>

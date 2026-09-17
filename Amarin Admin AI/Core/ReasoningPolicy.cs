@@ -313,9 +313,11 @@ internal static class ReasoningPolicy
             return Loc.Get("S.Reasoning.Off");
         }
 
+        // «Авто» своим словом, а не общим «Обычное»: уровень здесь берётся от лёгкой и тяжёлой
+        // модели и заранее не известен, так что называть его конкретной ступенью — врать.
         if (autoMode)
         {
-            return Loc.Get("S.Reasoning.On");
+            return Loc.Get("S.Reasoning.Auto");
         }
 
         var options = VisibleEffortOptions(model, withTools);

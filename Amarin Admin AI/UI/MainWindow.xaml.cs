@@ -959,6 +959,7 @@ namespace Amarin.UI
 
         private void ApplyCatalog(IReadOnlyList<VeniceModelInfo> models, string? error)
         {
+            HealUnusableModelSelections(models);
             ChatModelPicker.SetCatalog(models, error);
             ChatModelPicker.SetSelected(CurrentModelId());
             foreach (var field in SettingsPickers())
@@ -976,6 +977,72 @@ namespace Amarin.UI
             BindSettingsReasoningPickers();
             RefreshContextRing();
         }
+
+        /// <summary>
+        /// Возвращает выбор моделей в каталог, если сохранённая модель из него пропала.
+        /// </summary>
+        /// <remarks>
+        /// Убрать модель из списка мало: выбранная лежит в settings.json и в самом чате, и
+        /// запросы продолжали уходить к ней. Именно так вела себя inkling — она отвечала
+        /// четырёхсоткой на каждый ход, а сменить её было негде, потому что из списка она уже
+        /// исчезла. Чиним при загрузке каталога, а не в каждом ходе: подмена на лету была бы
+        /// незаметной, а здесь человек видит в поле новую модель.
+        /// </remarks>
+        private void HealUnusableModelSelections(IReadOnlyList<VeniceModelInfo> models)
+        {
+            if (_services is null || models.Count == 0)
+            {
+                return;
+            }
+
+            var settings = _services.Settings;
+            var defaults = new AppSettings();
+            var changed = false;
+
+            if (!VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId))
+            {
+                // Пустая строка — «бери из настроек», а не «нет модели».
+                _session.SelectedModelId = "";
+                PersistCurrent();
+            }
+
+            if (!VeniceModelCatalog.IsSelectable(models, settings.ChatModelId))
+            {
+                settings.ChatModelId = "";
+                changed = true;
+            }
+
+            foreach (var slot in ServiceModelSlots())
+            {
+                var current = slot.Read(settings);
+                if (VeniceModelCatalog.IsSelectable(models, current))
+                {
+                    continue;
+                }
+
+                var fallback = slot.Read(defaults);
+                slot.Write(
+                    settings,
+                    VeniceModelCatalog.IsSelectable(models, fallback) ? fallback : models[0].Id);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                _services.SettingsStore.Save(settings);
+            }
+        }
+
+        private static (Func<AppSettings, string> Read, Action<AppSettings, string> Write)[] ServiceModelSlots() =>
+        [
+            (s => s.LiteModelId, (s, v) => s.LiteModelId = v),
+            (s => s.HeavyModelId, (s, v) => s.HeavyModelId = v),
+            (s => s.RouterModelId, (s, v) => s.RouterModelId = v),
+            (s => s.TitleModelId, (s, v) => s.TitleModelId = v),
+            (s => s.AgentFastModelId, (s, v) => s.AgentFastModelId = v),
+            (s => s.AgentLiteModelId, (s, v) => s.AgentLiteModelId = v),
+            (s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v)
+        ];
 
         private ModelPickerField[] SettingsPickers() =>
         [

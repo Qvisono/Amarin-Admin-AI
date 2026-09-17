@@ -84,10 +84,32 @@ public sealed class ReasoningPolicyTests
             options: ["low", "medium", "high"],
             defaultEffort: "medium");
 
-        Assert.Equal("Выкл", ReasoningPolicy.ButtonText(ReasoningChoice.Disabled, claude, autoMode: false));
+        // Одна шкала на все состояния: выключенное размышление — её нижняя ступень, а не
+        // отдельное «Выкл» рядом с уровнями. Прежняя пара «Вкл»/«Выкл» не говорила, чего
+        // она касается, и в одном поле уживалась с «High» — то есть с другой шкалой.
+        Assert.Equal("Без размышления", ReasoningPolicy.ButtonText(ReasoningChoice.Disabled, claude, autoMode: false));
         Assert.Equal("High", ReasoningPolicy.ButtonText(new ReasoningChoice(false, "high"), claude, autoMode: false));
-        Assert.Equal("Вкл", ReasoningPolicy.ButtonText(new ReasoningChoice(false, "high"), claude, autoMode: true));
-        Assert.Equal("Вкл", ReasoningPolicy.ButtonText(new ReasoningChoice(false, null), model: null, autoMode: false));
+        Assert.Equal("Обычное", ReasoningPolicy.ButtonText(new ReasoningChoice(false, null), model: null, autoMode: false));
+
+        // В «Авто» уровень приходит от лёгкой и тяжёлой модели и заранее не известен.
+        Assert.Equal("Авто", ReasoningPolicy.ButtonText(new ReasoningChoice(false, "high"), claude, autoMode: true));
+    }
+
+    [Fact]
+    public void The_field_never_says_just_on_or_off()
+    {
+        // Суть правки: по надписи должно быть понятно, о чём она. «Вкл» и «Выкл» этого не
+        // говорили, и состояние выяснялось только открытием попапа.
+        var claude = Model(supportsEffort: true, options: ["low", "high"], defaultEffort: "low");
+        string[] texts =
+        [
+            ReasoningPolicy.ButtonText(ReasoningChoice.Disabled, claude, autoMode: false),
+            ReasoningPolicy.ButtonText(new ReasoningChoice(false, null), model: null, autoMode: false),
+            ReasoningPolicy.ButtonText(new ReasoningChoice(false, "high"), claude, autoMode: true)
+        ];
+
+        Assert.DoesNotContain("Вкл", texts);
+        Assert.DoesNotContain("Выкл", texts);
     }
 
     [Theory]

@@ -1622,6 +1622,57 @@
                     <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
                 </Style>
 
+                <!--
+                    Нижняя половина плашки «версия и репозиторий». Своим шаблоном, а не Hyperlink:
+                    Hyperlink живёт только внутри текстового потока и тянет собственное
+                    подчёркивание, а здесь нужен кликабельный прямоугольник во всю ширину плашки.
+
+                    Фон Bg.Selected, а не Bg.Raised: от Bg.Card, которым залита верхняя половина,
+                    Raised отличается на четыре уровня яркости — в тёмных палитрах две части
+                    сливались бы в одну. Плюс отбивка сверху линией, чтобы граница читалась даже
+                    там, где палитра выбрана малоконтрастной.
+                -->
+                <Style x:Key="SettingsAboutLink" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <!--
+                                    Нижние углы скругляются здесь: ClipToBounds у родителя режет по
+                                    прямоугольнику и CornerRadius не учитывает, так что нижние углы
+                                    плашки оставались квадратными. Радиус 6 — это внешние 7 минус
+                                    пиксель рамки карточки.
+                                -->
+                                <Border x:Name="Bg" Padding="8,4" CornerRadius="0,0,6,6"
+                                        Background="{DynamicResource Bg.Selected}"
+                                        BorderBrush="{DynamicResource Border.Subtle}"
+                                        BorderThickness="0,1,0,0">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <Path x:Name="Mark" Data="{StaticResource Icon.Github}"
+                                              Stretch="Uniform" Width="11" Height="11"
+                                              VerticalAlignment="Center"
+                                              Fill="{DynamicResource Text.Body}"/>
+                                        <TextBlock x:Name="Label" Text="{DynamicResource S.About.Github}"
+                                                   FontSize="10.5" Margin="5,0,0,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Text.Body}"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <!--
+                                        Подсветка цветом акцента, а не фоном: Bg.Hover в тёмных
+                                        палитрах темнее Bg.Selected, и наведение выглядело бы
+                                        как «кнопка погасла».
+                                    -->
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource Accent.Fill}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Accent.Fill}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <!-- ===== ComboBox ===== -->
                 <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
                     <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
@@ -1705,6 +1756,13 @@
                     <Setter Property="AcceptsReturn" Value="True"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
                     <Setter Property="MinHeight" Value="64"/>
+                    <!--
+                        Без потолка поле растёт вместе с текстом: системный промпт на сотню строк
+                        растягивал страницу настроек, и до полей под ним приходилось прокручивать
+                        весь его текст. Своя полоса прокрутки у поля была и раньше, но включалась
+                        только когда упираться было не во что.
+                    -->
+                    <Setter Property="MaxHeight" Value="120"/>
                     <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
                     <Setter Property="Template">
                         <Setter.Value>
@@ -1881,13 +1939,44 @@
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
+                                <RadioButton x:Name="NavInfo" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Info}"/>
                             </StackPanel>
-                            <TextBlock x:Name="SettingsVersionText"
-                                       Text="v1.19.4"
-                                       FontSize="10.5"
-                                       Foreground="{DynamicResource Text.Faint}"
-                                       Margin="18,0,8,14"
-                                       VerticalAlignment="Bottom"/>
+
+                            <!--
+                                Плашка «версия и репозиторий»: верхняя половина — номер версии,
+                                нижняя — ссылка на репозиторий, залитая своим фоном.
+
+                                Растягивается по ширине колонки, а не по содержимому: при найденном
+                                обновлении MainWindow.Updates.cs переписывает SettingsVersionText
+                                длинной строкой S.Updates.SidebarBadge. Сжатая по содержимому
+                                карточка на ней раздувалась бы за пределы колонки в 170 пикселей
+                                прямо под страницу настроек; здесь ширина задана полями, а лишнее
+                                уходит в перенос.
+                            -->
+                            <Border x:Name="SettingsAboutCard"
+                                    VerticalAlignment="Bottom" Margin="20,0,20,12"
+                                    Background="{DynamicResource Bg.Card}"
+                                    BorderBrush="{DynamicResource Border.Subtle}"
+                                    BorderThickness="1" CornerRadius="7">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
+                                    <TextBlock x:Name="SettingsVersionText"
+                                               Text="v1.19.5"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource Text.Secondary}"
+                                               TextWrapping="Wrap"
+                                               TextAlignment="Center"
+                                               Margin="7,3,7,4"/>
+                                    <Button x:Name="GithubLinkButton" Grid.Row="1"
+                                            Style="{StaticResource SettingsAboutLink}"
+                                            Click="GithubLinkButton_Click"
+                                            ToolTip="{DynamicResource S.About.GithubHint}"/>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 
@@ -2637,11 +2726,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Light}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Light}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="LiteModelPicker" Grid.Column="2" Width="170"
+                                    <local:ModelPickerField x:Name="LiteModelPicker" Grid.Column="2" Width="156"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
@@ -2650,11 +2739,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Heavy}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="HeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Heavy}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="HeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="HeavyModelPicker" Grid.Column="2" Width="170"
+                                    <local:ModelPickerField x:Name="HeavyModelPicker" Grid.Column="2" Width="156"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
@@ -2668,10 +2757,66 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Customize.RouterDesc}"/>
                                     </StackPanel>
-                                    <local:ReasoningPicker x:Name="RouterReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
+                                    <local:ReasoningPicker x:Name="RouterReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="2" Width="170" VerticalAlignment="Center"
+                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="2" Width="156" VerticalAlignment="Center"
+                                              ModelPicked="SettingsModelPicked"/>
+                                </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.ServiceModels}"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.ChatTitles}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="TitleReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="TitleModelPicker" Grid.Column="2" Width="156"
+                                              ModelPicked="SettingsModelPicked"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentFast}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2" Width="156"
+                                              ModelPicked="SettingsModelPicked"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentLight}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2" Width="156"
+                                              ModelPicked="SettingsModelPicked"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentHeavy}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                           Margin="8,0" VerticalAlignment="Center"
+                                                           ChoiceChanged="SettingsReasoningChanged"/>
+                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2" Width="156"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
 
@@ -2711,62 +2856,6 @@
                                     <Button x:Name="SaveTechAgentPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAgentPromptButton_Click"/>
                                 </Grid>
                                 <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
-
-                                <Border Style="{StaticResource SettingsDivider}"/>
-
-                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.ServiceModels}"/>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.ChatTitles}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="TitleReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
-                                                           Margin="8,0" VerticalAlignment="Center"
-                                                           ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="TitleModelPicker" Grid.Column="2" Width="170"
-                                              ModelPicked="SettingsModelPicked"/>
-                                </Grid>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentFast}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
-                                                           Margin="8,0" VerticalAlignment="Center"
-                                                           ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2" Width="170"
-                                              ModelPicked="SettingsModelPicked"/>
-                                </Grid>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentLight}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
-                                                           Margin="8,0" VerticalAlignment="Center"
-                                                           ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2" Width="170"
-                                              ModelPicked="SettingsModelPicked"/>
-                                </Grid>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentHeavy}" VerticalAlignment="Center"/>
-                                    <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72"
-                                                           Margin="8,0" VerticalAlignment="Center"
-                                                           ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2" Width="170"
-                                              ModelPicked="SettingsModelPicked"/>
-                                </Grid>
                             </StackPanel>
                         </ScrollViewer>
 
@@ -3035,6 +3124,26 @@
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
+
+                        <!-- ═══════════ INFO ═══════════ -->
+                        <!--
+                            Отдельным UserControl, а не шестым ScrollViewer в этой разметке: гайд
+                            со скриншотами длиннее любой из соседних страниц, а в MainWindow.xaml
+                            и так три тысячи строк. Стиль с триггером остаётся здесь, потому что
+                            ElementName=NavInfo ищется в области имён этого файла.
+                        -->
+                        <local:SettingsInfoPage>
+                            <local:SettingsInfoPage.Style>
+                                <Style TargetType="local:SettingsInfoPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavInfo}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsInfoPage.Style>
+                        </local:SettingsInfoPage>
 
                     </Grid>
                 </Grid>

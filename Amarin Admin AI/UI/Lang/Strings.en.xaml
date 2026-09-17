@@ -13,6 +13,8 @@
         Наборы ключей всех языков обязаны совпадать — это проверяет LocalizationTests.
     -->
 
+    <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
+    <system:String x:Key="S.About.GithubHint" xml:space="preserve">Open the project page on GitHub</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Profile picture</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Delete the profile “{0}” together with all of its chats?&#10;&#10;This cannot be undone.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Extra profile</system:String>
@@ -343,6 +345,58 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Do not allow</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Site is not on the allowlist</system:String>
 
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats — while the model answers in one, you can work in another.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Conversations and attachments</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Deleting things, writing to the registry, installing software and anything else irreversible is asked about separately and waits for your answer. Refusing is a normal reply: the model sees it and looks for another way. There is a mode that confirms everything automatically, but that is a deliberate choice, not the default.</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Confirming dangerous actions</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Above every answer you can see what it cost, and the header shows what is left on the Venice balance. The badge changes colour as the money runs low, so the credits will not quietly run out mid-task.</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Cost and balance</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Conversations, settings and attachments live in the profile folder on this computer and go nowhere else. The neighbouring Data Controls page shows how much space they take; the same page exports everything as a single archive and restores it back.</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Where the data lives</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">The model is chosen in the chat header, and so is the reasoning level. “Auto” picks the model for the task itself: a simple question goes to a cheap one, heavy analysis to a strong one. The service models behind chat titles and the agent's internal tasks are configured separately, on the Customize page.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Model and reasoning level</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Profiles keep conversations and settings apart for several people sharing one computer, and a profile can be locked with a password. The Appearance page holds themes, a custom accent colour, the backdrop, the glass effect and the interface scale.</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Profiles and appearance</system:String>
+    <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Using the app</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">The model does more than answer: it reads and writes files, runs PowerShell, inspects Windows event logs and searches the web. Every tool call is reported inside the conversation — expand it to see exactly what was done.</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Tools</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">The app talks to Venice.ai models and administers this computer on their instructions. It needs a Venice key to work — below are five steps from signing up to the first answer.</system:String>
+    <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Venice documentation</system:String>
+    <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Project repository</system:String>
+    <system:String x:Key="S.Info.Links.Text" xml:space="preserve">The Venice documentation answers questions about keys, limits and models. Questions about the app itself, bugs you find and suggestions belong in the project repository.</system:String>
+    <system:String x:Key="S.Info.Links.Title" xml:space="preserve">If something does not add up</system:String>
+    <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Do not paste the key into the chat: the message goes to the model and then stays in the conversation history on disk.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file, and anyone who reaches the folder can read it.</system:String>
+    <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Crash reports have the key stripped out on their own, so a report is safe to forward.</system:String>
+    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one — that is a single button.</system:String>
+    <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Create the variable for the current user, not for the whole system: a system variable is visible to every account on the computer.</system:String>
+    <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Treat the key like a password</system:String>
+    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Connecting Venice.ai</system:String>
+    <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">The first answer: the key was accepted and the app works</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">A confirmation prompt before an irreversible action</system:String>
+    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">The Venice plans and what each one includes</system:String>
+    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">The VENICE_API_KEY variable among the user environment variables</system:String>
+    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">The finished key is shown once — copy it straight away</system:String>
+    <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">The API Keys section, where a key is created</system:String>
+    <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Screenshot not added yet: {0}</system:String>
+    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Choosing the model and the reasoning level in the chat header</system:String>
+    <system:String x:Key="S.Info.Shot.Signup" xml:space="preserve">The sign-in and sign-up page on venice.ai</system:String>
+    <system:String x:Key="S.Info.Step1.Button" xml:space="preserve">Open venice.ai</system:String>
+    <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Open venice.ai and sign up with an email address or a wallet. API access comes with every plan, the free one included, and there is nothing extra to switch on.</system:String>
+    <system:String x:Key="S.Info.Step1.Title" xml:space="preserve">Create a Venice.ai account</system:String>
+    <system:String x:Key="S.Info.Step2.Button" xml:space="preserve">Plans and prices</system:String>
+    <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">API requests spend from the Venice account: credits granted by a paid plan, or dollars added to the balance. A hundred credits are one dollar. The free plan grants no credits, so there will be no answers until the account is funded. Venice quotes prices per million tokens: light models cost cents, the strongest ones dollars.</system:String>
+    <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Put money on the account</system:String>
+    <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Open API Keys</system:String>
+    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Open the API section on the Venice site — it also shows what is left on the account. Press “Generate New API Key” and leave the type as “Inference Only”: that is enough to work, while “Admin” gives the key needless power over the account. The key is shown in full exactly once — copy it right away. A lost key is not recovered: you delete it and issue a new one.</system:String>
+    <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Create an API key</system:String>
+    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">setx VENICE_API_KEY "your-key-here"</system:String>
+    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Create the variable in the “Edit environment variables for your account” window, or with a single PowerShell command:</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">Restart the app afterwards: environment variables are read once, at startup.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">The app deliberately has no field for the key: it would then have to store it somewhere. The key is read from the VENICE_API_KEY environment variable — it belongs to your Windows account and is invisible to other users of the computer.</system:String>
+    <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the app</system:String>
+    <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Start the app and send any message. If an answer comes back, the key is in place. The line about a missing key means the variable never arrived: check that it was created for the user rather than the system, and that the app has been restarted. And if Venice answers that funds are insufficient while the account does have money, then the spend limit sits on the key itself; it is changed in the same API section.</system:String>
+    <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Check that it works</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Arguments</system:String>
     <system:String x:Key="S.Journal.Ask" xml:space="preserve">Ask the model</system:String>
     <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">The model answered with nothing. Try again.</system:String>
@@ -435,17 +489,21 @@
     <system:String x:Key="S.Profiles.New" xml:space="preserve">New profile</system:String>
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>
 
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">Disable thinking and the reasoning strength for Auto are set on the light and heavy models in Customize</system:String>
-    <system:String x:Key="S.Reasoning.Disable" xml:space="preserve">Disable thinking</system:String>
+    <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In “Auto” the reasoning is taken from the light and heavy models — set those on the Customize page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning strength</system:String>
-    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Off</system:String>
-    <system:String x:Key="S.Reasoning.On" xml:space="preserve">On</system:String>
+    <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
+    <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
+    <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Reasoning</system:String>
+    <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
+    <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
@@ -453,6 +511,7 @@
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
+    <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
@@ -538,6 +597,7 @@
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Update</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish — the program will restart.</system:String>
 
+    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model — this one is out of the list until the app restarts.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
 

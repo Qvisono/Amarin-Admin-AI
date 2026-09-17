@@ -129,15 +129,25 @@
                     <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
                 </Border.Effect>
                 <StackPanel>
-                    <Grid x:Name="DisableRow" Margin="0,0,0,8">
-                        <TextBlock Text="{DynamicResource S.Reasoning.Disable}" FontSize="12.5"
+                    <!--
+                        Тумблер положительный: включён — модель думает. Раньше он назывался
+                        «Disable thinking», то есть включённый тумблер означал выключенное
+                        размышление, а поле рядом писало «Выкл» — двойное отрицание, в котором
+                        состояние приходилось выяснять, открывая этот попап.
+                    -->
+                    <Grid x:Name="DisableRow" Margin="0,0,0,2">
+                        <TextBlock Text="{DynamicResource S.Reasoning.Toggle}" FontSize="12.5"
                                    Foreground="{DynamicResource Text.Secondary}"
                                    VerticalAlignment="Center"/>
-                        <CheckBox x:Name="DisableToggle" HorizontalAlignment="Right"
+                        <CheckBox x:Name="ThinkingToggle" HorizontalAlignment="Right"
                                   Style="{StaticResource ReasoningToggle}"
-                                  Checked="DisableToggle_Changed"
-                                  Unchecked="DisableToggle_Changed"/>
+                                  Checked="ThinkingToggle_Changed"
+                                  Unchecked="ThinkingToggle_Changed"/>
                     </Grid>
+                    <!-- Подпись под тумблером говорит, что означает текущее положение, а не что делает нажатие. -->
+                    <TextBlock x:Name="ThinkingHint" FontSize="11"
+                               Foreground="{DynamicResource Text.Faint}"
+                               TextWrapping="Wrap" Margin="0,0,0,8"/>
                     <TextBlock x:Name="AutoHint"
                                Text="{DynamicResource S.Reasoning.AutoHint}"
                                FontSize="11" Foreground="{DynamicResource Text.Faint}"
