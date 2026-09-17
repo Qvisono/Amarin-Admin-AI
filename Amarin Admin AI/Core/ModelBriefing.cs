@@ -33,46 +33,53 @@ internal static class ModelBriefing
         return string.Join("\n", lines);
     }
 
-    /// <summary>
-    /// Что видит собеседник в чате: своя модель и три уровня агента.
-    /// </summary>
-    /// <param name="currentModelId">
-    /// Модель, на которой идёт ход. Пусто или «auto» — строки «you» не будет: так блок
-    /// собирается для кольца контекста, которому модель ещё не известна.
-    /// </param>
-    public static string ForChat(
-        string? currentModelId,
+    /// <summary>Между кем выбирает маршрутизатор уровня агента. Порядок — от дешёвой к дорогой.</summary>
+    public static string ForAgentRouter(
         string fastId,
         string liteId,
         string heavyId,
         Func<string, VeniceModelInfo?>? resolve)
     {
-        var lines = new List<string> { Header };
-
-        var self = currentModelId?.Trim() ?? "";
-        var known = self.Length > 0 && !VeniceModelCatalog.IsAuto(self);
-        if (known)
+        var lines = new List<string>
         {
-            lines.Add(Slot("you", self, resolve));
-        }
+            Header,
+            Slot("fast", fastId, resolve),
+            Slot("lite", liteId, resolve),
+            Slot("heavy", heavyId, resolve)
+        };
 
-        lines.Add(Slot("agent fast", fastId, resolve));
-        lines.Add(Slot("agent lite", liteId, resolve));
-        lines.Add(Slot("agent heavy", heavyId, resolve));
-
-        // Эти две строки — единственное, что здесь говорится о деньгах, и обе верны по
-        // построению: таблицы цен в программе нет, а выдумывать цифры для промпта нельзя.
-        if (known && Same(self, heavyId))
-        {
-            lines.Add("The heavy agent is the model you already run: routine work there gains nothing and bills twice.");
-        }
-
+        // Единственное, что здесь говорится о деньгах, и оно верно по построению: таблицы цен в
+        // программе нет, а выдумывать цифры для промпта нельзя.
         if (Same(liteId, heavyId))
         {
-            lines.Add("The lite and heavy agents are the same model: the tier changes nothing.");
+            lines.Add("lite and heavy are the same model: the choice between them changes nothing.");
         }
 
         return string.Join("\n", lines);
+    }
+
+    /// <summary>
+    /// Что видит собеседник в чате: только своя модель.
+    /// </summary>
+    /// <remarks>
+    /// Три модели агента отсюда убраны вместе с аргументом <c>complexity</c>: исполнителя теперь
+    /// выбирает <see cref="AgentTierRouter"/>, а чужие модели в промпте только возвращали модель
+    /// чата к решению, которое больше не её. Своя строка остаётся — по ней она знает своё окно и
+    /// свои возможности.
+    /// </remarks>
+    /// <param name="currentModelId">
+    /// Модель, на которой идёт ход. Пусто или «auto» — блок будет пустым: так он собирается для
+    /// кольца контекста, которому модель ещё не известна.
+    /// </param>
+    public static string ForChat(string? currentModelId, Func<string, VeniceModelInfo?>? resolve)
+    {
+        var self = currentModelId?.Trim() ?? "";
+        if (self.Length == 0 || VeniceModelCatalog.IsAuto(self))
+        {
+            return "";
+        }
+
+        return Header + "\n" + Slot("you", self, resolve);
     }
 
     private static bool Same(string left, string right) =>

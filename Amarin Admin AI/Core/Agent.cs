@@ -219,6 +219,63 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         _ui.Warn($"Модель {fromModel} перегружена — переключился на {toModel}.");
     }
 
+    /// <summary>
+    /// Проверка раунда защитником SynGuard. <c>null</c> — защита выключена, и тогда ни одного
+    /// запроса не уходит.
+    /// </summary>
+    /// <remarks>
+    /// Делегатом, а не готовым клиентом, по той же причине, что <c>AgentHost.Route</c>: живая
+    /// проверка уходит в сеть, а проверять надо то, что вокруг неё — что помеченный вызов не
+    /// исполнился, а соседние исполнились.
+    /// </remarks>
+    internal Func<IReadOnlyList<SynGuardCall>, CancellationToken, Task<SynGuardReport>>? Guard { get; set; }
+
+    /// <summary>
+    /// Идентификаторы вызовов раунда, которые защитник запретил. Пусто, когда защита выключена.
+    /// </summary>
+    /// <remarks>
+    /// Весь раунд одним запросом: шесть инструментов иначе стоили бы шести проверок, а связку
+    /// из двух безобидных по отдельности вызовов не увидел бы никто.
+    /// </remarks>
+    private async Task<HashSet<string>> AskGuardAsync(
+        IReadOnlyList<ToolCall> toolCalls,
+        CancellationToken cancellationToken)
+    {
+        var blocked = new HashSet<string>(StringComparer.Ordinal);
+        if (Guard is not { } guard || toolCalls.Count == 0)
+        {
+            return blocked;
+        }
+
+        var calls = new List<SynGuardCall>(toolCalls.Count);
+        foreach (var call in toolCalls)
+        {
+            calls.Add(new SynGuardCall(call.Function.Name, call.Function.Arguments ?? ""));
+        }
+
+        var report = await _ui.RunBusyAsync(
+                "Проверяю безопасность…",
+                () => guard(calls, cancellationToken),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (report.Cost is { } cost)
+        {
+            AgentRunScope.ChargeGuard(cost);
+        }
+
+        for (var i = 0; i < toolCalls.Count && i < report.Safe.Count; i++)
+        {
+            if (!report.Safe[i])
+            {
+                blocked.Add(toolCalls[i].Id);
+                _ui.Warn($"SynGuard остановил {toolCalls[i].Function.Name}: распознан вредоносный замысел.");
+            }
+        }
+
+        return blocked;
+    }
+
     public Task<AgentRunResult> RunAsync(string userRequest, CancellationToken cancellationToken = default) =>
         RunRequestAsync(userRequest, cancellationToken);
 
@@ -460,7 +517,11 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
         List<ChatMessage> messages,
         CancellationToken cancellationToken)
     {
-        if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, out var batch))
+        // До разбора аргументов и до подтверждений: защитник смотрит на то, что модель написала,
+        // а запрещённый вызов не должен ни исполниться, ни попасть в окно подтверждения.
+        var blocked = await AskGuardAsync(toolCalls, cancellationToken);
+
+        if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, blocked, out var batch))
         {
             await ExecuteParallelBatchAsync(batch, messages, cancellationToken);
             return;
@@ -468,12 +529,41 @@ Paths on this machine — use these exact values, never wildcards (no C:\Users\*
 
         foreach (var toolCall in toolCalls)
         {
+            if (blocked.Contains(toolCall.Id))
+            {
+                RefuseBlockedCall(toolCall, messages);
+                continue;
+            }
+
             await ExecuteOneToolCallSequentialAsync(toolCall, messages, cancellationToken);
         }
     }
 
-    private bool TryBuildParallelBatch(IReadOnlyList<ToolCall> toolCalls, out List<PreparedCall> batch)
+    /// <summary>Отвечает за запрещённый вызов так же, как за неудачный: отказом с объяснением.</summary>
+    private void RefuseBlockedCall(ToolCall toolCall, List<ChatMessage> messages)
     {
+        var toolName = toolCall.Function.Name;
+        _ui.ToolCall(toolName, toolCall.Function.Arguments);
+        var result = ToolResult.Fail(SynGuard.BlockedReply(toolName));
+        _ui.ToolResult(toolName, result);
+        messages.Add(BuildToolMessage(toolCall, result));
+    }
+
+    /// <param name="blocked">
+    /// Запрещённые защитником вызовы. Раунд с таким вызовом параллельным не собирается: его
+    /// придётся пройти по одному, чтобы на месте запрещённого оказался отказ.
+    /// </param>
+    private bool TryBuildParallelBatch(
+        IReadOnlyList<ToolCall> toolCalls,
+        HashSet<string> blocked,
+        out List<PreparedCall> batch)
+    {
+        batch = [];
+        if (blocked.Count > 0)
+        {
+            return false;
+        }
+
         batch = new List<PreparedCall>(toolCalls.Count);
         foreach (var toolCall in toolCalls)
         {

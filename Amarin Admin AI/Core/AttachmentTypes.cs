@@ -78,6 +78,20 @@ internal static class AttachmentTypes
             : extension.TrimStart('.').ToUpperInvariant();
     }
 
+    /// <summary>
+    /// Расширение заглавными и без точки; пусто, когда расширения нет.
+    /// </summary>
+    /// <remarks>
+    /// Отличие от <see cref="Badge"/> — именно в этой пустоте. Тот подставляет слово «ФАЙЛ»,
+    /// потому что рисуется вместо картинки и пустым быть не может; здесь рядом стоит настоящая
+    /// иконка, и дописывать к ней «файл» значило бы сообщать, что файл — это файл.
+    /// </remarks>
+    public static string ExtensionLabel(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        return extension.Length > 1 ? extension.TrimStart('.').ToUpperInvariant() : "";
+    }
+
     /// <summary>Расширение в том виде, в каком его показывают человеку в отказе.</summary>
     public static string DescribeExtension(string path)
     {

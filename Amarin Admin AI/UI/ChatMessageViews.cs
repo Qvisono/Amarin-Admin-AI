@@ -19,6 +19,15 @@ internal sealed class MessageActions
     public Action<ChatDisplayMessage>? Regenerate;
     public Action<ChatDisplayMessage>? Cancel;
 
+    /// <summary>Возобновить прерванный ответ, ничего из уже сделанного не выбрасывая.</summary>
+    public Action<ChatDisplayMessage>? Continue;
+
+    /// <summary>
+    /// Есть ли у этого ответа что продолжать. Решает окно: оно знает, последний ли он в чате, а
+    /// продолжать середину переписки нельзя — за прерванным ответом уже стоят другие.
+    /// </summary>
+    public Func<ChatDisplayMessage, bool>? CanContinue;
+
     /// <summary>Copy a share code for the dialog up to and including this message.</summary>
     public Action<ChatDisplayMessage>? Share;
 
@@ -78,11 +87,18 @@ internal sealed class AssistantMessageView
     public required Border CostChip { get; init; }
     public required StackPanel Actions { get; init; }
     public required Button CancelButton { get; init; }
+
+    /// <summary>«Продолжить». Видна только у прерванного ответа — см. <see cref="ShowFinished"/>.</summary>
+    public required Button ContinueButton { get; init; }
     public required Image LogoImage { get; init; }
     public required TextBlock LogoLetter { get; init; }
     public required System.Windows.Shapes.Path LogoLightning { get; init; }
     public required FrameworkElement RootElement { get; init; }
     public required StackPanel ToolsHost { get; init; }
+
+    /// <summary>Полоса карточек файлов, которые инструменты этого ответа положили на диск.</summary>
+    public required StackPanel FilesHost { get; init; }
+
     public required FrameworkElement Host { get; init; }
 
     /// <summary>Callbacks owned by the window; used by the blocked-download chip.</summary>
@@ -91,6 +107,12 @@ internal sealed class AssistantMessageView
     private Storyboard? _pulse;
     private Expander? _toolsExpander;
     private readonly Dictionary<string, bool> _nestedExpanded = new();
+
+    /// <summary>Все файлы, которые инструменты этого ответа положили на диск.</summary>
+    private IReadOnlyList<Tools.SavedFile> _files = [];
+
+    /// <summary>Те из них, чья карточка уже стоит в тексте ответа, на месте названного пути.</summary>
+    private IReadOnlyList<Tools.SavedFile> _placedInText = [];
 
     public AssistantMessageView(FrameworkElement root) => Root = root;
 
@@ -112,10 +134,17 @@ internal sealed class AssistantMessageView
             : Visibility.Visible;
         if (empty)
         {
+            // Пустой текст ничего не называет, и прошлый разбор к нему уже не относится:
+            // иначе файл пропал бы и из текста, и из полосы под ним.
+            _placedInText = [];
+            RefreshFileStrip();
             return;
         }
 
-        ChatMarkdown.Write(Body, Host, text, fontSize: 13.5, lineHeight: 21);
+        // Полоса под ответом перестраивается вслед за телом, а не до него: какие файлы названы
+        // в тексте, известно только после разбора разметки.
+        _placedInText = ChatMarkdown.Write(Body, Host, text, fontSize: 13.5, lineHeight: 21, files: _files);
+        RefreshFileStrip();
     }
 
     public void ShowWorking(TimeSpan elapsed)
@@ -184,6 +213,12 @@ internal sealed class AssistantMessageView
                 child.Visibility = Visibility.Visible;
             }
         }
+
+        // После общего цикла, а не вместо него: «продолжить» имеет смысл ровно у прерванного
+        // ответа, а этот метод зовут и когда ход закончился как надо.
+        ContinueButton.Visibility = Callbacks?.CanContinue?.Invoke(message) == true
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     public void ShowCancelOnly()
@@ -199,8 +234,43 @@ internal sealed class AssistantMessageView
         }
     }
 
+    /// <summary>
+    /// Перерисовывает полосу файлов. Зовётся из <see cref="UpdateTools"/>, потому что файлы
+    /// приезжают вместе с результатами инструментов и появляются прямо во время ответа.
+    /// </summary>
+    public void UpdateSavedFiles(ChatDisplayMessage message)
+    {
+        _files = ChatMessageViews.CollectSavedFiles(message);
+        RefreshFileStrip();
+    }
+
+    /// <summary>
+    /// Полоса карточек под ответом. В ней остаётся то, о чём модель не написала: файл, чей путь
+    /// назван в тексте, уже показан там и второй раз не нужен.
+    /// </summary>
+    private void RefreshFileStrip()
+    {
+        FilesHost.Children.Clear();
+
+        var rest = _files
+            .Where(file => !_placedInText.Any(placed =>
+                string.Equals(placed.Path, file.Path, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (rest.Count == 0)
+        {
+            FilesHost.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        FilesHost.Visibility = Visibility.Visible;
+        FilesHost.Children.Add(ChatMessageViews.CreateSavedFileStrip(Host, rest));
+    }
+
     public void UpdateTools(ChatDisplayMessage message)
     {
+        UpdateSavedFiles(message);
+
         if (message.ToolRounds.Count == 0)
         {
             ToolsHost.Visibility = Visibility.Collapsed;
@@ -218,9 +288,10 @@ internal sealed class AssistantMessageView
         var wasExpanded = _toolsExpander.IsExpanded;
         _toolsExpander.Header = BuildToolsHeader(message);
         _toolsExpander.Content = BuildToolsBody(message);
-        // Заблокированный домен — единственное, что здесь требует действия пользователя,
-        // а внутри свёрнутого списка инструментов подсказку с кнопкой попросту не видно.
-        _toolsExpander.IsExpanded = wasExpanded || HasBlockedDomain(message);
+        // Заблокированный домен требует действия пользователя, остановленный защитником вызов —
+        // хотя бы того, чтобы человек об этом узнал; внутри свёрнутого списка не видно ни того,
+        // ни другого.
+        _toolsExpander.IsExpanded = wasExpanded || HasBlockedDomain(message) || HasGuardBlock(message);
     }
 
     private Expander CreateToolsExpander() =>
@@ -330,9 +401,14 @@ internal sealed class AssistantMessageView
 
         var pending = call.Status is ToolCallStatus.Pending or ToolCallStatus.Running;
         UIElement icon;
-        if (call.Name.Equals("init_agent", StringComparison.OrdinalIgnoreCase))
+
+        // Логотип — только когда модель агента уже известна. Уровень выбирает отдельный запрос,
+        // и первые секунды её ещё нет: прежде на это время подставлялся ForcedAgentModelId, и
+        // каждый агент начинал работу под логотипом Grok, кем бы он потом ни оказался.
+        if (call.Name.Equals("init_agent", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(call.NestedAgent?.ModelId))
         {
-            icon = BuildAgentGlyph(call.NestedAgent?.ModelId ?? AgentHost.ForcedAgentModelId, 14);
+            icon = BuildAgentGlyph(call.NestedAgent.ModelId, 14);
         }
         else
         {
@@ -407,6 +483,64 @@ internal sealed class AssistantMessageView
 
         return grid;
     }
+
+    /// <summary>
+    /// Плашка вместо результата вызова, который остановил SynGuard. Для всего остального — null.
+    /// </summary>
+    /// <remarks>
+    /// Без кнопки, в отличие от плашки заблокированного домена: там человеку предлагают разрешить
+    /// домен, а здесь разрешать нечего — решение принимает он сам, обычными словами в чате.
+    /// </remarks>
+    private Border? BuildGuardBlockedNotice(ToolCallRecord call)
+    {
+        if (!IsGuardBlocked(call))
+        {
+            return null;
+        }
+
+        var row = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.Children.Add(new Ellipse
+        {
+            Width = 6,
+            Height = 6,
+            Fill = (Brush)Host.FindResource("Status.Warning"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0)
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = Loc.Format("S.Tools.GuardBlocked", call.Name),
+            FontSize = 12,
+            Foreground = (Brush)Host.FindResource("Text.Secondary"),
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        return new Border
+        {
+            Style = (Style)Host.FindResource("BlockedDomainNotice"),
+            Child = row
+        };
+    }
+
+    private static bool IsGuardBlocked(ToolCallRecord call) =>
+        !call.Success &&
+        call.ResultPreview.StartsWith(SynGuard.BlockedMarker, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Останавливал ли защитник хоть один вызов этого ответа — включая вызовы внутри агентов.
+    /// </summary>
+    private static bool HasGuardBlock(ChatDisplayMessage message) =>
+        message.ToolRounds
+            .SelectMany(round => round.Calls)
+            .Any(call =>
+                IsGuardBlocked(call) ||
+                (call.NestedAgent is { } agent &&
+                 agent.ToolRounds.SelectMany(round => round.Calls).Any(IsGuardBlocked)));
 
     private static bool HasBlockedDomain(ChatDisplayMessage message) =>
         message.ToolRounds
@@ -485,8 +619,10 @@ internal sealed class AssistantMessageView
         header.Children.Add(new TextBlock
         {
             Style = (Style)Host.FindResource("ExpanderHeaderText"),
+            // Пока уровень не выбран, у записи нет ни имени, ни модели, и «Агент » с хвостовым
+            // пробелом выглядел бы обрывком строки.
             Text = string.IsNullOrWhiteSpace(agent.DisplayName)
-                ? "Агент " + agent.ModelId
+                ? ("Агент " + agent.ModelId).TrimEnd()
                 : agent.DisplayName
         });
 
@@ -530,6 +666,10 @@ internal sealed class AssistantMessageView
                 if (nested.Status is ToolCallStatus.Done or ToolCallStatus.Failed)
                 {
                     inner.Children.Add(BuildResultRow(nested));
+                    if (BuildGuardBlockedNotice(nested) is { } stopped)
+                    {
+                        inner.Children.Add(stopped);
+                    }
                 }
             }
 
@@ -545,7 +685,8 @@ internal sealed class AssistantMessageView
             }
         }
 
-        var wasExpanded = _nestedExpanded.GetValueOrDefault(call.Id);
+        var wasExpanded = _nestedExpanded.GetValueOrDefault(call.Id) ||
+                          agent.ToolRounds.SelectMany(round => round.Calls).Any(IsGuardBlocked);
         var expander = new Expander
         {
             Style = (Style)Host.FindResource("ToolsExpander"),
@@ -864,16 +1005,10 @@ internal static class ChatMessageViews
         meta.Children.Add(thinking);
         meta.Children.Add(costChip);
 
+        // Само тело наполняется ниже, через SetBody: разметка обязана видеть список файлов
+        // этого ответа, а он известен только после UpdateTools.
         var body = CreateReadOnlyBox(AiForeground, 13.5, 21);
         var streaming = message.Status is AssistantStatus.Streaming;
-        if (streaming && string.IsNullOrWhiteSpace(message.Text))
-        {
-            body.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            ChatMarkdown.Write(body, host, message.Text, 13.5, 21);
-        }
 
         var cancel = IconAction(host, "Cancel", Loc.Get("S.Message.Stop"));
         cancel.Click += (_, _) => actions?.Cancel?.Invoke(message);
@@ -884,6 +1019,10 @@ internal static class ChatMessageViews
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(0, 10, 0, 0)
         };
+        var resume = IconAction(host, "Continue", Loc.Get("S.Message.Continue"));
+        resume.Click += (_, _) => actions?.Continue?.Invoke(message);
+        resume.Visibility = Visibility.Collapsed;
+        row.Children.Add(resume);
         var regenerate = IconAction(host, "Regenerate", Loc.Get("S.Message.Regenerate"));
         regenerate.Click += (_, _) => actions?.Regenerate?.Invoke(message);
         row.Children.Add(regenerate);
@@ -914,10 +1053,15 @@ internal static class ChatMessageViews
         row.Children.Add(cancel);
 
         var toolsHost = new StackPanel { Visibility = Visibility.Collapsed };
+
+        // Под текстом ответа, а не над ним: сперва модель объясняет, что сделала, потом лежит то,
+        // что она положила на диск.
+        var filesHost = new StackPanel { Visibility = Visibility.Collapsed };
         var column = new StackPanel();
         column.Children.Add(meta);
         column.Children.Add(toolsHost);
         column.Children.Add(body);
+        column.Children.Add(filesHost);
         column.Children.Add(row);
 
         var grid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
@@ -940,24 +1084,26 @@ internal static class ChatMessageViews
             CostChip = costChip,
             Actions = row,
             CancelButton = cancel,
+            ContinueButton = resume,
             LogoImage = logoImage,
             LogoLetter = logoLetter,
             LogoLightning = logoLightning,
             RootElement = grid,
             ToolsHost = toolsHost,
+            FilesHost = filesHost,
             Host = host,
             Callbacks = actions
         };
         view.ApplyBranding(host, message.ResolvedModelId ?? message.RequestedModelId ?? "");
         view.UpdateTools(message);
-        if (message.Status is AssistantStatus.Streaming)
+        view.SetBody(message.Text, streaming);
+        if (streaming)
         {
             view.ShowWorking(message.Duration);
             view.ShowCancelOnly();
         }
         else
         {
-            view.SetBody(message.Text, streaming: false);
             view.ShowFinished(message);
         }
 
@@ -1198,6 +1344,271 @@ internal static class ChatMessageViews
     }
 
     /// <summary>
+    /// Все файлы, которые инструменты этого ответа положили на диск, в порядке появления и без
+    /// повторов по пути.
+    /// </summary>
+    /// <remarks>
+    /// Вложенные агенты обходятся наравне с собственными вызовами: скачать файл мог и агент, а
+    /// человеку всё равно, чьими руками это сделано. Повтор по пути отбрасывается — перезапись
+    /// того же файла вторым вызовом не должна удваивать карточку.
+    /// </remarks>
+    internal static IReadOnlyList<Tools.SavedFile> CollectSavedFiles(ChatDisplayMessage message)
+    {
+        var files = new List<Tools.SavedFile>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var round in message.ToolRounds)
+        {
+            foreach (var call in round.Calls)
+            {
+                Take(call.SavedFiles);
+                if (call.NestedAgent is not { } agent)
+                {
+                    continue;
+                }
+
+                foreach (var nested in agent.ToolRounds)
+                {
+                    foreach (var nestedCall in nested.Calls)
+                    {
+                        Take(nestedCall.SavedFiles);
+                    }
+                }
+            }
+        }
+
+        return files;
+
+        void Take(List<Tools.SavedFile> source)
+        {
+            foreach (var file in source)
+            {
+                if (!string.IsNullOrWhiteSpace(file.Path) && seen.Add(file.Path))
+                {
+                    files.Add(file);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Карточки файлов, оказавшихся на диске по ходу ответа. Клик открывает проводник с
+    /// выделенным файлом.
+    /// </summary>
+    /// <remarks>
+    /// Под ответом, а не внутри списка инструментов: тот свёрнут, и карточку в нём было бы не
+    /// видно — ровно та беда, из-за которой подсказку о заблокированном домене приходится
+    /// разворачивать насильно. Содержимого файла в переписке нет, поэтому карточка исчезнувшего
+    /// файла гаснет и говорит об этом, а не подсовывает копию из временной папки.
+    /// </remarks>
+    internal static FrameworkElement CreateSavedFileStrip(
+        FrameworkElement host,
+        IReadOnlyList<Tools.SavedFile> files)
+    {
+        var strip = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 2, 0, 2)
+        };
+
+        foreach (var file in files)
+        {
+            strip.Children.Add(CreateSavedFileCard(host, file));
+        }
+
+        return strip;
+    }
+
+    /// <summary>
+    /// Файл, о котором говорит эта строчка ответа, — или <c>null</c>, если ни о каком.
+    /// </summary>
+    /// <remarks>
+    /// Сравнивается путь целиком, а не имя файла: «положил в <c>report.pdf</c>» в пересказе не
+    /// должно превращаться в карточку, а названный путь — единственное, о чём можно сказать
+    /// наверняка, что речь об этом самом файле. Кавычки и обратные апострофы снимаются: модели
+    /// заключают путь и так, и так.
+    /// </remarks>
+    internal static Tools.SavedFile? MatchSavedFile(string? text, IReadOnlyList<Tools.SavedFile> files)
+    {
+        if (files.Count == 0 || string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var written = Normalize(text);
+        if (written.Length == 0)
+        {
+            return null;
+        }
+
+        foreach (var file in files)
+        {
+            if (Normalize(file.Path).Equals(written, StringComparison.OrdinalIgnoreCase))
+            {
+                return file;
+            }
+        }
+
+        return null;
+
+        static string Normalize(string value) => value
+            .Trim()
+            .Trim('"', '\'', '`', '«', '»')
+            .Trim()
+            .Replace('/', '\\')
+            .TrimEnd('\\');
+    }
+
+    internal static Border CreateSavedFileCard(FrameworkElement host, Tools.SavedFile file)
+    {
+        var present = FileIsThere(file.Path);
+        var frame = new Border
+        {
+            MinWidth = 190,
+            MaxWidth = 340,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 8, 6),
+            CornerRadius = new CornerRadius(9),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(9, 8, 14, 8),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Opacity = present ? 1 : 0.55,
+            ToolTip = present
+                ? Loc.Format("S.Tools.SavedFile", file.Path)
+                : Loc.Format("S.Tools.SavedFileGone", file.Path)
+        };
+        frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+        frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+        RoundedClip.SetRadius(frame, 9);
+
+        // Без этого клик по карточке внутри ленты начинает тянуть выделение текста —
+        // тот же приём стоит на картинке в ответе, см. ImageBlockView.
+        frame.PreviewMouseLeftButtonDown += (_, e) => e.Handled = true;
+        frame.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            if (AttachmentOpener.RevealInExplorer(file.Path))
+            {
+                return;
+            }
+
+            var owner = Window.GetWindow(host);
+            var text = Loc.Format("S.Attach.RevealFailed", file.FileName);
+            if (owner is null)
+            {
+                MessageBox.Show(text, file.FileName, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else
+            {
+                MessageBox.Show(owner, text, owner.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        };
+
+        // Иконка — плиткой слева, подписи — справа от неё. Столбиком карточка выходила высокой
+        // и узкой, а стоит она среди строк текста, у которых длина всегда больше высоты.
+        var tile = new Border
+        {
+            Width = 30,
+            Height = 30,
+            CornerRadius = new CornerRadius(7),
+            Margin = new Thickness(0, 0, 10, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = CreateFileGlyph(present)
+        };
+        tile.SetResourceReference(Border.BackgroundProperty, "Bg.Raised");
+
+        var name = new TextBlock
+        {
+            Text = file.FileName,
+            FontSize = 12.5,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
+
+        // Тип файла ушёл с картинки в подпись: рядом с настоящей иконкой слово «ФАЙЛ» на месте
+        // отсутствующего расширения сообщало бы, что файл — это файл. Точка-разделитель —
+        // вёрстка, а не текст для перевода.
+        var detail = present
+            ? AttachmentTypes.FormatSize(file.SizeBytes)
+            : Loc.Get("S.Tools.SavedFileMissing");
+        var kind = AttachmentTypes.ExtensionLabel(file.FileName);
+
+        var size = new TextBlock
+        {
+            Text = kind.Length > 0 ? kind + " · " + detail : detail,
+            FontSize = 10.5,
+            Margin = new Thickness(0, 2, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+
+        var lines = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        lines.Children.Add(name);
+        lines.Children.Add(size);
+
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(lines, 1);
+        row.Children.Add(tile);
+        row.Children.Add(lines);
+
+        frame.Child = row;
+        return frame;
+    }
+
+    /// <summary>
+    /// Лист с загнутым углом — один значок на любой файл, каким бы тот ни был.
+    /// </summary>
+    /// <remarks>
+    /// Рисуется кодом, а не берётся из <c>Icons.*.xaml</c>: тамошние значки одноцветные —
+    /// белый в тёмной теме, почти чёрный в светлой, — а этот обязан быть акцентным, чтобы
+    /// карточка читалась как файл с одного взгляда. Кисть через
+    /// <see cref="FrameworkElement.SetResourceReference"/>, поэтому она следует за темой сама;
+    /// <c>ThemeImages</c> здесь не нужен, он держит только <c>ImageSource</c> из кода.
+    /// <para>
+    /// Значки по типам файлов не заводятся сознательно: инструменты кладут на диск что угодно,
+    /// и набор картинок всё равно пришлось бы закрывать одной общей. Тип написан словом рядом.
+    /// </para>
+    /// </remarks>
+    private static UIElement CreateFileGlyph(bool present)
+    {
+        var sheet = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse("M5.5,3 L13.5,3 L18.5,8 L18.5,21 L5.5,21 Z M13.5,3 L13.5,8 L18.5,8"),
+            StrokeThickness = 1.7,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            Stretch = Stretch.Uniform,
+            Width = 16,
+            Height = 16,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        sheet.SetResourceReference(
+            System.Windows.Shapes.Shape.StrokeProperty,
+            present ? "Accent.Fill" : "Text.Faint");
+        return sheet;
+    }
+
+    /// <summary>
+    /// Лежит ли файл на месте. Любой отказ файловой системы читается как «нет»: карточка — это
+    /// украшение ленты, и разбираться из-за неё в правах доступа незачем.
+    /// </summary>
+    private static bool FileIsThere(string path)
+    {
+        try
+        {
+            return !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Marker for buttons that must stay hidden. <see cref="AssistantMessageView.ShowFinished"/>
     /// re-shows the whole action row, so a plain Collapsed would be undone on the next status change.
     /// </summary>
@@ -1232,7 +1643,7 @@ internal static class ChatMessageViews
             Margin = resourceKey switch
             {
                 "Compose" => new Thickness(2),
-                "Regenerate" or "Upload" or "Cancel" or "ExportJson" => new Thickness(4),
+                "Regenerate" or "Upload" or "Cancel" or "ExportJson" or "Continue" => new Thickness(4),
                 "Copy" => new Thickness(5),
                 _ => new Thickness(6)
             }

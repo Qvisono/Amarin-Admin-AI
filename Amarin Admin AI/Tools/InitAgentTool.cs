@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Amarin.Core;
 
 namespace Amarin.Tools;
@@ -20,18 +20,13 @@ public sealed class InitAgentTool : ITool
 
     public string Description =>
         "Start a sysadmin agent on this PC. Invoke this as a tool call, never as chat text. " +
-        "Arguments: one JSON object with exactly two keys, prompt and complexity. " +
-        "No extra keys, no markdown, no text after the closing brace. " +
-        "complexity is exactly \"fast\", \"lite\" or \"heavy\" — never a model name. " +
-        "Choose it by how hard the work is, not by how long the request is. " +
-        "fast = trivial work, or the user asked to hurry. " +
-        "lite = one thing checked or done here: processes, Windows services, free space, a port, " +
-        "a folder, system info, an event-log tail, one PowerShell one-liner. " +
-        "Several such items in one request are still lite. " +
-        "heavy = repair, install, an unknown cause to diagnose, registry or boot changes, " +
-        "long multi-step work. Unsure: lite. " +
+        "Arguments: one JSON object with the key prompt, and notes when you have something to add. " +
+        "No other keys, no markdown, no text after the closing brace. " +
         "prompt restates the user's actual request in the user's language (goal, paths, what to change). " +
-        "The agent does not see the chat. At most 4 agents at once.";
+        "The agent does not see the chat. " +
+        "You do not choose which model runs it: the app routes the task by prompt and notes. " +
+        "notes is one short line for that router about what matters here and what the user asked " +
+        "for — never a model name, never a tier. At most 4 agents at once.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -41,13 +36,12 @@ public sealed class InitAgentTool : ITool
               "type": "string",
               "description": "Short complete task in the user's language: restate the user's actual request (goal, paths, what to change). One string. Escape quotes. Do not truncate with ellipsis. Do not copy examples from the tool description. The agent sees only this, not the chat."
             },
-            "complexity": {
+            "notes": {
               "type": "string",
-              "enum": ["fast", "lite", "heavy"],
-              "description": "Exactly fast, lite or heavy. Judge the difficulty, not the length of the request: several small checks in one message are still lite. fast = trivial, or the user asked to hurry. lite = one check or action on this PC (processes, services, disk space, a port, system info, one PowerShell one-liner). heavy = repair, install, an unknown cause, registry or boot, long multi-step work. Unsure: lite. Not a model id."
+              "description": "Optional. One short line for the router that picks the model: what the user asked for (to hurry, to be careful) and what makes this work easy or uncertain. Write it only when you have something real to add; leave it out otherwise. Never a model id and never a tier word — you are not choosing the model."
             }
           },
-          "required": ["prompt", "complexity"]
+          "required": ["prompt"]
         }
         """);
 
@@ -59,14 +53,13 @@ public sealed class InitAgentTool : ITool
             return ToolResult.Fail("Missing required parameter: prompt");
         }
 
-        var complexity = arguments.TryGetProperty("complexity", out var complexityProp)
-            ? complexityProp.GetString()?.Trim().ToLowerInvariant()
+        // Уровень агента сюда больше не приходит, и присланный по старой памяти "complexity"
+        // молча игнорируется: отказ стоил бы целого раунда ради аргумента, который всё равно
+        // ничего не решает.
+        var notes = arguments.TryGetProperty("notes", out var notesProp) &&
+                    notesProp.ValueKind == JsonValueKind.String
+            ? notesProp.GetString()?.Trim()
             : null;
-
-        if (complexity is not "fast" and not "lite" and not "heavy")
-        {
-            return ToolResult.Fail("complexity must be exactly \"fast\", \"lite\" or \"heavy\".");
-        }
 
         if (!_limiter.TryEnter())
         {
@@ -75,7 +68,7 @@ public sealed class InitAgentTool : ITool
 
         try
         {
-            return await _host.RunAsync(promptProp.GetString()!.Trim(), complexity, cancellationToken)
+            return await _host.RunAsync(promptProp.GetString()!.Trim(), notes, cancellationToken)
                 .ConfigureAwait(false);
         }
         finally

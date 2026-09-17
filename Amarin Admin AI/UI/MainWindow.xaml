@@ -1560,6 +1560,49 @@
                     </Setter>
                 </Style>
 
+                <!-- ===== Мелкий раскрывающийся пункт (модель SynGuard) =====
+                     Тот же приём с шевроном, что у ActionExpanderToggle, но по размеру подписи:
+                     тот занимает строку целиком и уводит шеврон к правому краю, а здесь стрелка
+                     обязана стоять сразу за текстом, иначе непонятно, что раскрывает. -->
+                <Style x:Key="InlineExpanderToggle" TargetType="ToggleButton">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,3">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ContentPresenter VerticalAlignment="Center"/>
+                                        <Path x:Name="Chevron" Data="M0,0 L4,4 L8,0"
+                                              Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              Width="9" Height="5" Stretch="Uniform"
+                                              VerticalAlignment="Center" Margin="7,1,0,0"
+                                              RenderTransformOrigin="0.5,0.5">
+                                            <Path.RenderTransform>
+                                                <RotateTransform Angle="0"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Chevron" Property="RenderTransform">
+                                            <Setter.Value>
+                                                <RotateTransform Angle="180"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <!-- ===== Тексты ===== -->
                 <Style x:Key="PageTitle" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="15"/>
@@ -1965,7 +2008,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.19.5"
+                                               Text="v1.20.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -2819,6 +2862,66 @@
                                     <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2" Width="156"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
+
+                                <Border Style="{StaticResource SettingsDivider}"/>
+
+                                <!-- ═══ SynGuard ═══ -->
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.Protection}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <!-- Имя защитника не переводится: это название, а не подпись. -->
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="SynGuard"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Customize.GuardDesc}"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="SynGuardToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="SynGuardToggle_Changed" Unchecked="SynGuardToggle_Changed"/>
+                                </Grid>
+
+                                <!-- Модель защитника: голым ID и мелко — она нужна редко, а места
+                                     под три модели агента рядом уже нет. -->
+                                <ToggleButton x:Name="SynGuardModelToggle" Style="{StaticResource InlineExpanderToggle}"
+                                              HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <TextBlock x:Name="SynGuardModelLabel" FontSize="11"
+                                               Foreground="{DynamicResource Text.Faint}"
+                                               VerticalAlignment="Center"/>
+                                </ToggleButton>
+                                <Border Margin="0,4,0,0" Padding="10,8" CornerRadius="9"
+                                        Background="{DynamicResource Bg.Card}"
+                                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsChecked, ElementName=SynGuardModelToggle}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource SettingTitle}" TextWrapping="Wrap"
+                                                   Margin="0,0,8,0" VerticalAlignment="Center"
+                                                   Text="{DynamicResource S.Customize.GuardModel}"/>
+                                        <local:ReasoningPicker x:Name="SynGuardReasoningPicker" Grid.Column="1"
+                                                               Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                               Margin="8,0" VerticalAlignment="Center"
+                                                               ChoiceChanged="SettingsReasoningChanged"/>
+                                        <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2" Width="156"
+                                                  VerticalAlignment="Center"
+                                                  ModelPicked="SettingsModelPicked"/>
+                                    </Grid>
+                                </Border>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 

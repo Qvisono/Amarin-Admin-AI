@@ -119,7 +119,8 @@ public sealed class ReasoningToggleTests
             [
                 "LiteReasoningPicker", "HeavyReasoningPicker", "RouterReasoningPicker",
                 "TitleReasoningPicker", "AgentFastReasoningPicker",
-                "AgentLiteReasoningPicker", "AgentHeavyReasoningPicker"
+                "AgentLiteReasoningPicker", "AgentHeavyReasoningPicker",
+                "SynGuardReasoningPicker"
             ];
 
             return names

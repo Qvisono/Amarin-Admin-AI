@@ -182,9 +182,11 @@ public sealed class WebDownloadTool : ITool
                     $"SHA-256 mismatch. Expected {expectedHash}, got {actualHash}. File deleted.");
             }
 
+            var saved = new SavedFile(destination, Path.GetFileName(destination), total);
             return hasher is null
-                ? ToolResult.Ok($"Downloaded {total} bytes to {destination}")
-                : ToolResult.Ok($"Downloaded {total} bytes to {destination}\nSHA-256: {actualHash}");
+                ? ToolResult.WithFile($"Downloaded {total} bytes to {destination}", saved)
+                : ToolResult.WithFile(
+                    $"Downloaded {total} bytes to {destination}\nSHA-256: {actualHash}", saved);
         }
         catch (Exception ex)
         {

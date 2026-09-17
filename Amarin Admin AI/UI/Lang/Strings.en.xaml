@@ -132,6 +132,7 @@
     <system:String x:Key="S.Attach.Pasted" xml:space="preserve">Pasted image</system:String>
     <system:String x:Key="S.Attach.RemoveFile" xml:space="preserve">Remove the file</system:String>
     <system:String x:Key="S.Attach.RemoveImage" xml:space="preserve">Remove the image</system:String>
+    <system:String x:Key="S.Attach.RevealFailed" xml:space="preserve">{0}: the file is no longer there.</system:String>
     <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">At most {0} documents can be attached — the rest were skipped.</system:String>
     <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">At most {0} images can be attached — the rest were skipped.</system:String>
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} does not fit: together with what is attached it would be {1}, and the limit is {2}.</system:String>
@@ -270,6 +271,7 @@
     <system:String x:Key="S.Context.Title" xml:space="preserve">Context: {0} of {1} ({2}%)</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Context usage appears once the model is known.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Chat title</system:String>
+    <system:String x:Key="S.Cost.Guard" xml:space="preserve">Protection</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Model</system:String>
     <system:String x:Key="S.Cost.Router" xml:space="preserve">Router</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Total</system:String>
@@ -296,9 +298,12 @@
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Technical agent prompt</system:String>
     <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Answer models</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Chat titles</system:String>
+    <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Checks every script and every action the agent takes before it runs, and stops whatever carries a malicious intent: stealing passwords, sending data off the machine, persisting, or evading defences.</system:String>
+    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Protection model</system:String>
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Heavy tasks</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Light tasks</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Main AI prompt</system:String>
+    <system:String x:Key="S.Customize.Protection" xml:space="preserve">Protection</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Router</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Reads the request and picks one of the models above</system:String>
     <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Service models</system:String>
@@ -347,13 +352,13 @@
 
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats — while the model answers in one, you can work in another.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Conversations and attachments</system:String>
-    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Deleting things, writing to the registry, installing software and anything else irreversible is asked about separately and waits for your answer. Refusing is a normal reply: the model sees it and looks for another way. There is a mode that confirms everything automatically, but that is a deliberate choice, not the default.</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Deleting things, writing to the registry, installing software and anything else irreversible is asked about separately and waits for your answer. The prompt says in plain words what is about to happen, and “Technical details” holds the exact command or script. Refusing is a normal reply: the model sees it and looks for another way. There is a mode that confirms everything automatically, but that is a deliberate choice, not the default.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Confirming dangerous actions</system:String>
-    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Above every answer you can see what it cost, and the header shows what is left on the Venice balance. The badge changes colour as the money runs low, so the credits will not quietly run out mid-task.</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Above every answer you can see what it cost, and next to the input box are what is left on the Venice balance and how full the context is. The badge changes colour as the money runs low, so the credits will not quietly run out mid-task.</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Cost and balance</system:String>
     <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Conversations, settings and attachments live in the profile folder on this computer and go nowhere else. The neighbouring Data Controls page shows how much space they take; the same page exports everything as a single archive and restores it back.</system:String>
     <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Where the data lives</system:String>
-    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">The model is chosen in the chat header, and so is the reasoning level. “Auto” picks the model for the task itself: a simple question goes to a cheap one, heavy analysis to a strong one. The service models behind chat titles and the agent's internal tasks are configured separately, on the Customize page.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">The model is chosen in the row under the input box, and so is the reasoning strength. “Auto” picks the model for the task itself: a simple question goes to a cheap one, heavy analysis to a strong one. The service models behind chat titles and the agent's internal tasks are configured separately, on the Customize page.</system:String>
     <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Model and reasoning level</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Profiles keep conversations and settings apart for several people sharing one computer, and a profile can be locked with a password. The Appearance page holds themes, a custom accent colour, the backdrop, the glass effect and the interface scale.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Profiles and appearance</system:String>
@@ -373,14 +378,16 @@
     <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Treat the key like a password</system:String>
     <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Connecting Venice.ai</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">The first answer: the key was accepted and the app works</system:String>
-    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">A confirmation prompt before an irreversible action</system:String>
-    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">The Venice plans and what each one includes</system:String>
-    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">The VENICE_API_KEY variable among the user environment variables</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">The prompt: what happens, in plain words — details behind the arrow</system:String>
+    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">The top-up dialog: the amount and the credits it buys</system:String>
+    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">The same variable as a single PowerShell command</system:String>
+    <system:String x:Key="S.Info.Shot.NewKey" xml:space="preserve">The key dialog: type, lifetime and spending cap</system:String>
     <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">The finished key is shown once — copy it straight away</system:String>
     <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">The API Keys section, where a key is created</system:String>
     <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Screenshot not added yet: {0}</system:String>
-    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Choosing the model and the reasoning level in the chat header</system:String>
+    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">The model and the reasoning strength, in the row under the input box</system:String>
     <system:String x:Key="S.Info.Shot.Signup" xml:space="preserve">The sign-in and sign-up page on venice.ai</system:String>
+    <system:String x:Key="S.Info.Shot.WhereCredits" xml:space="preserve">The account menu: topping up hides behind “Purchase Venice Credits”</system:String>
     <system:String x:Key="S.Info.Step1.Button" xml:space="preserve">Open venice.ai</system:String>
     <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Open venice.ai and sign up with an email address or a wallet. API access comes with every plan, the free one included, and there is nothing extra to switch on.</system:String>
     <system:String x:Key="S.Info.Step1.Title" xml:space="preserve">Create a Venice.ai account</system:String>
@@ -388,9 +395,10 @@
     <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">API requests spend from the Venice account: credits granted by a paid plan, or dollars added to the balance. A hundred credits are one dollar. The free plan grants no credits, so there will be no answers until the account is funded. Venice quotes prices per million tokens: light models cost cents, the strongest ones dollars.</system:String>
     <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Put money on the account</system:String>
     <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Open API Keys</system:String>
+    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">The same dialog sets a spending cap — daily, monthly or total. With one in place a mistake in a single conversation cannot eat the whole balance: Venice simply stops answering until the next day or month.</system:String>
     <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Open the API section on the Venice site — it also shows what is left on the account. Press “Generate New API Key” and leave the type as “Inference Only”: that is enough to work, while “Admin” gives the key needless power over the account. The key is shown in full exactly once — copy it right away. A lost key is not recovered: you delete it and issue a new one.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Create an API key</system:String>
-    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">setx VENICE_API_KEY "your-key-here"</system:String>
+    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Create the variable in the “Edit environment variables for your account” window, or with a single PowerShell command:</system:String>
     <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">Restart the app afterwards: environment variables are read once, at startup.</system:String>
     <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">The app deliberately has no field for the key: it would then have to store it somewhere. The key is read from the VENICE_API_KEY environment variable — it belongs to your Windows account and is invisible to other users of the computer.</system:String>
@@ -442,6 +450,7 @@
     <system:String x:Key="S.Language.Title" xml:space="preserve">Interface language</system:String>
 
     <system:String x:Key="S.Message.Compress" xml:space="preserve">Collapse</system:String>
+    <system:String x:Key="S.Message.Continue" xml:space="preserve">Resume where it stopped</system:String>
     <system:String x:Key="S.Message.Expand" xml:space="preserve">Expand</system:String>
     <system:String x:Key="S.Message.Export" xml:space="preserve">Export the conversation to JSON</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">The answer has no text</system:String>
@@ -539,7 +548,11 @@
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Domain {0} is blocked</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Tools finished</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message — taking it in</system:String>
+    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard stopped the {0} call: malicious intent recognised</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
+    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to show it in Explorer</system:String>
+    <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;The file is no longer there</system:String>
+    <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" — no answer</system:String>

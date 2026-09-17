@@ -155,6 +155,27 @@ public sealed class AppSettings
         ReasoningEffort = "high"
     };
 
+    /// <summary>
+    /// Проверять ли SynGuard то, что агент собирается запустить.
+    /// </summary>
+    /// <remarks>
+    /// Включено с самого начала: в этом её смысл, а стоит она одного дешёвого запроса на раунд
+    /// инструментов. Выключение — осознанный выбор человека, и переспрашивать о нём не нужно.
+    /// </remarks>
+    public bool SynGuardEnabled { get; set; } = true;
+
+    /// <summary>Модель защитника. Пусто — <see cref="SynGuard.FallbackModelId"/>.</summary>
+    public string SynGuardModelId { get; set; } = SynGuard.FallbackModelId;
+
+    /// <summary>
+    /// Защитник отвечает одним словом на вызов, и размышление перед этим только оплачивается —
+    /// та же причина, по которой оно выключено у маршрутизатора.
+    /// </summary>
+    public ReasoningSettings SynGuardReasoning { get; set; } = new()
+    {
+        DisableThinking = true
+    };
+
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
     public string MainPrompt { get; set; } = "";
 

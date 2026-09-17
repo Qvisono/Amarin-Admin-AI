@@ -118,7 +118,7 @@ public sealed class FileSystemTool : ITool
         }
 
         File.WriteAllText(path, contentProp.GetString() ?? string.Empty);
-        return ToolResult.Ok($"Written {path}");
+        return ToolResult.WithFile($"Written {path}", Describe(path));
     }
 
     private static ToolResult ListDirectory(string path)
@@ -160,7 +160,7 @@ public sealed class FileSystemTool : ITool
         if (File.Exists(path))
         {
             File.Copy(path, destination, overwrite);
-            return ToolResult.Ok($"Copied file to {destination}");
+            return ToolResult.WithFile($"Copied file to {destination}", Describe(destination));
         }
 
         if (Directory.Exists(path))
@@ -184,13 +184,11 @@ public sealed class FileSystemTool : ITool
             if (Directory.Exists(path))
             {
                 Directory.Move(path, destination);
-            }
-            else
-            {
-                File.Move(path, destination, overwrite: true);
+                return ToolResult.Ok($"Moved to {destination}");
             }
 
-            return ToolResult.Ok($"Moved to {destination}");
+            File.Move(path, destination, overwrite: true);
+            return ToolResult.WithFile($"Moved to {destination}", Describe(destination));
         }
 
         return ToolResult.Fail($"Source not found: {path}");
@@ -200,6 +198,27 @@ public sealed class FileSystemTool : ITool
     {
         Directory.CreateDirectory(path);
         return ToolResult.Ok($"Created directory: {path}");
+    }
+
+    /// <summary>
+    /// Карточка файла для ленты чата. Размер читается с диска, а не считается по содержимому:
+    /// после записи на диске может оказаться не то же число байт, что в строке (перевод строки,
+    /// кодировка), а в карточке человеку показывают именно файл.
+    /// </summary>
+    private static SavedFile Describe(string path)
+    {
+        long size = 0;
+        try
+        {
+            size = new FileInfo(path).Length;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Размер — украшение карточки, а не результат работы: файл записан, и сообщать об
+            // ошибке из-за того, что его не удалось перемерить, было бы враньём.
+        }
+
+        return new SavedFile(path, Path.GetFileName(path), size);
     }
 
     private static void CopyDirectory(string source, string destination, bool overwrite)

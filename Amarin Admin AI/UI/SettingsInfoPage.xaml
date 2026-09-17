@@ -160,6 +160,8 @@
                     <StackPanel Grid.Column="1">
                         <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step2.Title}"/>
                         <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step2.Text}"/>
+                        <local:GuideShot FileName="venice-02-where-credits.png"
+                                         Caption="{DynamicResource S.Info.Shot.WhereCredits}"/>
                         <local:GuideShot FileName="venice-02-credits.png"
                                          Caption="{DynamicResource S.Info.Shot.Credits}"/>
                         <Button Style="{StaticResource SecondaryButton}"
@@ -187,6 +189,9 @@
                         <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Text}"/>
                         <local:GuideShot FileName="venice-03-api-keys.png"
                                          Caption="{DynamicResource S.Info.Shot.Keys}"/>
+                        <local:GuideShot FileName="venice-03-new-key.png"
+                                         Caption="{DynamicResource S.Info.Shot.NewKey}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Limit}" Margin="0,10,0,0"/>
                         <local:GuideShot FileName="venice-04-key-created.png"
                                          Caption="{DynamicResource S.Info.Shot.KeyCreated}"/>
                         <Button Style="{StaticResource SecondaryButton}"

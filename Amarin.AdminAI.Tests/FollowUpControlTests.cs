@@ -317,12 +317,19 @@ public sealed class FollowUpControlTests
 
     // ───────────────────────── the agent itself ─────────────────────────
 
+    /// <remarks>
+    /// <c>Route</c> подменён вместе с <c>Attempt</c>: живой выбор уровня уходит в сеть, а здесь
+    /// проверяется то, что вокруг агента, — остановка, пересадка и доставка уточнений.
+    /// </remarks>
     private static AgentHost Host(AgentRegistry registry, AppSettings settings) =>
         new(Options(),
             new HttpClient { BaseAddress = new Uri("https://example.invalid/") },
             () => settings,
             new ConfirmationQueue(() => settings),
-            registry);
+            registry)
+        {
+            Route = (_, _, _) => Task.FromResult(new AgentTierDecision("lite", null))
+        };
 
     [Fact]
     public async Task An_agent_asked_to_hurry_is_moved_to_the_fast_model_and_finishes_there()
@@ -366,7 +373,7 @@ public sealed class FollowUpControlTests
             SessionId = "s"
         }))
         {
-            result = await host.RunAsync("проверь диск C", "lite", CancellationToken.None);
+            result = await host.RunAsync("проверь диск C", notes: null, CancellationToken.None);
         }
 
         await switching;
@@ -415,7 +422,7 @@ public sealed class FollowUpControlTests
             SessionId = "s"
         }))
         {
-            await host.RunAsync("проверь диск C", "lite", CancellationToken.None);
+            await host.RunAsync("проверь диск C", notes: null, CancellationToken.None);
         }
 
         Assert.Equal(2, attempts);
@@ -457,7 +464,7 @@ public sealed class FollowUpControlTests
             SessionId = "s"
         }))
         {
-            result = await host.RunAsync("проверь диск C", "lite", CancellationToken.None);
+            result = await host.RunAsync("проверь диск C", notes: null, CancellationToken.None);
         }
 
         await stopping;
@@ -483,7 +490,7 @@ public sealed class FollowUpControlTests
         };
 
         using var turn = new CancellationTokenSource();
-        var running = host.RunAsync("проверь диск C", "lite", turn.Token);
+        var running = host.RunAsync("проверь диск C", notes: null, turn.Token);
         await turn.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => running);

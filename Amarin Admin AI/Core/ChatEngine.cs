@@ -26,6 +26,142 @@ internal sealed partial class ChatEngine
         - fetch_image(url, caption): bring an EXISTING picture from any public
           http(s) link into the reply. No domain allowlist, nothing saved to disk.
         - youtube_transcript(url): subtitles of a YouTube video as plain text.
+        - init_agent(prompt, notes): launch a sysadmin agent on this PC.
+          It can do everything you can't: open URLs in the browser, scrape pages,
+          run programs, inspect the disk, change Windows, screenshot, download.
+
+        ATTACHMENTS
+        - What the user attaches arrives with the message itself. A picture you
+          simply see; a document's text is already in front of you, pulled out
+          for you. Never reach for read_file to "open" an attachment -- it does
+          not sit on a path you can reach, the call fails, and you end up telling
+          the user you have no access to a file they can see right there.
+        - Under the user's text comes the list of what came with it: name, kind,
+          size, and the real path on disk when it is known. Use that path only for
+          questions about the file itself -- where it lies, how old it is, what
+          else is in that folder -- and then through init_agent, not read_file.
+        - read_file is for files the user names in words, and it wants an absolute
+          path. A bare name is resolved against the program's own folder, not the
+          user's, and will not be found there.
+
+        IMAGES -- FIND vs DRAW
+        These are two different jobs and must never be swapped.
+        - "найди / поищи / скинь / кинь картинку, фото, обои, арт" = FIND. The user
+          wants a real picture that already exists on the internet. Drawing one
+          instead is a wrong answer, even if the drawing is good.
+          Do this: search_web -> take a URL from its "Ссылки:" list ->
+          fetch_image(url). If the first URL gives nothing, try the next one.
+          Try at least three before you tell the user you found nothing.
+        - "нарисуй / сгенерируй / придумай картинку" = DRAW -> generate_image.
+          Also draw, unasked, when a picture carries the answer better than a
+          paragraph would: diagrams, infographics, mock-ups. Don't ask permission
+          and don't offer to draw instead of drawing.
+        - If you truly cannot find a real one, say so plainly first, and only then
+          offer to draw something. Never quietly substitute one for the other.
+        - Showing someone's public picture in this private chat is fine. Do not
+          refuse over copyright, licences, ratings or "чужая работа" -- nothing is
+          republished, the user is looking at a page they could open themselves.
+
+        IMAGES -- HOW TO SHOW ONE
+        - Both tools give you a handle like amarin-image:1a2b3c4d. Put the picture
+          in your reply by writing it as a normal markdown image:
+          ![short caption](amarin-image:1a2b3c4d)
+        - Place that line exactly where the picture belongs -- mid-answer between
+          two paragraphs, or at the end. A handle you never write is never shown,
+          and you were still charged for it.
+        - Never invent a handle, and never paste base64 or a data: URI yourself.
+        - fetch_image takes a link to the image file OR to the page that shows it
+          (art sites, galleries, wikis, news, boorus) -- the page's own preview is
+          followed for you. Show the handle, not the original URL, and describe
+          what you actually see in the picture rather than the page's caption.
+        - If a fetch fails, say why in one line and move to the next candidate URL.
+          Never tell the user to go open the site themselves.
+        - Say nothing like "here is the image"; the picture speaks for itself.
+
+        IMAGES -- ONE PER REQUEST
+        - One picture per request unless the user asked for several. Drawing costs
+          real money on every call.
+        - Do NOT redraw because you dislike your own result. You will be shown the
+          picture you made; that is so you can describe it, not so you can judge it
+          and try again. Show what came out.
+        - A near-duplicate second generate_image in the same turn is refused. If
+          that happens, use the handle you already have.
+
+        AGENT
+        Call init_agent as a tool, never as chat text.
+        Arguments: one JSON object, key prompt, plus notes when you have something to
+        add. Nothing after }. No markdown fences, no comments, no second object, no
+        trailing text. Escape " and \\ inside the strings. Do not cut the prompt with "...".
+        prompt: one short complete string in the user's language. Restate the user's actual request:
+        goal, paths, what to change. The agent is a blank slate -- it
+        does not see the chat or past reports. No "as discussed above".
+        You do not pick the model. The app routes the task to one of several agents by
+        reading the prompt and the notes, and that choice is not yours to make, to argue
+        with, or to work around.
+        notes: one short line for that router about this particular job -- what the user
+        asked for beyond the task itself, and what makes the outcome certain or
+        uncertain. Write it only when you have something real to say, and leave the key
+        out otherwise. Never a model name, never a tier, never an instruction about
+        which agent to use.
+        A wish to hurry goes into notes, not into the prompt: the agent reads the prompt
+        and can do nothing with a shouted "СРОЧНО", while the router can act on it.
+        Up to 4 agents in parallel; a 5th call errors -- wait and adapt.
+        Wait for all reports before answering. Empty or off-topic -> re-run init_agent
+        with a clearer prompt.
+        Keep the report's substance: facts, numbers, names, statuses. React in your
+        own voice but drop nothing important.
+
+        THINKING OUT LOUD
+        Right before you call any tool, write one short line of your own: what you are about to
+        do and what you are after. Every time you reach for a tool, not once in a while -- that
+        line is how the reader follows along. It is shown folded into the tools block, not as
+        your answer, so it costs them nothing.
+        One or two sentences, your normal voice, present tense. The goal ("хочу понять, кто
+        держит порт"), the surprise ("странно, службы вообще нет") or the next move --
+        whichever is true right now.
+        Never a summary of what already happened: the results are printed right under the line,
+        and a recap there reads like a report nobody asked for. No lists, no headings, no plan
+        for the whole task. Skip the line entirely when there is genuinely nothing to say --
+        "сейчас вызову инструмент" is not worth writing.
+
+        A LINE TYPED WHILE YOU WORK
+        The person can write while you are still working. It reaches you as an ordinary user
+        message between rounds of tools, after whatever was already in flight.
+        Say in your next short line that you saw it ("вижу, дописали про диск D") and work
+        to it from there on. Never ignore it, and never answer it as if it had been there all
+        along.
+        While an agent is running, that line is also read for it: a correction or a new
+        condition ("диск D, а не C", "только не трогай загрузки") is handed to the agent
+        itself and reaches it at its next step, without losing what it has already found.
+        A request to stop or to hurry stops that agent or moves it to the fast model. The
+        tool result says which of these happened.
+        So do not re-launch the same agent to "pass it on", and do not answer as if the agent
+        were still doing the old thing. Say in one sentence what actually happened to it.
+
+        WHEN TO USE THE AGENT
+        Anything involving this PC or the local browser -> init_agent. Never refuse
+        or redirect the user elsewhere. Small talk, opinions, general knowledge,
+        and things read/write/search cover -> no agent.
+        Whether to call the agent is your decision; which agent runs it is not.
+        """;
+
+    /// <summary>Tech prompt from when the chat model still picked the agent tier itself;
+    /// migrate AppData only.</summary>
+    internal const string LegacyDefaultTechPromptV17 = """
+        You are a friendly, sharp chat companion running on the user's Windows PC.
+        Talk like a real person: casual, warm, a bit playful. Short replies for small
+        talk, thorough ones for real tasks. Match the user's language and energy.
+        Emoticons: ASCII only ( :) ;) ~ >:( >:) ^_^ >.< etc.). Use them sparingly -- at most one per
+        reply, and only when it genuinely fits. Most replies need none.
+
+        TOOLS
+        - read_file(path): read a text file, or list a directory.
+        - write_file(path, content): write text, creates folders, never deletes.
+        - search_web(query): web search. Ends with a list of source URLs.
+        - generate_image(prompt, orientation): draw a NEW picture from a description.
+        - fetch_image(url, caption): bring an EXISTING picture from any public
+          http(s) link into the reply. No domain allowlist, nothing saved to disk.
+        - youtube_transcript(url): subtitles of a YouTube video as plain text.
         - init_agent(prompt, complexity): launch a sysadmin agent on this PC.
           It can do everything you can't: open URLs in the browser, scrape pages,
           run programs, inspect the disk, change Windows, screenshot, download.
@@ -1406,7 +1542,9 @@ internal sealed partial class ChatEngine
             // Forge the tool call the chat model would normally have made. Everything
             // downstream — slot limiting, the nested-agent card, cost roll-up — is the
             // existing init_agent path, so nothing here is agent plumbing of its own.
-            var arguments = JsonSerializer.Serialize(new { prompt, complexity });
+            // Уровень в аргументы не идёт: его назвал человек, и едет он мимо схемы
+            // инструмента — тем же путём, каким туда не может попасть модель.
+            var arguments = JsonSerializer.Serialize(new { prompt });
 
             var toolCall = new ToolCall
             {
@@ -1428,7 +1566,8 @@ internal sealed partial class ChatEngine
             assistant.ToolRounds.Add(toolRound);
             observer.OnToolsChanged(assistant);
 
-            await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
+            await ExecuteRoundAsync(
+                    toolRound, messages, session, assistant, observer, cancellationToken, complexity)
                 .ConfigureAwait(false);
 
             toolRound.InfoLine = "Агент завершил работу — готовлю отчёт";
@@ -1512,7 +1651,6 @@ internal sealed partial class ChatEngine
             ModelId = requested,
             Reasoning = session.Reasoning
         };
-        using var turnScope = VeniceTurnScope.Push(turn);
 
         var assistant = new ChatDisplayMessage
         {
@@ -1527,13 +1665,119 @@ internal sealed partial class ChatEngine
         session.Messages.Add(assistant);
         observer.OnAssistantStarted(assistant);
 
+        await RunAssistantAsync(session, assistant, text, observer, turn, resumed: false, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Продолжает прерванный ответ — тот же пузырь, те же блоки инструментов, ответ дописывается
+    /// ниже.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Отличие от «Повторить»: та через <c>ChatSessionEdit.TruncateFromMessage</c> выбрасывает
+    /// весь ход вместе с работой инструментов, и за уже сделанное человек платит второй раз.
+    /// Здесь не выбрасывается ничего: после обрыва в <c>ApiMessages</c> остаются и вызовы
+    /// инструментов, и все ответы на них (отмену раунд превращает в обычный неуспешный
+    /// результат), поэтому продолжать можно прямо с этого места.
+    /// </para>
+    /// <para>
+    /// Недописанный текст ответа сбрасывается: это оборванная на полуслове фраза, и склейка с
+    /// новым ответом дала бы повтор. В <c>ApiMessages</c> его и не было — туда ответ попадает
+    /// только целиком, из <see cref="FinishAssistant"/>.
+    /// </para>
+    /// </remarks>
+    public async Task ResumeAssistantAsync(
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        IChatTurnObserver observer,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(assistant);
+        ArgumentNullException.ThrowIfNull(observer);
+
+        var requested = assistant.RequestedModelId ?? ReadSelectedModel(session);
+        var resolved = assistant.ResolvedModelId ?? requested;
+
+        var turn = new VeniceTurnContext
+        {
+            RequestedModelId = requested,
+            ModelId = resolved,
+            // Маршрутизатор во второй раз не запускается: модель уже выбрана, и платить за
+            // выбор снова не за что. Размышление поэтому берётся под неё, а не под «Авто».
+            Reasoning = VeniceModelCatalog.IsAuto(requested)
+                ? ResolveAutoReasoning(resolved)
+                : session.Reasoning,
+            RouterCost = assistant.RouterCost,
+            ElapsedBefore = assistant.Duration
+        };
+
+        // ApplyCosts — пересчёт, а не прибавление: без возврата уже списанного строка «Модель»
+        // обнулилась бы, и деньги прерванного хода пропали бы из счёта.
+        turn.Add(RecoverTurnTotal(assistant));
+
+        assistant.Text = "";
+        assistant.Status = AssistantStatus.Streaming;
+        observer.OnAssistantStarted(assistant);
+
+        await RunAssistantAsync(session, assistant, prompt: "", observer, turn, resumed: true, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Собирает обратно то, что ход уже потратил, в той же мере, в какой это считает
+    /// <see cref="ApplyCosts"/>: разговор плюс инструменты, плативишие общим клиентом, плюс
+    /// маршрутизатор.
+    /// </summary>
+    private static VeniceCost RecoverTurnTotal(ChatDisplayMessage assistant)
+    {
+        var total = assistant.ModelCost ?? VeniceCost.Zero;
+        foreach (var round in assistant.ToolRounds)
+        {
+            foreach (var call in round.Calls)
+            {
+                if (call.NestedAgent is null && call.Cost is { HasData: true } cost)
+                {
+                    total = total.Add(cost);
+                }
+            }
+        }
+
+        if (assistant.RouterCost is { HasData: true } router)
+        {
+            total = total.Add(router);
+        }
+
+        return total;
+    }
+
+    /// <param name="prompt">
+    /// Просьба человека — нужна только маршрутизатору «Авто». У продолжения пуста: модель уже
+    /// выбрана.
+    /// </param>
+    /// <param name="resumed">
+    /// Ход возобновлён. Маршрутизация пропускается, а всё остальное идёт как у обычного хода.
+    /// </param>
+    private async Task RunAssistantAsync(
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        string prompt,
+        IChatTurnObserver observer,
+        VeniceTurnContext turn,
+        bool resumed,
+        CancellationToken cancellationToken)
+    {
+        using var turnScope = VeniceTurnScope.Push(turn);
+        var requested = turn.RequestedModelId;
+
         var clock = Stopwatch.StartNew();
         try
         {
-            if (VeniceModelCatalog.IsAuto(requested))
+            if (!resumed && VeniceModelCatalog.IsAuto(requested))
             {
                 var decision = await RouteAsync(
-                        text,
+                        prompt,
                         ChatSessionEdit.PreviousUser(session)?.Text,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -1577,7 +1821,7 @@ internal sealed partial class ChatEngine
         catch (OperationCanceledException)
         {
             clock.Stop();
-            assistant.Duration = clock.Elapsed;
+            assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
             assistant.ResolvedModelId = turn.ModelId;
             Settle(session, assistant, turn);
             assistant.Status = AssistantStatus.Cancelled;
@@ -1589,7 +1833,7 @@ internal sealed partial class ChatEngine
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             clock.Stop();
-            assistant.Duration = clock.Elapsed;
+            assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
             assistant.Status = AssistantStatus.Error;
             if (string.IsNullOrWhiteSpace(assistant.Text))
             {
@@ -1597,8 +1841,12 @@ internal sealed partial class ChatEngine
             }
 
             Settle(session, assistant, turn);
+            // Симметрично отмене: ход кончился, и ни одна строка инструмента не должна остаться
+            // в «выполняется» — вернуться и дописать её уже некому.
+            MarkRunningToolsCancelled(assistant);
             session.UpdatedAt = DateTime.Now;
             observer.OnError(ex.Message);
+            observer.OnToolsChanged(assistant);
             observer.OnAssistantCompleted(assistant);
         }
     }
@@ -1910,7 +2158,7 @@ internal sealed partial class ChatEngine
         IChatTurnObserver observer)
     {
         assistant.Text = "";
-        assistant.Duration = clock.Elapsed;
+        assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
         assistant.ResolvedModelId = turn.ModelId;
         assistant.Status = AssistantStatus.Complete;
         Settle(session, assistant, turn);
@@ -2000,7 +2248,7 @@ internal sealed partial class ChatEngine
                 chunk =>
                 {
                     assistant.Text = chunk;
-                    assistant.Duration = clock.Elapsed;
+                    assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
 
                     // Модель этого хода, а не общая: раньше здесь читалось поле клиента, и при
                     // двух одновременных ходах в шапке чата А мигала модель чата Б.
@@ -2019,7 +2267,7 @@ internal sealed partial class ChatEngine
         }
 
         assistant.ResolvedModelId = streamed.Model;
-        assistant.Duration = clock.Elapsed;
+        assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
         if (!string.IsNullOrWhiteSpace(streamed.Text))
         {
             assistant.Text = streamed.Text;
@@ -2110,13 +2358,18 @@ internal sealed partial class ChatEngine
         return smaller == 0 ? 0 : left.Count(right.Contains) / (double)smaller;
     }
 
+    /// <param name="forcedAgentTier">
+    /// Уровень агента, названный человеком в слэш-команде. Обычный ход вызывает этот метод без
+    /// него, поэтому моделью уровень не подделать: в её аргументах такого ключа больше нет.
+    /// </param>
     private async Task ExecuteRoundAsync(
         ToolRound toolRound,
         List<ChatMessage> messages,
         ChatSession session,
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? forcedAgentTier = null)
     {
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
@@ -2150,7 +2403,8 @@ internal sealed partial class ChatEngine
                             Call = call,
                             Assistant = assistant,
                             Observer = observer,
-                            SessionId = session.Id
+                            SessionId = session.Id,
+                            ForcedTier = forcedAgentTier
                         }))
                         {
                             result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
@@ -2177,6 +2431,7 @@ internal sealed partial class ChatEngine
                 call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
                 call.ResultPreview = ChatToolPreview.Summarize(result);
                 call.ResultText = ChatToolPreview.ForJournal(result);
+                call.SavedFiles = [.. result.GetFiles()];
                 call.Duration = callClock.Elapsed;
                 observer.OnToolsChanged(assistant);
             });
@@ -2289,7 +2544,7 @@ internal sealed partial class ChatEngine
                 ? EmptyCompletionMessage(streamed)
                 : assistant.Text)
             : streamed.Text;
-        assistant.Duration = clock.Elapsed;
+        assistant.Duration = turn.ElapsedBefore + clock.Elapsed;
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
@@ -2317,27 +2572,42 @@ internal sealed partial class ChatEngine
         session.UpdatedAt = DateTime.Now;
     }
 
+    /// <remarks>
+    /// Раунды вложенных агентов обходятся наравне с собственными: агента обрывают на середине
+    /// его собственного инструмента, и его строка иначе оставалась крутиться в «выполняется»
+    /// навсегда — ход давно закончился, а вернуться и дописать её было уже некому.
+    /// </remarks>
     private static void MarkRunningToolsCancelled(ChatDisplayMessage assistant)
     {
-        foreach (var round in assistant.ToolRounds)
+        MarkRounds(assistant.ToolRounds);
+
+        static void MarkRounds(List<ToolRound> rounds)
         {
-            foreach (var call in round.Calls)
+            foreach (var round in rounds)
             {
-                if (call.Status is ToolCallStatus.Pending or ToolCallStatus.Running)
+                foreach (var call in round.Calls)
                 {
-                    call.Status = ToolCallStatus.Failed;
-                    call.Success = false;
-                    if (string.IsNullOrWhiteSpace(call.ResultPreview))
+                    if (call.NestedAgent is { } agent)
                     {
-                        call.ResultPreview = "отменено";
+                        MarkRounds(agent.ToolRounds);
+                    }
+
+                    if (call.Status is ToolCallStatus.Pending or ToolCallStatus.Running)
+                    {
+                        call.Status = ToolCallStatus.Failed;
+                        call.Success = false;
+                        if (string.IsNullOrWhiteSpace(call.ResultPreview))
+                        {
+                            call.ResultPreview = "отменено";
+                        }
                     }
                 }
-            }
 
-            if (string.IsNullOrWhiteSpace(round.InfoLine) ||
-                round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
-            {
-                round.InfoLine = "Инструменты прерваны";
+                if (string.IsNullOrWhiteSpace(round.InfoLine) ||
+                    round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
+                {
+                    round.InfoLine = "Инструменты прерваны";
+                }
             }
         }
     }
@@ -2376,6 +2646,13 @@ internal sealed partial class ChatEngine
         if (assistant.TitleCost is { HasData: true } title)
         {
             total = total.Add(title);
+        }
+
+        // Защитник — тоже в стороне: у него свой клиент, да ещё и внутри агента, от которого ход
+        // закрыт VeniceTurnScope.Suppress(). В chatCost его денег нет ни при каком раскладе.
+        if (assistant.GuardCost is { HasData: true } guard)
+        {
+            total = total.Add(guard);
         }
 
         return total;
@@ -2557,8 +2834,8 @@ internal sealed partial class ChatEngine
     /// </remarks>
     internal static string BuildRouterUserMessage(string userText, string? previousUserText)
     {
-        var current = Clip(userText ?? "", 1500, 500);
-        var previous = Clip(previousUserText?.Trim() ?? "", 300, 0);
+        var current = TextClip.Clip(userText ?? "", 1500, 500);
+        var previous = TextClip.Clip(previousUserText?.Trim() ?? "", 300, 0);
         if (previous.Length == 0)
         {
             return current;
@@ -2568,18 +2845,6 @@ internal sealed partial class ChatEngine
                + previous + Environment.NewLine + Environment.NewLine
                + "Current request:" + Environment.NewLine
                + current;
-    }
-
-    private static string Clip(string text, int head, int tail)
-    {
-        if (text.Length <= head + tail)
-        {
-            return text;
-        }
-
-        return tail > 0
-            ? text[..head] + " […] " + text[^tail..]
-            : text[..head] + " […]";
     }
 
     internal static string ParseRouterComplexity(string? text)
@@ -2653,12 +2918,7 @@ internal sealed partial class ChatEngine
         // идентификаторы моделей — настройки, а тот текст константа; и половина пользы — для
         // тех, кто однажды сохранил свой технический промпт и носит замороженную копию, куда
         // правка константы не дойдёт никогда.
-        var models = ModelBriefing.ForChat(
-            currentModelId,
-            FirstNonEmpty(settings.AgentFastModelId, settings.LiteModelId),
-            FirstNonEmpty(settings.AgentLiteModelId, settings.LiteModelId),
-            FirstNonEmpty(settings.AgentHeavyModelId, settings.HeavyModelId),
-            _venice.ResolveModelInfo);
+        var models = ModelBriefing.ForChat(currentModelId, _venice.ResolveModelInfo);
 
         var parts = new List<string>();
         if (main.Length > 0)
@@ -2667,7 +2927,11 @@ internal sealed partial class ChatEngine
         }
 
         parts.Add(tech);
-        parts.Add(models);
+        if (models.Length > 0)
+        {
+            parts.Add(models);
+        }
+
         return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
 

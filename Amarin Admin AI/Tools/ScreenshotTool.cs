@@ -77,11 +77,16 @@ public sealed class ScreenshotTool : ITool
             resized.Save(stream, ImageFormat.Png);
             var base64 = Convert.ToBase64String(stream.ToArray());
 
-            var summary = savePath is null
-                ? $"Скриншот {resized.Width}×{resized.Height} ({scope})"
-                : $"Скриншот {resized.Width}×{resized.Height}, сохранён: {savePath}";
+            if (savePath is null)
+            {
+                return Task.FromResult(ToolResult.WithImage(
+                    $"Скриншот {resized.Width}×{resized.Height} ({scope})", base64));
+            }
 
-            return Task.FromResult(ToolResult.WithImage(summary, base64));
+            var saved = new SavedFile(savePath, Path.GetFileName(savePath), new FileInfo(savePath).Length);
+            return Task.FromResult(
+                ToolResult.WithImage($"Скриншот {resized.Width}×{resized.Height}, сохранён: {savePath}", base64)
+                    with { Files = [saved] });
         }
         catch (Exception ex)
         {

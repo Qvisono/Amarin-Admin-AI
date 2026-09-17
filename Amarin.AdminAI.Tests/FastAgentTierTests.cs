@@ -62,32 +62,6 @@ public sealed class FastAgentTierTests
     }
 
     [Fact]
-    public async Task Init_agent_accepts_fast_and_passes_it_through()
-    {
-        var host = new RecordingHost();
-        var tool = new InitAgentTool(new AgentSlotLimiter(), host);
-
-        var result = await tool.ExecuteAsync(
-            JsonSchema.Parse("""{"prompt":"глянь свободное место","complexity":"fast"}"""));
-
-        Assert.True(result.Success);
-        Assert.Equal("fast", host.LastComplexity);
-    }
-
-    [Fact]
-    public async Task Init_agent_still_refuses_a_model_id_in_place_of_a_tier()
-    {
-        var tool = new InitAgentTool(new AgentSlotLimiter(), new RecordingHost());
-
-        var result = await tool.ExecuteAsync(
-            JsonSchema.Parse("""{"prompt":"do","complexity":"deepseek-v4-flash-0731-fast"}"""));
-
-        Assert.False(result.Success);
-        Assert.Contains("lite", result.Output, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("fast", result.Output, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void The_slash_command_understands_the_new_tier_both_ways()
     {
         Assert.Equal("fast", ChatCommands.TryParse("/agent-fast посмотри диск")!.Value.Complexity);
@@ -104,24 +78,36 @@ public sealed class FastAgentTierTests
     }
 
     [Fact]
-    public void The_chat_prompt_teaches_the_tier_and_reaches_people_who_saved_the_old_one()
+    public void The_tier_left_the_chat_prompt_and_people_who_saved_an_old_one_are_migrated()
     {
-        Assert.Contains("\"fast\"", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"fast\"", ChatEngine.LegacyDefaultTechPromptV13, StringComparison.Ordinal);
+        // Уровень называла модель чата и завышала его; теперь его называет маршрутизатор, и
+        // слова уровня ушли из промпта вместе с аргументом.
+        Assert.Contains("\"fast\"", ChatEngine.LegacyDefaultTechPromptV17, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"fast\"", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
 
-        var settings = AppSettings.CreateDefault();
-        settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV13;
-        Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
-        Assert.Equal("", settings.TechAiPrompt);
+        foreach (var saved in new[]
+                 {
+                     ChatEngine.LegacyDefaultTechPromptV13,
+                     ChatEngine.LegacyDefaultTechPromptV17
+                 })
+        {
+            var settings = AppSettings.CreateDefault();
+            settings.TechAiPrompt = saved;
+            Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
+            Assert.Equal("", settings.TechAiPrompt);
+        }
     }
 
     [Fact]
-    public void Hurrying_is_a_tier_rather_than_a_word_shouted_at_the_agent()
+    public void Hurrying_is_a_note_rather_than_a_word_shouted_at_the_agent()
     {
-        // Asked to hurry, the model kept the slow tier and wrote "СРОЧНО" into the prompt —
-        // which the agent reads and can do nothing with, while the model stays just as slow.
+        // Asked to hurry, the model wrote "СРОЧНО" into the prompt — which the agent reads and
+        // can do nothing with. Раньше вместо этого выбирали уровень; теперь это пишут в пометке,
+        // и распорядиться ею может только маршрутизатор.
         Assert.Contains("СРОЧНО", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains("Hurry is a tier", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains("goes into notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hurry is a tier", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("СРОЧНО", ChatEngine.LegacyDefaultTechPromptV14, StringComparison.Ordinal);
     }
 
@@ -139,18 +125,15 @@ public sealed class FastAgentTierTests
     }
 
     [Fact]
-    public void The_tier_discipline_reaches_people_who_saved_the_previous_default()
+    public void Choosing_the_model_is_no_longer_the_chat_models_job()
     {
-        // Модель завышала уровень агента на рутине: прежний текст описывал lite как «одну
-        // проверку», и любая работа из нескольких команд читалась как heavy.
-        Assert.Contains(
-            "weigh the work, not the wording", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains(
-            "MODELS block of this prompt", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        // Дисциплину уровней правили дважды и оба раза ненадолго: модель всё равно завышала
+        // уровень на рутине. Теперь правила нет вовсе — есть запрет решать это самой.
+        Assert.Contains("You do not pick the model", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "weigh the work, not the wording",
-            ChatEngine.LegacyDefaultTechPromptV16,
-            StringComparison.Ordinal);
+            "weigh the work, not the wording", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MODELS block of this prompt", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
 
         var settings = AppSettings.CreateDefault();
         settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV16;
@@ -165,10 +148,15 @@ public sealed class FastAgentTierTests
         // миграцию тихой пустышкой: сохранённый старый промпт не совпал бы ни с чем и остался
         // бы у человека навсегда.
         Assert.NotEqual(ChatEngine.DefaultTechPrompt, ChatEngine.LegacyDefaultTechPromptV16);
+        Assert.NotEqual(ChatEngine.DefaultTechPrompt, ChatEngine.LegacyDefaultTechPromptV17);
         Assert.Contains(
             "lite = one check/listing.", ChatEngine.LegacyDefaultTechPromptV16, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "lite = one check/listing.", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.Contains(
+            "complexity is exactly", ChatEngine.LegacyDefaultTechPromptV17, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "complexity is exactly", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -191,14 +179,4 @@ public sealed class FastAgentTierTests
         }
     }
 
-    private sealed class RecordingHost : IAgentHost
-    {
-        public string? LastComplexity { get; private set; }
-
-        public Task<ToolResult> RunAsync(string prompt, string complexity, CancellationToken cancellationToken)
-        {
-            LastComplexity = complexity;
-            return Task.FromResult(ToolResult.Ok("готово"));
-        }
-    }
 }

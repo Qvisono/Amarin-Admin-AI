@@ -1,5 +1,7 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Amarin.UI;
 
@@ -76,6 +78,74 @@ public sealed class CustomizePageTests
 
         Assert.True(order.answer < order.service, "«Служебные модели» оказались выше «Моделей ответа»");
         Assert.True(order.service < order.prompts, "«Служебные модели» оказались ниже системных промптов");
+    }
+
+    [Fact]
+    public void The_guard_model_stays_folded_away_until_its_label_is_clicked()
+    {
+        // Слева внизу — голый идентификатор модели и стрелка; выбор модели и режима рассуждения
+        // прячутся за ним, потому что нужны редко, а места рядом с тумблером уже нет.
+        var (folded, unfolded, label) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            overlay.Visibility = Visibility.Visible;
+            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            window.UpdateLayout();
+
+            var toggle = (ToggleButton)window.FindName("SynGuardModelToggle")!;
+            var picker = (FrameworkElement)window.FindName("SynGuardModelPicker")!;
+            var name = ((TextBlock)window.FindName("SynGuardModelLabel")!).Text;
+
+            var before = picker.IsVisible;
+            toggle.IsChecked = true;
+            window.UpdateLayout();
+            var after = picker.IsVisible;
+
+            toggle.IsChecked = false;
+            overlay.Visibility = Visibility.Collapsed;
+            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            return (before, after, name);
+        });
+
+        Assert.False(folded, "выбор модели защиты виден, не раскрывая пункт");
+        Assert.True(unfolded, "пункт раскрыли, а выбора модели под ним нет");
+
+        // Именно голый ID: строка служебная, и в ней важно точно знать, что стоит в настройке.
+        Assert.Equal("deepseek-v4-flash-0731", label);
+    }
+
+    [Fact]
+    public void The_guard_sits_between_the_service_models_and_the_system_prompts()
+    {
+        // Порядок задан только разметкой, и защите место рядом с моделями, которые она проверяет,
+        // а не среди системных промптов.
+        var order = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            overlay.Visibility = Visibility.Visible;
+            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            window.UpdateLayout();
+
+            var page = (Panel)VisualTreeHelper.GetParent((TextBox)window.FindName("MainPromptTextBox")!);
+            var service = IndexOf(page, (UIElement)window.FindName("AgentHeavyModelPicker")!);
+            var guard = IndexOf(page, (UIElement)window.FindName("SynGuardToggle")!);
+            var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
+
+            // Тумблер — тот же, что у всех остальных переключателей настроек.
+            var shared = ReferenceEquals(
+                ((CheckBox)window.FindName("SynGuardToggle")!).Style,
+                ((CheckBox)window.FindName("AutoScrollToggle")!).Style);
+
+            overlay.Visibility = Visibility.Collapsed;
+            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            return (service, guard, prompts, shared);
+        });
+
+        Assert.True(order.service < order.guard, "SynGuard оказался выше служебных моделей");
+        Assert.True(order.guard < order.prompts, "SynGuard оказался ниже системных промптов");
+        Assert.True(order.shared, "у тумблера защиты свой стиль вместо общего SettingsToggle");
     }
 
     /// <summary>Номер строки страницы, в которой лежит элемент.</summary>

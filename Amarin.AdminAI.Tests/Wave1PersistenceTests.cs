@@ -95,6 +95,13 @@ public sealed class Wave1PersistenceTests
             Assert.Equal("deepseek-v4-flash-0731-fast", loaded.AgentFastModelId);
             Assert.True(loaded.AgentFastReasoning.DisableThinking);
             Assert.True(loaded.RouterReasoning.DisableThinking);
+
+            // Защита включена с самого начала: в этом её смысл, а стоит она одного дешёвого
+            // запроса на раунд инструментов агента.
+            Assert.True(loaded.SynGuardEnabled);
+            Assert.True(AppSettings.CreateDefault().SynGuardEnabled);
+            Assert.Equal("deepseek-v4-flash-0731", loaded.SynGuardModelId);
+            Assert.True(loaded.SynGuardReasoning.DisableThinking);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);

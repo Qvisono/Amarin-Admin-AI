@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Amarin.Core;
+using Amarin.Tools;
 using Markdig;
 using Markdig.Extensions.Mathematics;
 using Markdig.Extensions.Tables;
@@ -120,13 +121,22 @@ internal static class ChatMarkdown
     /// Владелец ресурсов — окно. Стили вроде MsgActionButton лежат в Window.Resources,
     /// а сам <paramref name="box"/> в момент вызова ещё может быть вне дерева.
     /// </param>
-    public static void Write(
+    /// <param name="files">
+    /// Файлы, которые инструменты этого ответа положили на диск. Путь, названный в тексте,
+    /// заменяется карточкой файла прямо на своём месте.
+    /// </param>
+    /// <returns>
+    /// Файлы, для которых карточка встала в текст. Остальные показываются полосой под ответом —
+    /// иначе файл, о котором модель написала, показывался бы дважды.
+    /// </returns>
+    public static IReadOnlyList<SavedFile> Write(
         RichTextBox box,
         FrameworkElement host,
         string text,
         double fontSize,
         double lineHeight,
-        bool fillAvailableWidth = true)
+        bool fillAvailableWidth = true,
+        IReadOnlyList<SavedFile>? files = null)
     {
         var document = new FlowDocument
         {
@@ -141,7 +151,7 @@ internal static class ChatMarkdown
             document.FontFamily = box.FontFamily;
         }
 
-        var context = new RenderContext(host, fontSize, lineHeight);
+        var context = new RenderContext(host, fontSize, lineHeight, files ?? [], []);
         if (string.IsNullOrEmpty(text))
         {
             document.Blocks.Add(BuildPlainParagraph("", context, last: true));
@@ -165,6 +175,8 @@ internal static class ChatMarkdown
         {
             document.PageWidth = box.ActualWidth;
         }
+
+        return context.Placed;
     }
 
     // Заодно приводит формулы к долларам: модели пишут их и как \(…\) с \[…\], а разметка
@@ -173,7 +185,14 @@ internal static class ChatMarkdown
         MathDelimiterNormalizer.ToDollars(text.Replace("\r\n", "\n").Replace('\r', '\n'));
 
     /// <summary>Всё, что нужно знать при построении блоков: кегль, интерлиньяж и хозяин ресурсов.</summary>
-    private sealed record RenderContext(FrameworkElement Host, double FontSize, double LineHeight);
+    /// <param name="Files">Файлы, которые можно узнать по пути и заменить карточкой.</param>
+    /// <param name="Placed">Те из них, чья карточка уже встала в текст. Заполняется по ходу.</param>
+    private sealed record RenderContext(
+        FrameworkElement Host,
+        double FontSize,
+        double LineHeight,
+        IReadOnlyList<SavedFile> Files,
+        List<SavedFile> Placed);
 
     // ===== Блоки =====
 
@@ -243,10 +262,12 @@ internal static class ChatMarkdown
                 target.Add(BuildMathBlock(latex, context, last));
                 break;
 
-            case ParagraphBlock { Inline: { } inline } when HasPicture(inline):
+            case ParagraphBlock { Inline: { } inline } when HasPicture(inline) || HasSavedFile(inline, context):
                 // Картинка в абзаце — это иллюстрация, а не текст. Абзац разрезается на части:
                 // текст до, сама картинка, текст после. Иначе всё, что не осталось наедине с
                 // картинкой, молча вырождалось в синюю ссылку.
+                // Названный путь к скачанному файлу режет абзац по той же причине: карточке
+                // место там, где о файле говорят, а не отдельной полосой в конце ответа.
                 AddSplitParagraph(target, inline, context, last);
                 break;
 
@@ -385,11 +406,61 @@ internal static class ChatMarkdown
         };
     }
 
-    private static WpfBlock BuildCode(string code, string? language, RenderContext context) =>
-        new BlockUIContainer(CodeBlockView.Create(context.Host, code.TrimEnd('\n'), language))
+    private static WpfBlock BuildCode(string code, string? language, RenderContext context)
+    {
+        var body = code.TrimEnd('\n');
+
+        // Блок кода из одного пути — это не код, а указание на файл: модели пишут так, когда
+        // хотят, чтобы путь было видно и удобно скопировать.
+        if (ChatMessageViews.MatchSavedFile(body, context.Files) is { } file)
+        {
+            return BuildSavedFileCard(file, context);
+        }
+
+        return new BlockUIContainer(CodeBlockView.Create(context.Host, body, language))
         {
             Margin = new Thickness(0)
         };
+    }
+
+    /// <summary>
+    /// Карточка файла на месте названного пути. Тот же вид, что и у карточек под ответом, —
+    /// разница только в отбивке: здесь она стоит строкой, а не в ряду соседок.
+    /// </summary>
+    private static WpfBlock BuildSavedFileCard(SavedFile file, RenderContext context)
+    {
+        if (!context.Placed.Contains(file))
+        {
+            context.Placed.Add(file);
+        }
+
+        var card = ChatMessageViews.CreateSavedFileCard(context.Host, file);
+        card.Margin = new Thickness(0, 2, 0, 2);
+        return new BlockUIContainer(card) { Margin = new Thickness(0, 0, 0, 8) };
+    }
+
+    /// <summary>Файл, названный этим куском кода в тексте, — или <c>null</c>.</summary>
+    private static SavedFile? SavedFileOf(CodeInline code, RenderContext context) =>
+        ChatMessageViews.MatchSavedFile(code.Content, context.Files);
+
+    /// <summary>Назван ли в абзаце путь к файлу, который этот ответ положил на диск.</summary>
+    private static bool HasSavedFile(ContainerInline inline, RenderContext context)
+    {
+        if (context.Files.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var child in inline)
+        {
+            if (child is CodeInline code && SavedFileOf(code, context) is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>Есть ли в абзаце картинка на верхнем уровне — вложенные в ссылку не в счёт.</summary>
     private static bool HasPicture(ContainerInline inline)
@@ -435,6 +506,11 @@ internal static class ChatMarkdown
             {
                 FlushText();
                 produced.Add(BuildImage(picture, context, last: false));
+            }
+            else if (child is CodeInline code && SavedFileOf(code, context) is { } file)
+            {
+                FlushText();
+                produced.Add(BuildSavedFileCard(file, context));
             }
             else
             {

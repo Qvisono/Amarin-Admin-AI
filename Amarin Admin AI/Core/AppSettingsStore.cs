@@ -43,6 +43,7 @@ public sealed class AppSettingsStore
             settings.AgentFastReasoning ??= new ReasoningSettings();
             settings.AgentLiteReasoning ??= new ReasoningSettings();
             settings.AgentHeavyReasoning ??= new ReasoningSettings();
+            settings.SynGuardReasoning ??= new ReasoningSettings();
             if (changed)
             {
                 Save(settings);
@@ -139,7 +140,8 @@ public sealed class AppSettingsStore
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV13) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV14) ||
             SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV15) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV16))
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV16) ||
+            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV17))
         {
             settings.TechAiPrompt = "";
             changed = true;

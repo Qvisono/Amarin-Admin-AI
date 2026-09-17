@@ -8,10 +8,17 @@
 | Файл | Что на нём |
 |---|---|
 | `venice-01-signup.png` | venice.ai, форма входа и регистрации |
-| `venice-02-credits.png` | страница тарифов `venice.ai/pricing` |
-| `venice-03-api-keys.png` | `venice.ai/settings/api`: баланс и кнопка «Generate New API Key» |
-| `venice-04-key-created.png` | созданный ключ — **замажьте все символы после `vk-`** |
-| `setup-05-env-var.png` | окно Windows «Переменные среды» со строкой `VENICE_API_KEY` |
+| `venice-02-where-credits.png` | меню учётной записи с пунктом «Purchase Venice Credits» |
+| `venice-02-credits.png` | окно «Purchase Venice Credits»: суммы и кредиты за них |
+| `venice-03-api-keys.png` | `venice.ai/settings/api`: список ключей и кнопка «New API Key» |
+| `venice-03-new-key.png` | окно «Generate New API Key»: тип, срок жизни, потолок трат |
+| `venice-04-key-created.png` | созданный ключ — снимайте **только с уже отозванного ключа** |
+| `setup-05-env-var.png` | команда PowerShell, заводящая `VENICE_API_KEY` |
 | `app-01-chat.png` | главное окно с перепиской |
 | `app-02-confirm.png` | запрос подтверждения опасного действия |
 | `app-03-models.png` | выбор модели и уровня размышления |
+
+Снимок готового ключа — единственный, где на экран попадает секрет. Ключ с него виден целиком
+и уезжает в релиз вместе со сборкой, поэтому снимать его можно только с ключа, который уже
+отозван на venice.ai, — либо замазывать значение и в поле `API KEY`, и внутри примера `curl`,
+где оно повторяется.

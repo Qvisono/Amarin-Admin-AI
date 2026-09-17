@@ -131,6 +131,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
         call.ResultPreview = ChatToolPreview.Summarize(result);
         call.ResultText = ChatToolPreview.ForJournal(result);
+        call.SavedFiles = [.. result.GetFiles()];
 
         // Measured from the record, not a stopwatch: the agent reports the result on whichever
         // thread finished it, and there is no scope here that outlives the call.

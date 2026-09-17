@@ -81,8 +81,11 @@ public sealed class Wave3ChatToolsTests
         Assert.Contains("write_file", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("search_web", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("init_agent", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains("lite", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains("heavy", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        // Уровень агента модель чата больше не называет, и слов уровня в промпте быть не должно:
+        // именно по ним она и уводила рутину на флагманского агента.
+        Assert.Contains("notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("lite", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("heavy", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("ask_user", ChatEngine.DefaultTechPrompt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Laconic", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("no filler", ChatEngine.DefaultTechPrompt, StringComparison.OrdinalIgnoreCase);
@@ -121,14 +124,14 @@ public sealed class Wave3ChatToolsTests
     {
         var tool = new InitAgentTool(new AgentSlotLimiter(), new FakeHost());
         Assert.Contains("user's actual request", tool.Description, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("still lite", tool.Description, StringComparison.Ordinal);
+        Assert.Contains("do not choose which model runs it", tool.Description, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("list services", tool.Description, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Do not copy examples", tool.ParametersSchema.GetRawText(), StringComparison.Ordinal);
     }
 
     private sealed class FakeHost : IAgentHost
     {
-        public Task<ToolResult> RunAsync(string prompt, string complexity, CancellationToken cancellationToken) =>
+        public Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken) =>
             Task.FromResult(ToolResult.Ok("x"));
     }
 

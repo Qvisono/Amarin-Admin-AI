@@ -137,6 +137,17 @@ public sealed class ChatDisplayMessage
     /// </remarks>
     public VeniceCost? TitleCost { get; set; }
 
+    /// <summary>
+    /// Во что обошлась проверка SynGuard за весь ход: по одному запросу на раунд инструментов
+    /// каждого агента, сложенные вместе.
+    /// </summary>
+    /// <remarks>
+    /// Как и заголовок, защитник платит своим клиентом, и ход его денег не видит — значит их
+    /// прибавляют к итогу, а не вычитают. Одно поле на сообщение, а не строка на каждую
+    /// проверку: человеку важно, сколько стоила защита, а не сколько раз она срабатывала.
+    /// </remarks>
+    public VeniceCost? GuardCost { get; set; }
+
     public AssistantStatus Status { get; set; }
 
     public List<ToolRound> ToolRounds { get; set; } = [];
@@ -206,6 +217,16 @@ public sealed class ToolCallRecord
     /// they survive a restart and travel with an exported chat, exactly like user attachments.
     /// </summary>
     public List<ImageAttachment> Images { get; set; } = [];
+
+    /// <summary>
+    /// Файлы, которые этот вызов положил на диск. Из них собирается полоса карточек под ответом.
+    /// </summary>
+    /// <remarks>
+    /// Здесь только путь и размер: содержимое файла в переписку не уезжает — см.
+    /// <see cref="Tools.SavedFile"/>. У переписок, сохранённых раньше, список пуст; чат
+    /// сериализуется рефлексией, миграция не нужна.
+    /// </remarks>
+    public List<Tools.SavedFile> SavedFiles { get; set; } = [];
 
     /// <summary>
     /// What this one call added to the turn's bill. Display only — it is already inside the

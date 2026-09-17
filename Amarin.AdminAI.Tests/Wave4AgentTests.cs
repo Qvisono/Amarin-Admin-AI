@@ -40,7 +40,7 @@ public sealed class Wave4AgentTests
             return gate.Task;
         });
         var tool = new InitAgentTool(limiter, host);
-        var args = JsonSchema.Parse("""{"prompt":"check network","complexity":"lite"}""");
+        var args = JsonSchema.Parse("""{"prompt":"check network"}""");
 
         var running = Enumerable.Range(0, 4)
             .Select(_ => tool.ExecuteAsync(args.Clone(), CancellationToken.None))
@@ -107,12 +107,12 @@ public sealed class Wave4AgentTests
     }
 
     [Fact]
-    public async Task Init_agent_rejects_bad_complexity()
+    public async Task Init_agent_rejects_a_call_without_a_task()
     {
         var tool = new InitAgentTool(new AgentSlotLimiter(), new FakeAgentHost(_ => Task.FromResult(ToolResult.Ok("x"))));
-        var result = await tool.ExecuteAsync(JsonSchema.Parse("""{"prompt":"do","complexity":"gpt-4"}"""));
-        Assert.False(result.Success);
-        Assert.Contains("lite", result.Output, StringComparison.OrdinalIgnoreCase);
+
+        Assert.False((await tool.ExecuteAsync(JsonSchema.Parse("""{"notes":"побыстрее"}"""))).Success);
+        Assert.False((await tool.ExecuteAsync(JsonSchema.Parse("""{"prompt":"   "}"""))).Success);
     }
 
     private sealed class FakeAgentHost : IAgentHost
@@ -121,7 +121,7 @@ public sealed class Wave4AgentTests
 
         public FakeAgentHost(Func<string, Task<ToolResult>> run) => _run = run;
 
-        public Task<ToolResult> RunAsync(string prompt, string complexity, CancellationToken cancellationToken) =>
+        public Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken) =>
             _run(prompt);
     }
 }

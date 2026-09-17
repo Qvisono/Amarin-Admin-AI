@@ -235,6 +235,38 @@ public sealed class CostBreakdownTests
     }
 
     [Fact]
+    public void The_protection_row_appears_only_when_the_check_was_paid_for()
+    {
+        // Строка «Защита» существует потому, что потрачены деньги, а не потому, что защита
+        // включена: «$0 Защита» под каждым ответом был бы шумом.
+        var guarded = Turn();
+        guarded.GuardCost = Usd(0.0002m);
+
+        var (withGuard, without) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            return (Lines(CostBreakdownTooltip.Build(window, guarded)),
+                    Lines(CostBreakdownTooltip.Build(window, Turn())));
+        });
+
+        Assert.Contains("Защита", withGuard);
+        Assert.DoesNotContain("Защита", without);
+    }
+
+    [Fact]
+    public void The_protection_is_added_to_the_total_rather_than_taken_out_of_the_model_row()
+    {
+        // У защитника свой клиент, да ещё и внутри агента, от которого ход закрыт: в счёте хода
+        // его денег нет ни при каком раскладе, поэтому их прибавляют.
+        var message = Turn();
+        message.GuardCost = Usd(0.0002m);
+        ChatEngine.ApplyCosts(message, Usd(0.12m));
+
+        Assert.Equal(0.02m, message.ModelCost!.Usd);
+        Assert.Equal(0.1502m, message.Cost!.Usd);
+    }
+
+    [Fact]
     public void The_price_chip_carries_the_breakdown_after_a_reload()
     {
         // The tooltip is built from the message, not from live turn state, so a chat reopened

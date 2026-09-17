@@ -74,6 +74,30 @@ internal static class AttachmentOpener
         }
     }
 
+    /// <summary>
+    /// Показывает файл в проводнике, выделив его. Возвращает <c>false</c>, если показывать нечего.
+    /// </summary>
+    /// <remarks>
+    /// Именно показать, а не открыть: карточку рисуют для всего, что инструмент положил на диск,
+    /// включая <c>.exe</c> и <c>.ps1</c>, — от клика по ней никто не ждёт запуска скачанного.
+    /// </remarks>
+    internal static bool RevealInExplorer(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            return Reveal(path);
+        }
+        catch (Exception ex) when (IsOpenFailure(ex))
+        {
+            return false;
+        }
+    }
+
     /// <summary>Путь для подсказки карточки: настоящий, пока файл на месте.</summary>
     internal static string? DescribeLocation(FileAttachment attachment) =>
         attachment.SourcePath is { Length: > 0 } source && File.Exists(source) ? source : null;

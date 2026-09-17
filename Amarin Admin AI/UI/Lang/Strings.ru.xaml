@@ -132,6 +132,7 @@
     <system:String x:Key="S.Attach.Pasted" xml:space="preserve">Вставленное изображение</system:String>
     <system:String x:Key="S.Attach.RemoveFile" xml:space="preserve">Убрать файл</system:String>
     <system:String x:Key="S.Attach.RemoveImage" xml:space="preserve">Убрать изображение</system:String>
+    <system:String x:Key="S.Attach.RevealFailed" xml:space="preserve">{0}: файла больше нет на месте.</system:String>
     <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">Можно прикрепить не больше {0} документов — лишние пропущены.</system:String>
     <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">Можно прикрепить не больше {0} изображений — лишние пропущены.</system:String>
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} не влезает: вместе с прикреплённым вышло бы {1} при пределе {2}.</system:String>
@@ -270,6 +271,7 @@
     <system:String x:Key="S.Context.Title" xml:space="preserve">Контекст: {0} из {1} ({2}%)</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Заполненность контекста появится, когда станет известна модель.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Заголовок чата</system:String>
+    <system:String x:Key="S.Cost.Guard" xml:space="preserve">Защита</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Модель</system:String>
     <system:String x:Key="S.Cost.Router" xml:space="preserve">Маршрутизатор</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Итого</system:String>
@@ -296,9 +298,12 @@
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
     <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Модели ответа</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Заголовки чатов</system:String>
+    <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Проверяет каждый скрипт и каждое действие агента до запуска и обрывает то, в чём распознан вредоносный замысел: кража паролей, отправка данных наружу, закрепление в системе, обход защиты.</system:String>
+    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Модель защиты</system:String>
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Тяжёлые задачи</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Основной промпт ИИ</system:String>
+    <system:String x:Key="S.Customize.Protection" xml:space="preserve">Защита</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Маршрутизатор</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Анализирует запрос и выбирает одну из моделей выше</system:String>
     <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Служебные модели</system:String>
@@ -347,13 +352,13 @@
 
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах — пока модель отвечает в одном, в соседнем можно работать.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Переписка и вложения</system:String>
-    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. Отказ — обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. В самом запросе сказано простыми словами, что произойдёт, а под «Техническими подробностями» лежит точная команда или скрипт. Отказ — обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Подтверждение опасных действий</system:String>
-    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а в шапке — остаток на балансе Venice. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а рядом с полем ввода — остаток на балансе Venice и заполненность контекста. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Стоимость и баланс</system:String>
     <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере — никуда больше они не уходят. На соседней странице Data Controls видно, сколько места они занимают; оттуда же всё выгружается одним архивом и возвращается обратно.</system:String>
     <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Где лежат данные</system:String>
-    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в шапке чата, там же — уровень размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор — на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в строке под полем ввода, там же — сила размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор — на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
     <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Модель и уровень размышления</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице Appearance — темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Профили и оформление</system:String>
@@ -373,14 +378,16 @@
     <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Ключ — как пароль</system:String>
     <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Подключение Venice.ai</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">Первый ответ: ключ принят, программа работает</system:String>
-    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Запрос подтверждения перед необратимым действием</system:String>
-    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">Тарифы Venice и что входит в каждый</system:String>
-    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">Переменная VENICE_API_KEY среди переменных среды пользователя</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Подтверждение: что произойдёт простыми словами, а подробности — под стрелкой</system:String>
+    <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">Окно пополнения: сумма и сколько за неё дадут кредитов</system:String>
+    <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">Та же переменная одной командой в PowerShell</system:String>
+    <system:String x:Key="S.Info.Shot.NewKey" xml:space="preserve">Окно создания ключа: тип, срок жизни и потолок трат</system:String>
     <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">Готовый ключ показывают один раз — скопируйте его сразу</system:String>
     <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">Раздел API Keys: здесь создаётся ключ</system:String>
     <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Скриншот пока не добавлен: {0}</system:String>
-    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Выбор модели и уровня размышления в шапке чата</system:String>
+    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Модель и сила размышления — в строке под полем ввода</system:String>
     <system:String x:Key="S.Info.Shot.Signup" xml:space="preserve">Страница входа и регистрации на venice.ai</system:String>
+    <system:String x:Key="S.Info.Shot.WhereCredits" xml:space="preserve">Меню учётной записи: пополнение прячется за «Purchase Venice Credits»</system:String>
     <system:String x:Key="S.Info.Step1.Button" xml:space="preserve">Открыть venice.ai</system:String>
     <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Откройте venice.ai и зарегистрируйтесь — почтой или кошельком. Доступ к API есть на любом тарифе, включая бесплатный, и включать его отдельно не надо.</system:String>
     <system:String x:Key="S.Info.Step1.Title" xml:space="preserve">Заведите учётную запись на Venice.ai</system:String>
@@ -388,9 +395,10 @@
     <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">Запросы через API тратят средства со счёта Venice: кредиты, которые начисляет платный тариф, или доллары, положенные на счёт. Сто кредитов — это один доллар. На бесплатном тарифе кредитов не начисляют, поэтому до пополнения ответов не будет. Цены у Venice указаны за миллион токенов: лёгкие модели стоят центы, самые сильные — доллары.</system:String>
     <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Положите денег на счёт</system:String>
     <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Открыть API Keys</system:String>
+    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">В том же окне выставляется потолок трат — дневной, месячный или общий. С ним ошибка в одном разговоре не съест весь счёт: Venice просто перестанет отвечать до следующего дня или месяца.</system:String>
     <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Откройте раздел API на сайте Venice — там же виден остаток на счёте. Нажмите «Generate New API Key» и оставьте тип «Inference Only»: для работы этого достаточно, а «Admin» даёт ключу лишнюю власть над учётной записью. Целиком ключ показывают ровно один раз — скопируйте сразу. Потерянный не восстанавливают: удаляют и выпускают новый.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Создайте API-ключ</system:String>
-    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">setx VENICE_API_KEY "сюда-ваш-ключ"</system:String>
+    <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'сюда-ваш-ключ', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Заведите переменную в окне «Изменение переменных среды текущего пользователя» или одной командой в PowerShell:</system:String>
     <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте.</system:String>
     <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Поля для ключа в программе нет намеренно: тогда его пришлось бы где-то хранить. Ключ читается из переменной окружения VENICE_API_KEY — она принадлежит вашей учётной записи Windows и другим пользователям компьютера не видна.</system:String>
@@ -442,6 +450,7 @@
     <system:String x:Key="S.Language.Title" xml:space="preserve">Язык интерфейса</system:String>
 
     <system:String x:Key="S.Message.Compress" xml:space="preserve">Сжать</system:String>
+    <system:String x:Key="S.Message.Continue" xml:space="preserve">Продолжить с места обрыва</system:String>
     <system:String x:Key="S.Message.Expand" xml:space="preserve">Расширить</system:String>
     <system:String x:Key="S.Message.Export" xml:space="preserve">Экспорт диалога в JSON</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">Ответ без текста</system:String>
@@ -539,7 +548,11 @@
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение — учитываю</system:String>
+    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard остановил вызов {0}: распознан вредоносный замысел</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
+    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы показать в проводнике</system:String>
+    <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;Файла больше нет на месте</system:String>
+    <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» — ответ не получен</system:String>

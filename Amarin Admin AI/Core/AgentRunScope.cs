@@ -13,6 +13,16 @@ internal sealed class AgentRunContext
     /// одновременными ходами вопрос обязан знать, из какого разговора он пришёл.
     /// </summary>
     public string? SessionId { get; init; }
+
+    /// <summary>
+    /// Уровень агента, названный человеком словом (<c>/agent-fast</c> и соседние команды).
+    /// </summary>
+    /// <remarks>
+    /// Не через аргументы инструмента: их пишет модель, и ключ, которым можно продиктовать
+    /// уровень, вернул бы ей выбор исполнителя, ради отъёма которого всё и делалось. Пусто —
+    /// обычный вызов, и уровень решает <see cref="AgentTierRouter"/>.
+    /// </remarks>
+    public string? ForcedTier { get; init; }
 }
 
 internal static class AgentRunScope
@@ -37,6 +47,27 @@ internal static class AgentRunScope
         lock (ChargeGate)
         {
             context.Call.Cost = (context.Call.Cost ?? VeniceCost.Zero).Add(cost);
+        }
+    }
+
+    /// <summary>
+    /// Записывает проверку SynGuard на сообщение, а не на строку инструмента.
+    /// </summary>
+    /// <remarks>
+    /// На сообщение — потому что защита работает поверх всей работы хода, а не внутри одного
+    /// вызова: агент может запустить десяток раундов, и десять строк «Guard» в разбивке были бы
+    /// шумом вместо ответа на вопрос «сколько стоила защита».
+    /// </remarks>
+    public static void ChargeGuard(VeniceCost cost)
+    {
+        if (CurrentContext.Value is not { } context)
+        {
+            return;
+        }
+
+        lock (ChargeGate)
+        {
+            context.Assistant.GuardCost = (context.Assistant.GuardCost ?? VeniceCost.Zero).Add(cost);
         }
     }
 

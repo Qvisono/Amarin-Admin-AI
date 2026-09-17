@@ -145,6 +145,12 @@ namespace Amarin.UI
             AgentFastReasoningPicker.SetUsesTools(true);
             AgentLiteReasoningPicker.SetUsesTools(true);
             AgentHeavyReasoningPicker.SetUsesTools(true);
+            // Защитник отвечает одним словом и инструментов не получает.
+            SynGuardReasoningPicker.SetUsesTools(false);
+
+            // Подпись ставится здесь, а не только при открытии настроек: пустая строка со
+            // стрелкой рядом не объясняет, что за ней прячется.
+            ShowSynGuardModelName();
 
             if (_services is null)
             {
@@ -819,6 +825,12 @@ namespace Amarin.UI
                 _services.Settings.AgentHeavyModelId = id;
                 AgentHeavyReasoningPicker.SetModel(id);
             }
+            else if (ReferenceEquals(sender, SynGuardModelPicker))
+            {
+                _services.Settings.SynGuardModelId = id;
+                SynGuardReasoningPicker.SetModel(id);
+                ShowSynGuardModelName();
+            }
             else
             {
                 return;
@@ -888,8 +900,35 @@ namespace Amarin.UI
                 return settings.AgentHeavyReasoning ??= new ReasoningSettings();
             }
 
+            if (ReferenceEquals(sender, SynGuardReasoningPicker))
+            {
+                return settings.SynGuardReasoning ??= new ReasoningSettings();
+            }
+
             return null;
         }
+
+        private void SynGuardToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            // Ни предупреждения, ни подтверждения: выключить защиту — осознанный выбор человека,
+            // и переспрашивать о нём — то же самое, что не давать её выключить.
+            _services.Settings.SynGuardEnabled = SynGuardToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+        }
+
+        /// <summary>
+        /// Подпись раскрывающегося пункта — голый идентификатор модели, а не человеческое имя:
+        /// строка служебная, и в ней важно точно знать, что именно стоит в настройке.
+        /// </summary>
+        private void ShowSynGuardModelName() =>
+            SynGuardModelLabel.Text = _services is null
+                ? SynGuard.FallbackModelId
+                : SynGuard.ResolveModel(_services.Settings);
 
         private void ChatModelPicker_ModelPicked(object sender, string id)
         {
@@ -1041,7 +1080,8 @@ namespace Amarin.UI
             (s => s.TitleModelId, (s, v) => s.TitleModelId = v),
             (s => s.AgentFastModelId, (s, v) => s.AgentFastModelId = v),
             (s => s.AgentLiteModelId, (s, v) => s.AgentLiteModelId = v),
-            (s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v)
+            (s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v),
+            (s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v)
         ];
 
         private ModelPickerField[] SettingsPickers() =>
@@ -1052,7 +1092,8 @@ namespace Amarin.UI
             TitleModelPicker,
             AgentFastModelPicker,
             AgentLiteModelPicker,
-            AgentHeavyModelPicker
+            AgentHeavyModelPicker,
+            SynGuardModelPicker
         ];
 
         private ReasoningPicker[] SettingsReasoningPickers() =>
@@ -1063,7 +1104,8 @@ namespace Amarin.UI
             TitleReasoningPicker,
             AgentFastReasoningPicker,
             AgentLiteReasoningPicker,
-            AgentHeavyReasoningPicker
+            AgentHeavyReasoningPicker,
+            SynGuardReasoningPicker
         ];
 
         private void SaveMainPromptButton_Click(object sender, RoutedEventArgs e)
@@ -1134,6 +1176,9 @@ namespace Amarin.UI
                 AgentFastModelPicker.SetSelected(settings.AgentFastModelId);
             AgentLiteModelPicker.SetSelected(settings.AgentLiteModelId);
                 AgentHeavyModelPicker.SetSelected(settings.AgentHeavyModelId);
+                SynGuardModelPicker.SetSelected(settings.SynGuardModelId);
+                SynGuardToggle.IsChecked = settings.SynGuardEnabled;
+                ShowSynGuardModelName();
                 BindSettingsReasoningPickers();
 
                 MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -1650,6 +1695,8 @@ namespace Amarin.UI
             CommitEdit = CommitUserEdit,
             Delete = DeleteAssistant,
             Regenerate = RegenerateAssistant,
+            Continue = ResumeAssistant,
+            CanContinue = message => CanResume(session, message),
             Cancel = _ => CancelTurn(session.Id),
             Share = ShareMessage,
             Export = ExportMessage,
@@ -1804,6 +1851,49 @@ namespace Amarin.UI
             RenderSession();
             PersistCurrent();
             _ = ContinueAssistantAsync();
+        }
+
+        /// <summary>
+        /// Есть ли что продолжать: ответ оборвался и стоит последним в чате.
+        /// </summary>
+        /// <remarks>
+        /// Только последний — потому что продолжение дописывает тот же ответ, а у ответа из
+        /// середины переписки ниже уже стоят другие реплики, и дописанное оказалось бы не на
+        /// своём месте. Для них остаётся «Повторить».
+        /// </remarks>
+        private static bool CanResume(ChatSession session, ChatDisplayMessage message) =>
+            message.Status is AssistantStatus.Cancelled or AssistantStatus.Error &&
+            session.Messages.Count > 0 &&
+            ReferenceEquals(session.Messages[^1], message);
+
+        /// <summary>
+        /// Возобновляет прерванный ответ, ничего не выбрасывая.
+        /// </summary>
+        /// <remarks>
+        /// В отличие от <see cref="RegenerateAssistant"/> здесь нет
+        /// <c>ChatSessionEdit.TruncateFromMessage</c>: тот снёс бы вместе с ответом и работу
+        /// инструментов, за которую уже заплачено.
+        /// </remarks>
+        private void ResumeAssistant(ChatDisplayMessage message)
+        {
+            if (_services is null || IsBusy(_session.Id) || !CanResume(_session, message))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
+            {
+                MessageBox.Show(
+                    this,
+                    Loc.Get("S.Turn.NoApiKey"),
+                    Title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            _ = RunTurnAsync(_session, TurnKind.Continue, (chat, observer, token) =>
+                _services.Chat.ResumeAssistantAsync(chat, message, observer, token));
         }
 
         private async Task ContinueAssistantAsync()
@@ -2163,6 +2253,7 @@ namespace Amarin.UI
             BindSlot(AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
             BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
             BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
+            BindSlot(SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
         }
 
         private static void BindSlot(ReasoningPicker picker, string modelId, ReasoningSettings? slot)
@@ -2296,7 +2387,21 @@ namespace Amarin.UI
             _workingStarted = turn.StartedAt;
             var view = ChatMessageViews.CreateAssistant(this, assistant, CreateMessageActions(turn.Session));
             _liveAssistant = view;
-            MessagesPanel.Children.Add(view.Root);
+
+            // Продолжение возобновляет ответ, который в ленте уже нарисован: старый пузырь
+            // подменяется новым на том же месте, иначе рядом встал бы второй с тем же ходом.
+            if (!string.IsNullOrEmpty(assistant.Id) &&
+                _messageViews.TryGetValue(assistant.Id, out var previous) &&
+                MessagesPanel.Children.IndexOf(previous) is var slot and >= 0)
+            {
+                MessagesPanel.Children.RemoveAt(slot);
+                MessagesPanel.Children.Insert(slot, view.Root);
+            }
+            else
+            {
+                MessagesPanel.Children.Add(view.Root);
+            }
+
             TrackMessageView(assistant, view.Root);
             _workingTimer.Start();
             _streamRender.Start();

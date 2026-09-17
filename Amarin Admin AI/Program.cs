@@ -162,7 +162,8 @@ internal static class Program
         // Общий на программу: реестр нужен и хосту (записаться), и движку чата (остановить или
         // пересадить того, кто уже работает).
         var runningAgents = new AgentRegistry();
-        var agentHost = new AgentHost(options, downloadHttp, ReadSettings, confirmations, runningAgents);
+        var agentHost = new AgentHost(
+            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
