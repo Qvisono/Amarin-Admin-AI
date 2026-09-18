@@ -268,7 +268,7 @@ internal sealed class AgentHost : IAgentHost
     /// Собирается один раз на прогон и передаётся всем его попыткам: пересадка агента на другую
     /// модель защитника не меняет.
     /// </remarks>
-    private Func<IReadOnlyList<SynGuardCall>, CancellationToken, Task<SynGuardReport>>? BuildGuard(
+    private Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? BuildGuard(
         AppSettings settings,
         HttpClient? http)
     {

@@ -57,6 +57,7 @@ public sealed class AppSettingsStore
             settings.AgentLiteReasoning ??= new ReasoningSettings();
             settings.AgentHeavyReasoning ??= new ReasoningSettings();
             settings.SynGuardReasoning ??= new ReasoningSettings();
+            changed |= MigrateSynGuardReasoning(settings);
             if (changed)
             {
                 Save(settings);
@@ -147,6 +148,30 @@ public sealed class AppSettingsStore
 
         slot.DisableThinking = true;
         slot.ReasoningEffort = null;
+        return true;
+    }
+
+    /// <summary>
+    /// До 1.21.1 защитник отвечал без размышления. Сохранённый файл держит это значение и после
+    /// смены умолчания, поэтому прежнее умолчание переписывается один раз.
+    /// </summary>
+    /// <remarks>
+    /// Тот же размен, что и в <see cref="MigrateRouterReasoning"/>, только зеркальный: прежнее
+    /// умолчание — «размышление выключено, сила не выбрана», и осознанный выбор «не думать»
+    /// неотличим от нетронутого слота, поэтому один раз потеряется. Иначе правка, ради которой
+    /// всё и делалось, не дошла бы ни до кого, кроме новых профилей: судить по словам в команде
+    /// защитник продолжил бы у всех, кто уже пользуется программой.
+    /// </remarks>
+    internal static bool MigrateSynGuardReasoning(AppSettings settings)
+    {
+        var slot = settings.SynGuardReasoning;
+        if (slot is null || !slot.DisableThinking || !string.IsNullOrWhiteSpace(slot.ReasoningEffort))
+        {
+            return false;
+        }
+
+        slot.DisableThinking = false;
+        slot.ReasoningEffort = "low";
         return true;
     }
 

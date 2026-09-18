@@ -51,6 +51,41 @@ public sealed class Wave1PersistenceTests
         }
     }
 
+    [Theory]
+    // Прежнее заводское значение — переписываем: иначе правка досталась бы только новым
+    // профилям, а у всех остальных защитник продолжил бы судить по словам в команде.
+    [InlineData(true, null, false, "low")]
+    [InlineData(true, "", false, "low")]
+    // Выбранное руками — не трогаем ни в каком виде.
+    [InlineData(true, "high", true, "high")]
+    [InlineData(false, "medium", false, "medium")]
+    [InlineData(false, null, false, null)]
+    public void The_old_guard_default_starts_thinking_and_a_chosen_one_does_not(
+        bool disableThinking,
+        string? effort,
+        bool expectedDisabled,
+        string? expectedEffort)
+    {
+        var root = NewTempRoot();
+        try
+        {
+            var store = new AppSettingsStore(root);
+            var settings = store.Load();
+            settings.SynGuardReasoning.DisableThinking = disableThinking;
+            settings.SynGuardReasoning.ReasoningEffort = effort;
+            store.Save(settings);
+
+            var loaded = new AppSettingsStore(root).Load().SynGuardReasoning;
+
+            Assert.Equal(expectedDisabled, loaded.DisableThinking);
+            Assert.Equal(expectedEffort, loaded.ReasoningEffort);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void Agent_system_prompt_does_not_mention_ask_user()
     {
@@ -101,7 +136,8 @@ public sealed class Wave1PersistenceTests
             Assert.True(loaded.SynGuardEnabled);
             Assert.True(AppSettings.CreateDefault().SynGuardEnabled);
             Assert.Equal("deepseek-v4-flash-0731", loaded.SynGuardModelId);
-            Assert.True(loaded.SynGuardReasoning.DisableThinking);
+            Assert.False(loaded.SynGuardReasoning.DisableThinking);
+            Assert.Equal("low", loaded.SynGuardReasoning.ReasoningEffort);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);

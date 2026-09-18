@@ -26,7 +26,14 @@ public sealed record DangerousActionInfo(
     /// </summary>
     string CodeText = "",
     /// <summary>Highlighting hint for <c>CodeHighlighter</c>; empty renders as plain monospace.</summary>
-    string CodeLanguage = "");
+    string CodeLanguage = "",
+    /// <summary>
+    /// Ask even in «подтверждать всё автоматически» mode. Set only for the question SynGuard
+    /// raises about a call it read as an attack: that question is the last thing standing
+    /// between the machine and an attack, so a convenience switch must not answer it — the same
+    /// reasoning that keeps the download allowlist asking.
+    /// </summary>
+    bool AlwaysAsk = false);
 
 internal static partial class DangerousActionGuard
 {

@@ -34,9 +34,10 @@ internal sealed class SynGuardChecker
     /// легла вместе с сетью, не должна останавливать работу человека.
     /// </summary>
     public async Task<SynGuardReport> CheckAsync(
-        IReadOnlyList<SynGuardCall> calls,
+        SynGuardRequest request,
         CancellationToken cancellationToken)
     {
+        var calls = request.Calls;
         ArgumentNullException.ThrowIfNull(calls);
         if (calls.Count == 0)
         {
@@ -56,7 +57,7 @@ internal sealed class SynGuardChecker
                         new ChatMessage
                         {
                             Role = "user",
-                            Content = ChatContent.Text(SynGuard.BuildUserMessage(calls))
+                            Content = ChatContent.Text(SynGuard.BuildUserMessage(request))
                         }
                     ],
                     tools: null,

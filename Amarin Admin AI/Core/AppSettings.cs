@@ -178,12 +178,15 @@ public sealed class AppSettings
     public string SynGuardModelId { get; set; } = SynGuard.FallbackModelId;
 
     /// <summary>
-    /// Защитник отвечает одним словом на вызов, и размышление перед этим только оплачивается —
-    /// та же причина, по которой оно выключено у маршрутизатора.
+    /// Защитник отвечает одним словом на вызов, но решает при этом, вредонос перед ним или
+    /// работа: дешёвая модель без размышления судила по словам в команде — «планировщик»,
+    /// «Hidden», «Bypass», — и останавливала то, о чём человек сам и просил. Отсюда «low»:
+    /// подумать перед вердиктом, но не оплачивать долгое размышление на каждом раунде.
     /// </summary>
     public ReasoningSettings SynGuardReasoning { get; set; } = new()
     {
-        DisableThinking = true
+        DisableThinking = false,
+        ReasoningEffort = "low"
     };
 
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>

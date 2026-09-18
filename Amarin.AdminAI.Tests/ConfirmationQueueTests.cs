@@ -19,6 +19,32 @@ public sealed class ConfirmationQueueTests
     private static ConfirmationQueue Queue() => new(() => new AppSettings());
 
     [Fact]
+    public async Task Approving_everything_automatically_does_not_answer_the_guards_question()
+    {
+        // «Подтверждать всё автоматически» — про удобство на обычных изменениях. Вопрос SynGuard
+        // обычным не бывает: это последняя преграда перед тем, что признано атакой, и отвечать
+        // на неё настройкой удобства нельзя — ровно как с белым списком загрузок.
+        var settings = new AppSettings { ApprovalMode = ApprovalMode.AlwaysApprove };
+        var queue = new ConfirmationQueue(() => settings);
+
+        var ordinary = queue.ConfirmAsync("Агент", Action("registry"), "s1");
+        Assert.True(await ordinary);
+        Assert.False(queue.TryPeek(out _));
+
+        var guard = queue.ConfirmAsync(
+            "Агент",
+            SynGuard.DescribeBlock("run_powershell", """{"command":"Get-Process"}"""),
+            "s1");
+
+        Assert.False(guard.IsCompleted);
+        Assert.True(queue.TryPeek(out var asked));
+        Assert.Equal("run_powershell", asked.Info.ToolName);
+
+        queue.CompleteCurrent(false);
+        Assert.False(await guard);
+    }
+
+    [Fact]
     public async Task Cancelling_one_chat_leaves_the_other_chats_question_waiting()
     {
         var queue = Queue();

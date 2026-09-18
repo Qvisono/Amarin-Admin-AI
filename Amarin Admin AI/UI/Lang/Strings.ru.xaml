@@ -265,6 +265,8 @@
     <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Разбираем, что делает скрипт…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. Без разрешения загрузка не состоится.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
+    <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard прочитал этот вызов как атаку на ваш компьютер. Прочитайте команду целиком и разрешайте только то, что понимаете.</system:String>
+    <system:String x:Key="S.Confirm.GuardSummary" xml:space="preserve">SynGuard считает вызов {0} атакой</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Требуется подтверждение</system:String>
 
     <system:String x:Key="S.Context.Auto" xml:space="preserve">«Авто»: модель выбирается при ответе, поэтому показан меньший из двух потолков.</system:String>
@@ -567,7 +569,7 @@
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение - учитываю</system:String>
-    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard остановил вызов {0}: распознан вредоносный замысел</system:String>
+    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard прочитал вызов {0} как атаку, и вы его не разрешили</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы показать в проводнике</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;Файла больше нет на месте</system:String>

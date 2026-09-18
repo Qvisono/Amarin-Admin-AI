@@ -233,26 +233,43 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     /// </summary>
     /// <remarks>
     /// Делегатом, а не готовым клиентом, по той же причине, что <c>AgentHost.Route</c>: живая
-    /// проверка уходит в сеть, а проверять надо то, что вокруг неё — что помеченный вызов не
-    /// исполнился, а соседние исполнились.
+    /// проверка уходит в сеть, а проверять надо то, что вокруг неё — что про помеченный вызов
+    /// спросили человека, что отказ его не пустил, а соседние вызовы всё равно исполнились.
     /// </remarks>
-    internal Func<IReadOnlyList<SynGuardCall>, CancellationToken, Task<SynGuardReport>>? Guard { get; set; }
+    internal Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? Guard { get; set; }
 
     /// <summary>
-    /// Идентификаторы вызовов раунда, которые защитник запретил. Пусто, когда защита выключена.
+    /// Вызовы раунда, помеченные защитником: которые человек не разрешил и которые разрешил.
+    /// Оба множества пусты, когда защита выключена или ничего не помечено.
+    /// </summary>
+    private readonly record struct GuardVerdicts(HashSet<string> Refused, HashSet<string> Approved)
+    {
+        public static GuardVerdicts Empty => new(
+            new HashSet<string>(StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal));
+
+        public bool Any => Refused.Count > 0 || Approved.Count > 0;
+    }
+
+    /// <summary>
+    /// Спрашивает защитника про раунд, а про помеченные им вызовы — человека.
     /// </summary>
     /// <remarks>
     /// Весь раунд одним запросом: шесть инструментов иначе стоили бы шести проверок, а связку
-    /// из двух безобидных по отдельности вызовов не увидел бы никто.
+    /// из двух безобидных по отдельности вызовов не увидел бы никто. Помеченный вызов не
+    /// запрещается молча: защитник ошибается — тот же планировщик он читает как закрепление в
+    /// системе, — и без вопроса его ошибка становится тупиком, из которого человек не выведет
+    /// работу иначе как выключив защиту целиком.
     /// </remarks>
-    private async Task<HashSet<string>> AskGuardAsync(
+    private async Task<GuardVerdicts> AskGuardAsync(
+        string task,
         IReadOnlyList<ToolCall> toolCalls,
         CancellationToken cancellationToken)
     {
-        var blocked = new HashSet<string>(StringComparer.Ordinal);
+        var verdicts = GuardVerdicts.Empty;
         if (Guard is not { } guard || toolCalls.Count == 0)
         {
-            return blocked;
+            return verdicts;
         }
 
         var calls = new List<SynGuardCall>(toolCalls.Count);
@@ -263,7 +280,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
         var report = await _ui.RunBusyAsync(
                 "Проверяю безопасность…",
-                () => guard(calls, cancellationToken),
+                () => guard(new SynGuardRequest(task ?? "", calls), cancellationToken),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -274,14 +291,23 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
         for (var i = 0; i < toolCalls.Count && i < report.Safe.Count; i++)
         {
-            if (!report.Safe[i])
+            if (report.Safe[i])
             {
-                blocked.Add(toolCalls[i].Id);
-                _ui.Warn($"SynGuard остановил {toolCalls[i].Function.Name}: распознан вредоносный замысел.");
+                continue;
             }
+
+            var toolCall = toolCalls[i];
+            _ui.Warn($"SynGuard считает {toolCall.Function.Name} атакой - спрашиваю разрешения.");
+
+            var approved = await _ui.ConfirmDangerousActionAsync(
+                    SynGuard.DescribeBlock(toolCall.Function.Name, toolCall.Function.Arguments),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            _ = approved ? verdicts.Approved.Add(toolCall.Id) : verdicts.Refused.Add(toolCall.Id);
         }
 
-        return blocked;
+        return verdicts;
     }
 
     public Task<AgentRunResult> RunAsync(string userRequest, CancellationToken cancellationToken = default) =>
@@ -408,7 +434,8 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
             toolsUsed = true;
 
-            await ExecuteToolCallsAsync(assistantMessage.ToolCalls, messages, cancellationToken).ConfigureAwait(false);
+            await ExecuteToolCallsAsync(userRequest, assistantMessage.ToolCalls, messages, cancellationToken)
+                .ConfigureAwait(false);
             FoldNotes(messages);
 
             if (round < _options.MaxToolRounds)
@@ -521,15 +548,16 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     }
 
     private async Task ExecuteToolCallsAsync(
+        string task,
         IReadOnlyList<ToolCall> toolCalls,
         List<ChatMessage> messages,
         CancellationToken cancellationToken)
     {
         // До разбора аргументов и до подтверждений: защитник смотрит на то, что модель написала,
         // а запрещённый вызов не должен ни исполниться, ни попасть в окно подтверждения.
-        var blocked = await AskGuardAsync(toolCalls, cancellationToken).ConfigureAwait(false);
+        var verdicts = await AskGuardAsync(task, toolCalls, cancellationToken).ConfigureAwait(false);
 
-        if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, blocked, out var batch))
+        if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, verdicts, out var batch))
         {
             await ExecuteParallelBatchAsync(batch, messages, cancellationToken).ConfigureAwait(false);
             return;
@@ -537,13 +565,18 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
         foreach (var toolCall in toolCalls)
         {
-            if (blocked.Contains(toolCall.Id))
+            if (verdicts.Refused.Contains(toolCall.Id))
             {
                 RefuseBlockedCall(toolCall, messages);
                 continue;
             }
 
-            await ExecuteOneToolCallSequentialAsync(toolCall, messages, cancellationToken).ConfigureAwait(false);
+            await ExecuteOneToolCallSequentialAsync(
+                    toolCall,
+                    messages,
+                    verdicts.Approved.Contains(toolCall.Id),
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -557,17 +590,18 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         messages.Add(BuildToolMessage(toolCall, result));
     }
 
-    /// <param name="blocked">
-    /// Запрещённые защитником вызовы. Раунд с таким вызовом параллельным не собирается: его
-    /// придётся пройти по одному, чтобы на месте запрещённого оказался отказ.
+    /// <param name="verdicts">
+    /// Помеченные защитником вызовы. Раунд с таким вызовом параллельным не собирается: его
+    /// придётся пройти по одному, чтобы на месте запрещённого оказался отказ, а разрешённый
+    /// не спросили вторично.
     /// </param>
     private bool TryBuildParallelBatch(
         IReadOnlyList<ToolCall> toolCalls,
-        HashSet<string> blocked,
+        GuardVerdicts verdicts,
         out List<PreparedCall> batch)
     {
         batch = [];
-        if (blocked.Count > 0)
+        if (verdicts.Any)
         {
             return false;
         }
@@ -656,9 +690,15 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         }
     }
 
+    /// <param name="guardApproved">
+    /// Человек уже разрешил этот вызов в вопросе SynGuard. Обычное подтверждение тогда
+    /// пропускается: иначе на одну задачу планировщика он ответил бы дважды подряд, причём
+    /// второй вопрос слабее первого — в первом ему показали всю команду целиком.
+    /// </param>
     private async Task ExecuteOneToolCallSequentialAsync(
         ToolCall toolCall,
         List<ChatMessage> messages,
+        bool guardApproved,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -692,7 +732,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             return;
         }
 
-        var isDangerous = DangerousActionGuard.RequiresConfirmation(toolName, arguments);
+        var isDangerous = !guardApproved && DangerousActionGuard.RequiresConfirmation(toolName, arguments);
         var needsUndoSnapshot = DangerousActionGuard.RequiresUndoSnapshot(toolName, arguments);
         if (isDangerous)
         {

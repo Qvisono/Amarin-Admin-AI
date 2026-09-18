@@ -265,6 +265,8 @@
     <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Working out what the script does…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The agent wants to download a file from a site that is not on the allowlist. Without permission the download will not happen.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">From chat "{0}"</system:String>
+    <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard read this call as an attack on your computer. Read the whole command below and allow only what you understand.</system:String>
+    <system:String x:Key="S.Confirm.GuardSummary" xml:space="preserve">SynGuard reads the {0} call as an attack</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Confirmation required</system:String>
 
     <system:String x:Key="S.Context.Auto" xml:space="preserve">Auto: the model is chosen while answering, so the smaller of the two ceilings is shown.</system:String>
@@ -567,7 +569,7 @@
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Domain {0} is blocked</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Tools finished</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message - taking it in</system:String>
-    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard stopped the {0} call: malicious intent recognised</system:String>
+    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard read the {0} call as an attack and you did not allow it</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to show it in Explorer</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;The file is no longer there</system:String>

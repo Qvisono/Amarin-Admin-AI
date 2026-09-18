@@ -43,7 +43,9 @@ internal sealed class ConfirmationQueue
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_settings().ApprovalMode == ApprovalMode.AlwaysApprove)
+        // AlwaysAsk минует режим «подтверждать всё автоматически»: так спрашивает SynGuard про
+        // вызов, который счёл атакой, и удобство не вправе отвечать за человека на этот вопрос.
+        if (!info.AlwaysAsk && _settings().ApprovalMode == ApprovalMode.AlwaysApprove)
         {
             return true;
         }
