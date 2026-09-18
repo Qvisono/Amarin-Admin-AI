@@ -14,7 +14,7 @@ public sealed class RestorePointTool : ITool
 
     public string Description =>
         "Windows System Restore points: list existing points, check if restore is enabled and storage usage, " +
-        "create a checkpoint (max 1 per 24h). Does NOT restore to a point — use rstrui.exe for rollback.";
+        "create a checkpoint (max 1 per 24h). Does NOT restore to a point - use rstrui.exe for rollback.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -51,7 +51,7 @@ public sealed class RestorePointTool : ITool
                 "create" => Task.FromResult(Create(arguments)),
                 _ => Task.FromResult(ToolResult.Fail(
                     $"Unknown action: {action}. Supported: list, create, status. " +
-                    "Откат к точке не реализован — запустите rstrui.exe (Панель управления → Восстановление)."))
+                    "Откат к точке не реализован - запустите rstrui.exe (Панель управления → Восстановление)."))
             };
         }
         catch (Exception ex)
@@ -167,7 +167,7 @@ public sealed class RestorePointTool : ITool
         Write-Output ''
         Write-Output '=== Shadow storage (место под точки) ==='
         if (-not $isAdmin) {
-          Write-Output 'Подсказка: сведения о теневом хранилище (Win32_ShadowStorage / vssadmin) требуют прав администратора — не ошибка.'
+          Write-Output 'Подсказка: сведения о теневом хранилище (Win32_ShadowStorage / vssadmin) требуют прав администратора - не ошибка.'
         }
 
         $gotStorage = $false
@@ -236,7 +236,7 @@ public sealed class RestorePointTool : ITool
             $r = $recent | Sort-Object SequenceNumber -Descending | Select-Object -First 1
             $t = $null
             try { $t = [System.Management.ManagementDateTimeConverter]::ToDateTime($r.CreationTime) } catch { $t = $r.CreationTime }
-            Write-Output "За последние 24 часа уже есть точка восстановления (Seq=$($r.SequenceNumber), $t, «$($r.Description)»). Лимит Windows — не ошибка. Новую точку сейчас создавать не нужно; используйте action=list."
+            Write-Output "За последние 24 часа уже есть точка восстановления (Seq=$($r.SequenceNumber), $t, «$($r.Description)»). Лимит Windows - не ошибка. Новую точку сейчас создавать не нужно; используйте action=list."
             exit 0
           }
         } catch {}

@@ -18,7 +18,7 @@ internal static class ChatTitle
     internal static string SystemPrompt(string languageName) =>
         $"""
         You name chats. You are not a chatbot and you do not talk to the user.
-        Write the title in {languageName}. The message may be in any other language —
+        Write the title in {languageName}. The message may be in any other language -
         name what it is about in {languageName} anyway, never echo the message's language.
         Output only the title: 2 to 4 short words, maximum 24 characters.
         Never answer the message. Never greet. Never ask. Never explain.

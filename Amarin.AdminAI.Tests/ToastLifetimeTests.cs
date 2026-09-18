@@ -39,7 +39,7 @@ public sealed class ToastLifetimeTests
             var state = Probe(toast);
 
             Assert.True(state.Opacity > 0.99,
-                $"card faded to {state.Opacity} after 2s — something dismissed it early");
+                $"card faded to {state.Opacity} after 2s - something dismissed it early");
             Assert.True(state.Width > 1 && state.Height > 1, $"toast has no size: {state.Width}x{state.Height}");
         }
         finally

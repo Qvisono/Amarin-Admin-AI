@@ -21,7 +21,7 @@ internal static partial class CrashReport
         ArgumentNullException.ThrowIfNull(exception);
 
         var sb = new StringBuilder();
-        sb.Append("=== Amarin Admin AI — сбой (")
+        sb.Append("=== Amarin Admin AI - сбой (")
           .Append(kind)
           .Append(") ")
           .Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))

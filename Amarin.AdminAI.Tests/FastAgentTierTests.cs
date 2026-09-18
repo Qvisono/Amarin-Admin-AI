@@ -74,7 +74,23 @@ public sealed class FastAgentTierTests
     [Fact]
     public void The_model_has_a_name_rather_than_a_humanised_id()
     {
-        Assert.Equal("DeepSeek V4 Flash", VeniceModelCatalog.GetDisplayName("deepseek-v4-flash-0731-fast"));
+        Assert.Equal("DeepSeek V4 Flash Fast", VeniceModelCatalog.GetDisplayName("deepseek-v4-flash-0731-fast"));
+        Assert.Equal("DeepSeek V4 Flash", VeniceModelCatalog.GetDisplayName("deepseek-v4-flash-0731"));
+    }
+
+    [Fact]
+    public void The_two_flash_models_do_not_share_a_name()
+    {
+        // Баг, который это закрепляет: короткое имя быстрой модели обрывалось на «DeepSeek V4
+        // Flash», а соседний deepseek-v4-flash-0731 проходил мимо словаря и humanize'ился в
+        // «Deepseek V4 Flash 0731». В настройках они стоят строка под строкой, и понять, какая
+        // где выбрана, было нельзя — одно имя выглядело обрезанным другим.
+        var fast = VeniceModelCatalog.GetDisplayName("deepseek-v4-flash-0731-fast");
+        var plain = VeniceModelCatalog.GetDisplayName("deepseek-v4-flash-0731");
+
+        Assert.NotEqual(fast, plain);
+        Assert.DoesNotContain("0731", fast, StringComparison.Ordinal);
+        Assert.DoesNotContain("0731", plain, StringComparison.Ordinal);
     }
 
     [Fact]

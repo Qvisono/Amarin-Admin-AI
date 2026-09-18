@@ -57,7 +57,7 @@ public sealed class ResumeTurnTests
                 {
                     Assert.True(
                         i + 1 < session.ApiMessages.Count && session.ApiMessages[i + 1].Role == "tool",
-                        "у вызова инструмента нет ответа — продолжить такую стенограмму нельзя");
+                        "у вызова инструмента нет ответа - продолжить такую стенограмму нельзя");
                 }
             }
 

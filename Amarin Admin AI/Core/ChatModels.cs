@@ -62,6 +62,17 @@ public sealed class ChatSession
     /// <summary>Length of <see cref="ApiMessages"/> when <see cref="LastPromptTokens"/> was measured.</summary>
     public int LastPromptTokensApiIndex { get; set; }
 
+    /// <summary>
+    /// Пересказ переписки в одну-две фразы: по нему ищут чат, когда помнят, о чём он был,
+    /// а не как назывался. Пишется моделью «быстрая» после каждого ответа.
+    /// </summary>
+    /// <remarks>
+    /// Источник истины — здесь; в <see cref="ChatIndexEntry.Summary"/> лежит копия, чтобы поиск
+    /// по всем чатам не читал каждый файл. У переписок, сохранённых до появления поля, пусто:
+    /// сводка соберётся при следующем ответе.
+    /// </remarks>
+    public string? Summary { get; set; }
+
     /// <summary>Во что обошёлся придуманный заголовок этой переписки.</summary>
     /// <remarks>
     /// Живёт на чате, а не только на сообщении: заголовок считается в отрыве от хода, и его
@@ -136,6 +147,16 @@ public sealed class ChatDisplayMessage
     /// поэтому её прибавляют, а не вычитают.
     /// </remarks>
     public VeniceCost? TitleCost { get; set; }
+
+    /// <summary>
+    /// Цена сводки, дописанной после этого ответа.
+    /// </summary>
+    /// <remarks>
+    /// Сводка считается уже после того, как счёт сообщения закрыт, поэтому отдельного места
+    /// ожидания, как у заголовка, ей не нужно: цена всегда попадает ровно на тот ответ, который
+    /// её и вызвал. Клиент у неё свой, ход этих денег не видит — значит их прибавляют.
+    /// </remarks>
+    public VeniceCost? SummaryCost { get; set; }
 
     /// <summary>
     /// Во что обошлась проверка SynGuard за весь ход: по одному запросу на раунд инструментов
@@ -273,4 +294,11 @@ public sealed class ChatIndexEntry
     /// than the session so pinning never counts as an edit to the conversation itself.
     /// </summary>
     public bool IsPinned { get; set; }
+
+    /// <summary>
+    /// Копия <see cref="ChatSession.Summary"/>. Лежит в индексе, потому что поиск по смыслу
+    /// и вкладка сводок в журнале читают их все разом — по файлу на чат это была бы сотня
+    /// чтений с диска на каждое нажатие.
+    /// </summary>
+    public string? Summary { get; set; }
 }

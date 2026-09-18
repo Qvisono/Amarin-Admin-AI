@@ -76,7 +76,7 @@ internal sealed class ContextRing
 
         if (!_usage.HasScale)
         {
-            _amount.Text = "—";
+            _amount.Text = "-";
             _progress.Visibility = Visibility.Collapsed;
             _plate.ToolTip = Loc.Get("S.Context.Unknown");
             return;

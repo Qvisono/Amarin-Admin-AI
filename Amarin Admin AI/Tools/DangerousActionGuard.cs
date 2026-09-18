@@ -176,7 +176,7 @@ internal static partial class DangerousActionGuard
                 sb.AppendLine("  (categories не указаны)");
             }
 
-            sb.AppendLine("Параметр path на cleanup НЕ влияет — произвольные пути не удаляются.");
+            sb.AppendLine("Параметр path на cleanup НЕ влияет - произвольные пути не удаляются.");
             sb.AppendLine("Откат снимком сессии не применим.");
         }
 
@@ -184,7 +184,7 @@ internal static partial class DangerousActionGuard
             action is "install" or "upgrade" or "upgrade_all" or "uninstall")
         {
             sb.AppendLine("Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.");
-            sb.AppendLine("Откат снимком сессии не применим — winget install/uninstall снимком не откатывается.");
+            sb.AppendLine("Откат снимком сессии не применим - winget install/uninstall снимком не откатывается.");
         }
 
         if (toolName.Equals("firewall_rules", StringComparison.OrdinalIgnoreCase) &&
@@ -208,17 +208,17 @@ internal static partial class DangerousActionGuard
                 sb.AppendLine($"feature_name: {Truncate(fn.GetString() ?? "", 120)}");
             }
 
-            sb.AppendLine("PreviousState будет в ответе тулы — для ручного отката (enable/disable обратно).");
+            sb.AppendLine("PreviousState будет в ответе тулы - для ручного отката (enable/disable обратно).");
             sb.AppendLine("Снимок сессии восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.");
-            sb.AppendLine("Машина НЕ перезагружается автоматически; при RestartNeeded=True — reboot вручную.");
+            sb.AppendLine("Машина НЕ перезагружается автоматически; при RestartNeeded=True - reboot вручную.");
         }
 
         if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
             action is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group")
         {
             sb.AppendLine("Изменение локальных учёток/членства в группах.");
-            sb.AppendLine("PreviousEnabled / previous members будут в ответе тулы — для ручного отката.");
-            sb.AppendLine("Снимок сессии — службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
+            sb.AppendLine("PreviousEnabled / previous members будут в ответе тулы - для ручного отката.");
+            sb.AppendLine("Снимок сессии - службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
             sb.AppendLine("Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.");
         }
 

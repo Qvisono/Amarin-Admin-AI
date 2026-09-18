@@ -1,0 +1,73 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Пресет «Garnet». Собран из Palette.Dark.xaml: тёплая почти нейтральная база, винный акцент -->
+
+
+    <!-- Поверхности -->
+    <SolidColorBrush x:Key="Bg.Window"   Color="#FF151012"/>
+    <SolidColorBrush x:Key="Bg.Sidebar"  Color="#FF1A1517"/>
+    <SolidColorBrush x:Key="Bg.Panel"    Color="#FF1E181A"/>
+    <!-- Как Bg.Panel, но только для поверхностей внутри окна (поле ввода). Существует
+         отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
+         это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
+    <SolidColorBrush x:Key="Bg.Glass"    Color="#FF1E181A"/>
+    <SolidColorBrush x:Key="Bg.Card"     Color="#FF231C1E"/>
+    <SolidColorBrush x:Key="Bg.Raised"   Color="#FF2A2225"/>
+    <SolidColorBrush x:Key="Bg.Hover"    Color="#FF322A2C"/>
+    <SolidColorBrush x:Key="Bg.Selected" Color="#FF3D3336"/>
+    <SolidColorBrush x:Key="Bg.Track"    Color="#FF443A3D"/>
+    <SolidColorBrush x:Key="Bg.Elevated" Color="#FF534749"/>
+
+    <!-- Рамки -->
+    <SolidColorBrush x:Key="Border.Subtle"  Color="#FF241D1F"/>
+    <SolidColorBrush x:Key="Border.Default" Color="#FF332A2D"/>
+    <SolidColorBrush x:Key="Border.Strong"  Color="#FF55474B"/>
+
+    <!-- Текст и иконки -->
+    <SolidColorBrush x:Key="Text.Primary"   Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="Text.Bright"    Color="#FFF0EBEC"/>
+    <SolidColorBrush x:Key="Text.Body"      Color="#FFE9E3E4"/>
+    <SolidColorBrush x:Key="Text.Secondary" Color="#FFD6CFD1"/>
+    <SolidColorBrush x:Key="Text.Tertiary"  Color="#FFC2BABC"/>
+    <SolidColorBrush x:Key="Text.Muted"     Color="#FF9C9295"/>
+    <SolidColorBrush x:Key="Text.Dim"       Color="#FF8A8083"/>
+    <SolidColorBrush x:Key="Text.Faint"     Color="#FF6F6568"/>
+    <SolidColorBrush x:Key="Text.OnAccent"  Color="#FF1A1012"/>
+    <SolidColorBrush x:Key="Text.PrimaryTranslucent" Color="#E6FFFFFF"/>
+
+    <!-- Акцент (инвертированная заливка основных кнопок) -->
+    <SolidColorBrush x:Key="Accent.Fill"        Color="#FFE2657C"/>
+    <SolidColorBrush x:Key="Accent.FillHover"   Color="#FFEC8296"/>
+    <SolidColorBrush x:Key="Accent.FillPressed" Color="#FFC4556A"/>
+
+    <!-- Статусы -->
+    <SolidColorBrush x:Key="Status.Success"       Color="#FF5FB878"/>
+    <SolidColorBrush x:Key="Status.SuccessSoft"   Color="#FF7E9A86"/>
+    <SolidColorBrush x:Key="Status.Danger"        Color="#FFFF7A7A"/>
+    <SolidColorBrush x:Key="Status.DangerStrong"  Color="#FFC42B1C"/>
+    <SolidColorBrush x:Key="Status.Warning"       Color="#FFE0A73E"/>
+    <SolidColorBrush x:Key="Status.WarningBorder" Color="#FF3A2E16"/>
+    <SolidColorBrush x:Key="Status.WarningSurface" Color="#FF241C0E"/>
+
+    <!-- Оверлеи и прочее -->
+    <SolidColorBrush x:Key="Overlay.Scrim" Color="#7F000000"/>
+    <SolidColorBrush x:Key="Overlay.Glass" Color="#48E0B6C0"/>
+
+    <!-- Подложка логотипов: одинакова в обеих темах, логотипы вендоров белые -->
+    <SolidColorBrush x:Key="Brand.LogoChip" Color="#FF241E20"/>
+
+
+    <!-- Подсветка кода и ссылки в markdown -->
+    <SolidColorBrush x:Key="Code.Inline"   Color="#FFEFB27E"/>
+    <SolidColorBrush x:Key="Code.Keyword"  Color="#FFE87F94"/>
+    <SolidColorBrush x:Key="Code.Control"  Color="#FFC49BDC"/>
+    <SolidColorBrush x:Key="Code.String"   Color="#FFA3C68A"/>
+    <SolidColorBrush x:Key="Code.Comment"  Color="#FF847B7D"/>
+    <SolidColorBrush x:Key="Code.Number"   Color="#FFEDA184"/>
+    <SolidColorBrush x:Key="Code.Type"     Color="#FF8CC3BE"/>
+    <SolidColorBrush x:Key="Code.Variable" Color="#FFCBADE0"/>
+    <SolidColorBrush x:Key="Code.Function" Color="#FFEBC78D"/>
+    <SolidColorBrush x:Key="Code.Operator" Color="#FF948A8C"/>
+    <SolidColorBrush x:Key="Link.Default"  Color="#FFE88FA0"/>
+    <SolidColorBrush x:Key="Link.Hover"    Color="#FFF3B2BF"/>
+</ResourceDictionary>

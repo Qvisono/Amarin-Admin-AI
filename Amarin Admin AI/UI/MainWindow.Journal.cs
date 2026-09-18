@@ -28,7 +28,8 @@ namespace Amarin.UI
         private enum JournalTab
         {
             Actions,
-            Snapshots
+            Snapshots,
+            Summaries
         }
 
         private JournalTab _journalTab = JournalTab.Actions;
@@ -87,6 +88,12 @@ namespace Amarin.UI
             if (_journalTab == JournalTab.Snapshots)
             {
                 LoadSnapshotsAsync(token);
+                return;
+            }
+
+            if (_journalTab == JournalTab.Summaries)
+            {
+                LoadSummaries(token);
                 return;
             }
 
@@ -163,6 +170,39 @@ namespace Amarin.UI
             ApplyJournalFilter();
         }
 
+        /// <summary>
+        /// Сводки читаются из индекса и потому синхронно: там уже лежит всё, что нужно строке,
+        /// и ходить за этим в файлы переписок не приходится.
+        /// </summary>
+        private void LoadSummaries(int token)
+        {
+            if (_services is null || token != _journalLoadToken)
+            {
+                return;
+            }
+
+            var rows = new List<(JournalRow, string)>();
+            foreach (var item in _services.ChatStore.List())
+            {
+                // Открытый чат в индексе может отставать на последний ответ: сводку ему только
+                // что дописали, а на диск он ляжет следующим сохранением.
+                var text = string.Equals(item.Id, _session.Id, StringComparison.Ordinal)
+                    ? _session.Summary ?? item.Summary
+                    : item.Summary;
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                var entry = new ChatSummaryEntry(
+                    item.Id, DisplayTitle(item.Title), text, item.UpdatedAt);
+                rows.Add((JournalView.ToRow(entry), JournalView.SearchKey(entry)));
+            }
+
+            _journalRows = rows;
+            ApplyJournalFilter();
+        }
+
         private void Publish(int token, IReadOnlyList<JournalEntry> entries, bool showChat)
         {
             if (token != _journalLoadToken)
@@ -211,9 +251,12 @@ namespace Amarin.UI
                 return "S.Journal.NoMatches";
             }
 
-            return _journalTab == JournalTab.Snapshots
-                ? "S.Journal.NoSnapshots"
-                : _journalAllChats ? "S.Journal.NoActionsAnywhere" : "S.Journal.NoActionsHere";
+            return _journalTab switch
+            {
+                JournalTab.Snapshots => "S.Journal.NoSnapshots",
+                JournalTab.Summaries => "S.Journal.NoSummaries",
+                _ => _journalAllChats ? "S.Journal.NoActionsAnywhere" : "S.Journal.NoActionsHere"
+            };
         }
 
         private void ShowJournalBusy()
@@ -238,6 +281,7 @@ namespace Amarin.UI
             _journalTab = tab;
             JournalActionsTab.IsChecked = tab == JournalTab.Actions;
             JournalSnapshotsTab.IsChecked = tab == JournalTab.Snapshots;
+            JournalSummariesTab.IsChecked = tab == JournalTab.Summaries;
             LoadJournal();
         }
 
@@ -274,7 +318,7 @@ namespace Amarin.UI
             JournalDetailTitle.Text = row.Title;
             JournalDetailMeta.Text = row.Entry is { } entry
                 ? JournalView.BuildMeta(entry)
-                : row.Snapshot is { } snapshot ? JournalView.BuildMeta(snapshot) : "";
+                : row.Snapshot is { } snapshot ? JournalView.BuildMeta(snapshot) : row.Timestamp;
 
             // A restore point is already fully described by the two lines above; there is nothing
             // for a model to add, so the button that would promise an explanation is not offered.
@@ -282,6 +326,12 @@ namespace Amarin.UI
             JournalAskButton.IsEnabled = true;
             JournalOpenChatButton.Visibility =
                 string.IsNullOrEmpty(row.ChatId) ? Visibility.Collapsed : Visibility.Visible;
+
+            // Пересобрать можно только сводку, и только когда ясно, какого она чата.
+            JournalRebuildSummaryButton.Visibility =
+                row.Summary is null ? Visibility.Collapsed : Visibility.Visible;
+            JournalRebuildSummaryButton.IsEnabled = true;
+            JournalRebuildSummaryButton.Content = Loc.Get("S.Journal.Summary.Rebuild");
 
             JournalAnswerBox.Visibility = Visibility.Collapsed;
             JournalAnswerText.Text = "";
@@ -303,6 +353,11 @@ namespace Amarin.UI
 
         private static string ResultOf(JournalRow row)
         {
+            if (row.Summary is { } summary)
+            {
+                return summary.Text;
+            }
+
             if (row.Snapshot is { } snapshot)
             {
                 return snapshot.Path;
@@ -413,6 +468,9 @@ namespace Amarin.UI
         private void JournalSnapshotsTab_Click(object sender, RoutedEventArgs e) =>
             SetJournalTab(JournalTab.Snapshots);
 
+        private void JournalSummariesTab_Click(object sender, RoutedEventArgs e) =>
+            SetJournalTab(JournalTab.Summaries);
+
         private void JournalScopeChat_Click(object sender, RoutedEventArgs e) => SetJournalScope(false);
 
         private void JournalScopeAll_Click(object sender, RoutedEventArgs e) => SetJournalScope(true);
@@ -451,6 +509,52 @@ namespace Amarin.UI
             if (_journalDetail?.Entry is { } entry)
             {
                 AskAboutEntryAsync(entry);
+            }
+        }
+
+        private async void JournalRebuildSummaryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_journalDetail?.Summary is not { } summary)
+            {
+                return;
+            }
+
+            JournalRebuildSummaryButton.IsEnabled = false;
+            JournalRebuildSummaryButton.Content = Loc.Get("S.Journal.Summary.Rebuilding");
+
+            var ok = await RebuildSummaryAsync(summary.ChatId, CancellationToken.None).ConfigureAwait(true);
+
+            // Пока модель пересобирала, человек мог уйти со страницы подробностей на другую
+            // строку или закрыть журнал — тогда трогать кнопку уже нельзя, она не про этот чат.
+            if (_journalDetail?.Summary is not { } current ||
+                !string.Equals(current.ChatId, summary.ChatId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            JournalRebuildSummaryButton.IsEnabled = true;
+            JournalRebuildSummaryButton.Content = Loc.Get("S.Journal.Summary.Rebuild");
+
+            if (!ok)
+            {
+                JournalAnswerBox.Visibility = Visibility.Visible;
+                JournalAnswerText.Text = Loc.Get("S.Journal.Summary.Failed");
+                return;
+            }
+
+            // Строка в списке под нами держит прежний текст: перечитываем её вместе со сводкой.
+            var chatId = summary.ChatId;
+            LoadJournal();
+            var updated = _journalRows
+                .Select(item => item.Row)
+                .FirstOrDefault(item => string.Equals(item.Summary?.ChatId, chatId, StringComparison.Ordinal));
+            if (updated is not null)
+            {
+                ShowJournalDetails(updated);
+            }
+            else
+            {
+                ShowJournalList();
             }
         }
 

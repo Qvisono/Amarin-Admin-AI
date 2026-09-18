@@ -19,7 +19,7 @@ public sealed class GenerateImageTool : ITool
     public string Description =>
         "Generate an image from a text description and place it in the reply. Use it when a " +
         "picture explains better than words: diagrams, infographics, illustrations, mock-ups. " +
-        "Describe the whole picture in one detailed English prompt — including any text that " +
+        "Describe the whole picture in one detailed English prompt - including any text that " +
         "must appear inside it. The image is inserted where this tool is called, so call it at " +
         "the point in the answer where the picture belongs.";
 

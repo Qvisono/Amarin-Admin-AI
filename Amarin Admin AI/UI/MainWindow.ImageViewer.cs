@@ -327,7 +327,7 @@ namespace Amarin.UI
 
             MessageBox.Show(
                 this,
-                "Не удалось записать изображение в буфер обмена — его удерживает другое приложение.",
+                "Не удалось записать изображение в буфер обмена - его удерживает другое приложение.",
                 Title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);

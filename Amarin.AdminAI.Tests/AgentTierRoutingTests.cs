@@ -108,7 +108,7 @@ public sealed class AgentTierRoutingTests
     [InlineData("heavy", "heavy")]
     [InlineData("HEAVY.", "heavy")]
     [InlineData("`fast`", "fast")]
-    [InlineData("fast — задача простая", "fast")]
+    [InlineData("fast - задача простая", "fast")]
     [InlineData("lite", "lite")]
     [InlineData("не могу решить", "lite")]
     [InlineData("", "lite")]
@@ -225,7 +225,7 @@ public sealed class AgentTierRoutingTests
         var host = Host(settings);
         var models = new List<string>();
         host.Route = (_, _, _) => throw new InvalidOperationException(
-            "Уровень назвал человек командой — спрашивать о нём модель значит тратить его деньги.");
+            "Уровень назвал человек командой - спрашивать о нём модель значит тратить его деньги.");
         host.Attempt = (_, modelId, _) =>
         {
             models.Add(modelId);

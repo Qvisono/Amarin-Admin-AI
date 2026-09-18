@@ -307,4 +307,39 @@ public sealed class AppearanceThemeTests
         Assert.True(border >= fill * 3, $"рамка {border}, заливка {fill}");
     }
 
+    [Theory]
+    [InlineData("Garnet")]
+    [InlineData("Ruby")]
+    [InlineData("Coral")]
+    [InlineData("Cherry")]
+    public void The_red_presets_keep_the_red_in_the_accent_and_not_in_the_fills(string palette)
+    {
+        // Первая версия этих четырёх была залита красным по всем поверхностям, и на это
+        // пожаловались теми же словами, что и на Forest: «залить всё одним цветом — некрасиво».
+        // Правило сформулировано в шапке Palette.EdgeBlue.xaml: разлитый по поверхностям цвет
+        // читается не как палитра, а как светофильтр поверх серого интерфейса.
+        var (surfaces, accent) = _wpf.Ui.Invoke(() =>
+        {
+            var loaded = LoadPalette(palette);
+            int Of(string key) =>
+                Chroma(((System.Windows.Media.SolidColorBrush)loaded[key]).Color);
+
+            string[] ramp =
+            [
+                "Bg.Window", "Bg.Sidebar", "Bg.Panel", "Bg.Card", "Bg.Raised",
+                "Bg.Hover", "Bg.Selected", "Bg.Track", "Bg.Elevated"
+            ];
+
+            return (ramp.Select(Of).ToList(), Of("Accent.Fill"));
+        });
+
+        // 16 — потолок спокойной части каталога: столько же у Bg.Window самых насыщенных
+        // Ocean и Cobalt, а у образцового семейства Edge разброс каналов и вовсе 9.
+        var loudest = surfaces.Max();
+        Assert.True(loudest <= 16, $"{palette}: поверхность набрала {loudest} - это заливка");
+
+        // И цвета в акценте обязано быть заметно больше, чем в любой поверхности: иначе тема
+        // держится на фоне, а не на акценте, и перестаёт быть одной из семьи.
+        Assert.True(accent >= loudest * 4, $"{palette}: акцент {accent}, поверхность {loudest}");
+    }
 }

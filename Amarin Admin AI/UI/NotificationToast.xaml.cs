@@ -65,7 +65,7 @@ public partial class NotificationToast : Window
             return;
         }
 
-        PerfLog.Write("toast theme_missing — using built-in dark brushes");
+        PerfLog.Write("toast theme_missing - using built-in dark brushes");
         Card.Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
         Card.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
         Preview.Foreground = new SolidColorBrush(Color.FromRgb(0xB0, 0xB0, 0xB0));

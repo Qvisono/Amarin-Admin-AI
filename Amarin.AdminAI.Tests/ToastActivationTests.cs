@@ -55,7 +55,7 @@ public sealed class ToastActivationTests
 
             Thread.Sleep(800);
             var opacity = _wpf.Ui.Invoke(() => Opacity(state.Toast!));
-            Assert.True(opacity > 0.99, $"card faded to {opacity} — the activation dismissed it");
+            Assert.True(opacity > 0.99, $"card faded to {opacity} - the activation dismissed it");
             Assert.NotNull(_wpf.Ui.Invoke(() => window.CurrentToast));
         }
         finally
@@ -83,7 +83,7 @@ public sealed class ToastActivationTests
 
             Thread.Sleep(500);
             var opacity = _wpf.Ui.Invoke(() => Opacity(toast!));
-            Assert.True(opacity < 0.5, $"card was still at {opacity} — returning to the app should clear it");
+            Assert.True(opacity < 0.5, $"card was still at {opacity} - returning to the app should clear it");
         }
         finally
         {

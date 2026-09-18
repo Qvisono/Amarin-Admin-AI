@@ -134,7 +134,7 @@ internal static class AgentTierRouter
         };
     }
 
-    /// <summary>Спрашивает модель. Любой сбой — <see cref="FallbackTier"/>.</summary>
+    /// <summary>Спрашивает модель. Любой сбой - <see cref="FallbackTier"/>.</summary>
     /// <param name="modelsBlock">
     /// Блок MODELS. Идёт последним: последний абзац промпта обещает, что модели названы ниже.
     /// </param>

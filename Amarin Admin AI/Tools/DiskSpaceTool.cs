@@ -28,7 +28,7 @@ public sealed partial class DiskSpaceTool : ITool
 
     public string Description =>
         "Analyze free/used disk space, find largest items under a path, and clean fixed safe categories " +
-        "(recycle bin, temp, WU cache, dumps, thumbnails). cleanup ignores path — only hardcoded locations.";
+        "(recycle bin, temp, WU cache, dumps, thumbnails). cleanup ignores path - only hardcoded locations.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -404,7 +404,7 @@ public sealed partial class DiskSpaceTool : ITool
         {
             return ToolResult.Fail(
                 "cleanup requires categories: recycle_bin, temp_files, windows_update_cache, memory_dumps, thumbnails. " +
-                "path is ignored — only fixed safe locations are cleaned.");
+                "path is ignored - only fixed safe locations are cleaned.");
         }
 
         // Only whitelist enum values reach the script.
@@ -439,7 +439,7 @@ public sealed partial class DiskSpaceTool : ITool
     }
 
     private static string CleanupScript(string categoriesCsv) => $$"""
-        # categories is a fixed whitelist from C# — never free-form paths from the model.
+        # categories is a fixed whitelist from C# - never free-form paths from the model.
         $categories = @({{categoriesCsv}})
         Write-Output '=== disk_space cleanup (fixed paths only; path parameter ignored) ==='
         Write-Output ("Categories: " + ($categories -join ', '))
@@ -477,7 +477,7 @@ public sealed partial class DiskSpaceTool : ITool
                 }
               }
             } catch {
-              # locked files — skip
+              # locked files - skip
             }
           }
           return $freed

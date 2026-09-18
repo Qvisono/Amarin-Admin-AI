@@ -31,7 +31,7 @@
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Password at startup</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Locks entry to the app. Chats on disk are not encrypted</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Not set</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Password saved.&#10;&#10;It locks access to the app but does not encrypt chats — the files in the app folder stay readable.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Password saved.&#10;&#10;It locks access to the app but does not encrypt chats - the files in the app folder stay readable.</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Set</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">current</system:String>
     <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">password set</system:String>
@@ -60,7 +60,7 @@
     <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">The data archive does not carry this image format. Use one of: {0}</system:String>
     <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Photo brightness</system:String>
     <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Chat column width</system:String>
-    <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Long lines are harder to read — a narrow column helps</system:String>
+    <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Long lines are harder to read - a narrow column helps</system:String>
     <system:String x:Key="S.Appearance.Colours" xml:space="preserve">Colours</system:String>
     <system:String x:Key="S.Appearance.CompactComposer" xml:space="preserve">Compact input box</system:String>
     <system:String x:Key="S.Appearance.CompactComposerDesc" xml:space="preserve">While the box is empty and the mouse is far, it folds into a strip and gives the room to the chat</system:String>
@@ -79,7 +79,7 @@
     <system:String x:Key="S.Appearance.FontSystem" xml:space="preserve">System</system:String>
     <system:String x:Key="S.Appearance.Frost" xml:space="preserve">Frost</system:String>
     <system:String x:Key="S.Appearance.Glass" xml:space="preserve">Glass</system:String>
-    <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Popup menus and dialogs stay opaque — the desktop shows through them, not the backdrop</system:String>
+    <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Popup menus and dialogs stay opaque - the desktop shows through them, not the backdrop</system:String>
     <system:String x:Key="S.Appearance.Gradient" xml:space="preserve">Gradient</system:String>
     <system:String x:Key="S.Appearance.Grain" xml:space="preserve">Grain</system:String>
     <system:String x:Key="S.Appearance.GrainDesc" xml:space="preserve">Matte micro-texture over the interface</system:String>
@@ -93,7 +93,7 @@
     <system:String x:Key="S.Appearance.MotionDrift" xml:space="preserve">Rotation</system:String>
     <system:String x:Key="S.Appearance.MotionPulse" xml:space="preserve">Pulse</system:String>
     <system:String x:Key="S.Appearance.MouseReaction" xml:space="preserve">Mouse reaction</system:String>
-    <system:String x:Key="S.Appearance.MouseReactionDesc" xml:space="preserve">Off — the strip ignores the pointer and unfolds only when the caret is placed in it</system:String>
+    <system:String x:Key="S.Appearance.MouseReactionDesc" xml:space="preserve">Off - the strip ignores the pointer and unfolds only when the caret is placed in it</system:String>
     <system:String x:Key="S.Appearance.PanelDensity" xml:space="preserve">Panel density</system:String>
     <system:String x:Key="S.Appearance.PhotoBlur" xml:space="preserve">Photo blur</system:String>
     <system:String x:Key="S.Appearance.Presets" xml:space="preserve">Ready-made combinations</system:String>
@@ -120,13 +120,13 @@
     <system:String x:Key="S.Attach.Dropped" xml:space="preserve">Dropped image</system:String>
     <system:String x:Key="S.Attach.FileBadge" xml:space="preserve">FILE</system:String>
     <system:String x:Key="S.Attach.FileMissing" xml:space="preserve">{0}: file not found.</system:String>
-    <system:String x:Key="S.Attach.FileTooBig" xml:space="preserve">{0} — {1}, which is over the {2} limit.</system:String>
+    <system:String x:Key="S.Attach.FileTooBig" xml:space="preserve">{0} - {1}, which is over the {2} limit.</system:String>
     <system:String x:Key="S.Attach.FileUnreadable" xml:space="preserve">{0}: the file cannot be read.</system:String>
     <system:String x:Key="S.Attach.FilterAll" xml:space="preserve">Images and documents</system:String>
     <system:String x:Key="S.Attach.FilterAnyFile" xml:space="preserve">All files</system:String>
     <system:String x:Key="S.Attach.FilterDocuments" xml:space="preserve">Documents</system:String>
     <system:String x:Key="S.Attach.FilterImages" xml:space="preserve">Images</system:String>
-    <system:String x:Key="S.Attach.NoVision" xml:space="preserve">Model {0} does not support images — choose one with vision.</system:String>
+    <system:String x:Key="S.Attach.NoVision" xml:space="preserve">Model {0} does not support images - choose one with vision.</system:String>
     <system:String x:Key="S.Attach.NotAnImage" xml:space="preserve">{0}: not an image, or unreadable.</system:String>
     <system:String x:Key="S.Attach.OpenFailed" xml:space="preserve">{0}: the file could not be opened.</system:String>
     <system:String x:Key="S.Attach.OpenFile" xml:space="preserve">Click to open</system:String>
@@ -134,15 +134,15 @@
     <system:String x:Key="S.Attach.RemoveFile" xml:space="preserve">Remove the file</system:String>
     <system:String x:Key="S.Attach.RemoveImage" xml:space="preserve">Remove the image</system:String>
     <system:String x:Key="S.Attach.RevealFailed" xml:space="preserve">{0}: the file is no longer there.</system:String>
-    <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">At most {0} documents can be attached — the rest were skipped.</system:String>
-    <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">At most {0} images can be attached — the rest were skipped.</system:String>
+    <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">At most {0} documents can be attached - the rest were skipped.</system:String>
+    <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">At most {0} images can be attached - the rest were skipped.</system:String>
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} does not fit: together with what is attached it would be {1}, and the limit is {2}.</system:String>
     <system:String x:Key="S.Attach.UnsupportedFormat" xml:space="preserve">{0}: the model cannot read {1} files.</system:String>
 
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Drag the image with the mouse; the wheel or the slider sets the zoom.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Profile picture area</system:String>
 
-    <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Funds are nearly gone — image generation may fail.</system:String>
+    <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Funds are nearly gone - image generation may fail.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Not much is left.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Refreshed after every answer from a model.</system:String>
     <system:String x:Key="S.Balance.Title" xml:space="preserve">Venice balance:</system:String>
@@ -171,12 +171,12 @@
     <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">The archive holds no data.</system:String>
     <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">The archive was made by a newer version of the app. Update and try again.</system:String>
     <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">This is not an archive. Choose a file made by the Export button.</system:String>
-    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">The archive does not look like Amarin data — it has no manifest.</system:String>
+    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">The archive does not look like Amarin data - it has no manifest.</system:String>
     <system:String x:Key="S.Bundle.Error.TooLarge" xml:space="preserve">The archive is too large, or it unpacks into suspiciously much data.</system:String>
-    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">The file cannot be read — it may be damaged or held by another program.</system:String>
+    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">The file cannot be read - it may be damaged or held by another program.</system:String>
     <system:String x:Key="S.Bundle.Error.WriteFailed" xml:space="preserve">Could not write the data to disk. Your data was left as it was.</system:String>
     <system:String x:Key="S.Bundle.Export" xml:space="preserve">Export</system:String>
-    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Tick what goes into the archive. It is not encrypted — keep it where you keep personal files.</system:String>
+    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Tick what goes into the archive. It is not encrypted - keep it where you keep personal files.</system:String>
     <system:String x:Key="S.Bundle.Export.DialogTitle" xml:space="preserve">Where to save the archive</system:String>
     <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Archive saved:&#10;{0}</system:String>
     <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">Nothing to save in these categories yet</system:String>
@@ -192,7 +192,7 @@
     <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">chats: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Choose a data archive</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Done. Imported: {0}</system:String>
-    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">Nothing new in the archive — your data is unchanged.</system:String>
+    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">Nothing new in the archive - your data is unchanged.</system:String>
     <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">languages: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Add to mine</system:String>
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Your data stays. Only what you do not have is added: chats under new names, missing profiles and languages. Settings and appearance are left alone.</system:String>
@@ -258,10 +258,10 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Ask anything...</system:String>
 
-    <system:String x:Key="S.Confirm.Code" xml:space="preserve">What will run — {0} lines</system:String>
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">What will run - {0} lines</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Technical details</system:String>
-    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">The model said nothing about this script — read it yourself.</system:String>
-    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">The explanation did not arrive — read the script yourself.</system:String>
+    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">The model said nothing about this script - read it yourself.</system:String>
+    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">The explanation did not arrive - read the script yourself.</system:String>
     <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Working out what the script does…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">The agent wants to download a file from a site that is not on the allowlist. Without permission the download will not happen.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">From chat "{0}"</system:String>
@@ -270,13 +270,14 @@
     <system:String x:Key="S.Context.Auto" xml:space="preserve">Auto: the model is chosen while answering, so the smaller of the two ceilings is shown.</system:String>
     <system:String x:Key="S.Context.Estimate" xml:space="preserve">Approximate: Venice reports the exact figure after a model answers.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">The context is filling up. Consider a new chat for a long task.</system:String>
-    <system:String x:Key="S.Context.Full" xml:space="preserve">The context is nearly full — the start of the conversation will drop out soon.</system:String>
+    <system:String x:Key="S.Context.Full" xml:space="preserve">The context is nearly full - the start of the conversation will drop out soon.</system:String>
     <system:String x:Key="S.Context.Title" xml:space="preserve">Context: {0} of {1} ({2}%)</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Context usage appears once the model is known.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Chat title</system:String>
     <system:String x:Key="S.Cost.Guard" xml:space="preserve">Protection</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Model</system:String>
     <system:String x:Key="S.Cost.Router" xml:space="preserve">Router</system:String>
+    <system:String x:Key="S.Cost.Summary" xml:space="preserve">Chat summary</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Total</system:String>
 
     <system:String x:Key="S.Crash.ClipboardBusy" xml:space="preserve">Clipboard is busy</system:String>
@@ -295,9 +296,9 @@
     <system:String x:Key="S.Crash.OutOfMemory" xml:space="preserve">Out of memory.</system:String>
     <system:String x:Key="S.Crash.Quit" xml:space="preserve">Close the app</system:String>
 
-    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Agent — fast tasks</system:String>
-    <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Agent — heavy tasks</system:String>
-    <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Agent — light tasks</system:String>
+    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Agent - fast tasks</system:String>
+    <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Agent - heavy tasks</system:String>
+    <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Agent - light tasks</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Technical agent prompt</system:String>
     <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Answer models</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Chat titles</system:String>
@@ -315,12 +316,12 @@
 
     <system:String x:Key="S.Data.Allowlist" xml:space="preserve">Allowed download sources</system:String>
     <system:String x:Key="S.Data.AllowlistDesc" xml:space="preserve">Downloads from other sites are refused. Subdomains are allowed automatically</system:String>
-    <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">The list is empty — every download is blocked</system:String>
+    <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">The list is empty - every download is blocked</system:String>
     <system:String x:Key="S.Data.AllowlistRemove" xml:space="preserve">Remove from the list</system:String>
     <system:String x:Key="S.Data.AppFiles" xml:space="preserve">Application files</system:String>
     <system:String x:Key="S.Data.AppFilesDesc" xml:space="preserve">Folder with settings, chats and logs</system:String>
     <system:String x:Key="S.Data.DeleteAll" xml:space="preserve">Delete all data</system:String>
-    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Settings, chats, accounts — irreversibly</system:String>
+    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Settings, chats, accounts - irreversibly</system:String>
     <system:String x:Key="S.Data.DeleteChats" xml:space="preserve">Delete all chats</system:String>
     <system:String x:Key="S.Data.DeleteChatsDesc" xml:space="preserve">Removes every saved conversation</system:String>
     <system:String x:Key="S.Data.Import" xml:space="preserve">Import a chat</system:String>
@@ -353,7 +354,7 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Do not allow</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Site is not on the allowlist</system:String>
 
-    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats — while the model answers in one, you can work in another.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats - while the model answers in one, you can work in another.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Conversations and attachments</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Deleting things, writing to the registry, installing software and anything else irreversible is asked about separately and waits for your answer. The prompt says in plain words what is about to happen, and “Technical details” holds the exact command or script. Refusing is a normal reply: the model sees it and looks for another way. There is a mode that confirms everything automatically, but that is a deliberate choice, not the default.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Confirming dangerous actions</system:String>
@@ -366,9 +367,9 @@
     <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Profiles keep conversations and settings apart for several people sharing one computer, and a profile can be locked with a password. The Appearance page holds themes, a custom accent colour, the backdrop, the glass effect and the interface scale.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Profiles and appearance</system:String>
     <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Using the app</system:String>
-    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">The model does more than answer: it reads and writes files, runs PowerShell, inspects Windows event logs and searches the web. Every tool call is reported inside the conversation — expand it to see exactly what was done.</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">The model does more than answer: it reads and writes files, runs PowerShell, inspects Windows event logs and searches the web. Every tool call is reported inside the conversation - expand it to see exactly what was done.</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Tools</system:String>
-    <system:String x:Key="S.Info.Intro" xml:space="preserve">The app talks to Venice.ai models and administers this computer on their instructions. It needs a Venice key to work — below are five steps from signing up to the first answer.</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">The app talks to Venice.ai models and administers this computer on their instructions. It needs a Venice key to work - below are five steps from signing up to the first answer.</system:String>
     <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Venice documentation</system:String>
     <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Project repository</system:String>
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">The Venice documentation answers questions about keys, limits and models. Questions about the app itself, bugs you find and suggestions belong in the project repository.</system:String>
@@ -376,16 +377,16 @@
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Do not paste the key into the chat: the message goes to the model and then stays in the conversation history on disk.</system:String>
     <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file, and anyone who reaches the folder can read it.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Crash reports have the key stripped out on their own, so a report is safe to forward.</system:String>
-    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one — that is a single button.</system:String>
+    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one - that is a single button.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Create the variable for the current user, not for the whole system: a system variable is visible to every account on the computer.</system:String>
     <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Treat the key like a password</system:String>
     <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Connecting Venice.ai</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">The first answer: the key was accepted and the app works</system:String>
-    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">The prompt: what happens, in plain words — details behind the arrow</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">The prompt: what happens, in plain words - details behind the arrow</system:String>
     <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">The top-up dialog: the amount and the credits it buys</system:String>
     <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">The same variable as a single PowerShell command</system:String>
     <system:String x:Key="S.Info.Shot.NewKey" xml:space="preserve">The key dialog: type, lifetime and spending cap</system:String>
-    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">The finished key is shown once — copy it straight away</system:String>
+    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">The finished key is shown once - copy it straight away</system:String>
     <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">The API Keys section, where a key is created</system:String>
     <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Screenshot not added yet: {0}</system:String>
     <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">The model and the reasoning strength, in the row under the input box</system:String>
@@ -398,13 +399,13 @@
     <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">API requests spend from the Venice account: credits granted by a paid plan, or dollars added to the balance. A hundred credits are one dollar. The free plan grants no credits, so there will be no answers until the account is funded. Venice quotes prices per million tokens: light models cost cents, the strongest ones dollars.</system:String>
     <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Put money on the account</system:String>
     <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Open API Keys</system:String>
-    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">The same dialog sets a spending cap — daily, monthly or total. With one in place a mistake in a single conversation cannot eat the whole balance: Venice simply stops answering until the next day or month.</system:String>
-    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Open the API section on the Venice site — it also shows what is left on the account. Press “Generate New API Key” and leave the type as “Inference Only”: that is enough to work, while “Admin” gives the key needless power over the account. The key is shown in full exactly once — copy it right away. A lost key is not recovered: you delete it and issue a new one.</system:String>
+    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">The same dialog sets a spending cap - daily, monthly or total. With one in place a mistake in a single conversation cannot eat the whole balance: Venice simply stops answering until the next day or month.</system:String>
+    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Open the API section on the Venice site - it also shows what is left on the account. Press “Generate New API Key” and leave the type as “Inference Only”: that is enough to work, while “Admin” gives the key needless power over the account. The key is shown in full exactly once - copy it right away. A lost key is not recovered: you delete it and issue a new one.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Create an API key</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Create the variable in the “Edit environment variables for your account” window, or with a single PowerShell command:</system:String>
     <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">Restart the app afterwards: environment variables are read once, at startup.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">The app deliberately has no field for the key: it would then have to store it somewhere. The key is read from the VENICE_API_KEY environment variable — it belongs to your Windows account and is invisible to other users of the computer.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">The app deliberately has no field for the key: it would then have to store it somewhere. The key is read from the VENICE_API_KEY environment variable - it belongs to your Windows account and is invisible to other users of the computer.</system:String>
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the app</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Start the app and send any message. If an answer comes back, the key is in place. The line about a missing key means the variable never arrived: check that it was created for the user rather than the system, and that the app has been restarted. And if Venice answers that funds are insufficient while the account does have money, then the spend limit sits on the key itself; it is changed in the same API section.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Check that it works</system:String>
@@ -422,6 +423,7 @@
     <system:String x:Key="S.Journal.NoMatches" xml:space="preserve">Nothing matched. Try another query.</system:String>
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">The result was not kept.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">No restore points yet. They are taken automatically before risky changes to the system.</system:String>
+    <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">No summaries yet. They are written after each answer the model gives.</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Action journal</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Open the chat</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Could not read the history. Check access to the program data folder.</system:String>
@@ -434,12 +436,19 @@
     <system:String x:Key="S.Journal.StatusDone" xml:space="preserve">done</system:String>
     <system:String x:Key="S.Journal.StatusFailed" xml:space="preserve">failed</system:String>
     <system:String x:Key="S.Journal.StatusRunning" xml:space="preserve">running</system:String>
+    <system:String x:Key="S.Journal.Summary.Failed" xml:space="preserve">The rebuild did not work out. Try again.</system:String>
+    <system:String x:Key="S.Journal.Summary.Rebuild" xml:space="preserve">Rebuild summary</system:String>
+    <system:String x:Key="S.Journal.Summary.Rebuilding" xml:space="preserve">Rebuilding…</system:String>
     <system:String x:Key="S.Journal.Tab.Actions" xml:space="preserve">Actions</system:String>
     <system:String x:Key="S.Journal.Tab.Snapshots" xml:space="preserve">Restore points</system:String>
+    <system:String x:Key="S.Journal.Tab.Summaries" xml:space="preserve">Summaries</system:String>
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Approximate time: this record has no stamp of its own, so the message time is used.</system:String>
-    <system:String x:Key="S.Journal.Title" xml:space="preserve">What the model did to this computer</system:String>
+    <system:String x:Key="S.Journal.Title" xml:space="preserve">Journal</system:String>
+    <system:String x:Key="S.Language.Delete" xml:space="preserve">Delete language</system:String>
+    <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Delete the language “{0}”? Its translation would have to be ordered again.</system:String>
+    <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Could not delete the language. Check access to the app data folder.</system:String>
     <system:String x:Key="S.Language.Desc" xml:space="preserve">Russian and English ship with the app. "New language" has a model translate the whole interface; the result is saved and joins this list.</system:String>
-    <system:String x:Key="S.Language.Done" xml:space="preserve">Done — the language was added.</system:String>
+    <system:String x:Key="S.Language.Done" xml:space="preserve">Done - the language was added.</system:String>
     <system:String x:Key="S.Language.Failed" xml:space="preserve">The translation failed: {0}</system:String>
     <system:String x:Key="S.Language.ModelRefused" xml:space="preserve">Model {0} did not answer: {1}</system:String>
     <system:String x:Key="S.Language.NameDesc" xml:space="preserve">Name the language the way it names itself: Deutsch, Français, 日本語. The translation takes about a minute.</system:String>
@@ -447,7 +456,7 @@
     <system:String x:Key="S.Language.NativeName" xml:space="preserve">English</system:String>
     <system:String x:Key="S.Language.NeedName" xml:space="preserve">Name the language.</system:String>
     <system:String x:Key="S.Language.New" xml:space="preserve">New language</system:String>
-    <system:String x:Key="S.Language.NoNetwork" xml:space="preserve">No connection to Venice — the translation did not happen.</system:String>
+    <system:String x:Key="S.Language.NoNetwork" xml:space="preserve">No connection to Venice - the translation did not happen.</system:String>
     <system:String x:Key="S.Language.NothingTranslated" xml:space="preserve">The model returned no usable strings.</system:String>
     <system:String x:Key="S.Language.Progress" xml:space="preserve">Translating: {0} of {1} parts</system:String>
     <system:String x:Key="S.Language.Title" xml:space="preserve">Interface language</system:String>
@@ -485,7 +494,7 @@
     <system:String x:Key="S.Password.CurrentTitle" xml:space="preserve">Current password</system:String>
     <system:String x:Key="S.Password.LoginTitle" xml:space="preserve">Sign in · {0}</system:String>
     <system:String x:Key="S.Password.Mismatch" xml:space="preserve">The passwords do not match.</system:String>
-    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">The password locks access to the app. It does not encrypt chats — the files on disk stay readable. A forgotten password cannot be recovered.</system:String>
+    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">The password locks access to the app. It does not encrypt chats - the files on disk stay readable. A forgotten password cannot be recovered.</system:String>
     <system:String x:Key="S.Password.NewTitle" xml:space="preserve">New password</system:String>
     <system:String x:Key="S.Password.NoPassword" xml:space="preserve">no password</system:String>
     <system:String x:Key="S.Password.Prompt" xml:space="preserve">Enter the password</system:String>
@@ -502,7 +511,7 @@
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>
 
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In “Auto” the reasoning is taken from the light and heavy models — set those on the Customize page</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In “Auto” the reasoning is taken from the light and heavy models - set those on the Customize page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning strength</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
@@ -510,6 +519,13 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
+    <system:String x:Key="S.Search.Failed" xml:space="preserve">The search did not work out. Try again.</system:String>
+    <system:String x:Key="S.Search.Found" xml:space="preserve">Found</system:String>
+    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">By content</system:String>
+    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">By title</system:String>
+    <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Nothing to search yet: summaries appear once the model has answered.</system:String>
+    <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - search what the chats are about</system:String>
+    <system:String x:Key="S.Search.Working" xml:space="preserve">Searching the summaries…</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
@@ -550,7 +566,7 @@
     <system:String x:Key="S.Tools.CallDone" xml:space="preserve">done</system:String>
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Domain {0} is blocked</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Tools finished</system:String>
-    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message — taking it in</system:String>
+    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message - taking it in</system:String>
     <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard stopped the {0} call: malicious intent recognised</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to show it in Explorer</system:String>
@@ -558,20 +574,20 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
-    <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" — no answer</system:String>
-    <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running — wait for one of them.</system:String>
+    <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" - no answer</system:String>
+    <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running - wait for one of them.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No Venice.ai API key.&#10;Set the VENICE_API_KEY environment variable.</system:String>
 
-    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Attachments cannot join an answer already in progress — wait for it to finish.</system:String>
-    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">A command cannot join an answer already in progress — wait for it to finish.</system:String>
+    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Attachments cannot join an answer already in progress - wait for it to finish.</system:String>
+    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">A command cannot join an answer already in progress - wait for it to finish.</system:String>
     <system:String x:Key="S.Turn.Queued" xml:space="preserve">Sent. The model will take it into account on its next step.</system:String>
     <system:String x:Key="S.Update.Confirm" xml:space="preserve">Update and restart</system:String>
     <system:String x:Key="S.Update.Desc" xml:space="preserve">The file is downloaded from GitHub, checked against its checksum and replaces the app in its folder. The previous version stays alongside until the next start. After the replacement the app will restart.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Update the app</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Check automatically</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. The check only learns the latest version number — downloading is up to you</system:String>
-    <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available — {1} is installed</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. The check only learns the latest version number - downloading is up to you</system:String>
+    <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available - {1} is installed</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
     <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Could not release the program file: {0}</system:String>
@@ -587,11 +603,11 @@
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">The update did not happen: {0}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub turned the check down. Open the release page by hand.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">The update check must not carry somebody else's key.</system:String>
-    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match — the file was deleted.</system:String>
+    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match - the file was deleted.</system:String>
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
-    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name — shortcuts and the run-as-administrator flag survive.</system:String>
+    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name - shortcuts and the run-as-administrator flag survive.</system:String>
     <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Only an administrator may write to the program folder, so Windows will ask for permission.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">No check has run yet</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">No connection to GitHub: {0}</system:String>
@@ -600,8 +616,8 @@
     <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">The release carries no recognisable version.</system:String>
     <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">The release has no ready Windows build.</system:String>
     <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Could not prepare a folder for the download ({0}). Download the new version by hand.</system:String>
-    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">The release file is not hosted on GitHub — the update was cancelled.</system:String>
-    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">This file did not come from an update download — the swap was cancelled.</system:String>
+    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">The release file is not hosted on GitHub - the update was cancelled.</system:String>
+    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">This file did not come from an update download - the swap was cancelled.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Open release</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Could not make sense of the GitHub answer.</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
@@ -614,12 +630,12 @@
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Version and updates</system:String>
     <system:String x:Key="S.Updates.TooBig" xml:space="preserve">The release file is implausibly large.</system:String>
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">an unknown amount</system:String>
-    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">The latest version is installed — {0}</system:String>
+    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">The latest version is installed - {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Update</system:String>
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Update as administrator</system:String>
-    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish — the program will restart.</system:String>
+    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish - the program will restart.</system:String>
 
-    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model — this one is out of the list until the app restarts.</system:String>
+    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model - this one is out of the list until the app restarts.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
 

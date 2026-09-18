@@ -12,7 +12,7 @@
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterScreen"
-        Title="Amarin Admin AI — сбой">
+        Title="Amarin Admin AI - сбой">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

@@ -20,6 +20,10 @@ public partial class ModelPickerField : UserControl
     {
         SelectedModelId = modelId ?? "";
         SelectedLabel.Text = VeniceModelCatalog.GetDisplayName(SelectedModelId);
+
+        // Короткое имя скрывает ID, а в настройках рядом стоят модели, чьи имена различаются
+        // одним словом. Точный ID под курсором — единственное место, где их видно наверняка.
+        OpenButton.ToolTip = string.IsNullOrWhiteSpace(SelectedModelId) ? null : SelectedModelId;
         Panel.SetSelected(SelectedModelId);
     }
 

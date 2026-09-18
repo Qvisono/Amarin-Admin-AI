@@ -49,7 +49,7 @@ internal static class DownloadPaths
         }
         else
         {
-            error = "URL has no filename in path — provide destination.";
+            error = "URL has no filename in path - provide destination.";
             return false;
         }
 

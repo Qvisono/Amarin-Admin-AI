@@ -38,7 +38,7 @@ public sealed class ToolArgumentsTests
     [Fact]
     public void Text_after_the_object_is_dropped()
     {
-        var arguments = ToolArguments.Parse("""{"complexity":"heavy"} — запускаю агента""");
+        var arguments = ToolArguments.Parse("""{"complexity":"heavy"} - запускаю агента""");
 
         Assert.Equal("heavy", arguments.GetProperty("complexity").GetString());
     }

@@ -838,7 +838,7 @@ public sealed class FollowUpControlTests
                     if (notes.Count > 0)
                     {
                         Told.AddRange(notes);
-                        return ToolResult.Ok("Отчёт агента: учёл вводную — " + string.Join("; ", notes));
+                        return ToolResult.Ok("Отчёт агента: учёл вводную - " + string.Join("; ", notes));
                     }
                 }
 

@@ -286,7 +286,7 @@ public sealed class MaximizedWindowTests
             return (chrome.ResizeBorderThickness, chrome.CaptionHeight, leftovers);
         });
 
-        Assert.True(thickness.Left >= 4, "кромка уже 4 DIP — в неё не попасть мышью");
+        Assert.True(thickness.Left >= 4, "кромка уже 4 DIP - в неё не попасть мышью");
         Assert.True(thickness.Top >= 4 && thickness.Right >= 4 && thickness.Bottom >= 4);
 
         // Заголовок остаётся нулевым: перетаскивание окна делает WindowMoveBehavior, и ненулевая

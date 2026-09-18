@@ -70,6 +70,41 @@
             <Border x:Name="SidebarBorder" Background="{DynamicResource Bg.Sidebar}">
                 <Border.Resources>
 
+                    <!--
+                        Переключатель режима поиска. Форма взята у JournalTab, чтобы два места, где
+                        в программе выбирают «что именно смотрим», читались одинаково; размер меньше —
+                        боковая панель узкая, и полноразмерные вкладки в неё не помещаются.
+                    -->
+                    <Style x:Key="SearchModeTab" TargetType="ToggleButton">
+                        <Setter Property="Height" Value="22"/>
+                        <Setter Property="Padding" Value="8,0"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="5"
+                                            Padding="{TemplateBinding Padding}">
+                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
+                                                   Foreground="{DynamicResource Text.Faint}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+
                     <!-- Заголовок группы чатов -->
                     <Style x:Key="GroupHeader" TargetType="TextBlock">
                         <Setter Property="FontSize" Value="10.5"/>
@@ -305,7 +340,6 @@
                             </Button>
 
                             <!-- Поиск -->
-                            <!-- Поиск -->
                             <Border x:Name="SearchBorder" Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -335,7 +369,8 @@
                  Background="Transparent" BorderThickness="0" Padding="0"
                  VerticalContentAlignment="Center" FontSize="12"
                  Foreground="{DynamicResource Text.Bright}" CaretBrush="{DynamicResource Text.Bright}"
-                 TextChanged="SearchBox_TextChanged"/>
+                 TextChanged="SearchBox_TextChanged"
+                 PreviewKeyDown="SearchBox_PreviewKeyDown"/>
                                     <TextBlock Grid.Column="1" Text="{DynamicResource S.Sidebar.Search}" FontSize="12" Foreground="{DynamicResource Text.Faint}"
                    VerticalAlignment="Center" IsHitTestVisible="False">
                                         <TextBlock.Style>
@@ -351,6 +386,21 @@
                                     </TextBlock>
                                 </Grid>
                             </Border>
+                            <!--
+                                Режим поиска. Появляется только при непустом запросе: место в
+                                боковой панели дорого, а выбор осмыслен ровно тогда, когда есть
+                                что искать, — заодно так видно, что выбор вообще есть.
+                            -->
+                            <StackPanel x:Name="SearchModeRow" Orientation="Horizontal"
+                                        Margin="6,0,6,6" Visibility="Collapsed">
+                                <ToggleButton x:Name="SearchModeTitles" Style="{StaticResource SearchModeTab}"
+                                              IsChecked="True" Content="{DynamicResource S.Search.Mode.Titles}"
+                                              Click="SearchModeTitles_Click"/>
+                                <ToggleButton x:Name="SearchModeContent" Style="{StaticResource SearchModeTab}"
+                                              Margin="4,0,0,0" Content="{DynamicResource S.Search.Mode.Content}"
+                                              Click="SearchModeContent_Click"/>
+                            </StackPanel>
+
                             <!-- ===== СПИСОК ЧАТОВ ===== -->
                             <StackPanel x:Name="ChatListPanel"/>
 
@@ -1313,7 +1363,7 @@
                                                       StrokeThickness="2"
                                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                             </Grid>
-                                            <TextBlock x:Name="ContextAmount" Text="—" FontSize="12"
+                                            <TextBlock x:Name="ContextAmount" Text="-" FontSize="12"
                                                        FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
@@ -1340,7 +1390,7 @@
                                                     </GeometryGroup>
                                                 </Path.Data>
                                             </Path>
-                                            <TextBlock x:Name="BalanceAmount" Text="—" FontSize="12"
+                                            <TextBlock x:Name="BalanceAmount" Text="-" FontSize="12"
                                                        FontWeight="SemiBold" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Border>
@@ -2010,7 +2060,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.20.1"
+                                               Text="v1.20.2"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -2760,7 +2810,8 @@
                                     <local:LanguagePickerField x:Name="LanguagePicker" Grid.Column="1"
                                                                MinWidth="170" VerticalAlignment="Center"
                                                                LanguagePicked="LanguagePicker_LanguagePicked"
-                                                               NewLanguageRequested="LanguagePicker_NewLanguageRequested"/>
+                                                               NewLanguageRequested="LanguagePicker_NewLanguageRequested"
+                               LanguageDeleteRequested="LanguagePicker_LanguageDeleteRequested"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -2791,7 +2842,7 @@
                                     <local:ReasoningPicker x:Name="LiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="LiteModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="LiteModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
@@ -2804,7 +2855,7 @@
                                     <local:ReasoningPicker x:Name="HeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="HeavyModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="HeavyModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
@@ -2821,7 +2872,7 @@
                                     <local:ReasoningPicker x:Name="RouterReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="2" Width="156" VerticalAlignment="Center"
+                                    <local:ModelPickerField x:Name="RouterModelPicker" Grid.Column="2" VerticalAlignment="Center"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
 
@@ -2838,7 +2889,7 @@
                                     <local:ReasoningPicker x:Name="TitleReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="TitleModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="TitleModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
@@ -2851,7 +2902,7 @@
                                     <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid Margin="0,0,0,8">
@@ -2864,7 +2915,7 @@
                                     <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
                                 <Grid>
@@ -2877,7 +2928,7 @@
                                     <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                            Margin="8,0" VerticalAlignment="Center"
                                                            ChoiceChanged="SettingsReasoningChanged"/>
-                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2" Width="156"
+                                    <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2"
                                               ModelPicked="SettingsModelPicked"/>
                                 </Grid>
 
@@ -2935,7 +2986,7 @@
                                                                Height="28" MinWidth="72" ShowGaugeIcon="True"
                                                                Margin="8,0" VerticalAlignment="Center"
                                                                ChoiceChanged="SettingsReasoningChanged"/>
-                                        <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2" Width="156"
+                                        <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2"
                                                   VerticalAlignment="Center"
                                                   ModelPicked="SettingsModelPicked"/>
                                     </Grid>
@@ -3417,6 +3468,9 @@
                                 <ToggleButton x:Name="JournalSnapshotsTab" Style="{StaticResource JournalTab}"
                                               Content="{DynamicResource S.Journal.Tab.Snapshots}"
                                               Click="JournalSnapshotsTab_Click"/>
+                                <ToggleButton x:Name="JournalSummariesTab" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Tab.Summaries}"
+                                              Click="JournalSummariesTab_Click"/>
                             </StackPanel>
                             <StackPanel x:Name="JournalScopePanel" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <ToggleButton x:Name="JournalScopeChat" Style="{StaticResource JournalTab}"
@@ -3544,6 +3598,10 @@
                                         <Button x:Name="JournalOpenChatButton" Style="{StaticResource DialogSecondaryButton}"
                                                 Content="{DynamicResource S.Journal.OpenChat}"
                                                 Click="JournalOpenChatButton_Click"/>
+                                        <Button x:Name="JournalRebuildSummaryButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Visibility="Collapsed" Margin="8,0,0,0"
+                                                Content="{DynamicResource S.Journal.Summary.Rebuild}"
+                                                Click="JournalRebuildSummaryButton_Click"/>
                                     </StackPanel>
 
                                     <Border x:Name="JournalAnswerBox" Visibility="Collapsed" Margin="0,12,0,0"

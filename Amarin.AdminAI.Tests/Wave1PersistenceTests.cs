@@ -215,7 +215,7 @@ public sealed class Wave1PersistenceTests
                 Role = "assistant",
                 Id = "a1",
                 CreatedAt = new DateTime(2026, 8, 30, 7, 1, 4),
-                Text = "Проверил сеть — всё в порядке.",
+                Text = "Проверил сеть - всё в порядке.",
                 RequestedModelId = "claude-sonnet-5",
                 ResolvedModelId = "claude-sonnet-5",
                 Duration = TimeSpan.FromSeconds(4),
@@ -279,7 +279,7 @@ public sealed class Wave1PersistenceTests
             session.ApiMessages.Add(new ChatMessage
             {
                 Role = "assistant",
-                Content = ChatContent.Text("Проверил сеть — всё в порядке."),
+                Content = ChatContent.Text("Проверил сеть - всё в порядке."),
                 ToolCalls =
                 [
                     new ToolCall

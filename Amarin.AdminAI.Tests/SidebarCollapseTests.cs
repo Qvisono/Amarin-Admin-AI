@@ -63,7 +63,7 @@ public sealed class SidebarCollapseTests
 
         Assert.True(
             needed <= available + 0.01,
-            $"the expand button and its margins need {needed} of a {available}-wide rail — " +
+            $"the expand button and its margins need {needed} of a {available}-wide rail - " +
             "the overhang gets clipped square, shearing the corner off the hover plate");
     }
 

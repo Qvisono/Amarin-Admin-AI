@@ -24,6 +24,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Крестик удаления языка. Живёт кнопкой внутри кнопки строки, поэтому его нажатие
+             гасится в коде: иначе тем же кликом переключился бы язык, который удаляют. -->
+        <Style x:Key="LanguageRemove" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
+                            <Path x:Name="Glyph" Data="M0,0 L8,8 M8,0 L0,8"
+                                  Width="8" Height="8" Stretch="Uniform"
+                                  Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource Status.Danger}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>

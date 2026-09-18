@@ -35,6 +35,17 @@ public partial class LanguagePickerField : UserControl
     /// <summary>Нажата «new language» — окно спросит название и запустит перевод.</summary>
     public event EventHandler? NewLanguageRequested;
 
+    /// <summary>Нажат крестик у переведённого языка — окно спросит подтверждение и удалит его.</summary>
+    internal event EventHandler<UiLanguage>? LanguageDeleteRequested;
+
+    /// <summary>
+    /// Имена элементов строки. Тесты ищут галку и крестик по ним, а не по числу детей: детей
+    /// у строки стало переменное количество, и счёт разъезжался бы от языка к языку.
+    /// </summary>
+    internal const string TickName = "LanguageTick";
+
+    internal const string RemoveName = "LanguageRemove";
+
     public void SetSelected(string code)
     {
         _code = LanguageManager.Normalize(code);
@@ -79,6 +90,7 @@ public partial class LanguagePickerField : UserControl
         var row = new Grid();
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var name = new TextBlock
         {
@@ -104,8 +116,35 @@ public partial class LanguagePickerField : UserControl
                 VerticalAlignment = VerticalAlignment.Center
             };
             check.SetResourceReference(Shape.StrokeProperty, "Accent.Fill");
+            check.Name = TickName;
             Grid.SetColumn(check, 1);
             row.Children.Add(check);
+        }
+
+        // Встроенные ru/en удалять нечего — они лежат в сборке, а не файлом на диске, и кнопки
+        // у них просто нет: так же, как её нет у профиля по умолчанию.
+        if (!language.BuiltIn)
+        {
+            var remove = new Button
+            {
+                Style = (Style)FindResource("LanguageRemove"),
+                Name = RemoveName,
+                Margin = new Thickness(6, 0, -4, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = Loc.Get("S.Language.Delete")
+            };
+
+            var removed = language;
+            remove.Click += (_, args) =>
+            {
+                // Без этого клик дошёл бы до кнопки строки и переключил язык, который удаляют.
+                args.Handled = true;
+                PickerPopup.IsOpen = false;
+                LanguageDeleteRequested?.Invoke(this, removed);
+            };
+
+            Grid.SetColumn(remove, 2);
+            row.Children.Add(remove);
         }
 
         var button = new Button

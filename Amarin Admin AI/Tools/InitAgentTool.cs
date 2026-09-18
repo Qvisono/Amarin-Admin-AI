@@ -26,7 +26,7 @@ public sealed class InitAgentTool : ITool
         "The agent does not see the chat. " +
         "You do not choose which model runs it: the app routes the task by prompt and notes. " +
         "notes is one short line for that router about what matters here and what the user asked " +
-        "for — never a model name, never a tier. At most 4 agents at once.";
+        "for - never a model name, never a tier. At most 4 agents at once.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -38,7 +38,7 @@ public sealed class InitAgentTool : ITool
             },
             "notes": {
               "type": "string",
-              "description": "Optional. One short line for the router that picks the model: what the user asked for (to hurry, to be careful) and what makes this work easy or uncertain. Write it only when you have something real to add; leave it out otherwise. Never a model id and never a tier word — you are not choosing the model."
+              "description": "Optional. One short line for the router that picks the model: what the user asked for (to hurry, to be careful) and what makes this work easy or uncertain. Write it only when you have something real to add; leave it out otherwise. Never a model id and never a tier word - you are not choosing the model."
             }
           },
           "required": ["prompt"]

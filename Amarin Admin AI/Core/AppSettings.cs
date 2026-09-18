@@ -54,7 +54,11 @@ public enum AppTheme
     EdgeBlue,
     EdgeLime,
     EdgeAmber,
-    EdgeMagenta
+    EdgeMagenta,
+    Garnet,
+    Ruby,
+    Coral,
+    Cherry
 }
 
 public sealed class AppSettings

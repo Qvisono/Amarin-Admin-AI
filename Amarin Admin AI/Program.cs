@@ -221,6 +221,7 @@ internal static class Program
         ]);
         var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents);
         var titles = new ChatTitleGenerator(http, options, ReadSettings);
+        var summaries = new ChatSummaryGenerator(http, options, ReadSettings);
 
         services = new AppServices
         {
@@ -236,6 +237,7 @@ internal static class Program
             Models = models,
             Chat = engine,
             Titles = titles,
+            Summaries = summaries,
             Confirmations = confirmations,
             StartupPrompt = startup.Prompt
         };
@@ -298,7 +300,7 @@ internal static class Program
 
     private static async Task<int> RunToolSmokeTestAsync()
     {
-        Console.WriteLine("Amarin — smoke-test локальных инструментов (без Venice API)…");
+        Console.WriteLine("Amarin - smoke-test локальных инструментов (без Venice API)…");
         Console.WriteLine();
 
         var registry = new ToolRegistry(

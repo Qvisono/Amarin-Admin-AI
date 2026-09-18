@@ -115,7 +115,7 @@ internal sealed class BalanceBadge
     /// </summary>
     internal static string FormatUsd(decimal? usd) =>
         usd is null
-            ? "—"
+            ? "-"
             : "$" + usd.Value.ToString(usd.Value < 1000m ? "0.00" : "#,0", CultureInfo.InvariantCulture)
                 .Replace(",", " ")
                 .Replace('.', ',');

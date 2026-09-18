@@ -1313,6 +1313,9 @@ namespace Amarin.UI
                 return;
             }
 
+            // Запрос изменился — прошлый ответ модели относился к другому вопросу.
+            SyncSearchModeRow();
+            ResetContentSearch();
             RefreshChatList();
         }
 
@@ -2019,7 +2022,7 @@ namespace Amarin.UI
             }
 
             var query = SearchBox.Text;
-            var items = _services.ChatStore.Search(query);
+            var items = ChatListItems(query);
 
             // Перерисовка стоит чтения index.json с диска и полной пересборки панели, а зовут её
             // теперь и фоновые ходы — по несколько раз за секунду. Если ничего не поменялось,
@@ -2076,18 +2079,31 @@ namespace Amarin.UI
                 }
             }
 
-            AddGroup(Loc.Get("S.ChatList.Pinned"), items.Where(i => i.IsPinned));
-            AddGroup(Loc.Get("S.ChatList.Today"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
-            AddGroup(Loc.Get("S.ChatList.Yesterday"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
-            AddGroup(Loc.Get("S.ChatList.Earlier"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
+            if (IsContentSearchResult && items.Count > 0)
+            {
+                // Порядок задала модель, и это порядок близости к запросу. Разложить его по
+                // «Сегодня» и «Вчера» значило бы перемешать ответ: самый подходящий чат уехал
+                // бы вниз только потому, что в нём давно не писали.
+                AddGroup(Loc.Get("S.Search.Found"), items);
+            }
+            else
+            {
+                AddGroup(Loc.Get("S.ChatList.Pinned"), items.Where(i => i.IsPinned));
+                AddGroup(Loc.Get("S.ChatList.Today"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
+                AddGroup(Loc.Get("S.ChatList.Yesterday"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
+                AddGroup(Loc.Get("S.ChatList.Earlier"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
+            }
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
             {
                 var empty = new TextBlock
                 {
-                    Text = Loc.Get("S.Common.NothingFound"),
+                    // В режиме «по чатам» пусто ещё не значит «не нашлось»: поиск мог и не
+                    // начинаться, и звать это «ничего не найдено» было бы неправдой.
+                    Text = ChatListEmptyText(),
                     FontSize = 12,
-                    Margin = new Thickness(14, 8, 6, 4)
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(14, 8, 10, 4)
                 };
 
                 // Через ресурс, а не кистью: захардкоженный серый не менялся вместе с темой.
@@ -2124,7 +2140,10 @@ namespace Amarin.UI
 
         private string BuildChatListSignature(string query, IReadOnlyList<ChatIndexEntry> items)
         {
-            var builder = new System.Text.StringBuilder(query).Append('|').Append(_session.Id);
+            var builder = new System.Text.StringBuilder(query)
+                .Append('|').Append(_session.Id)
+                .Append('|').Append(_searchByContent ? '1' : '0')
+                .Append('|').Append((int)_contentSearchState);
             foreach (var item in items)
             {
                 builder.Append('|')
@@ -2465,6 +2484,10 @@ namespace Amarin.UI
             {
                 CloseVisibleAnswer(assistant);
             }
+
+            // Сводка дописывается на каждом закрытом ответе — и у фонового хода тоже: искать
+            // по чату, который отвечал в фоне, человек будет наравне с остальными.
+            MaybeUpdateSummary(turn.Session);
 
             // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат.
             MaybeShowCompletionToast(assistant);

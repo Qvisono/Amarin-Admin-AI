@@ -317,7 +317,7 @@ internal static class ChangeRollbackOperations
         {
             using var doc = JsonDocument.Parse(File.ReadAllText(metaPath));
             var label = doc.RootElement.TryGetProperty("label", out var l) ? l.GetString() : "";
-            return string.IsNullOrWhiteSpace(label) ? id : $"{id} — {label}";
+            return string.IsNullOrWhiteSpace(label) ? id : $"{id} - {label}";
         }
         catch
         {

@@ -221,7 +221,7 @@ public sealed class DiskManagementTool : ITool
           Write-Output "Volume: $($vol.FileSystemLabel) FS=$($vol.FileSystem) Health=$($vol.HealthStatus)"
           $sys = $env:SystemDrive.TrimEnd(':').TrimEnd('\')
           if ($drive -eq $sys) {
-            Write-Output 'This is the system volume — offline fix may require reboot (not performed automatically).'
+            Write-Output 'This is the system volume - offline fix may require reboot (not performed automatically).'
           }
           $result = Repair-Volume -DriveLetter $drive -OfflineScanAndFix -ErrorAction Stop
           Write-Output "Repair-Volume -OfflineScanAndFix result: $result"

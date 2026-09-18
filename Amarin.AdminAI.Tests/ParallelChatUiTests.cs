@@ -84,6 +84,7 @@ public sealed class ParallelChatUiTests : IDisposable
             Models = new VeniceModelListCache(venice),
             Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
             Titles = new ChatTitleGenerator(http, options, () => settings),
+            Summaries = new ChatSummaryGenerator(http, options, () => settings),
             Confirmations = new ConfirmationQueue(() => settings)
         };
 
@@ -230,7 +231,7 @@ public sealed class ParallelChatUiTests : IDisposable
                 return ReferenceEquals(Get<ChatSession>(harness.Window, "_session"), turn.Session);
             });
 
-        Assert.True(same, "открытый чат — копия с диска, а не сессия идущего хода");
+        Assert.True(same, "открытый чат - копия с диска, а не сессия идущего хода");
     }
 
     [Fact]

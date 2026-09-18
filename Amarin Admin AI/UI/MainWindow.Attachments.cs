@@ -477,7 +477,7 @@ namespace Amarin.UI
         /// <summary>Подсказка карточки: имя, размер и — пока файл на месте — путь к нему.</summary>
         internal static string DescribeFile(FileAttachment attachment)
         {
-            var head = $"{attachment.FileName} — {AttachmentTypes.FormatSize(attachment.SizeBytes)}";
+            var head = $"{attachment.FileName} - {AttachmentTypes.FormatSize(attachment.SizeBytes)}";
             var location = AttachmentOpener.DescribeLocation(attachment);
             return location is null
                 ? $"{head}\n{Loc.Get("S.Attach.OpenFile")}"

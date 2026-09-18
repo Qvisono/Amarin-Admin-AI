@@ -131,13 +131,13 @@ public sealed class FileSystemTool : ITool
         var sb = new StringBuilder();
         foreach (var dir in Directory.EnumerateDirectories(path).Take(100))
         {
-            sb.AppendLine($"[DIR]  {Path.GetFileName(dir)} — {dir}");
+            sb.AppendLine($"[DIR]  {Path.GetFileName(dir)} - {dir}");
         }
 
         foreach (var file in Directory.EnumerateFiles(path).Take(200))
         {
             var info = new FileInfo(file);
-            sb.AppendLine($"[FILE] {Path.GetFileName(file)} — {file} ({info.Length} bytes)");
+            sb.AppendLine($"[FILE] {Path.GetFileName(file)} - {file} ({info.Length} bytes)");
         }
 
         return ToolResult.Ok(sb.Length == 0 ? "Empty directory." : sb.ToString().TrimEnd());

@@ -29,6 +29,8 @@ internal sealed class AppServices : IDisposable
 
     public required ChatTitleGenerator Titles { get; init; }
 
+    public required ChatSummaryGenerator Summaries { get; init; }
+
     public required ConfirmationQueue Confirmations { get; init; }
 
     public string? StartupPrompt { get; init; }

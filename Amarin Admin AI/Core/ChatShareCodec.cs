@@ -206,6 +206,8 @@ internal static class ChatShareCodec
             api.Add(ChatMessageCloner.CloneForStorage(message));
         }
 
+        // Summary сюда намеренно не переносится: делиться перепиской — не то же, что делиться
+        // пересказом, а у получателя она соберётся заново при первом же ответе.
         return new ChatSession
         {
             Id = session.Id,

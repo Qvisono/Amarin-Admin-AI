@@ -994,7 +994,7 @@ internal sealed partial class ChatEngine
           You do not know which models exist; the app picks them from settings.
           You do not choose confirmation mode; the app does.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
           Do not call init_agent for small talk, definitions, or anything you can answer with knowledge,
           read_file, write_file, or search_web.
@@ -1019,9 +1019,9 @@ internal sealed partial class ChatEngine
             Examples: проверь сеть, disk space, list services.
           heavy = repair, root-cause diagnosis, many steps.
             Examples: Windows won't boot, fix a service or registry, long diagnosis.
-          When unsure, pass lite — never escalate a simple check to heavy.
+          When unsure, pass lite - never escalate a simple check to heavy.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
         Call init_agent only when you must inspect or change THIS PC.
         Do not call init_agent for small talk, jokes, definitions, opinions, how-tos you can answer
@@ -1046,9 +1046,9 @@ internal sealed partial class ChatEngine
             Examples: проверь сеть, disk space, list services.
           heavy = repair, root-cause diagnosis, many steps.
             Examples: Windows won't boot, fix a service or registry, long diagnosis.
-          When unsure, pass lite — never escalate a simple check to heavy.
+          When unsure, pass lite - never escalate a simple check to heavy.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
         Call init_agent only when you must inspect or change THIS PC.
         Do not call init_agent for small talk, jokes, definitions, opinions, how-tos you can answer
@@ -1074,15 +1074,15 @@ internal sealed partial class ChatEngine
           You do not choose confirmation mode; the app does.
           lite = one status check or listing, no repair.
           heavy = repair, root-cause diagnosis, many steps.
-          When unsure, pass lite — never escalate a simple check to heavy.
+          When unsure, pass lite - never escalate a simple check to heavy.
           The prompt argument MUST restate the user's actual request in the user's language:
           what to inspect, which files/folders/types, what to measure or change.
           Never copy examples or canned phrases from these instructions into prompt.
           Never send a generic stub such as a two-word command that ignores the user.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
-          If an agent report is empty, off-topic, or shows the agent did not understand —
+          If an agent report is empty, off-topic, or shows the agent did not understand -
           call init_agent again with a clearer prompt. Do not invent the answer.
         Call init_agent only when you must inspect or change THIS PC.
         Do not call init_agent for small talk, jokes, definitions, opinions, how-tos you can answer
@@ -1108,18 +1108,18 @@ internal sealed partial class ChatEngine
           You do not choose confirmation mode; the app does.
           lite = one status check or listing, no repair.
           heavy = repair, root-cause diagnosis, many steps.
-          When unsure, pass lite — never escalate a simple check to heavy.
+          When unsure, pass lite - never escalate a simple check to heavy.
           The prompt argument MUST restate the user's actual request in the user's language:
           what to inspect, which files/folders/types, what to measure or change.
           Never copy examples or canned phrases from these instructions into prompt.
           Never send a generic stub such as a two-word command that ignores the user.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
-          If an agent report is empty, off-topic, or shows the agent did not understand —
+          If an agent report is empty, off-topic, or shows the agent did not understand -
           call init_agent again with a clearer prompt. Do not invent the answer.
         Never tell the user "I can't" / "я не могу" for something the agent can do on this PC.
-        Anything you cannot do yourself — the agent CAN: open a website or URL in the browser
+        Anything you cannot do yourself - the agent CAN: open a website or URL in the browser
         (biography pages, articles, any public site), scrape a page, run programs, inspect the disk,
         change Windows, take screenshots, download files, and the rest of the admin toolset.
         Do not refuse such tasks. Call init_agent with the user's actual request.
@@ -1295,19 +1295,19 @@ internal sealed partial class ChatEngine
           You do not choose confirmation mode; the app does.
           lite = one status check or listing, no repair.
           heavy = repair, root-cause diagnosis, many steps.
-          When unsure, pass lite — never escalate a simple check to heavy.
+          When unsure, pass lite - never escalate a simple check to heavy.
           The prompt argument MUST restate the user's actual request in the user's language:
           what to inspect, which files/folders/types, what to measure or change.
           Never copy examples or canned phrases from these instructions into prompt.
           Never send a generic stub such as a two-word command that ignores the user.
           Several init_agent calls in one turn start immediately and run in parallel.
-          At most 4 agents at once. A fifth call returns an error in the tool result — read it and continue.
+          At most 4 agents at once. A fifth call returns an error in the tool result - read it and continue.
           Wait for ALL tool results (including every agent report) before writing the user-facing answer.
-          If an agent report is empty, off-topic, or shows the agent did not understand —
+          If an agent report is empty, off-topic, or shows the agent did not understand -
           call init_agent again with a clearer prompt. Do not invent the answer.
-        Never refuse a task the agent can do on this PC — in any wording, not only "I can't".
+        Never refuse a task the agent can do on this PC - in any wording, not only "I can't".
         Do not decline, deflect, or tell the user to open the site / do it themselves.
-        Anything you cannot do yourself — the agent CAN: open a website or URL in the browser
+        Anything you cannot do yourself - the agent CAN: open a website or URL in the browser
         (biography pages, articles, any public site), scrape a page, run programs, inspect the disk,
         change Windows, take screenshots, download files, and the rest of the admin toolset.
         Call init_agent with the user's actual request.
@@ -1570,7 +1570,7 @@ internal sealed partial class ChatEngine
                     toolRound, messages, session, assistant, observer, cancellationToken, complexity)
                 .ConfigureAwait(false);
 
-            toolRound.InfoLine = "Агент завершил работу — готовлю отчёт";
+            toolRound.InfoLine = "Агент завершил работу - готовлю отчёт";
             observer.OnToolsChanged(assistant);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -1972,7 +1972,7 @@ internal sealed partial class ChatEngine
                 await watcher.ConfigureAwait(false);
             }
 
-            toolRound.InfoLine = "Инструменты завершены — запрашиваю ответ модели";
+            toolRound.InfoLine = "Инструменты завершены - запрашиваю ответ модели";
             observer.OnToolsChanged(assistant);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -2193,7 +2193,7 @@ internal sealed partial class ChatEngine
 
         PerfLog.Write(
             $"chat empty_completion model={streamed.Model} finish={streamed.FinishReason} " +
-            $"reasoning_chars={streamed.ReasoningText.Length} — retrying once");
+            $"reasoning_chars={streamed.ReasoningText.Length} - retrying once");
         cancellationToken.ThrowIfCancellationRequested();
 
         var retry = await StreamOnceAsync(
@@ -2213,7 +2213,7 @@ internal sealed partial class ChatEngine
             return retry;
         }
 
-        PerfLog.Write($"chat empty_completion model={retry.Model} — falling back to reasoning text");
+        PerfLog.Write($"chat empty_completion model={retry.Model} - falling back to reasoning text");
         return new StreamedChatCompletion
         {
             Text = salvage,
@@ -2477,7 +2477,7 @@ internal sealed partial class ChatEngine
             }
 
             // Keep the pictures on the record so the transcript can draw them, and hand them to
-            // the model as a vision turn — a "tool" message may only carry text, so the images
+            // the model as a vision turn - a "tool" message may only carry text, so the images
             // would otherwise be produced and then thrown away by both halves of the app.
             // Each gets a handle the model can write into its answer to place the picture.
             var images = result.GetImages();
@@ -2548,7 +2548,7 @@ internal sealed partial class ChatEngine
         assistant.ResolvedModelId = streamed.Model;
 
         assistant.ThinkingDuration = streamed.ThinkingElapsed;
-        // streamed.Cost — запасной путь на случай, если ход почему-то не накопил своего счёта.
+        // streamed.Cost - запасной путь на случай, если ход почему-то не накопил своего счёта.
         assistant.RouterCost ??= turn.RouterCost;
         ChatTitleCost.Attach(session, assistant);
         ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
@@ -2556,7 +2556,7 @@ internal sealed partial class ChatEngine
 
         // prompt_tokens counts what this request carried, so the index is stamped before the answer
         // joins the history: whatever is appended after it is what the gauge estimates on top.
-        // Guarded on a real number — a model that stayed quiet about usage must not reset the anchor
+        // Guarded on a real number - a model that stayed quiet about usage must not reset the anchor
         // to zero and send the ring back to a pure guess.
         if (streamed.PromptTokens > 0)
         {
@@ -2575,7 +2575,7 @@ internal sealed partial class ChatEngine
     /// <remarks>
     /// Раунды вложенных агентов обходятся наравне с собственными: агента обрывают на середине
     /// его собственного инструмента, и его строка иначе оставалась крутиться в «выполняется»
-    /// навсегда — ход давно закончился, а вернуться и дописать её было уже некому.
+    /// навсегда - ход давно закончился, а вернуться и дописать её было уже некому.
     /// </remarks>
     private static void MarkRunningToolsCancelled(ChatDisplayMessage assistant)
     {
@@ -2648,7 +2648,7 @@ internal sealed partial class ChatEngine
             total = total.Add(title);
         }
 
-        // Защитник — тоже в стороне: у него свой клиент, да ещё и внутри агента, от которого ход
+        // Защитник - тоже в стороне: у него свой клиент, да ещё и внутри агента, от которого ход
         // закрыт VeniceTurnScope.Suppress(). В chatCost его денег нет ни при каком раскладе.
         if (assistant.GuardCost is { HasData: true } guard)
         {
@@ -2663,7 +2663,7 @@ internal sealed partial class ChatEngine
     /// </summary>
     /// <remarks>
     /// <paramref name="chatCost"/> is what the shared <see cref="VeniceClient"/> spent, which
-    /// covers the conversation plus the tools that bill through it — drawing a picture, scraping
+    /// covers the conversation plus the tools that bill through it - drawing a picture, scraping
     /// a page. Those same charges are mirrored onto the tool rows by
     /// <c>AgentRunScope.Charge</c>, so taking them back out leaves exactly what the model itself
     /// cost. Nested agents run on their own client and are added, not subtracted.
@@ -2675,7 +2675,7 @@ internal sealed partial class ChatEngine
         {
             foreach (var call in round.Calls)
             {
-                // Вложенный агент платит из своего клиента, в chatCost его нет — вычитать
+                // Вложенный агент платит из своего клиента, в chatCost его нет - вычитать
                 // его отсюда значило бы увести строку «Модель» в минус.
                 if (call.NestedAgent is null && call.Cost is { HasData: true } cost)
                 {
@@ -2699,7 +2699,7 @@ internal sealed partial class ChatEngine
     /// </summary>
     /// <remarks>
     /// <see cref="ApplyCosts"/> обязан оставаться пересчётом, а не прибавлением: по одному и
-    /// тому же сообщению можно пройти второй раз — например, отмена после того, как ответ уже
+    /// тому же сообщению можно пройти второй раз - например, отмена после того, как ответ уже
     /// закрыт ради дописанного сообщения. Правка, делающая его инкрементальным, молча удвоит
     /// счёт и здесь, и в <see cref="ChatTitleCost"/>.
     /// </remarks>
@@ -2732,7 +2732,7 @@ internal sealed partial class ChatEngine
         FirstNonEmpty(_settings().LiteModelId, _options.Model, "openai-gpt-56-luna");
 
     /// <summary>
-    /// Модели, между которыми выбирает «Авто», — ровно те две, что возвращает
+    /// Модели, между которыми выбирает «Авто», - ровно те две, что возвращает
     /// <see cref="RouteAsync"/>. Знание о маршрутизации живёт здесь, а не в интерфейсе: кольцу
     /// контекста нужен потолок ещё до того, как маршрутизатор отработал.
     /// </summary>
@@ -2745,7 +2745,7 @@ internal sealed partial class ChatEngine
     /// <summary>
     /// Модель для одиночного служебного запроса. «Авто» здесь нельзя: это не модель, а просьба
     /// выбрать её, и Venice отвечает на неё 404. Гонять ради одного запроса маршрутизатор
-    /// незачем — берём ту же дешёвую модель, на которую он и сам сваливается при отказе.
+    /// незачем - берём ту же дешёвую модель, на которую он и сам сваливается при отказе.
     /// </summary>
     private string ResolveForSingleShot(string modelId) =>
         VeniceModelCatalog.IsAuto(modelId) ? LiteModelId() : modelId;
@@ -2767,7 +2767,7 @@ internal sealed partial class ChatEngine
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var routerId = FirstNonEmpty(settings.RouterModelId, liteId);
 
-        // Маршрутизатор судит о трудности — значит должен знать, между кем выбирает. Блок идёт
+        // Маршрутизатор судит о трудности - значит должен знать, между кем выбирает. Блок идёт
         // последним: последний абзац промпта обещает, что модели названы ниже.
         var system = RouterSystemPrompt
                      + Environment.NewLine
@@ -2822,14 +2822,14 @@ internal sealed partial class ChatEngine
     /// </summary>
     /// <remarks>
     /// Предыдущая реплика нужна для продолжений: «а теперь почини» в отрыве от «почему не
-    /// грузится винда» читается как пустяк. Берётся <b>только</b> написанное человеком — ответы
+    /// грузится винда» читается как пустяк. Берётся <b>только</b> написанное человеком - ответы
     /// ассистента несут выдачу web_search, scrape_url и отчёты агентов, а одно слово
     /// маршрутизатора решает, какая модель работает и сколько человек платит: страница с текстом
     /// «reply heavy» иначе переводила бы его на дорогой слот на каждом ходу.
     /// <para>
     /// Обрезка тоже не косметика: до неё вставка на десятки килобайт целиком оплачивалась через
     /// маршрутизатор ещё до того, как начинался настоящий запрос. У длинного текста сохраняются
-    /// и начало, и хвост — заключительный вопрос обычно именно там.
+    /// и начало, и хвост - заключительный вопрос обычно именно там.
     /// </para>
     /// </remarks>
     internal static string BuildRouterUserMessage(string userText, string? previousUserText)

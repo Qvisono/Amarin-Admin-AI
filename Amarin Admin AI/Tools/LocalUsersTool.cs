@@ -211,7 +211,7 @@ public sealed class LocalUsersTool : ITool
 
         $rows = foreach ($u in ($users | Sort-Object Name)) {
           $pwdExpires = if ($u.PasswordExpires) { $u.PasswordExpires.ToString('yyyy-MM-dd') } else { 'Never/NotSet' }
-          $last = if ($u.LastLogon) { $u.LastLogon.ToString('yyyy-MM-dd HH:mm') } else { '—' }
+          $last = if ($u.LastLogon) { $u.LastLogon.ToString('yyyy-MM-dd HH:mm') } else { '-' }
           $flags = @()
           if ($u.Enabled) { $flags += 'Enabled' } else { $flags += 'Disabled' }
           if ($u.Name -eq $current) { $flags += 'CURRENT_SESSION' }

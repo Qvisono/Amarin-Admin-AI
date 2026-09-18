@@ -747,7 +747,7 @@ public sealed class VeniceClient
                         "You are a web research assistant. Search the web and answer concisely in Russian.\n" +
                         "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +
                         "one per line, bare (no markdown, no shortening). Never write a link as a " +
-                        "description like 'ищи по тегу X on site Y' — give the address itself.\n" +
+                        "description like 'ищи по тегу X on site Y' - give the address itself.\n" +
                         "If the request is about pictures, art, wallpapers, photos or covers, list at " +
                         "least 5 URLs of pages that show a matching image, and direct file URLs " +
                         "(.jpg/.png/.webp) whenever the search results reveal them.")

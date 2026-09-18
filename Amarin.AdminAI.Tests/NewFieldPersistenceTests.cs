@@ -34,7 +34,7 @@ public sealed class NewFieldPersistenceTests
                     new ToolRound
                     {
                         ModelNote = "Гляну, что там со службами.",
-                        FollowUpNote = "Вижу новое сообщение — учитываю",
+                        FollowUpNote = "Вижу новое сообщение - учитываю",
                         Calls =
                         [
                             new ToolCallRecord
@@ -55,7 +55,7 @@ public sealed class NewFieldPersistenceTests
             var round = store.TryLoad("s1")!.Messages[0].ToolRounds[0];
 
             Assert.Equal("Гляну, что там со службами.", round.ModelNote);
-            Assert.Equal("Вижу новое сообщение — учитываю", round.FollowUpNote);
+            Assert.Equal("Вижу новое сообщение - учитываю", round.FollowUpNote);
             Assert.Equal(startedAt, round.Calls[0].StartedAt);
             Assert.Equal(TimeSpan.FromMilliseconds(1234), round.Calls[0].Duration);
         }
@@ -130,6 +130,10 @@ public sealed class NewFieldPersistenceTests
             Assert.Equal(default, round.Calls[0].StartedAt);
             Assert.Equal(TimeSpan.Zero, round.Calls[0].Duration);
             Assert.Equal(0, loaded.LastPromptTokens);
+
+            // Сводки тогда тоже не было: чат читается, а сводка допишется следующим ответом.
+            Assert.Null(loaded.Summary);
+            Assert.Null(loaded.Messages[0].SummaryCost);
 
             // And the journal still places it, using the message's time instead of the call's.
             Assert.True(Assert.Single(ActionJournal.FromSession(loaded)).TimeIsApproximate);

@@ -90,7 +90,7 @@ public sealed partial class YouTubeTranscriptTool : ITool
             if (subtitle is null)
             {
                 return TranscriptResult.Fail(
-                    "У этого видео нет субтитров — ни собственных, ни автоматических, — " +
+                    "У этого видео нет субтитров - ни собственных, ни автоматических, - " +
                     "поэтому расшифровку получить нельзя.");
             }
 

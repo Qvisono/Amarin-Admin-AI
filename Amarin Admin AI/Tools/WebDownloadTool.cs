@@ -24,7 +24,7 @@ public sealed class WebDownloadTool : ITool
         "Saves to Downloads or Desktop. Filename is taken from the URL path as-is (not renamed). " +
         "The allowlist is enforced by the app: a host outside it makes the app ask the user whether to " +
         "add it, and the download simply proceeds when they agree. If the result still starts with " +
-        "'DOMAIN_BLOCKED:', the user refused — STOP. Do not retry, do not try mirrors, proxies or " +
+        "'DOMAIN_BLOCKED:', the user refused - STOP. Do not retry, do not try mirrors, proxies or " +
         "another URL. Just tell the user the domain stayed blocked.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
@@ -37,7 +37,7 @@ public sealed class WebDownloadTool : ITool
             },
             "destination": {
               "type": "string",
-              "description": "Optional. Only when URL has no filename — bare name or full path under Downloads/Desktop."
+              "description": "Optional. Only when URL has no filename - bare name or full path under Downloads/Desktop."
             },
             "folder": {
               "type": "string",
@@ -101,7 +101,7 @@ public sealed class WebDownloadTool : ITool
                 return ToolResult.Fail(
                     $"{DomainList.BlockedMarker} {uri.Host} не в белом списке загрузок. " +
                     "Пользователю уже показали запрос на добавление домена, и он его отклонил. " +
-                    "Не повторяй попытку, не ищи зеркала и не пробуй другой URL — просто скажи, " +
+                    "Не повторяй попытку, не ищи зеркала и не пробуй другой URL - просто скажи, " +
                     "что домен остался заблокированным.");
             }
         }

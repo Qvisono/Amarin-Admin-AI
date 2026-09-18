@@ -90,7 +90,7 @@ internal static class ChatContent
         {
             sb.Append("- ")
                 .Append(file.FileName)
-                .Append(" — ")
+                .Append(" - ")
                 .Append(AttachmentTypes.Badge(file.FileName))
                 .Append(", ")
                 .Append(AttachmentTypes.FormatSize(file.SizeBytes));
@@ -106,7 +106,7 @@ internal static class ChatContent
         }
 
         sb.AppendLine(
-            "Содержимое этих файлов передано вместе с сообщением — открывать их инструментом не нужно.");
+            "Содержимое этих файлов передано вместе с сообщением - открывать их инструментом не нужно.");
         sb.Append(
             "Путь указан на случай вопросов про сам файл на диске, а не про его содержимое.");
         return sb.ToString();

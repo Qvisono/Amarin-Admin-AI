@@ -29,7 +29,7 @@ public sealed partial class SoftwareInventoryTool : ITool
     public string Name => "software_inventory";
 
     public string Description =>
-        "List installed programs (registry Uninstall keys — not Win32_Product), search/list upgrades via winget, " +
+        "List installed programs (registry Uninstall keys - not Win32_Product), search/list upgrades via winget, " +
         "and install/upgrade/uninstall packages. Prefer this over winget through run_powershell.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""

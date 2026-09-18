@@ -42,7 +42,7 @@ internal sealed class LanguageTranslator
         You translate user-interface strings.
 
         You are given a JSON object: keys are string identifiers, values are Russian UI text.
-        Return ONE JSON object and nothing else — no prose, no markdown fences, no comments.
+        Return ONE JSON object and nothing else - no prose, no markdown fences, no comments.
 
         Rules:
         - Keep every key exactly as given. Never add, drop or rename a key.

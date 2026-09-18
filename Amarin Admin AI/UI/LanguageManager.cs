@@ -80,6 +80,11 @@ internal static class LanguageManager
         LanguageChanged?.Invoke();
     }
 
+    /// <summary>Встроенный язык: его файла на диске нет, и удалить его нельзя.</summary>
+    internal static bool IsBuiltIn(string? code) =>
+        !string.IsNullOrWhiteSpace(code) &&
+        BuiltIn.Any(item => item.Code == code.Trim().ToLowerInvariant());
+
     /// <summary>Неизвестный код тихо падает в русский, а не оставляет интерфейс пустым.</summary>
     internal static string Normalize(string? code)
     {
@@ -234,6 +239,40 @@ internal static class UserLanguageStore
     public static void Save(string code, IReadOnlyDictionary<string, string> strings)
     {
         AppDataFile.WriteAtomic(FileFor(code), JsonSerializer.Serialize(strings, AppJson.Options));
+    }
+
+    /// <summary>
+    /// Убирает переведённый моделью язык с диска. Возвращает <c>false</c>, если удалять было
+    /// нечего или файловая система отказала.
+    /// </summary>
+    /// <remarks>
+    /// Встроенные ru/en отсекаются здесь, а не только в интерфейсе: <see cref="LanguageManager.Available"/>
+    /// пропускает пользовательский файл, чей код совпал со встроенным, — такой файл не виден в
+    /// списке, и удалять его по нажатию рядом со встроенным языком значило бы стирать вслепую.
+    /// </remarks>
+    public static bool Delete(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) || LanguageManager.IsBuiltIn(code))
+        {
+            return false;
+        }
+
+        try
+        {
+            var path = FileFor(code.Trim().ToLowerInvariant());
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            File.Delete(path);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Отказ файловой системы — обычный ответ: язык остался, человеку про это скажут.
+            return false;
+        }
     }
 
     private static Dictionary<string, string>? Read(string code)

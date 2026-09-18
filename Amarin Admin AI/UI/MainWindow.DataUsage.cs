@@ -124,7 +124,7 @@ namespace Amarin.UI
 
             UsageList.ItemsSource = rows;
             UsageAppText.Text = report.AppBytes > 0
-                ? $"{Loc.Get(DataUsage.AppKey)} — {AttachmentTypes.FormatSize(report.AppBytes)}"
+                ? $"{Loc.Get(DataUsage.AppKey)} - {AttachmentTypes.FormatSize(report.AppBytes)}"
                 : "";
         }
 

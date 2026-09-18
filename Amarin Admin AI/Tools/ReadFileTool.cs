@@ -68,6 +68,6 @@ public sealed class ReadFileTool : ITool
             $"'{rawPath}' is a relative path, so it was resolved against the program's own " +
             $"folder ({Environment.CurrentDirectory}), which is almost certainly not where the " +
             "user meant. Pass an absolute path instead. If this was a file attached to the " +
-            "message, do not read it at all — its contents are already in the conversation.");
+            "message, do not read it at all - its contents are already in the conversation.");
     }
 }

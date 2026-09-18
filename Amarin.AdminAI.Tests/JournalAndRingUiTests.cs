@@ -53,7 +53,7 @@ public sealed class JournalAndRingUiTests
 
         // A zero-length ArcSegment is undefined in WPF, so the sliver is hidden rather than drawn.
         Assert.Equal(Visibility.Collapsed, visible);
-        Assert.Equal("—", text);
+        Assert.Equal("-", text);
     }
 
     [Fact]

@@ -158,7 +158,7 @@ public sealed class BalanceBadgeTests
         });
 
         Assert.Equal(Visibility.Visible, visible);
-        Assert.Equal("—", text);
+        Assert.Equal("-", text);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public sealed class BalanceBadgeTests
     }
 
     [Theory]
-    [InlineData(null, "—")]
+    [InlineData(null, "-")]
     [InlineData(0.0, "$0,00")]
     [InlineData(0.5, "$0,50")]
     [InlineData(9.999, "$10,00")]

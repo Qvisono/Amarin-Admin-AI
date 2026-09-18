@@ -10,7 +10,7 @@ public sealed class WriteFileTool : ITool
 
     public string Description =>
         "Write UTF-8 text to a file. Parent directories are created. " +
-        "Does not delete files. Not for system administration — the agent handles that.";
+        "Does not delete files. Not for system administration - the agent handles that.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

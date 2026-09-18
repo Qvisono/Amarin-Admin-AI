@@ -31,6 +31,47 @@ namespace Amarin.UI
             LanguageManager.Apply(code);
         }
 
+        private void LanguagePicker_LanguageDeleteRequested(object? sender, UiLanguage language)
+        {
+            if (_services is null || language.BuiltIn)
+            {
+                return;
+            }
+
+            // Перевод стоит модели минуты работы и денег, поэтому спрашиваем, а не стираем
+            // молча, — и по умолчанию отвечаем «нет», как при удалении всех чатов.
+            var answer = MessageBox.Show(
+                this,
+                Loc.Format("S.Language.DeleteConfirm", language.NativeName),
+                Title,
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            if (!UserLanguageStore.Delete(language.Code))
+            {
+                LanguagePicker.ShowProgress(Loc.Get("S.Language.DeleteFailed"));
+                return;
+            }
+
+            // Удалили тот язык, на котором сейчас интерфейс. Normalize вернул бы русский сам, но
+            // только при следующем запуске: до него в settings.json лежал бы мёртвый код, а на
+            // экране — надписи удалённого языка.
+            if (string.Equals(_services.Settings.LanguageCode, language.Code, StringComparison.OrdinalIgnoreCase))
+            {
+                _services.Settings.LanguageCode = LanguageManager.DefaultCode;
+                _services.SettingsStore.Save(_services.Settings);
+                LanguageManager.Apply(LanguageManager.DefaultCode);
+            }
+
+            LanguagePicker.ShowProgress(null);
+            LanguagePicker.Rebuild();
+        }
+
         private void LanguagePicker_NewLanguageRequested(object? sender, EventArgs e)
         {
             if (_services is null)

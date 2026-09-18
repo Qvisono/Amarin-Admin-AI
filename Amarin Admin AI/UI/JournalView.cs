@@ -45,7 +45,17 @@ internal sealed class JournalRow
     public JournalEntry? Entry { get; init; }
 
     public SnapshotEntry? Snapshot { get; init; }
+
+    /// <summary>Сводка чата, если строка пришла с одноимённой вкладки.</summary>
+    public ChatSummaryEntry? Summary { get; init; }
 }
+
+/// <summary>Сводка одного чата — то, что показывает вкладка «Сводки».</summary>
+/// <remarks>
+/// Собирается из индекса чатов, а не из файлов переписок: вкладке нужны только заголовок,
+/// сводка и время, и все они в индексе уже есть.
+/// </remarks>
+internal sealed record ChatSummaryEntry(string ChatId, string Title, string Text, DateTime UpdatedAt);
 
 /// <summary>Turns journal data into rows the overlay can show.</summary>
 internal static class JournalView
@@ -103,13 +113,34 @@ internal static class JournalView
             Title = label,
             Subtitle = snapshot.Id,
             Timestamp = snapshot.Created == DateTime.MinValue
-                ? "—"
+                ? "-"
                 : snapshot.Created.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture),
             Trailer = snapshot.Machine,
             // Line break assembled here, not inside the caption: XAML would collapse it, and the
             // translator has no business owning the layout of a tooltip.
             Tooltip = Loc.Get("S.Journal.Snapshot.Tooltip") + "\n" + snapshot.Path,
             Snapshot = snapshot
+        };
+    }
+
+    public static JournalRow ToRow(ChatSummaryEntry summary)
+    {
+        ArgumentNullException.ThrowIfNull(summary);
+
+        return new JournalRow
+        {
+            Glyph = "≡",
+            IsFailure = false,
+            IsPending = false,
+            Title = summary.Title,
+            Subtitle = summary.Text,
+            Timestamp = summary.UpdatedAt == DateTime.MinValue
+                ? "-"
+                : summary.UpdatedAt.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture),
+            Trailer = "",
+            Tooltip = summary.Text,
+            ChatId = summary.ChatId,
+            Summary = summary
         };
     }
 
@@ -120,6 +151,9 @@ internal static class JournalView
 
     public static string SearchKey(SnapshotEntry snapshot) =>
         (snapshot.Id + " " + snapshot.Label + " " + snapshot.Machine).ToLowerInvariant();
+
+    public static string SearchKey(ChatSummaryEntry summary) =>
+        (summary.Title + " " + summary.Text).ToLowerInvariant();
 
     /// <summary>One line of context under the title on the details screen.</summary>
     public static string BuildMeta(JournalEntry entry)
@@ -193,7 +227,7 @@ internal static class JournalView
     {
         if (at == default)
         {
-            return "—";
+            return "-";
         }
 
         var text = at.Date == DateTime.Today

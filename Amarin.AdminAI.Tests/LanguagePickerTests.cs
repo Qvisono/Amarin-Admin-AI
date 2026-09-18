@@ -71,11 +71,13 @@ public sealed class LanguagePickerTests
     {
         var ticks = Build("en", picker => List(picker).Children
             .OfType<Button>()
-            .Select(b => ((Grid)b.Content).Children.Count)
-            .ToList());
+            .Count(b => ((Grid)b.Content).Children
+                .OfType<FrameworkElement>()
+                .Any(child => child.Name == LanguagePickerField.TickName)));
 
-        // Строка с галкой держит два элемента, остальные — один.
-        Assert.Equal(1, ticks.Count(count => count == 2));
+        // Галку ищем по имени, а не по числу детей строки: у переведённых языков в строке
+        // лежит ещё и крестик удаления, и счёт разъезжался бы от языка к языку.
+        Assert.Equal(1, ticks);
     }
 
     [Fact]

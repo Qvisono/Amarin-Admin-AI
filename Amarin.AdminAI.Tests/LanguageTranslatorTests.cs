@@ -205,6 +205,44 @@ public sealed class LanguageTranslatorTests
         }
     }
 
+    [Fact]
+    public void A_created_language_can_be_deleted()
+    {
+        var code = "tst" + Guid.NewGuid().ToString("N")[..4];
+        UserLanguageStore.Save(code, new Dictionary<string, string>
+        {
+            [UserLanguageStore.NameKey] = "Deutsch"
+        });
+
+        Assert.True(UserLanguageStore.Exists(code));
+        Assert.True(UserLanguageStore.Delete(code));
+
+        Assert.False(UserLanguageStore.Exists(code));
+        Assert.DoesNotContain(code, UserLanguageStore.List());
+
+        // Удалённый код больше не считается живым языком — интерфейс уйдёт в русский.
+        Assert.Equal(LanguageManager.DefaultCode, LanguageManager.Normalize(code));
+    }
+
+    [Fact]
+    public void Deleting_something_that_is_not_there_is_not_an_error()
+    {
+        Assert.False(UserLanguageStore.Delete("tst" + Guid.NewGuid().ToString("N")[..4]));
+        Assert.False(UserLanguageStore.Delete(""));
+    }
+
+    [Theory]
+    [InlineData("ru")]
+    [InlineData("en")]
+    [InlineData("EN")]
+    public void The_built_in_languages_are_never_deleted(string code)
+    {
+        // Они лежат в сборке, а не файлом, но одноимённый файл на диске лежать может:
+        // Available() его не показывает, и стирать его было бы удалением вслепую.
+        Assert.False(UserLanguageStore.Delete(code));
+        Assert.True(LanguageManager.IsBuiltIn(code));
+    }
+
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> reply)
         : HttpMessageHandler
     {

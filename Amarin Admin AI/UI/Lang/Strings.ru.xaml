@@ -31,7 +31,7 @@
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Пароль при запуске</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Чаты на диске не шифруются</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Не задан</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Пароль сохранён.&#10;&#10;Он блокирует вход в приложение, но не шифрует чаты — файлы в папке приложения остаются доступными для чтения.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Пароль сохранён.&#10;&#10;Он блокирует вход в приложение, но не шифрует чаты - файлы в папке приложения остаются доступными для чтения.</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Задан</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">текущий</system:String>
     <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">с паролем</system:String>
@@ -52,7 +52,7 @@
     <system:String x:Key="S.Actions.Title" xml:space="preserve">Actions</system:String>
 
     <system:String x:Key="S.Appearance.Accent" xml:space="preserve">Акцентный цвет</system:String>
-    <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Заливка основных кнопок. «По теме» — цвет из палитры</system:String>
+    <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Заливка основных кнопок. «По теме» - цвет из палитры</system:String>
     <system:String x:Key="S.Appearance.Angle" xml:space="preserve">Наклон</system:String>
     <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Анимации</system:String>
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Движение фона и сворачивание поля ввода</system:String>
@@ -60,13 +60,13 @@
     <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">Такой формат картинки программа не переносит в архив данных. Подойдут: {0}</system:String>
     <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Яркость фото</system:String>
     <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Ширина колонки чата</system:String>
-    <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Длинные строки труднее читать — узкая колонка помогает</system:String>
+    <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Длинные строки труднее читать - узкая колонка помогает</system:String>
     <system:String x:Key="S.Appearance.Colours" xml:space="preserve">Цвета</system:String>
     <system:String x:Key="S.Appearance.CompactComposer" xml:space="preserve">Компактное поле ввода</system:String>
     <system:String x:Key="S.Appearance.CompactComposerDesc" xml:space="preserve">Пока поле пустое и мышь далеко, оно сворачивается в полоску и отдаёт место чату</system:String>
     <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Толщина кристалла</system:String>
     <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Оформление</system:String>
-    <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Фон за интерфейсом, стекло и свой акцентный цвет. Выключено — чистая палитра темы</system:String>
+    <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Фон за интерфейсом, стекло и свой акцентный цвет. Выключено - чистая палитра темы</system:String>
     <system:String x:Key="S.Appearance.Delay" xml:space="preserve">Задержка</system:String>
     <system:String x:Key="S.Appearance.File" xml:space="preserve">Файл</system:String>
     <system:String x:Key="S.Appearance.FitFill" xml:space="preserve">Заполнить</system:String>
@@ -79,7 +79,7 @@
     <system:String x:Key="S.Appearance.FontSystem" xml:space="preserve">Системный</system:String>
     <system:String x:Key="S.Appearance.Frost" xml:space="preserve">Матовость</system:String>
     <system:String x:Key="S.Appearance.Glass" xml:space="preserve">Стекло</system:String>
-    <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Всплывающие меню и диалоги остаются плотными — сквозь них виден рабочий стол, а не фон</system:String>
+    <system:String x:Key="S.Appearance.GlassDesc" xml:space="preserve">Всплывающие меню и диалоги остаются плотными - сквозь них виден рабочий стол, а не фон</system:String>
     <system:String x:Key="S.Appearance.Gradient" xml:space="preserve">Градиент</system:String>
     <system:String x:Key="S.Appearance.Grain" xml:space="preserve">Зерно</system:String>
     <system:String x:Key="S.Appearance.GrainDesc" xml:space="preserve">Матовая микротекстура поверх интерфейса</system:String>
@@ -93,7 +93,7 @@
     <system:String x:Key="S.Appearance.MotionDrift" xml:space="preserve">Вращение</system:String>
     <system:String x:Key="S.Appearance.MotionPulse" xml:space="preserve">Пульс</system:String>
     <system:String x:Key="S.Appearance.MouseReaction" xml:space="preserve">Реакция на мышь</system:String>
-    <system:String x:Key="S.Appearance.MouseReactionDesc" xml:space="preserve">Выкл — полоска не замечает указатель и разворачивается, только когда в неё ставят курсор</system:String>
+    <system:String x:Key="S.Appearance.MouseReactionDesc" xml:space="preserve">Выкл - полоска не замечает указатель и разворачивается, только когда в неё ставят курсор</system:String>
     <system:String x:Key="S.Appearance.PanelDensity" xml:space="preserve">Плотность панелей</system:String>
     <system:String x:Key="S.Appearance.PhotoBlur" xml:space="preserve">Размытие фото</system:String>
     <system:String x:Key="S.Appearance.Presets" xml:space="preserve">Готовые сочетания</system:String>
@@ -120,13 +120,13 @@
     <system:String x:Key="S.Attach.Dropped" xml:space="preserve">Перетащенное изображение</system:String>
     <system:String x:Key="S.Attach.FileBadge" xml:space="preserve">ФАЙЛ</system:String>
     <system:String x:Key="S.Attach.FileMissing" xml:space="preserve">{0}: файл не найден.</system:String>
-    <system:String x:Key="S.Attach.FileTooBig" xml:space="preserve">{0} — {1}, это больше предела в {2}.</system:String>
+    <system:String x:Key="S.Attach.FileTooBig" xml:space="preserve">{0} - {1}, это больше предела в {2}.</system:String>
     <system:String x:Key="S.Attach.FileUnreadable" xml:space="preserve">{0}: файл не читается.</system:String>
     <system:String x:Key="S.Attach.FilterAll" xml:space="preserve">Изображения и документы</system:String>
     <system:String x:Key="S.Attach.FilterAnyFile" xml:space="preserve">Все файлы</system:String>
     <system:String x:Key="S.Attach.FilterDocuments" xml:space="preserve">Документы</system:String>
     <system:String x:Key="S.Attach.FilterImages" xml:space="preserve">Изображения</system:String>
-    <system:String x:Key="S.Attach.NoVision" xml:space="preserve">Модель {0} не поддерживает изображения — выберите модель с поддержкой vision.</system:String>
+    <system:String x:Key="S.Attach.NoVision" xml:space="preserve">Модель {0} не поддерживает изображения - выберите модель с поддержкой vision.</system:String>
     <system:String x:Key="S.Attach.NotAnImage" xml:space="preserve">{0}: не изображение или не читается.</system:String>
     <system:String x:Key="S.Attach.OpenFailed" xml:space="preserve">{0}: не удалось открыть файл.</system:String>
     <system:String x:Key="S.Attach.OpenFile" xml:space="preserve">Нажмите, чтобы открыть</system:String>
@@ -134,15 +134,15 @@
     <system:String x:Key="S.Attach.RemoveFile" xml:space="preserve">Убрать файл</system:String>
     <system:String x:Key="S.Attach.RemoveImage" xml:space="preserve">Убрать изображение</system:String>
     <system:String x:Key="S.Attach.RevealFailed" xml:space="preserve">{0}: файла больше нет на месте.</system:String>
-    <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">Можно прикрепить не больше {0} документов — лишние пропущены.</system:String>
-    <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">Можно прикрепить не больше {0} изображений — лишние пропущены.</system:String>
+    <system:String x:Key="S.Attach.TooManyFiles" xml:space="preserve">Можно прикрепить не больше {0} документов - лишние пропущены.</system:String>
+    <system:String x:Key="S.Attach.TooManyImages" xml:space="preserve">Можно прикрепить не больше {0} изображений - лишние пропущены.</system:String>
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} не влезает: вместе с прикреплённым вышло бы {1} при пределе {2}.</system:String>
     <system:String x:Key="S.Attach.UnsupportedFormat" xml:space="preserve">{0}: формат {1} модель не читает.</system:String>
 
-    <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок — масштаб.</system:String>
+    <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок - масштаб.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Область фото профиля</system:String>
 
-    <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Средства почти закончились — генерация картинок может не пройти.</system:String>
+    <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Средства почти закончились - генерация картинок может не пройти.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Средств осталось немного.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Обновляется после каждого ответа модели.</system:String>
     <system:String x:Key="S.Balance.Title" xml:space="preserve">Остаток на счету Venice:</system:String>
@@ -171,12 +171,12 @@
     <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">В архиве нет данных.</system:String>
     <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">Архив сделан более новой версией программы. Обновитесь и попробуйте снова.</system:String>
     <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">Это не архив. Выберите файл, сделанный кнопкой «Экспорт».</system:String>
-    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">Архив не похож на данные Amarin — в нём нет описи.</system:String>
+    <system:String x:Key="S.Bundle.Error.NotOurArchive" xml:space="preserve">Архив не похож на данные Amarin - в нём нет описи.</system:String>
     <system:String x:Key="S.Bundle.Error.TooLarge" xml:space="preserve">Архив слишком большой или распаковывается в подозрительно много данных.</system:String>
-    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">Файл не читается — возможно, он повреждён или занят другой программой.</system:String>
+    <system:String x:Key="S.Bundle.Error.Unreadable" xml:space="preserve">Файл не читается - возможно, он повреждён или занят другой программой.</system:String>
     <system:String x:Key="S.Bundle.Error.WriteFailed" xml:space="preserve">Не удалось записать данные на диск. Данные остались прежними.</system:String>
     <system:String x:Key="S.Bundle.Export" xml:space="preserve">Экспорт</system:String>
-    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Отметьте, что положить в архив. Архив не шифруется — храните его там же, где личные файлы.</system:String>
+    <system:String x:Key="S.Bundle.Export.Desc" xml:space="preserve">Отметьте, что положить в архив. Архив не шифруется - храните его там же, где личные файлы.</system:String>
     <system:String x:Key="S.Bundle.Export.DialogTitle" xml:space="preserve">Куда сохранить архив</system:String>
     <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Архив сохранён:&#10;{0}</system:String>
     <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">В этих категориях пока нечего сохранять</system:String>
@@ -192,7 +192,7 @@
     <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">чатов: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Выберите архив с данными</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Готово. Перенесено: {0}</system:String>
-    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">В архиве не нашлось ничего нового — данные не изменились.</system:String>
+    <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">В архиве не нашлось ничего нового - данные не изменились.</system:String>
     <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">языков: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Добавить к моим</system:String>
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Ваши данные останутся. Добавится только то, чего у вас нет: чаты под новыми именами, отсутствующие профили и языки. Настройки и оформление не изменятся.</system:String>
@@ -210,7 +210,7 @@
     <system:String x:Key="S.Bundle.ImportedSuffix" xml:space="preserve">(из архива)</system:String>
     <system:String x:Key="S.Bundle.NothingChosen" xml:space="preserve">Отметьте хотя бы одну категорию</system:String>
     <system:String x:Key="S.Bundle.Row" xml:space="preserve">Экспорт и импорт данных</system:String>
-    <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Сохранить всё, что хранит программа, в один архив — или загрузить данные обратно</system:String>
+    <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Сохранить всё, что хранит программа, в один архив - или загрузить данные обратно</system:String>
 
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
 
@@ -258,10 +258,10 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
 
-    <system:String x:Key="S.Confirm.Code" xml:space="preserve">Что будет выполнено — {0} стр.</system:String>
+    <system:String x:Key="S.Confirm.Code" xml:space="preserve">Что будет выполнено - {0} стр.</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Технические подробности</system:String>
-    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">Модель ничего не ответила про этот скрипт — читайте его сами.</system:String>
-    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">Разъяснение получить не вышло — читайте скрипт сами.</system:String>
+    <system:String x:Key="S.Confirm.ExplainEmpty" xml:space="preserve">Модель ничего не ответила про этот скрипт - читайте его сами.</system:String>
+    <system:String x:Key="S.Confirm.ExplainFailed" xml:space="preserve">Разъяснение получить не вышло - читайте скрипт сами.</system:String>
     <system:String x:Key="S.Confirm.Explaining" xml:space="preserve">Разбираем, что делает скрипт…</system:String>
     <system:String x:Key="S.Confirm.DownloadDesc" xml:space="preserve">Агент хочет скачать файл с сайта, которого нет в списке разрешённых источников. Без разрешения загрузка не состоится.</system:String>
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">Из чата «{0}»</system:String>
@@ -270,13 +270,14 @@
     <system:String x:Key="S.Context.Auto" xml:space="preserve">«Авто»: модель выбирается при ответе, поэтому показан меньший из двух потолков.</system:String>
     <system:String x:Key="S.Context.Estimate" xml:space="preserve">Число примерное: точное Venice сообщает после ответа модели.</system:String>
     <system:String x:Key="S.Context.Filling" xml:space="preserve">Контекст заполняется. Для длинной задачи лучше начать новый чат.</system:String>
-    <system:String x:Key="S.Context.Full" xml:space="preserve">Контекст почти полон — начало разговора скоро выпадет из памяти модели.</system:String>
+    <system:String x:Key="S.Context.Full" xml:space="preserve">Контекст почти полон - начало разговора скоро выпадет из памяти модели.</system:String>
     <system:String x:Key="S.Context.Title" xml:space="preserve">Контекст: {0} из {1} ({2}%)</system:String>
     <system:String x:Key="S.Context.Unknown" xml:space="preserve">Заполненность контекста появится, когда станет известна модель.</system:String>
     <system:String x:Key="S.Cost.ChatTitle" xml:space="preserve">Заголовок чата</system:String>
     <system:String x:Key="S.Cost.Guard" xml:space="preserve">Защита</system:String>
     <system:String x:Key="S.Cost.Model" xml:space="preserve">Модель</system:String>
     <system:String x:Key="S.Cost.Router" xml:space="preserve">Маршрутизатор</system:String>
+    <system:String x:Key="S.Cost.Summary" xml:space="preserve">Сводка чата</system:String>
     <system:String x:Key="S.Cost.Total" xml:space="preserve">Итого</system:String>
 
     <system:String x:Key="S.Crash.ClipboardBusy" xml:space="preserve">Буфер занят</system:String>
@@ -295,9 +296,9 @@
     <system:String x:Key="S.Crash.OutOfMemory" xml:space="preserve">Закончилась память.</system:String>
     <system:String x:Key="S.Crash.Quit" xml:space="preserve">Закрыть программу</system:String>
 
-    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Агент — быстрые задачи</system:String>
-    <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Агент — тяжёлые задачи</system:String>
-    <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Агент — лёгкие задачи</system:String>
+    <system:String x:Key="S.Customize.AgentFast" xml:space="preserve">Агент - быстрые задачи</system:String>
+    <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Агент - тяжёлые задачи</system:String>
+    <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Агент - лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
     <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Модели ответа</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Заголовки чатов</system:String>
@@ -315,12 +316,12 @@
 
     <system:String x:Key="S.Data.Allowlist" xml:space="preserve">Разрешённые источники загрузки</system:String>
     <system:String x:Key="S.Data.AllowlistDesc" xml:space="preserve">Загрузка с других сайтов отклоняется. Поддомены разрешены автоматически</system:String>
-    <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">Список пуст — любые загрузки заблокированы</system:String>
+    <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">Список пуст - любые загрузки заблокированы</system:String>
     <system:String x:Key="S.Data.AllowlistRemove" xml:space="preserve">Удалить из списка</system:String>
     <system:String x:Key="S.Data.AppFiles" xml:space="preserve">Файлы приложения</system:String>
     <system:String x:Key="S.Data.AppFilesDesc" xml:space="preserve">Папка с настройками, чатами и логами</system:String>
     <system:String x:Key="S.Data.DeleteAll" xml:space="preserve">Удалить все данные</system:String>
-    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Настройки, чаты, аккаунты — безвозвратно</system:String>
+    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Настройки, чаты, аккаунты - безвозвратно</system:String>
     <system:String x:Key="S.Data.DeleteChats" xml:space="preserve">Удалить все чаты</system:String>
     <system:String x:Key="S.Data.DeleteChatsDesc" xml:space="preserve">Удаляет все сохранённые переписки</system:String>
     <system:String x:Key="S.Data.Import" xml:space="preserve">Импорт чата</system:String>
@@ -353,60 +354,60 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Сайт не в белом списке</system:String>
 
-    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах — пока модель отвечает в одном, в соседнем можно работать.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах - пока модель отвечает в одном, в соседнем можно работать.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Переписка и вложения</system:String>
-    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. В самом запросе сказано простыми словами, что произойдёт, а под «Техническими подробностями» лежит точная команда или скрипт. Отказ — обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
+    <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. В самом запросе сказано простыми словами, что произойдёт, а под «Техническими подробностями» лежит точная команда или скрипт. Отказ - обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Подтверждение опасных действий</system:String>
-    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а рядом с полем ввода — остаток на балансе Venice и заполненность контекста. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
+    <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а рядом с полем ввода - остаток на балансе Venice и заполненность контекста. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Стоимость и баланс</system:String>
-    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере — никуда больше они не уходят. На соседней странице Data Controls видно, сколько места они занимают; оттуда же всё выгружается одним архивом и возвращается обратно.</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере - никуда больше они не уходят. На соседней странице Data Controls видно, сколько места они занимают; оттуда же всё выгружается одним архивом и возвращается обратно.</system:String>
     <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Где лежат данные</system:String>
-    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в строке под полем ввода, там же — сила размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор — на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в строке под полем ввода, там же - сила размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор - на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
     <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Модель и уровень размышления</system:String>
-    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице Appearance — темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице Appearance - темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Профили и оформление</system:String>
     <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Как пользоваться программой</system:String>
-    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Модель не просто отвечает: она читает и пишет файлы, запускает PowerShell, смотрит журналы Windows, ищет в интернете. Отчёт о каждом вызове инструмента виден прямо в переписке — его можно развернуть и посмотреть, что именно было сделано.</system:String>
+    <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Модель не просто отвечает: она читает и пишет файлы, запускает PowerShell, смотрит журналы Windows, ищет в интернете. Отчёт о каждом вызове инструмента виден прямо в переписке - его можно развернуть и посмотреть, что именно было сделано.</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Инструменты</system:String>
-    <system:String x:Key="S.Info.Intro" xml:space="preserve">Программа разговаривает с моделями Venice.ai и по их командам управляет этим компьютером. Чтобы она заработала, нужен ключ Venice — ниже пять шагов от регистрации до первого ответа.</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">Программа разговаривает с моделями Venice.ai и по их командам управляет этим компьютером. Чтобы она заработала, нужен ключ Venice - ниже пять шагов от регистрации до первого ответа.</system:String>
     <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Документация Venice</system:String>
     <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Репозиторий проекта</system:String>
-    <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения — в репозиторий проекта.</system:String>
+    <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения - в репозиторий проекта.</system:String>
     <system:String x:Key="S.Info.Links.Title" xml:space="preserve">Если что-то не сходится</system:String>
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Не присылайте ключ в чат: сообщение уходит модели, а потом остаётся в истории переписки на диске.</system:String>
     <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Из отчёта об аварии ключ вырезается сам, так что отчёт можно пересылать спокойно.</system:String>
-    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк — отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
+    <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк - отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Заводите переменную для текущего пользователя, а не для всей системы: системную видит любая учётная запись на компьютере.</system:String>
-    <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Ключ — как пароль</system:String>
+    <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Ключ - как пароль</system:String>
     <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Подключение Venice.ai</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">Первый ответ: ключ принят, программа работает</system:String>
-    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Подтверждение: что произойдёт простыми словами, а подробности — под стрелкой</system:String>
+    <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Подтверждение: что произойдёт простыми словами, а подробности - под стрелкой</system:String>
     <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">Окно пополнения: сумма и сколько за неё дадут кредитов</system:String>
     <system:String x:Key="S.Info.Shot.EnvVar" xml:space="preserve">Та же переменная одной командой в PowerShell</system:String>
     <system:String x:Key="S.Info.Shot.NewKey" xml:space="preserve">Окно создания ключа: тип, срок жизни и потолок трат</system:String>
-    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">Готовый ключ показывают один раз — скопируйте его сразу</system:String>
+    <system:String x:Key="S.Info.Shot.KeyCreated" xml:space="preserve">Готовый ключ показывают один раз - скопируйте его сразу</system:String>
     <system:String x:Key="S.Info.Shot.Keys" xml:space="preserve">Раздел API Keys: здесь создаётся ключ</system:String>
     <system:String x:Key="S.Info.Shot.Missing" xml:space="preserve">Скриншот пока не добавлен: {0}</system:String>
-    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Модель и сила размышления — в строке под полем ввода</system:String>
+    <system:String x:Key="S.Info.Shot.Models" xml:space="preserve">Модель и сила размышления - в строке под полем ввода</system:String>
     <system:String x:Key="S.Info.Shot.Signup" xml:space="preserve">Страница входа и регистрации на venice.ai</system:String>
     <system:String x:Key="S.Info.Shot.WhereCredits" xml:space="preserve">Меню учётной записи: пополнение прячется за «Purchase Venice Credits»</system:String>
     <system:String x:Key="S.Info.Step1.Button" xml:space="preserve">Открыть venice.ai</system:String>
-    <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Откройте venice.ai и зарегистрируйтесь — почтой или кошельком. Доступ к API есть на любом тарифе, включая бесплатный, и включать его отдельно не надо.</system:String>
+    <system:String x:Key="S.Info.Step1.Text" xml:space="preserve">Откройте venice.ai и зарегистрируйтесь - почтой или кошельком. Доступ к API есть на любом тарифе, включая бесплатный, и включать его отдельно не надо.</system:String>
     <system:String x:Key="S.Info.Step1.Title" xml:space="preserve">Заведите учётную запись на Venice.ai</system:String>
     <system:String x:Key="S.Info.Step2.Button" xml:space="preserve">Тарифы и цены</system:String>
-    <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">Запросы через API тратят средства со счёта Venice: кредиты, которые начисляет платный тариф, или доллары, положенные на счёт. Сто кредитов — это один доллар. На бесплатном тарифе кредитов не начисляют, поэтому до пополнения ответов не будет. Цены у Venice указаны за миллион токенов: лёгкие модели стоят центы, самые сильные — доллары.</system:String>
+    <system:String x:Key="S.Info.Step2.Text" xml:space="preserve">Запросы через API тратят средства со счёта Venice: кредиты, которые начисляет платный тариф, или доллары, положенные на счёт. Сто кредитов - это один доллар. На бесплатном тарифе кредитов не начисляют, поэтому до пополнения ответов не будет. Цены у Venice указаны за миллион токенов: лёгкие модели стоят центы, самые сильные - доллары.</system:String>
     <system:String x:Key="S.Info.Step2.Title" xml:space="preserve">Положите денег на счёт</system:String>
     <system:String x:Key="S.Info.Step3.Button" xml:space="preserve">Открыть API Keys</system:String>
-    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">В том же окне выставляется потолок трат — дневной, месячный или общий. С ним ошибка в одном разговоре не съест весь счёт: Venice просто перестанет отвечать до следующего дня или месяца.</system:String>
-    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Откройте раздел API на сайте Venice — там же виден остаток на счёте. Нажмите «Generate New API Key» и оставьте тип «Inference Only»: для работы этого достаточно, а «Admin» даёт ключу лишнюю власть над учётной записью. Целиком ключ показывают ровно один раз — скопируйте сразу. Потерянный не восстанавливают: удаляют и выпускают новый.</system:String>
+    <system:String x:Key="S.Info.Step3.Limit" xml:space="preserve">В том же окне выставляется потолок трат - дневной, месячный или общий. С ним ошибка в одном разговоре не съест весь счёт: Venice просто перестанет отвечать до следующего дня или месяца.</system:String>
+    <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Откройте раздел API на сайте Venice - там же виден остаток на счёте. Нажмите «Generate New API Key» и оставьте тип «Inference Only»: для работы этого достаточно, а «Admin» даёт ключу лишнюю власть над учётной записью. Целиком ключ показывают ровно один раз - скопируйте сразу. Потерянный не восстанавливают: удаляют и выпускают новый.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Создайте API-ключ</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'сюда-ваш-ключ', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Заведите переменную в окне «Изменение переменных среды текущего пользователя» или одной командой в PowerShell:</system:String>
     <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Поля для ключа в программе нет намеренно: тогда его пришлось бы где-то хранить. Ключ читается из переменной окружения VENICE_API_KEY — она принадлежит вашей учётной записи Windows и другим пользователям компьютера не видна.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Поля для ключа в программе нет намеренно: тогда его пришлось бы где-то хранить. Ключ читается из переменной окружения VENICE_API_KEY - она принадлежит вашей учётной записи Windows и другим пользователям компьютера не видна.</system:String>
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Отдайте ключ программе</system:String>
-    <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ — ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, — значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
+    <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ - ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, - значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Проверьте</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Аргументы</system:String>
     <system:String x:Key="S.Journal.Ask" xml:space="preserve">Спросить ИИ</system:String>
@@ -422,6 +423,7 @@
     <system:String x:Key="S.Journal.NoMatches" xml:space="preserve">Ничего не нашлось. Попробуйте другой запрос.</system:String>
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">Результат не сохранён.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">Точек отката пока нет. Они создаются сами перед опасными изменениями в системе.</system:String>
+    <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">Сводок пока нет. Они пишутся сами после каждого ответа модели.</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Журнал действий</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Открыть чат</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Не удалось прочитать историю. Проверьте доступ к папке с данными программы.</system:String>
@@ -434,12 +436,19 @@
     <system:String x:Key="S.Journal.StatusDone" xml:space="preserve">выполнен</system:String>
     <system:String x:Key="S.Journal.StatusFailed" xml:space="preserve">ошибка</system:String>
     <system:String x:Key="S.Journal.StatusRunning" xml:space="preserve">выполняется</system:String>
+    <system:String x:Key="S.Journal.Summary.Failed" xml:space="preserve">Пересобрать не вышло. Попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.Journal.Summary.Rebuild" xml:space="preserve">Пересобрать сводку</system:String>
+    <system:String x:Key="S.Journal.Summary.Rebuilding" xml:space="preserve">Пересобираю…</system:String>
     <system:String x:Key="S.Journal.Tab.Actions" xml:space="preserve">Действия</system:String>
     <system:String x:Key="S.Journal.Tab.Snapshots" xml:space="preserve">Точки отката</system:String>
+    <system:String x:Key="S.Journal.Tab.Summaries" xml:space="preserve">Сводки</system:String>
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Время приблизительное: у этой записи нет собственной отметки, взято время сообщения.</system:String>
-    <system:String x:Key="S.Journal.Title" xml:space="preserve">Что модель делала с компьютером</system:String>
-    <system:String x:Key="S.Language.Desc" xml:space="preserve">Русский и английский встроены. «New language» — перевод целиком моделью, он сохранится и появится в этом списке.</system:String>
-    <system:String x:Key="S.Language.Done" xml:space="preserve">Готово — язык добавлен.</system:String>
+    <system:String x:Key="S.Journal.Title" xml:space="preserve">Журнал</system:String>
+    <system:String x:Key="S.Language.Delete" xml:space="preserve">Удалить язык</system:String>
+    <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Удалить язык «{0}»? Перевод придётся заказывать заново.</system:String>
+    <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Не удалось удалить язык. Проверьте доступ к папке с данными программы.</system:String>
+    <system:String x:Key="S.Language.Desc" xml:space="preserve">Русский и английский встроены. «New language» - перевод целиком моделью, он сохранится и появится в этом списке.</system:String>
+    <system:String x:Key="S.Language.Done" xml:space="preserve">Готово - язык добавлен.</system:String>
     <system:String x:Key="S.Language.Failed" xml:space="preserve">Перевод не удался: {0}</system:String>
     <system:String x:Key="S.Language.ModelRefused" xml:space="preserve">Модель {0} не ответила: {1}</system:String>
     <system:String x:Key="S.Language.NameDesc" xml:space="preserve">Назовите язык так, как он называется сам: Deutsch, Français, 日本語. Перевод займёт минуту.</system:String>
@@ -447,7 +456,7 @@
     <system:String x:Key="S.Language.NativeName" xml:space="preserve">Русский</system:String>
     <system:String x:Key="S.Language.NeedName" xml:space="preserve">Назовите язык.</system:String>
     <system:String x:Key="S.Language.New" xml:space="preserve">New language</system:String>
-    <system:String x:Key="S.Language.NoNetwork" xml:space="preserve">Нет связи с Venice — перевод не состоялся.</system:String>
+    <system:String x:Key="S.Language.NoNetwork" xml:space="preserve">Нет связи с Venice - перевод не состоялся.</system:String>
     <system:String x:Key="S.Language.NothingTranslated" xml:space="preserve">Модель не вернула ни одной пригодной строки.</system:String>
     <system:String x:Key="S.Language.Progress" xml:space="preserve">Перевод: {0} из {1} частей</system:String>
     <system:String x:Key="S.Language.Title" xml:space="preserve">Язык интерфейса</system:String>
@@ -485,7 +494,7 @@
     <system:String x:Key="S.Password.CurrentTitle" xml:space="preserve">Текущий пароль</system:String>
     <system:String x:Key="S.Password.LoginTitle" xml:space="preserve">Вход · {0}</system:String>
     <system:String x:Key="S.Password.Mismatch" xml:space="preserve">Пароли не совпадают.</system:String>
-    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">Пароль блокирует вход в приложение. Он не шифрует чаты — файлы на диске остаются доступными для чтения. Забытый пароль восстановить нельзя.</system:String>
+    <system:String x:Key="S.Password.NewDesc" xml:space="preserve">Пароль блокирует вход в приложение. Он не шифрует чаты - файлы на диске остаются доступными для чтения. Забытый пароль восстановить нельзя.</system:String>
     <system:String x:Key="S.Password.NewTitle" xml:space="preserve">Новый пароль</system:String>
     <system:String x:Key="S.Password.NoPassword" xml:space="preserve">без пароля</system:String>
     <system:String x:Key="S.Password.Prompt" xml:space="preserve">Введите пароль</system:String>
@@ -502,7 +511,7 @@
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
 
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся от лёгкой и тяжёлой модели — их настраивают на странице Customize</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся от лёгкой и тяжёлой модели - их настраивают на странице Customize</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Сила размышления</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
@@ -510,6 +519,13 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
+    <system:String x:Key="S.Search.Failed" xml:space="preserve">Поиск не удался. Попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.Search.Found" xml:space="preserve">Найдено</system:String>
+    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">По чатам</system:String>
+    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">По заголовкам</system:String>
+    <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Искать пока не по чему: сводки появятся после ответов модели.</system:String>
+    <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - искать по содержимому чатов</system:String>
+    <system:String x:Key="S.Search.Working" xml:space="preserve">Ищу по сводкам…</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
@@ -550,7 +566,7 @@
     <system:String x:Key="S.Tools.CallDone" xml:space="preserve">готово</system:String>
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
-    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение — учитываю</system:String>
+    <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение - учитываю</system:String>
     <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard остановил вызов {0}: распознан вредоносный замысел</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы показать в проводнике</system:String>
@@ -558,20 +574,20 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
-    <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» — ответ не получен</system:String>
-    <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа — дождитесь одного из них.</system:String>
+    <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>
+    <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Не задан API-ключ Venice.ai.&#10;Задайте переменную окружения VENICE_API_KEY.</system:String>
 
-    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу — дождитесь его окончания.</system:String>
-    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу — дождитесь его окончания.</system:String>
+    <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
+    <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
     <system:String x:Key="S.Turn.Queued" xml:space="preserve">Отправлено. Модель учтёт это на следующем шаге.</system:String>
     <system:String x:Key="S.Update.Confirm" xml:space="preserve">Обновить и перезапустить</system:String>
     <system:String x:Key="S.Update.Desc" xml:space="preserve">Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Проверять автоматически</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Проверка только узнаёт номер последней версии — скачивание начинаете вы</system:String>
-    <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} — установлена {1}</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">При запуске, не чаще раза в 6 часов. Проверка только узнаёт номер последней версии - скачивание начинаете вы</system:String>
+    <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} - установлена {1}</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Неожиданный ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Не удалось открыть браузер: {0}</system:String>
     <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Не удалось освободить файл программы: {0}</system:String>
@@ -587,11 +603,11 @@
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">Обновление не состоялось: {0}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub отклонил проверку. Откройте страницу релиза вручную.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">Проверка обновлений не должна ходить с чужим ключом.</system:String>
-    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">Контрольная сумма не совпала — файл удалён.</system:String>
+    <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">Контрольная сумма не совпала - файл удалён.</system:String>
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
-    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем — ярлыки и запуск от имени администратора не потеряются.</system:String>
+    <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем - ярлыки и запуск от имени администратора не потеряются.</system:String>
     <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Папку программы правит только администратор, поэтому Windows спросит разрешение.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">Проверка ещё не запускалась</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">Нет связи с GitHub: {0}</system:String>
@@ -600,11 +616,11 @@
     <system:String x:Key="S.Updates.NoVersionInRelease" xml:space="preserve">В релизе нет распознаваемой версии.</system:String>
     <system:String x:Key="S.Updates.NoWindowsBuild" xml:space="preserve">У релиза нет готовой сборки для Windows.</system:String>
     <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Не удалось подготовить папку для загрузки ({0}). Скачайте новую версию вручную.</system:String>
-    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">Файл релиза лежит не на GitHub — обновление отменено.</system:String>
-    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">Этот файл не из загрузок обновления — подмена отменена.</system:String>
+    <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">Файл релиза лежит не на GitHub - обновление отменено.</system:String>
+    <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">Этот файл не из загрузок обновления - подмена отменена.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Открыть релиз</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Не удалось разобрать ответ GitHub.</system:String>
-    <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка — после {0}.</system:String>
+    <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка - после {0}.</system:String>
     <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">Новая версия установлена, но запустить её не вышло: {0}</system:String>
     <system:String x:Key="S.Updates.RollbackFailed" xml:space="preserve">Обновление не встало ({0}), и вернуть прежнюю версию не вышло. Прежний файл лежит рядом: {1}</system:String>
     <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · есть обновление</system:String>
@@ -614,12 +630,12 @@
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Версия и обновления</system:String>
     <system:String x:Key="S.Updates.TooBig" xml:space="preserve">Файл релиза неправдоподобно велик.</system:String>
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">неизвестно сколько</system:String>
-    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">Установлена последняя версия — {0}</system:String>
+    <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">Установлена последняя версия - {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Обновить с правами</system:String>
-    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов — программа перезапустится.</system:String>
+    <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов - программа перезапустится.</system:String>
 
-    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель — эта убрана из списка до перезапуска.</system:String>
+    <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель - эта убрана из списка до перезапуска.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
 

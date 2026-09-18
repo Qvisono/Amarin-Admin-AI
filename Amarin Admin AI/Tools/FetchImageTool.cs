@@ -29,7 +29,7 @@ public sealed class FetchImageTool : ITool
     public string Description =>
         "Fetch a picture from a public http(s) URL and put it in the reply. Use it whenever the " +
         "user pastes a link to an image or to a page showing one (art sites, galleries, news, " +
-        "wikis), and whenever you find such a link yourself — never paste a raw external URL and " +
+        "wikis), and whenever you find such a link yourself - never paste a raw external URL and " +
         "hope it renders. A link to a submission or article page works too: the page's own preview " +
         "image is followed automatically. There is no domain allowlist here and nothing is saved " +
         "to disk. You get the picture back as a handle and you can see it, so you can describe " +
@@ -80,7 +80,7 @@ public sealed class FetchImageTool : ITool
             if (fetched is not { } payload)
             {
                 return ToolResult.Fail(
-                    $"По ссылке {target} нет картинки — страница не показывает изображение " +
+                    $"По ссылке {target} нет картинки - страница не показывает изображение " +
                     "в открытом виде. Попробуй прямую ссылку на файл.");
             }
 
@@ -216,7 +216,7 @@ public sealed class FetchImageTool : ITool
     {
         HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized =>
             $"{target.Host} не отдал файл без авторизации (HTTP {(int)ex.StatusCode!}). " +
-            "Если есть прямая ссылка на сам файл картинки — попробуй её.",
+            "Если есть прямая ссылка на сам файл картинки - попробуй её.",
         HttpStatusCode.NotFound =>
             $"По адресу {target} ничего нет (404).",
         HttpStatusCode.TooManyRequests =>

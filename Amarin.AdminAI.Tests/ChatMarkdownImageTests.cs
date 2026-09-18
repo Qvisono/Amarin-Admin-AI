@@ -116,7 +116,7 @@ public sealed class ChatMarkdownImageTests
     [Fact]
     public void A_picture_that_opens_a_paragraph_keeps_the_trailing_text()
     {
-        var blocks = Render($"![тут](data:image/png;base64,{PixelPng}) — вот так.");
+        var blocks = Render($"![тут](data:image/png;base64,{PixelPng}) - вот так.");
         var kinds = _wpf.Ui.Invoke(() => blocks.Select(b => b.GetType().Name).ToList());
 
         // No empty paragraph in front of the picture: blank runs are dropped.

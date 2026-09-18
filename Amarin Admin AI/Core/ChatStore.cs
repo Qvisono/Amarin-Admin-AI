@@ -227,6 +227,7 @@ public sealed class ChatStore
 
         entry.Title = session.Title;
         entry.UpdatedAt = session.UpdatedAt;
+        entry.Summary = session.Summary;
         SaveIndex(index);
     }
 

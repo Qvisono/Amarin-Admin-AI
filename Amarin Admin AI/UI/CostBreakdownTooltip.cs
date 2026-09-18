@@ -84,6 +84,13 @@ internal static class CostBreakdownTooltip
             AddRow(rows, ref line, Loc.Get("S.Cost.ChatTitle"), message.TitleCost, bold: false);
         }
 
+        // По тому же условию: сводку дописывают после каждого ответа, и это отдельные деньги,
+        // которых в счёте хода нет.
+        if (message.SummaryCost is { HasData: true })
+        {
+            AddRow(rows, ref line, Loc.Get("S.Cost.Summary"), message.SummaryCost, bold: false);
+        }
+
         // With a single line there is nothing to add up, and a total under it would just repeat
         // the row above.
         if (line > 1)
