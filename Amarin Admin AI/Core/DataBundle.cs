@@ -246,6 +246,18 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Ключи Venice и журнал трат по ним. Правило здесь явное, хотя незнакомый файл и так
+        // уходит в None: архив человек отправляет в облако и пересылает, и цена ошибки в
+        // классификаторе — уехавший ключ. Блоб DPAPI на чужой машине всё равно не расшифруется,
+        // но и попадать туда ему незачем.
+        if (name == "keys.json" ||
+            relative == "usage" ||
+            relative.StartsWith("usage/", StringComparison.Ordinal) ||
+            relative.Contains("/usage/", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         // Недописанный файл: AppDataFile.WriteAtomic держит «.tmp» рядом с настоящим, и попасть в
         // архив он может только по случайности обхода.
         if (name.EndsWith(".tmp", StringComparison.Ordinal))

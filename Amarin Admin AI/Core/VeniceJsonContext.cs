@@ -13,6 +13,8 @@ namespace Amarin.Core;
 [JsonSerializable(typeof(ScrapeUrlRequest))]
 [JsonSerializable(typeof(ImageGenerateRequest))]
 [JsonSerializable(typeof(ImageGenerateResponse))]
+[JsonSerializable(typeof(VeniceUsagePage))]
+[JsonSerializable(typeof(VeniceRateLimitsResponse))]
 [JsonSerializable(typeof(string))]
 internal partial class VeniceJsonContext : JsonSerializerContext;
 

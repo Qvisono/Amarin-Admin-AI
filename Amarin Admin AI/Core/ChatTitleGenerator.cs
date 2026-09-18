@@ -40,6 +40,8 @@ internal sealed class ChatTitleGenerator
         var options = new AgentOptions
         {
             ApiKey = _options.ApiKey,
+            Keys = _options.Keys,
+            SpendSink = _options.SpendSink,
             BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,

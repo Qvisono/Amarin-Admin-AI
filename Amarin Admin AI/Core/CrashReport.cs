@@ -16,7 +16,10 @@ namespace Amarin.Core;
 /// </remarks>
 internal static partial class CrashReport
 {
-    public static string Build(Exception exception, string kind, string? secret = null)
+    public static string Build(Exception exception, string kind, string? secret = null) =>
+        Build(exception, kind, secret is null ? [] : new[] { secret });
+
+    public static string Build(Exception exception, string kind, IReadOnlyList<string?> secrets)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
@@ -52,21 +55,34 @@ internal static partial class CrashReport
             }
         }
 
-        return Scrub(sb.ToString(), secret);
+        return Scrub(sb.ToString(), secrets);
     }
 
     /// <summary>Прячет ключ API, если он просочился в сообщение или в стек.</summary>
-    public static string Scrub(string text, string? secret)
+    public static string Scrub(string text, string? secret) =>
+        Scrub(text, secret is null ? [] : new[] { secret });
+
+    /// <summary>
+    /// То же самое, но ключей несколько: их держит страница «Key &amp; Info», и вырезать надо
+    /// каждый. В стек попадает тот ключ, которым отправляли запрос, а он не обязан быть тем,
+    /// что активен к моменту аварии.
+    /// </summary>
+    public static string Scrub(string text, IReadOnlyList<string?> secrets)
     {
+        ArgumentNullException.ThrowIfNull(secrets);
+
         if (string.IsNullOrEmpty(text))
         {
             return text;
         }
 
-        // Короткая строка в роли «секрета» вырезала бы куски обычного текста.
-        if (!string.IsNullOrWhiteSpace(secret) && secret.Length >= 8)
+        foreach (var secret in secrets)
         {
-            text = text.Replace(secret, "***", StringComparison.Ordinal);
+            // Короткая строка в роли «секрета» вырезала бы куски обычного текста.
+            if (!string.IsNullOrWhiteSpace(secret) && secret.Length >= 8)
+            {
+                text = text.Replace(secret, "***", StringComparison.Ordinal);
+            }
         }
 
         return BearerToken().Replace(text, "Bearer ***");

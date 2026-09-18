@@ -66,7 +66,12 @@ internal static class JournalView
     /// </summary>
     private const int SubtitleLimit = 200;
 
-    public static JournalRow ToRow(JournalEntry entry, bool showChat)
+    /// <param name="format">
+    /// Порядок даты из настроек. Параметром, а не статикой: у класса всё статическое, и
+    /// изменяемое состояние пришлось бы возвращать на место в каждом тесте.
+    /// </param>
+    public static JournalRow ToRow(
+        JournalEntry entry, bool showChat, DateFormat format = DateFormat.DayMonthShort)
     {
         var pending = entry.Status is ToolCallStatus.Pending or ToolCallStatus.Running;
         var failure = !pending && !entry.Success;
@@ -91,7 +96,7 @@ internal static class JournalView
             IsPending = pending,
             Title = title,
             Subtitle = OneLine(entry.ArgumentsJson, SubtitleLimit),
-            Timestamp = FormatTime(entry.StartedAt, entry.TimeIsApproximate),
+            Timestamp = FormatTime(entry.StartedAt, entry.TimeIsApproximate, format),
             Trailer = trailer,
             Tooltip = BuildTooltip(entry),
             ChatId = entry.ChatId,
@@ -99,7 +104,7 @@ internal static class JournalView
         };
     }
 
-    public static JournalRow ToRow(SnapshotEntry snapshot)
+    public static JournalRow ToRow(SnapshotEntry snapshot, DateFormat format = DateFormat.DayMonthShort)
     {
         var label = string.IsNullOrWhiteSpace(snapshot.Label)
             ? Loc.Get("S.Journal.Snapshot.NoLabel")
@@ -114,7 +119,7 @@ internal static class JournalView
             Subtitle = snapshot.Id,
             Timestamp = snapshot.Created == DateTime.MinValue
                 ? "-"
-                : snapshot.Created.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture),
+                : ChatFormat.DateTimeShort(snapshot.Created, format),
             Trailer = snapshot.Machine,
             // Line break assembled here, not inside the caption: XAML would collapse it, and the
             // translator has no business owning the layout of a tooltip.
@@ -123,7 +128,7 @@ internal static class JournalView
         };
     }
 
-    public static JournalRow ToRow(ChatSummaryEntry summary)
+    public static JournalRow ToRow(ChatSummaryEntry summary, DateFormat format = DateFormat.DayMonthShort)
     {
         ArgumentNullException.ThrowIfNull(summary);
 
@@ -136,7 +141,7 @@ internal static class JournalView
             Subtitle = summary.Text,
             Timestamp = summary.UpdatedAt == DateTime.MinValue
                 ? "-"
-                : summary.UpdatedAt.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture),
+                : ChatFormat.DateTimeShort(summary.UpdatedAt, format),
             Trailer = "",
             Tooltip = summary.Text,
             ChatId = summary.ChatId,
@@ -156,9 +161,9 @@ internal static class JournalView
         (summary.Title + " " + summary.Text).ToLowerInvariant();
 
     /// <summary>One line of context under the title on the details screen.</summary>
-    public static string BuildMeta(JournalEntry entry)
+    public static string BuildMeta(JournalEntry entry, DateFormat format = DateFormat.DayMonthShort)
     {
-        var parts = new List<string> { FormatTime(entry.StartedAt, entry.TimeIsApproximate) };
+        var parts = new List<string> { FormatTime(entry.StartedAt, entry.TimeIsApproximate, format) };
 
         if (FormatDuration(entry.Duration) is { Length: > 0 } duration)
         {
@@ -179,13 +184,13 @@ internal static class JournalView
         return string.Join("  ·  ", parts);
     }
 
-    public static string BuildMeta(SnapshotEntry snapshot)
+    public static string BuildMeta(SnapshotEntry snapshot, DateFormat format = DateFormat.DayMonthShort)
     {
         var parts = new List<string>
         {
             snapshot.Created == DateTime.MinValue
                 ? snapshot.Id
-                : snapshot.Created.ToString("d MMMM yyyy, HH:mm", CultureInfo.CurrentCulture)
+                : ChatFormat.DateTimeShort(snapshot.Created, format)
         };
 
         if (!string.IsNullOrWhiteSpace(snapshot.Machine))
@@ -223,16 +228,18 @@ internal static class JournalView
         return text;
     }
 
-    private static string FormatTime(DateTime at, bool approximate)
+    private static string FormatTime(DateTime at, bool approximate, DateFormat format)
     {
         if (at == default)
         {
             return "-";
         }
 
+        // У сегодняшних записей дата не пишется вовсе — в журнале их большинство, и повторять
+        // её в каждой строке значило бы съесть место под то, что и так видно.
         var text = at.Date == DateTime.Today
-            ? at.ToString("HH:mm:ss", CultureInfo.CurrentCulture)
-            : at.ToString("d MMM, HH:mm", CultureInfo.CurrentCulture);
+            ? at.ToString("HH:mm:ss", CultureInfo.InvariantCulture)
+            : ChatFormat.DateTimeShort(at, format);
 
         // The tilde is the only hint on the row itself that the time came from the surrounding
         // message rather than the call; the tooltip spells it out.

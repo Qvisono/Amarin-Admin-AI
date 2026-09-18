@@ -13,6 +13,9 @@ internal static class UiScale
     public static readonly int[] Percents = [80, 90, 100, 110, 125, 150, 175, 200, 225, 250];
 
     private const int WmDpiChanged = 0x02E0;
+
+    /// <summary>Во сколько раз подсказка может стать крупнее заводского размера.</summary>
+    public const double MaxTooltipScale = 1.1;
     private const uint MonitorDefaultToNearest = 2;
     private const int MdtEffectiveDpi = 0;
 
@@ -40,6 +43,20 @@ internal static class UiScale
         return 100;
     }
 
+    /// <summary>
+    /// Ставит подсказку по центру под целью.
+    /// </summary>
+    /// <remarks>
+    /// Обе величины WPF передаёт в единицах окна подсказки, и оно живёт при DPI монитора: при
+    /// масштабе 150 % значок шириной 32 приходит сюда как 48. Поэтому приводить ничего не надо —
+    /// но ровно поэтому же ширина карточки обязана быть уже отмасштабированной, чем и занят
+    /// <see cref="ScaleTooltip"/>. Со «сырой» карточкой формула центрирует правильно, а карточка
+    /// при этом остаётся размера 100 % и выглядит крошечной.
+    /// <para>
+    /// <c>offset</c> сюда приходит нулевым: <c>ToolTipService.VerticalOffset</c> WPF применяет
+    /// сам, уже к результату. Зазор под значком поэтому не задаётся здесь.
+    /// </para>
+    /// </remarks>
     public static CustomPopupPlacement[] PlaceBelowCenter(Size popupSize, Size targetSize, Point offset)
     {
         var x = (targetSize.Width - popupSize.Width) / 2.0 + offset.X;
@@ -57,6 +74,63 @@ internal static class UiScale
             tooltip.Placement = PlacementMode.Custom;
             tooltip.CustomPopupPlacementCallback = PlaceBelowCenter;
         }
+    }
+
+    /// <summary>
+    /// Растягивает подсказку до выбранного масштаба интерфейса.
+    /// </summary>
+    /// <remarks>
+    /// Подделанный DPI до подсказки не доходит. Её окно WPF заводит с DPI монитора и на
+    /// присланный <c>WM_DPICHANGED</c> не отзывается — замерено: при 150 % и 250 % карточка
+    /// оставалась ровно 230 пикселей, той же, что при 100 %. Человек видел маленькую подсказку
+    /// рядом с укрупнённым интерфейсом, а у края экрана она к тому же уезжала: размещение
+    /// считается от ширины карточки, и слишком узкая карточка вставала не там.
+    /// <para>
+    /// Поэтому здесь не DPI, а <see cref="ScaleTransform"/> — тем же приёмом масштабируется
+    /// всплывающее уведомление (<c>NotificationToast</c>). Множитель берётся как отношение
+    /// нужного DPI к тому, что у подсказки сейчас: если подделка всё-таки дошла (а на других
+    /// сборках Windows она может и дойти), отношение равно единице и преобразование не ставится.
+    /// </para>
+    /// </remarks>
+    private static void ScaleTooltip(ToolTip tooltip)
+    {
+        var wanted = PresentationSource.FromVisual(tooltip) is HwndSource { Handle: var hwnd } &&
+                     hwnd != IntPtr.Zero
+            ? EffectiveDpi(hwnd)
+            : EffectiveDpiFromMonitor(96);
+        var current = VisualTreeHelper.GetDpi(tooltip).PixelsPerInchX;
+        if (current <= 0)
+        {
+            return;
+        }
+
+        // Подсказка растёт вместе с интерфейсом, но не в ту же меру. При 250 % карточка шириной
+        // 230 заняла бы 575 пикселей — больше, чем половина окна, из которого её вызвали, и
+        // читать там уже нечего, всё и так огромное. Потолок в 1.1 держит текст разборчивым,
+        // не превращая подсказку в отдельное окно. Ниже единицы не опускаемся тоже: при 80 %
+        // карточка стала бы мельче, чем её вообще имеет смысл показывать.
+        //
+        // На положение потолок не влияет: размещение считает
+        // <see cref="PlaceBelowCenter"/> от той ширины, которая получилась после этого
+        // преобразования, и обе величины приходят туда в одних единицах.
+        var factor = Math.Clamp(wanted / current, 1.0, MaxTooltipScale);
+        var scaled = tooltip.LayoutTransform as ScaleTransform;
+        if (Math.Abs(factor - 1.0) < 0.001)
+        {
+            if (scaled is not null)
+            {
+                tooltip.LayoutTransform = Transform.Identity;
+            }
+
+            return;
+        }
+
+        if (scaled is not null && Math.Abs(scaled.ScaleX - factor) < 0.001)
+        {
+            return;
+        }
+
+        tooltip.LayoutTransform = new ScaleTransform(factor, factor);
     }
 
     public static void Apply(Window window, FrameworkElement? scaledRoot, int percent)
@@ -237,7 +311,7 @@ internal static class UiScale
                 ApplyPopupDpi(element);
                 break;
             case ToolTip tooltip:
-                ApplyPopupDpi(tooltip);
+                ScaleTooltip(tooltip);
                 break;
             case ContextMenu menu:
                 ApplyPopupDpi(menu);
@@ -267,11 +341,11 @@ internal static class UiScale
     {
         if (sender is ToolTip tooltip)
         {
-            ApplyPopupDpi(tooltip);
+            ScaleTooltip(tooltip);
         }
     }
 
-    private static void ApplyPopupDpi(FrameworkElement element)
+    private static void ApplyPopupDpi(FrameworkElement element, bool retry = false)
     {
         element.LayoutTransform = Transform.Identity;
         if (PresentationSource.FromVisual(element) is not HwndSource { Handle: var hwnd } ||
@@ -292,6 +366,16 @@ internal static class UiScale
         var height = rect.Bottom - rect.Top;
         if (width < 1 || height < 1)
         {
+            // Окно попапа заводится раньше, чем WPF посчитает его раскладку, и на первый показ
+            // после запуска оно приходит сюда нулевым. Уйти молча значило бы оставить эту
+            // подсказку в масштабе монитора до тех пор, пока её не откроют второй раз.
+            if (!retry)
+            {
+                element.Dispatcher.BeginInvoke(
+                    () => ApplyPopupDpi(element, retry: true),
+                    DispatcherPriority.Loaded);
+            }
+
             return;
         }
 

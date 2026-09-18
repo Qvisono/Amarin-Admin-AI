@@ -130,6 +130,9 @@ namespace Amarin.UI
                 // Хранилище пишет в фоне, и без этого последний ответ мог не доехать до диска.
                 FlushPendingPersists();
                 _services?.ChatStore.Flush();
+
+            // Журнал трат пишется отложенно: без этого последние ответы сеанса до диска не дошли бы.
+            _services?.Ledger.Flush();
             };
             Closed += (_, _) =>
             {
@@ -331,6 +334,45 @@ namespace Amarin.UI
             _services.Settings.UiScalePercent = percent;
             _services.SettingsStore.Save(_services.Settings);
             UiScale.Apply(this, ScaledRoot, percent);
+        }
+
+        /// <remarks>
+        /// Лента перерисовывается целиком: подсказка с датой ставится один раз при сборке пузыря,
+        /// и без этого новый формат увидели бы только ответы, пришедшие после смены. Тот же путь,
+        /// каким чат обновляется при смене языка.
+        /// </remarks>
+        private void DateFormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.DateFormat = ReadDateFormatCombo();
+            _services.SettingsStore.Save(_services.Settings);
+            RenderSession();
+        }
+
+        private DateFormat ReadDateFormatCombo() =>
+            DateFormatComboBox.SelectedItem is ComboBoxItem item &&
+            Enum.TryParse<DateFormat>(Convert.ToString(item.Tag), out var value)
+                ? value
+                : DateFormat.DayMonthShort;
+
+        private void SelectDateFormat(DateFormat format)
+        {
+            for (var i = 0; i < DateFormatComboBox.Items.Count; i++)
+            {
+                if (DateFormatComboBox.Items[i] is ComboBoxItem item &&
+                    Enum.TryParse<DateFormat>(Convert.ToString(item.Tag), out var value) &&
+                    value == format)
+                {
+                    DateFormatComboBox.SelectedIndex = i;
+                    return;
+                }
+            }
+
+            DateFormatComboBox.SelectedIndex = 0;
         }
 
         /// <summary>
@@ -1198,6 +1240,7 @@ namespace Amarin.UI
                 ThemeManager.Apply(settings.Theme);
                 LoadAppearanceUi(settings);
                 SelectUiScale(settings.UiScalePercent);
+                SelectDateFormat(settings.DateFormat);
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
@@ -1219,6 +1262,7 @@ namespace Amarin.UI
                 BindSettingsReasoningPickers();
 
                 MainPromptTextBox.Text = settings.MainPrompt ?? "";
+                LoadPromptLibrary();
                 TechAiPromptTextBox.Text = string.IsNullOrWhiteSpace(settings.TechAiPrompt)
                     ? ChatEngine.DefaultTechPrompt
                     : settings.TechAiPrompt;
@@ -1240,6 +1284,12 @@ namespace Amarin.UI
                 Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
             }
         }
+
+        /// <summary>
+        /// Порядок даты из настроек. До появления служб — заводской: окно успевает нарисовать
+        /// ленту раньше, чем к нему прикрутят AppServices.
+        /// </summary>
+        private DateFormat ActiveDateFormat => _services?.Settings.DateFormat ?? DateFormat.DayMonthShort;
 
         private void ApplyUiScaleFromSettings()
         {
@@ -2474,7 +2524,8 @@ namespace Amarin.UI
             }
 
             _workingStarted = turn.StartedAt;
-            var view = ChatMessageViews.CreateAssistant(this, assistant, CreateMessageActions(turn.Session));
+            var view = ChatMessageViews.CreateAssistant(
+                this, assistant, CreateMessageActions(turn.Session), ActiveDateFormat);
             _liveAssistant = view;
 
             // Продолжение возобновляет ответ, который в ленте уже нарисован: старый пузырь

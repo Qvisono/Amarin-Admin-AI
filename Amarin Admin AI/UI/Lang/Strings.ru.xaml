@@ -67,6 +67,8 @@
     <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Толщина кристалла</system:String>
     <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Фон за интерфейсом, стекло и свой акцентный цвет. Выключено - чистая палитра темы</system:String>
+    <system:String x:Key="S.Appearance.DateFormat" xml:space="preserve">Формат даты</system:String>
+    <system:String x:Key="S.Appearance.DateFormatDesc" xml:space="preserve">Порядок в подсказке над временем ответа и в журнале</system:String>
     <system:String x:Key="S.Appearance.Delay" xml:space="preserve">Задержка</system:String>
     <system:String x:Key="S.Appearance.File" xml:space="preserve">Файл</system:String>
     <system:String x:Key="S.Appearance.FitFill" xml:space="preserve">Заполнить</system:String>
@@ -253,6 +255,7 @@
     <system:String x:Key="S.Common.NothingFound" xml:space="preserve">Ничего не найдено</system:String>
     <system:String x:Key="S.Common.Open" xml:space="preserve">Открыть</system:String>
     <system:String x:Key="S.Common.Remove" xml:space="preserve">Убрать</system:String>
+    <system:String x:Key="S.Common.Reset" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Common.Save" xml:space="preserve">Сохранить</system:String>
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Да</system:String>
 
@@ -309,6 +312,20 @@
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Тяжёлые задачи</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Основной промпт ИИ</system:String>
+    <system:String x:Key="S.Customize.PromptApply" xml:space="preserve">Заменить основной промпт на «{0}»?</system:String>
+    <system:String x:Key="S.Customize.PromptApplyDesc" xml:space="preserve">Текст в поле основного промпта будет заменён и сразу сохранён.</system:String>
+    <system:String x:Key="S.Customize.PromptCreate" xml:space="preserve">Создать</system:String>
+    <system:String x:Key="S.Customize.PromptDeleteConfirm" xml:space="preserve">Удалить заготовку «{0}»?</system:String>
+    <system:String x:Key="S.Customize.PromptDeleteDesc" xml:space="preserve">Основной промпт останется прежним - удаляется только заготовка.</system:String>
+    <system:String x:Key="S.Customize.PromptEdit" xml:space="preserve">Заготовка промпта</system:String>
+    <system:String x:Key="S.Customize.PromptEmpty" xml:space="preserve">Пока пусто. «Создать» сохранит сюда текст из поля выше.</system:String>
+    <system:String x:Key="S.Customize.PromptLibrary" xml:space="preserve">Библиотека промптов</system:String>
+    <system:String x:Key="S.Customize.PromptLibraryDesc" xml:space="preserve">Сохранённые роли модели. Нажатие подставит текст в поле выше</system:String>
+    <system:String x:Key="S.Customize.PromptName" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Customize.PromptNameEmpty" xml:space="preserve">Без названия заготовку не найти в списке.</system:String>
+    <system:String x:Key="S.Customize.PromptNew" xml:space="preserve">Новая заготовка</system:String>
+    <system:String x:Key="S.Customize.PromptText" xml:space="preserve">Текст промпта</system:String>
+    <system:String x:Key="S.Customize.PromptTextEmpty" xml:space="preserve">Пустой заготовке нечего подставить в основной промпт.</system:String>
     <system:String x:Key="S.Customize.Protection" xml:space="preserve">Защита</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Маршрутизатор</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Анализирует запрос и выбирает одну из моделей выше</system:String>
@@ -377,7 +394,7 @@
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения - в репозиторий проекта.</system:String>
     <system:String x:Key="S.Info.Links.Title" xml:space="preserve">Если что-то не сходится</system:String>
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Не присылайте ключ в чат: сообщение уходит модели, а потом остаётся в истории переписки на диске.</system:String>
-    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки. Ключи со страницы Key &amp; Info лежат не там и зашифрованы.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Из отчёта об аварии ключ вырезается сам, так что отчёт можно пересылать спокойно.</system:String>
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк - отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Заводите переменную для текущего пользователя, а не для всей системы: системную видит любая учётная запись на компьютере.</system:String>
@@ -405,9 +422,9 @@
     <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Откройте раздел API на сайте Venice - там же виден остаток на счёте. Нажмите «Generate New API Key» и оставьте тип «Inference Only»: для работы этого достаточно, а «Admin» даёт ключу лишнюю власть над учётной записью. Целиком ключ показывают ровно один раз - скопируйте сразу. Потерянный не восстанавливают: удаляют и выпускают новый.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Создайте API-ключ</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'сюда-ваш-ключ', 'User')</system:String>
-    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Заведите переменную в окне «Изменение переменных среды текущего пользователя» или одной командой в PowerShell:</system:String>
-    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Поля для ключа в программе нет намеренно: тогда его пришлось бы где-то хранить. Ключ читается из переменной окружения VENICE_API_KEY - она принадлежит вашей учётной записи Windows и другим пользователям компьютера не видна.</system:String>
+    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Если отдавать ключ программе на хранение не хочется, заведите переменную окружения - её программа прочитает при старте и хранить не станет:</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте. Ключ, вставленный на странице Key &amp; Info, работает сразу.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Вставьте ключ в Настройки - Key &amp; Info. Он ляжет на диск зашифрованным средствами Windows: прочитать его сможет только ваша учётная запись. Ключей можно держать несколько и переключаться между ними прямо там же.</system:String>
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Отдайте ключ программе</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ - ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, - значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Проверьте</system:String>
@@ -446,6 +463,35 @@
     <system:String x:Key="S.Journal.Tab.Summaries" xml:space="preserve">Сводки</system:String>
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Время приблизительное: у этой записи нет собственной отметки, взято время сообщения.</system:String>
     <system:String x:Key="S.Journal.Title" xml:space="preserve">Журнал</system:String>
+    <system:String x:Key="S.Key.Add" xml:space="preserve">Добавить ключ</system:String>
+    <system:String x:Key="S.Key.AddHint" xml:space="preserve">Ключ проверяется у Venice до сохранения, чтобы опечатка не всплыла посреди ответа.</system:String>
+    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">Новый ключ Venice</system:String>
+    <system:String x:Key="S.Key.BadgeEnvironment" xml:space="preserve">окружение</system:String>
+    <system:String x:Key="S.Key.Balance.Credits" xml:space="preserve">Остаток, кредиты</system:String>
+    <system:String x:Key="S.Key.Balance.Diem" xml:space="preserve">{0} DIEM</system:String>
+    <system:String x:Key="S.Key.Balance.Refresh" xml:space="preserve">Обновить</system:String>
+    <system:String x:Key="S.Key.Balance.Usd" xml:space="preserve">Остаток, USD</system:String>
+    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">Пока идёт ответ, ключ не переключить: половина запросов ушла бы с одним ключом, половина с другим</system:String>
+    <system:String x:Key="S.Key.Checking" xml:space="preserve">Проверяем ключ...</system:String>
+    <system:String x:Key="S.Key.DeleteConfirm" xml:space="preserve">Удалить ключ «{0}»?</system:String>
+    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">Ключ пропадёт только из этой программы. В Venice он останется.</system:String>
+    <system:String x:Key="S.Key.Duplicate" xml:space="preserve">Такой ключ уже есть в списке</system:String>
+    <system:String x:Key="S.Key.Empty" xml:space="preserve">Введите ключ</system:String>
+    <system:String x:Key="S.Key.FromEnvironment" xml:space="preserve">Из переменной окружения</system:String>
+    <system:String x:Key="S.Key.Hide" xml:space="preserve">Скрыть</system:String>
+    <system:String x:Key="S.Key.Invalid" xml:space="preserve">Venice этот ключ не принял</system:String>
+    <system:String x:Key="S.Key.MakeActive" xml:space="preserve">Сделать активным</system:String>
+    <system:String x:Key="S.Key.Name" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Key.NoAccess" xml:space="preserve">Ключ не пускает к моделям</system:String>
+    <system:String x:Key="S.Key.Section" xml:space="preserve">Ключи Venice</system:String>
+    <system:String x:Key="S.Key.Show" xml:space="preserve">Показать</system:String>
+    <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">осталось {0}</system:String>
+    <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Считаем...</system:String>
+    <system:String x:Key="S.Key.StatsSpent" xml:space="preserve">потрачено {0}</system:String>
+    <system:String x:Key="S.Key.StatsUnknown" xml:space="preserve">Статистика недоступна</system:String>
+    <system:String x:Key="S.Key.Storage" xml:space="preserve">Зашифрованы средствами Windows</system:String>
+    <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Не читается - введите заново</system:String>
+    <system:String x:Key="S.Key.Value" xml:space="preserve">Ключ</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Удалить язык</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Удалить язык «{0}»? Перевод придётся заказывать заново.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Не удалось удалить язык. Проверьте доступ к папке с данными программы.</system:String>
@@ -534,6 +580,7 @@
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключ и траты</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
@@ -542,6 +589,8 @@
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
     <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
+    <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
@@ -555,6 +604,29 @@
     <system:String x:Key="S.Size.Megabytes" xml:space="preserve">{0} МБ</system:String>
     <system:String x:Key="S.Size.NoExtension" xml:space="preserve">без расширения</system:String>
 
+    <system:String x:Key="S.Spend.Empty" xml:space="preserve">За этот отрезок трат не было</system:String>
+    <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice не ответил. Попробуйте обновить</system:String>
+    <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Звук</system:String>
+    <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Векторы</system:String>
+    <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Картинки</system:String>
+    <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Чтение страниц</system:String>
+    <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Прочее</system:String>
+    <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Видео</system:String>
+    <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Поиск в интернете</system:String>
+    <system:String x:Key="S.Spend.Loading" xml:space="preserve">Считаем траты...</system:String>
+    <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">Разбивка появится, когда будут траты</system:String>
+    <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">На что ушло</system:String>
+    <system:String x:Key="S.Spend.NoKey" xml:space="preserve">Ключа нет - показывать нечего</system:String>
+    <system:String x:Key="S.Spend.Period.All" xml:space="preserve">Всё время</system:String>
+    <system:String x:Key="S.Spend.Period.Day" xml:space="preserve">День</system:String>
+    <system:String x:Key="S.Spend.Period.Month" xml:space="preserve">Месяц</system:String>
+    <system:String x:Key="S.Spend.Period.Quarter" xml:space="preserve">3 месяца</system:String>
+    <system:String x:Key="S.Spend.Period.Week" xml:space="preserve">Неделя</system:String>
+    <system:String x:Key="S.Spend.Period.Year" xml:space="preserve">Год</system:String>
+    <system:String x:Key="S.Spend.SourceLocal" xml:space="preserve">Полный журнал Venice открыт только админ-ключу. Показано то, что посчитала программа</system:String>
+    <system:String x:Key="S.Spend.Stale" xml:space="preserve">Показаны сохранённые данные: Venice сейчас не отвечает</system:String>
+    <system:String x:Key="S.Spend.Title" xml:space="preserve">Траты</system:String>
+    <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} кредитов</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>

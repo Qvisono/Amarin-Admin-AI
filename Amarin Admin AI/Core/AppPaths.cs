@@ -17,6 +17,18 @@ internal static class AppPaths
 
     public static string ChatsDirectory => Path.Combine(Root, "chats");
 
+    /// <summary>
+    /// Ключи Venice активного профиля, зашифрованные DPAPI. Рядом с settings.json и по тем же
+    /// правилам: у каждого профиля свой файл.
+    /// </summary>
+    public static string KeysFile => Path.Combine(Root, "keys.json");
+
+    /// <summary>
+    /// Свёрнутые по дням траты, по файлу на ключ. Отдельной папкой, а не полем в настройках:
+    /// она дописывается при каждом заходе на страницу «Key &amp; Info» и растёт весь год.
+    /// </summary>
+    public static string UsageDirectory => Path.Combine(Root, "usage");
+
     public static void EnsureCreated()
     {
         Directory.CreateDirectory(Root);

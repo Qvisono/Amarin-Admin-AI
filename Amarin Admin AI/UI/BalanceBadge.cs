@@ -76,6 +76,22 @@ internal sealed class BalanceBadge
         Render();
     }
 
+    /// <summary>
+    /// Забывает остаток вместе с его кэшем на диске.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся при смене ключа: остаток принадлежит тому ключу, которым платили, и после
+    /// переключения плашка показывала бы чужие деньги. <see cref="Show"/> для этого не годится
+    /// намеренно — он пропускает <c>null</c>, чтобы плашка не мигала на ответах, где Venice
+    /// не прислал заголовков.
+    /// </remarks>
+    public void Forget()
+    {
+        _balance = null;
+        _store?.Forget();
+        Render();
+    }
+
     private void Render()
     {
         _plate.Visibility = Visibility.Visible;

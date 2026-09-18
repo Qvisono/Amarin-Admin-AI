@@ -261,7 +261,7 @@ namespace Amarin.UI
 
             ImportMetaText.Text = Loc.Format(
                 "S.Bundle.Import.Meta",
-                report.CreatedAt.ToString("g"),
+                ChatFormat.DateTimeShort(report.CreatedAt, ActiveDateFormat),
                 report.AppVersion,
                 AttachmentTypes.FormatSize(report.TotalBytes));
 

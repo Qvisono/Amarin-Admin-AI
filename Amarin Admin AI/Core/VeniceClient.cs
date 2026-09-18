@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -18,6 +19,20 @@ public sealed class VeniceClient
     /// <summary>Guards the running total: parallel tool calls share one client.</summary>
     private readonly Lock _costGate = new();
 
+    /// <summary>
+    /// Чем пометить следующее списание, если это не просто ответ модели.
+    /// </summary>
+    /// <remarks>
+    /// AsyncLocal, а не поле: клиент общий, а инструменты раунда работают параллельно — общее
+    /// поле они перетоптали бы, и поиск в сети оказался бы записан на чужой запрос. Здесь же
+    /// пометка живёт ровно в той цепочке вызовов, которая её поставила.
+    /// </remarks>
+    private static readonly AsyncLocal<string?> ChargeLabel = new();
+
+    /// <summary>Пометка для журнала трат: своя, если её поставили, иначе модель хода.</summary>
+    private static string ChargeSku(string model) =>
+        string.IsNullOrWhiteSpace(ChargeLabel.Value) ? model : ChargeLabel.Value!;
+
     public event Action<string, string>? ModelFallback;
 
     /// <summary>
@@ -33,14 +48,50 @@ public sealed class VeniceClient
     /// </summary>
     public string ActiveModel => _options.Model;
 
+    /// <remarks>
+    /// BaseAddress ставится один раз на клиента и остаётся общим: клиент делят с генератором
+    /// заголовка и сводкой, адрес у них тот же. А вот <c>Authorization</c> здесь больше не
+    /// ставится — см. <see cref="Request"/>.
+    /// </remarks>
     public VeniceClient(HttpClient http, AgentOptions options)
     {
         _http = http;
         _options = options;
         _primaryModel = options.Model;
         _http.BaseAddress ??= new Uri(_options.BaseUrl.TrimEnd('/') + "/");
-        _http.DefaultRequestHeaders.Authorization ??=
-            new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+    }
+
+    /// <summary>
+    /// Запрос к Venice вместе с ключом. Единственное место, где программа предъявляет ключ.
+    /// </summary>
+    /// <remarks>
+    /// Заголовок садится на сам запрос, а не на <c>DefaultRequestHeaders</c> клиента. Так было
+    /// раньше, и выходило двумя бедами сразу: клиент нёс <c>Bearer</c> в любой запрос, куда бы
+    /// тот ни шёл (GitHub отвечал на чужой ключ 401, а сам ключ уезжал на посторонний сервер),
+    /// и присваивание через <c>??=</c> намертво запоминало первый ключ — сменить его у живого
+    /// клиента было нельзя. Правило «для нового адресата — свой клиент через
+    /// <see cref="HttpClients.Create"/>» остаётся в силе: у клиентов разные таймауты и
+    /// представление.
+    /// </remarks>
+    /// <param name="apiKeyOverride">
+    /// Чужой ключ — когда страница настроек спрашивает баланс и траты ключа, который сейчас
+    /// не активен. Пусто — берётся активный.
+    /// </param>
+    private HttpRequestMessage Request(HttpMethod method, string path, string? apiKeyOverride = null)
+    {
+        var request = new HttpRequestMessage(method, path)
+        {
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
+        };
+
+        var key = string.IsNullOrWhiteSpace(apiKeyOverride) ? _options.ApiKey : apiKeyOverride;
+        if (!string.IsNullOrWhiteSpace(key))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        }
+
+        return request;
     }
 
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
@@ -194,16 +245,16 @@ public sealed class VeniceClient
                         $"Venice API error ({(int)retry.StatusCode}): {ExtractErrorMessage(body)}");
                 }
 
-                return ReadCompletion(body);
+                return ReadCompletion(body, model);
             }
 
             throw new VeniceApiException($"Venice API error ({(int)response.StatusCode}): {error}");
         }
 
-        return ReadCompletion(body);
+        return ReadCompletion(body, model);
     }
 
-    private ChatCompletionResponse ReadCompletion(string body)
+    private ChatCompletionResponse ReadCompletion(string body, string model)
     {
         ChatCompletionResponse result;
         try
@@ -225,7 +276,7 @@ public sealed class VeniceClient
             throw new VeniceApiException(result.Error.Message ?? "Unknown Venice API error.");
         }
 
-        RecordCost(result);
+        RecordCost(result, ChargeSku(model));
         return result;
     }
 
@@ -328,7 +379,7 @@ public sealed class VeniceClient
 
             if (accumulator.Cost.HasData)
             {
-                AddCost(accumulator.Cost);
+                AddCost(accumulator.Cost, ChargeSku(model));
             }
 
             return new StreamedChatCompletion
@@ -358,12 +409,8 @@ public sealed class VeniceClient
 
         var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
-        {
-            Content = content,
-            Version = HttpVersion.Version20,
-            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
+        var httpRequest = Request(HttpMethod.Post, "chat/completions");
+        httpRequest.Content = content;
 
         var httpWatch = Stopwatch.StartNew();
         var response = await _http.SendAsync(
@@ -484,11 +531,7 @@ public sealed class VeniceClient
     public async Task<IReadOnlyList<VeniceModelInfo>> ListTextModelsAsync(
         CancellationToken cancellationToken = default)
     {
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Get, "models?type=text")
-        {
-            Version = HttpVersion.Version20,
-            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
+        using var httpRequest = Request(HttpMethod.Get, "models?type=text");
 
         using var response = await _http.SendAsync(
                 httpRequest,
@@ -522,6 +565,134 @@ public sealed class VeniceClient
         return result.Data;
     }
 
+    /// <summary>
+    /// Остаток и лимиты ключа. Единственный способ узнать остаток, не потратив ни цента:
+    /// заголовки ответа его несут только после настоящего запроса к модели.
+    /// </summary>
+    /// <param name="apiKeyOverride">
+    /// Чужой ключ — страница настроек показывает остаток и по тем ключам, что сейчас не активны.
+    /// Второй <see cref="HttpClient"/> для этого не нужен: ключ едет на самом запросе.
+    /// </param>
+    public async Task<VeniceRateLimitsData> GetRateLimitsAsync(
+        string? apiKeyOverride = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var httpRequest = Request(HttpMethod.Get, "api_keys/rate_limits", apiKeyOverride);
+        using var response = await _http.SendAsync(
+                httpRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        // Только для активного ключа: чужой остаток на плашку ставить нельзя.
+        if (string.IsNullOrWhiteSpace(apiKeyOverride))
+        {
+            UpdateBalanceFromHeaders(response);
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new VeniceApiException(
+                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize(body, VeniceJsonContext.Default.VeniceRateLimitsResponse)?.Data
+                ?? throw new VeniceApiException("Empty rate limits response from Venice API.");
+        }
+        catch (JsonException ex)
+        {
+            throw new VeniceApiException(
+                $"Venice API returned non-JSON rate limits response ({ex.Message}). Body: {Preview(body)}");
+        }
+    }
+
+    /// <summary>
+    /// Страница журнала трат Venice — то, за что с ключа списали на самом деле.
+    /// </summary>
+    /// <remarks>
+    /// Сюда попадает всё: и ответы, и придуманные заголовки чатов, и скрытые сводки, и поиск
+    /// в сети, и картинки — включая то, что программа у себя не считает (неудачные попытки из
+    /// цепочки замен модели списываются, а до <c>AddCost</c> не доходят). Поэтому график трат
+    /// строится по этому журналу, а не по внутреннему счётчику.
+    /// <para>
+    /// Границы периода Venice принимает только на первой странице: вместе с курсором фильтры
+    /// слать нельзя, и продолжение обхода идёт одним лишь курсором.
+    /// </para>
+    /// </remarks>
+    public async Task<VeniceUsagePage> GetUsageHistoryAsync(
+        DateTimeOffset? fromUtc = null,
+        DateTimeOffset? toUtc = null,
+        string? cursor = null,
+        int pageSize = 1000,
+        string? apiKeyOverride = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new List<string> { "pageSize=" + Math.Clamp(pageSize, 10, 1000) };
+        if (!string.IsNullOrWhiteSpace(cursor))
+        {
+            query.Add("cursor=" + Uri.EscapeDataString(cursor));
+        }
+        else
+        {
+            if (fromUtc is { } from)
+            {
+                query.Add("startTimestamp=" + Uri.EscapeDataString(Iso(from)));
+            }
+
+            if (toUtc is { } to)
+            {
+                query.Add("endTimestamp=" + Uri.EscapeDataString(Iso(to)));
+            }
+        }
+
+        using var httpRequest = Request(
+            HttpMethod.Get, "billing/usage-history?" + string.Join("&", query), apiKeyOverride);
+        using var response = await _http.SendAsync(
+                httpRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            // Отдельным исключением, потому что это не поломка, а свойство ключа: журнал трат
+            // Venice отдаёт только админ-ключу, а работают люди обычным, для запросов к моделям.
+            // Вызывающий по этому отказу переходит на собственный журнал программы.
+            if (body.Contains("Admin API key", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new VeniceAdminKeyRequiredException(
+                    $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            }
+
+            throw new VeniceApiException(
+                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize(body, VeniceJsonContext.Default.VeniceUsagePage)
+                ?? new VeniceUsagePage();
+        }
+        catch (JsonException ex)
+        {
+            throw new VeniceApiException(
+                $"Venice API returned non-JSON usage response ({ex.Message}). Body: {Preview(body)}");
+        }
+    }
+
+    private static string Iso(DateTimeOffset moment) =>
+        moment.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+
+    private static string Preview(string body) =>
+        string.IsNullOrWhiteSpace(body) ? "(empty body)"
+        : body.Length > 240 ? body[..240] + "…"
+        : body;
+
     public void ResetRequestCost()
     {
         lock (_costGate)
@@ -530,11 +701,11 @@ public sealed class VeniceClient
         }
     }
 
-    private void RecordCost(ChatCompletionResponse result)
+    private void RecordCost(ChatCompletionResponse result, string sku)
     {
         if (result.Cost is not null)
         {
-            AddCost(result.Cost.ToCost());
+            AddCost(result.Cost.ToCost(), sku);
         }
     }
 
@@ -543,12 +714,20 @@ public sealed class VeniceClient
     /// so the running total needs a gate; the same charge is also billed to whichever tool call
     /// is on the stack, which is what puts a price tag next to generate_image in the transcript.
     /// </summary>
-    private void AddCost(VeniceCost cost)
+    /// <param name="sku">
+    /// За что списали: идентификатор модели либо служебная статья вроде <c>web-search-request</c>.
+    /// Из этих пометок складывается разбивка «на что ушло» на странице «Key &amp; Info».
+    /// </param>
+    private void AddCost(VeniceCost cost, string sku)
     {
         lock (_costGate)
         {
             RequestCost = RequestCost.Add(cost);
         }
+
+        // Собственный журнал трат: Venice свой отдаёт только админ-ключу, а работают
+        // обычным. Здесь же, в единственной точке учёта, видны все деньги программы сразу.
+        _options.SpendSink?.Invoke(_options.ApiKey, cost, sku);
 
         // Свой счёт у каждого хода чата: один общий RequestCost на несколько одновременных
         // ходов не делится. Сам он остаётся — им пользуется агент, у которого клиент на прогон.
@@ -563,12 +742,8 @@ public sealed class VeniceClient
             VeniceJsonContext.Default.ScrapeUrlRequest);
         using var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "augment/scrape")
-        {
-            Content = content,
-            Version = HttpVersion.Version20,
-            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
+        using var httpRequest = Request(HttpMethod.Post, "augment/scrape");
+        httpRequest.Content = content;
         using var response = await _http.SendAsync(
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
@@ -588,7 +763,7 @@ public sealed class VeniceClient
             ? contentProp.GetString()
             : null;
 
-        AddCost(new VeniceCost { Usd = 0.01m, HasData = true });
+        AddCost(new VeniceCost { Usd = 0.01m, HasData = true }, "augment-scrape-request");
         return string.IsNullOrWhiteSpace(markdown) ? "Страница пуста или контент не извлечён." : markdown;
     }
 
@@ -645,12 +820,8 @@ public sealed class VeniceClient
 
         using var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "image/generate")
-        {
-            Content = content,
-            Version = HttpVersion.Version20,
-            VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
-        };
+        using var httpRequest = Request(HttpMethod.Post, "image/generate");
+        httpRequest.Content = content;
 
         var balanceBefore = LastBalance?.Usd;
 
@@ -674,7 +845,7 @@ public sealed class VeniceClient
             throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
         }
 
-        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd));
+        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd), model + "-image");
         return image;
     }
 
@@ -731,41 +902,52 @@ public sealed class VeniceClient
         var useXSearch = _options.EnableXSearch
             ?? model.Contains("grok", StringComparison.OrdinalIgnoreCase);
 
-        var response = await CreateChatCompletionAsync(new ChatCompletionRequest
-        {
-            Model = model,
-            Messages =
-            [
-                new ChatMessage
-                {
-                    Role = "system",
-                    // The links are the point, not decoration: the caller is a model that can
-                    // fetch a picture or read a page, but only if it is handed an address. The
-                    // old wording asked for "a summary with practical fixes" and got prose like
-                    // "on DeviantArt, search the furrywallpaper tag" — advice no tool can act on.
-                    Content = ChatContent.Text(
-                        "You are a web research assistant. Search the web and answer concisely in Russian.\n" +
-                        "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +
-                        "one per line, bare (no markdown, no shortening). Never write a link as a " +
-                        "description like 'ищи по тегу X on site Y' - give the address itself.\n" +
-                        "If the request is about pictures, art, wallpapers, photos or covers, list at " +
-                        "least 5 URLs of pages that show a matching image, and direct file URLs " +
-                        "(.jpg/.png/.webp) whenever the search results reveal them.")
-                },
-                new ChatMessage { Role = "user", Content = ChatContent.Text(query) }
-            ],
-            VeniceParameters = new VeniceParameters
+        // Поиск оплачивается токенами модели, но в разбивке трат он обязан стоять своей
+        // строкой: человек спрашивает «сколько ушло на интернет», а не «сколько ушло на Grok
+        // во время поиска».
+        ChargeLabel.Value = "web-search-request";
+        try
             {
-                IncludeVeniceSystemPrompt = false,
-                EnableWebSearch = "on",
-                EnableWebCitations = _options.EnableWebCitations,
-                EnableXSearch = useXSearch ? true : null
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            var response = await CreateChatCompletionAsync(new ChatCompletionRequest
+            {
+                Model = model,
+                Messages =
+                [
+                    new ChatMessage
+                    {
+                        Role = "system",
+                        // The links are the point, not decoration: the caller is a model that can
+                        // fetch a picture or read a page, but only if it is handed an address. The
+                        // old wording asked for "a summary with practical fixes" and got prose like
+                        // "on DeviantArt, search the furrywallpaper tag" — advice no tool can act on.
+                        Content = ChatContent.Text(
+                            "You are a web research assistant. Search the web and answer concisely in Russian.\n" +
+                            "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +
+                            "one per line, bare (no markdown, no shortening). Never write a link as a " +
+                            "description like 'ищи по тегу X on site Y' - give the address itself.\n" +
+                            "If the request is about pictures, art, wallpapers, photos or covers, list at " +
+                            "least 5 URLs of pages that show a matching image, and direct file URLs " +
+                            "(.jpg/.png/.webp) whenever the search results reveal them.")
+                    },
+                    new ChatMessage { Role = "user", Content = ChatContent.Text(query) }
+                ],
+                VeniceParameters = new VeniceParameters
+                {
+                    IncludeVeniceSystemPrompt = false,
+                    EnableWebSearch = "on",
+                    EnableWebCitations = _options.EnableWebCitations,
+                    EnableXSearch = useXSearch ? true : null
+                }
+            }, cancellationToken).ConfigureAwait(false);
 
-        var text = ReasoningSplit.Split(
-            ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
-        return string.IsNullOrWhiteSpace(text) ? "Результаты поиска не найдены." : text;
+            var text = ReasoningSplit.Split(
+                ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
+            return string.IsNullOrWhiteSpace(text) ? "Результаты поиска не найдены." : text;
+        }
+        finally
+        {
+            ChargeLabel.Value = null;
+        }
     }
 
     private void UpdateBalanceFromHeaders(HttpResponseMessage response)
@@ -819,4 +1001,15 @@ public sealed class VeniceClient
     }
 }
 
-public sealed class VeniceApiException(string message) : Exception(message);
+public class VeniceApiException(string message) : Exception(message);
+
+/// <summary>
+/// Venice отдаёт журнал трат только админ-ключу, а для запросов к моделям человек держит
+/// обычный.
+/// </summary>
+/// <remarks>
+/// Документация Venice утверждает, что <c>billing/usage-history</c> открыт обычному ключу.
+/// На деле он отвечает <c>401 Admin API key required</c> — проверено на живом ключе. Это не
+/// сбой сети и не повод показывать ошибку: программа просто берёт свой журнал трат.
+/// </remarks>
+public sealed class VeniceAdminKeyRequiredException(string message) : VeniceApiException(message);

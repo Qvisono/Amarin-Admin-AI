@@ -15,6 +15,19 @@ internal sealed class VeniceModelListCache
 
     public VeniceModelInfo? Find(string? id) => ReasoningPolicy.Find(_agentic, id);
 
+    /// <summary>
+    /// Забывает список, чтобы он загрузился заново.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся при смене ключа: тариф и доступ к моделям у ключей разные, и список, собранный
+    /// прежним ключом, показывал бы модели, к которым новый не пускает.
+    /// </remarks>
+    public void Invalidate()
+    {
+        _agentic = null;
+        _error = null;
+    }
+
     public async Task<IReadOnlyList<VeniceModelInfo>> GetAgenticAsync(
         CancellationToken cancellationToken = default)
     {

@@ -32,6 +32,36 @@ internal static class ChatFormat
 
     public static string Clock(DateTime timestamp) => timestamp.ToString("HH:mm");
 
+    /// <summary>Шаблон даты под выбранный человеком порядок.</summary>
+    /// <remarks>
+    /// Точка здесь — часть выбора, а не разделитель текущей культуры: человек выбирает из
+    /// четырёх подписей вида <c>DD.MM.YY</c>, и на английской или немецкой культуре
+    /// <see cref="CultureInfo.CurrentCulture"/> подменил бы её слэшем или дефисом.
+    /// Поэтому всюду ниже стоит <see cref="CultureInfo.InvariantCulture"/>.
+    /// </remarks>
+    public static string Pattern(DateFormat format) => format switch
+    {
+        DateFormat.MonthDayShort => "MM.dd.yy",
+        DateFormat.DayMonthFull => "dd.MM.yyyy",
+        DateFormat.MonthDayFull => "MM.dd.yyyy",
+        _ => "dd.MM.yy"
+    };
+
+    public static string Date(DateTime timestamp, DateFormat format) =>
+        timestamp.ToString(Pattern(format), CultureInfo.InvariantCulture);
+
+    /// <summary>Дата и время до секунд — подсказка над часами ответа.</summary>
+    /// <remarks>
+    /// Секунды здесь есть, хотя в самих часах их нет: подсказку открывают как раз затем, чтобы
+    /// узнать точнее, чем показано рядом.
+    /// </remarks>
+    public static string Stamp(DateTime timestamp, DateFormat format) =>
+        timestamp.ToString(Pattern(format) + ", HH:mm:ss", CultureInfo.InvariantCulture);
+
+    /// <summary>Дата и время до минут — строки журнала и отчёты.</summary>
+    public static string DateTimeShort(DateTime timestamp, DateFormat format) =>
+        timestamp.ToString(Pattern(format) + ", HH:mm", CultureInfo.InvariantCulture);
+
     public static string Cost(VeniceCost? cost)
     {
         if (cost is null || !cost.HasData)

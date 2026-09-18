@@ -91,6 +91,10 @@ internal static class Program
 
     private static int RunWpf(StartupArgs startup)
     {
+        // До первого окна: OverrideMetadata внутри нельзя звать после того, как свойство
+        // впервые прочитали.
+        ToolTipDefaults.Apply();
+
         var configuration = BuildConfiguration();
         var downloadOptions = LoadDownloadOptions(configuration);
 
@@ -99,12 +103,24 @@ internal static class Program
                      ?? string.Empty;
 
         // Ключ уезжает в заголовок Authorization и в сообщения HTTP-исключений, а отчёт об
-        // аварии человек пересылает — вырезаем его из отчёта.
-        CrashHandler.Secret = apiKey;
+        // аварии человек пересылает — вырезаем его из отчёта. Список пополнится ключами со
+        // страницы «Key & Info», как только станет известен профиль.
+        CrashHandler.Secrets = [apiKey];
+
+        // Держатель активного ключа. Заводится здесь, а наполняется ниже, когда выбран профиль:
+        // свои ключи у профиля свои, а AgentOptions раздаётся копиями и обязан смотреть на один
+        // общий объект, иначе смена ключа не дошла бы до агента и служебных генераторов.
+        var keys = new VeniceKeyProvider(apiKey);
+
+        // Собственный журнал трат. Заводится здесь и перекореняется ниже, когда выбран профиль:
+        // в AgentOptions он должен попасть один раз, до того как настройки разойдутся копиями.
+        var ledger = new SpendLedger(AppPaths.Root);
 
         var options = new AgentOptions
         {
             ApiKey = apiKey,
+            Keys = keys,
+            SpendSink = ledger.Record,
             BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
             Model = configuration["Venice:Model"] ?? "grok-4-6",
             MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
@@ -162,6 +178,15 @@ internal static class Program
 
         var settingsStore = new AppSettingsStore(dataRoot);
         var settings = settingsStore.Load();
+
+        // Только теперь известно, чей это профиль, — а ключи у каждого свои. До этой строки
+        // программа работает на ключе из окружения, и так же она работает дальше, если своих
+        // ключей человек не заводил.
+        ledger.UseRoot(dataRoot);
+        var keyStore = new VeniceKeyStore(dataRoot, apiKey);
+        keyStore.Load();
+        keys.Use(keyStore.ActiveSecret());
+        CrashHandler.Secrets = keyStore.AllSecrets();
         ThemeManager.Apply(settings.Theme);
         LanguageManager.Apply(settings.LanguageCode);
 
@@ -229,6 +254,11 @@ internal static class Program
             SettingsStore = settingsStore,
             Settings = settings,
             ChatStore = chatStore,
+            Prompts = new PromptLibrary(dataRoot),
+            KeyStore = keyStore,
+            Ledger = ledger,
+            Keys = keys,
+            EnvironmentKey = apiKey,
             Profiles = profileStore,
             ProfileRegistry = registry,
             Http = http,

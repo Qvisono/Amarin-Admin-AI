@@ -79,6 +79,9 @@ internal sealed class AssistantMessageView
     public required RichTextBox Body { get; init; }
     public required TextBlock ModelName { get; init; }
     public required TextBlock Clock { get; init; }
+
+    /// <summary>Прозрачная обёртка часов — она же цель наведения для подсказки с полной датой.</summary>
+    public required Border ClockChip { get; init; }
     public required TextBlock Duration { get; init; }
     public required TextBlock Thinking { get; init; }
     public required Ellipse ThinkingDot { get; init; }
@@ -1115,10 +1118,15 @@ internal static class ChatMessageViews
         return new AssistantActions(row, cancel, resume);
     }
 
+    /// <param name="dateFormat">
+    /// Порядок даты в подсказке над часами. Параметром, а не чтением настроек: этот класс
+    /// статический и до служб не дотягивается, а тестам удобнее задавать формат прямо.
+    /// </param>
     public static AssistantMessageView CreateAssistant(
         FrameworkElement host,
         ChatDisplayMessage message,
-        MessageActions? actions = null)
+        MessageActions? actions = null,
+        DateFormat dateFormat = DateFormat.DayMonthShort)
     {
         var logo = BuildModelLogo(host);
 
@@ -1138,6 +1146,18 @@ internal static class ChatMessageViews
             Style = (Style)host.FindResource("AiMetaText"),
             Text = ChatFormat.Clock(message.CreatedAt)
         };
+
+        // Часы в прозрачной обёртке по той же причине, что и цена ниже: голый TextBlock отвечает
+        // мыши только по самим цифрам, и подсказка мигала бы на просветах между ними.
+        var clockChip = new Border
+        {
+            Background = Brushes.Transparent,
+            ToolTip = ChatFormat.Stamp(message.CreatedAt, dateFormat),
+            Child = clock
+        };
+        ToolTipService.SetInitialShowDelay(clockChip, 150);
+        ToolTipService.SetShowDuration(clockChip, 20000);
+        ToolTipService.SetVerticalOffset(clockChip, 4);
         var duration = new TextBlock { Style = (Style)host.FindResource("AiMetaText") };
         var thinkingDot = new Ellipse
         {
@@ -1167,7 +1187,7 @@ internal static class ChatMessageViews
         var meta = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(1, 4, 0, 9) };
         meta.Children.Add(modelName);
         meta.Children.Add(new Ellipse { Style = (Style)host.FindResource("AiMetaDot") });
-        meta.Children.Add(clock);
+        meta.Children.Add(clockChip);
         meta.Children.Add(new Ellipse { Style = (Style)host.FindResource("AiMetaDot") });
         meta.Children.Add(duration);
         meta.Children.Add(thinkingDot);
@@ -1205,6 +1225,7 @@ internal static class ChatMessageViews
             Body = body,
             ModelName = modelName,
             Clock = clock,
+            ClockChip = clockChip,
             Duration = duration,
             Thinking = thinking,
             ThinkingDot = thinkingDot,

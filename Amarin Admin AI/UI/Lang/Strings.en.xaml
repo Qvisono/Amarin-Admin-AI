@@ -67,6 +67,8 @@
     <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Crystal thickness</system:String>
     <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Customisation</system:String>
     <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Backdrop, glass and your own accent colour. Off means the plain theme palette</system:String>
+    <system:String x:Key="S.Appearance.DateFormat" xml:space="preserve">Date format</system:String>
+    <system:String x:Key="S.Appearance.DateFormatDesc" xml:space="preserve">Order in the tooltip over an answer time and in the journal</system:String>
     <system:String x:Key="S.Appearance.Delay" xml:space="preserve">Delay</system:String>
     <system:String x:Key="S.Appearance.File" xml:space="preserve">File</system:String>
     <system:String x:Key="S.Appearance.FitFill" xml:space="preserve">Fill</system:String>
@@ -253,6 +255,7 @@
     <system:String x:Key="S.Common.NothingFound" xml:space="preserve">Nothing found</system:String>
     <system:String x:Key="S.Common.Open" xml:space="preserve">Open</system:String>
     <system:String x:Key="S.Common.Remove" xml:space="preserve">Remove</system:String>
+    <system:String x:Key="S.Common.Reset" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Common.Save" xml:space="preserve">Save</system:String>
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Yes</system:String>
 
@@ -309,6 +312,20 @@
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Heavy tasks</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Light tasks</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Main AI prompt</system:String>
+    <system:String x:Key="S.Customize.PromptApply" xml:space="preserve">Replace the main prompt with {0}?</system:String>
+    <system:String x:Key="S.Customize.PromptApplyDesc" xml:space="preserve">The text in the main prompt field will be replaced and saved right away.</system:String>
+    <system:String x:Key="S.Customize.PromptCreate" xml:space="preserve">Create</system:String>
+    <system:String x:Key="S.Customize.PromptDeleteConfirm" xml:space="preserve">Delete the {0} preset?</system:String>
+    <system:String x:Key="S.Customize.PromptDeleteDesc" xml:space="preserve">The main prompt stays as it is - only the preset goes.</system:String>
+    <system:String x:Key="S.Customize.PromptEdit" xml:space="preserve">Prompt preset</system:String>
+    <system:String x:Key="S.Customize.PromptEmpty" xml:space="preserve">Empty so far. Create saves the text from the field above here.</system:String>
+    <system:String x:Key="S.Customize.PromptLibrary" xml:space="preserve">Prompt library</system:String>
+    <system:String x:Key="S.Customize.PromptLibraryDesc" xml:space="preserve">Saved roles for the model. A click drops the text into the field above</system:String>
+    <system:String x:Key="S.Customize.PromptName" xml:space="preserve">Name</system:String>
+    <system:String x:Key="S.Customize.PromptNameEmpty" xml:space="preserve">Without a name the preset cannot be told apart in the list.</system:String>
+    <system:String x:Key="S.Customize.PromptNew" xml:space="preserve">New preset</system:String>
+    <system:String x:Key="S.Customize.PromptText" xml:space="preserve">Prompt text</system:String>
+    <system:String x:Key="S.Customize.PromptTextEmpty" xml:space="preserve">An empty preset has nothing to put into the main prompt.</system:String>
     <system:String x:Key="S.Customize.Protection" xml:space="preserve">Protection</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Router</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Reads the request and picks one of the models above</system:String>
@@ -377,7 +394,7 @@
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">The Venice documentation answers questions about keys, limits and models. Questions about the app itself, bugs you find and suggestions belong in the project repository.</system:String>
     <system:String x:Key="S.Info.Links.Title" xml:space="preserve">If something does not add up</system:String>
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Do not paste the key into the chat: the message goes to the model and then stays in the conversation history on disk.</system:String>
-    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file, and anyone who reaches the folder can read it.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file that anyone who reaches the folder can read. Keys from the Key &amp; Info page live elsewhere and are encrypted.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Crash reports have the key stripped out on their own, so a report is safe to forward.</system:String>
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one - that is a single button.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Create the variable for the current user, not for the whole system: a system variable is visible to every account on the computer.</system:String>
@@ -405,10 +422,10 @@
     <system:String x:Key="S.Info.Step3.Text" xml:space="preserve">Open the API section on the Venice site - it also shows what is left on the account. Press “Generate New API Key” and leave the type as “Inference Only”: that is enough to work, while “Admin” gives the key needless power over the account. The key is shown in full exactly once - copy it right away. A lost key is not recovered: you delete it and issue a new one.</system:String>
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Create an API key</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')</system:String>
-    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Create the variable in the “Edit environment variables for your account” window, or with a single PowerShell command:</system:String>
-    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">Restart the app afterwards: environment variables are read once, at startup.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">The app deliberately has no field for the key: it would then have to store it somewhere. The key is read from the VENICE_API_KEY environment variable - it belongs to your Windows account and is invisible to other users of the computer.</system:String>
-    <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the app</system:String>
+    <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">If you would rather not let the program keep the key, set an environment variable instead - it is read at startup and never stored:</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">The program has to be restarted after that: environment variables are read once, at startup. A key pasted on the Key &amp; Info page works right away.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Paste the key into Settings - Key &amp; Info. It goes to disk encrypted by Windows, so only your account can read it back. You can keep several keys and switch between them right there.</system:String>
+    <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the program</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Start the app and send any message. If an answer comes back, the key is in place. The line about a missing key means the variable never arrived: check that it was created for the user rather than the system, and that the app has been restarted. And if Venice answers that funds are insufficient while the account does have money, then the spend limit sits on the key itself; it is changed in the same API section.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Check that it works</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Arguments</system:String>
@@ -446,6 +463,35 @@
     <system:String x:Key="S.Journal.Tab.Summaries" xml:space="preserve">Summaries</system:String>
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Approximate time: this record has no stamp of its own, so the message time is used.</system:String>
     <system:String x:Key="S.Journal.Title" xml:space="preserve">Journal</system:String>
+    <system:String x:Key="S.Key.Add" xml:space="preserve">Add a key</system:String>
+    <system:String x:Key="S.Key.AddHint" xml:space="preserve">The key is checked against Venice before it is saved, so a typo does not surface mid-answer.</system:String>
+    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">New Venice key</system:String>
+    <system:String x:Key="S.Key.BadgeEnvironment" xml:space="preserve">environment</system:String>
+    <system:String x:Key="S.Key.Balance.Credits" xml:space="preserve">Credits balance</system:String>
+    <system:String x:Key="S.Key.Balance.Diem" xml:space="preserve">{0} DIEM</system:String>
+    <system:String x:Key="S.Key.Balance.Refresh" xml:space="preserve">Refresh</system:String>
+    <system:String x:Key="S.Key.Balance.Usd" xml:space="preserve">USD balance</system:String>
+    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">The key cannot be switched while an answer is running: half the requests would go with one key and half with the other</system:String>
+    <system:String x:Key="S.Key.Checking" xml:space="preserve">Checking the key...</system:String>
+    <system:String x:Key="S.Key.DeleteConfirm" xml:space="preserve">Delete the {0} key?</system:String>
+    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">The key goes from this program only. It stays on the Venice side.</system:String>
+    <system:String x:Key="S.Key.Duplicate" xml:space="preserve">That key is already on the list</system:String>
+    <system:String x:Key="S.Key.Empty" xml:space="preserve">Enter a key</system:String>
+    <system:String x:Key="S.Key.FromEnvironment" xml:space="preserve">From the environment variable</system:String>
+    <system:String x:Key="S.Key.Hide" xml:space="preserve">Hide</system:String>
+    <system:String x:Key="S.Key.Invalid" xml:space="preserve">Venice would not take this key</system:String>
+    <system:String x:Key="S.Key.MakeActive" xml:space="preserve">Make active</system:String>
+    <system:String x:Key="S.Key.Name" xml:space="preserve">Name</system:String>
+    <system:String x:Key="S.Key.NoAccess" xml:space="preserve">This key is not allowed to reach the models</system:String>
+    <system:String x:Key="S.Key.Section" xml:space="preserve">Venice keys</system:String>
+    <system:String x:Key="S.Key.Show" xml:space="preserve">Show</system:String>
+    <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">{0} left</system:String>
+    <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Adding up...</system:String>
+    <system:String x:Key="S.Key.StatsSpent" xml:space="preserve">spent {0}</system:String>
+    <system:String x:Key="S.Key.StatsUnknown" xml:space="preserve">Statistics are not available</system:String>
+    <system:String x:Key="S.Key.Storage" xml:space="preserve">Encrypted by Windows</system:String>
+    <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Cannot be read - enter it again</system:String>
+    <system:String x:Key="S.Key.Value" xml:space="preserve">Key</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Delete language</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Delete the language “{0}”? Its translation would have to be ordered again.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Could not delete the language. Check access to the app data folder.</system:String>
@@ -534,6 +580,7 @@
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Key and spending</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
@@ -542,6 +589,8 @@
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
     <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
+    <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
@@ -555,6 +604,29 @@
     <system:String x:Key="S.Size.Megabytes" xml:space="preserve">{0} MB</system:String>
     <system:String x:Key="S.Size.NoExtension" xml:space="preserve">no extension</system:String>
 
+    <system:String x:Key="S.Spend.Empty" xml:space="preserve">Nothing was spent over this stretch</system:String>
+    <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice did not answer. Try refreshing</system:String>
+    <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Audio</system:String>
+    <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Embeddings</system:String>
+    <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Images</system:String>
+    <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Page reading</system:String>
+    <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Other</system:String>
+    <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Video</system:String>
+    <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Web search</system:String>
+    <system:String x:Key="S.Spend.Loading" xml:space="preserve">Adding up the spending...</system:String>
+    <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">The breakdown shows up once there is spending</system:String>
+    <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">Where it went</system:String>
+    <system:String x:Key="S.Spend.NoKey" xml:space="preserve">No key, so there is nothing to show</system:String>
+    <system:String x:Key="S.Spend.Period.All" xml:space="preserve">All time</system:String>
+    <system:String x:Key="S.Spend.Period.Day" xml:space="preserve">Day</system:String>
+    <system:String x:Key="S.Spend.Period.Month" xml:space="preserve">Month</system:String>
+    <system:String x:Key="S.Spend.Period.Quarter" xml:space="preserve">3 months</system:String>
+    <system:String x:Key="S.Spend.Period.Week" xml:space="preserve">Week</system:String>
+    <system:String x:Key="S.Spend.Period.Year" xml:space="preserve">Year</system:String>
+    <system:String x:Key="S.Spend.SourceLocal" xml:space="preserve">Venice opens its full journal to admin keys only. Showing what the program counted</system:String>
+    <system:String x:Key="S.Spend.Stale" xml:space="preserve">Showing saved data: Venice is not answering right now</system:String>
+    <system:String x:Key="S.Spend.Title" xml:space="preserve">Spending</system:String>
+    <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} credits</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>

@@ -139,7 +139,7 @@ namespace Amarin.UI
                 return;
             }
 
-            var view = ChatMessageViews.CreateAssistant(this, message, host.Actions);
+            var view = ChatMessageViews.CreateAssistant(this, message, host.Actions, ActiveDateFormat);
             host.Fill(view.Root);
 
             // Вернулись в чат, который ещё отвечает, — подхватываем его вьюшку заново.

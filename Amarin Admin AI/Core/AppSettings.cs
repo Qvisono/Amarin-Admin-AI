@@ -7,6 +7,22 @@ public enum ApprovalMode
 }
 
 /// <summary>
+/// Порядок и длина даты там, где программа её показывает.
+/// </summary>
+/// <remarks>
+/// Порядок членов свободен: <see cref="AppJson"/> пишет перечисления именами, а не номерами,
+/// поэтому в <c>settings.json</c> значение ищется по имени. Дописывать новые можно куда угодно,
+/// а переименовывать существующие нельзя — старый файл перестанет читаться.
+/// </remarks>
+public enum DateFormat
+{
+    DayMonthShort,
+    MonthDayShort,
+    DayMonthFull,
+    MonthDayFull
+}
+
+/// <summary>
 /// Palette preset. The first three are the originals and keep their names in settings.json;
 /// the rest are the shipped colour presets. See <see cref="ThemeCatalog"/> for what each maps to.
 /// </summary>
@@ -77,6 +93,11 @@ public sealed class AppSettings
 
     /// <summary>Uniform UI zoom, percent. Allowed: 80, 90, 100, 110, 125, 150, 175, 200, 225, 250.</summary>
     public int UiScalePercent { get; set; } = 100;
+
+    /// <summary>
+    /// Как показывать дату: в подсказке над временем ответа, в журнале и в отчёте об импорте.
+    /// </summary>
+    public DateFormat DateFormat { get; set; } = DateFormat.DayMonthShort;
 
     /// <summary>
     /// Backdrop, glass and layout customisation on top of <see cref="Theme"/>.

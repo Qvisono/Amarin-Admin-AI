@@ -42,6 +42,24 @@ internal sealed class BalanceStore
     }
 
     /// <summary>
+    /// Стирает кэш: остаток принадлежал прежнему ключу, и на следующем запуске он соврал бы.
+    /// </summary>
+    public void Forget()
+    {
+        try
+        {
+            if (File.Exists(_path))
+            {
+                File.Delete(_path);
+            }
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>
     /// Best-effort: a failed write costs nothing but a stale plate on the next launch, and
     /// this runs at the end of every turn where an exception would be badly out of place.
     /// </summary>

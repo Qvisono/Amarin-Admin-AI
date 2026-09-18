@@ -13,6 +13,24 @@ internal sealed class AppServices : IDisposable
 
     public required ChatStore ChatStore { get; set; }
 
+    /// <summary>Заготовки основного промпта. Тоже на профиль — как и сам основной промпт.</summary>
+    public required PromptLibrary Prompts { get; set; }
+
+    /// <summary>Ключи Venice активного профиля.</summary>
+    public required VeniceKeyStore KeyStore { get; set; }
+
+    /// <summary>
+    /// Собственный журнал трат. Init-only: ссылка на него роздана всем копиям
+    /// <see cref="AgentOptions"/>, подменять надо корень внутри, а не сам объект.
+    /// </summary>
+    public required SpendLedger Ledger { get; init; }
+
+    /// <summary>
+    /// Ключ, которым платят прямо сейчас. Общий на программу и на все копии
+    /// <see cref="AgentOptions"/>, поэтому init-only: подменять надо содержимое, а не сам объект.
+    /// </summary>
+    public required VeniceKeyProvider Keys { get; init; }
+
     public required ProfileStore Profiles { get; init; }
 
     public required ProfileRegistry ProfileRegistry { get; set; }
@@ -35,7 +53,20 @@ internal sealed class AppServices : IDisposable
 
     public string? StartupPrompt { get; init; }
 
+    /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
+    public required string EnvironmentKey { get; init; }
+
     public void ReloadSettings() => Settings = SettingsStore.Load();
+
+    /// <summary>
+    /// Переносит выбор человека из хранилища в держатель ключа и заодно обновляет список
+    /// секретов, которые вырезаются из отчёта об аварии.
+    /// </summary>
+    public void ApplyActiveKey()
+    {
+        Keys.Use(KeyStore.ActiveSecret());
+        CrashHandler.Secrets = KeyStore.AllSecrets();
+    }
 
     /// <summary>
     /// Points the settings and chat stores at another profile's directory. The engine keeps
@@ -53,7 +84,15 @@ internal sealed class AppServices : IDisposable
         Directory.CreateDirectory(Path.Combine(dataRoot, "chats"));
         SettingsStore = new AppSettingsStore(dataRoot);
         ChatStore = new ChatStore(dataRoot);
+        Prompts = new PromptLibrary(dataRoot);
         Settings = SettingsStore.Load();
+
+        // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе
+        // человек, сменивший профиль, продолжал бы платить чужим ключом.
+        KeyStore = new VeniceKeyStore(dataRoot, EnvironmentKey);
+        KeyStore.Load();
+        Ledger.UseRoot(dataRoot);
+        ApplyActiveKey();
     }
 
     public void Dispose()

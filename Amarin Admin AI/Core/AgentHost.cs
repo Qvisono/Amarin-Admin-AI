@@ -317,6 +317,8 @@ internal sealed class AgentHost : IAgentHost
         new()
         {
             ApiKey = source.ApiKey,
+            Keys = source.Keys,
+            SpendSink = source.SpendSink,
             BaseUrl = source.BaseUrl,
             Model = model,
             MaxToolRounds = source.MaxToolRounds,

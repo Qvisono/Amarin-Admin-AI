@@ -1555,6 +1555,42 @@
                         </Setter.Value>
                     </Setter>
                 </Style>
+                <!--
+                    «+ Создать» у библиотеки заготовок. Своя копия SavePromptButton, потому что
+                    там подпись и галочка зашиты в шаблон: у кнопки «сохранить» она одна на всю
+                    программу, а здесь нужен плюс и своя надпись.
+                -->
+                <Style x:Key="PromptAddButton" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="10,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                        CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Path Data="M4,0 L4,8 M0,4 L8,4" Stroke="{DynamicResource Accent.Fill}"
+                                              StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Width="9" Height="9" Stretch="Uniform"
+                                              Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="11.5"
+                                                   Foreground="{DynamicResource Text.Body}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <!-- ===== Пункт навигации ===== -->
                 <Style x:Key="SettingsNavItem" TargetType="RadioButton">
                     <Setter Property="Height" Value="30"/>
@@ -1929,6 +1965,64 @@
                     </Setter>
                 </Style>
 
+                <!--
+                    Плитка заготовки основного промпта. Кнопка, а не RadioButton как у тем:
+                    выбор ничего не запоминает, нажатие только предлагает подменить текст.
+                    Карандаш и корзина проявляются по наведению - иначе две иконки на каждой
+                    плитке забивают собой название, ради которого плитка и нужна.
+                -->
+                <Style x:Key="PromptCard" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Width" Value="152"/>
+                    <Setter Property="Height" Value="62"/>
+                    <Setter Property="Margin" Value="0,0,8,8"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                                        BorderBrush="{DynamicResource Border.Default}"
+                                        BorderThickness="1" CornerRadius="8" Padding="10,8">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!--
+                    Карандаш и корзина внутри плитки. Кнопка внутри кнопки: нажатие гасится
+                    в коде, иначе клик по корзине заодно предложил бы применить заготовку.
+                -->
+                <Style x:Key="PromptCardAction" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Width" Value="18"/>
+                    <Setter Property="Height" Value="18"/>
+                    <Setter Property="Margin" Value="2,0,0,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent" CornerRadius="4">
+                                    <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}"
+                                               FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Text.Faint}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <!-- Сегмент переключателя «Нет / Градиент / Изображение» -->
                 <Style x:Key="SettingsSegment" TargetType="RadioButton">
                     <Setter Property="GroupName" Value="BackdropMode"/>
@@ -2046,7 +2140,9 @@
                                 <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Behavior}" IsChecked="True"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
-                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Key}"/>
+                    <RadioButton x:Name="NavKey" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.KeyInfo}" Checked="NavKey_Checked"/>
+                    <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
                                 <RadioButton x:Name="NavInfo" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Info}"/>
                             </StackPanel>
@@ -2074,7 +2170,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.21.1"
+                                               Text="v1.22.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -2246,6 +2342,29 @@
                                         <ComboBoxItem Content="200%" Tag="200"/>
                                         <ComboBoxItem Content="225%" Tag="225"/>
                                         <ComboBoxItem Content="250%" Tag="250"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.DateFormat}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.DateFormatDesc}"/>
+                                    </StackPanel>
+                                    <!--
+                                        Подписи пунктов — литералы, а не ключи словаря: это шаблон даты,
+                                        а не текст, и перевод развалил бы его вместе с выбором.
+                                    -->
+                                    <ComboBox x:Name="DateFormatComboBox" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="110" SelectedIndex="0"
+                                      SelectionChanged="DateFormatComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="DD.MM.YY" Tag="DayMonthShort"/>
+                                        <ComboBoxItem Content="MM.DD.YY" Tag="MonthDayShort"/>
+                                        <ComboBoxItem Content="DD.MM.YYYY" Tag="DayMonthFull"/>
+                                        <ComboBoxItem Content="MM.DD.YYYY" Tag="MonthDayFull"/>
                                     </ComboBox>
                                 </Grid>
 
@@ -3021,6 +3140,33 @@
                                 </Grid>
                                 <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
 
+                                <!--
+                                    Библиотека заготовок - только у основного промпта.
+                                    У технических её нет намеренно: их меняют раз в жизни, и
+                                    держать наготове несколько вариантов незачем.
+                                -->
+                                <Grid Margin="0,2,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}"
+                                                   Text="{DynamicResource S.Customize.PromptLibrary}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Customize.PromptLibraryDesc}"/>
+                                    </StackPanel>
+                                    <Button x:Name="PromptCreateButton" Grid.Column="1" VerticalAlignment="Center"
+                                            Style="{StaticResource PromptAddButton}"
+                                            Content="{DynamicResource S.Customize.PromptCreate}"
+                                            Click="PromptCreateButton_Click"/>
+                                </Grid>
+                                <TextBlock x:Name="PromptLibraryEmpty" Style="{StaticResource SettingDesc}"
+                                           Text="{DynamicResource S.Customize.PromptEmpty}"
+                                           TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                <!-- Плитки строятся кодом из prompts.json -->
+                                <WrapPanel x:Name="PromptLibraryHost" Margin="0,0,0,4"/>
+
                                 <!-- Технический промпт ИИ -->
                                 <Grid Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
@@ -3310,6 +3456,26 @@
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
+
+                        <!-- ═══════════ KEY AND INFO ═══════════ -->
+                        <!--
+                            Тоже отдельным UserControl: остаток, график трат, разбивка по моделям
+                            и список ключей - страница длиннее любой из соседних. Стиль с триггером
+                            остаётся здесь, потому что ElementName=NavKey ищется в области имён
+                            этого файла.
+                        -->
+                        <local:SettingsKeyPage x:Name="KeyPage">
+                            <local:SettingsKeyPage.Style>
+                                <Style TargetType="local:SettingsKeyPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavKey}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsKeyPage.Style>
+                        </local:SettingsKeyPage>
 
                         <!-- ═══════════ INFO ═══════════ -->
                         <!--
@@ -4000,6 +4166,216 @@
                             <Button x:Name="NameSaveButton" Content="{DynamicResource S.Common.Save}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="NameSaveButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ДОБАВЛЕНИЕ КЛЮЧА ═══════════ -->
+        <Grid x:Name="KeyOverlay" Visibility="Collapsed" Panel.ZIndex="42">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="KeyDialogCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource S.Key.AddTitle}" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{DynamicResource S.Key.AddHint}" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="{DynamicResource S.Key.Name}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <TextBox x:Name="KeyDialogLabel" Background="Transparent" BorderThickness="0"
+                                     FontSize="13" MaxLength="40"
+                                     Foreground="{DynamicResource Text.Body}"
+                                     CaretBrush="{DynamicResource Text.Bright}"/>
+                        </Border>
+
+                        <TextBlock Text="{DynamicResource S.Key.Value}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Muted}" Margin="0,12,0,5"/>
+                        <!--
+                            Обычный TextBox, а не PasswordBox: человек вставляет ключ из буфера и
+                            обязан видеть, что вставилось. Прячется он в списке, а не здесь.
+                        -->
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <TextBox x:Name="KeyDialogValue" Background="Transparent" BorderThickness="0"
+                                     FontSize="13"
+                                     Foreground="{DynamicResource Text.Body}"
+                                     CaretBrush="{DynamicResource Text.Bright}"
+                                     KeyDown="KeyDialogValue_KeyDown"/>
+                        </Border>
+
+                        <TextBlock x:Name="KeyDialogBusy" Text="{DynamicResource S.Key.Checking}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Muted}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                        <TextBlock x:Name="KeyDialogError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="KeyDialogCancelButton_Click"/>
+                            <Button x:Name="KeyDialogSaveButton" Content="{DynamicResource S.Common.Save}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="KeyDialogSaveButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ УДАЛЕНИЕ КЛЮЧА ═══════════ -->
+        <Grid x:Name="KeyRemoveOverlay" Visibility="Collapsed" Panel.ZIndex="43">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="KeyRemoveNoButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock x:Name="KeyRemoveTitle" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock x:Name="KeyRemoveText" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="{DynamicResource S.Common.No}" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="KeyRemoveNoButton_Click"/>
+                            <Button x:Name="KeyRemoveYesButton" Content="{DynamicResource S.Common.Yes}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="KeyRemoveYesButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ЗАГОТОВКА ПРОМПТА ═══════════ -->
+        <!--
+            Оверлеем, а не отдельным окном: UiScale подменяет DPI одному HWND, и второе окно
+            рисовалось бы в системном масштабе, разъезжаясь с остальной программой. Поверх
+            настроек, поэтому ZIndex выше всех диалогов, что были до этой версии.
+        -->
+        <Grid x:Name="PromptPresetOverlay" Visibility="Collapsed" Panel.ZIndex="40">
+            <Grid.Resources>
+                <!--
+                    Своя копия поля промпта. Оригинал лежит в Resources сетки настроек, а этот
+                    оверлей ей не родня - он сосед, поверх неё. Тот же приём, каким SettingsInfoPage
+                    дублирует шесть общих стилей: StaticResource ищет только вверх по дереву.
+                    Потолок выше, чем на странице: в модалке под текст отведено всё окно.
+                -->
+                <Style x:Key="PromptDialogTextBox" TargetType="TextBox">
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                    <Setter Property="CaretBrush" Value="{DynamicResource Text.Bright}"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="AcceptsReturn" Value="True"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                    <Setter Property="MinHeight" Value="120"/>
+                    <Setter Property="MaxHeight" Value="220"/>
+                    <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
+                                        BorderBrush="{DynamicResource Border.Default}"
+                                        BorderThickness="1" CornerRadius="6" Padding="8,6">
+                                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Grid.Resources>
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="PromptPresetCancelButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock x:Name="PromptPresetTitle" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="{DynamicResource S.Customize.PromptName}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                            <TextBox x:Name="PromptPresetName" Background="Transparent" BorderThickness="0"
+                                     FontSize="13" MaxLength="40"
+                                     Foreground="{DynamicResource Text.Body}"
+                                     CaretBrush="{DynamicResource Text.Bright}"
+                                     KeyDown="PromptPresetName_KeyDown"/>
+                        </Border>
+
+                        <TextBlock Text="{DynamicResource S.Customize.PromptText}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Muted}" Margin="0,12,0,5"/>
+                        <TextBox x:Name="PromptPresetText" Style="{StaticResource PromptDialogTextBox}"/>
+
+                        <TextBlock x:Name="PromptPresetError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
+                                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+
+                        <Grid Margin="0,16,0,0">
+                            <!--
+                                DangerButton живёт в Resources настроек и сюда не достаёт;
+                                красный цвет задан значением на самой кнопке - локальное
+                                значение сильнее сеттера стиля.
+                            -->
+                            <Button x:Name="PromptPresetDeleteButton" HorizontalAlignment="Left"
+                                    Style="{StaticResource DialogSecondaryButton}"
+                                    Foreground="{DynamicResource Status.Danger}"
+                                    Content="{DynamicResource S.Common.Delete}"
+                                    Click="PromptPresetDeleteButton_Click"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="{DynamicResource S.Common.Reset}" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="PromptPresetResetButton_Click"/>
+                                <Button Content="{DynamicResource S.Common.Save}" Style="{StaticResource DialogPrimaryButton}"
+                                        Click="PromptPresetSaveButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!-- ═══════════ ПОДТВЕРЖДЕНИЕ ДЛЯ ЗАГОТОВКИ ═══════════ -->
+        <!--
+            Свой маленький оверлей, а не системный MessageBox: тот рисуется средствами Windows
+            и рядом с модалкой заготовки выглядел бы из другой программы. Поверх неё же, поэтому
+            ZIndex на единицу выше.
+        -->
+        <Grid x:Name="PromptApplyOverlay" Visibility="Collapsed" Panel.ZIndex="41">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Click="PromptApplyNoButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock x:Name="PromptApplyTitle" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"
+                                   TextWrapping="Wrap"/>
+                        <TextBlock x:Name="PromptApplyText" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}"
+                                   TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <Button Content="{DynamicResource S.Common.No}" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="PromptApplyNoButton_Click"/>
+                            <Button x:Name="PromptApplyYesButton" Content="{DynamicResource S.Common.Yes}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="PromptApplyYesButton_Click"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

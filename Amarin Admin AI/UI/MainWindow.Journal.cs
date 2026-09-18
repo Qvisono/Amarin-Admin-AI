@@ -164,8 +164,9 @@ namespace Amarin.UI
                 return;
             }
 
+            var format = ActiveDateFormat;
             _journalRows = snapshots
-                .Select(snapshot => (JournalView.ToRow(snapshot), JournalView.SearchKey(snapshot)))
+                .Select(snapshot => (JournalView.ToRow(snapshot, format), JournalView.SearchKey(snapshot)))
                 .ToList();
             ApplyJournalFilter();
         }
@@ -181,6 +182,7 @@ namespace Amarin.UI
                 return;
             }
 
+            var format = ActiveDateFormat;
             var rows = new List<(JournalRow, string)>();
             foreach (var item in _services.ChatStore.List())
             {
@@ -196,7 +198,7 @@ namespace Amarin.UI
 
                 var entry = new ChatSummaryEntry(
                     item.Id, DisplayTitle(item.Title), text, item.UpdatedAt);
-                rows.Add((JournalView.ToRow(entry), JournalView.SearchKey(entry)));
+                rows.Add((JournalView.ToRow(entry, format), JournalView.SearchKey(entry)));
             }
 
             _journalRows = rows;
@@ -210,8 +212,9 @@ namespace Amarin.UI
                 return;
             }
 
+            var format = ActiveDateFormat;
             _journalRows = entries
-                .Select(entry => (JournalView.ToRow(entry, showChat), JournalView.SearchKey(entry)))
+                .Select(entry => (JournalView.ToRow(entry, showChat, format), JournalView.SearchKey(entry)))
                 .ToList();
             ApplyJournalFilter();
         }
@@ -317,8 +320,10 @@ namespace Amarin.UI
 
             JournalDetailTitle.Text = row.Title;
             JournalDetailMeta.Text = row.Entry is { } entry
-                ? JournalView.BuildMeta(entry)
-                : row.Snapshot is { } snapshot ? JournalView.BuildMeta(snapshot) : row.Timestamp;
+                ? JournalView.BuildMeta(entry, ActiveDateFormat)
+                : row.Snapshot is { } snapshot
+                    ? JournalView.BuildMeta(snapshot, ActiveDateFormat)
+                    : row.Timestamp;
 
             // A restore point is already fully described by the two lines above; there is nothing
             // for a model to add, so the button that would promise an explanation is not offered.

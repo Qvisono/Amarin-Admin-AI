@@ -22,10 +22,15 @@ internal static class CrashHandler
     private static bool _showing;
 
     /// <summary>
-    /// Ключ Venice. Он попадает в заголовок Authorization и в сообщения HTTP-исключений, а отчёт
-    /// человек пересылает — поэтому перед показом ключ вырезается.
+    /// Ключи Venice. Они попадают в заголовок Authorization и в сообщения HTTP-исключений, а
+    /// отчёт человек пересылает — поэтому перед показом ключи вырезаются.
     /// </summary>
-    public static string? Secret { get; set; }
+    /// <remarks>
+    /// Список, а не одна строка: ключей у человека может быть несколько, и в стеке окажется
+    /// тот, которым отправляли запрос, — не обязательно тот, что активен к моменту аварии.
+    /// Переписывается хранилищем ключей при каждом изменении списка.
+    /// </remarks>
+    public static IReadOnlyList<string?> Secrets { get; set; } = [];
 
     /// <summary>Перехватчики, которым не нужен ни Application, ни UI-поток.</summary>
     public static void InstallProcessWide()
@@ -59,7 +64,7 @@ internal static class CrashHandler
         {
             // Окно тут было бы шумом: это обычно хвосты брошенных fire-and-forget задач,
             // на которые никто не смотрел. Но в журнале им место.
-            CrashLog.Write(CrashReport.Build(e.Exception, "несобранная задача", Secret));
+            CrashLog.Write(CrashReport.Build(e.Exception, "несобранная задача", Secrets));
             e.SetObserved();
         };
     }
@@ -74,7 +79,7 @@ internal static class CrashHandler
         {
             if (IsSilent(e.Exception))
             {
-                CrashLog.Write(CrashReport.Build(e.Exception, "отмена", Secret));
+                CrashLog.Write(CrashReport.Build(e.Exception, "отмена", Secrets));
                 e.Handled = true;
                 return;
             }
@@ -114,7 +119,7 @@ internal static class CrashHandler
     /// <summary>Пишет отчёт и показывает окно. Возвращает true, если человек выбрал «Продолжить».</summary>
     private static bool Report(Exception exception, string kind, bool canContinue)
     {
-        var report = CrashReport.Build(exception, kind, Secret);
+        var report = CrashReport.Build(exception, kind, Secrets);
         string? logPath = null;
         try
         {
