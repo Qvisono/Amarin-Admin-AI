@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Amarin.Core;
-// System.IO подключён неявно, и System.Windows.Shapes.Path с ним конфликтует.
+// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
 using Path = System.Windows.Shapes.Path;
 
 namespace Amarin.UI;
@@ -92,9 +92,18 @@ public partial class ReasoningPicker : UserControl
         Refresh(raise: false);
     }
 
-    public void SetAutoMode(bool auto)
+    /// <summary>Ставит всё состояние разом и перестраивает пикер один раз.</summary>
+    /// <remarks>
+    /// Каждый отдельный сеттер перестраивает пикер целиком — с раскрытием шаблона кнопки,
+    /// пересчётом спидометра и списка сил. Вызывали их подряд по два-три: открытие чата и
+    /// страница настроек с девятью пикерами платили за лишние перестройки каждый раз.
+    /// </remarks>
+    public void SetState(string? modelId, bool autoMode, bool disableThinking, string? effort)
     {
-        _autoMode = auto;
+        _modelId = modelId ?? "";
+        _autoMode = autoMode;
+        _disableThinking = disableThinking;
+        _effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim();
         Refresh(raise: false);
     }
 
@@ -254,7 +263,7 @@ public partial class ReasoningPicker : UserControl
         }
     }
 
-    // ── Спидометр ────────────────────────────────────────────────────────────────
+    // ───────────────────────── Спидометр ─────────────────────────
     // Одни константы на разметку и на обе дуги: развёртка 220° вокруг точки (10,12)
     // в боксе 20×20. У прежнего рисунка стрелка ходила ±72° по полукругу, то есть
     // занимала треть шкалы и никогда не доходила до её краёв.

@@ -166,7 +166,7 @@ namespace Amarin.UI
             ShowCurrentViewerImage();
         }
 
-        // ── Handlers ──────────────────────────────────────────────────────────────────
+        // ───────────────────────── Handlers ─────────────────────────
 
         private void ImageViewerCloseButton_Click(object sender, RoutedEventArgs e) => CloseImageViewer();
 
@@ -310,19 +310,9 @@ namespace Amarin.UI
                 return;
             }
 
-            // The clipboard is a shared OS resource and another process can hold it for a moment;
-            // same retry shape as TrySetClipboardText.
-            for (var attempt = 0; attempt < 3; attempt++)
+            if (ClipboardWrite.Try(() => Clipboard.SetImage(image)))
             {
-                try
-                {
-                    Clipboard.SetImage(image);
-                    return;
-                }
-                catch (System.Runtime.InteropServices.ExternalException)
-                {
-                    Thread.Sleep(60);
-                }
+                return;
             }
 
             MessageBox.Show(

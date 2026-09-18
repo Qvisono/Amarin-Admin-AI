@@ -1,4 +1,4 @@
-﻿namespace Amarin.Core;
+namespace Amarin.Core;
 
 public enum ApprovalMode
 {
@@ -139,11 +139,17 @@ public sealed class AppSettings
     public ReasoningSettings TitleReasoning { get; set; } = new();
 
     /// <summary>
+    /// Модель быстрого уровня по умолчанию. Ею же подписываются сводки чатов, когда слот пуст,
+    /// — идентификатор один на оба места.
+    /// </summary>
+    public const string DefaultFastModelId = "deepseek-v4-flash-0731-fast";
+
+    /// <summary>
     /// The cheap tier, for work that does not need a flagship or that the user asked to hurry.
     /// Thinking is off by default: the whole point of this slot is the answer arriving sooner,
     /// and a reasoning pass would spend exactly what it saves.
     /// </summary>
-    public string AgentFastModelId { get; set; } = "deepseek-v4-flash-0731-fast";
+    public string AgentFastModelId { get; set; } = DefaultFastModelId;
 
     public ReasoningSettings AgentFastReasoning { get; set; } = new() { DisableThinking = true };
 

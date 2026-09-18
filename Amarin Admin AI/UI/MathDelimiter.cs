@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-// В проекте включён неявный using System.IO — без псевдонима Path тут двоится.
+// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
 using Path = System.Windows.Shapes.Path;
 using Amarin.Core;
 

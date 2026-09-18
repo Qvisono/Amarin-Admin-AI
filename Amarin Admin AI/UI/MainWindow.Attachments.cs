@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -434,36 +435,8 @@ namespace Amarin.UI
             frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
             frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
 
-            var rows = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-
-            var kind = new TextBlock
-            {
-                Text = FileBadge(attachment.FileName),
-                FontSize = 10,
-                FontWeight = FontWeights.SemiBold
-            };
-            kind.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
-
-            var name = new TextBlock
-            {
-                Text = attachment.FileName,
-                FontSize = 11.5,
-                Margin = new Thickness(0, 1, 0, 0),
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-            name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
-
-            var size = new TextBlock
-            {
-                Text = AttachmentTypes.FormatSize(attachment.SizeBytes),
-                FontSize = 10.5,
-                Margin = new Thickness(0, 1, 0, 0)
-            };
-            size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
-
-            rows.Children.Add(kind);
-            rows.Children.Add(name);
-            rows.Children.Add(size);
+            var rows = ChatMessageViews.FileCardRows(attachment.FileName, attachment.SizeBytes);
+            rows.VerticalAlignment = VerticalAlignment.Center;
             frame.Child = rows;
 
             host.Children.Add(frame);
@@ -471,7 +444,7 @@ namespace Amarin.UI
             return host;
         }
 
-        /// <summary>Расширение заглавными — короткая метка, по которой файл узнают с одного взгляда.</summary>
+        /// <inheritdoc cref="AttachmentTypes.Badge"/>
         internal static string FileBadge(string fileName) => AttachmentTypes.Badge(fileName);
 
         /// <summary>Подсказка карточки: имя, размер и — пока файл на месте — путь к нему.</summary>
@@ -529,12 +502,47 @@ namespace Amarin.UI
             return new ControlTemplate(typeof(Button)) { VisualTree = border };
         }
 
+        /// <summary>
+        /// Декодированные вложения: отпечаток base64 и ширина показа — на готовую картинку.
+        /// </summary>
+        /// <remarks>
+        /// Каждое открытие чата раскодировало все приложенные картинки заново — сперва base64
+        /// в байты, потом байты в <see cref="BitmapImage"/>. Отпечаток дешевле декодирования на
+        /// порядок, а картинки заморожены и общие. Блокировки нет и не нужно: миниатюры строятся
+        /// только на UI-потоке.
+        /// </remarks>
+        private const int DecodedCacheCapacity = 32;
+        private static readonly Dictionary<(string Stamp, int Width), BitmapImage?> DecodedCache = [];
+        private static readonly Queue<(string Stamp, int Width)> DecodedCacheOrder = new();
+
         /// <summary>Декодирует сохранённое вложение для показа, в размере миниатюры.</summary>
         internal static BitmapImage? TryDecode(ImageAttachment attachment, int decodePixelWidth = 112)
         {
+            ArgumentNullException.ThrowIfNull(attachment);
+
+            var key = (Fingerprint(attachment.Base64), decodePixelWidth);
+            if (DecodedCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            var image = Decode(attachment.Base64, decodePixelWidth);
+
+            DecodedCache[key] = image;
+            DecodedCacheOrder.Enqueue(key);
+            while (DecodedCacheOrder.Count > DecodedCacheCapacity)
+            {
+                DecodedCache.Remove(DecodedCacheOrder.Dequeue());
+            }
+
+            return image;
+        }
+
+        private static BitmapImage? Decode(string base64, int decodePixelWidth)
+        {
             try
             {
-                var bytes = Convert.FromBase64String(attachment.Base64);
+                var bytes = Convert.FromBase64String(base64);
                 var image = new BitmapImage();
                 image.BeginInit();
                 image.CacheOption = BitmapCacheOption.OnLoad;
@@ -553,6 +561,9 @@ namespace Amarin.UI
                 return null;
             }
         }
+
+        private static string Fingerprint(string base64) =>
+            Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(base64.AsSpan())));
 
     }
 }

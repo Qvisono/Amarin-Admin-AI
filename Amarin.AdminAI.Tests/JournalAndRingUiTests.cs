@@ -158,6 +158,7 @@ public sealed class JournalAndRingUiTests
             window.UpdateLayout();
 
             var expander = (Expander)view.ToolsHost.Children[0];
+            expander.IsExpanded = true;
             var body = (StackPanel)expander.Content;
             return body.Children.OfType<Grid>()
                 .Select(row => string.Join(" ", row.Children.OfType<TextBlock>().Select(t => t.Text)))
@@ -201,7 +202,9 @@ public sealed class JournalAndRingUiTests
 
             var view = ChatMessageViews.CreateAssistant(window, message);
             view.UpdateTools(message);
-            var body = (StackPanel)((Expander)view.ToolsHost.Children[0]).Content;
+            var expander = (Expander)view.ToolsHost.Children[0];
+            expander.IsExpanded = true;
+            var body = (StackPanel)expander.Content;
             return body.Children.OfType<Grid>()
                 .SelectMany(row => row.Children.OfType<TextBlock>())
                 .Count(block => block.Text == "“");

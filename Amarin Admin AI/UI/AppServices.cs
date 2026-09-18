@@ -45,6 +45,11 @@ internal sealed class AppServices : IDisposable
     public void UseProfile(string dataRoot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
+
+        // Прежнее хранилище пишет в фоне, а через мгновение на него уже никто не сошлётся:
+        // всё, что оно не успело положить на диск, пропало бы вместе с ним.
+        ChatStore.Flush();
+
         Directory.CreateDirectory(Path.Combine(dataRoot, "chats"));
         SettingsStore = new AppSettingsStore(dataRoot);
         ChatStore = new ChatStore(dataRoot);

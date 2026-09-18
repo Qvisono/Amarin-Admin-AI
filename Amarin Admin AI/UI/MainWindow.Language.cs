@@ -83,7 +83,7 @@ namespace Amarin.UI
                 Loc.Get("S.Language.NameTitle"),
                 Loc.Get("S.Language.NameDesc"),
                 "",
-                name => _ = TranslateLanguageAsync(name));
+                name => Detached.Run(TranslateLanguageAsync(name), "translate_language"));
         }
 
         private async Task TranslateLanguageAsync(string languageName)

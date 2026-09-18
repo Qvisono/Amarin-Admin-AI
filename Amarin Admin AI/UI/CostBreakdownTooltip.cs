@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Amarin.Core;
@@ -25,11 +25,42 @@ namespace Amarin.UI;
 /// </remarks>
 internal static class CostBreakdownTooltip
 {
+    /// <summary>
+    /// Готовая подсказка: оформление и строки разбивки.
+    /// </summary>
     public static ToolTip Build(FrameworkElement host, ChatDisplayMessage message)
     {
+        var tip = CreateEmpty();
+        Fill(tip, host, message);
+        return tip;
+    }
+
+    /// <summary>
+    /// Подсказка с оформлением, но без строк.
+    /// </summary>
+    /// <remarks>
+    /// Строк в разбивке до десятка, и сетка под них строилась для каждого ответа в ленте —
+    /// хотя разворачивают её изредка. <see cref="Fill"/> вставляет их в тот момент, когда
+    /// подсказку собрались показать; сама подсказка при этом существует сразу, иначе WPF
+    /// не стал бы её показывать вовсе.
+    /// </remarks>
+    public static ToolTip CreateEmpty() => Chrome(content: null);
+
+    /// <summary>Вставляет строки разбивки в подсказку, сделанную <see cref="CreateEmpty"/>.</summary>
+    public static void Fill(ToolTip tip, FrameworkElement host, ChatDisplayMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(tip);
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(message);
 
+        if (tip is CostTip card)
+        {
+            card.Card.Child = BuildRows(host, message);
+        }
+    }
+
+    private static UIElement BuildRows(FrameworkElement host, ChatDisplayMessage message)
+    {
         var rows = new Grid { Margin = new Thickness(0) };
         rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -111,7 +142,7 @@ internal static class CostBreakdownTooltip
             AddRow(rows, ref line, Loc.Get("S.Cost.Total"), message.Cost, bold: true);
         }
 
-        return Chrome(rows);
+        return rows;
     }
 
     private static void AddRow(Grid rows, ref int line, string label, VeniceCost? cost, bool bold)
@@ -148,7 +179,15 @@ internal static class CostBreakdownTooltip
         line++;
     }
 
-    private static ToolTip Chrome(UIElement content)
+    /// <summary>
+    /// Подсказка, помнящая свою карточку: в неё вставляются строки, когда подсказку показывают.
+    /// </summary>
+    private sealed class CostTip : ToolTip
+    {
+        public required Border Card { get; init; }
+    }
+
+    private static ToolTip Chrome(UIElement? content)
     {
         var card = new Border
         {
@@ -180,8 +219,9 @@ internal static class CostBreakdownTooltip
         stack.Children.Add(arrow);
         stack.Children.Add(card);
 
-        var tip = new ToolTip
+        var tip = new CostTip
         {
+            Card = card,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Padding = new Thickness(0),

@@ -1,12 +1,52 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace Amarin.Core;
 
+/// <summary>
+/// Чаты на диске: сами переписки в <c>chats/</c> и опись <c>chats/index.json</c> для боковой панели.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Опись держится в памяти, а запись уходит в фоновую задачу. Прежде каждый <c>List</c>,
+/// <c>Search</c> и <c>Save</c> читал <c>index.json</c> с диска, а сохранение чата вдобавок
+/// вычитывало весь его файл обратно ради сравнения строк — и всё это на потоке диспетчера,
+/// по нескольку раз в секунду, пока модель отвечает. Отсюда и подёргивание интерфейса во
+/// время ответа.
+/// </para>
+/// <para>
+/// Кэш безопасен, потому что <c>SingleInstance</c> держит программу на пользователя в одном
+/// экземпляре: файлы правит только этот объект. Единственное исключение — импорт данных, он
+/// раскладывает чужие файлы мимо хранилища и обязан позвать <see cref="Invalidate"/>.
+/// </para>
+/// </remarks>
 public sealed class ChatStore
 {
     private readonly string _root;
     private readonly string _chatsDirectory;
     private readonly string _indexFile;
+
+    private readonly Lock _gate = new();
+
+    /// <summary>Разобранная опись. <c>null</c> — ещё не читали или сбросили.</summary>
+    private ChatIndex? _index;
+
+    /// <summary>Та же опись в порядке показа. Сбрасывается вместе с любой правкой.</summary>
+    private IReadOnlyList<ChatIndexEntry>? _sorted;
+
+    /// <summary>
+    /// Отпечаток последнего записанного json по чату. Заменяет чтение файла обратно: сравнить
+    /// нужно с тем, что лежит на диске, а положили это туда мы сами.
+    /// </summary>
+    private readonly Dictionary<string, string> _written = new(StringComparer.Ordinal);
+
+    /// <summary>Чаты, ждущие записи. Словарь, а не очередь: повторное сохранение заменяет прежнее.</summary>
+    private readonly Dictionary<string, ChatSession> _pendingChats = new(StringComparer.Ordinal);
+
+    private string? _pendingIndex;
+    private bool _draining;
+    private Task _drain = Task.CompletedTask;
 
     public ChatStore(string? rootDirectory = null)
     {
@@ -23,13 +63,17 @@ public sealed class ChatStore
         return new ChatSession
         {
             Id = Guid.NewGuid().ToString("N"),
-            Title = "Новый чат",
+            Title = ChatTitle.Default,
             CreatedAt = now,
             UpdatedAt = now,
             SelectedModelId = selectedModelId ?? ""
         };
     }
 
+    /// <summary>
+    /// Ставит чат в очередь на запись и правит опись. Возвращается сразу: сериализация и диск —
+    /// в фоновой задаче.
+    /// </summary>
     public void Save(ChatSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -47,35 +91,55 @@ public sealed class ChatStore
             session.UpdatedAt = session.CreatedAt == default ? DateTime.Now : session.CreatedAt;
         }
 
-        Directory.CreateDirectory(_chatsDirectory);
-
-        var json = JsonSerializer.Serialize(session, AppJson.Options) + Environment.NewLine;
-        var path = ChatPath(session.Id);
-
-        // Switching chats saves the outgoing one whether or not anything changed. Rewriting an
-        // untouched conversation — inline base64 images and all — is pure churn.
-        if (!IsOnDisk(path, json))
+        lock (_gate)
         {
-            AppDataFile.WriteAtomic(path, json);
+            _pendingChats[session.Id] = session;
         }
 
         UpsertIndex(session);
+        StartDrain();
     }
 
-    /// <summary>True when <paramref name="path"/> already holds exactly <paramref name="json"/>.</summary>
-    private static bool IsOnDisk(string path, string json)
+    /// <summary>Дожидается, пока всё отложенное ляжет на диск.</summary>
+    /// <remarks>
+    /// Зовётся там, где дальше файлы читает или правит кто-то другой: закрытие окна, смена
+    /// профиля, экспорт и импорт данных, удаление чата. Ждать тут нечего в подавляющем
+    /// большинстве случаев — очередь пуста, и вызов возвращается сразу.
+    /// </remarks>
+    public void Flush()
     {
-        try
+        // Три попытки, потому что сериализация может наткнуться на чат, который прямо сейчас
+        // правит идущий ход, и тогда он возвращается в очередь (см. TryWriteChat).
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            return File.Exists(path) && File.ReadAllText(path) == json;
+            StartDrain();
+
+            Task drain;
+            lock (_gate)
+            {
+                if (!_draining && _pendingChats.Count == 0 && _pendingIndex is null)
+                {
+                    return;
+                }
+
+                drain = _drain;
+            }
+
+            drain.Wait(TimeSpan.FromSeconds(10));
         }
-        catch (IOException)
+    }
+
+    /// <summary>
+    /// Забыть всё, что помнится о диске. Нужно после импорта данных: он подменяет файлы чатов
+    /// в обход хранилища, и опись в памяти после него описывает уже не то, что лежит на диске.
+    /// </summary>
+    public void Invalidate()
+    {
+        lock (_gate)
         {
-            return false;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
+            _index = null;
+            _sorted = null;
+            _written.Clear();
         }
     }
 
@@ -84,6 +148,19 @@ public sealed class ChatStore
         if (string.IsNullOrWhiteSpace(id))
         {
             return null;
+        }
+
+        // Чат мог ещё не доехать до диска. Файл — единственный источник для чтения, поэтому
+        // сначала дописываем очередь, а уже потом читаем.
+        bool pending;
+        lock (_gate)
+        {
+            pending = _pendingChats.ContainsKey(id);
+        }
+
+        if (pending)
+        {
+            Flush();
         }
 
         var path = ChatPath(id);
@@ -105,11 +182,10 @@ public sealed class ChatStore
 
     public IReadOnlyList<ChatIndexEntry> List()
     {
-        var index = LoadIndex();
-        return index.Items
-            .OrderByDescending(item => item.IsPinned)
-            .ThenByDescending(item => item.UpdatedAt)
-            .ToList();
+        lock (_gate)
+        {
+            return _sorted ??= Sort(LoadIndexLocked().Items);
+        }
     }
 
     public IReadOnlyList<ChatIndexEntry> Search(string query)
@@ -156,15 +232,20 @@ public sealed class ChatStore
             return false;
         }
 
-        var index = LoadIndex();
-        var entry = index.Items.FirstOrDefault(item => item.Id == id);
-        if (entry is null || entry.IsPinned == pinned)
+        lock (_gate)
         {
-            return false;
+            var index = LoadIndexLocked();
+            var entry = index.Items.FirstOrDefault(item => item.Id == id);
+            if (entry is null || entry.IsPinned == pinned)
+            {
+                return false;
+            }
+
+            entry.IsPinned = pinned;
+            SaveIndexLocked(index);
         }
 
-        entry.IsPinned = pinned;
-        SaveIndex(index);
+        StartDrain();
         return true;
     }
 
@@ -175,6 +256,15 @@ public sealed class ChatStore
             return false;
         }
 
+        // Сначала очередь: иначе отложенная запись воскресила бы только что удалённый файл.
+        lock (_gate)
+        {
+            _pendingChats.Remove(id);
+            _written.Remove(id);
+        }
+
+        Flush();
+
         var path = ChatPath(id);
         var existed = File.Exists(path);
         if (existed)
@@ -182,19 +272,32 @@ public sealed class ChatStore
             File.Delete(path);
         }
 
-        var index = LoadIndex();
-        var removed = index.Items.RemoveAll(item => item.Id == id) > 0;
-        if (removed)
+        bool removed;
+        lock (_gate)
         {
-            SaveIndex(index);
+            var index = LoadIndexLocked();
+            removed = index.Items.RemoveAll(item => item.Id == id) > 0;
+            if (removed)
+            {
+                SaveIndexLocked(index);
+            }
         }
 
+        StartDrain();
         return existed || removed;
     }
 
     public int DeleteAll()
     {
-        var count = LoadIndex().Items.Count;
+        lock (_gate)
+        {
+            _pendingChats.Clear();
+            _written.Clear();
+        }
+
+        Flush();
+
+        var count = List().Count;
         if (Directory.Exists(_chatsDirectory))
         {
             foreach (var file in Directory.GetFiles(_chatsDirectory, "*.json"))
@@ -211,53 +314,220 @@ public sealed class ChatStore
         }
 
         Directory.CreateDirectory(_chatsDirectory);
-        SaveIndex(new ChatIndex());
+        lock (_gate)
+        {
+            SaveIndexLocked(new ChatIndex());
+        }
+
+        Flush();
         return count;
     }
 
     private void UpsertIndex(ChatSession session)
     {
-        var index = LoadIndex();
-        var entry = index.Items.FirstOrDefault(item => item.Id == session.Id);
-        if (entry is null)
+        lock (_gate)
         {
-            entry = new ChatIndexEntry { Id = session.Id };
-            index.Items.Add(entry);
-        }
+            var index = LoadIndexLocked();
+            var entry = index.Items.FirstOrDefault(item => item.Id == session.Id);
+            if (entry is null)
+            {
+                entry = new ChatIndexEntry { Id = session.Id };
+                index.Items.Add(entry);
+            }
+            else if (entry.Title == session.Title &&
+                     entry.UpdatedAt == session.UpdatedAt &&
+                     entry.Summary == session.Summary)
+            {
+                // Опись уже описывает этот чат верно. Прежде она перезаписывалась при каждом
+                // сохранении, то есть дважды в секунду на протяжении всего ответа.
+                return;
+            }
 
-        entry.Title = session.Title;
-        entry.UpdatedAt = session.UpdatedAt;
-        entry.Summary = session.Summary;
-        SaveIndex(index);
+            entry.Title = session.Title;
+            entry.UpdatedAt = session.UpdatedAt;
+            entry.Summary = session.Summary;
+            SaveIndexLocked(index);
+        }
     }
 
-    private ChatIndex LoadIndex()
+    private ChatIndex LoadIndexLocked()
     {
+        if (_index is not null)
+        {
+            return _index;
+        }
+
         if (!File.Exists(_indexFile))
         {
-            return new ChatIndex();
+            return _index = new ChatIndex();
         }
 
         try
         {
             var text = File.ReadAllText(_indexFile);
-            return JsonSerializer.Deserialize<ChatIndex>(text, AppJson.Options) ?? new ChatIndex();
+            _index = JsonSerializer.Deserialize<ChatIndex>(text, AppJson.Options) ?? new ChatIndex();
         }
         catch
         {
-            return new ChatIndex();
+            _index = new ChatIndex();
+        }
+
+        return _index;
+    }
+
+    private void SaveIndexLocked(ChatIndex index)
+    {
+        index.Items = [.. Sort(index.Items)];
+        _index = index;
+        _sorted = null;
+        _pendingIndex = JsonSerializer.Serialize(index, AppJson.Options) + Environment.NewLine;
+    }
+
+    private static List<ChatIndexEntry> Sort(IEnumerable<ChatIndexEntry> items) =>
+    [
+        .. items
+            .OrderByDescending(item => item.IsPinned)
+            .ThenByDescending(item => item.UpdatedAt)
+    ];
+
+    private void StartDrain()
+    {
+        lock (_gate)
+        {
+            if (_draining || (_pendingChats.Count == 0 && _pendingIndex is null))
+            {
+                return;
+            }
+
+            _draining = true;
+            _drain = Task.Run(Drain);
         }
     }
 
-    private void SaveIndex(ChatIndex index)
+    /// <summary>Разгребает очередь записи. Работает вне потока диспетчера и по одному файлу за раз.</summary>
+    private void Drain()
     {
-        index.Items = index.Items
-            .OrderByDescending(item => item.IsPinned)
-            .ThenByDescending(item => item.UpdatedAt)
-            .ToList();
-        var json = JsonSerializer.Serialize(index, AppJson.Options) + Environment.NewLine;
-        AppDataFile.WriteAtomic(_indexFile, json);
+        try
+        {
+            DrainCore();
+        }
+        catch (Exception ex)
+        {
+            // Задача фоновая: её отказ иначе всплыл бы как необработанное исключение и унёс бы
+            // программу. Флаг обязан сняться, иначе очередь замрёт до перезапуска.
+            PerfLog.Write("chat_store drain_failed " + ex.Message);
+            lock (_gate)
+            {
+                _draining = false;
+            }
+        }
     }
+
+    private void DrainCore()
+    {
+        while (true)
+        {
+            string? indexJson;
+            string? chatId = null;
+            ChatSession? chat = null;
+
+            lock (_gate)
+            {
+                indexJson = _pendingIndex;
+                _pendingIndex = null;
+
+                if (indexJson is null)
+                {
+                    if (_pendingChats.Count == 0)
+                    {
+                        _draining = false;
+                        return;
+                    }
+
+                    (chatId, chat) = _pendingChats.First();
+                    _pendingChats.Remove(chatId);
+                }
+            }
+
+            if (indexJson is not null)
+            {
+                WriteQuietly(_indexFile, indexJson);
+                continue;
+            }
+
+            if (!TryWriteChat(chatId!, chat!))
+            {
+                // Чат прямо сейчас правит идущий ход. Возвращаем его в очередь и уходим:
+                // следующее сохранение — а ход сохраняется и по таймеру, и в конце —
+                // запустит проход заново, когда переписка уже не будет меняться.
+                lock (_gate)
+                {
+                    _pendingChats.TryAdd(chatId!, chat!);
+                    _draining = false;
+                }
+
+                return;
+            }
+        }
+    }
+
+    private bool TryWriteChat(string id, ChatSession session)
+    {
+        string json;
+        try
+        {
+            json = JsonSerializer.Serialize(session, AppJson.Options) + Environment.NewLine;
+        }
+        catch (InvalidOperationException)
+        {
+            // Движок правит списки сообщения из параллельных задач инструментов, и сериализатор
+            // на меняющейся коллекции бросает.
+            return false;
+        }
+
+        var stamp = Fingerprint(json);
+        lock (_gate)
+        {
+            if (_written.TryGetValue(id, out var previous) && previous == stamp)
+            {
+                // Переключение чата сохраняет тот, из которого ушли, независимо от того, менялся
+                // он или нет. Переписывать нетронутую переписку — с картинками в base64 внутри —
+                // чистая трата диска.
+                return true;
+            }
+        }
+
+        if (!WriteQuietly(ChatPath(id), json))
+        {
+            return true;
+        }
+
+        lock (_gate)
+        {
+            _written[id] = stamp;
+        }
+
+        return true;
+    }
+
+    private static bool WriteQuietly(string path, string json)
+    {
+        try
+        {
+            AppDataFile.WriteAtomic(path, json);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Диск переполнен, файл занят антивирусом, папка стала недоступной. Ронять программу
+            // из-за неудавшейся записи нельзя: переписка есть в памяти, и следующая попытка
+            // придёт через полсекунды.
+            return false;
+        }
+    }
+
+    private static string Fingerprint(string json) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
 
     private string ChatPath(string id) => Path.Combine(_chatsDirectory, $"{id}.json");
 }

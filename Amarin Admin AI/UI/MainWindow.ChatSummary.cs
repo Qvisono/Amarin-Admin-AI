@@ -46,7 +46,7 @@ namespace Amarin.UI
             var assistantId = session.Messages
                 .LastOrDefault(item => item.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase))?.Id;
 
-            _ = UpdateSummaryAsync(session.Id, previous, exchange, assistantId);
+            Detached.Run(UpdateSummaryAsync(session.Id, previous, exchange, assistantId), "update_summary");
         }
 
         /// <summary>
@@ -374,7 +374,7 @@ namespace Amarin.UI
             }
 
             e.Handled = true;
-            _ = RunContentSearchAsync(SearchBox.Text);
+            Detached.Run(RunContentSearchAsync(SearchBox.Text), "run_content_search");
         }
 
         private async Task RunContentSearchAsync(string query)

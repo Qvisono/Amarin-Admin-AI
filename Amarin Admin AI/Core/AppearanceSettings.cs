@@ -55,7 +55,7 @@ public sealed class AppearanceSettings
 
     public BackdropMode BackdropMode { get; set; } = BackdropMode.None;
 
-    // ───────── Градиент ─────────
+    // ───────────────────────── Градиент ─────────────────────────
 
     /// <summary>Two to five stops, <c>#RRGGBB</c>, painted in order along the axis.</summary>
     public List<string> GradientColors { get; set; } = ["#1B2735", "#2C5364", "#0F2027"];
@@ -68,7 +68,7 @@ public sealed class AppearanceSettings
     /// <summary>Motion speed multiplier, 0.25..3. One full cycle at 1.0 takes 40 s.</summary>
     public double MotionSpeed { get; set; } = 1.0;
 
-    // ───────── Изображение ─────────
+    // ───────────────────────── Изображение ─────────────────────────
 
     /// <summary>Absolute path to the picture. A missing file falls back to the gradient.</summary>
     public string BackgroundImagePath { get; set; } = "";
@@ -84,7 +84,7 @@ public sealed class AppearanceSettings
     /// <summary>Blur radius in device-independent pixels, 0..80 — the "thickness" of the crystal.</summary>
     public double ImageBlur { get; set; } = 14;
 
-    // ───────── Стекло ─────────
+    // ───────────────────────── Стекло ─────────────────────────
 
     /// <summary>
     /// How solid the panels are over the backdrop, 0.15..1. Lower lets more of the picture
@@ -101,7 +101,7 @@ public sealed class AppearanceSettings
     /// <summary>Darken the window edges so the chat text keeps its contrast.</summary>
     public bool Vignette { get; set; } = true;
 
-    // ───────── Компоновка ─────────
+    // ───────────────────────── Компоновка ─────────────────────────
 
     /// <summary>Composer corner radius, 0..20. 6 matches the shipped look.</summary>
     public double CornerRadius { get; set; } = 6;
@@ -131,7 +131,7 @@ public sealed class AppearanceSettings
     /// <summary>Off freezes every backdrop motion and the composer collapse animation.</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
-    // ───────── Компактный ввод ─────────
+    // ───────────────────────── Компактный ввод ─────────────────────────
 
     /// <summary>Collapse the composer to a pill while it is empty and unattended.</summary>
     public bool CompactComposer { get; set; }

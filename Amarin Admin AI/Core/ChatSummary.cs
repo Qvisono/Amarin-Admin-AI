@@ -110,7 +110,7 @@ internal static class ChatSummary
             return fallback.Trim();
         }
 
-        return "deepseek-v4-flash-0731-fast";
+        return AppSettings.DefaultFastModelId;
     }
 
     public static string? Sanitize(string? raw)

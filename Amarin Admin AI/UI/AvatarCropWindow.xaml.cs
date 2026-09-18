@@ -73,7 +73,7 @@ public partial class AvatarCropWindow : Window
         return window.ShowDialog() == true ? window.Selection : null;
     }
 
-    // ── Panning ───────────────────────────────────────────────────────────────────────
+    // ───────────────────────── Panning ─────────────────────────
 
     private void Stage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -105,7 +105,7 @@ public partial class AvatarCropWindow : Window
         Stage.ReleaseMouseCapture();
     }
 
-    // ── Zooming ───────────────────────────────────────────────────────────────────────
+    // ───────────────────────── Zooming ─────────────────────────
 
     private void Stage_MouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -175,7 +175,7 @@ public partial class AvatarCropWindow : Window
         return min >= max ? min : Math.Clamp(offset, min, max);
     }
 
-    // ── Result ────────────────────────────────────────────────────────────────────────
+    // ───────────────────────── Result ─────────────────────────
 
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {

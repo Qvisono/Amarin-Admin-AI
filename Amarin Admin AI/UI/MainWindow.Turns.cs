@@ -315,7 +315,7 @@ namespace Amarin.UI
         /// Ход забрал дописанное сообщение — значит, модель его увидела, и обещание «учту»
         /// исполнено. Держать подпись дальше значило бы врать: она висела бы до конца ответа.
         /// </summary>
-        void IChatTurnUi.TurnQueuedTaken(RunningTurn turn) => Ui(() =>
+        void IChatTurnUi.TurnQueuedTaken(RunningTurn turn) => UiAsync(() =>
         {
             if (!turn.HasQueued)
             {
@@ -374,19 +374,11 @@ namespace Amarin.UI
 
             _dirtySessions.Remove(session.Id);
 
-            try
-            {
-                _services.ChatStore.Save(session);
-            }
-            catch (InvalidOperationException)
-            {
-                // Движок правит списки сообщения из параллельных задач инструментов, и
-                // JsonSerializer на меняющейся коллекции бросает. Отложим на следующий тик —
-                // финальное сохранение в конце хода всё равно авторитетно.
-                SchedulePersist(session);
-                return;
-            }
-
+            // Возвращается сразу: сериализация и диск живут в фоновой задаче хранилища. Прежде
+            // здесь же, на потоке диспетчера, весь чат с картинками сериализовался, вычитывался
+            // обратно ради сравнения и переписывался вместе с описью — по два раза в секунду,
+            // пока модель отвечает.
+            _services.ChatStore.Save(session);
             RefreshChatList();
         }
 

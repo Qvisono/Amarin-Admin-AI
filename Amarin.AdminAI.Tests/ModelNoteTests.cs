@@ -127,12 +127,12 @@ public sealed class ModelNoteTests
         // Everyone who ever pressed "Save" on the previous default keeps a byte-identical copy in
         // their settings; without this entry the new rule would never reach them.
         var settings = AppSettings.CreateDefault();
-        settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV12;
+        settings.TechAiPrompt = LegacyTechPrompts.V12;
         Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
         Assert.Equal("", settings.TechAiPrompt);
 
         Assert.DoesNotContain(
-            "THINKING OUT LOUD", ChatEngine.LegacyDefaultTechPromptV12, StringComparison.Ordinal);
+            "THINKING OUT LOUD", LegacyTechPrompts.V12, StringComparison.Ordinal);
     }
 
     // ───────────────────────── helpers ─────────────────────────

@@ -116,18 +116,43 @@ internal sealed class AssistantMessageView
 
     public AssistantMessageView(FrameworkElement root) => Root = root;
 
+    /// <summary>Модель, под которую уже подогнаны имя и логотип.</summary>
+    private string? _brandedAs;
+
+    /// <summary>
+    /// Ставит имя и логотип модели. Повторный вызов с тем же идентификатором не делает ничего.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся на каждую дельту потока, а внутри — поиск ресурса по всему дереву словарей
+    /// приложения и переустановка размеров картинки, то есть ещё и инвалидация разметки.
+    /// Модель внутри одного ответа не меняется, так что вся эта работа была лишней целиком.
+    /// </remarks>
     public void ApplyBranding(FrameworkElement host, string modelId)
     {
+        if (string.Equals(_brandedAs, modelId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _brandedAs = modelId;
         ModelName.Text = VeniceModelCatalog.GetDisplayName(modelId);
         ModelBrand.Apply(host, modelId, LogoImage, LogoLetter, LogoLightning);
     }
 
     /// <param name="streaming">
     /// Ответ ещё печатается. Разметка применяется всегда — троттлинг живого рендера живёт
-    /// в окне; здесь флаг решает только, прятать ли пока пустое тело.
+    /// в окне; здесь флаг решает, прятать ли пока пустое тело и кэшировать ли то, что
+    /// ключуется полным текстом блока (подсветку кода и замер его ширины).
     /// </param>
+    /// <summary>Текст, из которого собран нынешний документ тела.</summary>
+    private string? _bodyText;
+
+    /// <summary>Текст, из которого собран нынешний документ тела. Для окна, чтобы не рисовать дважды.</summary>
+    public string? BodyText => _bodyText;
+
     public void SetBody(string text, bool streaming)
     {
+        _bodyText = text;
         var empty = string.IsNullOrWhiteSpace(text);
         Body.Visibility = empty && streaming
             ? Visibility.Collapsed
@@ -143,7 +168,8 @@ internal sealed class AssistantMessageView
 
         // Полоса под ответом перестраивается вслед за телом, а не до него: какие файлы названы
         // в тексте, известно только после разбора разметки.
-        _placedInText = ChatMarkdown.Write(Body, Host, text, fontSize: 13.5, lineHeight: 21, files: _files);
+        _placedInText = ChatMarkdown.Write(
+            Body, Host, text, fontSize: 13.5, lineHeight: 21, files: _files, streaming: streaming);
         RefreshFileStrip();
     }
 
@@ -198,9 +224,16 @@ internal sealed class AssistantMessageView
             Cost.Visibility = Visibility.Visible;
             CostDot.Visibility = Visibility.Visible;
 
-            // Rebuilt from the message itself, so a chat reopened from disk gets the same
-            // breakdown as one that just finished — every part of it is persisted.
-            CostChip.ToolTip = CostBreakdownTooltip.Build(Host, message);
+            // Разбивку наполняем по наведению, а не заранее: это сетка на десяток строк на
+            // каждый ответ в ленте, а разворачивают её изредка. Строится она из самого
+            // сообщения, поэтому чат, открытый с диска, показывает ровно то же, что только
+            // что закончившийся, — всё нужное сохраняется.
+            _costSource = message;
+            if (CostChip.ToolTip is not ToolTip)
+            {
+                CostChip.ToolTip = CostBreakdownTooltip.CreateEmpty();
+                CostChip.ToolTipOpening += FillCostBreakdown;
+            }
         }
 
         Body.Visibility = Visibility.Visible;
@@ -267,6 +300,36 @@ internal sealed class AssistantMessageView
         FilesHost.Children.Add(ChatMessageViews.CreateSavedFileStrip(Host, rest));
     }
 
+    /// <summary>Сообщение, по которому наполнится разбивка счёта, когда её наведут.</summary>
+    private ChatDisplayMessage? _costSource;
+
+    private void FillCostBreakdown(object sender, ToolTipEventArgs e)
+    {
+        if (CostChip.ToolTip is ToolTip tip && _costSource is not null)
+        {
+            CostBreakdownTooltip.Fill(tip, Host, _costSource);
+        }
+    }
+
+    /// <summary>Сообщение, по которому построится содержимое списка, когда его развернут.</summary>
+    private ChatDisplayMessage? _toolsSource;
+
+    /// <summary>Сообщение, под которое уже подогнан список вызовов. Для окна, чтобы не строить дважды.</summary>
+    public ChatDisplayMessage? ToolsSource => _toolsSource;
+
+    /// <summary>Содержимое списка отстало от <see cref="_toolsSource"/> и требует пересборки.</summary>
+    private bool _toolsBodyStale = true;
+
+    /// <summary>
+    /// Обновляет список вызовов инструментов. Содержимое строится лениво — по первому
+    /// разворачиванию.
+    /// </summary>
+    /// <remarks>
+    /// Список почти всегда свёрнут, а шаблон держит его тело в <c>Collapsed</c>-границе: разметку
+    /// WPF пропустит, но объекты-то уже созданы, и стили для них уже найдены. Для ответа
+    /// с десятком вызовов это сотни объектов на сообщение — впустую и при каждом открытии чата,
+    /// и при каждом изменении состояния вызова во время ответа.
+    /// </remarks>
     public void UpdateTools(ChatDisplayMessage message)
     {
         UpdateSavedFiles(message);
@@ -285,22 +348,53 @@ internal sealed class AssistantMessageView
             ToolsHost.Children.Add(_toolsExpander);
         }
 
+        _toolsSource = message;
+        _toolsBodyStale = true;
+
         var wasExpanded = _toolsExpander.IsExpanded;
         _toolsExpander.Header = BuildToolsHeader(message);
-        _toolsExpander.Content = BuildToolsBody(message);
+
         // Заблокированный домен требует действия пользователя, остановленный защитником вызов —
         // хотя бы того, чтобы человек об этом узнал; внутри свёрнутого списка не видно ни того,
         // ни другого.
-        _toolsExpander.IsExpanded = wasExpanded || HasBlockedDomain(message) || HasGuardBlock(message);
+        var expanded = wasExpanded || HasBlockedDomain(message) || HasGuardBlock(message);
+        _toolsExpander.IsExpanded = expanded;
+
+        if (expanded)
+        {
+            BuildToolsBodyIfNeeded();
+        }
+        else
+        {
+            // Прежнее содержимое описывает уже не то состояние вызовов; держать его до
+            // разворачивания значило бы показать человеку устаревший список.
+            _toolsExpander.Content = null;
+        }
     }
 
-    private Expander CreateToolsExpander() =>
-        new()
+    private void BuildToolsBodyIfNeeded()
+    {
+        if (!_toolsBodyStale || _toolsExpander is null || _toolsSource is null)
+        {
+            return;
+        }
+
+        _toolsBodyStale = false;
+        _toolsExpander.Content = BuildToolsBody(_toolsSource);
+    }
+
+    private Expander CreateToolsExpander()
+    {
+        var expander = new Expander
         {
             Style = (Style)Host.FindResource("ToolsExpander"),
             IsExpanded = false,
             Margin = new Thickness(0, 0, 0, 8)
         };
+
+        expander.Expanded += (_, _) => BuildToolsBodyIfNeeded();
+        return expander;
+    }
 
     private object BuildToolsHeader(ChatDisplayMessage message)
     {
@@ -643,7 +737,7 @@ internal sealed class AssistantMessageView
         {
             suffix.BeginAnimation(
                 UIElement.OpacityProperty,
-                new DoubleAnimation(1, 0.3, new Duration(TimeSpan.FromSeconds(0.7)))
+                new DoubleAnimation(1, 0.3, ChatMessageViews.WorkingPulse)
                 {
                     RepeatBehavior = RepeatBehavior.Forever,
                     AutoReverse = true
@@ -788,7 +882,7 @@ internal sealed class AssistantMessageView
         }
 
         _pulse = new Storyboard { RepeatBehavior = RepeatBehavior.Forever, AutoReverse = true };
-        var animation = new DoubleAnimation(1, 0.3, TimeSpan.FromSeconds(0.7));
+        var animation = new DoubleAnimation(1, 0.3, ChatMessageViews.WorkingPulse);
         Storyboard.SetTarget(animation, Duration);
         Storyboard.SetTargetProperty(animation, new PropertyPath(UIElement.OpacityProperty));
         _pulse.Children.Add(animation);
@@ -805,6 +899,11 @@ internal sealed class AssistantMessageView
 
 internal static class ChatMessageViews
 {
+    /// <summary>Период пульса «идёт работа»: и у часов ответа, и у строки агента.</summary>
+    /// <remarks>
+    /// Быстрее — мельтешит на краю зрения, медленнее — перестаёт читаться как «идёт сейчас».
+    /// </remarks>
+    internal static readonly Duration WorkingPulse = new(TimeSpan.FromSeconds(0.7));
     // Ключи палитры, а не Color: тело сообщения обязано перекрашиваться вместе с темой.
     private const string UserForeground = "Text.Body";
     private const string AiForeground = "Text.Secondary";
@@ -814,19 +913,22 @@ internal static class ChatMessageViews
         ChatDisplayMessage message,
         MessageActions? actions = null)
     {
+        // Один разбор на все три вопроса к тексту: есть ли блочная разметка, как его нарисовать
+        // и как он выглядит без инлайновой. Раньше Markdig проходил по нему трижды.
+        var parsed = ChatMarkdown.Parse(message.Text);
+
         // Блочная разметка не влезает в обжатый по тексту пузырь — такие сообщения
         // растягиваем до максимума, как ответы ассистента.
-        var wide = ChatMarkdown.HasBlockConstructs(message.Text);
+        var wide = parsed.HasBlockConstructs;
         var display = CreateReadOnlyBox(UserForeground, 13.5, 19, shrinkWrap: !wide);
-        ChatMarkdown.Write(
-            display, host, message.Text, 13.5, 19, fillAvailableWidth: wide);
+        ChatMarkdown.Write(display, host, parsed, 13.5, 19, fillAvailableWidth: wide);
         if (wide)
         {
             display.MaxWidth = UserBubbleInnerMax;
         }
         else
         {
-            FitUserBubble(display, ChatMarkdown.FlattenInline(message.Text), host);
+            FitUserBubble(display, parsed.FlatInline, host);
         }
 
         var editor = new TextBox
@@ -916,10 +1018,14 @@ internal static class ChatMessageViews
         return view;
     }
 
-    public static AssistantMessageView CreateAssistant(
-        FrameworkElement host,
-        ChatDisplayMessage message,
-        MessageActions? actions = null)
+    /// <summary>Плашка логотипа модели: картинка, а под ней буква и молния на случай, если её нет.</summary>
+    private sealed record ModelLogo(
+        Border Border,
+        Image Image,
+        TextBlock Letter,
+        System.Windows.Shapes.Path Lightning);
+
+    private static ModelLogo BuildModelLogo(FrameworkElement host)
     {
         var logoImage = new Image { Width = 20, Height = 20 };
         var logoLetter = new TextBlock
@@ -952,6 +1058,68 @@ internal static class ChatMessageViews
         logoHost.Children.Add(logoLetter);
         logoHost.Children.Add(logoLightning);
         logoBorder.Child = logoHost;
+
+        return new ModelLogo(logoBorder, logoImage, logoLetter, logoLightning);
+    }
+
+    /// <summary>Ряд кнопок под ответом. Наружу отдаются те, чью видимость меняют по ходу.</summary>
+    private sealed record AssistantActions(StackPanel Row, Button Cancel, Button Resume);
+
+    private static AssistantActions BuildAssistantActions(
+        FrameworkElement host,
+        ChatDisplayMessage message,
+        MessageActions? actions)
+    {
+        var cancel = IconAction(host, "Cancel", Loc.Get("S.Message.Stop"));
+        cancel.Click += (_, _) => actions?.Cancel?.Invoke(message);
+
+        var row = new StackPanel
+        {
+            Style = (Style)host.FindResource("ActionsRow"),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+        var resume = IconAction(host, "Continue", Loc.Get("S.Message.Continue"));
+        resume.Click += (_, _) => actions?.Continue?.Invoke(message);
+        resume.Visibility = Visibility.Collapsed;
+        row.Children.Add(resume);
+        var regenerate = IconAction(host, "Regenerate", Loc.Get("S.Message.Regenerate"));
+        regenerate.Click += (_, _) => actions?.Regenerate?.Invoke(message);
+        row.Children.Add(regenerate);
+        var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
+        copy.Click += (_, _) => actions?.Copy?.Invoke(message);
+        row.Children.Add(copy);
+        var sharingOn = actions?.SharingEnabled?.Invoke() ?? true;
+        var share = IconAction(host, "Upload", Loc.Get("S.Message.Share"));
+        share.Click += (_, _) => actions?.Share?.Invoke(message);
+        HideIf(share, !sharingOn);
+        row.Children.Add(share);
+        var export = IconAction(host, "ExportJson", Loc.Get("S.Message.Export"));
+        export.Click += (_, _) => actions?.Export?.Invoke(message);
+        HideIf(export, !sharingOn);
+        row.Children.Add(export);
+        var compress = IconAction(host, "Compress", Loc.Get("S.Message.Compress"));
+        compress.IsEnabled = false;
+        row.Children.Add(compress);
+        var expand = IconAction(host, "Expand", Loc.Get("S.Message.Expand"));
+        expand.IsEnabled = false;
+        row.Children.Add(expand);
+        var compose = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
+        compose.IsEnabled = false;
+        row.Children.Add(compose);
+        var delete = IconAction(host, "Delete", Loc.Get("S.Common.Delete"));
+        delete.Click += (_, _) => actions?.Delete?.Invoke(message);
+        row.Children.Add(delete);
+        row.Children.Add(cancel);
+        return new AssistantActions(row, cancel, resume);
+    }
+
+    public static AssistantMessageView CreateAssistant(
+        FrameworkElement host,
+        ChatDisplayMessage message,
+        MessageActions? actions = null)
+    {
+        var logo = BuildModelLogo(host);
 
         var modelName = new TextBlock
         {
@@ -1010,47 +1178,7 @@ internal static class ChatMessageViews
         var body = CreateReadOnlyBox(AiForeground, 13.5, 21);
         var streaming = message.Status is AssistantStatus.Streaming;
 
-        var cancel = IconAction(host, "Cancel", Loc.Get("S.Message.Stop"));
-        cancel.Click += (_, _) => actions?.Cancel?.Invoke(message);
-
-        var row = new StackPanel
-        {
-            Style = (Style)host.FindResource("ActionsRow"),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
-        var resume = IconAction(host, "Continue", Loc.Get("S.Message.Continue"));
-        resume.Click += (_, _) => actions?.Continue?.Invoke(message);
-        resume.Visibility = Visibility.Collapsed;
-        row.Children.Add(resume);
-        var regenerate = IconAction(host, "Regenerate", Loc.Get("S.Message.Regenerate"));
-        regenerate.Click += (_, _) => actions?.Regenerate?.Invoke(message);
-        row.Children.Add(regenerate);
-        var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
-        copy.Click += (_, _) => actions?.Copy?.Invoke(message);
-        row.Children.Add(copy);
-        var sharingOn = actions?.SharingEnabled?.Invoke() ?? true;
-        var share = IconAction(host, "Upload", Loc.Get("S.Message.Share"));
-        share.Click += (_, _) => actions?.Share?.Invoke(message);
-        HideIf(share, !sharingOn);
-        row.Children.Add(share);
-        var export = IconAction(host, "ExportJson", Loc.Get("S.Message.Export"));
-        export.Click += (_, _) => actions?.Export?.Invoke(message);
-        HideIf(export, !sharingOn);
-        row.Children.Add(export);
-        var compress = IconAction(host, "Compress", Loc.Get("S.Message.Compress"));
-        compress.IsEnabled = false;
-        row.Children.Add(compress);
-        var expand = IconAction(host, "Expand", Loc.Get("S.Message.Expand"));
-        expand.IsEnabled = false;
-        row.Children.Add(expand);
-        var compose = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
-        compose.IsEnabled = false;
-        row.Children.Add(compose);
-        var delete = IconAction(host, "Delete", Loc.Get("S.Common.Delete"));
-        delete.Click += (_, _) => actions?.Delete?.Invoke(message);
-        row.Children.Add(delete);
-        row.Children.Add(cancel);
+        var buttons = BuildAssistantActions(host, message, actions);
 
         var toolsHost = new StackPanel { Visibility = Visibility.Collapsed };
 
@@ -1062,12 +1190,12 @@ internal static class ChatMessageViews
         column.Children.Add(toolsHost);
         column.Children.Add(body);
         column.Children.Add(filesHost);
-        column.Children.Add(row);
+        column.Children.Add(buttons.Row);
 
         var grid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(logoBorder);
+        grid.Children.Add(logo.Border);
         Grid.SetColumn(column, 1);
         grid.Children.Add(column);
 
@@ -1082,12 +1210,12 @@ internal static class ChatMessageViews
             Cost = cost,
             CostDot = costDot,
             CostChip = costChip,
-            Actions = row,
-            CancelButton = cancel,
-            ContinueButton = resume,
-            LogoImage = logoImage,
-            LogoLetter = logoLetter,
-            LogoLightning = logoLightning,
+            Actions = buttons.Row,
+            CancelButton = buttons.Cancel,
+            ContinueButton = buttons.Resume,
+            LogoImage = logo.Image,
+            LogoLetter = logo.Letter,
+            LogoLightning = logo.Lightning,
             RootElement = grid,
             ToolsHost = toolsHost,
             FilesHost = filesHost,
@@ -1306,41 +1434,52 @@ internal static class ChatMessageViews
             frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
             RoundedClip.SetRadius(frame, 8);
 
-            var rows = new StackPanel();
-
-            var kind = new TextBlock
-            {
-                Text = MainWindow.FileBadge(file.FileName),
-                FontSize = 10,
-                FontWeight = FontWeights.SemiBold
-            };
-            kind.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
-
-            var name = new TextBlock
-            {
-                Text = file.FileName,
-                FontSize = 11.5,
-                Margin = new Thickness(0, 1, 0, 0),
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-            name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
-
-            var size = new TextBlock
-            {
-                Text = AttachmentTypes.FormatSize(file.SizeBytes),
-                FontSize = 10.5,
-                Margin = new Thickness(0, 1, 0, 0)
-            };
-            size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
-
-            rows.Children.Add(kind);
-            rows.Children.Add(name);
-            rows.Children.Add(size);
-            frame.Child = rows;
+            frame.Child = FileCardRows(file.FileName, file.SizeBytes);
             strip.Children.Add(frame);
         }
 
         return strip;
+    }
+
+    /// <summary>
+    /// Три строки внутри карточки файла: метка расширения, имя, размер.
+    /// </summary>
+    /// <remarks>
+    /// Общая для карточки вложения в композере и карточки файла в ответе: выглядеть они обязаны
+    /// одинаково, а лежали двумя копиями с одними и теми же кеглями, полями и ключами палитры.
+    /// </remarks>
+    internal static StackPanel FileCardRows(string fileName, long sizeBytes)
+    {
+        var kind = new TextBlock
+        {
+            Text = AttachmentTypes.Badge(fileName),
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold
+        };
+        kind.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
+
+        var name = new TextBlock
+        {
+            Text = fileName,
+            FontSize = 11.5,
+            Margin = new Thickness(0, 1, 0, 0),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
+
+        var size = new TextBlock
+        {
+            Text = AttachmentTypes.FormatSize(sizeBytes),
+            FontSize = 10.5,
+            Margin = new Thickness(0, 1, 0, 0)
+        };
+        size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+
+        var rows = new StackPanel();
+        rows.Children.Add(kind);
+        rows.Children.Add(name);
+        rows.Children.Add(size);
+        return rows;
     }
 
     /// <summary>

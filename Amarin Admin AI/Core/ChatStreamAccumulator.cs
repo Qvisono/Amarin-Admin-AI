@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 
 namespace Amarin.Core;
 
@@ -19,14 +18,55 @@ internal sealed class ChatStreamAccumulator
     private int _toolCallOrder;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
 
+    /// <summary>
+    /// Длина <see cref="_text"/> на момент последнего разбора. Пока она не изменилась,
+    /// <see cref="_splitAnswer"/> и <see cref="_splitReasoning"/> действительны.
+    /// </summary>
+    private int _splitAt = -1;
+    private string _splitAnswer = "";
+    private string _splitReasoning = "";
+
+    /// <summary>
+    /// Встречался ли в ответе хоть один символ, с которого начинается маркер размышления.
+    /// </summary>
+    /// <remarks>
+    /// Признак копится по приходящим кускам и только растёт. Пока его нет, ответ и накопленный
+    /// текст — одно и то же, и разбор не нужен вовсе.
+    /// </remarks>
+    private bool _mayHaveMarkers;
+
     /// <summary>The answer alone: any chain of thought the model inlined is stripped out.</summary>
-    public string Text => ReasoningSplit.Split(_text.ToString()).Answer;
+    public string Text => Parsed().Answer;
 
     /// <summary>
     /// Chain of thought the model wrote into <c>content</c> inside <c>&lt;think&gt;</c>-style
     /// tags, as GLM does. Empty for models that use the <c>reasoning_content</c> channel.
     /// </summary>
-    public string InlineReasoning => ReasoningSplit.Split(_text.ToString()).Reasoning;
+    public string InlineReasoning => Parsed().Reasoning;
+
+    /// <summary>
+    /// Разбор накопленного текста на размышление и ответ, посчитанный один раз на состояние.
+    /// </summary>
+    /// <remarks>
+    /// Оба свойства читают по нескольку раз на каждый чанк потока, а стоил каждый вызов полной
+    /// копии накопленного ответа плюс прохода по ней. На ответе в десятки килобайт это давало
+    /// сотни мегабайт мусора и квадратичное время — отсюда и то, что подтормаживание к концу
+    /// длинного ответа было сильнее, чем в начале.
+    /// </remarks>
+    private (string Reasoning, string Answer) Parsed()
+    {
+        if (_splitAt == _text.Length)
+        {
+            return (_splitReasoning, _splitAnswer);
+        }
+
+        var text = _text.ToString();
+        (_splitReasoning, _splitAnswer) = _mayHaveMarkers
+            ? ReasoningSplit.Split(text)
+            : ("", text);
+        _splitAt = _text.Length;
+        return (_splitReasoning, _splitAnswer);
+    }
 
     /// <summary>
     /// Chain of thought from <c>reasoning_content</c>, with the encrypted tail stripped.
@@ -98,12 +138,24 @@ internal sealed class ChatStreamAccumulator
         var piece = ChatContent.ReadText(delta.Content);
         if (!string.IsNullOrEmpty(piece))
         {
-            // Compared against the answer as it stood before this chunk, not against the chunk
-            // itself: a model writing inside <think> is producing content that must not repaint
-            // the bubble, and only the split can tell the two apart.
-            var before = Text.Length;
-            _text.Append(piece);
-            addedText = Text.Length > before;
+            _mayHaveMarkers |= ReasoningSplit.MayContainMarker(piece);
+            if (_mayHaveMarkers)
+            {
+                // Compared against the answer as it stood before this chunk, not against the
+                // chunk itself: a model writing inside <think> is producing content that must
+                // not repaint the bubble, and only the split can tell the two apart.
+                var before = Text.Length;
+                _text.Append(piece);
+                addedText = Text.Length > before;
+            }
+            else
+            {
+                // Ни одного символа, с которого маркер начинается, в ответе ещё не было —
+                // значит весь текст и есть ответ, и сравнивать длины незачем. Замер стоил бы
+                // полной копии накопленного на каждый чанк.
+                _text.Append(piece);
+                addedText = true;
+            }
         }
 
         var reasoning = ChatContent.ReadText(delta.ReasoningContent);
@@ -112,8 +164,10 @@ internal sealed class ChatStreamAccumulator
             _reasoning.Append(reasoning);
         }
 
+        // `_mayHaveMarkers` первым: без маркеров InlineReasoning заведомо пуст, а обращение
+        // к нему собрало бы накопленный ответ в строку — на каждый чанк до конца ответа.
         if (addedText && ThinkingElapsed == TimeSpan.Zero &&
-            (_reasoning.Length > 0 || InlineReasoning.Length > 0))
+            (_reasoning.Length > 0 || (_mayHaveMarkers && InlineReasoning.Length > 0)))
         {
             // The first visible word closes the thinking phase, and only a model that actually
             // thought gets a figure — otherwise this would report the network round trip of

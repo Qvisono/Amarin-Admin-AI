@@ -43,13 +43,27 @@ internal static class ReasoningSplit
         ("◁think▷", "◁/think▷")
     ];
 
+    /// <summary>Первые символы всех маркеров: по ним текст без размышления отбраковывается разом.</summary>
+    private static readonly char[] MarkerStarts = ['<', '◁'];
+
+    /// <summary>
+    /// Есть ли в тексте хоть один символ, с которого маркер может начаться. Отрицательный ответ
+    /// означает, что разбирать нечего, и вызывающий вправе считать весь текст ответом.
+    /// </summary>
+    /// <remarks>
+    /// Вынесено наружу ради <see cref="ChatStreamAccumulator"/>: он следит за этим признаком по
+    /// приходящим кускам и тогда не собирает накопленный ответ в строку вовсе.
+    /// </remarks>
+    internal static bool MayContainMarker(string? text) =>
+        !string.IsNullOrEmpty(text) && text.IndexOfAny(MarkerStarts) >= 0;
+
     /// <summary>
     /// Returns the chain of thought and the answer. Text with no markers comes back untouched
     /// as the answer, which is the overwhelmingly common case and costs one scan.
     /// </summary>
     public static (string Reasoning, string Answer) Split(string text)
     {
-        if (string.IsNullOrEmpty(text) || text.IndexOfAny(['<', '◁']) < 0)
+        if (!MayContainMarker(text))
         {
             return ("", text ?? "");
         }
@@ -60,24 +74,23 @@ internal static class ReasoningSplit
 
         while (position < text.Length)
         {
-            var (open, close, at) = NextOpener(text, position);
-            var (orphan, orphanAt) = NextCloser(text, position);
-
-            // A closer with no opener in front of it. The chat template of a GLM-class model
-            // pre-fills the opening tag into the assistant turn, so the reply comes back already
-            // inside the thinking block and the first tag in it is the closing one. Everything
-            // up to that point is deliberation, however much it reads like an answer.
-            if (orphanAt >= 0 && (at < 0 || orphanAt < at))
-            {
-                Append(reasoning, text[position..orphanAt]);
-                position = orphanAt + orphan.Length;
-                continue;
-            }
+            var (open, close, at, isCloser) = NextMarker(text, position);
 
             if (at < 0)
             {
                 answer.Append(text, position, text.Length - position);
                 break;
+            }
+
+            // A closer with no opener in front of it. The chat template of a GLM-class model
+            // pre-fills the opening tag into the assistant turn, so the reply comes back already
+            // inside the thinking block and the first tag in it is the closing one. Everything
+            // up to that point is deliberation, however much it reads like an answer.
+            if (isCloser)
+            {
+                Append(reasoning, text.AsSpan(position, at - position));
+                position = at + close.Length;
+                continue;
             }
 
             answer.Append(text, position, at - position);
@@ -88,48 +101,59 @@ internal static class ReasoningSplit
             {
                 // Still streaming, or the model never closed the tag. Either way the rest is
                 // thinking: showing it as the answer is the exact bug this class exists to fix.
-                Append(reasoning, text[bodyStart..]);
+                Append(reasoning, text.AsSpan(bodyStart));
                 break;
             }
 
-            Append(reasoning, text[bodyStart..end]);
+            Append(reasoning, text.AsSpan(bodyStart, end - bodyStart));
             position = end + close.Length;
         }
 
         return (reasoning.ToString().Trim(), answer.ToString().Trim());
     }
 
-    private static (string Close, int At) NextCloser(string text, int from)
+    /// <summary>
+    /// Ближайший маркер от <paramref name="from"/> — открывающий или закрывающий, смотря какой
+    /// встретился раньше.
+    /// </summary>
+    /// <remarks>
+    /// Один проход по остатку строки. Прежде здесь стояли два метода, и каждый гонял по пять
+    /// <c>IndexOf</c> с <c>OrdinalIgnoreCase</c>: десять регистронезависимых проходов по всему
+    /// хвосту за итерацию. На стриминге разбор повторяется на каждый чанк, и эта десятка
+    /// превращала длинный ответ в квадрат.
+    /// </remarks>
+    private static (string Open, string Close, int At, bool IsCloser) NextMarker(string text, int from)
     {
-        var best = (Close: "", At: -1);
-        foreach (var (_, close) in Markers)
+        var at = from;
+        while (at < text.Length)
         {
-            var at = text.IndexOf(close, from, StringComparison.OrdinalIgnoreCase);
-            if (at >= 0 && (best.At < 0 || at < best.At))
+            at = text.IndexOfAny(MarkerStarts, at);
+            if (at < 0)
             {
-                best = (close, at);
+                break;
             }
+
+            var tail = text.AsSpan(at);
+            foreach (var (open, close) in Markers)
+            {
+                if (tail.StartsWith(open, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (open, close, at, false);
+                }
+
+                if (tail.StartsWith(close, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (open, close, at, true);
+                }
+            }
+
+            at++;
         }
 
-        return best;
+        return ("", "", -1, false);
     }
 
-    private static (string Open, string Close, int At) NextOpener(string text, int from)
-    {
-        var best = (Open: "", Close: "", At: -1);
-        foreach (var (open, close) in Markers)
-        {
-            var at = text.IndexOf(open, from, StringComparison.OrdinalIgnoreCase);
-            if (at >= 0 && (best.At < 0 || at < best.At))
-            {
-                best = (open, close, at);
-            }
-        }
-
-        return best;
-    }
-
-    private static void Append(StringBuilder target, string piece)
+    private static void Append(StringBuilder target, ReadOnlySpan<char> piece)
     {
         var trimmed = piece.Trim();
         if (trimmed.Length == 0)

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Amarin.Core;
+// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
 using Path = System.Windows.Shapes.Path;
 
 namespace Amarin.UI;

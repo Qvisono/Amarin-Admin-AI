@@ -46,7 +46,13 @@ internal static class ChatMarkdown
 
     private const double BlockGap = 8;
     private const string BodyBrush = "Text.Secondary";
-    private const string MonoFamily = "Consolas, Cascadia Mono, Courier New";
+
+    /// <summary>
+    /// Моноширинное семейство для инлайнового кода. Одно на программу: составное имя
+    /// разбирается при создании, а таких Run-ов в ответе бывают десятки, и каждая перерисовка
+    /// живого ответа создавала их заново.
+    /// </summary>
+    private static readonly FontFamily MonoFamily = new("Consolas, Cascadia Mono, Courier New");
 
     public static IReadOnlyList<string> PreviewLines(string text)
     {
@@ -73,47 +79,70 @@ internal static class ChatMarkdown
     /// Есть ли в тексте блочная разметка. Пузырь пользователя обжимается по ширине текста,
     /// что несовместимо с таблицами, списками и блоками кода — им нужна вся доступная ширина.
     /// </summary>
-    internal static bool HasBlockConstructs(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return false;
-        }
-
-        foreach (var block in Markdown.Parse(Normalize(text), Pipeline))
-        {
-            if (block is not ParagraphBlock)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    internal static bool HasBlockConstructs(string text) => Parse(text).HasBlockConstructs;
 
     /// <summary>
     /// Текст без inline-разметки — то, что реально увидит глаз. Нужен для замера ширины
     /// пузыря: «**жирный**» иначе намерит на четыре символа шире отрисованного.
     /// </summary>
-    internal static string FlattenInline(string text)
+    internal static string FlattenInline(string text) => Parse(text).FlatInline;
+
+    /// <summary>Разбирает разметку один раз, чтобы задать ей потом несколько вопросов.</summary>
+    /// <remarks>
+    /// Пузырь пользователя спрашивал три вещи — есть ли блочная разметка, как текст выглядит без
+    /// инлайновой и как его нарисовать, — и каждый вопрос гонял Markdig по всему тексту заново.
+    /// </remarks>
+    internal static ParsedMarkdown Parse(string? text) => ParsedMarkdown.Of(text);
+
+    /// <summary>Разобранная разметка одного сообщения.</summary>
+    internal sealed class ParsedMarkdown
     {
-        if (string.IsNullOrWhiteSpace(text))
+        private string? _flat;
+
+        private ParsedMarkdown(string source, IReadOnlyList<MdBlock> blocks)
         {
-            return text ?? "";
+            Source = source;
+            Blocks = blocks;
+            HasBlockConstructs = blocks.Any(block => block is not ParagraphBlock);
         }
 
-        var lines = new List<string>();
-        foreach (var block in Markdown.Parse(Normalize(text), Pipeline))
+        /// <summary>Текст, каким его дала модель, — без приведения формул к долларам.</summary>
+        public string Source { get; }
+
+        internal IReadOnlyList<MdBlock> Blocks { get; }
+
+        public bool HasBlockConstructs { get; }
+
+        public string FlatInline => _flat ??= Flatten();
+
+        internal static ParsedMarkdown Of(string? text)
         {
-            if (block is not ParagraphBlock { Inline: not null } paragraph)
+            var source = text ?? "";
+            return string.IsNullOrWhiteSpace(source)
+                ? new ParsedMarkdown(source, [])
+                : new ParsedMarkdown(source, [.. Markdown.Parse(Normalize(source), Pipeline)]);
+        }
+
+        private string Flatten()
+        {
+            if (string.IsNullOrWhiteSpace(Source))
             {
-                return text;
+                return Source;
             }
 
-            lines.Add(InlineText(paragraph.Inline));
-        }
+            var lines = new List<string>(Blocks.Count);
+            foreach (var block in Blocks)
+            {
+                if (block is not ParagraphBlock { Inline: not null } paragraph)
+                {
+                    return Source;
+                }
 
-        return lines.Count == 0 ? text : string.Join("\n", lines);
+                lines.Add(InlineText(paragraph.Inline));
+            }
+
+            return lines.Count == 0 ? Source : string.Join("\n", lines);
+        }
     }
 
     /// <param name="box">Куда положить готовый документ.</param>
@@ -124,6 +153,11 @@ internal static class ChatMarkdown
     /// <param name="files">
     /// Файлы, которые инструменты этого ответа положили на диск. Путь, названный в тексте,
     /// заменяется карточкой файла прямо на своём месте.
+    /// </param>
+    /// <param name="streaming">
+    /// Ответ ещё дописывается, и этот же документ пересоберут через десятые доли секунды.
+    /// Отключает кэши, которые ключуются полным текстом блока: у растущего текста попаданий
+    /// не бывает, зато его промежуточные состояния вытесняют оттуда всё полезное.
     /// </param>
     /// <returns>
     /// Файлы, для которых карточка встала в текст. Остальные показываются полосой под ответом —
@@ -136,8 +170,23 @@ internal static class ChatMarkdown
         double fontSize,
         double lineHeight,
         bool fillAvailableWidth = true,
-        IReadOnlyList<SavedFile>? files = null)
+        IReadOnlyList<SavedFile>? files = null,
+        bool streaming = false) =>
+        Write(box, host, Parse(text), fontSize, lineHeight, fillAvailableWidth, files, streaming);
+
+    /// <inheritdoc cref="Write(RichTextBox, FrameworkElement, string, double, double, bool, IReadOnlyList{SavedFile}, bool)"/>
+    public static IReadOnlyList<SavedFile> Write(
+        RichTextBox box,
+        FrameworkElement host,
+        ParsedMarkdown parsed,
+        double fontSize,
+        double lineHeight,
+        bool fillAvailableWidth = true,
+        IReadOnlyList<SavedFile>? files = null,
+        bool streaming = false)
     {
+        ArgumentNullException.ThrowIfNull(parsed);
+
         var document = new FlowDocument
         {
             PagePadding = new Thickness(0),
@@ -151,23 +200,15 @@ internal static class ChatMarkdown
             document.FontFamily = box.FontFamily;
         }
 
-        var context = new RenderContext(host, fontSize, lineHeight, files ?? [], []);
-        if (string.IsNullOrEmpty(text))
+        var context = new RenderContext(host, fontSize, lineHeight, files ?? [], [], streaming);
+        if (parsed.Blocks.Count == 0)
         {
-            document.Blocks.Add(BuildPlainParagraph("", context, last: true));
+            // Пусто или один пробельный текст: разметки нет, но пустой документ выглядел бы багом.
+            document.Blocks.Add(BuildPlainParagraph(parsed.Source, context, last: true));
         }
         else
         {
-            var blocks = Markdown.Parse(Normalize(text), Pipeline).ToList();
-            if (blocks.Count == 0)
-            {
-                // Текст из одних пробелов: разметки нет, но пустой документ выглядел бы багом.
-                document.Blocks.Add(BuildPlainParagraph(text, context, last: true));
-            }
-            else
-            {
-                AddBlocks(document.Blocks, blocks, context, first: true);
-            }
+            AddBlocks(document.Blocks, parsed.Blocks, context, first: true);
         }
 
         box.Document = document;
@@ -187,14 +228,19 @@ internal static class ChatMarkdown
     /// <summary>Всё, что нужно знать при построении блоков: кегль, интерлиньяж и хозяин ресурсов.</summary>
     /// <param name="Files">Файлы, которые можно узнать по пути и заменить карточкой.</param>
     /// <param name="Placed">Те из них, чья карточка уже встала в текст. Заполняется по ходу.</param>
+    /// <param name="Streaming">
+    /// Ответ ещё дописывается. Всё, что кэшируется по полному тексту, при этом кэшировать нельзя:
+    /// у растущего блока ключ меняется на каждой перерисовке.
+    /// </param>
     private sealed record RenderContext(
         FrameworkElement Host,
         double FontSize,
         double LineHeight,
         IReadOnlyList<SavedFile> Files,
-        List<SavedFile> Placed);
+        List<SavedFile> Placed,
+        bool Streaming);
 
-    // ===== Блоки =====
+    // ───────────────────────── Блоки ─────────────────────────
 
     private static void AddBlocks(
         BlockCollection target,
@@ -417,7 +463,8 @@ internal static class ChatMarkdown
             return BuildSavedFileCard(file, context);
         }
 
-        return new BlockUIContainer(CodeBlockView.Create(context.Host, body, language))
+        return new BlockUIContainer(
+            CodeBlockView.Create(context.Host, body, language, cache: !context.Streaming))
         {
             Margin = new Thickness(0)
         };
@@ -764,7 +811,7 @@ internal static class ChatMarkdown
         return paragraph;
     }
 
-    // ===== Inline =====
+    // ───────────────────────── Inline ─────────────────────────
 
     private static void AddInlines(InlineCollection target, ContainerInline? inline, RenderContext context)
     {
@@ -844,7 +891,7 @@ internal static class ChatMarkdown
         // У Run нет padding, поэтому воздух вокруг фона даём тонкими шпациями.
         var run = new Run(" " + content + " ")
         {
-            FontFamily = new FontFamily(MonoFamily),
+            FontFamily = MonoFamily,
             FontSize = context.FontSize - 1
         };
         run.SetResourceReference(TextElement.ForegroundProperty, "Code.Inline");
@@ -1005,7 +1052,7 @@ internal static class ChatMarkdown
     private static int ParseStart(string? orderedStart) =>
         int.TryParse(orderedStart, out var value) && value > 0 ? value : 1;
 
-    // ===== Предпросмотр в списке чатов =====
+    // ───────────────────────── Предпросмотр в списке чатов ─────────────────────────
 
     private static void AppendPreview(List<string> lines, MdBlock block)
     {

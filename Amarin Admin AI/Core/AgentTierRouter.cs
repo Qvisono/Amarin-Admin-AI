@@ -100,8 +100,8 @@ internal static class AgentTierRouter
     /// </remarks>
     internal static string BuildUserMessage(string prompt, string? notes)
     {
-        var task = TextClip.Clip(prompt?.Trim() ?? "", 1500, 500);
-        var hints = TextClip.Clip(notes?.Trim() ?? "", 300, 0);
+        var task = TextClip.Clip(prompt?.Trim() ?? "", TextClip.DecisionHead, TextClip.DecisionTail);
+        var hints = TextClip.Clip(notes?.Trim() ?? "", TextClip.ContextHead, 0);
         if (hints.Length == 0)
         {
             return "Task for the agent:" + Environment.NewLine + task;

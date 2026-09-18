@@ -54,7 +54,7 @@ public static class MathSymbols
 
         void Add(string name, string text, MathTokenKind kind) => table[name] = (text, kind);
 
-        // ── Греческий алфавит ──
+        // ───────────────────────── Греческий алфавит ─────────────────────────
         var lower = new (string Name, string Text)[]
         {
             ("alpha", "α"), ("beta", "β"), ("gamma", "γ"), ("delta", "δ"), ("epsilon", "ϵ"),
@@ -79,7 +79,7 @@ public static class MathSymbols
             Add(name, text, MathTokenKind.Upright);
         }
 
-        // ── Крупные операторы ──
+        // ───────────────────────── Крупные операторы ─────────────────────────
         Add("sum", "∑", MathTokenKind.BigOperator);
         Add("prod", "∏", MathTokenKind.BigOperator);
         Add("coprod", "∐", MathTokenKind.BigOperator);
@@ -94,7 +94,7 @@ public static class MathSymbols
         Add("bigvee", "⋁", MathTokenKind.BigOperator);
         Add("bigwedge", "⋀", MathTokenKind.BigOperator);
 
-        // ── Бинарные операции ──
+        // ───────────────────────── Бинарные операции ─────────────────────────
         Add("pm", "±", MathTokenKind.Binary);
         Add("mp", "∓", MathTokenKind.Binary);
         Add("times", "×", MathTokenKind.Binary);
@@ -119,7 +119,7 @@ public static class MathSymbols
         Add("neg", "¬", MathTokenKind.Binary);
         Add("lnot", "¬", MathTokenKind.Binary);
 
-        // ── Отношения ──
+        // ───────────────────────── Отношения ─────────────────────────
         Add("leq", "≤", MathTokenKind.Relation);
         Add("le", "≤", MathTokenKind.Relation);
         Add("geq", "≥", MathTokenKind.Relation);
@@ -147,7 +147,7 @@ public static class MathSymbols
         Add("models", "⊨", MathTokenKind.Relation);
         Add("doteq", "≐", MathTokenKind.Relation);
 
-        // ── Стрелки ──
+        // ───────────────────────── Стрелки ─────────────────────────
         Add("to", "→", MathTokenKind.Relation);
         Add("rightarrow", "→", MathTokenKind.Relation);
         Add("Rightarrow", "⇒", MathTokenKind.Relation);
@@ -163,7 +163,7 @@ public static class MathSymbols
         Add("longrightarrow", "⟶", MathTokenKind.Relation);
         Add("longleftarrow", "⟵", MathTokenKind.Relation);
 
-        // ── Прочие знаки ──
+        // ───────────────────────── Прочие знаки ─────────────────────────
         Add("infty", "∞", MathTokenKind.Number);
         Add("partial", "∂", MathTokenKind.Variable);
         Add("nabla", "∇", MathTokenKind.Upright);
@@ -192,7 +192,7 @@ public static class MathSymbols
         Add("because", "∵", MathTokenKind.Relation);
         Add("percent", "%", MathTokenKind.Upright);
 
-        // ── Скобки и разделители ──
+        // ───────────────────────── Скобки и разделители ─────────────────────────
         Add("lbrace", "{", MathTokenKind.Fence);
         Add("rbrace", "}", MathTokenKind.Fence);
         Add("langle", "⟨", MathTokenKind.Fence);

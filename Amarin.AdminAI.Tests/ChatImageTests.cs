@@ -45,6 +45,7 @@ public sealed class ChatImageTests
                 Images = [Sample(), Sample("second.png")]
             });
             store.Save(session);
+            store.Flush();
 
             var loaded = new ChatStore(root).TryLoad(session.Id);
 

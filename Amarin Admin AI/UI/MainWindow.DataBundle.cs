@@ -37,7 +37,7 @@ namespace Amarin.UI
 
         // ───────────────────────── экспорт ─────────────────────────
 
-        private void DataExportButton_Click(object sender, RoutedEventArgs e) => _ = OpenExportAsync();
+        private void DataExportButton_Click(object sender, RoutedEventArgs e) => Detached.Run(OpenExportAsync(), "open_export");
 
         private async Task OpenExportAsync()
         {
@@ -110,7 +110,7 @@ namespace Amarin.UI
             DataExportSaveButton.IsEnabled = true;
         }
 
-        private void DataExportSaveButton_Click(object sender, RoutedEventArgs e) => _ = SaveExportAsync();
+        private void DataExportSaveButton_Click(object sender, RoutedEventArgs e) => Detached.Run(SaveExportAsync(), "save_export");
 
         private async Task SaveExportAsync()
         {
@@ -152,6 +152,9 @@ namespace Amarin.UI
 
             try
             {
+                // Экспорт читает чаты прямо с диска, а хранилище пишет их в фоне: без этого
+                // в архив попала бы переписка без последнего ответа.
+                _services.ChatStore.Flush();
                 await Task.Run(() => new DataBundleExporter(root, profileId).Write(path, chosen));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -193,14 +196,14 @@ namespace Amarin.UI
             }
             else if (e.Key == Key.Enter && DataExportSaveButton.IsEnabled)
             {
-                _ = SaveExportAsync();
+                Detached.Run(SaveExportAsync(), "save_export");
                 e.Handled = true;
             }
         }
 
         // ───────────────────────── импорт ─────────────────────────
 
-        private void DataImportButton_Click(object sender, RoutedEventArgs e) => _ = OpenImportAsync();
+        private void DataImportButton_Click(object sender, RoutedEventArgs e) => Detached.Run(OpenImportAsync(), "open_import");
 
         private async Task OpenImportAsync()
         {
@@ -313,7 +316,7 @@ namespace Amarin.UI
             }
         }
 
-        private void DataImportApplyButton_Click(object sender, RoutedEventArgs e) => _ = ApplyImportAsync();
+        private void DataImportApplyButton_Click(object sender, RoutedEventArgs e) => Detached.Run(ApplyImportAsync(), "apply_import");
 
         private async Task ApplyImportAsync()
         {
@@ -357,6 +360,9 @@ namespace Amarin.UI
             DataImportResult result;
             try
             {
+                // Раскладка подменяет файлы чатов мимо хранилища. Отложенная запись, застигнутая
+                // ею врасплох, легла бы поверх только что импортированного.
+                _services.ChatStore.Flush();
                 result = await Task.Run(() =>
                     new DataBundleImporter(root, profileId).Apply(archive, chosen, mode));
             }
@@ -452,7 +458,7 @@ namespace Amarin.UI
             LanguagePicker.Rebuild();
             ApplyAppearance(save: false);
             RefreshProfileList();
-            _ = RefreshDataUsageAsync();
+            Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
         }
 
         private void DataImportCancelButton_Click(object sender, RoutedEventArgs e)
@@ -476,7 +482,7 @@ namespace Amarin.UI
             }
             else if (e.Key == Key.Enter && DataImportApplyButton.IsEnabled)
             {
-                _ = ApplyImportAsync();
+                Detached.Run(ApplyImportAsync(), "apply_import");
                 e.Handled = true;
             }
         }

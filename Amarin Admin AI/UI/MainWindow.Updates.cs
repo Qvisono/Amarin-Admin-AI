@@ -77,7 +77,7 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
         }
 
-        private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => _ = CheckUpdatesAsync(manual: true);
+        private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => Detached.Run(CheckUpdatesAsync(manual: true), "check_updates");
 
         private void OpenReleaseButton_Click(object sender, RoutedEventArgs e)
         {
@@ -147,7 +147,7 @@ namespace Amarin.UI
             CloseUpdateConfirm();
             if (plan is not null)
             {
-                _ = InstallUpdateAsync(plan);
+                Detached.Run(InstallUpdateAsync(plan), "install_update");
             }
         }
 
@@ -329,7 +329,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _ = CheckUpdatesAsync(manual: false);
+            Detached.Run(CheckUpdatesAsync(manual: false), "check_updates");
         }
 
         private async Task CheckUpdatesAsync(bool manual)

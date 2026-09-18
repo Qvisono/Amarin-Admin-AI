@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using Amarin.Core;
 
 namespace Amarin.UI
@@ -142,7 +141,7 @@ namespace Amarin.UI
         }
 
         private void UsageRefreshButton_Click(object sender, RoutedEventArgs e) =>
-            _ = RefreshDataUsageAsync();
+            Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
 
         /// <summary>
         /// Человек перешёл на страницу «Файлы приложения». Считаем здесь, а не при открытии
@@ -150,6 +149,6 @@ namespace Amarin.UI
         /// свежий счёт, а остальные за него не платят.
         /// </summary>
         private void NavData_Checked(object sender, RoutedEventArgs e) =>
-            _ = RefreshDataUsageAsync();
+            Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
     }
 }

@@ -50,12 +50,12 @@ namespace Amarin.UI
 
             if (infographic)
             {
-                _ = RunInfographicAsync(canonical);
+                Detached.Run(RunInfographicAsync(canonical), "run_infographic");
                 return;
             }
 
             MessageTextBox.Text = TranscriptPrompt(canonical);
-            _ = SendAsync();
+            Detached.Run(SendAsync(), "send");
         }
 
         /// <summary>

@@ -633,6 +633,10 @@ public sealed class DataBundleImporter
                 state.ChatsAdded++;
             }
         }
+
+        // Хранилище пишет в фоне, а это хранилище тут же выбрасывается: без этого импорт
+        // возвращал бы «готово» ещё до того, как чаты легли на диск.
+        store.Flush();
     }
 
     private void ApplySettings(string file, string targetRoot, ImportState state)

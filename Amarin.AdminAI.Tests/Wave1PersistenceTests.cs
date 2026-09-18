@@ -167,7 +167,7 @@ public sealed class Wave1PersistenceTests
             store.Save(new AppSettings
             {
                 MainPrompt = AppSettingsStore.LegacyPersonalityPrompts[0],
-                TechAiPrompt = ChatEngine.LegacyDefaultTechPrompt,
+                TechAiPrompt = LegacyTechPrompts.V1,
                 TechAgentPrompt = "агент кастом"
             });
 
@@ -179,7 +179,7 @@ public sealed class Wave1PersistenceTests
             store.Save(new AppSettings
             {
                 MainPrompt = AppSettingsStore.LegacyPersonalityPrompts[^1],
-                TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV10,
+                TechAiPrompt = LegacyTechPrompts.V10,
                 TechAgentPrompt = "агент кастом"
             });
             loaded = new AppSettingsStore(root).Load();

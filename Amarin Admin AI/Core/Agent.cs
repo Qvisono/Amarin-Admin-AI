@@ -5,6 +5,14 @@ namespace Amarin.Core;
 
 public sealed class Agent
 {
+    /// <summary>Потолок на один запрос к модели внутри прогона агента.</summary>
+    /// <remarks>
+    /// Тяжёлая модель на длинной стенограмме отвечает и минуту, а зависшее соединение иначе
+    /// держит прогон до отмены вручную. Три минуты — заведомо больше самого долгого честного
+    /// ответа и заведомо меньше человеческого терпения.
+    /// </remarks>
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromMinutes(3);
+
     internal const string BaseSystemPrompt = """
 You are Amarin Admin AI - a powerful system administration tool and universal assistant on the user's machine.
 You are NOT a companion for small talk. Do not chat, joke, philosophize, or sustain open-ended dialogue.
@@ -283,7 +291,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     {
         try
         {
-            return await RunRequestCoreAsync(userRequest, cancellationToken);
+            return await RunRequestCoreAsync(userRequest, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -330,7 +338,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 response = await _ui.RunBusyAsync(
                     spinnerMessage,
                     () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -349,7 +357,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 response = await _ui.RunBusyAsync(
                     "Повтор запроса…",
                     () => RequestCompletionAsync(messages, toolDefinitions, cancellationToken),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 choice = response.Choices.FirstOrDefault()
                     ?? throw new VeniceApiException("No response choices from Venice API.");
             }
@@ -400,7 +408,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
             toolsUsed = true;
 
-            await ExecuteToolCallsAsync(assistantMessage.ToolCalls, messages, cancellationToken);
+            await ExecuteToolCallsAsync(assistantMessage.ToolCalls, messages, cancellationToken).ConfigureAwait(false);
             FoldNotes(messages);
 
             if (round < _options.MaxToolRounds)
@@ -414,7 +422,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             var synthesis = await _ui.RunBusyAsync(
                 "Формирую итоговый ответ…",
                 () => RequestSynthesisAsync(messages, cancellationToken),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(synthesis))
             {
                 _ui.AssistantMessage(synthesis);
@@ -519,11 +527,11 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     {
         // До разбора аргументов и до подтверждений: защитник смотрит на то, что модель написала,
         // а запрещённый вызов не должен ни исполниться, ни попасть в окно подтверждения.
-        var blocked = await AskGuardAsync(toolCalls, cancellationToken);
+        var blocked = await AskGuardAsync(toolCalls, cancellationToken).ConfigureAwait(false);
 
         if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, blocked, out var batch))
         {
-            await ExecuteParallelBatchAsync(batch, messages, cancellationToken);
+            await ExecuteParallelBatchAsync(batch, messages, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -535,7 +543,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 continue;
             }
 
-            await ExecuteOneToolCallSequentialAsync(toolCall, messages, cancellationToken);
+            await ExecuteOneToolCallSequentialAsync(toolCall, messages, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -633,14 +641,14 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                         results[index] = await _tools.ExecuteAsync(
                             item.ToolName,
                             item.Arguments,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                     }, cancellationToken);
                 }
 
-                await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
                 return 0;
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
         for (var i = 0; i < batch.Count; i++)
         {
@@ -690,7 +698,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         {
             var approved = await _ui.ConfirmDangerousActionAsync(
                 DangerousActionGuard.DescribeDetailed(toolName, arguments),
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             if (!approved)
             {
@@ -705,7 +713,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 var snapshot = await _ui.RunBusyAsync(
                     "Снимок системы для отката…",
                     () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
                 if (!snapshot.Success)
                 {
                     _ui.Warn($"Не удалось создать снимок системы: {snapshot.Message}");
@@ -718,7 +726,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             }
         }
 
-        result = await ExecuteToolAsync(toolName, arguments, cancellationToken);
+        result = await ExecuteToolAsync(toolName, arguments, cancellationToken).ConfigureAwait(false);
         AppendToolOutcome(toolCall, toolName, result, messages, needsUndoSnapshot);
     }
 
@@ -884,7 +892,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         CancellationToken cancellationToken)
     {
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(TimeSpan.FromMinutes(3));
+        timeoutCts.CancelAfter(RequestTimeout);
 
         try
         {
@@ -895,7 +903,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 "auto",
                 BuildVeniceParameters(_options),
                 timeoutCts.Token,
-                _options.Reasoning);
+                _options.Reasoning).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
@@ -925,7 +933,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         };
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(TimeSpan.FromMinutes(3));
+        timeoutCts.CancelAfter(RequestTimeout);
 
         var response = await _client.CreateChatCompletionAsync(
             _options.Model,
@@ -934,7 +942,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             toolChoice: "none",
             BuildVeniceParameters(_options),
             timeoutCts.Token,
-            _options.Reasoning);
+            _options.Reasoning).ConfigureAwait(false);
 
         var choice = response.Choices.FirstOrDefault();
         return choice is null

@@ -41,7 +41,13 @@ internal static class CodeHighlighter
     /// Куски всегда покрывают <paramref name="code"/> целиком и по порядку, так что
     /// склейка их Text обязана вернуть исходную строку.
     /// </summary>
-    public static IReadOnlyList<CodeSpan> Highlight(string code, string? info)
+    /// <param name="cache">
+    /// Запоминать ли результат. <c>false</c> — для блока, который прямо сейчас дописывает
+    /// модель: ключ включает весь текст блока, у растущего он меняется на каждой перерисовке,
+    /// и попаданий у него не бывает в принципе. Зато его промежуточные состояния вытесняли
+    /// из кэша подсветку уже дописанных блоков — тех, ради которых кэш и заведён.
+    /// </param>
+    public static IReadOnlyList<CodeSpan> Highlight(string code, string? info, bool cache = true)
     {
         code ??= "";
         var language = Resolve(info);
@@ -53,11 +59,14 @@ internal static class CodeHighlighter
         // Разделитель — \0: он не встречается ни в идентификаторе языка, ни в коде,
         // поэтому ключи разных языков не могут склеиться в один.
         var key = language.Id + "\0" + code;
-        lock (Gate)
+        if (cache)
         {
-            if (Cache.TryGetValue(key, out var cached))
+            lock (Gate)
             {
-                return cached;
+                if (Cache.TryGetValue(key, out var cached))
+                {
+                    return cached;
+                }
             }
         }
 
@@ -70,6 +79,11 @@ internal static class CodeHighlighter
         {
             // Правила ColorCode построены на регексах; чужой синтаксис не повод ронять чат.
             spans = [new CodeSpan(code, CodeTokenKind.Plain)];
+        }
+
+        if (!cache)
+        {
+            return spans;
         }
 
         lock (Gate)

@@ -80,7 +80,7 @@ public static class DataUsage
         // работа идёт в фоне, а подлагивает на экране.
         var buffer = Array.Empty<byte>();
 
-        foreach (var file in Walk(appRoot, cancellationToken))
+        foreach (var file in FileWalk.Files(appRoot, cancellationToken))
         {
             var key = ClassifyAppFile(Relative(appRoot, file.FullName));
             Add(key, file.Length);
@@ -91,7 +91,7 @@ public static class DataUsage
             }
         }
 
-        foreach (var file in Walk(localRoot, cancellationToken))
+        foreach (var file in FileWalk.Files(localRoot, cancellationToken))
         {
             Add(ClassifyLocalFile(Relative(localRoot, file.FullName)), file.Length);
         }
@@ -256,59 +256,6 @@ public static class DataUsage
         {
             return 0;
         }
-    }
-
-    /// <summary>
-    /// Все файлы под корнем. Недоступная папка пропускается: отчёт о занятом месте не та вещь,
-    /// ради которой стоит показывать человеку исключение.
-    /// </summary>
-    private static IEnumerable<FileInfo> Walk(string root, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
-        {
-            yield break;
-        }
-
-        var options = new EnumerationOptions
-        {
-            RecurseSubdirectories = true,
-            IgnoreInaccessible = true,
-            AttributesToSkip = FileAttributes.ReparsePoint
-        };
-
-        IEnumerator<FileInfo> walker;
-        try
-        {
-            walker = new DirectoryInfo(root).EnumerateFiles("*", options).GetEnumerator();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            yield break;
-        }
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            FileInfo current;
-            try
-            {
-                if (!walker.MoveNext())
-                {
-                    break;
-                }
-
-                current = walker.Current;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                break;
-            }
-
-            yield return current;
-        }
-
-        walker.Dispose();
     }
 
     private static string Relative(string root, string path)

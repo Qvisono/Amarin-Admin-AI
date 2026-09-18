@@ -242,7 +242,7 @@ public sealed class DataBundleExporter
             return;
         }
 
-        foreach (var file in Walk(folder, cancellationToken))
+        foreach (var file in FileWalk.Files(folder, cancellationToken))
         {
             var relative = DataBundle.Relative(folder, file.FullName);
 
@@ -371,55 +371,5 @@ public sealed class DataBundleExporter
         {
             // Останется мусорный .tmp — это лучше, чем подменить исходную ошибку этой.
         }
-    }
-
-    /// <summary>
-    /// Все файлы под папкой. Недоступная подпапка пропускается: экспорт не та вещь, ради которой
-    /// стоит показывать человеку исключение. Приём и мотив — из <see cref="DataUsage"/>.
-    /// </summary>
-    private static IEnumerable<FileInfo> Walk(string root, CancellationToken cancellationToken)
-    {
-        var options = new EnumerationOptions
-        {
-            RecurseSubdirectories = true,
-            IgnoreInaccessible = true,
-
-            // Junction внутри папки данных увёл бы обход куда угодно по диску.
-            AttributesToSkip = FileAttributes.ReparsePoint
-        };
-
-        IEnumerator<FileInfo> walker;
-        try
-        {
-            walker = new DirectoryInfo(root).EnumerateFiles("*", options).GetEnumerator();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            yield break;
-        }
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            FileInfo current;
-            try
-            {
-                if (!walker.MoveNext())
-                {
-                    break;
-                }
-
-                current = walker.Current;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                break;
-            }
-
-            yield return current;
-        }
-
-        walker.Dispose();
     }
 }

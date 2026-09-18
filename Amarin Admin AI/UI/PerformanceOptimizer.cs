@@ -1,9 +1,13 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 
 namespace Amarin.UI
 {
-    internal class PerformanceOptimizer
+    /// <summary>
+    /// Разовая настройка отрисовки окна: округление по пикселям, режим сглаживания текста
+    /// и качество масштабирования картинок.
+    /// </summary>
+    internal sealed class PerformanceOptimizer
     {
         private readonly Window _window;
 
@@ -15,29 +19,27 @@ namespace Amarin.UI
 
         private void Optimize()
         {
-            int renderTier = RenderCapability.Tier >> 16;
-            bool hasHardwareAcceleration = renderTier >= 1;
-
             _window.UseLayoutRounding = true;
             _window.SnapsToDevicePixels = true;
 
-            TextOptions.SetTextFormattingMode(_window, TextFormattingMode.Ideal);
-            TextOptions.SetTextRenderingMode(_window, TextRenderingMode.ClearType);
-            TextOptions.SetTextHintingMode(_window, TextHintingMode.Fixed);
-
             RenderOptions.SetEdgeMode(_window, EdgeMode.Unspecified);
 
-            RenderOptions.SetBitmapScalingMode(_window, hasHardwareAcceleration
+            // На программном рендеринге качественное масштабирование считает процессор, и на
+            // окне целиком это заметно: там берём линейное.
+            var hardware = (RenderCapability.Tier >> 16) >= 1;
+            RenderOptions.SetBitmapScalingMode(_window, hardware
                 ? BitmapScalingMode.HighQuality
                 : BitmapScalingMode.Linear);
 
             _window.DpiChanged += OnDpiChanged;
         }
 
-        private void OnDpiChanged(object sender, DpiChangedEventArgs e)
-        {
-            _window.InvalidateVisual();
-            _window.UpdateLayout();
-        }
+        /// <remarks>
+        /// Только <c>InvalidateVisual</c>: <c>UpdateLayout</c> считал бы разметку всего окна
+        /// синхронно, а <see cref="UiScale"/> шлёт поддельный <c>WM_DPICHANGED</c> на каждый шаг
+        /// ползунка масштаба — то есть на каждое движение мыши по нему. WPF пересчитает сам,
+        /// на ближайшем кадре.
+        /// </remarks>
+        private void OnDpiChanged(object sender, DpiChangedEventArgs e) => _window.InvalidateVisual();
     }
 }

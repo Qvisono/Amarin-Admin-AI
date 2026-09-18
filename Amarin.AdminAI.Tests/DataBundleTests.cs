@@ -53,7 +53,10 @@ public sealed class DataBundleTests
             UpdatedAt = new DateTime(2026, 1, 2)
         };
 
-        new ChatStore(root).Save(session);
+        // Flush: хранилище пишет в фоне, а архив читает чаты прямо с диска.
+        var store = new ChatStore(root);
+        store.Save(session);
+        store.Flush();
         return session;
     }
 
@@ -499,7 +502,10 @@ public sealed class DataBundleTests
         {
             SeedChat(source, "pinned", "Закреплённый");
             SeedChat(source, "plain", "Обычный");
-            new ChatStore(source).SetPinned("pinned", true);
+
+            var pinning = new ChatStore(source);
+            pinning.SetPinned("pinned", true);
+            pinning.Flush();
 
             var archive = Export(source, DataCategory.Chats);
             try

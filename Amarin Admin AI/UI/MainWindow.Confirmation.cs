@@ -52,7 +52,7 @@ namespace Amarin.UI
         /// может стоять вопрос из соседнего чата. Поэтому пришедший текст сверяется с самим
         /// запросом, а не только с токеном.
         /// </remarks>
-        private async void ExplainConfirmation(ConfirmationRequest request)
+        private async Task ExplainConfirmationAsync(ConfirmationRequest request)
         {
             CancelConfirmationExplain();
 
@@ -104,6 +104,7 @@ namespace Amarin.UI
             }
             catch (ObjectDisposedException)
             {
+                // Запрос успел закончиться сам и освободить токен. Обычная гонка, не сбой.
             }
 
             _confirmExplain?.Dispose();

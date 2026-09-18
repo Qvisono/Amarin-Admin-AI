@@ -100,7 +100,7 @@ internal sealed class AgentHost : IAgentHost
         // делить клиент агента нельзя — иначе деньги защитника слились бы с ценой самого агента и
         // попали бы в итог дважды.
         using var guardHttp = settings.SynGuardEnabled
-            ? HttpClients.Create(TimeSpan.FromMinutes(1))
+            ? HttpClients.Create(HttpClients.ServiceTimeout)
             : null;
         var guard = BuildGuard(settings, guardHttp);
 
@@ -247,7 +247,7 @@ internal sealed class AgentHost : IAgentHost
         var reasoning = (settings.RouterReasoning ?? new ReasoningSettings()).ToChoice();
         var options = CloneOptions(_parentOptions, routerId, settings.RouterReasoning ?? new ReasoningSettings());
 
-        using var http = HttpClients.Create(TimeSpan.FromMinutes(1));
+        using var http = HttpClients.Create(HttpClients.ServiceTimeout);
         var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
 
         var models = ModelBriefing.ForAgentRouter(

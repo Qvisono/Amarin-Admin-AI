@@ -98,14 +98,14 @@ public sealed class FastAgentTierTests
     {
         // Уровень называла модель чата и завышала его; теперь его называет маршрутизатор, и
         // слова уровня ушли из промпта вместе с аргументом.
-        Assert.Contains("\"fast\"", ChatEngine.LegacyDefaultTechPromptV17, StringComparison.Ordinal);
+        Assert.Contains("\"fast\"", LegacyTechPrompts.V17, StringComparison.Ordinal);
         Assert.DoesNotContain("\"fast\"", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
 
         foreach (var saved in new[]
                  {
-                     ChatEngine.LegacyDefaultTechPromptV13,
-                     ChatEngine.LegacyDefaultTechPromptV17
+                     LegacyTechPrompts.V13,
+                     LegacyTechPrompts.V17
                  })
         {
             var settings = AppSettings.CreateDefault();
@@ -124,7 +124,7 @@ public sealed class FastAgentTierTests
         Assert.Contains("СРОЧНО", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains("goes into notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("Hurry is a tier", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.DoesNotContain("СРОЧНО", ChatEngine.LegacyDefaultTechPromptV14, StringComparison.Ordinal);
+        Assert.DoesNotContain("СРОЧНО", LegacyTechPrompts.V14, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -132,10 +132,10 @@ public sealed class FastAgentTierTests
     {
         Assert.Contains("A LINE TYPED WHILE YOU WORK", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "A LINE TYPED WHILE YOU WORK", ChatEngine.LegacyDefaultTechPromptV14, StringComparison.Ordinal);
+            "A LINE TYPED WHILE YOU WORK", LegacyTechPrompts.V14, StringComparison.Ordinal);
 
         var settings = AppSettings.CreateDefault();
-        settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV14;
+        settings.TechAiPrompt = LegacyTechPrompts.V14;
         Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
         Assert.Equal("", settings.TechAiPrompt);
     }
@@ -152,7 +152,7 @@ public sealed class FastAgentTierTests
             "MODELS block of this prompt", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
 
         var settings = AppSettings.CreateDefault();
-        settings.TechAiPrompt = ChatEngine.LegacyDefaultTechPromptV16;
+        settings.TechAiPrompt = LegacyTechPrompts.V16;
         Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
         Assert.Equal("", settings.TechAiPrompt);
     }
@@ -163,14 +163,14 @@ public sealed class FastAgentTierTests
         // Архив копируется вручную, и копия, случайно совпавшая с новым текстом, сделала бы
         // миграцию тихой пустышкой: сохранённый старый промпт не совпал бы ни с чем и остался
         // бы у человека навсегда.
-        Assert.NotEqual(ChatEngine.DefaultTechPrompt, ChatEngine.LegacyDefaultTechPromptV16);
-        Assert.NotEqual(ChatEngine.DefaultTechPrompt, ChatEngine.LegacyDefaultTechPromptV17);
+        Assert.NotEqual(ChatEngine.DefaultTechPrompt, LegacyTechPrompts.V16);
+        Assert.NotEqual(ChatEngine.DefaultTechPrompt, LegacyTechPrompts.V17);
         Assert.Contains(
-            "lite = one check/listing.", ChatEngine.LegacyDefaultTechPromptV16, StringComparison.Ordinal);
+            "lite = one check/listing.", LegacyTechPrompts.V16, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "lite = one check/listing.", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.Contains(
-            "complexity is exactly", ChatEngine.LegacyDefaultTechPromptV17, StringComparison.Ordinal);
+            "complexity is exactly", LegacyTechPrompts.V17, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "complexity is exactly", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
     }

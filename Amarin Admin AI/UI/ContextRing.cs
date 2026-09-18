@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
 using Path = System.Windows.Shapes.Path;
 using Shape = System.Windows.Shapes.Shape;
 using Amarin.Core;

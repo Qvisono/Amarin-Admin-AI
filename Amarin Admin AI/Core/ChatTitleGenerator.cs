@@ -1,4 +1,4 @@
-﻿namespace Amarin.Core;
+namespace Amarin.Core;
 
 /// <summary>Придуманный заголовок и то, во что обошлось его сочинение.</summary>
 /// <remarks>

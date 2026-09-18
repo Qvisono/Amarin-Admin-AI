@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -157,52 +158,46 @@ public sealed class ChatRowAttentionTests
     }
 
     [Fact]
-    public void Lighting_the_marker_makes_the_list_redraw_itself()
+    public void The_marker_survives_the_next_redraw_of_the_list()
     {
-        // Ловушка, на которой это и ломалось: RefreshChatList пересобирает панель целиком и
-        // коротко замыкает на неизменной подписи. Флаг, не вошедший в подпись, зажигался бы
-        // ровно до первой перерисовки — а перерисовку зовёт сам же ход, по несколько раз за
-        // секунду. Подпись обязана меняться вместе с набором.
-        var (without, with) = _wpf.Ui.Invoke(() =>
+        // Ловушка, на которой это и ломалось: RefreshChatList коротко замыкает на неизменной
+        // подписи, а зовёт её сам же ход, по несколько раз за секунду. Метка внимания в подпись
+        // намеренно не входит — значит короткое замыкание обязано переставить её само.
+        var (flagged, afterRedraw) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            const string id = "чат-которого-нет";
+            var panel = (Panel)window.FindName("ChatListPanel")!;
+            var row = new Button
+            {
+                Style = (Style)panel.FindResource("ChatItem"),
+                Content = "Разговор про диски",
+                Tag = "чат-которого-нет"
+            };
+            panel.Children.Add(row);
 
             var attention = (HashSet<string>)typeof(MainWindow)
-                .GetField("_attention", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetField("_attention", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(window)!;
+            var refresh = typeof(MainWindow).GetMethod(
+                "RefreshChatRowStates", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
-            var build = typeof(MainWindow).GetMethod(
-                "BuildChatListSignature",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-
-            var items = new List<ChatIndexEntry>
-            {
-                new() { Id = id, Title = "Разговор про диски", UpdatedAt = new DateTime(2026, 1, 1) }
-            };
-
-            var restore = attention.Contains(id);
             try
             {
-                attention.Remove(id);
-                var quiet = (string)build.Invoke(window, ["", items])!;
+                attention.Add("чат-которого-нет");
+                refresh.Invoke(window, null);
+                var lit = ChatRowState.GetNeedsAttention(row);
 
-                attention.Add(id);
-                return (quiet, (string)build.Invoke(window, ["", items])!);
+                refresh.Invoke(window, null);
+                return (lit, ChatRowState.GetNeedsAttention(row));
             }
             finally
             {
-                if (restore)
-                {
-                    attention.Add(id);
-                }
-                else
-                {
-                    attention.Remove(id);
-                }
+                attention.Remove("чат-которого-нет");
+                panel.Children.Remove(row);
             }
         });
 
-        Assert.NotEqual(without, with);
+        Assert.True(flagged);
+        Assert.True(afterRedraw);
     }
 }

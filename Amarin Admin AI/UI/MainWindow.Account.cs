@@ -5,7 +5,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Amarin.Core;
-using Amarin.Tools;
 using Image = System.Windows.Controls.Image;
 
 namespace Amarin.UI
@@ -132,15 +131,12 @@ namespace Amarin.UI
                     return cached.Image;
                 }
 
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
-                image.UriSource = new Uri(path);
-                image.DecodePixelWidth = 144;
-                image.EndInit();
-                image.Freeze();
-                _avatar = (path, info.LastWriteTimeUtc, info.Length, image);
+                var image = LoadFrozen(path, AvatarDecodeWidth);
+                if (image is not null)
+                {
+                    _avatar = (path, info.LastWriteTimeUtc, info.Length, image);
+                }
+
                 return image;
             }
             catch (Exception ex) when (ex is IOException or NotSupportedException or ArgumentException)
@@ -149,7 +145,43 @@ namespace Amarin.UI
             }
         }
 
-        // ── Avatar ────────────────────────────────────────────────────────────────────
+        /// <summary>В каком размере держать аватар: он показывается плиткой, не во весь экран.</summary>
+        private const int AvatarDecodeWidth = 144;
+
+        /// <summary>
+        /// Читает картинку в память целиком и замораживает.
+        /// </summary>
+        /// <remarks>
+        /// <c>OnLoad</c> и <c>IgnoreImageCache</c> вместе: без первого файл остаётся открытым и
+        /// его нельзя переписать, без второго WPF отдаёт по тому же пути прежнюю картинку — и
+        /// сменённый аватар не менялся бы на экране. Нулевая ширина означает «в исходном размере».
+        /// </remarks>
+        private static BitmapImage? LoadFrozen(string path, int decodePixelWidth)
+        {
+            try
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                image.UriSource = new Uri(path);
+                if (decodePixelWidth > 0)
+                {
+                    image.DecodePixelWidth = decodePixelWidth;
+                }
+
+                image.EndInit();
+                image.Freeze();
+                return image;
+            }
+            catch (Exception ex)
+                when (ex is IOException or NotSupportedException or ArgumentException or UriFormatException)
+            {
+                return null;
+            }
+        }
+
+        // ───────────────────────── Avatar ─────────────────────────
 
         private void ChangeAvatarButton_Click(object sender, RoutedEventArgs e)
         {
@@ -215,24 +247,7 @@ namespace Amarin.UI
         /// dialog shows are the pixels that get saved — GDI+ ignores the EXIF orientation that
         /// WPF honours, and mixing the two would rotate the crop out from under the user.
         /// </summary>
-        private static BitmapSource? LoadForCrop(string path)
-        {
-            try
-            {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
-                image.UriSource = new Uri(path);
-                image.EndInit();
-                image.Freeze();
-                return image;
-            }
-            catch (Exception ex) when (ex is IOException or NotSupportedException or ArgumentException or UriFormatException)
-            {
-                return null;
-            }
-        }
+        private static BitmapSource? LoadForCrop(string path) => LoadFrozen(path, decodePixelWidth: 0);
 
         /// <summary>Cuts <paramref name="selection"/> out and squares it off at <see cref="AvatarPixels"/>.</summary>
         private static BitmapSource SquareAvatar(BitmapSource source, Int32Rect selection)
@@ -265,7 +280,7 @@ namespace Amarin.UI
             }
         }
 
-        // ── Name ──────────────────────────────────────────────────────────────────────
+        // ───────────────────────── Name ─────────────────────────
 
         private void ChangeNameButton_Click(object sender, RoutedEventArgs e)
         {
@@ -333,7 +348,7 @@ namespace Amarin.UI
             }
         }
 
-        // ── Password ──────────────────────────────────────────────────────────────────
+        // ───────────────────────── Password ─────────────────────────
 
         private void ChangePasswordButton_Click(object sender, RoutedEventArgs e)
         {
@@ -406,7 +421,7 @@ namespace Amarin.UI
             SaveProfiles();
         }
 
-        // ── Profiles ──────────────────────────────────────────────────────────────────
+        // ───────────────────────── Profiles ─────────────────────────
 
         private void SwitchAccountButton_Click(object sender, RoutedEventArgs e)
         {

@@ -19,6 +19,11 @@ internal static class CodeBlockView
     private const double CodeLineHeight = 18;
     private static readonly FontFamily Mono = new("Consolas, Cascadia Mono, Courier New");
 
+    /// <summary>Начертание для замера строк. Статическое: составное имя семейства разбирается
+    /// при создании, а замер идёт на каждую строку каждого блока каждой перерисовки.</summary>
+    private static readonly Typeface MonoTypeface =
+        new(Mono, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+
     /// <summary>Сколько держать надпись «Скопировано» вместо имени языка.</summary>
     private static readonly TimeSpan CopiedFor = TimeSpan.FromSeconds(1.5);
 
@@ -29,7 +34,16 @@ internal static class CodeBlockView
     private static readonly Dictionary<(string Code, double Dip), double> WidthCache = [];
     private static readonly Queue<(string Code, double Dip)> WidthCacheOrder = new();
 
-    public static FrameworkElement Create(FrameworkElement host, string code, string? language)
+    /// <param name="cache">
+    /// Запоминать ли подсветку и замер ширины. <c>false</c> — пока блок дописывает модель:
+    /// у растущего текста ключ меняется на каждой перерисовке, попаданий не бывает, а
+    /// промежуточные состояния вытесняют из кэша уже дописанные блоки.
+    /// </param>
+    public static FrameworkElement Create(
+        FrameworkElement host,
+        string code,
+        string? language,
+        bool cache = true)
     {
         code = code.Replace("\r\n", "\n").TrimEnd('\n');
 
@@ -55,7 +69,7 @@ internal static class CodeBlockView
         Grid.SetColumn(copy, 1);
         header.Children.Add(copy);
 
-        var text = BuildCodeText(host, code, language);
+        var text = BuildCodeText(host, code, language, cache);
         var scroller = new ScrollViewer
         {
             Content = text,
@@ -95,7 +109,11 @@ internal static class CodeBlockView
     /// Тело — read-only <see cref="RichTextBox"/>: он даёт и цветные Run-ы, и выделение кода мышью.
     /// Ширину страницы задаём по самой длинной строке, иначе документ начнёт переносить код.
     /// </summary>
-    private static RichTextBox BuildCodeText(FrameworkElement host, string code, string? language)
+    private static RichTextBox BuildCodeText(
+        FrameworkElement host,
+        string code,
+        string? language,
+        bool cache)
     {
         var paragraph = new Paragraph
         {
@@ -105,14 +123,14 @@ internal static class CodeBlockView
             TextAlignment = TextAlignment.Left
         };
 
-        foreach (var span in CodeHighlighter.Highlight(code, language))
+        foreach (var span in CodeHighlighter.Highlight(code, language, cache))
         {
             var run = new Run(span.Text);
             run.SetResourceReference(TextElement.ForegroundProperty, BrushKey(span.Kind));
             paragraph.Inlines.Add(run);
         }
 
-        var width = MeasureWidest(code, host);
+        var width = MeasureWidest(code, host, cache);
         var document = new FlowDocument(paragraph)
         {
             PagePadding = new Thickness(0),
@@ -170,7 +188,7 @@ internal static class CodeBlockView
     /// Ширина самой длинной строки. Меряем построчно: FormattedText на многострочном тексте
     /// округляет иначе, чем раскладка документа, и код начинает переноситься.
     /// </summary>
-    private static double MeasureWidest(string code, FrameworkElement dpiHost)
+    private static double MeasureWidest(string code, FrameworkElement dpiHost, bool cache)
     {
         if (code.Length == 0)
         {
@@ -188,12 +206,11 @@ internal static class CodeBlockView
         }
 
         var key = (code, dip);
-        if (WidthCache.TryGetValue(key, out var cached))
+        if (cache && WidthCache.TryGetValue(key, out var cached))
         {
             return cached;
         }
 
-        var typeface = new Typeface(Mono, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         var widest = 0.0;
         foreach (var line in code.Split('\n'))
         {
@@ -206,7 +223,7 @@ internal static class CodeBlockView
                 line,
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
-                typeface,
+                MonoTypeface,
                 CodeFontSize,
                 Brushes.White,
                 dip);
@@ -216,6 +233,11 @@ internal static class CodeBlockView
 
         // Запас на округление раскладки: без него хвост длинной строки всё равно уезжает вниз.
         var width = Math.Max(1, Math.Ceiling(widest) + 16);
+
+        if (!cache)
+        {
+            return width;
+        }
 
         WidthCache[key] = width;
         WidthCacheOrder.Enqueue(key);

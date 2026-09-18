@@ -491,17 +491,7 @@ internal sealed class AppearanceManager : IDisposable
             end.KeyFrames.Add(new LinearPointKeyFrame(to, time));
         }
 
-        Storyboard.SetTarget(start, _base);
-        Storyboard.SetTargetProperty(
-            start,
-            new PropertyPath("(Shape.Fill).(LinearGradientBrush.StartPoint)"));
-        Storyboard.SetTarget(end, _base);
-        Storyboard.SetTargetProperty(
-            end,
-            new PropertyPath("(Shape.Fill).(LinearGradientBrush.EndPoint)"));
-
-        storyboard.Children.Add(start);
-        storyboard.Children.Add(end);
+        BindGradientEnds(storyboard, start, end);
     }
 
     private void AddAurora(Storyboard storyboard, double speed)
@@ -532,6 +522,19 @@ internal sealed class AppearanceManager : IDisposable
             EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
         };
 
+        BindGradientEnds(storyboard, start, end);
+    }
+
+    /// <summary>
+    /// Сажает две анимации на концы градиента фонового прямоугольника.
+    /// </summary>
+    /// <remarks>
+    /// Общая для Drift и Aurora: обе двигают одни и те же две точки, и разница между ними —
+    /// только в самих анимациях. Путь к свойству строкой, потому что кисть живёт под Fill,
+    /// а не отдельным свойством элемента.
+    /// </remarks>
+    private void BindGradientEnds(Storyboard storyboard, Timeline start, Timeline end)
+    {
         Storyboard.SetTarget(start, _base);
         Storyboard.SetTargetProperty(
             start,

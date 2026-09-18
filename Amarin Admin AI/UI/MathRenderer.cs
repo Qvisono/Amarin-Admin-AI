@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-// В проекте включён неявный using System.IO — без псевдонима Path тут двоится.
+// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
 using Path = System.Windows.Shapes.Path;
 using Amarin.Core;
 
@@ -45,6 +45,12 @@ internal static class MathRenderer
     /// </summary>
     private const string MathFontFamily = "Cambria Math, Segoe UI Symbol, Segoe UI";
 
+    /// <summary>
+    /// Семейство шрифтов одно на программу: составное имя разбирается при создании, а формулы
+    /// в живом ответе пересобираются по нескольку раз в секунду.
+    /// </summary>
+    private static readonly FontFamily MathFont = new(MathFontFamily);
+
     private sealed class Context(FrameworkElement host, double size, bool display)
     {
         public FrameworkElement Host { get; } = host;
@@ -55,9 +61,41 @@ internal static class MathRenderer
         /// <summary>Выключная формула: пределы у ∑ встают сверху и снизу, дроби крупнее.</summary>
         public bool Display { get; } = display;
 
-        public FontFamily Font { get; } = new(MathFontFamily);
+        public FontFamily Font { get; } = MathFont;
 
         public string BrushKey { get; set; } = "Text.Secondary";
+    }
+
+    /// <summary>
+    /// Разобранные формулы. Дерево узлов неизменяемо (<see cref="MathNode"/> — records), поэтому
+    /// раздавать его повторно безопасно; сама раскладка в визуалы всё равно своя на каждый показ.
+    /// </summary>
+    /// <remarks>
+    /// Живой ответ пересобирается по нескольку раз в секунду, и каждая перерисовка заново
+    /// разбирала все формулы сообщения. Текст формулы при этом почти всегда уже дописан —
+    /// в отличие от блока кода, у которого на растущем тексте попаданий не бывает.
+    /// Блокировки нет и не нужно: визуалы строятся только на UI-потоке.
+    /// </remarks>
+    private const int ParseCacheCapacity = 64;
+    private static readonly Dictionary<string, MathNode> ParseCache = new(StringComparer.Ordinal);
+    private static readonly Queue<string> ParseCacheOrder = new();
+
+    private static MathNode ParseCached(string latex)
+    {
+        if (ParseCache.TryGetValue(latex, out var cached))
+        {
+            return cached;
+        }
+
+        var node = LatexParser.Parse(latex);
+        ParseCache[latex] = node;
+        ParseCacheOrder.Enqueue(latex);
+        while (ParseCacheOrder.Count > ParseCacheCapacity)
+        {
+            ParseCache.Remove(ParseCacheOrder.Dequeue());
+        }
+
+        return node;
     }
 
     /// <summary>Готовый элемент формулы. <paramref name="display"/> — выключная, отдельным блоком.</summary>
@@ -82,7 +120,7 @@ internal static class MathRenderer
         var context = new Context(host, fontSize, display) { BrushKey = brushKey };
         try
         {
-            return Layout(LatexParser.Parse(latex), context, context.Size);
+            return Layout(ParseCached(latex), context, context.Size);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or OverflowException)
         {

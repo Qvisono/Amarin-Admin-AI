@@ -28,6 +28,9 @@ public sealed class ChatStoreTimestampTests
             store.Save(session);
             store.Save(session);
 
+            // Хранилище пишет в фоне, а читает здесь второй экземпляр — прямо с диска.
+            store.Flush();
+
             var entry = Assert.Single(new ChatStore(root).List());
             Assert.Equal(lastWeek, entry.UpdatedAt, TimeSpan.FromSeconds(1));
             Assert.NotEqual(DateTime.Today, entry.UpdatedAt.Date);
@@ -101,6 +104,7 @@ public sealed class ChatStoreTimestampTests
             Seed(store, "Свежий", DateTime.Now);
 
             Assert.True(store.SetPinned(old.Id, true));
+            store.Flush();
 
             var reloaded = new ChatStore(root).List();
             Assert.Equal(old.Id, reloaded[0].Id);
@@ -108,7 +112,9 @@ public sealed class ChatStoreTimestampTests
             Assert.False(reloaded[1].IsPinned);
             Assert.Equal(DateTime.Now.AddDays(-10), reloaded[0].UpdatedAt, TimeSpan.FromSeconds(5));
 
-            Assert.True(new ChatStore(root).SetPinned(old.Id, false));
+            var second = new ChatStore(root);
+            Assert.True(second.SetPinned(old.Id, false));
+            second.Flush();
             Assert.False(new ChatStore(root).List().Single(i => i.Id == old.Id).IsPinned);
         }
         finally

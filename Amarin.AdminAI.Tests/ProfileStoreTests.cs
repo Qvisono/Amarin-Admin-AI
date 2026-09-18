@@ -35,6 +35,7 @@ public sealed class ProfileStoreTests
             existing.Title = "Старая беседа";
             existing.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "u1", Text = "привет" });
             chats.Save(existing);
+            chats.Flush();
             var fileBefore = Path.Combine(root, "chats", existing.Id + ".json");
             Assert.True(File.Exists(fileBefore));
 
@@ -72,6 +73,7 @@ public sealed class ProfileStoreTests
             var session = defaultChats.CreateNew("grok-4-6");
             session.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "u1", Text = "привет" });
             defaultChats.Save(session);
+            defaultChats.Flush();
 
             var store = new ProfileStore(root);
             var registry = store.Load();
@@ -196,6 +198,7 @@ public sealed class ProfileStoreTests
             var kept = defaultChats.CreateNew("grok-4-6");
             kept.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "u1", Text = "остаётся" });
             defaultChats.Save(kept);
+            defaultChats.Flush();
 
             var store = new ProfileStore(root);
             var registry = store.Load();

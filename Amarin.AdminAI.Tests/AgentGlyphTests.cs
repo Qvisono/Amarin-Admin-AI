@@ -57,7 +57,11 @@ public sealed class AgentGlyphTests
     private (ImageSource? Logo, string Glyph) Icon(AgentRunRecord? agent) => _wpf.Ui.Invoke(() =>
     {
         var view = ChatMessageViews.CreateAssistant(Window(), Turn(agent));
-        var body = ((Expander)view.ToolsHost.Children[0]).Content;
+
+        // Содержимое списка строится по первому разворачиванию — ровно как у человека.
+        var expander = (Expander)view.ToolsHost.Children[0];
+        expander.IsExpanded = true;
+        var body = expander.Content;
 
         ImageSource? logo = null;
         var glyph = "";
@@ -140,7 +144,9 @@ public sealed class AgentGlyphTests
                 Window(),
                 Turn(new AgentRunRecord { Status = AgentRunStatus.Running }));
 
-            var body = (StackPanel)((Expander)view.ToolsHost.Children[0]).Content;
+            var expander = (Expander)view.ToolsHost.Children[0];
+            expander.IsExpanded = true;
+            var body = (StackPanel)expander.Content;
             var nested = body.Children.OfType<Expander>().Single();
             return ((TextBlock)((StackPanel)nested.Header).Children[0]).Text;
         });

@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Amarin.Core;
 
 /// <summary>
@@ -19,30 +21,36 @@ internal static class Loc
     /// </remarks>
     public const string LanguageNameKey = "S.Language.NativeName";
 
-    private static readonly Lock Gate = new();
-
     // Русский как запас: без интерфейса — в тестах, в консольном прогоне — словарь языка никто
     // не подставляет, и подпись выродилась бы в сам ключ.
-    private static Dictionary<string, string> _strings =
-        new(StringsRu.Values, StringComparer.Ordinal);
+    //
+    // Набор неизменяем и меняется только целиком, при смене языка. Поэтому читателям блокировка
+    // не нужна: они берут ссылку и работают с ней, а Use подставляет на её место новый словарь.
+    // Прежде каждое чтение подписи брало Lock — а их тысячи на одну перерисовку.
+    private static volatile FrozenDictionary<string, string> _strings =
+        StringsRu.Values.ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary>Заменяет весь набор строк. Зовётся при старте и при смене языка.</summary>
     public static void Use(IReadOnlyDictionary<string, string> strings)
     {
         ArgumentNullException.ThrowIfNull(strings);
-        lock (Gate)
+        _strings = Build(strings);
+    }
+
+    private static FrozenDictionary<string, string> Build(IReadOnlyDictionary<string, string> strings)
+    {
+        // Русский снизу: у перевода может не хватать ключа, и подпись обязана остаться —
+        // так же, как это делает словарь ресурсов.
+        var merged = new Dictionary<string, string>(StringsRu.Values, StringComparer.Ordinal);
+        foreach (var (key, value) in strings)
         {
-            // Русский снизу и здесь: у перевода может не хватать ключа, и подпись обязана
-            // остаться — так же, как это делает словарь ресурсов.
-            _strings = new Dictionary<string, string>(StringsRu.Values, StringComparer.Ordinal);
-            foreach (var (key, value) in strings)
+            if (!string.IsNullOrEmpty(value))
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    _strings[key] = value;
-                }
+                merged[key] = value;
             }
         }
+
+        return merged.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -50,28 +58,14 @@ internal static class Loc
     /// сам ключ: пустая подпись в интерфейсе хуже, чем видимое «S.Что.То», по которому сразу
     /// понятно, что забыли.
     /// </summary>
-    public static string Get(string key, string? fallback = null)
-    {
-        lock (Gate)
-        {
-            if (_strings.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value))
-            {
-                return value;
-            }
-        }
-
-        return fallback ?? key;
-    }
+    public static string Get(string key, string? fallback = null) =>
+        _strings.TryGetValue(key, out var value) && !string.IsNullOrEmpty(value)
+            ? value
+            : fallback ?? key;
 
     /// <summary>Строка с подстановками: «Пропущено файлов: {0}».</summary>
     public static string Format(string key, params object?[] args) =>
         string.Format(Get(key), args);
 
-    public static bool Has(string key)
-    {
-        lock (Gate)
-        {
-            return _strings.ContainsKey(key);
-        }
-    }
+    public static bool Has(string key) => _strings.ContainsKey(key);
 }

@@ -1,4 +1,4 @@
-﻿namespace Amarin.Core;
+namespace Amarin.Core;
 
 internal static class ChatSessionEdit
 {

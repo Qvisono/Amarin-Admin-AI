@@ -87,7 +87,7 @@ namespace Amarin.UI
 
             if (_journalTab == JournalTab.Snapshots)
             {
-                LoadSnapshotsAsync(token);
+                Detached.Run(LoadSnapshotsAsync(token), "journal_snapshots");
                 return;
             }
 
@@ -106,10 +106,10 @@ namespace Amarin.UI
                 return;
             }
 
-            LoadAllChatsAsync(token);
+            Detached.Run(LoadAllChatsAsync(token), "journal_chats");
         }
 
-        private async void LoadAllChatsAsync(int token)
+        private async Task LoadAllChatsAsync(int token)
         {
             if (_services is null)
             {
@@ -144,7 +144,7 @@ namespace Amarin.UI
             Publish(token, entries, showChat: true);
         }
 
-        private async void LoadSnapshotsAsync(int token)
+        private async Task LoadSnapshotsAsync(int token)
         {
             ShowJournalBusy();
 
@@ -410,13 +410,14 @@ namespace Amarin.UI
             }
             catch (ObjectDisposedException)
             {
+                // Запрос успел закончиться сам и освободить токен. Обычная гонка, не сбой.
             }
 
             _journalAsk?.Dispose();
             _journalAsk = null;
         }
 
-        private async void AskAboutEntryAsync(JournalEntry entry)
+        private async Task AskAboutEntryAsync(JournalEntry entry)
         {
             if (_services is null)
             {
@@ -456,7 +457,7 @@ namespace Amarin.UI
             JournalAskButton.IsEnabled = true;
         }
 
-        // ── Handlers ──────────────────────────────────────────────────────────────────
+        // ───────────────────────── Handlers ─────────────────────────
 
         private void JournalButton_Click(object sender, RoutedEventArgs e) => OpenJournal();
 
@@ -508,7 +509,7 @@ namespace Amarin.UI
         {
             if (_journalDetail?.Entry is { } entry)
             {
-                AskAboutEntryAsync(entry);
+                Detached.Run(AskAboutEntryAsync(entry), "journal_ask");
             }
         }
 

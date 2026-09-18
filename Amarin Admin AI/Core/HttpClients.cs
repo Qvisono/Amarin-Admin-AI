@@ -12,6 +12,15 @@ internal static class HttpClients
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
         "Chrome/131.0.0.0 Safari/537.36";
 
+    /// <summary>
+    /// Потолок на служебный запрос: решение маршрутизатора, защитника, выбор продолжения.
+    /// </summary>
+    /// <remarks>
+    /// Такие запросы отвечают одним словом и идут к быстрой модели. Минуты хватает с запасом,
+    /// а больше держать нельзя: человек ждёт ответа, а не служебного вопроса о нём.
+    /// </remarks>
+    public static readonly TimeSpan ServiceTimeout = TimeSpan.FromMinutes(1);
+
     /// <param name="browserIdentity">
     /// Send browser-shaped default headers. Set it for anything that talks to ordinary websites;
     /// the Venice API does not need the disguise and is left plain.

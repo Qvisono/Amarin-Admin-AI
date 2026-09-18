@@ -572,9 +572,9 @@ public sealed class VeniceClient
         using var response = await _http.SendAsync(
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         UpdateBalanceFromHeaders(response);
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -657,9 +657,9 @@ public sealed class VeniceClient
         using var response = await _http.SendAsync(
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         UpdateBalanceFromHeaders(response);
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -761,7 +761,7 @@ public sealed class VeniceClient
                 EnableWebCitations = _options.EnableWebCitations,
                 EnableXSearch = useXSearch ? true : null
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         var text = ReasoningSplit.Split(
             ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;

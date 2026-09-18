@@ -1,4 +1,4 @@
-﻿namespace Amarin.Core;
+namespace Amarin.Core;
 
 /// <summary>
 /// Русские строки интерфейса, встроенные в код.

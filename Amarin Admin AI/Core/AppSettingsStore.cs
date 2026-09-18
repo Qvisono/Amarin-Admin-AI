@@ -1,10 +1,23 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace Amarin.Core;
 
 public sealed class AppSettingsStore
 {
     private readonly string _file;
+
+    private readonly Lock _gate = new();
+
+    /// <summary>Текст файла и его отметка времени на момент чтения.</summary>
+    /// <remarks>
+    /// <see cref="Load"/> зовут отовсюду — движок чата, хост агентов, очередь подтверждений,
+    /// генераторы заголовка и сводки, — и каждый вызов открывал файл заново. Кэш по отметке
+    /// времени безопасен: файл правит только эта программа, а она у пользователя одна.
+    /// Разбор при этом остаётся на каждый вызов, и объект по-прежнему возвращается свой —
+    /// вызывающие его правят, и общий на всех сломал бы страницу настроек.
+    /// </remarks>
+    private string? _cachedText;
+    private DateTime _cachedStamp;
 
     public AppSettingsStore(string? rootDirectory = null)
     {
@@ -27,7 +40,7 @@ public sealed class AppSettingsStore
 
         try
         {
-            var text = File.ReadAllText(_file);
+            var text = ReadCached();
             var settings = JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options)
                            ?? AppSettings.CreateDefault();
             var changed = MigrateLegacyChatPrompts(settings);
@@ -55,6 +68,27 @@ public sealed class AppSettingsStore
         {
             return AppSettings.CreateDefault();
         }
+    }
+
+    private string ReadCached()
+    {
+        var stamp = File.GetLastWriteTimeUtc(_file);
+        lock (_gate)
+        {
+            if (_cachedText is not null && _cachedStamp == stamp)
+            {
+                return _cachedText;
+            }
+        }
+
+        var text = File.ReadAllText(_file);
+        lock (_gate)
+        {
+            _cachedText = text;
+            _cachedStamp = stamp;
+        }
+
+        return text;
     }
 
     /// <summary>Former shipped personality texts. Matching AppData is cleared so the user writes their own.</summary>
@@ -119,29 +153,22 @@ public sealed class AppSettingsStore
     internal static bool MigrateLegacyChatPrompts(AppSettings settings)
     {
         var changed = false;
-        if (LegacyPersonalityPrompts.Any(legacy => SamePrompt(settings.MainPrompt, legacy)))
+
+        // Пустой промпт не совпадает ни с одним отгружавшимся, а сравнение каждого из них стоит
+        // двух копий текста. Load зовут постоянно, и у большинства оба слота давно пусты.
+        if (!string.IsNullOrWhiteSpace(settings.MainPrompt) &&
+            LegacyPersonalityPrompts.Any(legacy => SamePrompt(settings.MainPrompt, legacy)))
         {
             settings.MainPrompt = "";
             changed = true;
         }
 
-        if (SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPrompt) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV2) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV3) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV4) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV5) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV6) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV7) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV8) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV9) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV10) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV11) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV12) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV13) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV14) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV15) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV16) ||
-            SamePrompt(settings.TechAiPrompt, ChatEngine.LegacyDefaultTechPromptV17))
+        if (string.IsNullOrWhiteSpace(settings.TechAiPrompt))
+        {
+            return changed;
+        }
+
+        if (LegacyTechPrompts.All.Any(legacy => SamePrompt(settings.TechAiPrompt, legacy)))
         {
             settings.TechAiPrompt = "";
             changed = true;
@@ -176,6 +203,12 @@ public sealed class AppSettingsStore
         ArgumentNullException.ThrowIfNull(settings);
         var json = JsonSerializer.Serialize(settings, AppJson.Options) + Environment.NewLine;
         AppDataFile.WriteAtomic(_file, json);
+
+        lock (_gate)
+        {
+            _cachedText = json;
+            _cachedStamp = File.GetLastWriteTimeUtc(_file);
+        }
     }
 
     public void Update(Action<AppSettings> mutator)

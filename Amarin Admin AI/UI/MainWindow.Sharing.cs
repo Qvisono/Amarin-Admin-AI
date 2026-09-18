@@ -197,24 +197,8 @@ namespace Amarin.UI
             }
         }
 
-        private static bool TrySetClipboardText(string text)
-        {
-            // The clipboard is a shared OS resource; another process can hold it briefly.
-            for (var attempt = 0; attempt < 3; attempt++)
-            {
-                try
-                {
-                    Clipboard.SetText(text);
-                    return true;
-                }
-                catch (System.Runtime.InteropServices.ExternalException)
-                {
-                    Thread.Sleep(60);
-                }
-            }
-
-            return false;
-        }
+        private static bool TrySetClipboardText(string text) =>
+            ClipboardWrite.Try(() => Clipboard.SetText(text));
 
         private static string SafeFileName(string? title)
         {

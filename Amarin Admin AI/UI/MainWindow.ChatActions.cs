@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Amarin.Core;
 
 namespace Amarin.UI
@@ -12,29 +13,52 @@ namespace Amarin.UI
     public partial class MainWindow
     {
         /// <summary>
-        /// Wires the "⋯" affordance inside a freshly built chat row. The button lives in the
-        /// control template, so the template has to be realised before it can be found.
+        /// Один обработчик нажатий на всю панель списка: открыть чат или показать его меню «⋯».
         /// </summary>
-        private void AttachChatActions(Button row, ChatIndexEntry item)
+        /// <remarks>
+        /// Прежде каждая строка подписывалась сама, а чтобы добраться до кнопки «⋯» внутри
+        /// шаблона, приходилось звать <c>ApplyTemplate</c> — то есть разворачивать шаблон каждой
+        /// строки в визуалы немедленно, вместо того чтобы дать WPF сделать это при раскладке.
+        /// Нажатие на «⋯» всплывает сюда же, и отличить его можно по источнику события.
+        /// </remarks>
+        private void ChatListPanel_Click(object sender, RoutedEventArgs e)
         {
-            row.ApplyTemplate();
-            if (row.Template.FindName("Actions", row) is not Button actions)
+            if (e.OriginalSource is not DependencyObject origin || FindChatRow(origin) is not { } row)
             {
                 return;
             }
 
-            var id = item.Id;
-            var pinned = item.IsPinned;
-
-            actions.Click += (sender, e) =>
+            if (row.Tag is not string id)
             {
-                // Otherwise the click bubbles to the row and opens the chat behind the menu.
-                e.Handled = true;
-                if (sender is Button source)
+                return;
+            }
+
+            // Иначе нажатие дойдёт и до строки, и чат откроется за спиной у меню.
+            e.Handled = true;
+
+            if (!ReferenceEquals(origin, row) && origin is Button actions)
+            {
+                OpenChatActionsMenu(actions, id, ChatRowState.GetIsPinned(row));
+                return;
+            }
+
+            OpenChat(id);
+        }
+
+        /// <summary>Строка списка, внутри которой нажали. Узнаётся по идентификатору чата в Tag.</summary>
+        private Button? FindChatRow(DependencyObject? node)
+        {
+            while (node is not null && !ReferenceEquals(node, ChatListPanel))
+            {
+                if (node is Button { Tag: string } row)
                 {
-                    OpenChatActionsMenu(source, id, pinned);
+                    return row;
                 }
-            };
+
+                node = VisualTreeHelper.GetParent(node);
+            }
+
+            return null;
         }
 
         private void OpenChatActionsMenu(Button anchor, string id, bool pinned)
