@@ -342,4 +342,84 @@ public sealed class AppearanceThemeTests
         // держится на фоне, а не на акценте, и перестаёт быть одной из семьи.
         Assert.True(accent >= loudest * 4, $"{palette}: акцент {accent}, поверхность {loudest}");
     }
+
+    [Fact]
+    public void Light_presets_do_not_glare()
+    {
+        // Одиннадцать светлых пресетов держали Bg.Panel чисто белой, Bg.Window почти белой, а
+        // чернила почти чёрными. Без фоновой картинки это стена света на весь экран, и люди
+        // жаловались именно на неё. Верхняя граница контраста здесь такая же жёсткая, как
+        // нижняя, и это не описка: почти чёрное на почти белом — тоже брак, просто до сих пор
+        // никаким тестом не ловившийся, потому что формально 15:1 «лучше» 10:1.
+        //
+        // Contrast исключён сознательно: он предельно контрастен ради доступности, и смягчить
+        // его — значит его сломать.
+        var problems = _wpf.Ui.Invoke(() =>
+        {
+            var failures = new List<string>();
+
+            foreach (var preset in ThemeCatalog.Presets.Where(p => p.IsLight && p.Theme != AppTheme.Contrast))
+            {
+                var palette = LoadPalette(preset.PaletteName);
+
+                System.Windows.Media.Color Color(string key) =>
+                    ((System.Windows.Media.SolidColorBrush)palette[key]).Color;
+
+                var window = Relative(Color("Bg.Window"));
+                if (window > 0.86)
+                {
+                    failures.Add($"{preset.PaletteName}: Bg.Window светится на {window:F3}");
+                }
+
+                var panel = Relative(Color("Bg.Panel"));
+                if (panel > 0.90)
+                {
+                    failures.Add($"{preset.PaletteName}: Bg.Panel светится на {panel:F3}");
+                }
+
+                var body = Contrast(Color("Text.Body"), Color("Bg.Window"));
+                if (body is < 7.0 or > 13.0)
+                {
+                    failures.Add($"{preset.PaletteName}: Text.Body на Bg.Window даёт {body:F2}:1");
+                }
+            }
+
+            return failures;
+        });
+
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("Glacier")]
+    [InlineData("Iceberg")]
+    [InlineData("Zircon")]
+    [InlineData("Aurora")]
+    [InlineData("Cirrus")]
+    [InlineData("Opal")]
+    [InlineData("Alpine")]
+    [InlineData("Tundra")]
+    [InlineData("Cream")]
+    [InlineData("Linen")]
+    [InlineData("Vellum")]
+    [InlineData("Almond")]
+    public void The_crystal_and_cream_presets_keep_their_colour_out_of_the_fills(string palette)
+    {
+        // Продолжение правила из шапки Palette.EdgeBlue.xaml и теста про красные пресеты. Здесь
+        // корпусу оттенок нужен — холод у кристальных и тепло у кремовых, — но ровно настолько,
+        // чтобы он читался материалом, а не светофильтром. 26 — потолок, который задал Cobalt,
+        // самый насыщенный из спокойных холодных пресетов; состояния и Elevated могут быть
+        // громче, они для того и существуют.
+        var loudest = _wpf.Ui.Invoke(() =>
+        {
+            var loaded = LoadPalette(palette);
+            int Of(string key) =>
+                Chroma(((System.Windows.Media.SolidColorBrush)loaded[key]).Color);
+
+            string[] fills = ["Bg.Window", "Bg.Sidebar", "Bg.Panel", "Bg.Card", "Bg.Raised"];
+            return fills.Max(Of);
+        });
+
+        Assert.True(loudest <= 26, $"{palette}: корпус набрал {loudest} - это заливка");
+    }
 }

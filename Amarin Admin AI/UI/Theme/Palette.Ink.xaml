@@ -4,34 +4,34 @@
          Книжная вёрстка, а не «светлая тема с оттенком». -->
 
     <!-- Поверхности -->
-    <SolidColorBrush x:Key="Bg.Window"    Color="#FFF4F1EA"/>
-    <SolidColorBrush x:Key="Bg.Sidebar"   Color="#FFEBE7DE"/>
-    <SolidColorBrush x:Key="Bg.Panel"     Color="#FFFFFDF8"/>
+    <SolidColorBrush x:Key="Bg.Window"    Color="#FFE9E6DF"/>
+    <SolidColorBrush x:Key="Bg.Sidebar"   Color="#FFE0DDD4"/>
+    <SolidColorBrush x:Key="Bg.Panel"     Color="#FFF5F2EB"/>
     <!-- Как Bg.Panel, но только для поверхностей внутри окна (поле ввода). Существует
          отдельно, чтобы «стекло» не делало полупрозрачными всплывающие меню и диалоги:
          это отдельные слоистые окна, сквозь них виден рабочий стол, а не фон приложения. -->
-    <SolidColorBrush x:Key="Bg.Glass"     Color="#FFFFFDF8"/>
-    <SolidColorBrush x:Key="Bg.Card"      Color="#FFF8F6EF"/>
-    <SolidColorBrush x:Key="Bg.Raised"    Color="#FFF2EFE7"/>
-    <SolidColorBrush x:Key="Bg.Hover"     Color="#FFE9E5DB"/>
-    <SolidColorBrush x:Key="Bg.Selected"  Color="#FFDFDACF"/>
-    <SolidColorBrush x:Key="Bg.Track"     Color="#FFD7D2C4"/>
-    <SolidColorBrush x:Key="Bg.Elevated"  Color="#FFBDB5A2"/>
+    <SolidColorBrush x:Key="Bg.Glass"     Color="#FFF5F2EB"/>
+    <SolidColorBrush x:Key="Bg.Card"      Color="#FFECEBE4"/>
+    <SolidColorBrush x:Key="Bg.Raised"    Color="#FFE7E4DD"/>
+    <SolidColorBrush x:Key="Bg.Hover"     Color="#FFDFDBD2"/>
+    <SolidColorBrush x:Key="Bg.Selected"  Color="#FFD5D1C6"/>
+    <SolidColorBrush x:Key="Bg.Track"     Color="#FFCEC9BC"/>
+    <SolidColorBrush x:Key="Bg.Elevated"  Color="#FFB6AE9D"/>
 
     <!-- Рамки -->
-    <SolidColorBrush x:Key="Border.Subtle"   Color="#FFE4DFD3"/>
-    <SolidColorBrush x:Key="Border.Default"  Color="#FFD2CBBB"/>
-    <SolidColorBrush x:Key="Border.Strong"   Color="#FFA79E8A"/>
+    <SolidColorBrush x:Key="Border.Subtle"   Color="#FFDAD5CA"/>
+    <SolidColorBrush x:Key="Border.Default"  Color="#FFC9C3B4"/>
+    <SolidColorBrush x:Key="Border.Strong"   Color="#FFA19986"/>
 
     <!-- Текст и иконки -->
-    <SolidColorBrush x:Key="Text.Primary"    Color="#FF14120E"/>
-    <SolidColorBrush x:Key="Text.Bright"     Color="#FF1D1B16"/>
-    <SolidColorBrush x:Key="Text.Body"       Color="#FF27241E"/>
-    <SolidColorBrush x:Key="Text.Secondary"  Color="#FF37342D"/>
-    <SolidColorBrush x:Key="Text.Tertiary"   Color="#FF49453C"/>
-    <SolidColorBrush x:Key="Text.Muted"      Color="#FF645F54"/>
-    <SolidColorBrush x:Key="Text.Dim"        Color="#FF726C60"/>
-    <SolidColorBrush x:Key="Text.Faint"      Color="#FF8A8375"/>
+    <SolidColorBrush x:Key="Text.Primary"    Color="#FF272521"/>
+    <SolidColorBrush x:Key="Text.Bright"     Color="#FF302E29"/>
+    <SolidColorBrush x:Key="Text.Body"       Color="#FF393631"/>
+    <SolidColorBrush x:Key="Text.Secondary"  Color="#FF49463F"/>
+    <SolidColorBrush x:Key="Text.Tertiary"   Color="#FF5A564D"/>
+    <SolidColorBrush x:Key="Text.Muted"      Color="#FF746F64"/>
+    <SolidColorBrush x:Key="Text.Dim"        Color="#FF817B70"/>
+    <SolidColorBrush x:Key="Text.Faint"      Color="#FF989184"/>
     <SolidColorBrush x:Key="Text.OnAccent"   Color="#FFFFF6F2"/>
     <SolidColorBrush x:Key="Text.PrimaryTranslucent" Color="#E614120E"/>
 

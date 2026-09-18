@@ -42,10 +42,17 @@ public static class ThemeCatalog
     /// и отличаются они только акцентом. Разложенные по спектру, они выглядели бы четырьмя
     /// случайными темами; стоящие рядом — одной темой с выбором цвета, чем и являются.
     /// </para>
+    /// <para>
+    /// По той же причине держатся вместе три семейства помоложе: кристальные тёмные
+    /// (Glacier, Iceberg, Zircon, Aurora), кристальные светлые (Cirrus, Opal, Alpine, Tundra)
+    /// и кремовые (Cream, Linen, Vellum, Almond). Шкала у них не общая, как у Edge, но выбирают
+    /// их подряд — «какой из холодных» и «какой из кремовых», — и разнесённые по спектру они
+    /// заставляли бы обходить всю сетку, чтобы сравнить два соседних оттенка.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<ThemePresetInfo> Presets { get; } =
     [
-        new(AppTheme.Light, "Light", "Light", true, "#F6F6F7", "#ECECEF", "#1B1B20"),
+        new(AppTheme.Light, "Light", "Light", true, "#EBEBEC", "#E1E1E4", "#1B1B20"),
         new(AppTheme.Dark, "Dark", "Dark", false, "#0E0E0E", "#1F1F1F", "#EAEAEA"),
         new(AppTheme.Obsidian, "Obsidian", "Obsidian", false, "#000000", "#151515", "#F2F2F2"),
         new(AppTheme.Graphite, "Graphite", "Graphite", false, "#1C1C1E", "#323234", "#0A72E6"),
@@ -54,9 +61,13 @@ public static class ThemeCatalog
         new(AppTheme.Nord, "Nord", "Nord", false, "#151A20", "#222A33", "#88C0D0"),
         new(AppTheme.Cobalt, "Cobalt", "Cobalt", false, "#080F16", "#101F2C", "#5AB6FF"),
         new(AppTheme.Ocean, "Ocean", "Ocean", false, "#061014", "#102A33", "#4FD1C5"),
+        new(AppTheme.Glacier, "Glacier", "Glacier", false, "#0A1216", "#1A2831", "#6FD3E4"),
+        new(AppTheme.Iceberg, "Iceberg", "Iceberg", false, "#0C1117", "#1C2530", "#9BC7F2"),
+        new(AppTheme.Zircon, "Zircon", "Zircon", false, "#0E0F16", "#1F2130", "#B5B9F0"),
+        new(AppTheme.Aurora, "Aurora", "Aurora", false, "#091311", "#182823", "#7FE0B4"),
         new(AppTheme.Slate, "Slate", "Slate", false, "#101215", "#1E2228", "#B4C2D2"),
         new(AppTheme.Amethyst, "Amethyst", "Amethyst", false, "#100C14", "#221E26", "#B491FF"),
-                new(AppTheme.Plum, "Plum", "Plum", false, "#140A13", "#261C25", "#C0397E"),
+        new(AppTheme.Plum, "Plum", "Plum", false, "#140A13", "#261C25", "#C0397E"),
         new(AppTheme.Neon, "Neon", "Neon", false, "#08070C", "#1A1725", "#FF4FD8"),
         new(AppTheme.Rose, "Rosé", "Rose", false, "#201618", "#342A2C", "#DE7C96"),
         new(AppTheme.Quartz, "Quartz", "Quartz", false, "#121013", "#242126", "#FF6FA8"),
@@ -73,18 +84,26 @@ public static class ThemeCatalog
         new(AppTheme.EdgeLime, "Edge Lime", "EdgeLime", false, "#0F0F10", "#1A1A1D", "#B8E62E"),
         new(AppTheme.EdgeAmber, "Edge Amber", "EdgeAmber", false, "#0F0F10", "#1A1A1D", "#F0A020"),
         new(AppTheme.EdgeMagenta, "Edge Magenta", "EdgeMagenta", false, "#0F0F10", "#1A1A1D", "#EC5AA8"),
-        new(AppTheme.Silver, "Silver", "Silver", true, "#F2F2F7", "#EBEBF0", "#006FEB"),
+        new(AppTheme.Silver, "Silver", "Silver", true, "#E7E7EC", "#E0E0E5", "#006FEB"),
         new(AppTheme.MatteLight, "Matte Light", "MatteLight", true, "#EDEEF0", "#E4E6E9", "#4A6E96", 0.45),
-        new(AppTheme.Steel, "Steel", "Steel", true, "#F4F6F8", "#E7ECF1", "#3F6E9C"),
-        new(AppTheme.Frost, "Frost", "Frost", true, "#F2F6FA", "#E7EEF5", "#1B4F87"),
-        new(AppTheme.Sakura, "Sakura", "Sakura", true, "#FAF3F6", "#F4E5EC", "#A83A6B"),
-        new(AppTheme.Coral, "Coral", "Coral", true, "#F8F5F3", "#EFEAE7", "#B3311F"),
-        new(AppTheme.Cherry, "Cherry", "Cherry", true, "#F8F5F6", "#EFE8EB", "#A8213E"),
-        new(AppTheme.Mint, "Mint", "Mint", true, "#F2F8F5", "#E6F1EC", "#17694F"),
+        new(AppTheme.Steel, "Steel", "Steel", true, "#E9EBEC", "#DDE1E6", "#3F6E9C"),
+        new(AppTheme.Frost, "Frost", "Frost", true, "#EBEDEF", "#DFE5EA", "#1B4F87"),
+        new(AppTheme.Cirrus, "Cirrus", "Cirrus", true, "#E9EDF1", "#DCE3EA", "#2F6B86"),
+        new(AppTheme.Opal, "Opal", "Opal", true, "#EBEAF0", "#DEDDE8", "#4A5486"),
+        new(AppTheme.Alpine, "Alpine", "Alpine", true, "#E0EDE8", "#D2E3DD", "#23675C"),
+        new(AppTheme.Tundra, "Tundra", "Tundra", true, "#E6EBDF", "#D8DFCF", "#4A5A48"),
+        new(AppTheme.Sakura, "Sakura", "Sakura", true, "#EDE7E9", "#E7DDE0", "#A83A6B"),
+        new(AppTheme.Coral, "Coral", "Coral", true, "#ECEAE8", "#E4DFDD", "#B3311F"),
+        new(AppTheme.Cherry, "Cherry", "Cherry", true, "#ECEAEB", "#E4DEE0", "#A8213E"),
+        new(AppTheme.Mint, "Mint", "Mint", true, "#EBEEEC", "#DFE8E5", "#17694F"),
+        new(AppTheme.Cream, "Cream", "Cream", true, "#EEE9DF", "#E2DCCE", "#3E5E7A"),
+        new(AppTheme.Linen, "Linen", "Linen", true, "#EAE7E1", "#DEDBD3", "#48634F"),
+        new(AppTheme.Vellum, "Vellum", "Vellum", true, "#ECE6D6", "#E0D9C7", "#3C382F"),
+        new(AppTheme.Almond, "Almond", "Almond", true, "#E8E2D9", "#DCD5C9", "#75454A"),
         new(AppTheme.Paper, "Paper", "Paper", true, "#EAE5DC", "#E1DBD0", "#2E2A26"),
-        new(AppTheme.Sand, "Sand", "Sand", true, "#FAF6EF", "#F0E9DC", "#8A5F33"),
-        new(AppTheme.Sepia, "Sepia", "Sepia", true, "#F6F2ED", "#F1E9E0", "#6B4A28"),
-        new(AppTheme.Ink, "Ink", "Ink", true, "#F4F1EA", "#F2EFE7", "#B33A2B"),
+        new(AppTheme.Sand, "Sand", "Sand", true, "#EEEBE4", "#E5DFD2", "#8A5F33"),
+        new(AppTheme.Sepia, "Sepia", "Sepia", true, "#EBE7E2", "#E6DFD6", "#6B4A28"),
+        new(AppTheme.Ink, "Ink", "Ink", true, "#E9E6DF", "#E7E4DD", "#B33A2B"),
         new(AppTheme.Contrast, "Contrast", "Contrast", true, "#FFFFFF", "#EBEBEB", "#0B4FA8")
     ];
 

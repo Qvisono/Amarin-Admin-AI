@@ -74,7 +74,19 @@ public enum AppTheme
     Garnet,
     Ruby,
     Coral,
-    Cherry
+    Cherry,
+    Glacier,
+    Iceberg,
+    Zircon,
+    Aurora,
+    Cirrus,
+    Opal,
+    Alpine,
+    Tundra,
+    Cream,
+    Linen,
+    Vellum,
+    Almond
 }
 
 public sealed class AppSettings
