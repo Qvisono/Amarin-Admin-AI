@@ -228,6 +228,7 @@ internal sealed class LanguageTranslator
             .Append(JsonSerializer.Serialize(batch, AppJson.Options))
             .ToString();
 
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Translate);
         var response = await _venice.CreateChatCompletionAsync(
                 TranslationModelId,
                 [

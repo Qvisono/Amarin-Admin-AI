@@ -68,6 +68,7 @@ internal static class JournalExplainer
     {
         ArgumentNullException.ThrowIfNull(client);
 
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Explain);
         try
         {
             var response = await client.CreateChatCompletionAsync(

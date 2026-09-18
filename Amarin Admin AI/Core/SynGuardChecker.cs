@@ -44,6 +44,7 @@ internal sealed class SynGuardChecker
             return new SynGuardReport([], null);
         }
 
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Guard);
         try
         {
             var response = await _venice.CreateChatCompletionAsync(

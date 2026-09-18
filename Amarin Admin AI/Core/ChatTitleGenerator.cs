@@ -33,6 +33,7 @@ internal sealed class ChatTitleGenerator
         // VeniceTurnScope.Push, — но гарантия эта висит на порядке двух строк в чужом методе:
         // протечёт, и цена заголовка окажется и в счёте хода, и прибавленной ещё раз.
         using var isolated = VeniceTurnScope.Suppress();
+        using var charge = VeniceClient.ChargeAs(VeniceSku.ChatTitle);
 
         var settings = _settings();
         var model = ChatTitle.ResolveModel(settings, _options.Model);

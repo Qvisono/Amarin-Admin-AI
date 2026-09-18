@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Amarin.Core;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
@@ -167,6 +168,150 @@ public sealed class TooltipPlacementWindowTests
         var shot = Measure(percent);
 
         Assert.InRange(shot.TipCentre, shot.IconCentre - 4, shot.IconCentre + 4);
+    }
+
+    /// <summary>
+    /// Обычная строковая подсказка — та, что у кнопок под ответом и у часов, — тоже стоит
+    /// по центру под своей целью.
+    /// </summary>
+    /// <remarks>
+    /// Заводское размещение подсказок — по указателю: карточка вставала там, где оказалась мышь,
+    /// и ряд мелких кнопок под ответом давал ряд по-разному смещённых плашек со стрелкой, глядящей
+    /// мимо кнопки. Мерить это можно только у настоящего окна подсказки — свойствами такое
+    /// не поймать.
+    /// </remarks>
+    [Fact]
+    public void A_plain_tooltip_stands_centred_under_its_button()
+    {
+        var shot = _wpf.Ui.Invoke(() =>
+        {
+            var window = new MainWindow();
+            new WindowInteropHelper(window).EnsureHandle();
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = 60;
+            window.Top = 60;
+            window.Show();
+
+            var root = (FrameworkElement)window.FindName("ScaledRoot");
+            var panel = (Panel)window.FindName("MessagesPanel");
+            var button = ChatMessageViews.IconAction(window, "Copy", "Повторить");
+            panel.Children.Add(button);
+
+            try
+            {
+                // Тот самый вызов, что ставит перехватчик открытия подсказок.
+                UiScale.Apply(window, root, 100);
+                window.UpdateLayout();
+
+                var tooltip = new ToolTip
+                {
+                    Content = "Повторить",
+                    Style = (Style)window.FindResource(typeof(ToolTip)),
+                    PlacementTarget = button
+                };
+
+                tooltip.IsOpen = true;
+                try
+                {
+                    tooltip.UpdateLayout();
+                    var source = (HwndSource)PresentationSource.FromVisual(tooltip)!;
+                    GetWindowRect(source.Handle, out var tip);
+
+                    var left = button.PointToScreen(new Point(0, 0));
+                    var right = button.PointToScreen(new Point(button.ActualWidth, 0));
+                    return new Shot(
+                        (left.X + right.X) / 2.0,
+                        (tip.Left + tip.Right) / 2.0,
+                        tip.Right - tip.Left);
+                }
+                finally
+                {
+                    tooltip.IsOpen = false;
+                }
+            }
+            finally
+            {
+                panel.Children.Remove(button);
+                window.Close();
+            }
+        });
+
+        Assert.InRange(shot.TipCentre, shot.IconCentre - 4, shot.IconCentre + 4);
+    }
+
+    /// <summary>
+    /// Разбивка цены целится в само число, а не в чип вокруг него.
+    /// </summary>
+    /// <remarks>
+    /// В чип ради ровной наводки входит и точка-разделитель перед ценой — без неё подсказка мигала
+    /// бы на просветах между цифрами. Но середина чипа из-за точки стоит левее числа: на 8 пикселей
+    /// при 100 % и на 21 при 250 %, — и стрелка показывала в просвет перед ценой. Поэтому целью
+    /// подсказки назначено само число, а наводится по-прежнему весь чип.
+    /// </remarks>
+    [Theory]
+    [InlineData(100)]
+    [InlineData(250)]
+    public void The_price_breakdown_points_at_the_price_itself(int percent)
+    {
+        var (priceCentre, tipCentre) = _wpf.Ui.Invoke(() =>
+        {
+            var window = new MainWindow();
+            new WindowInteropHelper(window).EnsureHandle();
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = 60;
+            window.Top = 60;
+            window.Show();
+
+            var root = (FrameworkElement)window.FindName("ScaledRoot");
+            var panel = (Panel)window.FindName("MessagesPanel");
+            var message = new ChatDisplayMessage
+            {
+                Role = "assistant",
+                Id = "placement-probe",
+                CreatedAt = DateTime.Now,
+                RequestedModelId = "grok-4-6",
+                ResolvedModelId = "grok-4-6",
+                ModelCost = new VeniceCost { Usd = 0.0011m, HasData = true },
+                Cost = new VeniceCost { Usd = 0.0013m, HasData = true },
+                Status = AssistantStatus.Complete
+            };
+            var view = ChatMessageViews.CreateAssistant(window, message, new MessageActions());
+            panel.Children.Add(view.RootElement);
+
+            try
+            {
+                UiScale.Apply(window, root, percent);
+                window.UpdateLayout();
+
+                var tip = (ToolTip)view.CostChip.ToolTip;
+                CostBreakdownTooltip.Fill(tip, window, message);
+                tip.IsOpen = true;
+                try
+                {
+                    tip.UpdateLayout();
+                    var source = (HwndSource)PresentationSource.FromVisual(tip)!;
+                    GetWindowRect(source.Handle, out var rect);
+
+                    var left = view.Cost.PointToScreen(new Point(0, 0));
+                    var right = view.Cost.PointToScreen(new Point(view.Cost.ActualWidth, 0));
+                    return ((left.X + right.X) / 2.0, (rect.Left + rect.Right) / 2.0);
+                }
+                finally
+                {
+                    tip.IsOpen = false;
+                }
+            }
+            finally
+            {
+                panel.Children.Remove(view.RootElement);
+
+                // Масштаб — статика на всю программу: оставленные 250 % развалили бы соседний тест.
+                UiScale.Apply(window, root, 100);
+                window.Close();
+            }
+        });
+
+        Assert.InRange(tipCentre, priceCentre - 4, priceCentre + 4);
     }
 
     [StructLayout(LayoutKind.Sequential)]

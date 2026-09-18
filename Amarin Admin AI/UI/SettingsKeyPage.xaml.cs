@@ -81,46 +81,21 @@ public partial class SettingsKeyPage : UserControl
     }
 
     /// <summary>
-    /// Один раз переносит в журнал трат цены, уже записанные в переписках, и только потом
-    /// строит отчёт.
+    /// Дожидается разового переноса цен из переписок и только потом строит отчёт.
     /// </summary>
     /// <remarks>
-    /// Иначе у обновившегося человека график был бы пуст, хотя цена каждого ответа давно лежит
-    /// в его же файлах чатов. Обход диска делается ровно однажды — отметка в журнале закрывает
-    /// эту дверь навсегда.
+    /// Обычно переносить уже нечего: это делается на запуске. Заход сюда — вторая попытка на
+    /// случай, если та не удалась, и страховка для профиля, заведённого уже на ходу. Отметка
+    /// в журнале закрывает дверь навсегда, поэтому лишним обходом диска это не станет.
     /// </remarks>
     private async Task BackfillThenReloadAsync()
     {
         if (_services is { } services)
         {
-            var secret = services.KeyStore.ActiveSecret();
-            await Task.Run(() =>
-            {
-                try
-                {
-                    services.Ledger.Backfill(secret, ReadSavedSessions(services));
-                }
-                catch (Exception exception) when (
-                    exception is IOException or UnauthorizedAccessException)
-                {
-                    // Перенос — удобство, а не обязанность: не вышло, значит график начнётся
-                    // с ближайшего ответа.
-                }
-            }).ConfigureAwait(true);
+            await Task.Run(services.BackfillSpendLedger).ConfigureAwait(true);
         }
 
         await ReloadAsync(force: false).ConfigureAwait(true);
-    }
-
-    private static IEnumerable<ChatSession> ReadSavedSessions(AppServices services)
-    {
-        foreach (var entry in services.ChatStore.List())
-        {
-            if (services.ChatStore.TryLoad(entry.Id) is { } session)
-            {
-                yield return session;
-            }
-        }
     }
 
     // ───────────────────────── траты ─────────────────────────

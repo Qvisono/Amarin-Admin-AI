@@ -150,6 +150,10 @@ internal static class AgentTierRouter
         ArgumentNullException.ThrowIfNull(client);
 
         var system = SystemPrompt + Environment.NewLine + Environment.NewLine + modelsBlock;
+
+        // Та же статья, что у маршрутизатора чата: человек спрашивает, сколько ушло на выбор
+        // модели, а не на выбор модели отдельно для чата и отдельно для агента.
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Router);
         try
         {
             var response = await client.CreateChatCompletionAsync(

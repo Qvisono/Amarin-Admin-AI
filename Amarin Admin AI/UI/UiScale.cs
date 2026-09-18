@@ -77,6 +77,37 @@ internal static class UiScale
     }
 
     /// <summary>
+    /// Ставит подсказку по центру под её хозяином, а не под указателем.
+    /// </summary>
+    /// <remarks>
+    /// Заводское размещение подсказок — <see cref="PlacementMode.Mouse"/>: карточка встаёт там,
+    /// где оказался указатель. У ряда мелких кнопок под ответом это читалось как перекос — каждая
+    /// следующая подсказка выходила смещённой по-своему, и стрелка не показывала ни на что. Под
+    /// целью и по центру — единственное положение, при котором стрелка означает то, на что
+    /// человек навёл.
+    /// <para>
+    /// Подсказка со своей расстановкой (предупреждение о правах) не трогается, и без цели центр
+    /// считать не от чего — такая подсказка остаётся при заводском размещении.
+    /// </para>
+    /// <para>
+    /// Зовётся после <see cref="ScaleTooltip"/>: центр считается от ширины карточки, а та зависит
+    /// от масштаба интерфейса. Переставить уже открытую подсказку можно — смена
+    /// <see cref="ToolTip.Placement"/> сама пересчитывает положение, на этом же стоит
+    /// <see cref="RepositionAfterDpi"/>.
+    /// </para>
+    /// </remarks>
+    private static void PlaceUnderTarget(ToolTip tooltip)
+    {
+        if (tooltip.CustomPopupPlacementCallback is not null || tooltip.PlacementTarget is null)
+        {
+            return;
+        }
+
+        tooltip.CustomPopupPlacementCallback = PlaceBelowCenter;
+        tooltip.Placement = PlacementMode.Custom;
+    }
+
+    /// <summary>
     /// Растягивает подсказку до выбранного масштаба интерфейса.
     /// </summary>
     /// <remarks>
@@ -312,6 +343,7 @@ internal static class UiScale
                 break;
             case ToolTip tooltip:
                 ScaleTooltip(tooltip);
+                PlaceUnderTarget(tooltip);
                 break;
             case ContextMenu menu:
                 ApplyPopupDpi(menu);
@@ -342,6 +374,7 @@ internal static class UiScale
         if (sender is ToolTip tooltip)
         {
             ScaleTooltip(tooltip);
+            PlaceUnderTarget(tooltip);
         }
     }
 

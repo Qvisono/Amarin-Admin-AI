@@ -87,6 +87,7 @@ internal static class ActionExplainer
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(info);
 
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Explain);
         try
         {
             var response = await client.CreateChatCompletionAsync(

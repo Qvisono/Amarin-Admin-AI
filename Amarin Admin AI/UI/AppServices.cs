@@ -59,6 +59,46 @@ internal sealed class AppServices : IDisposable
     public void ReloadSettings() => Settings = SettingsStore.Load();
 
     /// <summary>
+    /// Разовый перенос цен, уже записанных в переписках, в журнал трат.
+    /// </summary>
+    /// <remarks>
+    /// График показывает, сколько ушло с ключа, а не сколько лежит на диске: удалённая переписка
+    /// денег не возвращает. Живой учёт от чатов и не зависит — он пишет в <c>usage/</c> в момент
+    /// списания, — а вот этот перенос читает их файлы, и раньше его делала только страница
+    /// «Key &amp; Info» по первому заходу. Пока туда не зашли, цены старых ответов лежали лишь
+    /// в самих переписках, и удалённый до первого захода чат уносил свои деньги с графика
+    /// навсегда. Поэтому перенос делается на запуске, не дожидаясь, что человек откроет страницу.
+    /// <para>
+    /// Ходит по всем файлам чатов, поэтому зовётся из фонового потока. Отметка в журнале
+    /// закрывает эту дверь навсегда — обход случается ровно один раз за жизнь профиля.
+    /// </para>
+    /// </remarks>
+    public void BackfillSpendLedger()
+    {
+        try
+        {
+            Ledger.Backfill(KeyStore.ActiveSecret(), ReadSavedSessions());
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            // Перенос — удобство, а не обязанность: не вышло сейчас, попробуем при заходе
+            // на страницу трат.
+        }
+    }
+
+    private IEnumerable<ChatSession> ReadSavedSessions()
+    {
+        foreach (var entry in ChatStore.List())
+        {
+            if (ChatStore.TryLoad(entry.Id) is { } session)
+            {
+                yield return session;
+            }
+        }
+    }
+
+    /// <summary>
     /// Переносит выбор человека из хранилища в держатель ключа и заодно обновляет список
     /// секретов, которые вырезаются из отчёта об аварии.
     /// </summary>

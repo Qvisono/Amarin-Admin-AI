@@ -234,7 +234,13 @@ internal sealed class AssistantMessageView
             _costSource = message;
             if (CostChip.ToolTip is not ToolTip)
             {
-                CostChip.ToolTip = CostBreakdownTooltip.CreateEmpty();
+                var tip = CostBreakdownTooltip.CreateEmpty();
+
+                // Целится в саму цену, а не в чип вокруг неё. В чип ради ровной наводки входит
+                // и точка-разделитель, поэтому его середина стоит левее числа — на 8 пикселей
+                // при 100 % и на 21 при 250 %, — и стрелка показывала в просвет перед ценой.
+                tip.PlacementTarget = Cost;
+                CostChip.ToolTip = tip;
                 CostChip.ToolTipOpening += FillCostBreakdown;
             }
         }

@@ -17,6 +17,66 @@ public sealed record SkuIdentity(string? ModelId, string? KindKey, string Sku);
 /// </remarks>
 internal static class VeniceSku
 {
+    /// <summary>Поиск в интернете.</summary>
+    public const string WebSearch = "web-search-request";
+
+    /// <summary>Чтение страницы целиком.</summary>
+    public const string Scrape = "augment-scrape-request";
+
+    /// <summary>Скрытая сводка переписки.</summary>
+    public const string ChatSummary = "chat-summary-request";
+
+    /// <summary>Поиск по содержимому чатов через модель.</summary>
+    public const string ChatSearch = "chat-search-request";
+
+    /// <summary>Придуманный заголовок чата.</summary>
+    public const string ChatTitle = "chat-title-request";
+
+    /// <summary>Выбор модели под задачу — и в чате, и у агента.</summary>
+    public const string Router = "router-request";
+
+    /// <summary>Проверка SynGuard.</summary>
+    public const string Guard = "synguard-request";
+
+    /// <summary>Перевод строк интерфейса на новый язык.</summary>
+    public const string Translate = "ui-translate-request";
+
+    /// <summary>Разъяснение опасного действия или записи журнала.</summary>
+    public const string Explain = "explain-request";
+
+    /// <summary>Разбор сообщения, дописанного человеком во время работы агентов.</summary>
+    public const string FollowUp = "follow-up-request";
+
+    /// <summary>Бриф к инфографике. Сама картинка уходит в статью картинок своим sku.</summary>
+    public const string Infographic = "infographic-request";
+
+    /// <summary>
+    /// Наши собственные пометки — разбираются точным совпадением, а не вхождением подстроки.
+    /// </summary>
+    /// <remarks>
+    /// Вхождением искать нельзя: <c>search</c> из таблицы <see cref="Kinds"/> перехватил бы
+    /// <see cref="ChatSearch"/>, и поиск по чатам попал бы в строку поиска в интернете. А строки
+    /// эти известны заранее — гадать по ним незачем.
+    /// <para>
+    /// Четыре подписи взяты из разбивки цены над ответом (<c>S.Cost.*</c>) намеренно: одно и то же
+    /// действие не должно называться в программе двумя разными словами.
+    /// </para>
+    /// </remarks>
+    private static readonly Dictionary<string, string> Own = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [WebSearch] = "S.Spend.Kind.WebSearch",
+        [Scrape] = "S.Spend.Kind.Scrape",
+        [ChatSummary] = "S.Cost.Summary",
+        [ChatSearch] = "S.Spend.Kind.ChatSearch",
+        [ChatTitle] = "S.Cost.ChatTitle",
+        [Router] = "S.Cost.Router",
+        [Guard] = "S.Cost.Guard",
+        [Translate] = "S.Spend.Kind.Translate",
+        [Explain] = "S.Spend.Kind.Explain",
+        [FollowUp] = "S.Spend.Kind.FollowUp",
+        [Infographic] = "S.Spend.Kind.Infographic"
+    };
+
     /// <summary>
     /// Хвосты единиц измерения. Длинные раньше коротких: <c>-llm-input-mtoken</c> обязан
     /// сработать до <c>-mtoken</c>, иначе от модели откусят только половину хвоста.
@@ -75,6 +135,12 @@ internal static class VeniceSku
         if (raw.Length == 0)
         {
             return new SkuIdentity(null, "S.Spend.Kind.Unknown", "");
+        }
+
+        // Раньше разбора Venice: наша пометка — точная строка, и гадать по ней не нужно.
+        if (Own.TryGetValue(raw, out var own))
+        {
+            return new SkuIdentity(null, own, raw);
         }
 
         var lowered = raw.ToLowerInvariant();

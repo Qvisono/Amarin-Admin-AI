@@ -268,6 +268,76 @@ public sealed class SpendReportTests
     [Fact]
     public void Credits_are_dollars_times_a_hundred() =>
         Assert.Equal(1234m, SpendReport.ToCredits(12.34m));
+
+    // ───────────────────────── «Всё время» ─────────────────────────
+    //
+    // Раньше этот отрезок был жёстким: сегодня минус потолок хранения, то есть всегда около
+    // года. Человек, потративший первые деньги неделю назад, видел ось на тринадцать месяцев
+    // и линию, прижатую к правому краю.
+
+    [Fact]
+    public void All_time_starts_at_the_first_spending_day()
+    {
+        var report = SpendPeriods.Build(
+            WithDays(("2026-08-09", 2m), ("2026-09-18", 1m)), SpendPeriod.All, Today, null);
+
+        Assert.Equal(new DateTime(2026, 8, 9), report.Points[0].Date);
+        Assert.Equal(41, report.Points.Count);
+        Assert.Equal(3m, report.TotalUsd);
+    }
+
+    /// <summary>
+    /// Считаем по деньгам, а не по наличию записи: нулевой день в журнале заводится и сам собой,
+    /// и начинать с него значило бы снова показать пустоту слева от первой траты.
+    /// </summary>
+    [Fact]
+    public void A_zero_day_before_the_first_spending_is_not_the_left_edge()
+    {
+        var report = SpendPeriods.Build(
+            WithDays(("2026-07-01", 0m), ("2026-09-18", 1m)), SpendPeriod.All, Today, null);
+
+        Assert.Equal(Today, report.Points[0].Date);
+    }
+
+    /// <summary>Первая трата случилась сегодня — отрезок в один день, и это правда.</summary>
+    [Fact]
+    public void A_single_spending_day_gives_a_single_point() =>
+        Assert.Single(SpendPeriods.Build(WithDays(("2026-09-18", 1m)), SpendPeriod.All, Today, null).Points);
+
+    /// <summary>
+    /// Трат нет вовсе — привычная недельная сетка. Поверх неё всё равно ляжет объяснение,
+    /// почему пусто, а одинокая точка под ним читалась бы как поломка.
+    /// </summary>
+    [Fact]
+    public void All_time_without_any_spending_falls_back_to_a_week()
+    {
+        var report = SpendPeriods.Build(new SpendHistoryFile(), SpendPeriod.All, Today, null);
+
+        Assert.Equal(7, report.Points.Count);
+        Assert.Equal(0m, report.TotalUsd);
+    }
+
+    /// <summary>
+    /// Страховка от правленого руками файла: сам <c>Trim</c> старше потолка ничего не хранит,
+    /// но день из позапрошлого года растянул бы ось на годы.
+    /// </summary>
+    [Fact]
+    public void A_day_older_than_the_storage_ceiling_is_clamped()
+    {
+        var report = SpendPeriods.Build(
+            WithDays(("2020-01-01", 5m), ("2026-09-18", 1m)), SpendPeriod.All, Today, null);
+
+        Assert.Equal(Today.AddDays(-399), report.Points[0].Date);
+        Assert.Equal(400, report.Points.Count);
+    }
+
+    /// <summary>
+    /// Окно выкачки не изменилось: спрашивать журнал Venice надо во весь потолок хранения,
+    /// иначе «Всё время» показало бы только то, что программа успела увидеть сама.
+    /// </summary>
+    [Fact]
+    public void The_fetch_window_still_reaches_the_storage_ceiling() =>
+        Assert.Equal(Today.AddDays(-399), SpendPeriods.Start(SpendPeriod.All, Today));
 }
 
 /// <summary>Обход страниц журнала и кэш на диске — с поддельным Venice.</summary>

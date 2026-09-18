@@ -607,9 +607,14 @@
     <system:String x:Key="S.Spend.Empty" xml:space="preserve">Nothing was spent over this stretch</system:String>
     <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice did not answer. Try refreshing</system:String>
     <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Audio</system:String>
+    <system:String x:Key="S.Spend.Kind.ChatSearch" xml:space="preserve">Chat search</system:String>
     <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Embeddings</system:String>
+    <system:String x:Key="S.Spend.Kind.Explain" xml:space="preserve">Explanations</system:String>
+    <system:String x:Key="S.Spend.Kind.FollowUp" xml:space="preserve">Follow-up notes</system:String>
     <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Images</system:String>
+    <system:String x:Key="S.Spend.Kind.Infographic" xml:space="preserve">Infographics</system:String>
     <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Page reading</system:String>
+    <system:String x:Key="S.Spend.Kind.Translate" xml:space="preserve">Interface translation</system:String>
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Other</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Video</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Web search</system:String>

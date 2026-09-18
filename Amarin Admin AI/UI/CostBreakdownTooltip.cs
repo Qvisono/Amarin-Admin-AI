@@ -22,6 +22,12 @@ namespace Amarin.UI;
 /// by <c>UiScale</c> through a class handler on <see cref="ToolTip.OpenedEvent"/>, so nothing
 /// has to be registered here.
 /// </para>
+/// <para>
+/// Ту же форму описывает неявный стиль <c>ToolTip</c> в <c>Resources.xaml</c> — разметку XAML
+/// отсюда не переиспользовать. Меняя одно, меняйте и второе: три плашки, которые человек видит
+/// рядом, обязаны совпадать. На это есть тест, сверяющий обе карточки по фону, скруглению,
+/// полям и наличию стрелки.
+/// </para>
 /// </remarks>
 internal static class CostBreakdownTooltip
 {
@@ -201,12 +207,15 @@ internal static class CostBreakdownTooltip
         card.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
         card.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
 
+        // По центру, как и у подсказок из неявного стиля: карточка встаёт по центру под своей
+        // целью (UiScale.PlaceUnderTarget), и только из середины стрелка показывает на цену,
+        // а не куда-то левее неё.
         var arrow = new System.Windows.Shapes.Path
         {
             Data = Geometry.Parse("M0,6 L6,0 L12,6 Z"),
             StrokeThickness = 1,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Margin = new Thickness(12, 0, 0, -1)
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, -1)
         };
         arrow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Bg.Card");
         arrow.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Border.Default");

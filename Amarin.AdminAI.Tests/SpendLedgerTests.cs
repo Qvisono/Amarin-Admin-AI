@@ -176,6 +176,87 @@ public sealed class SpendLedgerTests : IDisposable
 
         Assert.Equal(0.5m, Assert.Single(ledger.Read(Key).Days).Usd);
     }
+
+    // ───────────────────────── удаление переписок ─────────────────────────
+    //
+    // График показывает, сколько ушло с ключа, а не сколько лежит на диске. Удалённый чат денег
+    // не возвращает, и убирать его траты из журнала значило бы врать о потраченном — тем более
+    // что удаляют как раз старые переписки, по которым и смотрят «Всё время».
+
+    /// <summary>Журнал трат и переписки — разные папки, и удаление ходит только по своей.</summary>
+    [Fact]
+    public void Deleting_a_chat_leaves_the_journal_alone()
+    {
+        var ledger = new SpendLedger(_root);
+        ledger.Record(Key, Usd(0.25m), "grok-4-6");
+        ledger.Flush();
+
+        var chats = new ChatStore(_root);
+        var session = SessionWith(DateTime.Now, 0.25m);
+        chats.Save(session);
+        chats.Flush();
+
+        Assert.True(chats.Delete(session.Id));
+        Assert.Null(chats.TryLoad(session.Id));
+
+        // Через новый журнал, а не через живой: важно, что деньги остались на диске, а не только
+        // в памяти того объекта, который их записал.
+        Assert.Equal(0.25m, Assert.Single(new SpendLedger(_root).Read(Key).Days).Usd);
+    }
+
+    /// <summary>«Удалить все чаты» — та же дорога, и журнала она тоже не касается.</summary>
+    [Fact]
+    public void Wiping_every_chat_leaves_the_journal_alone()
+    {
+        var ledger = new SpendLedger(_root);
+        ledger.Record(Key, Usd(0.1m), "grok-4-6");
+        ledger.Record(Key, Usd(0.4m), VeniceSku.ChatSummary);
+        ledger.Flush();
+
+        var chats = new ChatStore(_root);
+        chats.Save(SessionWith(DateTime.Now, 0.1m));
+        chats.Save(SessionWith(DateTime.Now, 0.4m));
+        chats.Flush();
+        chats.DeleteAll();
+
+        Assert.Empty(chats.List());
+
+        var report = SpendPeriods.Build(
+            new SpendLedger(_root).Read(Key), SpendPeriod.All, DateTime.Now, null);
+
+        Assert.Equal(0.5m, report.TotalUsd);
+        Assert.Equal(2, report.Models.Count);
+    }
+
+    /// <summary>
+    /// Перенесённые из переписок деньги переживают удаление той переписки, из которой пришли.
+    /// </summary>
+    /// <remarks>
+    /// Перенос одноразовый — отметка <c>BackfilledAt</c> закрывает дверь навсегда, — поэтому
+    /// в журнале лежит копия, а не ссылка. Повторный заход после удаления ничего не пересчитывает
+    /// и обнулить её не может.
+    /// </remarks>
+    [Fact]
+    public void Money_moved_from_a_chat_outlives_that_chat()
+    {
+        var ledger = new SpendLedger(_root);
+        var chats = new ChatStore(_root);
+        var yesterday = DateTime.Now.Date.AddDays(-1).AddHours(12);
+        var session = SessionWith(yesterday, 0.3m);
+        chats.Save(session);
+        chats.Flush();
+
+        Assert.True(ledger.Backfill(Key, [session]));
+        ledger.Flush();
+
+        chats.Delete(session.Id);
+
+        // Второй заход на страницу «Key & Info» после удаления: переносить уже нечего, и деньги
+        // обязаны остаться теми же.
+        var reopened = new SpendLedger(_root);
+        Assert.False(reopened.Backfill(Key, chats.List().Select(item => chats.TryLoad(item.Id)!)));
+        Assert.Equal(0.3m, Assert.Single(reopened.Read(Key).Days).Usd);
+    }
 }
 
 /// <summary>Отказ Venice в журнале — не поломка, а повод взять свой.</summary>

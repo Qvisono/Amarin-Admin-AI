@@ -47,6 +47,10 @@ internal sealed class ChatSummaryGenerator
             return new ChatSummaryDraft(null, null);
         }
 
+        // Пометка ставится здесь, а не в общем AskAsync: сводка и поиск по чатам ходят одной
+        // дорогой, но в разбивке трат обязаны стоять разными строками.
+        using var charge = VeniceClient.ChargeAs(VeniceSku.ChatSummary);
+
         var language = ChatSummary.LanguageName();
         var answer = await AskAsync(
                 ChatSummary.SystemPrompt(language),
@@ -72,6 +76,8 @@ internal sealed class ChatSummaryGenerator
         {
             return new ChatSearchResult([], null);
         }
+
+        using var charge = VeniceClient.ChargeAs(VeniceSku.ChatSearch);
 
         var summaries = chats.Select(item => item.Summary).ToList();
         var answer = await AskAsync(

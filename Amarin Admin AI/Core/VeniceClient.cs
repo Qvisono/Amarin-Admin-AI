@@ -33,6 +33,46 @@ public sealed class VeniceClient
     private static string ChargeSku(string model) =>
         string.IsNullOrWhiteSpace(ChargeLabel.Value) ? model : ChargeLabel.Value!;
 
+    /// <summary>
+    /// Помечает всё, что спишется внутри области, служебной статьёй расхода.
+    /// </summary>
+    /// <remarks>
+    /// Сводки, заголовки, маршрутизатор, защита, перевод интерфейса и разъяснения платятся
+    /// токенами обычной модели, и без пометки их деньги сливаются в журнале со строкой этой
+    /// модели: на вопрос «сколько ушло на сводки» ответить нечем.
+    /// <para>
+    /// Прежнее значение возвращается на место, а не обнуляется: области вкладываются — поиск
+    /// в сети умеет случиться внутри служебного запроса, — и обнуление стёрло бы внешнюю пометку
+    /// до конца вызова.
+    /// </para>
+    /// </remarks>
+    /// <param name="sku">Статья расхода из <see cref="VeniceSku"/>.</param>
+    public static IDisposable ChargeAs(string sku)
+    {
+        var previous = ChargeLabel.Value;
+        ChargeLabel.Value = sku;
+        return new ChargeScope(previous);
+    }
+
+    private sealed class ChargeScope : IDisposable
+    {
+        private readonly string? _previous;
+        private bool _closed;
+
+        public ChargeScope(string? previous) => _previous = previous;
+
+        public void Dispose()
+        {
+            if (_closed)
+            {
+                return;
+            }
+
+            _closed = true;
+            ChargeLabel.Value = _previous;
+        }
+    }
+
     public event Action<string, string>? ModelFallback;
 
     /// <summary>
@@ -763,7 +803,7 @@ public sealed class VeniceClient
             ? contentProp.GetString()
             : null;
 
-        AddCost(new VeniceCost { Usd = 0.01m, HasData = true }, "augment-scrape-request");
+        AddCost(new VeniceCost { Usd = 0.01m, HasData = true }, VeniceSku.Scrape);
         return string.IsNullOrWhiteSpace(markdown) ? "Страница пуста или контент не извлечён." : markdown;
     }
 
@@ -845,7 +885,7 @@ public sealed class VeniceClient
             throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
         }
 
-        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd), model + "-image");
+        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd), resolved + "-image");
         return image;
     }
 
@@ -905,9 +945,8 @@ public sealed class VeniceClient
         // Поиск оплачивается токенами модели, но в разбивке трат он обязан стоять своей
         // строкой: человек спрашивает «сколько ушло на интернет», а не «сколько ушло на Grok
         // во время поиска».
-        ChargeLabel.Value = "web-search-request";
-        try
-            {
+        using (ChargeAs(VeniceSku.WebSearch))
+        {
             var response = await CreateChatCompletionAsync(new ChatCompletionRequest
             {
                 Model = model,
@@ -943,10 +982,6 @@ public sealed class VeniceClient
             var text = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
             return string.IsNullOrWhiteSpace(text) ? "Результаты поиска не найдены." : text;
-        }
-        finally
-        {
-            ChargeLabel.Value = null;
         }
     }
 

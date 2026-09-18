@@ -565,12 +565,19 @@
         Windows рисовала под них свой жёлто-белый прямоугольник системным шрифтом - единственное
         место, где из программы выглядывала чужая эпоха.
 
-        Форма та же, что у ActionsPopup, ModelPickerPanel и AppContextMenu, но мельче и тише:
-        подсказка не должна выглядеть тяжелее меню, из которого её вызвали.
+        Форма - та же карточка со стрелкой, что у разбивки цены над ответом
+        (CostBreakdownTooltip.Chrome) и у предупреждения о правах в шапке: фон Bg.Card, рамка
+        Border.Default, скругление 8, поля 10/8. Эти три плашки человек видит рядом друг с другом,
+        и выглядеть они обязаны одинаково.
 
-        HasDropShadow=False обязателен: тень рисует Border внутри шаблона, а системная добавила
-        бы вторую, смещённую. Поля вокруг карточки - под эту самую тень, она рисуется наружу
-        и без них обрезалась бы по краю окна попапа.
+        Тени здесь нет намеренно. Раньше её рисовал Border внутри шаблона, а поля вокруг него
+        держали для неё место - но размытие 16 с отступом 4 выносит тень на ~10.8 пикселя вправо
+        и вниз при запасе 8 и 10. Поля входят в размер подсказки, окно попапа режется ровно по
+        ним, и человек видел тень, срезанную прямой линией по правому краю. Карточка с рамкой
+        читается на любом фоне и без тени, а резать в ней нечего.
+
+        HasDropShadow=False остаётся: системная тень легла бы под прозрачную подсказку
+        прямоугольником - мимо скругления и мимо стрелки.
 
         Две подсказки в программе задают свой Template прямо на объекте - предупреждение о правах
         в шапке и разбивка цены над ответом. Локальное значение сильнее сеттера стиля, поэтому
@@ -587,32 +594,48 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Margin="8,6,8,10"
-                            Background="{DynamicResource Bg.Panel}"
-                            BorderBrush="{DynamicResource Border.Default}"
-                            BorderThickness="1" CornerRadius="7" Padding="9,6">
-                        <Border.Effect>
-                            <DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="4" Opacity="0.35"/>
-                        </Border.Effect>
-                        <ContentPresenter>
-                            <ContentPresenter.Resources>
-                                <!--
-                                    Своя разметка для строки. Почти все подсказки в программе -
-                                    обычные строки, и ContentPresenter завернул бы их в TextBlock
-                                    без переноса: TextWrapping не наследуется, задать его снаружи
-                                    нечем. А подсказки у файлов, ссылок и записей журнала несут
-                                    путь целиком - одной строкой карточка уезжала бы за край экрана
-                                    мимо MaxWidth.
-                                -->
-                                <DataTemplate DataType="{x:Type system:String}">
-                                    <TextBlock Text="{Binding}"
-                                               TextWrapping="Wrap"
-                                               LineHeight="15"
-                                               LineStackingStrategy="BlockLineHeight"/>
-                                </DataTemplate>
-                            </ContentPresenter.Resources>
-                        </ContentPresenter>
-                    </Border>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Стрелка по центру: подсказка встаёт по центру под своей целью
+                             (UiScale.PlaceUnderTarget), и только из середины она показывает
+                             на то, на что навели. Минус пиксель снизу прячет стык её обводки
+                             с рамкой карточки: иначе на склейке видна лишняя черта. -->
+                        <Path Grid.Row="0"
+                              Data="M0,6 L6,0 L12,6 Z"
+                              Fill="{DynamicResource Bg.Card}"
+                              Stroke="{DynamicResource Border.Default}"
+                              StrokeThickness="1"
+                              HorizontalAlignment="Center"
+                              Margin="0,0,0,-1"/>
+
+                        <Border Grid.Row="1"
+                                Background="{DynamicResource Bg.Card}"
+                                BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="8" Padding="10,8">
+                            <ContentPresenter>
+                                <ContentPresenter.Resources>
+                                    <!--
+                                        Своя разметка для строки. Почти все подсказки в программе -
+                                        обычные строки, и ContentPresenter завернул бы их в TextBlock
+                                        без переноса: TextWrapping не наследуется, задать его снаружи
+                                        нечем. А подсказки у файлов, ссылок и записей журнала несут
+                                        путь целиком - одной строкой карточка уезжала бы за край экрана
+                                        мимо MaxWidth.
+                                    -->
+                                    <DataTemplate DataType="{x:Type system:String}">
+                                        <TextBlock Text="{Binding}"
+                                                   TextWrapping="Wrap"
+                                                   LineHeight="15"
+                                                   LineStackingStrategy="BlockLineHeight"/>
+                                    </DataTemplate>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                        </Border>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

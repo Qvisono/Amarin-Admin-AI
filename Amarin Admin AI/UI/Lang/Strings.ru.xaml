@@ -607,9 +607,14 @@
     <system:String x:Key="S.Spend.Empty" xml:space="preserve">За этот отрезок трат не было</system:String>
     <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice не ответил. Попробуйте обновить</system:String>
     <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Звук</system:String>
+    <system:String x:Key="S.Spend.Kind.ChatSearch" xml:space="preserve">Поиск по чатам</system:String>
     <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Векторы</system:String>
+    <system:String x:Key="S.Spend.Kind.Explain" xml:space="preserve">Разъяснения</system:String>
+    <system:String x:Key="S.Spend.Kind.FollowUp" xml:space="preserve">Уточнения на ходу</system:String>
     <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Картинки</system:String>
+    <system:String x:Key="S.Spend.Kind.Infographic" xml:space="preserve">Инфографика</system:String>
     <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Чтение страниц</system:String>
+    <system:String x:Key="S.Spend.Kind.Translate" xml:space="preserve">Перевод интерфейса</system:String>
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Прочее</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Видео</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Поиск в интернете</system:String>

@@ -68,7 +68,10 @@ public sealed class SpendReport
 internal static class SpendPeriods
 {
     /// <summary>
-    /// Начало периода по местному времени. <see cref="SpendPeriod.All"/> — потолок хранения.
+    /// Начало периода по местному времени — то окно, которое догружается у Venice.
+    /// <see cref="SpendPeriod.All"/> здесь означает потолок хранения: спросить журнал дальше
+    /// всё равно нельзя. Левый край графика считает <see cref="ChartStart"/>, и для «Всё время»
+    /// он другой.
     /// </summary>
     public static DateTime Start(SpendPeriod period, DateTime today) => period switch
     {
@@ -79,6 +82,51 @@ internal static class SpendPeriods
         SpendPeriod.Year => today.Date.AddDays(-364),
         _ => today.Date.AddDays(-(SpendHistoryStore.MaxDays - 1))
     };
+
+    /// <summary>
+    /// Левый край графика. Для <see cref="SpendPeriod.All"/> — день первой траты, а не потолок
+    /// хранения.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="Start"/> намеренно: та задаёт окно выкачки у Venice, и для «Всё
+    /// время» оно обязано остаться во весь потолок хранения — иначе журнал не догрузится. А на
+    /// графике те же 399 дней означали, что «Всё время» всегда показывает год: сотни пустых дней
+    /// перед первой тратой сжимали линию в правый край и врали о том, когда человек начал тратить.
+    /// <para>
+    /// Считается по дням с деньгами, а не по наличию записи: день в журнале заводится и нулевым,
+    /// и начинать с него значило бы снова показать пустоту.
+    /// </para>
+    /// </remarks>
+    public static DateTime ChartStart(SpendHistoryFile file, SpendPeriod period, DateTime today)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        if (period != SpendPeriod.All)
+        {
+            return Start(period, today);
+        }
+
+        DateTime? earliest = null;
+        foreach (var day in file.Days)
+        {
+            if ((day.Usd > 0 || day.Diem > 0) && (earliest is null || day.Date < earliest))
+            {
+                earliest = day.Date;
+            }
+        }
+
+        // Трат нет вовсе — показываем привычную недельную сетку: поверх неё всё равно ляжет
+        // объяснение, почему пусто, а одинокая точка под ним выглядела бы поломкой.
+        if (earliest is not { } first)
+        {
+            return Start(SpendPeriod.Week, today);
+        }
+
+        // Нижняя граница — страховка от правленого руками файла: сам Trim старше потолка ничего
+        // не хранит. Верхняя — от даты из будущего, на которой цикл точек не сделал бы ни шага.
+        var floor = today.Date.AddDays(-(SpendHistoryStore.MaxDays - 1));
+        return first < floor ? floor : first > today.Date ? today.Date : first;
+    }
 
     public static string LabelKey(SpendPeriod period) => period switch
     {
@@ -108,7 +156,7 @@ internal static class SpendPeriods
     {
         ArgumentNullException.ThrowIfNull(file);
 
-        var from = Start(period, today);
+        var from = ChartStart(file, period, today);
         var days = file.Days
             .Where(day => day.Date >= from && day.Date <= today.Date)
             .ToDictionary(day => day.Date);

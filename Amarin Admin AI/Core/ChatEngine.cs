@@ -1603,6 +1603,7 @@ internal sealed partial class ChatEngine
         // Прежде здесь стоял SetActiveModel(routerId): маршрутизатор на время своего запроса
         // подменял активную модель всему приложению. Модель запроса и так уходит параметром, а
         // корень цепочки fallback CreateChatCompletionAsync берёт из неё же.
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Router);
         try
         {
             var response = await _venice.CreateChatCompletionAsync(

@@ -182,6 +182,8 @@ internal sealed partial class ChatEngine
         string transcript,
         CancellationToken cancellationToken)
     {
+        // Только бриф: сама картинка уходит в статью картинок своим sku модели.
+        using var charge = VeniceClient.ChargeAs(VeniceSku.Infographic);
         var response = await _venice.CreateChatCompletionAsync(
                 model,
                 [

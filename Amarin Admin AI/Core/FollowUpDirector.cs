@@ -178,6 +178,7 @@ internal static class FollowUpDirector
             return FollowUpDecision.None;
         }
 
+        using var charge = VeniceClient.ChargeAs(VeniceSku.FollowUp);
         try
         {
             var response = await client.CreateChatCompletionAsync(

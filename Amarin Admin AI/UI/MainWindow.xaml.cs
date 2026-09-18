@@ -155,10 +155,28 @@ namespace Amarin.UI
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
+            StartSpendBackfill();
             ApplyUiScaleFromSettings();
             if (IsLoaded)
             {
                 OnWindowLoaded(this, new RoutedEventArgs());
+            }
+        }
+
+        /// <summary>
+        /// Пускает разовый перенос старых цен в журнал трат.
+        /// </summary>
+        /// <remarks>
+        /// На запуске, а не по заходу на страницу трат: до правки чат, удалённый раньше первого
+        /// захода туда, уносил свои деньги с графика навсегда. Фоном и брошенной задачей — обход
+        /// файлов чатов не должен задерживать окно, а его неудача не повод ничего показывать:
+        /// страница трат попробует ещё раз.
+        /// </remarks>
+        private void StartSpendBackfill()
+        {
+            if (_services is { } services)
+            {
+                Detached.Run(Task.Run(services.BackfillSpendLedger), "spend_backfill");
             }
         }
 
