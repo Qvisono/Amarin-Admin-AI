@@ -42,6 +42,10 @@ internal sealed class ChatTitleGenerator
         {
             ApiKey = _options.ApiKey,
             Keys = _options.Keys,
+
+            // Ключ слота, а не выбранный: заголовки чатов человек мог отдать бесплатной
+            // модели другого провайдера, пока разговор идёт у своего.
+            Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Title)),
             SpendSink = _options.SpendSink,
             BaseUrl = _options.BaseUrl,
             Model = model,

@@ -1,37 +1,14 @@
 namespace Amarin.Core;
 
-/// <param name="TitleKey">Ключ строки, а не сама строка: список собирается один раз при
-/// загрузке типа, до того как выбран язык, — готовый текст остался бы русским навсегда.</param>
-internal sealed record ModelTierGroup(string TitleKey, string SubtitleKey, string[] Models)
-{
-    public string Title => Loc.Get(TitleKey);
-
-    public string Subtitle => Loc.Get(SubtitleKey);
-}
-
 internal static class VeniceModelCatalog
 {
     public const string AutoId = "auto";
 
     /// <summary>
-    /// Preset models for the Recommended tab, grouped by reliability / cost tier.
-    /// Titles match the picker mockup headers.
+    /// Чей это каталог. Пустой — судить не о чем, и остаётся Venice: он был единственным.
     /// </summary>
-    public static readonly ModelTierGroup[] Tiers =
-    [
-        new(
-            "S.Models.TierFlagship",
-            "S.Models.TierFlagshipDesc",
-            ["claude-sonnet-5", "grok-4-6"]),
-        new(
-            "S.Models.TierMiddle",
-            "S.Models.TierMiddleDesc",
-            ["openai-gpt-53-codex", "kimi-k2-7-code"]),
-        new(
-            "S.Models.TierBudget",
-            "S.Models.TierBudgetDesc",
-            ["minimax-m3-preview", "qwen-3-7-plus"])
-    ];
+    public static LlmProvider ProviderOf(IReadOnlyList<VeniceModelInfo>? catalog) =>
+        catalog is { Count: > 0 } ? ModelRef.Of(catalog[0].Id) : LlmProvider.Venice;
 
     private static readonly string[] ExcludedModels =
     [
@@ -76,7 +53,16 @@ internal static class VeniceModelCatalog
             }
 
             var caps = model.ModelSpec?.Capabilities;
-            if (caps is not { SupportsFunctionCalling: true, SupportsReasoning: true })
+            if (caps is not { SupportsFunctionCalling: true })
+            {
+                continue;
+            }
+
+            // Размышление требуется только от моделей Venice: у него рассуждают все, кто вообще
+            // годится для инструментов, и отсутствие признака означает старую слабую модель.
+            // У OpenRouter это не так — Gemini Flash и Command-R инструменты вызывают прекрасно,
+            // а не рассуждают, и то же требование выбросило бы из списка половину хорошего.
+            if (ModelRef.Of(model.Id) == LlmProvider.Venice && !caps.SupportsReasoning)
             {
                 continue;
             }
@@ -258,7 +244,19 @@ internal static class VeniceModelCatalog
             return Loc.Get("S.Models.Auto");
         }
 
-        return modelId.Trim().ToLowerInvariant() switch
+        // Приставка провайдера — наша выдумка для настроек и переписок, человеку её показывать
+        // незачем. У OpenRouter впереди ещё и производитель через косую черту, а его в списке
+        // уже рисует логотип: «Openrouter:anthropic/claude Sonnet 4.5» вместо «Claude Sonnet
+        // 4.5» вылезало бы и в выпадашке, и в подписи агента, и в справке о моделях внутри
+        // системного промпта.
+        var bare = ModelRef.Bare(modelId);
+        var slash = bare.LastIndexOf('/');
+        if (slash >= 0 && slash < bare.Length - 1)
+        {
+            bare = bare[(slash + 1)..];
+        }
+
+        return bare.Trim().ToLowerInvariant() switch
         {
             "claude-sonnet-5" => "Claude Sonnet 5",
             "grok-4-6" => "Grok 4.6",
@@ -272,7 +270,7 @@ internal static class VeniceModelCatalog
             "deepseek-v4-flash-0731-fast" => "DeepSeek V4 Flash Fast",
             "minimax-m3-preview" => "MiniMax M3 Preview",
             "qwen-3-7-plus" => "Qwen 3.7 Plus",
-            _ => Humanize(modelId.Trim())
+            _ => Humanize(bare.Trim())
         };
     }
 
@@ -284,7 +282,8 @@ internal static class VeniceModelCatalog
             return "A";
         }
 
-        var id = modelId.Trim();
+        // Без приставки: иначе у всех моделей OpenRouter буква была бы одна и та же — «O».
+        var id = ModelRef.Bare(modelId).Trim();
         foreach (var ch in id)
         {
             if (char.IsLetterOrDigit(ch))
@@ -387,7 +386,9 @@ internal static class VeniceModelCatalog
             return null;
         }
 
-        var id = modelId.Trim().ToLowerInvariant();
+        // Приставка снимается до перебора: игла, попавшая бы в неё, совпала бы разом со всеми
+        // моделями провайдера, и вместо своих логотипов они получили бы один общий.
+        var id = ModelRef.Bare(modelId).ToLowerInvariant();
         foreach (var (needle, key) in LogoKeys)
         {
             if (id.Contains(needle, StringComparison.Ordinal))

@@ -61,10 +61,12 @@ internal sealed partial class ChatEngine
         // разворачивается в настоящую модель: в отличие от обычного хода маршрутизатора здесь
         // нет, и «auto» уходила в запрос как есть — Venice отвечала на неё 404.
         var briefModel = ResolveForSingleShot(ReadSelectedModel(session));
+        var briefKey = KeyFor(briefModel, ReadSelectedKey(session));
         var turn = new VeniceTurnContext
         {
             RequestedModelId = briefModel,
             ModelId = briefModel,
+            Credential = briefKey,
             Reasoning = ReasoningChoice.Disabled
         };
         using var turnScope = VeniceTurnScope.Push(turn);
@@ -104,7 +106,8 @@ internal sealed partial class ChatEngine
             }
 
             Progress("Выделяю главное…");
-            var imagePrompt = await BuildInfographicPromptAsync(briefModel, transcript.Text, cancellationToken)
+            var imagePrompt = await BuildInfographicPromptAsync(
+                    briefModel, briefKey, transcript.Text, cancellationToken)
                 .ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(imagePrompt))
             {
@@ -179,6 +182,7 @@ internal sealed partial class ChatEngine
     /// </summary>
     private async Task<string> BuildInfographicPromptAsync(
         string model,
+        ApiCredential credential,
         string transcript,
         CancellationToken cancellationToken)
     {
@@ -200,7 +204,8 @@ internal sealed partial class ChatEngine
                     StripThinkingResponse = true
                 },
                 cancellationToken,
-                ReasoningChoice.Disabled)
+                ReasoningChoice.Disabled,
+                credential)
             .ConfigureAwait(false);
 
         return ReasoningSplit.Split(

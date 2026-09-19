@@ -39,6 +39,17 @@ public sealed class ChatSession
 
     public string SelectedModelId { get; set; } = "";
 
+    /// <summary>
+    /// Ключ, которым платит эта переписка. Пусто — ключ по умолчанию для провайдера модели.
+    /// </summary>
+    /// <remarks>
+    /// Рядом с моделью и по той же причине: выбор человека принадлежит переписке, а не
+    /// программе. Два чата могут идти на разных ключах, и переключение в одном не должно
+    /// перекладывать деньги другого. Пустое значение в старых файлах читается как «по
+    /// умолчанию» — переписки прежних версий открываются без миграции.
+    /// </remarks>
+    public string? SelectedKeyId { get; set; }
+
     /// <summary>When true, the chat does not ask the model to think. Default preserves old behaviour.</summary>
     public bool DisableThinking { get; set; } = true;
 

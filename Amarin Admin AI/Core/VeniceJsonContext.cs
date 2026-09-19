@@ -15,6 +15,9 @@ namespace Amarin.Core;
 [JsonSerializable(typeof(ImageGenerateResponse))]
 [JsonSerializable(typeof(VeniceUsagePage))]
 [JsonSerializable(typeof(VeniceRateLimitsResponse))]
+[JsonSerializable(typeof(OpenRouterModelsResponse))]
+[JsonSerializable(typeof(OpenRouterKeyResponse))]
+[JsonSerializable(typeof(OpenRouterCreditsResponse))]
 [JsonSerializable(typeof(string))]
 internal partial class VeniceJsonContext : JsonSerializerContext;
 

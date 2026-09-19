@@ -114,8 +114,12 @@ public static class DataUsage
         var name = LastSegment(relative);
 
         // Проверки по имени идут первыми: settings.json лежит и в корне, и в каждом профиле,
-        // а по папке их не различить.
-        if (name is "settings.json" or "profiles.json" or "balance.json")
+        // а по папке их не различить. prompts.json — библиотека заготовок основного промпта:
+        // свой файл она получила только ради того, чтобы не переписываться вместе с настройками,
+        // и для человека это такая же настройка. Без неё в этом списке заготовки не уезжали
+        // в архив данных вовсе — незнакомый файл классификатор отдаёт в «прочее», а прочее
+        // экспорт не берёт.
+        if (name is "settings.json" or "profiles.json" or "balance.json" or "prompts.json")
         {
             return SettingsKey;
         }

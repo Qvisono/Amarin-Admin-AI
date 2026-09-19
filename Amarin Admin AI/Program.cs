@@ -98,29 +98,32 @@ internal static class Program
         var configuration = BuildConfiguration();
         var downloadOptions = LoadDownloadOptions(configuration);
 
-        var apiKey = Environment.GetEnvironmentVariable("VENICE_API_KEY")
-                     ?? configuration["VENICE_API_KEY"]
-                     ?? string.Empty;
+        // По ключу на провайдера: человек мог завести оба, и решать за него, какой из них
+        // «настоящий», программа не вправе — выбор он делает на странице «Key & Info».
+        var apiKey = ReadEnvironmentKey(configuration, "VENICE_API_KEY");
+        var openRouterKey = ReadEnvironmentKey(configuration, "OPENROUTER_API_KEY");
 
-        // Ключ уезжает в заголовок Authorization и в сообщения HTTP-исключений, а отчёт об
-        // аварии человек пересылает — вырезаем его из отчёта. Список пополнится ключами со
+        // Ключи уезжают в заголовок Authorization и в сообщения HTTP-исключений, а отчёт об
+        // аварии человек пересылает — вырезаем их из отчёта. Список пополнится ключами со
         // страницы «Key & Info», как только станет известен профиль.
-        CrashHandler.Secrets = [apiKey];
+        CrashHandler.Secrets = [apiKey, openRouterKey];
 
         // Держатель активного ключа. Заводится здесь, а наполняется ниже, когда выбран профиль:
         // свои ключи у профиля свои, а AgentOptions раздаётся копиями и обязан смотреть на один
         // общий объект, иначе смена ключа не дошла бы до агента и служебных генераторов.
-        var keys = new VeniceKeyProvider(apiKey);
+        var keys = new ApiKeyProvider(apiKey);
 
         // Собственный журнал трат. Заводится здесь и перекореняется ниже, когда выбран профиль:
         // в AgentOptions он должен попасть один раз, до того как настройки разойдутся копиями.
         var ledger = new SpendLedger(AppPaths.Root);
+        var balances = new BalanceBook();
 
         var options = new AgentOptions
         {
             ApiKey = apiKey,
             Keys = keys,
             SpendSink = ledger.Record,
+            BalanceSink = balances.Remember,
             BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
             Model = configuration["Venice:Model"] ?? "grok-4-6",
             MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
@@ -183,9 +186,9 @@ internal static class Program
         // программа работает на ключе из окружения, и так же она работает дальше, если своих
         // ключей человек не заводил.
         ledger.UseRoot(dataRoot);
-        var keyStore = new VeniceKeyStore(dataRoot, apiKey);
+        var keyStore = new ApiKeyStore(dataRoot, apiKey, openRouterKey);
         keyStore.Load();
-        keys.Use(keyStore.ActiveSecret());
+        keys.Use(keyStore.ActiveCredential(), keyStore.VeniceCredential(), keyStore.Handles());
         CrashHandler.Secrets = keyStore.AllSecrets();
         ThemeManager.Apply(settings.Theme);
         LanguageManager.Apply(settings.LanguageCode);
@@ -215,7 +218,7 @@ internal static class Program
         var http = HttpClients.Create(TimeSpan.FromMinutes(5));
         var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15), browserIdentity: true);
         var venice = new VeniceClient(http, options);
-        var models = new VeniceModelListCache(venice);
+        var models = new VeniceModelListCache(venice, keys);
         venice.ResolveModelInfo = models.Find;
         var chatStore = new ChatStore(dataRoot);
 
@@ -235,7 +238,8 @@ internal static class Program
         [
             new ReadFileTool(),
             new WriteFileTool(),
-            new WebSearchTool(venice.SearchWebAsync),
+            new WebSearchTool((query, ct) =>
+                venice.SearchWebAsync(query, ModelSlots.WebSearch(ReadSettings()), ct)),
             // Aspect ratio is chosen from the pixel size for tool calls; only the infographic
             // flow asks for a specific ratio, and it calls the client directly.
             new GenerateImageTool((prompt, width, height, model, ct) =>
@@ -257,8 +261,10 @@ internal static class Program
             Prompts = new PromptLibrary(dataRoot),
             KeyStore = keyStore,
             Ledger = ledger,
+            Balances = balances,
             Keys = keys,
             EnvironmentKey = apiKey,
+            OpenRouterEnvironmentKey = openRouterKey,
             Profiles = profileStore,
             ProfileRegistry = registry,
             Http = http,
@@ -289,6 +295,13 @@ internal static class Program
         app.ShutdownMode = ShutdownMode.OnMainWindowClose;
         return app.Run(window);
     }
+
+    /// <summary>
+    /// Ключ провайдера снаружи программы: переменная окружения, затем user-secrets. На диск
+    /// программы он не переписывается — человек сознательно держал его снаружи.
+    /// </summary>
+    private static string ReadEnvironmentKey(IConfiguration configuration, string name) =>
+        Environment.GetEnvironmentVariable(name) ?? configuration[name] ?? string.Empty;
 
     private static IConfiguration BuildConfiguration() =>
         new ConfigurationBuilder()

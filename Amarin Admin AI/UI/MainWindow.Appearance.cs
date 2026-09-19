@@ -110,7 +110,15 @@ namespace Amarin.UI
                 Chat, ComposerBorder, ComposerLayout, ComposerInputRow, ComposerToolbar,
                 AttachmentsHost, MessageTextBox);
 
-            _balance = new BalanceBadge(BalanceBadge, BalanceCoin, BalanceAmount, new BalanceStore());
+            // Книга остатков и ключи берутся функциями: конструктор окна идёт раньше
+            // AttachServices, и ссылкой их сюда не передать.
+            _balance = new BalanceBadge(
+                BalanceBadge,
+                BalanceCoin,
+                BalanceAmount,
+                () => _services?.Balances,
+                () => _services?.KeyStore.List() ?? [],
+                new BalanceStore());
             _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 
             _appearanceDebounce.Tick += (_, _) =>

@@ -10,13 +10,40 @@ internal static class VeniceModelFallback
         "kimi-k2-7-code"
     ];
 
+    /// <summary>
+    /// Запасные модели OpenRouter.
+    /// </summary>
+    /// <remarks>
+    /// Свои, а не общие с Venice: платить можно одним ключом, и замена моделью чужого
+    /// провайдера ушла бы на сервер, к которому этого ключа не пускают, — то есть перегрузку
+    /// сменил бы отказ в доступе.
+    /// </remarks>
+    private static readonly string[] OpenRouterFallbackModels =
+    [
+        "openrouter:anthropic/claude-sonnet-4.5",
+        "openrouter:google/gemini-2.5-flash",
+        "openrouter:openai/gpt-4.1-mini"
+    ];
+
+    private static string[] ChainFor(LlmProvider provider) =>
+        provider == LlmProvider.OpenRouter ? OpenRouterFallbackModels : FallbackModels;
+
     /// <summary>Запрошенная модель, а следом запасные на случай её перегрузки.</summary>
     /// <remarks>
     /// «Авто» головой цепочки быть не может: это не модель, а просьба выбрать её за
     /// пользователя, и Venice отвечает на неё 404 «Specified model not found: auto».
     /// Ход помнит запрошенную модель как есть — значит отсеивать «авто» надо здесь.
+    /// <para>
+    /// Провайдер определяется по самой модели, а не по активному ключу: так функция остаётся
+    /// чистой, а ход, начатый до смены ключа, доигрывает замены внутри своего провайдера.
+    /// </para>
     /// </remarks>
-    public static IReadOnlyList<string> BuildChain(string primaryModel)
+    /// <param name="fallbackProvider">
+    /// Чьи запасные брать, когда по самой модели судить нельзя — «авто» или пусто.
+    /// </param>
+    public static IReadOnlyList<string> BuildChain(
+        string primaryModel,
+        LlmProvider fallbackProvider = LlmProvider.Venice)
     {
         var chain = new List<string>();
 
@@ -25,7 +52,7 @@ internal static class VeniceModelFallback
             chain.Add(primaryModel);
         }
 
-        foreach (var fallback in FallbackModels)
+        foreach (var fallback in ChainFor(ModelRef.Of(primaryModel, fallbackProvider)))
         {
             if (!chain.Contains(fallback, StringComparer.OrdinalIgnoreCase))
             {
@@ -46,9 +73,14 @@ internal static class VeniceModelFallback
     /// этом случае молча начинался с головы цепочки, и запрос уходил на чужую модель — а при
     /// «Авто» на саму «auto», то есть в 404.
     /// </remarks>
-    public static IEnumerable<string> GetModelsFrom(string currentModel, string primaryModel)
+    public static IEnumerable<string> GetModelsFrom(
+        string currentModel,
+        string primaryModel,
+        LlmProvider fallbackProvider = LlmProvider.Venice)
     {
-        var chain = BuildChain(primaryModel);
+        var chain = BuildChain(
+            primaryModel,
+            ModelRef.Of(currentModel, ModelRef.Of(primaryModel, fallbackProvider)));
 
         for (var i = 0; i < chain.Count; i++)
         {

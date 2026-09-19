@@ -64,7 +64,8 @@ internal static class JournalExplainer
         VeniceClient client,
         string modelId,
         JournalEntry entry,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        ApiCredential? credential = null)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -78,7 +79,8 @@ internal static class JournalExplainer
                     toolChoice: null,
                     new VeniceParameters(),
                     cancellationToken,
-                    ReasoningChoice.Disabled)
+                    ReasoningChoice.Disabled,
+                    credential)
                 .ConfigureAwait(false);
 
             var answer = ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "";

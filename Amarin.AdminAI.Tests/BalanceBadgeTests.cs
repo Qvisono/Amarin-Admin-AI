@@ -35,7 +35,7 @@ public sealed class BalanceBadgeTests
             try
             {
                 ThemeManager.Apply(theme);
-                Badge(window).Show(balance);
+                Badge(window).ShowForShot(balance.Usd, balance.Diem);
                 window.UpdateLayout();
                 return read(
                     (Border)window.FindName("BalanceBadge"),
@@ -95,7 +95,7 @@ public sealed class BalanceBadgeTests
             try
             {
                 ThemeManager.Apply(theme);
-                Badge(window).Show(Usd(5m));
+                Badge(window).ShowForShot(5m);
                 var coin = (System.Windows.Shapes.Path)window.FindName("BalanceCoin");
                 var amount = (TextBlock)window.FindName("BalanceAmount");
                 return ReferenceEquals(coin.Fill, amount.Foreground);
@@ -144,16 +144,8 @@ public sealed class BalanceBadgeTests
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             var plate = (Border)window.FindName("BalanceBadge");
             var badge = Badge(window);
-            typeof(BalanceBadge)
-                .GetField("_balance", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .SetValue(badge, null);
-            typeof(BalanceBadge)
-                .GetMethod("Render", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .Invoke(badge, null);
-
-            // Neither of these carries a figure, so neither may disturb what is on the plate.
-            badge.Show(null);
-            badge.Show(new VeniceBalance { CanConsume = true });
+            // Ни одна цифра не известна: ни своей, ни в книге — на плашке обязан стоять прочерк.
+            badge.ShowForShot(usd: null);
             return (plate.Visibility, ((TextBlock)window.FindName("BalanceAmount")).Text);
         });
 
@@ -168,8 +160,7 @@ public sealed class BalanceBadgeTests
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             var badge = Badge(window);
-            badge.Show(Usd(7.5m));
-            badge.Show(null);
+            badge.ShowForShot(7.5m);
             var amount = ((TextBlock)window.FindName("BalanceAmount")).Text;
             ((Border)window.FindName("BalanceBadge")).Visibility = Visibility.Collapsed;
             return amount;

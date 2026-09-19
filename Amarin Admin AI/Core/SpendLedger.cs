@@ -64,7 +64,7 @@ internal sealed class SpendLedger
             return;
         }
 
-        var fingerprint = VeniceKeyStore.Fingerprint(secret);
+        var fingerprint = ApiKeyStore.Fingerprint(secret);
         var today = DateTime.Now.Date;
         var label = string.IsNullOrWhiteSpace(sku) ? SpendFold.OtherSku : sku.Trim();
 
@@ -106,7 +106,7 @@ internal sealed class SpendLedger
     {
         lock (_gate)
         {
-            return Loaded(VeniceKeyStore.Fingerprint(secret));
+            return Loaded(ApiKeyStore.Fingerprint(secret));
         }
     }
 
@@ -124,7 +124,7 @@ internal sealed class SpendLedger
     {
         ArgumentNullException.ThrowIfNull(sessions);
 
-        var fingerprint = VeniceKeyStore.Fingerprint(secret);
+        var fingerprint = ApiKeyStore.Fingerprint(secret);
 
         // Отметка ставится сразу и под коротким замком: обход диска долгий, и второй заход,
         // начатый пока идёт первый, не должен перенести те же деньги второй раз.
@@ -142,13 +142,131 @@ internal sealed class SpendLedger
 
         // Чтение переписок — вне замка. Внутри него оно заморозило бы учёт денег у идущих
         // ходов: файлы чатов бывают в мегабайты, и ответ ждал бы конца обхода.
+        var collected = Collect(sessions, before: null);
+
+        lock (_gate)
+        {
+            Apply(Loaded(fingerprint), collected, add: true);
+            _dirty.Add(fingerprint);
+        }
+
+        Flush();
+        return true;
+    }
+
+    /// <summary>
+    /// Убирает повторные переносы, доставшиеся ключам, которые завели позже.
+    /// </summary>
+    /// <remarks>
+    /// Перенос помечался у ключа, а переписки принадлежат профилю: каждый новый ключ забирал
+    /// себе всю историю чатов, оплаченную предыдущим, и график по нему повторял чужой рубль
+    /// в рубль. Настоящим считается самый ранний перенос — он один и случился до того, как в
+    /// программе появился второй ключ; остальные вычитаются.
+    /// <para>
+    /// Вычитается ровно то, что перенос и принёс: те же корзины, пересчитанные из тех же
+    /// переписок, и только по сообщениям старше отметки переноса — написанное после неё в
+    /// импорт не попадало, а живым учётом записано верно. Потому вычитание точное, а не
+    /// «примерно»: удалённая с тех пор переписка лишь оставит немного лишнего, но своих денег
+    /// не отнимет.
+    /// </para>
+    /// </remarks>
+    /// <returns>Сколько ключей починили.</returns>
+    public int RepairDuplicateBackfills(IEnumerable<ChatSession> sessions)
+    {
+        ArgumentNullException.ThrowIfNull(sessions);
+
+        var marked = BackfilledFiles();
+        if (marked.Count < 2)
+        {
+            return 0;
+        }
+
+        var earliest = marked.Min(item => item.BackfilledAt);
+        var duplicates = marked.Where(item => item.BackfilledAt > earliest).ToList();
+        if (duplicates.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var (fingerprint, backfilledAt) in duplicates)
+        {
+            var collected = Collect(sessions, before: backfilledAt);
+            lock (_gate)
+            {
+                Apply(Loaded(fingerprint), collected, add: false);
+                _dirty.Add(fingerprint);
+            }
+        }
+
+        Flush();
+        return duplicates.Count;
+    }
+
+    /// <summary>Ключи, которым перенос уже делали, вместе с его отметкой.</summary>
+    private List<(string Fingerprint, DateTime BackfilledAt)> BackfilledFiles()
+    {
+        var marked = new List<(string, DateTime)>();
+        List<string> paths;
+        try
+        {
+            var folder = Path.Combine(_root, "usage");
+            paths = Directory.Exists(folder)
+                ? [.. Directory.EnumerateFiles(folder, "*.local.json")]
+                : [];
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            return marked;
+        }
+
+        const string Suffix = ".local.json";
+        lock (_gate)
+        {
+            foreach (var path in paths)
+            {
+                var name = Path.GetFileName(path);
+                if (name.Length <= Suffix.Length)
+                {
+                    continue;
+                }
+
+                // Через тот же кэш, что и всё остальное: у ключа, с которого сейчас платят,
+                // в памяти лежат ещё не записанные корзины, и читать его файл с диска значило
+                // бы чинить устаревшую копию.
+                if (Loaded(name[..^Suffix.Length]).BackfilledAt is { } stamp)
+                {
+                    marked.Add((name[..^Suffix.Length], stamp));
+                }
+            }
+        }
+
+        return marked;
+    }
+
+    /// <summary>
+    /// Складывает цены ответов из переписок в дневные корзины по статьям расхода.
+    /// </summary>
+    /// <param name="before">
+    /// Брать только то, что написано раньше этой минуты. <c>null</c> — брать всё.
+    /// </param>
+    private static Dictionary<DateTime, Dictionary<string, SpendSkuBucket>> Collect(
+        IEnumerable<ChatSession> sessions,
+        DateTime? before)
+    {
         var collected = new Dictionary<DateTime, Dictionary<string, SpendSkuBucket>>();
         var today = DateTime.Now.Date;
+
         foreach (var message in sessions.SelectMany(session => session.Messages))
         {
             if (!string.Equals(message.Role, "assistant", StringComparison.Ordinal) ||
                 message.Cost is not { HasData: true } cost ||
                 (cost.Usd <= 0 && cost.Diem <= 0))
+            {
+                continue;
+            }
+
+            if (before is { } edge && message.CreatedAt >= edge)
             {
                 continue;
             }
@@ -179,44 +297,65 @@ internal sealed class SpendLedger
             bucket.Diem += cost.Diem;
         }
 
-        lock (_gate)
+        return collected;
+    }
+
+    /// <summary>
+    /// Вносит собранные корзины в журнал ключа — со знаком плюс при переносе и со знаком
+    /// минус, когда перенос отменяют.
+    /// </summary>
+    /// <remarks>
+    /// Вычитание упирается в ноль и убирает опустевшие строки: отрицательная трата читалась бы
+    /// как «модель заплатила человеку», а нулевая строка заняла бы место в разбивке «на что
+    /// ушло», ничего о деньгах не сказав.
+    /// </remarks>
+    private static void Apply(
+        SpendHistoryFile file,
+        Dictionary<DateTime, Dictionary<string, SpendSkuBucket>> collected,
+        bool add)
+    {
+        foreach (var (date, buckets) in collected)
         {
-            var file = Loaded(fingerprint);
-            foreach (var (date, buckets) in collected)
+            var day = file.Days.FirstOrDefault(item => item.Date == date);
+            if (day is null)
             {
-                var day = file.Days.FirstOrDefault(item => item.Date == date);
-                if (day is null)
+                if (!add)
                 {
-                    day = new SpendDay { Date = date };
-                    file.Days.Add(day);
+                    continue;
                 }
 
-                foreach (var bucket in buckets.Values)
-                {
-                    var existing = day.Skus.FirstOrDefault(
-                        item => string.Equals(item.Sku, bucket.Sku, StringComparison.Ordinal));
-                    if (existing is null)
-                    {
-                        day.Skus.Add(bucket);
-                    }
-                    else
-                    {
-                        existing.Requests += bucket.Requests;
-                        existing.Usd += bucket.Usd;
-                        existing.Diem += bucket.Diem;
-                    }
-
-                    day.Usd += bucket.Usd;
-                    day.Diem += bucket.Diem;
-                }
+                day = new SpendDay { Date = date };
+                file.Days.Add(day);
             }
 
-            file.Days.Sort((left, right) => left.Date.CompareTo(right.Date));
-            _dirty.Add(fingerprint);
+            foreach (var bucket in buckets.Values)
+            {
+                var existing = day.Skus.FirstOrDefault(
+                    item => string.Equals(item.Sku, bucket.Sku, StringComparison.Ordinal));
+                if (existing is null)
+                {
+                    if (!add)
+                    {
+                        continue;
+                    }
+
+                    existing = new SpendSkuBucket { Sku = bucket.Sku };
+                    day.Skus.Add(existing);
+                }
+
+                var sign = add ? 1 : -1;
+                existing.Requests = Math.Max(0, existing.Requests + (sign * bucket.Requests));
+                existing.Usd = Math.Max(0m, existing.Usd + (sign * bucket.Usd));
+                existing.Diem = Math.Max(0m, existing.Diem + (sign * bucket.Diem));
+            }
+
+            day.Skus.RemoveAll(item => item.Usd <= 0m && item.Diem <= 0m);
+            day.Usd = day.Skus.Sum(item => item.Usd);
+            day.Diem = day.Skus.Sum(item => item.Diem);
         }
 
-        Flush();
-        return true;
+        file.Days.RemoveAll(item => item.Skus.Count == 0);
+        file.Days.Sort((left, right) => left.Date.CompareTo(right.Date));
     }
 
     /// <summary>Кладёт на диск всё накопленное. Best-effort, как и остальные файлы рядом.</summary>

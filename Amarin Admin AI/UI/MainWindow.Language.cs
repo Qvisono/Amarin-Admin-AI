@@ -103,7 +103,7 @@ namespace Amarin.UI
             _translationCts = new CancellationTokenSource();
             var token = _translationCts.Token;
 
-            var translator = new LanguageTranslator(_services.Venice);
+            var translator = new LanguageTranslator(_services.Venice, () => _services.Models.Cached);
             LanguagePicker.ShowProgress(Loc.Format("S.Language.Progress", 0, 1));
 
             try

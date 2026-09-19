@@ -1,4 +1,4 @@
-namespace Amarin.Core;
+﻿namespace Amarin.Core;
 
 public enum ApprovalMode
 {
@@ -138,7 +138,57 @@ public sealed class AppSettings
     /// </summary>
     public List<string>? DownloadAllowedDomains { get; set; }
 
-    /// <summary>Empty means use Venice:Model from the shipped appsettings.json.</summary>
+    /// <summary>
+    /// Когда в журнал трат перенесли цены из уже сохранённых переписок.
+    /// </summary>
+    /// <remarks>
+    /// Отметка профиля, а не ключа. Раньше она стояла у ключа — и каждый заведённый после
+    /// неё ключ переносил себе ту же историю чатов заново: график по новому ключу повторял
+    /// траты старого рубль в рубль. Переписки принадлежат профилю, а какой ключ за них платил,
+    /// в них не записано, поэтому перенос имеет смысл ровно один раз на профиль.
+    /// </remarks>
+    public DateTime? SpendBackfilledAt { get; set; }
+
+    /// <summary>
+    /// Каким режимом показан график трат: по всем ключам или по одному выбранному.
+    /// </summary>
+    /// <remarks>
+    /// Платит теперь не один ключ: у каждого слота модели свой, и сумма по одному ключу больше
+    /// не отвечает на вопрос «сколько программа стоит». Поэтому режимов два, и выбранный
+    /// переживает перезапуск — человек смотрит на график не один раз.
+    /// </remarks>
+    public bool SpendScopeAllKeys { get; set; } = true;
+
+    /// <summary>
+    /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
+    /// </summary>
+    /// <remarks>
+    /// Отдельным словарём, а не девятью полями рядом с моделями: слотов девять, и девять
+    /// парных полей пришлось бы заводить, читать и переносить по одному. Слот, которого здесь
+    /// нет, берёт ключ по умолчанию для провайдера своей модели — поэтому
+    /// <c>settings.json</c> прежних версий читается без миграции, а удаление ключа не ломает
+    /// слот, а лишь возвращает его к выбору по умолчанию.
+    /// </remarks>
+    public Dictionary<string, string>? ModelKeys { get; set; }
+
+    /// <summary>
+    /// Выбранные модели других провайдеров: имя провайдера — имя слота — идентификатор модели.
+    /// </summary>
+    /// <remarks>
+    /// Наследство версий, где активный ключ задавал провайдера всем девяти слотам разом и при
+    /// его смене выбор приходилось прятать сюда. С 1.23.0 у каждого слота свой провайдер,
+    /// прятать нечего, и поле больше не читается и не пишется. Оставлено, чтобы
+    /// <c>settings.json</c> прежних версий открывался и сохранялся без потерь.
+    /// </remarks>
+    public Dictionary<string, Dictionary<string, string>>? ModelSlotsByProvider { get; set; }
+
+    /// <summary>
+    /// Empty means use Venice:Model from the shipped appsettings.json.
+    /// </summary>
+    /// <remarks>
+    /// Пустая строка — сентинел только для Venice: в appsettings.json лежит его идентификатор
+    /// модели. У остальных провайдеров слот заполняется явно, см. <see cref="ModelSlotDefaults"/>.
+    /// </remarks>
     public string ChatModelId { get; set; } = "";
 
     public ReasoningSettings ChatReasoning { get; set; } = new();
@@ -221,6 +271,46 @@ public sealed class AppSettings
         DisableThinking = false,
         ReasoningEffort = "low"
     };
+
+    /// <summary>
+    /// Модель скрытых сводок переписки.
+    /// </summary>
+    /// <remarks>
+    /// До 1.23.0 сводки молча брали слот быстрого агента, и отдельно их было не настроить:
+    /// поменяв модель агенту, человек менял её и сводкам, не зная об этом. При первом чтении
+    /// старых настроек сюда переносится то, что стояло у быстрого агента, — поведение
+    /// у обновившегося не меняется.
+    /// </remarks>
+    public string SummaryModelId { get; set; } = "";
+
+    public ReasoningSettings SummaryReasoning { get; set; } = new() { DisableThinking = true };
+
+    /// <summary>
+    /// Через кого искать в интернете. <c>null</c> — там же, где идёт разговор.
+    /// </summary>
+    /// <remarks>
+    /// Настройка инструмента, а не модели: человек выбирает провайдера и ключ, а модель под них
+    /// программа подбирает сама. Отдельной «ручки поиска» нет ни у Venice, ни у OpenRouter —
+    /// поиск едет надстройкой на обычном запросе (<c>venice_parameters</c> и плагин
+    /// соответственно), — но какая именно модель его везёт, человека не касается: он платит
+    /// за интернет, а не за выбор модели.
+    /// </remarks>
+    public LlmProvider? WebSearchProvider { get; set; }
+
+    /// <summary>Ключ, которым платится поиск. Пусто — ключ провайдера по умолчанию.</summary>
+    public string? WebSearchKeyId { get; set; }
+
+    /// <summary>
+    /// Движок поиска у OpenRouter и его режим. Пусто — решает сам OpenRouter.
+    /// </summary>
+    /// <remarks>
+    /// Две строки, а не одна составная: на провод они уходят двумя полями, и склеивать их
+    /// ради настроек значило бы разбирать обратно перед каждым запросом. У Venice движок один,
+    /// и эти поля к нему не относятся.
+    /// </remarks>
+    public string? WebSearchEngine { get; set; }
+
+    public string? WebSearchEngineMode { get; set; }
 
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
     public string MainPrompt { get; set; } = "";

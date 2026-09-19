@@ -49,7 +49,7 @@ public sealed class VeniceKeyTests
     [Fact]
     public async Task A_swapped_key_reaches_a_client_that_already_sent_requests()
     {
-        var keys = new VeniceKeyProvider("key-one-12345678");
+        var keys = new ApiKeyProvider("key-one-12345678");
         var (client, _, recorder) = Build(new AgentOptions { ApiKey = "ignored-fallback", Keys = keys });
 
         await client.ListTextModelsAsync();
@@ -75,7 +75,7 @@ public sealed class VeniceKeyTests
     [Fact]
     public void Options_copied_for_the_agent_follow_the_key()
     {
-        var keys = new VeniceKeyProvider("key-one-12345678");
+        var keys = new ApiKeyProvider("key-one-12345678");
         var source = new AgentOptions { ApiKey = "ignored-fallback", Keys = keys };
         var copy = new AgentOptions { ApiKey = source.ApiKey, Keys = source.Keys };
 
@@ -94,7 +94,7 @@ public sealed class VeniceKeyTests
     [Fact]
     public void The_provider_stays_quiet_when_the_key_does_not_change()
     {
-        var keys = new VeniceKeyProvider("key-one-12345678");
+        var keys = new ApiKeyProvider("key-one-12345678");
         var changes = 0;
         keys.Changed += _ => changes++;
 

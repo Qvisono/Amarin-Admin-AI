@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,29 +9,37 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// The remaining Venice balance, shown beside the send button. Venice reports it on the headers of
-/// every request, so the plate is a lagging figure by nature: it says what was left after the last
-/// answer, which is exactly the moment the user wants to see it.
+/// Сколько денег осталось — плашка рядом с кнопкой отправки.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Colours are mixed here rather than declared in the palettes. The plate has three states and
-/// there are eighteen palettes; adding fifty-four tokens to carry a tint that is mechanically
-/// derived from one brush would be a lot of hand-edited XAML to keep in step. Reading the source
-/// brush and thinning it also means a new palette needs no work at all.
+/// До версии 1.23.0 платил один ключ, и плашка показывала его остаток: Venice называет его на
+/// заголовках каждого ответа, так что цифра приезжала даром. Теперь платят несколько — разговор
+/// одним ключом, заголовки чатов другим, поиск третьим, — и одно число перестало отвечать на
+/// вопрос «сколько у меня осталось». Поэтому здесь сумма по всем ключам, а кто сколько — под
+/// курсором.
 /// </para>
 /// <para>
-/// The plate keeps one colour whatever the figure says: it is a readout, not an alarm, and a
-/// number that turns red as it falls makes the composer flash for something the user already
-/// knows. The warning lives in the tooltip instead, where it can say what is actually at risk.
+/// Цифра запаздывает по своей природе: она говорит, сколько осталось после последнего ответа.
+/// Это ровно тот миг, который человеку и нужен.
+/// </para>
+/// <para>
+/// Цвета смешиваются здесь, а не объявляются в палитрах. У плашки три состояния, а палитр
+/// восемнадцать: пятьдесят четыре токена ради оттенка, который механически выводится из одной
+/// кисти, пришлось бы править руками в каждой новой теме.
+/// </para>
+/// <para>
+/// Цвет у плашки один, что бы ни показывала цифра: это показание, а не тревога, и число,
+/// краснеющее по мере убывания, заставляет композер мигать о том, что человек и так видит.
+/// Предупреждение живёт в подсказке, где можно сказать, чем именно это грозит.
 /// </para>
 /// </remarks>
 internal sealed class BalanceBadge
 {
-    /// <summary>Below this the plate turns amber: a couple of drawn pictures and it is gone.</summary>
+    /// <summary>Ниже этого плашка предупреждает: пара нарисованных картинок — и денег нет.</summary>
     private const decimal LowUsd = 1.00m;
 
-    /// <summary>Below this it turns red — the next image generation may not go through.</summary>
+    /// <summary>Ниже этого — совсем скоро: следующая картинка может и не уйти.</summary>
     private const decimal CriticalUsd = 0.25m;
 
     private readonly Border _plate;
@@ -38,77 +47,153 @@ internal sealed class BalanceBadge
     private readonly TextBlock _amount;
     private readonly BalanceStore? _store;
 
-    private VeniceBalance? _balance;
+    /// <summary>
+    /// Книга остатков. Через функцию, а не ссылкой: плашка собирается в конструкторе окна,
+    /// а службы привязываются позже — на этом порядке уже спотыкались.
+    /// </summary>
+    private readonly Func<BalanceBook?> _book;
 
-    public BalanceBadge(Border plate, Shape.Path coin, TextBlock amount, BalanceStore? store = null)
+    /// <summary>Книга, на события которой мы подписаны. Меняется при смене профиля.</summary>
+    private BalanceBook? _subscribed;
+
+    /// <summary>
+    /// Живой список ключей. Через функцию, а не снимком: ключи заводят и удаляют, не закрывая
+    /// окна, а сумма считается только по тем, что есть сейчас.
+    /// </summary>
+    private readonly Func<IReadOnlyList<ApiKeyEntry>> _keys;
+
+    /// <summary>Сумма, навязанная тестом вместо книги. <c>null</c> — обычная работа.</summary>
+    private BalanceTotal? _forced;
+
+    public BalanceBadge(
+        Border plate,
+        Shape.Path coin,
+        TextBlock amount,
+        Func<BalanceBook?> book,
+        Func<IReadOnlyList<ApiKeyEntry>> keys,
+        BalanceStore? store = null)
     {
         _plate = plate;
         _coin = coin;
         _amount = amount;
+        _book = book;
+        _keys = keys;
         _store = store;
-        _balance = store?.Load();
 
-        // The palette lives in swapped dictionaries, so the mixed brushes have to be rebuilt when
-        // the theme changes -- a DynamicResource would have handled it, but these are derived.
+        // Палитра живёт в подменяемых словарях, поэтому смешанные кисти надо пересобирать при
+        // смене темы — DynamicResource справился бы, но эти кисти выводятся из другой.
         ThemeManager.EffectiveThemeChanged += Render;
         Render();
     }
 
     /// <summary>
-    /// Called after every turn. A null balance leaves whatever was last known on screen: Venice
-    /// omits the headers on some responses, and blanking the plate on those would make it flicker.
+    /// Книга, на события которой мы подписаны. Подписка отложена до её появления: в конструкторе
+    /// окна служб ещё нет, а сохранённое с прошлого запуска кладётся в неё тогда же.
     /// </summary>
-    public void Show(VeniceBalance? balance)
+    private BalanceBook? Book()
     {
-        if (balance is null || (balance.Usd is null && balance.Diem is null))
+        var book = _book();
+        if (ReferenceEquals(book, _subscribed))
         {
-            return;
+            return book;
         }
 
-        // Only a changed figure is worth a disk write; the plate is refreshed after every turn,
-        // including the ones that spent nothing.
-        if (_balance is null || _balance.Usd != balance.Usd || _balance.Diem != balance.Diem)
+        if (_subscribed is not null)
         {
-            _store?.Save(balance);
+            _subscribed.Changed -= OnBookChanged;
         }
 
-        _balance = balance;
+        _subscribed = book;
+        if (book is not null)
+        {
+            book.Changed += OnBookChanged;
+            if (_store?.Load() is { Count: > 0 } saved)
+            {
+                book.Restore(saved);
+            }
+        }
+
+        return book;
+    }
+
+    /// <summary>Перерисовывает плашку по тому, что уже известно книге.</summary>
+    public void Refresh()
+    {
+        _forced = null;
         Render();
     }
 
     /// <summary>
-    /// Забывает остаток вместе с его кэшем на диске.
+    /// Показывает названную сумму, минуя книгу. Только для тестов.
     /// </summary>
     /// <remarks>
-    /// Зовётся при смене ключа: остаток принадлежит тому ключу, которым платили, и после
-    /// переключения плашка показывала бы чужие деньги. <see cref="Show"/> для этого не годится
-    /// намеренно — он пропускает <c>null</c>, чтобы плашка не мигала на ответах, где Venice
-    /// не прислал заголовков.
+    /// Цвета плашки смешиваются из палитры, и проверять их надо на восемнадцати темах — заводить
+    /// ради этого ключи и книгу в каждом прогоне значило бы проверять не цвета, а обвязку.
+    /// </remarks>
+    internal void ShowForShot(decimal? usd, decimal? diem = null, int unknown = 0)
+    {
+        _forced = new BalanceTotal(usd, diem, unknown);
+        Render();
+    }
+
+    /// <summary>
+    /// Забывает остатки вместе с их кэшем на диске.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся, когда в программе не осталось ключей: показывать деньги нечьи.
     /// </remarks>
     public void Forget()
     {
-        _balance = null;
         _store?.Forget();
         Render();
+    }
+
+    private void OnBookChanged()
+    {
+        if (_plate.Dispatcher.CheckAccess())
+        {
+            Save();
+            Render();
+            return;
+        }
+
+        // Книгу наполняют потоки ходов: до трёх сразу, и ни один из них не UI.
+        _plate.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            Save();
+            Render();
+        }));
+    }
+
+    private void Save()
+    {
+        if (_subscribed is { } book)
+        {
+            _store?.Save(book.Snapshot());
+        }
     }
 
     private void Render()
     {
         _plate.Visibility = Visibility.Visible;
-
         Paint();
 
-        if (_balance is not { } balance)
+        var book = Book();
+        var keys = _keys();
+        var total = _forced ?? book?.Total(keys) ?? default;
+
+        if (total.Usd is null && total.Diem is null)
         {
-            // Before the first answer of the very first run there is no figure anywhere. A dash
-            // is honest; "$0.00" would read as "you are out of money".
+            // До первого ответа самого первого запуска цифры нет нигде. Прочерк честен;
+            // «$0.00» читалось бы как «деньги кончились».
             _amount.Text = FormatUsd(null);
             _plate.ToolTip = Loc.Get("S.Balance.Unknown");
             return;
         }
 
-        _amount.Text = FormatUsd(balance.Usd);
-        _plate.ToolTip = BuildTooltip(balance);
+        _amount.Text = FormatUsd(total.Usd);
+        _plate.ToolTip = BuildTooltip(
+            total, _forced is null && book is not null ? book.Breakdown(keys) : []);
     }
 
     private void Paint()
@@ -117,17 +202,17 @@ internal sealed class BalanceBadge
         _amount.Foreground = accent;
         _coin.Fill = accent;
 
-        // A wash of the same hue rather than a palette surface: the plate reads as one object,
-        // and it keeps its meaning on both the near-black and the near-white themes.
+        // Оттенок той же краски, а не поверхность из палитры: плашка читается одним предметом
+        // и сохраняет смысл и на почти чёрной теме, и на почти белой.
         var colour = accent is SolidColorBrush { Color: var value } ? value : Colors.Gray;
         _plate.Background = Frozen(Color.FromArgb(0x24, colour.R, colour.G, colour.B));
         _plate.BorderBrush = Frozen(Color.FromArgb(0x40, colour.R, colour.G, colour.B));
     }
 
     /// <summary>
-    /// Money, so cents are always shown — "$18,4" reads like a broken number rather than a
-    /// balance. Only past a thousand do they get dropped, where the plate would otherwise crowd
-    /// the send button and the cents stopped mattering anyway.
+    /// Деньги, поэтому копейки показываются всегда — «$18,4» читается как сломанное число,
+    /// а не как остаток. Только после тысячи они уходят: там плашка теснила бы кнопку отправки,
+    /// а копейки перестали значить хоть что-то.
     /// </summary>
     internal static string FormatUsd(decimal? usd) =>
         usd is null
@@ -136,19 +221,46 @@ internal sealed class BalanceBadge
                 .Replace(",", " ")
                 .Replace('.', ',');
 
-    private static string BuildTooltip(VeniceBalance balance)
+    /// <summary>
+    /// Итог, а под ним — кто сколько. Разбивка нужна ровно потому, что сумма её прячет: увидев
+    /// «$4.86», человек не знает, лежат ли они на том ключе, которым идёт разговор.
+    /// </summary>
+    private static string BuildTooltip(BalanceTotal total, IReadOnlyList<BalanceRow> rows)
     {
         // Переносы строк собираются здесь, а не внутри самих подписей: вёрстка подсказки —
         // не то, что переводчик обязан беречь, да и XAML обрезал бы ведущий перенос.
-        var text = Loc.Get("S.Balance.Title") + " " + balance.Format();
-        if (balance.Usd is { } usd && usd < LowUsd)
+        var text = new StringBuilder();
+        text.Append(Loc.Get("S.Balance.Title")).Append(' ').Append(FormatUsd(total.Usd));
+
+        if (total.Diem is { } diem and > 0)
         {
-            text += "\n" + (usd < CriticalUsd
+            text.Append("\n").Append(Loc.Format(
+                "S.Key.Balance.Diem", diem.ToString("0.##", CultureInfo.InvariantCulture)));
+        }
+
+        if (rows.Count > 1)
+        {
+            foreach (var row in rows)
+            {
+                text.Append("\n").Append(row.Label).Append(" — ").Append(FormatUsd(row.Usd));
+            }
+        }
+
+        if (total.Unknown > 0)
+        {
+            text.Append("\n").Append(Loc.Format(
+                "S.Balance.Unknown.Some",
+                total.Unknown.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        if (total.Usd is { } usd && usd < LowUsd)
+        {
+            text.Append("\n").Append(usd < CriticalUsd
                 ? Loc.Get("S.Balance.AlmostOut")
                 : Loc.Get("S.Balance.Low"));
         }
 
-        return text + "\n" + Loc.Get("S.Balance.Refresh");
+        return text.Append("\n").Append(Loc.Get("S.Balance.Refresh")).ToString();
     }
 
     private static SolidColorBrush Frozen(Color colour)

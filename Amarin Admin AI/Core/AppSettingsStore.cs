@@ -58,6 +58,8 @@ public sealed class AppSettingsStore
             settings.AgentHeavyReasoning ??= new ReasoningSettings();
             settings.SynGuardReasoning ??= new ReasoningSettings();
             changed |= MigrateSynGuardReasoning(settings);
+            settings.SummaryReasoning ??= new ReasoningSettings();
+            changed |= MigrateSummarySlot(settings);
             if (changed)
             {
                 Save(settings);
@@ -172,6 +174,31 @@ public sealed class AppSettingsStore
 
         slot.DisableThinking = false;
         slot.ReasoningEffort = "low";
+        return true;
+    }
+
+    /// <summary>
+    /// Переносит сводкам чата то, чем они пользовались до появления своего слота.
+    /// </summary>
+    /// <remarks>
+    /// До 1.23.0 сводки молча брали модель и ключ быстрого агента. Оставить новый слот пустым
+    /// значило бы увести их на подобранную по умолчанию модель — человек этого не просил и
+    /// заметил бы только по счёту. Переносим один раз: слот заполнен — значит выбор уже сделан.
+    /// </remarks>
+    internal static bool MigrateSummarySlot(AppSettings settings)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.SummaryModelId))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.AgentFastModelId))
+        {
+            return false;
+        }
+
+        settings.SummaryModelId = settings.AgentFastModelId;
+        ModelSlots.WriteKey(settings, ModelSlot.Summary, ModelSlots.ReadKey(settings, ModelSlot.AgentFast));
         return true;
     }
 

@@ -117,6 +117,14 @@ internal sealed class ChatStreamAccumulator
             TotalTokens = chunk.Usage.TotalTokens.Value;
         }
 
+        // Цена от OpenRouter приходит внутри usage и считает весь ответ целиком, а не этот
+        // кусок: поэтому присваивание, а не сложение. Venice кладёт свою цену отдельным полем
+        // выше — если ответили оба, верхнее поле старше, и записанное им не перетирается.
+        if (chunk.Usage?.Cost is { } usd and > 0m && !Cost.HasData)
+        {
+            Cost = new VeniceCost { Usd = usd, HasData = true };
+        }
+
         var choice = chunk.Choices.FirstOrDefault();
         if (choice is null)
         {
@@ -158,7 +166,9 @@ internal sealed class ChatStreamAccumulator
             }
         }
 
-        var reasoning = ChatContent.ReadText(delta.ReasoningContent);
+        // Одно и то же под двумя именами: reasoning_content у Venice, reasoning у OpenRouter.
+        // Связать оба имени с одним свойством генератор кода не умеет, поэтому склейка здесь.
+        var reasoning = ChatContent.ReadText(delta.ReasoningContent ?? delta.Reasoning);
         if (!string.IsNullOrEmpty(reasoning))
         {
             _reasoning.Append(reasoning);

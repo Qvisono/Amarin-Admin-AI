@@ -43,8 +43,32 @@ public sealed class ChatCompletionRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ReasoningConfig? Reasoning { get; init; }
 
+    /// <summary>
+    /// Надстройки Venice. <c>null</c> — и поля в теле запроса нет вовсе.
+    /// </summary>
+    /// <remarks>
+    /// Тип обнуляемый, а не атрибут <c>JsonIgnore</c>: <see cref="VeniceJsonContext"/> и так
+    /// пропускает <c>null</c>, а поле уходило на провод всегда лишь потому, что было
+    /// необнуляемым с инициализатором. Другим провайдерам это поле незнакомо.
+    /// </remarks>
     [JsonPropertyName("venice_parameters")]
-    public VeniceParameters VeniceParameters { get; init; } = new();
+    public VeniceParameters? VeniceParameters { get; init; }
+
+    /// <summary>
+    /// Просьба посчитать деньги. Только OpenRouter: без неё он не кладёт цену в <c>usage</c>,
+    /// и списание в журнал трат не попало бы вовсе.
+    /// </summary>
+    [JsonPropertyName("usage")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public UsageAccounting? Usage { get; init; }
+
+    /// <summary>
+    /// Плагины OpenRouter: поиск в сети приходит сюда. У Venice того же добивается
+    /// <c>venice_parameters.enable_web_search</c>.
+    /// </summary>
+    [JsonPropertyName("plugins")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<RequestPlugin>? Plugins { get; init; }
 
     /// <summary>
     /// Caller's intent. Never serialized — <see cref="VeniceClient"/> clamps it per target
@@ -52,6 +76,35 @@ public sealed class ChatCompletionRequest
     /// </summary>
     [JsonIgnore]
     public ReasoningChoice? ReasoningChoice { get; init; }
+}
+
+/// <summary>Просьба к OpenRouter вернуть цену запроса вместе с токенами.</summary>
+public sealed class UsageAccounting
+{
+    [JsonPropertyName("include")]
+    public bool Include { get; init; } = true;
+}
+
+/// <summary>Плагин OpenRouter. Поиск в сети — <c>id: "web"</c>.</summary>
+public sealed class RequestPlugin
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("max_results")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MaxResults { get; init; }
+
+    /// <summary>Чем искать: <c>exa</c>, <c>parallel</c>, <c>perplexity</c>, <c>native</c>…</summary>
+    /// <remarks>Пусто — решает OpenRouter. Цена у движков отличается десятикратно.</remarks>
+    [JsonPropertyName("engine")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Engine { get; init; }
+
+    /// <summary>Режим выбранного движка: у каждого свой набор, и без движка он бессмыслен.</summary>
+    [JsonPropertyName("mode")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Mode { get; init; }
 }
 
 public sealed class StreamOptions
@@ -75,6 +128,14 @@ public sealed class VeniceUsage
 
     [JsonPropertyName("total_tokens")]
     public int? TotalTokens { get; init; }
+
+    /// <summary>
+    /// Цена запроса в долларах. Так её сообщает OpenRouter — и только когда об этом попросили
+    /// (<see cref="UsageAccounting"/>). Venice кладёт цену отдельным полем <c>cost</c> рядом,
+    /// объектом с двумя валютами.
+    /// </summary>
+    [JsonPropertyName("cost")]
+    public decimal? Cost { get; init; }
 }
 
 public sealed class VeniceParameters
@@ -139,6 +200,14 @@ public sealed class ChatMessage
     [JsonPropertyName("tool_call_id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ToolCallId { get; init; }
+
+    /// <summary>
+    /// Ссылки, которыми OpenRouter подтверждает найденное в сети. Только для чтения: наружу
+    /// сообщения собираются заново, и это поле в них не попадает.
+    /// </summary>
+    [JsonPropertyName("annotations")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Annotations { get; init; }
 
     [JsonPropertyName("name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -264,6 +333,14 @@ public sealed class ChatMessageDelta
     /// </summary>
     [JsonPropertyName("reasoning_content")]
     public JsonElement? ReasoningContent { get; init; }
+
+    /// <summary>
+    /// То же самое у OpenRouter — он называет поле короче. Два имени одного смысла: связать
+    /// оба с одним свойством генератор кода не умеет, поэтому склейка живёт на чтении,
+    /// в <see cref="ChatStreamAccumulator"/>.
+    /// </summary>
+    [JsonPropertyName("reasoning")]
+    public JsonElement? Reasoning { get; init; }
 
     [JsonPropertyName("tool_calls")]
     public List<ToolCallDelta>? ToolCalls { get; init; }

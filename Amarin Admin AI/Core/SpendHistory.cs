@@ -124,7 +124,7 @@ internal sealed class SpendHistoryStore
     /// и в любом списке процессов, который читает пути.
     /// </summary>
     public string PathFor(string? secret) =>
-        Path.Combine(_directory, VeniceKeyStore.Fingerprint(secret) + ".json");
+        Path.Combine(_directory, ApiKeyStore.Fingerprint(secret) + ".json");
 
     /// <summary>Никогда не бросает: повреждённый или отсутствующий файл — это пустой журнал.</summary>
     public SpendHistoryFile Load(string? secret)
@@ -284,6 +284,72 @@ internal static class SpendFold
         file.Days.AddRange(byDate.Values);
         file.Days.Sort((left, right) => left.Date.CompareTo(right.Date));
     }
+
+    /// <summary>
+    /// Сводит несколько журналов в один: график по всем ключам сразу.
+    /// </summary>
+    /// <remarks>
+    /// Сводятся именно журналы, а не готовые отчёты. У отчёта левый край периода «всё время»
+    /// считается по первому непустому дню своего файла (<see cref="SpendPeriods.ChartStart"/>),
+    /// и у двух ключей он разный — сложив отчёты, мы получили бы две оси вместо одной. Корзины
+    /// SKU по той же причине складываются здесь: иначе одна и та же модель стояла бы в разбивке
+    /// двумя строками, по одной на ключ.
+    /// </remarks>
+    public static SpendHistoryFile Combine(IEnumerable<SpendHistoryFile> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+
+        var combined = new SpendHistoryFile { TimeZoneId = TimeZoneInfo.Local.Id };
+        var byDate = new Dictionary<DateTime, SpendDay>();
+
+        foreach (var file in files)
+        {
+            if (file is null)
+            {
+                continue;
+            }
+
+            combined.CoveredFrom = Earlier(combined.CoveredFrom, file.CoveredFrom);
+            combined.CoveredThrough = Later(combined.CoveredThrough, file.CoveredThrough);
+
+            foreach (var day in file.Days)
+            {
+                if (!byDate.TryGetValue(day.Date, out var target))
+                {
+                    target = new SpendDay { Date = day.Date };
+                    byDate[day.Date] = target;
+                }
+
+                target.Usd += day.Usd;
+                target.Diem += day.Diem;
+
+                foreach (var bucket in day.Skus)
+                {
+                    var into = target.Skus.FirstOrDefault(
+                        item => string.Equals(item.Sku, bucket.Sku, StringComparison.Ordinal));
+                    if (into is null)
+                    {
+                        into = new SpendSkuBucket { Sku = bucket.Sku };
+                        target.Skus.Add(into);
+                    }
+
+                    into.Usd += bucket.Usd;
+                    into.Diem += bucket.Diem;
+                    into.Requests += bucket.Requests;
+                }
+            }
+        }
+
+        combined.Days.AddRange(byDate.Values);
+        combined.Days.Sort((left, right) => left.Date.CompareTo(right.Date));
+        return combined;
+    }
+
+    private static DateTime? Earlier(DateTime? left, DateTime? right) =>
+        left is null ? right : right is null ? left : left < right ? left : right;
+
+    private static DateTime? Later(DateTime? left, DateTime? right) =>
+        left is null ? right : right is null ? left : left > right ? left : right;
 
     /// <summary>
     /// <c>BUNDLED_CREDITS</c> номинированы в долларах — они идут в ту же колонку. Отдельно

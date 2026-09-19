@@ -154,6 +154,7 @@ namespace Amarin.UI
 
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
+
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();
             ApplyUiScaleFromSettings();
@@ -879,61 +880,60 @@ namespace Amarin.UI
             }
         }
 
-        private void SettingsModelPicked(object sender, string id)
+        private void SettingsModelPicked(object sender, ModelBinding binding)
         {
-            if (_settingsUiLoading || _services is null || string.IsNullOrWhiteSpace(id))
+            if (_settingsUiLoading || _services is null || string.IsNullOrWhiteSpace(binding.ModelId))
             {
                 return;
             }
 
-            if (ReferenceEquals(sender, LiteModelPicker))
+            foreach (var (slot, field, reasoning) in SettingsSlots())
             {
-                _services.Settings.LiteModelId = id;
-                LiteReasoningPicker.SetModel(id);
+                if (!ReferenceEquals(sender, field))
+                {
+                    continue;
+                }
+
+                // Модель и ключ пишутся вместе: порознь их забывают записать по одному, и слот
+                // остаётся с ключом провайдера, к которому его модель больше не принадлежит.
+                ModelSlots.WriteBinding(_services.Settings, slot, binding);
+                reasoning.SetModel(binding.ModelId);
+
+                if (slot == ModelSlot.SynGuard)
+                {
+                    ShowSynGuardModelName();
+                }
+
+                _services.SettingsStore.Save(_services.Settings);
+                return;
             }
-            else if (ReferenceEquals(sender, HeavyModelPicker))
-            {
-                _services.Settings.HeavyModelId = id;
-                HeavyReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, RouterModelPicker))
-            {
-                _services.Settings.RouterModelId = id;
-                RouterReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, TitleModelPicker))
-            {
-                _services.Settings.TitleModelId = id;
-                TitleReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, AgentFastModelPicker))
-            {
-                _services.Settings.AgentFastModelId = id;
-                AgentFastReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, AgentLiteModelPicker))
-            {
-                _services.Settings.AgentLiteModelId = id;
-                AgentLiteReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, AgentHeavyModelPicker))
-            {
-                _services.Settings.AgentHeavyModelId = id;
-                AgentHeavyReasoningPicker.SetModel(id);
-            }
-            else if (ReferenceEquals(sender, SynGuardModelPicker))
-            {
-                _services.Settings.SynGuardModelId = id;
-                SynGuardReasoningPicker.SetModel(id);
-                ShowSynGuardModelName();
-            }
-            else
+        }
+
+        private void SettingsPickerAddKeyRequested(object sender, EventArgs e) => OpenKeyDialog();
+
+        /// <summary>
+        /// Человек выбрал, через кого и каким ключом искать в интернете.
+        /// </summary>
+        /// <remarks>
+        /// Модель здесь не спрашивается: её подбирает <see cref="ModelSlots.WebSearch"/> под
+        /// выбранного провайдера. Пустой провайдер — «как у модели хода», прежнее поведение.
+        /// </remarks>
+        private void WebSearchTargetChanged(object sender, WebSearchTarget target)
+        {
+            if (_settingsUiLoading || _services is null)
             {
                 return;
             }
 
+            _services.Settings.WebSearchProvider = target.Provider;
+            _services.Settings.WebSearchKeyId = target.KeyId;
+            _services.Settings.WebSearchEngine = target.Engine;
+            _services.Settings.WebSearchEngineMode = target.Mode;
             _services.SettingsStore.Save(_services.Settings);
         }
+
+        private void SettingsPickerProviderShown(object sender, LlmProvider provider) =>
+            Detached.Run(LoadProviderCatalogAsync(provider), "load_model_catalog");
 
         private void SettingsReasoningChanged(object sender, ReasoningChoiceChangedEventArgs e)
         {
@@ -1001,6 +1001,11 @@ namespace Amarin.UI
                 return settings.SynGuardReasoning ??= new ReasoningSettings();
             }
 
+            if (ReferenceEquals(sender, SummaryReasoningPicker))
+            {
+                return settings.SummaryReasoning ??= new ReasoningSettings();
+            }
+
             return null;
         }
 
@@ -1026,13 +1031,14 @@ namespace Amarin.UI
                 ? SynGuard.FallbackModelId
                 : SynGuard.ResolveModel(_services.Settings);
 
-        private void ChatModelPicker_ModelPicked(object sender, string id)
+        private void ChatModelPicker_ModelPicked(object sender, ModelBinding binding)
         {
             ModelButton.IsChecked = false;
-            _session.SelectedModelId = id;
+            _session.SelectedModelId = binding.ModelId;
+            _session.SelectedKeyId = binding.KeyId;
             if (_services is not null)
             {
-                _services.Settings.ChatModelId = id;
+                ModelSlots.WriteBinding(_services.Settings, ModelSlot.Chat, binding);
                 _services.SettingsStore.Save(_services.Settings);
                 // The per-chat model lives on the session, so write it out now rather than
                 // leaving it to ride along on whatever unrelated save happens next.
@@ -1041,6 +1047,31 @@ namespace Amarin.UI
 
             UpdateModelButton();
         }
+
+        /// <summary>
+        /// Ключ сменили — плашку не закрываем: человек обычно тут же выбирает под него модель.
+        /// </summary>
+        private void ChatModelPicker_KeyPicked(object sender, ModelBinding binding)
+        {
+            _session.SelectedKeyId = binding.KeyId;
+            if (_services is not null)
+            {
+                ModelSlots.WriteBinding(_services.Settings, ModelSlot.Chat, binding);
+                _services.SettingsStore.Save(_services.Settings);
+                PersistCurrent();
+            }
+
+            UpdateModelButton();
+        }
+
+        private void ChatModelPicker_AddKeyRequested(object sender, EventArgs e)
+        {
+            ModelButton.IsChecked = false;
+            OpenKeyDialog();
+        }
+
+        private void ModelPicker_ProviderShown(object sender, LlmProvider provider) =>
+            Detached.Run(LoadProviderCatalogAsync(provider), "load_model_catalog");
 
         private void ChatReasoningPicker_ChoiceChanged(object sender, ReasoningChoiceChangedEventArgs e)
         {
@@ -1065,10 +1096,54 @@ namespace Amarin.UI
 
         private void ModelPicker_Opened(object sender, EventArgs e)
         {
-            ChatModelPicker.SetSelected(CurrentModelId());
+            PushKeysToPickers();
+            ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
+            ChatModelPicker.ShowSelectedProvider();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
         }
 
+        /// <summary>
+        /// Раздаёт плашкам список ключей: из него собирается правый столбец выбора.
+        /// </summary>
+        /// <remarks>
+        /// Плашки о хранилище ключей не знают намеренно — они живут в разметке и обязаны
+        /// собираться в тестах без профиля и без ключей вовсе.
+        /// </remarks>
+        /// <summary>
+        /// Провайдеры, чей каталог уже разошёлся по плашкам и вылечил слоты.
+        /// </summary>
+        /// <remarks>
+        /// Раздача тянет за собой лечение выбора, сохранение настроек и обновление девяти
+        /// плашек, восьми полей размышления и кольца контекста. Делать это повторно на каждое
+        /// нажатие в столбце провайдеров незачем — список от нажатия не меняется.
+        /// </remarks>
+        private readonly HashSet<LlmProvider> _appliedCatalogs = [];
+
+        private void PushKeysToPickers()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var keys = _services.KeyStore.List();
+            ChatModelPicker.SetKeys(keys);
+            foreach (var field in SettingsPickers())
+            {
+                field.SetKeys(keys);
+            }
+
+            WebSearchField.SetKeys(keys);
+        }
+
+        /// <summary>
+        /// Подвозит каталоги всех провайдеров, у которых есть чем платить.
+        /// </summary>
+        /// <remarks>
+        /// Всех, а не одного: слоты теперь стоят у разных провайдеров, и лечение выбора обязано
+        /// сверяться с каталогом того провайдера, которому слот принадлежит. Провайдера без
+        /// ключа не трогаем — запрос без ключа вернулся бы четырёхсоткой.
+        /// </remarks>
         private async Task LoadModelCatalogAsync()
         {
             if (_services is null)
@@ -1076,31 +1151,60 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_services.Models.Cached is { } cached)
+            foreach (var spec in ProviderSpec.All)
             {
-                ApplyCatalog(cached, error: null);
+                if (_services.Keys.HasKeyFor(spec.Provider))
+                {
+                    await LoadProviderCatalogAsync(spec.Provider);
+                }
+            }
+        }
+
+        private async Task LoadProviderCatalogAsync(LlmProvider provider)
+        {
+            if (_services is null || !_services.Keys.HasKeyFor(provider))
+            {
                 return;
             }
 
-            ChatModelPicker.ShowLoading();
-            foreach (var field in SettingsPickers())
+            if (_services.Models.CachedFor(provider) is { } cached)
             {
-                field.ShowLoading();
+                // Раздан — значит слоты уже вылечены, а плашки уже знают этот список. Второй
+                // проход по всему конвейеру на каждое нажатие провайдера и был тем подвисанием.
+                if (_appliedCatalogs.Add(provider))
+                {
+                    ApplyCatalog(provider, cached, error: null);
+                }
+
+                return;
             }
 
-            var models = await _services.Models.GetAgenticAsync();
-            ApplyCatalog(models, models.Count == 0 ? _services.Models.Error : null);
+            ChatModelPicker.ShowLoading(provider);
+            foreach (var field in SettingsPickers())
+            {
+                field.ShowLoading(provider);
+            }
+
+            var models = await _services.Models.GetAgenticAsync(provider);
+            _appliedCatalogs.Add(provider);
+            ApplyCatalog(provider, models, models.Count == 0 ? _services.Models.ErrorFor(provider) : null);
         }
 
-        private void ApplyCatalog(IReadOnlyList<VeniceModelInfo> models, string? error)
+        private void ApplyCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models, string? error)
         {
-            HealUnusableModelSelections(models);
-            ChatModelPicker.SetCatalog(models, error);
-            ChatModelPicker.SetSelected(CurrentModelId());
+            HealUnusableModelSelections(provider, models);
+            ChatModelPicker.SetCatalog(provider, models, error);
+            ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
             foreach (var field in SettingsPickers())
             {
-                field.SetCatalog(models, error);
+                field.SetCatalog(provider, models, error);
             }
+
+            // Поля страницы «Customize» заполняются при открытии настроек, а каталог доезжает
+            // и потом — например, когда человек добавил ключ, не закрывая окна. Тогда в полях
+            // осталось бы имя модели, которой в новом списке нет вовсе: выглядит это как
+            // сброшенная настройка, хотя выбор цел.
+            ShowSettingsModelSelections();
 
             foreach (var picker in SettingsReasoningPickers())
             {
@@ -1123,7 +1227,9 @@ namespace Amarin.UI
         /// исчезла. Чиним при загрузке каталога, а не в каждом ходе: подмена на лету была бы
         /// незаметной, а здесь человек видит в поле новую модель.
         /// </remarks>
-        private void HealUnusableModelSelections(IReadOnlyList<VeniceModelInfo> models)
+        private void HealUnusableModelSelections(
+            LlmProvider provider,
+            IReadOnlyList<VeniceModelInfo> models)
         {
             if (_services is null || models.Count == 0)
             {
@@ -1131,34 +1237,62 @@ namespace Amarin.UI
             }
 
             var settings = _services.Settings;
-            var defaults = new AppSettings();
             var changed = false;
 
-            if (!VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId))
+            if (Belongs(_session.SelectedModelId, provider) &&
+                !VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId))
             {
                 // Пустая строка — «бери из настроек», а не «нет модели».
                 _session.SelectedModelId = "";
+                _session.SelectedKeyId = null;
                 PersistCurrent();
             }
 
-            if (!VeniceModelCatalog.IsSelectable(models, settings.ChatModelId))
+            foreach (var (slot, read, write) in ModelSlots.All)
             {
-                settings.ChatModelId = "";
-                changed = true;
-            }
+                var current = read(settings) ?? "";
 
-            foreach (var slot in ServiceModelSlots())
-            {
-                var current = slot.Read(settings);
-                if (VeniceModelCatalog.IsSelectable(models, current))
+                // Сверяем слот только с каталогом его собственного провайдера: у слота,
+                // стоящего у соседа, этой модели в списке нет и быть не должно — вылечив его
+                // здесь, мы бы молча перетащили заголовки чатов к другому провайдеру.
+                if (!Belongs(current, provider))
                 {
                     continue;
                 }
 
-                var fallback = slot.Read(defaults);
-                slot.Write(
-                    settings,
-                    VeniceModelCatalog.IsSelectable(models, fallback) ? fallback : models[0].Id);
+                if (VeniceModelCatalog.IsSelectable(models, current))
+                {
+                    // Модель на месте, а вот назначенный ключ мог исчезнуть вместе с удалённой
+                    // строкой: возвращаем слот к ключу по умолчанию, а не к отказу в запросе.
+                    if (ModelSlots.ReadKey(settings, slot) is { } keyId && !KeyExists(keyId))
+                    {
+                        ModelSlots.WriteKey(settings, slot, null);
+                        changed = true;
+                    }
+
+                    continue;
+                }
+
+                // У Venice пустая строка в слоте чата означает «взять модель из
+                // appsettings.json», и обнулить слот достаточно. У остальных провайдеров такой
+                // модели нет — им слот заполняется явно, иначе каждый ход уходил бы к чужому
+                // идентификатору.
+                if (slot == ModelSlot.Chat && provider == LlmProvider.Venice)
+                {
+                    settings.ChatModelId = "";
+                    ModelSlots.WriteKey(settings, slot, null);
+                    changed = true;
+                    continue;
+                }
+
+                var replacement = ModelSlotDefaults.Resolve(provider, slot, models);
+                if (replacement.Length == 0)
+                {
+                    continue;
+                }
+
+                write(settings, replacement);
+                ModelSlots.WriteKey(settings, slot, null);
                 changed = true;
             }
 
@@ -1168,16 +1302,82 @@ namespace Amarin.UI
             }
         }
 
-        private static (Func<AppSettings, string> Read, Action<AppSettings, string> Write)[] ServiceModelSlots() =>
+        /// <summary>
+        /// Стоит ли эта модель у названного провайдера. Пустой слот — ничей: его лечит тот
+        /// провайдер, чьим ключом программа платит по умолчанию.
+        /// </summary>
+        private bool Belongs(string? modelId, LlmProvider provider)
+        {
+            if (string.IsNullOrWhiteSpace(modelId) || VeniceModelCatalog.IsAuto(modelId))
+            {
+                return _services is not null && _services.Keys.CurrentProvider == provider;
+            }
+
+            return ModelRef.Of(modelId) == provider;
+        }
+
+        private bool KeyExists(string keyId)
+        {
+            if (_services is null)
+            {
+                return true;
+            }
+
+            foreach (var key in _services.Keys.Keys)
+            {
+                if (key.Id.Equals(keyId, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Показывает в полях настроек то, что сейчас выбрано. Читает настройки, а не хранит
+        /// своё: выбор меняется и мимо этих полей — лечением каталога.
+        /// </summary>
+        private void ShowSettingsModelSelections()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            foreach (var (slot, field, _) in SettingsSlots())
+            {
+                var binding = ModelSlots.Binding(_services.Settings, slot);
+                field.SetSelected(binding.ModelId, binding.KeyId);
+            }
+
+            WebSearchField.SetSelected(
+                _services.Settings.WebSearchProvider,
+                _services.Settings.WebSearchKeyId,
+                _services.Settings.WebSearchEngine,
+                _services.Settings.WebSearchEngineMode);
+
+            ShowSynGuardModelName();
+        }
+
+        /// <summary>
+        /// Служебные слоты вместе с их полем и выбором размышления.
+        /// </summary>
+        /// <remarks>
+        /// Одной таблицей, а не цепочкой сравнений на каждый случай: слот, поле и размышление
+        /// всегда ходят втроём, и разъехались бы они молча — при добавлении десятого слота.
+        /// </remarks>
+        private (ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)[] SettingsSlots() =>
         [
-            (s => s.LiteModelId, (s, v) => s.LiteModelId = v),
-            (s => s.HeavyModelId, (s, v) => s.HeavyModelId = v),
-            (s => s.RouterModelId, (s, v) => s.RouterModelId = v),
-            (s => s.TitleModelId, (s, v) => s.TitleModelId = v),
-            (s => s.AgentFastModelId, (s, v) => s.AgentFastModelId = v),
-            (s => s.AgentLiteModelId, (s, v) => s.AgentLiteModelId = v),
-            (s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v),
-            (s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v)
+            (ModelSlot.Lite, LiteModelPicker, LiteReasoningPicker),
+            (ModelSlot.Heavy, HeavyModelPicker, HeavyReasoningPicker),
+            (ModelSlot.Router, RouterModelPicker, RouterReasoningPicker),
+            (ModelSlot.Title, TitleModelPicker, TitleReasoningPicker),
+            (ModelSlot.AgentFast, AgentFastModelPicker, AgentFastReasoningPicker),
+            (ModelSlot.AgentLite, AgentLiteModelPicker, AgentLiteReasoningPicker),
+            (ModelSlot.AgentHeavy, AgentHeavyModelPicker, AgentHeavyReasoningPicker),
+            (ModelSlot.SynGuard, SynGuardModelPicker, SynGuardReasoningPicker),
+            (ModelSlot.Summary, SummaryModelPicker, SummaryReasoningPicker)
         ];
 
         private ModelPickerField[] SettingsPickers() =>
@@ -1189,7 +1389,8 @@ namespace Amarin.UI
             AgentFastModelPicker,
             AgentLiteModelPicker,
             AgentHeavyModelPicker,
-            SynGuardModelPicker
+            SynGuardModelPicker,
+            SummaryModelPicker
         ];
 
         private ReasoningPicker[] SettingsReasoningPickers() =>
@@ -1201,7 +1402,8 @@ namespace Amarin.UI
             AgentFastReasoningPicker,
             AgentLiteReasoningPicker,
             AgentHeavyReasoningPicker,
-            SynGuardReasoningPicker
+            SynGuardReasoningPicker,
+            SummaryReasoningPicker
         ];
 
         private void SaveMainPromptButton_Click(object sender, RoutedEventArgs e)
@@ -1267,16 +1469,11 @@ namespace Amarin.UI
                 LoadUpdatesUi();
                 RefreshAllowedDomainsUi();
 
-                LiteModelPicker.SetSelected(settings.LiteModelId);
-                HeavyModelPicker.SetSelected(settings.HeavyModelId);
-                RouterModelPicker.SetSelected(settings.RouterModelId);
-                TitleModelPicker.SetSelected(settings.TitleModelId);
-                AgentFastModelPicker.SetSelected(settings.AgentFastModelId);
-            AgentLiteModelPicker.SetSelected(settings.AgentLiteModelId);
-                AgentHeavyModelPicker.SetSelected(settings.AgentHeavyModelId);
-                SynGuardModelPicker.SetSelected(settings.SynGuardModelId);
+                // Ключи до выбора моделей: без них правый столбец плашки пуст, а в подписи
+                // поля вместо имени ключа осталась бы пустота.
+                PushKeysToPickers();
+                ShowSettingsModelSelections();
                 SynGuardToggle.IsChecked = settings.SynGuardEnabled;
-                ShowSynGuardModelName();
                 BindSettingsReasoningPickers();
 
                 MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -2353,7 +2550,7 @@ namespace Amarin.UI
             }
 
             ModelBrand.Apply(this, modelId, _modelButtonLogo, _modelButtonLetter, _modelButtonLightning);
-            ChatModelPicker.SetSelected(modelId);
+            ChatModelPicker.SetSelected(modelId, CurrentKeyId());
             RefreshContextRing();
             UpdateReasoningPicker();
         }
@@ -2383,6 +2580,7 @@ namespace Amarin.UI
             BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
             BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
             BindSlot(SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
+            BindSlot(SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
         }
 
         private static void BindSlot(ReasoningPicker picker, string modelId, ReasoningSettings? slot)
@@ -2408,7 +2606,26 @@ namespace Amarin.UI
                 return _services.Settings.ChatModelId;
             }
 
-            return _services?.Options.Model ?? "claude-sonnet-5";
+            // Модель из appsettings.json — идентификатор Venice; на ключе другого провайдера
+            // её пришлось бы подбирать, иначе в шапке чата стояла бы модель, которой там нет.
+            return _services is null
+                ? "claude-sonnet-5"
+                : ModelSlotDefaults.LastResort(
+                    _services.Keys.CurrentProvider, ModelSlot.Chat, _services.Options.Model);
+        }
+
+        /// <summary>
+        /// Ключ, которым платит открытая переписка. Пусто — ключ по умолчанию для провайдера
+        /// её модели.
+        /// </summary>
+        private string? CurrentKeyId()
+        {
+            if (!string.IsNullOrWhiteSpace(_session.SelectedModelId))
+            {
+                return _session.SelectedKeyId;
+            }
+
+            return _services is null ? null : ModelSlots.ReadKey(_services.Settings, ModelSlot.Chat);
         }
 
         private void ChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)

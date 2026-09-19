@@ -96,9 +96,9 @@ internal sealed class AgentHost : IAgentHost
         // Потерять их значило бы промолчать в ответ на то, что человек написал.
         IReadOnlyList<string> carried = [];
 
-        // Один на весь прогон, а не на раунд: VeniceClient правит BaseAddress и заголовки, поэтому
-        // делить клиент агента нельзя — иначе деньги защитника слились бы с ценой самого агента и
-        // попали бы в итог дважды.
+        // Один на весь прогон, а не на раунд, и свой, а не общий с агентом: VeniceClient ведёт
+        // счёт потраченного у себя, и на общем клиенте деньги защитника слились бы с ценой
+        // самого агента — то есть попали бы в итог дважды.
         using var guardHttp = settings.SynGuardEnabled
             ? HttpClients.Create(HttpClients.ServiceTimeout)
             : null;
@@ -107,17 +107,23 @@ internal sealed class AgentHost : IAgentHost
         while (true)
         {
             var modelId = ResolveModel(currentComplexity, settings);
-            var options = CloneOptions(_parentOptions, modelId, ReasoningFor(currentComplexity, settings));
+            var options = CloneOptions(
+                _parentOptions,
+                modelId,
+                ReasoningFor(currentComplexity, settings),
+                ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
             record.ModelId = modelId;
             record.DisplayName = "Агент " + modelId;
             record.Status = AgentRunStatus.Running;
             notify();
 
-            // Own HttpClient: VeniceClient mutates BaseAddress/Authorization and cannot share
-            // a client that already sent requests (the chat engine's).
+            // Свой клиент на прогон: VeniceClient копит потраченное в своём RequestCost, и
+            // агент читает оттуда цену именно своей работы. На общем с чатом клиенте он забрал
+            // бы себе и деньги чужого хода.
             using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
             var venice = new VeniceClient(http, options);
-            var tools = AgentTools.Create(venice, _downloadHttp, options.Download);
+            var tools = AgentTools.Create(
+                venice, _downloadHttp, options.Download, () => ModelSlots.WebSearch(_settings()));
 
             var label = "Агент " + VeniceModelCatalog.GetDisplayName(modelId);
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);
@@ -228,10 +234,10 @@ internal sealed class AgentHost : IAgentHost
     /// размышлением, но с тремя исходами.
     /// </summary>
     /// <remarks>
-    /// Клиент свой и одноразовый: <see cref="VeniceClient"/> правит BaseAddress и Authorization и
-    /// не делится с тем, кто уже слал запросы. Считанные с него деньги в ход чата не попадают —
-    /// <c>VeniceTurnScope</c> здесь уже подавлен, — поэтому их забирает вызывающий и кладёт в
-    /// счёт агента.
+    /// Клиент свой и одноразовый: у <see cref="VeniceClient"/> свой счёт потраченного, и по
+    /// нему видно, во сколько обошёлся именно выбор уровня. Считанные с него деньги в ход чата
+    /// не попадают — <c>VeniceTurnScope</c> здесь уже подавлен, — поэтому их забирает
+    /// вызывающий и кладёт в счёт агента. Таймаут у служебного запроса тоже свой, короткий.
     /// </remarks>
     private async Task<AgentTierDecision> RouteAsync(
         string prompt,
@@ -245,7 +251,11 @@ internal sealed class AgentHost : IAgentHost
             : settings.RouterModelId.Trim();
 
         var reasoning = (settings.RouterReasoning ?? new ReasoningSettings()).ToChoice();
-        var options = CloneOptions(_parentOptions, routerId, settings.RouterReasoning ?? new ReasoningSettings());
+        var options = CloneOptions(
+            _parentOptions,
+            routerId,
+            settings.RouterReasoning ?? new ReasoningSettings(),
+            ModelSlots.ReadKey(settings, ModelSlot.Router));
 
         using var http = HttpClients.Create(HttpClients.ServiceTimeout);
         var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
@@ -279,7 +289,8 @@ internal sealed class AgentHost : IAgentHost
 
         var modelId = SynGuard.ResolveModel(settings);
         var reasoningSlot = settings.SynGuardReasoning ?? new ReasoningSettings();
-        var options = CloneOptions(_parentOptions, modelId, reasoningSlot);
+        var options = CloneOptions(
+            _parentOptions, modelId, reasoningSlot, ModelSlots.ReadKey(settings, ModelSlot.SynGuard));
         var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
         var checker = new SynGuardChecker(venice, modelId, reasoningSlot.ToChoice());
         return checker.CheckAsync;
@@ -289,6 +300,15 @@ internal sealed class AgentHost : IAgentHost
     /// Tier to model. A switch rather than the ternary it replaced: with three tiers, "not heavy"
     /// silently meant "lite", so a fast request would have quietly cost flagship money.
     /// </summary>
+    /// <summary>Слот, из которого этот ярус берёт модель, — а вместе с ней и ключ.</summary>
+    private static ModelSlot SlotFor(string complexity) =>
+        complexity.ToLowerInvariant() switch
+        {
+            "heavy" => ModelSlot.AgentHeavy,
+            "fast" => ModelSlot.AgentFast,
+            _ => ModelSlot.AgentLite
+        };
+
     private static string ResolveModel(string complexity, AppSettings settings)
     {
         var model = complexity.ToLowerInvariant() switch
@@ -313,11 +333,20 @@ internal sealed class AgentHost : IAgentHost
         return slot ?? new ReasoningSettings();
     }
 
-    private static AgentOptions CloneOptions(AgentOptions source, string model, ReasoningSettings reasoning) =>
+    /// <param name="keyId">
+    /// Ключ слота, чью модель этот прогон и берёт. Ставится здесь, в миг сборки копии: клиент
+    /// у прогона свой, и внутренние вызовы агента про ключи ничего не знают.
+    /// </param>
+    private static AgentOptions CloneOptions(
+        AgentOptions source,
+        string model,
+        ReasoningSettings reasoning,
+        string? keyId = null) =>
         new()
         {
             ApiKey = source.ApiKey,
             Keys = source.Keys,
+            Binding = source.Keys?.CredentialFor(model, keyId),
             SpendSink = source.SpendSink,
             BaseUrl = source.BaseUrl,
             Model = model,

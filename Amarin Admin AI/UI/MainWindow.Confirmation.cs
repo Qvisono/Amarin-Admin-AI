@@ -78,7 +78,10 @@ namespace Amarin.UI
                         _services.Venice,
                         _services.Settings.AgentFastModelId,
                         request.Info,
-                        cancellation.Token)
+                        cancellation.Token,
+                        _services.Keys.CredentialFor(
+                            _services.Settings.AgentFastModelId,
+                            ModelSlots.ReadKey(_services.Settings, ModelSlot.AgentFast)))
                     .ConfigureAwait(true);
             }
             catch (OperationCanceledException)

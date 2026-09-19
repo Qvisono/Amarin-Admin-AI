@@ -17,7 +17,7 @@ internal sealed class AppServices : IDisposable
     public required PromptLibrary Prompts { get; set; }
 
     /// <summary>Ключи Venice активного профиля.</summary>
-    public required VeniceKeyStore KeyStore { get; set; }
+    public required ApiKeyStore KeyStore { get; set; }
 
     /// <summary>
     /// Собственный журнал трат. Init-only: ссылка на него роздана всем копиям
@@ -29,7 +29,13 @@ internal sealed class AppServices : IDisposable
     /// Ключ, которым платят прямо сейчас. Общий на программу и на все копии
     /// <see cref="AgentOptions"/>, поэтому init-only: подменять надо содержимое, а не сам объект.
     /// </summary>
-    public required VeniceKeyProvider Keys { get; init; }
+    public required ApiKeyProvider Keys { get; init; }
+
+    /// <summary>
+    /// Остатки всех ключей. Одна книга на программу: её наполняют все клиенты, а складывает
+    /// сумму плашка в композере.
+    /// </summary>
+    public required BalanceBook Balances { get; init; }
 
     public required ProfileStore Profiles { get; init; }
 
@@ -56,6 +62,12 @@ internal sealed class AppServices : IDisposable
     /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
     public required string EnvironmentKey { get; init; }
 
+    /// <summary>
+    /// То же для OPENROUTER_API_KEY. Без <c>required</c>: пустая строка — обычное положение
+    /// дел, эту переменную заводят единицы.
+    /// </summary>
+    public string OpenRouterEnvironmentKey { get; init; } = "";
+
     public void ReloadSettings() => Settings = SettingsStore.Load();
 
     /// <summary>
@@ -75,9 +87,28 @@ internal sealed class AppServices : IDisposable
     /// </remarks>
     public void BackfillSpendLedger()
     {
+        // Отметка профиля, а не ключа: переписки общие, а какой ключ за них платил, в них не
+        // записано. Пока отметка стояла у ключа, каждый заведённый позже ключ забирал себе всю
+        // чужую историю, и графики двух ключей совпадали до цента.
+        if (Settings.SpendBackfilledAt is not null)
+        {
+            return;
+        }
+
         try
         {
+            // Переписки отдаются ленивой последовательностью, а не списком: их бывают сотни,
+            // и файл чата бывает в мегабайты — собрать их все в память разом дороже, чем
+            // прочитать диск второй раз в единственном за всю жизнь профиля проходе.
+            Ledger.RepairDuplicateBackfills(ReadSavedSessions());
             Ledger.Backfill(KeyStore.ActiveSecret(), ReadSavedSessions());
+
+            var stamp = DateTime.Now;
+            Settings.SpendBackfilledAt = stamp;
+
+            // Через Update, а не Save: зовут это из фонового потока, и записать сюда свою копию
+            // настроек целиком значило бы затереть то, что человек в это же время менял в окне.
+            SettingsStore.Update(settings => settings.SpendBackfilledAt = stamp);
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException)
@@ -102,9 +133,24 @@ internal sealed class AppServices : IDisposable
     /// Переносит выбор человека из хранилища в держатель ключа и заодно обновляет список
     /// секретов, которые вырезаются из отчёта об аварии.
     /// </summary>
+    /// <remarks>
+    /// Единственная точка, через которую проходят все три способа сменить выбранный ключ:
+    /// выбор кружком на странице, добавление (новый ключ сразу становится выбранным) и
+    /// удаление (выбранным становится следующий годный). Вместе с выбранным сюда же едет
+    /// и весь список: из него слоты моделей достают назначенные им ключи, и список обязан
+    /// смениться тем же присваиванием — иначе слот успел бы найти уже удалённый ключ.
+    /// <para>
+    /// Моделей эта смена больше не касается. До версии 1.23.0 активный ключ задавал провайдера
+    /// всем девяти слотам разом, и здесь же выбор прятался в тайник до возвращения прежнего
+    /// ключа. Теперь провайдер живёт в самом идентификаторе модели, у каждого слота свой,
+    /// и менять при смене ключа нечего.
+    /// </para>
+    /// </remarks>
     public void ApplyActiveKey()
     {
-        Keys.Use(KeyStore.ActiveSecret());
+        // Вместе с выбранным — ключ Venice: рисование картинок и чтение страниц умеет только он,
+        // и при выбранном ключе OpenRouter взять его больше неоткуда.
+        Keys.Use(KeyStore.ActiveCredential(), KeyStore.VeniceCredential(), KeyStore.Handles());
         CrashHandler.Secrets = KeyStore.AllSecrets();
     }
 
@@ -129,7 +175,7 @@ internal sealed class AppServices : IDisposable
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе
         // человек, сменивший профиль, продолжал бы платить чужим ключом.
-        KeyStore = new VeniceKeyStore(dataRoot, EnvironmentKey);
+        KeyStore = new ApiKeyStore(dataRoot, EnvironmentKey, OpenRouterEnvironmentKey);
         KeyStore.Load();
         Ledger.UseRoot(dataRoot);
         ApplyActiveKey();

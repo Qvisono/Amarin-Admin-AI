@@ -88,52 +88,122 @@ public sealed class VeniceClient
     /// </summary>
     public string ActiveModel => _options.Model;
 
+    /// <summary>Чей сервер отвечает прямо сейчас. Едет вместе с активным ключом.</summary>
+    public LlmProvider ActiveProvider => _options.Provider;
+
     /// <remarks>
-    /// BaseAddress ставится один раз на клиента и остаётся общим: клиент делят с генератором
-    /// заголовка и сводкой, адрес у них тот же. А вот <c>Authorization</c> здесь больше не
-    /// ставится — см. <see cref="Request"/>.
+    /// Ни <c>BaseAddress</c>, ни <c>Authorization</c> на клиента не садятся — и то и другое
+    /// ставит <see cref="Request"/> на сам запрос. Раньше адрес прилипал к клиенту через
+    /// <c>??=</c>, и сменить провайдера у живого клиента было нельзя: пересоздать его негде —
+    /// <c>AppServices.Venice</c> объявлен <c>required init</c>, а <c>ChatEngine._venice</c> —
+    /// <c>readonly</c>.
     /// </remarks>
     public VeniceClient(HttpClient http, AgentOptions options)
     {
         _http = http;
         _options = options;
         _primaryModel = options.Model;
-        _http.BaseAddress ??= new Uri(_options.BaseUrl.TrimEnd('/') + "/");
     }
 
     /// <summary>
-    /// Запрос к Venice вместе с ключом. Единственное место, где программа предъявляет ключ.
+    /// Запрос к провайдеру вместе с ключом. Единственное место, где программа предъявляет
+    /// ключ, — и единственное, где решается, чьему серверу он предъявлен.
     /// </summary>
     /// <remarks>
-    /// Заголовок садится на сам запрос, а не на <c>DefaultRequestHeaders</c> клиента. Так было
-    /// раньше, и выходило двумя бедами сразу: клиент нёс <c>Bearer</c> в любой запрос, куда бы
-    /// тот ни шёл (GitHub отвечал на чужой ключ 401, а сам ключ уезжал на посторонний сервер),
-    /// и присваивание через <c>??=</c> намертво запоминало первый ключ — сменить его у живого
-    /// клиента было нельзя. Правило «для нового адресата — свой клиент через
-    /// <see cref="HttpClients.Create"/>» остаётся в силе: у клиентов разные таймауты и
-    /// представление.
+    /// И заголовок, и адрес садятся на сам запрос, а не на клиента. Заголовок — потому что на
+    /// <c>DefaultRequestHeaders</c> выходило двумя бедами сразу: клиент нёс <c>Bearer</c> в
+    /// любой запрос, куда бы тот ни шёл (GitHub отвечал на чужой ключ 401, а сам ключ уезжал
+    /// на посторонний сервер), и присваивание через <c>??=</c> намертво запоминало первый
+    /// ключ. Адрес — по той же причине: провайдер меняется вместе с активным ключом, и
+    /// прилипший к клиенту <c>BaseAddress</c> отправил бы модели OpenRouter в Venice.
+    /// Правило «для нового адресата — свой клиент через <see cref="HttpClients.Create"/>»
+    /// остаётся в силе: у клиентов разные таймауты и представление.
     /// </remarks>
-    /// <param name="apiKeyOverride">
-    /// Чужой ключ — когда страница настроек спрашивает баланс и траты ключа, который сейчас
-    /// не активен. Пусто — берётся активный.
+    /// <param name="credentialOverride">
+    /// Чужие учётные данные — когда страница настроек спрашивает баланс ключа, который сейчас
+    /// не активен, или когда рисование картинок ищет ключ Venice при активном ключе OpenRouter.
+    /// Пусто — берутся активные.
     /// </param>
-    private HttpRequestMessage Request(HttpMethod method, string path, string? apiKeyOverride = null)
+    private HttpRequestMessage Request(
+        HttpMethod method,
+        string path,
+        ApiCredential? credentialOverride = null)
     {
-        var request = new HttpRequestMessage(method, path)
+        var credential = credentialOverride ?? _options.Credential;
+
+        var request = new HttpRequestMessage(method, EndpointFor(credential.Provider, path))
         {
             Version = HttpVersion.Version20,
             VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
 
-        var key = string.IsNullOrWhiteSpace(apiKeyOverride) ? _options.ApiKey : apiKeyOverride;
-        if (!string.IsNullOrWhiteSpace(key))
+        if (!string.IsNullOrWhiteSpace(credential.Secret))
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential.Secret);
         }
 
         return request;
     }
 
+    /// <summary>Учётные данные запроса: свои у слота либо выбранный ключ программы.</summary>
+    private ApiCredential Resolve(ApiCredential? credential) => credential ?? _options.Credential;
+
+    /// <summary>
+    /// Тот ли это ключ, что выбран на странице «Key &amp; Info».
+    /// </summary>
+    /// <remarks>
+    /// Остаток на плашке в композере принадлежит выбранному ключу. Слоты моделей платят каждый
+    /// своим, и заголовок чата, оплаченный вторым ключом, поставил бы человеку на плашку чужую
+    /// цифру — а он решил бы, что деньги кончаются не там, где на самом деле. Держателя ключей
+    /// нет вовсе — клиент собран одной строкой в тесте, и делить нечего.
+    /// </remarks>
+    private bool IsSelectedKey(ApiCredential credential) =>
+        _options.Keys is not { } keys || keys.Credential.Equals(credential);
+
+    /// <summary>
+    /// Отказ, который читает модель: у провайдера этой модели нет ни одного ключа.
+    /// </summary>
+    /// <remarks>
+    /// Без этой проверки запрос уходит без заголовка <c>Authorization</c> и возвращается
+    /// четырёхсоткой чужого сервера — строкой, из которой человеку не понять, что он всего лишь
+    /// выбрал модель провайдера, ключ которого забыл добавить.
+    /// </remarks>
+    private static ApiCredential RequireKey(ApiCredential credential, string model)
+    {
+        if (credential.IsEmpty)
+        {
+            var name = ProviderSpec.For(credential.Provider).Name;
+            throw new VeniceApiException(
+                $"Модель {model} работает через {name}, а ключа {name} в программе нет. " +
+                $"Скажи пользователю добавить ключ {name} на странице настроек «Key & Info». " +
+                "Не повторяй этот вызов.");
+        }
+
+        return credential;
+    }
+
+    /// <summary>Уровень размышления, если он из числа общепринятых. Иначе — ничего.</summary>
+    private static string? Common(string? effort) =>
+        ReasoningPolicy.CommonEfforts.FirstOrDefault(
+            known => known.Equals(effort?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Абсолютный адрес: база провайдера плюс путь запроса.</summary>
+    private Uri EndpointFor(LlmProvider provider, string path)
+    {
+        // Переопределение из appsettings.json касается только Venice; у остальных
+        // провайдеров переопределять нечего, и адрес берётся из их описания.
+        var baseUrl = provider == LlmProvider.Venice
+            ? _options.BaseUrl
+            : ProviderSpec.For(provider).BaseUrl;
+
+        return new Uri(baseUrl.TrimEnd('/') + "/" + path.TrimStart('/'));
+    }
+
+    /// <param name="credential">
+    /// Ключ этого слота моделей. Пусто — платим выбранным ключом программы. Общий клиент
+    /// обслуживает слоты разных провайдеров сразу, и ключ обязан ехать на запросе, а не жить
+    /// полем клиента: два хода перетоптали бы поле друг другу.
+    /// </param>
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
         string model,
         IReadOnlyList<ChatMessage> messages,
@@ -141,7 +211,8 @@ public sealed class VeniceClient
         string? toolChoice,
         VeniceParameters veniceParameters,
         CancellationToken cancellationToken = default,
-        ReasoningChoice? reasoning = null) =>
+        ReasoningChoice? reasoning = null,
+        ApiCredential? credential = null) =>
         CreateChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
@@ -150,33 +221,47 @@ public sealed class VeniceClient
             ToolChoice = toolChoice,
             VeniceParameters = veniceParameters,
             ReasoningChoice = reasoning
-        }, prepareMessages: true, cancellationToken);
+        }, prepareMessages: true, credential, cancellationToken);
 
     public Task<ChatCompletionResponse> CreateChatCompletionAsync(
         ChatCompletionRequest request,
-        CancellationToken cancellationToken = default) =>
-        CreateChatCompletionAsync(request, prepareMessages: false, cancellationToken);
+        CancellationToken cancellationToken = default,
+        ApiCredential? credential = null) =>
+        CreateChatCompletionAsync(request, prepareMessages: false, credential, cancellationToken);
 
     private async Task<ChatCompletionResponse> CreateChatCompletionAsync(
         ChatCompletionRequest request,
         bool prepareMessages,
+        ApiCredential? credential,
         CancellationToken cancellationToken)
     {
         // Метод берёт модель параметром и кладёт её в запрос — значит и перебор обязан начинаться
         // с неё. Раньше он стартовал с поля клиента, то есть с модели, которую никто не просил.
         var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
+        var key = RequireKey(Resolve(credential), startingModel);
         VeniceApiException? lastOverload = null;
 
-        foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, _primaryModel))
+        // Провайдер цепочки — из ключа запроса, а не из клиента: замена модели обязана остаться
+        // на сервере, которому этот ключ предъявляют.
+        foreach (var model in VeniceModelFallback.GetModelsFrom(
+                     startingModel, _primaryModel, key.Provider))
         {
             try
             {
-                var result = await SendChatCompletionAsync(request, model, prepareMessages, cancellationToken)
+                var result = await SendChatCompletionAsync(
+                        request, model, prepareMessages, key, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (!model.Equals(startingModel, StringComparison.OrdinalIgnoreCase))
                 {
-                    _options.Model = model;
+                    // Модель программы сдвигает только запрос без своего ключа. У запроса со
+                    // своим ключом модель принадлежит слоту, и общая подмена увела бы слот
+                    // к чужому провайдеру.
+                    if (credential is null)
+                    {
+                        _options.Model = model;
+                    }
+
                     ModelFallback?.Invoke(startingModel, model);
                 }
 
@@ -206,7 +291,8 @@ public sealed class VeniceClient
         VeniceParameters veniceParameters,
         Action<string>? onText,
         CancellationToken cancellationToken = default,
-        ReasoningChoice? reasoning = null) =>
+        ReasoningChoice? reasoning = null,
+        ApiCredential? credential = null) =>
         StreamChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
@@ -216,24 +302,27 @@ public sealed class VeniceClient
             Stream = true,
             VeniceParameters = veniceParameters,
             ReasoningChoice = reasoning
-        }, primaryModel, prepareMessages: true, onText, cancellationToken);
+        }, primaryModel, prepareMessages: true, onText, credential, cancellationToken);
 
     private async Task<StreamedChatCompletion> StreamChatCompletionAsync(
         ChatCompletionRequest request,
         string primaryModel,
         bool prepareMessages,
         Action<string>? onText,
+        ApiCredential? credential,
         CancellationToken cancellationToken)
     {
         var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
+        var key = RequireKey(Resolve(credential), startingModel);
         VeniceApiException? lastOverload = null;
 
-        foreach (var model in VeniceModelFallback.GetModelsFrom(startingModel, primaryModel))
+        foreach (var model in VeniceModelFallback.GetModelsFrom(
+                     startingModel, primaryModel, key.Provider))
         {
             try
             {
                 var result = await SendChatCompletionStreamingAsync(
-                        request, model, prepareMessages, onText, cancellationToken)
+                        request, model, prepareMessages, onText, key, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (!model.Equals(startingModel, StringComparison.OrdinalIgnoreCase))
@@ -259,10 +348,12 @@ public sealed class VeniceClient
         ChatCompletionRequest request,
         string model,
         bool prepareMessages,
+        ApiCredential credential,
         CancellationToken cancellationToken)
     {
         var payload = BuildPayload(request, model, prepareMessages, stream: false);
-        using var response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
+        using var response = await PostCompletionAsync(payload, model, credential, cancellationToken)
+            .ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -276,7 +367,7 @@ public sealed class VeniceClient
             if (ShouldRetryToolsEffortConflict(payload, model, error))
             {
                 payload = WithReasoningEffort(payload, ReasoningPolicy.None);
-                using var retry = await PostCompletionAsync(payload, model, cancellationToken)
+                using var retry = await PostCompletionAsync(payload, model, credential, cancellationToken)
                     .ConfigureAwait(false);
                 body = await retry.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 if (!retry.IsSuccessStatusCode)
@@ -285,16 +376,16 @@ public sealed class VeniceClient
                         $"Venice API error ({(int)retry.StatusCode}): {ExtractErrorMessage(body)}");
                 }
 
-                return ReadCompletion(body, model);
+                return ReadCompletion(body, model, credential);
             }
 
             throw new VeniceApiException($"Venice API error ({(int)response.StatusCode}): {error}");
         }
 
-        return ReadCompletion(body, model);
+        return ReadCompletion(body, model, credential);
     }
 
-    private ChatCompletionResponse ReadCompletion(string body, string model)
+    private ChatCompletionResponse ReadCompletion(string body, string model, ApiCredential credential)
     {
         ChatCompletionResponse result;
         try
@@ -316,7 +407,7 @@ public sealed class VeniceClient
             throw new VeniceApiException(result.Error.Message ?? "Unknown Venice API error.");
         }
 
-        RecordCost(result, ChargeSku(model));
+        RecordCost(result, ChargeSku(model), credential);
         return result;
     }
 
@@ -325,10 +416,12 @@ public sealed class VeniceClient
         string model,
         bool prepareMessages,
         Action<string>? onText,
+        ApiCredential credential,
         CancellationToken cancellationToken)
     {
         var payload = BuildPayload(request, model, prepareMessages, stream: true);
-        var response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
+        var response = await PostCompletionAsync(payload, model, credential, cancellationToken)
+            .ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -346,7 +439,8 @@ public sealed class VeniceClient
             }
 
             payload = WithReasoningEffort(payload, ReasoningPolicy.None);
-            response = await PostCompletionAsync(payload, model, cancellationToken).ConfigureAwait(false);
+            response = await PostCompletionAsync(payload, model, credential, cancellationToken)
+                .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 var retryBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -419,7 +513,7 @@ public sealed class VeniceClient
 
             if (accumulator.Cost.HasData)
             {
-                AddCost(accumulator.Cost, ChargeSku(model));
+                AddCost(accumulator.Cost, ChargeSku(model), credential);
             }
 
             return new StreamedChatCompletion
@@ -441,6 +535,7 @@ public sealed class VeniceClient
     private async Task<HttpResponseMessage> PostCompletionAsync(
         ChatCompletionRequest payload,
         string model,
+        ApiCredential credential,
         CancellationToken cancellationToken)
     {
         var serializeWatch = Stopwatch.StartNew();
@@ -449,7 +544,7 @@ public sealed class VeniceClient
 
         var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        var httpRequest = Request(HttpMethod.Post, "chat/completions");
+        var httpRequest = Request(HttpMethod.Post, "chat/completions", credential);
         httpRequest.Content = content;
 
         var httpWatch = Stopwatch.StartNew();
@@ -458,9 +553,14 @@ public sealed class VeniceClient
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken)
             .ConfigureAwait(false);
-        UpdateBalanceFromHeaders(response);
+
+        UpdateBalanceFromHeaders(response, credential);
+
+        // Провайдер в строке — единственная подсказка, когда переключение пошло не так:
+        // по одной модели и статусу не видно, чьему серверу запрос вообще уехал.
         PerfLog.Write(
-            $"venice serialize_ms={serializeMs} http_ms={httpWatch.ElapsedMilliseconds} status={(int)response.StatusCode} model={model}");
+            $"llm provider={credential.Provider} serialize_ms={serializeMs} " +
+            $"http_ms={httpWatch.ElapsedMilliseconds} status={(int)response.StatusCode} model={model}");
         return response;
     }
 
@@ -516,6 +616,8 @@ public sealed class VeniceClient
             ReasoningEffort = effort,
             Reasoning = request.Reasoning,
             VeniceParameters = request.VeniceParameters,
+            Usage = request.Usage,
+            Plugins = request.Plugins,
             ReasoningChoice = request.ReasoningChoice
         };
 
@@ -525,7 +627,19 @@ public sealed class VeniceClient
         bool prepareMessages,
         bool stream)
     {
-        var venice = request.VeniceParameters;
+        var provider = ModelRef.Of(model, _options.Provider);
+        return provider == LlmProvider.Venice
+            ? BuildVenicePayload(request, model, prepareMessages, stream)
+            : BuildOpenRouterPayload(request, model, prepareMessages, stream);
+    }
+
+    private ChatCompletionRequest BuildVenicePayload(
+        ChatCompletionRequest request,
+        string model,
+        bool prepareMessages,
+        bool stream)
+    {
+        var venice = request.VeniceParameters ?? new VeniceParameters();
         var effort = request.ReasoningEffort;
         var reasoning = request.Reasoning;
 
@@ -568,17 +682,171 @@ public sealed class VeniceClient
         };
     }
 
+    /// <summary>
+    /// Тело запроса для OpenRouter.
+    /// </summary>
+    /// <remarks>
+    /// Отличий от Venice три, и все обязательные. Надстроек <c>venice_parameters</c> здесь нет
+    /// вовсе — чужому серверу они незнакомы. Размышление уходит вложенным объектом
+    /// <c>reasoning</c>, а не верхним <c>reasoning_effort</c>: так его описывает OpenRouter, и
+    /// так же его понимают все модели за ним. Выключенное размышление — отсутствие поля, а не
+    /// <c>exclude: true</c>: последнее означает «думай, но не показывай», и токены за это
+    /// списывают, тогда как переключатель в программе задуман как экономия.
+    /// <para>
+    /// Про запрет усилия рядом с инструментами здесь не спрашиваем: это свойство Venice, а не
+    /// моделей, и разбор имени модели ошибся бы на тех же именах у другого провайдера.
+    /// </para>
+    /// </remarks>
+    private ChatCompletionRequest BuildOpenRouterPayload(
+        ChatCompletionRequest request,
+        string model,
+        bool prepareMessages,
+        bool stream)
+    {
+        var info = ResolveModelInfo?.Invoke(model);
+        var choice = request.ReasoningChoice;
+        ReasoningConfig? reasoning = null;
+
+        if (choice is { DisableThinking: false } thinking &&
+            info?.ModelSpec?.Capabilities?.SupportsReasoning != false)
+        {
+            // Каталог мог ещё не доехать — тогда обрезать уровень не по чему, и просьба
+            // человека уходит как есть: low/medium/high OpenRouter принимает у всех.
+            // Уровня нет вовсе — просим размышление без уровня, а не пустой объект: пустой
+            // означал бы «ничего не просили», и включённое размышление молча пропало бы.
+            var effort = ReasoningPolicy.ClampEffort(thinking.Effort, info, withTools: true)
+                         ?? Common(thinking.Effort);
+
+            reasoning = effort is null
+                ? new ReasoningConfig { Enabled = true }
+                : new ReasoningConfig { Effort = effort };
+        }
+        else if (choice is null && request.Reasoning is { } asked)
+        {
+            reasoning = asked;
+        }
+
+        return new ChatCompletionRequest
+        {
+            // Приставка провайдера — наша выдумка для настроек и переписок; на провод уходит
+            // идентификатор, каким его знает сам OpenRouter.
+            Model = ModelRef.Bare(model),
+            Messages = prepareMessages ? ApiContextLimiter.Prepare(request.Messages) : request.Messages,
+            Tools = request.Tools,
+            ToolChoice = request.ToolChoice,
+            Temperature = request.Temperature,
+            Stream = stream,
+            StreamOptions = stream ? new StreamOptions() : null,
+            Reasoning = reasoning,
+            Usage = new UsageAccounting(),
+            Plugins = request.Plugins
+        };
+    }
+
+    /// <summary>
+    /// Читает ответ на GET, попутно обновляя остаток из заголовков. Отказ — исключение
+    /// с именем провайдера в тексте: его увидит человек, и «Venice API error» на ключе
+    /// OpenRouter сбил бы его с толку.
+    /// </summary>
+    private async Task<string> GetJsonAsync(
+        string path,
+        ApiCredential credential,
+        bool trackBalance,
+        CancellationToken cancellationToken)
+    {
+        using var httpRequest = Request(HttpMethod.Get, path, credential);
+        using var response = await _http.SendAsync(
+                httpRequest,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (trackBalance)
+        {
+            UpdateBalanceFromHeaders(response, credential);
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new VeniceApiException(
+                $"{ProviderSpec.For(credential.Provider).Name} API error " +
+                $"({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+        }
+
+        return body;
+    }
+
+    /// <summary>
+    /// Остаток по ключу OpenRouter в том же виде, в каком его отдаёт Venice.
+    /// </summary>
+    /// <remarks>
+    /// <c>GET /key</c> и проверяет ключ (неверный отвечает 401), и отдаёт остаток до потолка
+    /// трат, если человек его задал. Потолка нет — остаток приходится досчитывать из
+    /// <c>GET /credits</c>: вторым запросом, зато только тогда, когда первый не ответил.
+    /// </remarks>
+    private async Task<VeniceRateLimitsData> GetOpenRouterBalanceAsync(
+        ApiCredential credential,
+        CancellationToken cancellationToken)
+    {
+        var keyBody = await GetJsonAsync("key", credential, trackBalance: false, cancellationToken)
+            .ConfigureAwait(false);
+
+        OpenRouterKeyData? key;
+        try
+        {
+            key = JsonSerializer.Deserialize(keyBody, VeniceJsonContext.Default.OpenRouterKeyResponse)?.Data;
+        }
+        catch (JsonException ex)
+        {
+            throw new VeniceApiException(
+                $"OpenRouter returned non-JSON key response ({ex.Message}). Body: {Preview(keyBody)}");
+        }
+
+        if (key?.LimitRemaining is not null)
+        {
+            return OpenRouterMapper.ToRateLimits(key, credits: null);
+        }
+
+        OpenRouterCreditsData? credits = null;
+        try
+        {
+            var creditsBody = await GetJsonAsync("credits", credential, trackBalance: false, cancellationToken)
+                .ConfigureAwait(false);
+            credits = JsonSerializer
+                .Deserialize(creditsBody, VeniceJsonContext.Default.OpenRouterCreditsResponse)?.Data;
+        }
+        catch (Exception exception) when (exception is VeniceApiException or JsonException)
+        {
+            // Ключ уже проверен и годен — не показать остаток хуже, чем объявить ключ плохим.
+        }
+
+        return OpenRouterMapper.ToRateLimits(key, credits);
+    }
+
+    /// <param name="credentialOverride">
+    /// Ключ провайдера, чей каталог нужен. Каталогов теперь несколько — по одному на провайдера,
+    /// у которого есть ключ, — потому что слоты моделей выбираются из всех сразу.
+    /// </param>
     public async Task<IReadOnlyList<VeniceModelInfo>> ListTextModelsAsync(
+        ApiCredential? credentialOverride = null,
         CancellationToken cancellationToken = default)
     {
-        using var httpRequest = Request(HttpMethod.Get, "models?type=text");
+        var credential = Resolve(credentialOverride);
+        if (credential.Provider != LlmProvider.Venice)
+        {
+            return await ListOpenRouterModelsAsync(credential, cancellationToken).ConfigureAwait(false);
+        }
+
+        using var httpRequest = Request(HttpMethod.Get, "models?type=text", credential);
 
         using var response = await _http.SendAsync(
                 httpRequest,
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken)
             .ConfigureAwait(false);
-        UpdateBalanceFromHeaders(response);
+
+        UpdateBalanceFromHeaders(response, credential);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -606,29 +874,66 @@ public sealed class VeniceClient
     }
 
     /// <summary>
+    /// Каталог OpenRouter, приведённый к тому же виду, что и каталог Venice.
+    /// </summary>
+    /// <remarks>
+    /// Отбор по <c>supported_parameters=tools</c> делает сам OpenRouter: без вызова
+    /// инструментов модель этой программе не нужна вовсе, а список без отбора — под четыре
+    /// сотни строк, которые пришлось бы качать и разбирать целиком на каждое обновление.
+    /// </remarks>
+    private async Task<IReadOnlyList<VeniceModelInfo>> ListOpenRouterModelsAsync(
+        ApiCredential credential,
+        CancellationToken cancellationToken)
+    {
+        var body = await GetJsonAsync(
+                "models?supported_parameters=tools", credential, trackBalance: false, cancellationToken)
+            .ConfigureAwait(false);
+
+        try
+        {
+            var result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterModelsResponse)
+                ?? throw new VeniceApiException("Empty models response from OpenRouter.");
+            return OpenRouterMapper.ToModels(result);
+        }
+        catch (JsonException ex)
+        {
+            throw new VeniceApiException(
+                $"OpenRouter returned non-JSON models response ({ex.Message}). Body: {Preview(body)}");
+        }
+    }
+
+    /// <summary>
     /// Остаток и лимиты ключа. Единственный способ узнать остаток, не потратив ни цента:
     /// заголовки ответа его несут только после настоящего запроса к модели.
     /// </summary>
-    /// <param name="apiKeyOverride">
+    /// <param name="credentialOverride">
     /// Чужой ключ — страница настроек показывает остаток и по тем ключам, что сейчас не активны.
-    /// Второй <see cref="HttpClient"/> для этого не нужен: ключ едет на самом запросе.
+    /// Второй <see cref="HttpClient"/> для этого не нужен: и ключ, и адрес едут на самом запросе.
     /// </param>
     public async Task<VeniceRateLimitsData> GetRateLimitsAsync(
-        string? apiKeyOverride = null,
+        ApiCredential? credentialOverride = null,
         CancellationToken cancellationToken = default)
     {
-        using var httpRequest = Request(HttpMethod.Get, "api_keys/rate_limits", apiKeyOverride);
+        var credential = credentialOverride ?? _options.Credential;
+        if (credential.Provider != LlmProvider.Venice)
+        {
+            var open = await GetOpenRouterBalanceAsync(credential, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Единственный источник остатка у OpenRouter: заголовков с ним он не шлёт, и без
+            // этой строки его ключи не попадали бы в книгу остатков вовсе.
+            NoteBalance(credential, open);
+            return open;
+        }
+
+        using var httpRequest = Request(HttpMethod.Get, "api_keys/rate_limits", credential);
         using var response = await _http.SendAsync(
                 httpRequest,
                 HttpCompletionOption.ResponseHeadersRead,
                 cancellationToken)
             .ConfigureAwait(false);
 
-        // Только для активного ключа: чужой остаток на плашку ставить нельзя.
-        if (string.IsNullOrWhiteSpace(apiKeyOverride))
-        {
-            UpdateBalanceFromHeaders(response);
-        }
+        UpdateBalanceFromHeaders(response, credential);
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
@@ -640,8 +945,10 @@ public sealed class VeniceClient
 
         try
         {
-            return JsonSerializer.Deserialize(body, VeniceJsonContext.Default.VeniceRateLimitsResponse)?.Data
+            var data = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.VeniceRateLimitsResponse)?.Data
                 ?? throw new VeniceApiException("Empty rate limits response from Venice API.");
+            NoteBalance(credential, data);
+            return data;
         }
         catch (JsonException ex)
         {
@@ -668,9 +975,19 @@ public sealed class VeniceClient
         DateTimeOffset? toUtc = null,
         string? cursor = null,
         int pageSize = 1000,
-        string? apiKeyOverride = null,
+        ApiCredential? credentialOverride = null,
         CancellationToken cancellationToken = default)
     {
+        var credential = credentialOverride ?? _options.Credential;
+        if (credential.Provider != LlmProvider.Venice)
+        {
+            // Не поломка, а свойство провайдера: журнала списаний у него нет вовсе. Тем же
+            // исключением, что и отказ Venice без админ-ключа, — вызывающий на оба отвечает
+            // одинаково, переходом на собственный журнал программы.
+            throw new VeniceAdminKeyRequiredException(
+                $"{ProviderSpec.For(credential.Provider).Name} не отдаёт журнал списаний.");
+        }
+
         var query = new List<string> { "pageSize=" + Math.Clamp(pageSize, 10, 1000) };
         if (!string.IsNullOrWhiteSpace(cursor))
         {
@@ -690,7 +1007,7 @@ public sealed class VeniceClient
         }
 
         using var httpRequest = Request(
-            HttpMethod.Get, "billing/usage-history?" + string.Join("&", query), apiKeyOverride);
+            HttpMethod.Get, "billing/usage-history?" + string.Join("&", query), credential);
         using var response = await _http.SendAsync(
                 httpRequest,
                 HttpCompletionOption.ResponseHeadersRead,
@@ -741,11 +1058,20 @@ public sealed class VeniceClient
         }
     }
 
-    private void RecordCost(ChatCompletionResponse result, string sku)
+    private void RecordCost(ChatCompletionResponse result, string sku, ApiCredential credential)
     {
         if (result.Cost is not null)
         {
-            AddCost(result.Cost.ToCost(), sku);
+            AddCost(result.Cost.ToCost(), sku, credential);
+            return;
+        }
+
+        // Своего поля цены у OpenRouter нет — он кладёт её в usage, и только если просили
+        // (см. UsageAccounting). Без этой ветки деньги за ответ не попали бы в журнал трат
+        // вовсе, и график по ключу OpenRouter остался бы пустым.
+        if (result.Usage?.Cost is { } usd and > 0m)
+        {
+            AddCost(new VeniceCost { Usd = usd, HasData = true }, sku, credential);
         }
     }
 
@@ -758,7 +1084,13 @@ public sealed class VeniceClient
     /// За что списали: идентификатор модели либо служебная статья вроде <c>web-search-request</c>.
     /// Из этих пометок складывается разбивка «на что ушло» на странице «Key &amp; Info».
     /// </param>
-    private void AddCost(VeniceCost cost, string sku)
+    /// <param name="credential">
+    /// Ключ, которым за это заплатили. Именно он, а не выбранный ключ программы: слоты моделей
+    /// платят разными ключами, а рисование картинок и чтение страниц — всегда ключом Venice.
+    /// Прежде списание записывалось на выбранный ключ, и деньги ключа Venice за картинку
+    /// оказывались в журнале ключа OpenRouter — график врал у обоих.
+    /// </param>
+    private void AddCost(VeniceCost cost, string sku, ApiCredential credential)
     {
         lock (_costGate)
         {
@@ -767,7 +1099,7 @@ public sealed class VeniceClient
 
         // Собственный журнал трат: Venice свой отдаёт только админ-ключу, а работают
         // обычным. Здесь же, в единственной точке учёта, видны все деньги программы сразу.
-        _options.SpendSink?.Invoke(_options.ApiKey, cost, sku);
+        _options.SpendSink?.Invoke(credential.Secret, cost, sku);
 
         // Свой счёт у каждого хода чата: один общий RequestCost на несколько одновременных
         // ходов не делится. Сам он остаётся — им пользуется агент, у которого клиент на прогон.
@@ -775,20 +1107,47 @@ public sealed class VeniceClient
         AgentRunScope.Charge(cost);
     }
 
+    /// <summary>
+    /// Ключ Venice для того, что умеет только Venice. Пустой — значит такого ключа в программе
+    /// нет вовсе.
+    /// </summary>
+    private ApiCredential VeniceCredential() => _options.VeniceCredential;
+
+    /// <summary>
+    /// Отказ, который читает модель.
+    /// </summary>
+    /// <remarks>
+    /// Пишем ей, что делать дальше, а не только что пошло не так: иначе она повторяет вызов
+    /// раунд за раундом, пока не кончатся попытки, и человек платит за каждый.
+    /// </remarks>
+    private static ApiCredential RequireVenice(ApiCredential credential, string what)
+    {
+        if (credential.IsEmpty)
+        {
+            throw new VeniceApiException(
+                $"{what} работает только через Venice, а ключа Venice в программе нет. " +
+                "Скажи пользователю добавить ключ Venice на странице настроек «Key & Info». " +
+                "Не повторяй этот вызов.");
+        }
+
+        return credential;
+    }
+
     public async Task<string> ScrapeUrlAsync(string url, CancellationToken cancellationToken = default)
     {
+        var credential = RequireVenice(VeniceCredential(), "Чтение страниц");
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
             new ScrapeUrlRequest { Url = url },
             VeniceJsonContext.Default.ScrapeUrlRequest);
         using var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = Request(HttpMethod.Post, "augment/scrape");
+        using var httpRequest = Request(HttpMethod.Post, "augment/scrape", credential);
         httpRequest.Content = content;
         using var response = await _http.SendAsync(
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken).ConfigureAwait(false);
-        UpdateBalanceFromHeaders(response);
+        UpdateBalanceFromHeaders(response, credential);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -803,7 +1162,7 @@ public sealed class VeniceClient
             ? contentProp.GetString()
             : null;
 
-        AddCost(new VeniceCost { Usd = 0.01m, HasData = true }, VeniceSku.Scrape);
+        AddCost(new VeniceCost { Usd = 0.01m, HasData = true }, VeniceSku.Scrape, credential);
         return string.IsNullOrWhiteSpace(markdown) ? "Страница пуста или контент не извлечён." : markdown;
     }
 
@@ -843,6 +1202,7 @@ public sealed class VeniceClient
             throw new ArgumentException("Prompt is required.", nameof(prompt));
         }
 
+        var credential = RequireVenice(VeniceCredential(), "Рисование картинок");
         var resolved = string.IsNullOrWhiteSpace(model) ? DefaultImageModel : model;
         var byRatio = UsesAspectRatio(resolved);
 
@@ -860,7 +1220,7 @@ public sealed class VeniceClient
 
         using var content = new ByteArrayContent(bytes);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
-        using var httpRequest = Request(HttpMethod.Post, "image/generate");
+        using var httpRequest = Request(HttpMethod.Post, "image/generate", credential);
         httpRequest.Content = content;
 
         var balanceBefore = LastBalance?.Usd;
@@ -869,7 +1229,7 @@ public sealed class VeniceClient
             httpRequest,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken).ConfigureAwait(false);
-        UpdateBalanceFromHeaders(response);
+        UpdateBalanceFromHeaders(response, credential);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -885,7 +1245,10 @@ public sealed class VeniceClient
             throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
         }
 
-        AddCost(PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd), resolved + "-image");
+        AddCost(
+            PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd),
+            resolved + "-image",
+            credential);
         return image;
     }
 
@@ -934,13 +1297,75 @@ public sealed class VeniceClient
         };
     }
 
-    public async Task<string> SearchWebAsync(string query, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Чем платить за поиск в сети.
+    /// </summary>
+    /// <remarks>
+    /// Поиск оплачивается токенами модели, которая его ведёт, — значит и ключом той же модели.
+    /// Порядок такой:
+    /// <list type="number">
+    /// <item>ключ хода чата — он снят при его начале и съезжает вместе с моделью;</item>
+    /// <item>ключ самой копии настроек, если он того же провайдера: у прогона агента ход
+    /// подавлен (<c>VeniceTurnScope.Suppress</c>), и это единственное место, где виден ключ,
+    /// назначенный слоту агента;</item>
+    /// <item>ключ провайдера по умолчанию — когда клиент платит другому серверу.</item>
+    /// </list>
+    /// Без второго шага поиск внутри агента уходил с ключом провайдера по умолчанию, и его
+    /// деньги попадали в журнал чужого ключа.
+    /// </remarks>
+    private ApiCredential SearchCredential(VeniceTurnContext? turn, LlmProvider provider)
+    {
+        if (turn?.Credential is { IsEmpty: false } fromTurn && fromTurn.Provider == provider)
+        {
+            return fromTurn;
+        }
+
+        var own = _options.Credential;
+        if (own.Provider == provider && !own.IsEmpty)
+        {
+            return own;
+        }
+
+        return _options.Keys?.DefaultFor(provider) ?? own;
+    }
+
+    /// <param name="plan">
+    /// Что человек выбрал для поиска: закреплённый провайдер с ключом (модель под него уже
+    /// подобрана в <see cref="ModelSlots.WebSearch"/>) и движок OpenRouter. Пусто — искать
+    /// моделью хода умолчательным движком, как было до появления настройки.
+    /// </param>
+    public async Task<string> SearchWebAsync(
+        string query,
+        WebSearchPlan? plan = null,
+        CancellationToken cancellationToken = default)
     {
         // Поиск раньше «случайно» попадал на модель чата: её только что записал SetActiveModel.
         // Теперь поле клиента не дрейфует, поэтому модель хода берём из его собственного контекста.
-        var model = VeniceTurnScope.Current?.ModelId ?? _options.Model;
-        var useXSearch = _options.EnableXSearch
-            ?? model.Contains("grok", StringComparison.OrdinalIgnoreCase);
+        // Модель хода, а вне хода — своя, подобранная под провайдера: в _options.Model лежит
+        // идентификатор из appsettings.json, то есть модель Venice, и на ключе OpenRouter
+        // поиск уходил бы к модели, которой там нет.
+        var turn = VeniceTurnScope.Current;
+
+        // Пусто и «авто» — одно состояние: пусто приходит из нетронутых настроек, «авто» —
+        // из плашки, где человек вернул выбор обратно.
+        var fixedSearch = plan is { FollowsTurn: false } pinned ? pinned.Binding : (ModelBinding?)null;
+
+        var model = fixedSearch?.ModelId
+                    ?? turn?.ModelId
+                    ?? ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Chat, _options.Model);
+        var provider = ModelRef.Of(model, _options.Provider);
+
+        // Закреплённый поиск платит своим ключом: он и выбирался ради того, чтобы деньги за
+        // интернет шли с названного счёта, а не с того, на котором идёт разговор.
+        var credential = fixedSearch is { } target
+            ? RequireKey(_options.Keys?.CredentialFor(target) ?? _options.Credential, model)
+            : SearchCredential(turn, provider);
+
+        // Своя поисковая надстройка у каждого провайдера: у Venice — venice_parameters,
+        // у OpenRouter — плагин. Поиск xAI живёт только у Venice.
+        var useXSearch = provider == LlmProvider.Venice &&
+                         (_options.EnableXSearch
+                          ?? model.Contains("grok", StringComparison.OrdinalIgnoreCase));
 
         // Поиск оплачивается токенами модели, но в разбивке трат он обязан стоять своей
         // строкой: человек спрашивает «сколько ушло на интернет», а не «сколько ушло на Grok
@@ -970,22 +1395,85 @@ public sealed class VeniceClient
                     },
                     new ChatMessage { Role = "user", Content = ChatContent.Text(query) }
                 ],
-                VeniceParameters = new VeniceParameters
-                {
-                    IncludeVeniceSystemPrompt = false,
-                    EnableWebSearch = "on",
-                    EnableWebCitations = _options.EnableWebCitations,
-                    EnableXSearch = useXSearch ? true : null
-                }
-            }, cancellationToken).ConfigureAwait(false);
+                VeniceParameters = provider == LlmProvider.Venice
+                    ? new VeniceParameters
+                    {
+                        IncludeVeniceSystemPrompt = false,
+                        EnableWebSearch = "on",
+                        EnableWebCitations = _options.EnableWebCitations,
+                        EnableXSearch = useXSearch ? true : null
+                    }
+                    : null,
+                // Движок — только у OpenRouter: у Venice поиск один, и лишние поля он
+                // отвергает вместе со всем запросом.
+                Plugins = provider == LlmProvider.Venice
+                    ? null
+                    :
+                    [
+                        new RequestPlugin
+                        {
+                            Id = "web",
+                            MaxResults = 5,
+                            Engine = plan?.Engine,
+                            Mode = plan?.Mode
+                        }
+                    ]
+            }, cancellationToken, credential).ConfigureAwait(false);
 
-            var text = ReasoningSplit.Split(
-                ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
+            var message = response.Choices.FirstOrDefault()?.Message;
+            var text = ReasoningSplit.Split(ChatContent.ReadText(message?.Content) ?? "").Answer;
+            text = WithCitations(text, message?.Annotations);
             return string.IsNullOrWhiteSpace(text) ? "Результаты поиска не найдены." : text;
         }
     }
 
-    private void UpdateBalanceFromHeaders(HttpResponseMessage response)
+    /// <summary>
+    /// Дописывает к ответу ссылки, которые провайдер приложил отдельным полем.
+    /// </summary>
+    /// <remarks>
+    /// Адреса — весь смысл поиска: зовёт его модель, которая умеет открыть страницу или забрать
+    /// картинку, но только если ей дали адрес. Просьбы в системном промпте недостаточно —
+    /// OpenRouter кладёт найденное в <c>annotations</c>, и модель, отвечающая по этим ссылкам,
+    /// пересказать их текстом забывает. Уже названные в ответе не повторяем.
+    /// </remarks>
+    private static string WithCitations(string text, JsonElement? annotations)
+    {
+        if (annotations is not { ValueKind: JsonValueKind.Array } list)
+        {
+            return text;
+        }
+
+        var links = new List<string>();
+        foreach (var item in list.EnumerateArray())
+        {
+            if (!item.TryGetProperty("url_citation", out var citation) ||
+                !citation.TryGetProperty("url", out var url) ||
+                url.GetString() is not { Length: > 0 } address ||
+                links.Contains(address, StringComparer.OrdinalIgnoreCase) ||
+                text.Contains(address, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            links.Add(address);
+        }
+
+        if (links.Count == 0)
+        {
+            return text;
+        }
+
+        var header = text.Contains("Ссылки:", StringComparison.Ordinal)
+            ? Environment.NewLine
+            : Environment.NewLine + Environment.NewLine + "Ссылки:" + Environment.NewLine;
+        return text + header + string.Join(Environment.NewLine, links);
+    }
+
+    /// <param name="credential">
+    /// Чей это остаток. Нужен книге остатков: заголовки приходят на ответах всех ключей, и
+    /// без имени владельца сумма по ключам не складывается.
+    /// </param>
+    private void UpdateBalanceFromHeaders(HttpResponseMessage response, ApiCredential credential)
     {
         var usd = TryReadHeaderDecimal(response, "x-venice-balance-usd");
         var diem = TryReadHeaderDecimal(response, "x-venice-balance-diem");
@@ -995,12 +1483,44 @@ public sealed class VeniceClient
             return;
         }
 
-        LastBalance = new VeniceBalance
+        var balance = new VeniceBalance
         {
             CanConsume = true,
             Usd = usd,
             Diem = diem
         };
+
+        _options.BalanceSink?.Invoke(credential, balance);
+
+        // Поле клиента — остаток выбранного ключа и только его: на нём стоит запасной путь
+        // страницы настроек, и чужая цифра там читалась бы как деньги человека.
+        if (IsSelectedKey(credential))
+        {
+            LastBalance = balance;
+        }
+    }
+
+    /// <summary>
+    /// Остаток, названный провайдером в ответе на прямой запрос.
+    /// </summary>
+    /// <remarks>
+    /// Доллары складываются с пакетными кредитами: это одни и те же деньги, номинированные
+    /// в долларах, и показывать их двумя числами значило бы спрашивать человека, какое из них
+    /// его остаток. DIEM живёт отдельно — у него свой курс.
+    /// </remarks>
+    private void NoteBalance(ApiCredential credential, VeniceRateLimitsData limits)
+    {
+        if (_options.BalanceSink is not { } sink || limits.Balances is not { } balances)
+        {
+            return;
+        }
+
+        sink(credential, new VeniceBalance
+        {
+            CanConsume = limits.AccessPermitted,
+            Usd = (balances.Usd ?? 0m) + (balances.BundledCredits ?? 0m),
+            Diem = balances.Diem
+        });
     }
 
     private static decimal? TryReadHeaderDecimal(HttpResponseMessage response, string headerName)

@@ -159,6 +159,143 @@ public sealed class SettingsKeyPageTests
             tags.OrderBy(tag => tag, StringComparer.Ordinal));
     }
 
+    /// <summary>
+    /// Переименование и удаление есть у каждой строки, в том числе у ключа из окружения.
+    /// </summary>
+    /// <remarks>
+    /// Раньше у такой строки не было ни того, ни другого: удалить её было нельзя вовсе, а
+    /// подписью ей служило имя переменной. Человек с двумя ключами различал их по маске
+    /// из точек, то есть никак.
+    /// </remarks>
+    [Fact]
+    public void Every_key_row_can_be_renamed_and_removed()
+    {
+        var tips = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var page = new SettingsKeyPage { Width = 520, Height = 900 };
+
+            // В дерево окна: стили строк разрешаются по нему.
+            var host = (Panel)window.FindName("MessagesPanel");
+            host.Children.Add(page);
+            try
+            {
+                page.ShowForShot(
+                    new SpendReport { Status = SpendStatus.Local, Period = SpendPeriod.Week },
+                    Keys());
+                page.UpdateLayout();
+
+                return Buttons((DependencyObject)page.FindName("KeyRows"))
+                    .Select(button => Convert.ToString(button.ToolTip) ?? "")
+                    .ToList();
+            }
+            finally
+            {
+                host.Children.Remove(page);
+            }
+        });
+
+        // Три строки, и у каждой своя пара кнопок. Глаз — только у читаемых, поэтому его не
+        // считаем: строка со сломанным блобом показывать нечего.
+        Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Key.Rename")));
+        Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Common.Delete")));
+    }
+
+    private static IReadOnlyList<ApiKeyEntry> Keys() =>
+    [
+        new("environment", "VENICE_API_KEY", "VENabcdefghijklmnop", ApiKeySource.Environment, true),
+        new("k2", "Рабочий", "vk-second-key-abcdef", ApiKeySource.Stored, false),
+        new("k3", "Старый", null, ApiKeySource.Stored, false)
+    ];
+
+    private static IEnumerable<Button> Buttons(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is Button button)
+            {
+                yield return button;
+            }
+
+            foreach (var nested in Buttons(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Убранный ключ окружения виден строкой под списком, и её кнопка возвращает его.
+    /// </summary>
+    /// <remarks>
+    /// Без этой строки вернуть его было бы нечем: вставить то же значение заново программа не
+    /// даёт — копию переменной окружения она себе на диск не кладёт.
+    /// </remarks>
+    [Fact]
+    public void A_removed_environment_key_leaves_a_way_back()
+    {
+        var (text, button) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var page = new SettingsKeyPage { Width = 520, Height = 900 };
+            var host = (Panel)window.FindName("MessagesPanel");
+            host.Children.Add(page);
+            try
+            {
+                page.ShowForShot(
+                    new SpendReport { Status = SpendStatus.Local, Period = SpendPeriod.Week },
+                    [],
+                    [new("environment", "VENICE_API_KEY", "VENabc", ApiKeySource.Environment, false)]);
+                page.UpdateLayout();
+
+                var rows = (DependencyObject)page.FindName("HiddenKeyRows");
+                return (Texts(rows).FirstOrDefault() ?? "",
+                        Convert.ToString(Buttons(rows).Single().Content) ?? "");
+            }
+            finally
+            {
+                host.Children.Remove(page);
+            }
+        });
+
+        Assert.Equal(Loc.Format("S.Key.Removed", "VENICE_API_KEY"), text);
+        Assert.Equal(Loc.Get("S.Key.Restore"), button);
+    }
+
+    private static IEnumerable<string> Texts(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBlock block)
+            {
+                yield return block.Text;
+            }
+
+            foreach (var nested in Texts(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>Диалог переименования начинает спрятанным и лежит поверх вопроса об удалении.</summary>
+    [Fact]
+    public void The_rename_dialog_starts_hidden_above_the_others()
+    {
+        var (visibility, rename, remove) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            return (((FrameworkElement)window.FindName("KeyRenameOverlay")).Visibility,
+                    Panel.GetZIndex((UIElement)window.FindName("KeyRenameOverlay")),
+                    Panel.GetZIndex((UIElement)window.FindName("KeyRemoveOverlay")));
+        });
+
+        Assert.Equal(Visibility.Collapsed, visibility);
+        Assert.True(rename > remove);
+    }
+
     [Theory]
     [InlineData("0", "$0")]
     [InlineData("0.00004", "$0.0000")]

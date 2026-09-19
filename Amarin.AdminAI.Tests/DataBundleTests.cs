@@ -687,6 +687,89 @@ public sealed class DataBundleTests
         }
     }
 
+    [Fact]
+    public void The_prompt_library_travels_with_the_settings()
+    {
+        // Заготовки основного промпта лежат своим файлом, и один раз он уже выпал из архива:
+        // незнакомый классификатору файл экспорт молча не берёт.
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            new PromptLibrary(source).Save(
+            [
+                new PromptPreset { Id = "a", Name = "Переводчик", Text = "переводи" },
+                new PromptPreset { Id = "b", Name = "Редактор", Text = "правь" }
+            ]);
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                Assert.Contains("data/prompts.json", EntryNames(archive));
+
+                new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Replace);
+
+                Assert.Equal(
+                    ["Переводчик", "Редактор"],
+                    new PromptLibrary(target).Load().Select(preset => preset.Name));
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void Merging_adds_the_missing_presets_and_doubles_none()
+    {
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            new PromptLibrary(source).Save(
+            [
+                new PromptPreset { Id = "a", Name = "Переводчик", Text = "переводи" },
+                new PromptPreset { Id = "чужой-id", Name = "Редактор", Text = "правь" },
+                new PromptPreset { Id = "c", Name = "Новая", Text = "новое" }
+            ]);
+
+            new PromptLibrary(target).Save(
+            [
+                new PromptPreset { Id = "a", Name = "Переводчик", Text = "мой текст" },
+                new PromptPreset { Id = "мой-id", Name = "Редактор", Text = "правь" }
+            ]);
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Merge);
+
+                var mine = new PromptLibrary(target).Load();
+
+                // Совпадение по id — моя же заготовка, вернувшаяся из копии: её текст остаётся
+                // моим. Совпадение по паре «имя + текст» — та же заготовка, заведённая руками
+                // на двух машинах; без этой проверки в списке стояли бы две неотличимые плитки.
+                Assert.Equal(["Переводчик", "Редактор", "Новая"], mine.Select(preset => preset.Name));
+                Assert.Equal("мой текст", mine[0].Text);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
     // ───────────────────────── враждебные архивы ─────────────────────────
 
     [Fact]

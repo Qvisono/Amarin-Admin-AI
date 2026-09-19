@@ -150,6 +150,7 @@
     <system:String x:Key="S.Balance.Title" xml:space="preserve">Остаток на счету Venice:</system:String>
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
 
+    <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">Ещё {0} — цифра пока не получена</system:String>
     <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Режим работы</system:String>
     <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">Режим работы для ИИ агента. Normal - спрашивать всегда</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
@@ -330,9 +331,13 @@
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Маршрутизатор</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Анализирует запрос и выбирает одну из моделей выше</system:String>
     <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Служебные модели</system:String>
+    <system:String x:Key="S.Customize.Summary" xml:space="preserve">Сводка чата</system:String>
     <system:String x:Key="S.Customize.SystemPrompts" xml:space="preserve">System-промпты</system:String>
     <system:String x:Key="S.Customize.TechPrompt" xml:space="preserve">Технический промпт ИИ</system:String>
 
+    <system:String x:Key="S.Customize.WebSearch" xml:space="preserve">Поиск в интернете</system:String>
+    <system:String x:Key="S.Customize.WebSearch.AutoTip" xml:space="preserve">Искать там же, где идёт разговор</system:String>
+    <system:String x:Key="S.Customize.WebSearch.Desc" xml:space="preserve">Через кого искать и с какого ключа платить</system:String>
     <system:String x:Key="S.Data.Allowlist" xml:space="preserve">Разрешённые источники загрузки</system:String>
     <system:String x:Key="S.Data.AllowlistDesc" xml:space="preserve">Загрузка с других сайтов отклоняется. Поддомены разрешены автоматически</system:String>
     <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">Список пуст - любые загрузки заблокированы</system:String>
@@ -464,26 +469,40 @@
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Время приблизительное: у этой записи нет собственной отметки, взято время сообщения.</system:String>
     <system:String x:Key="S.Journal.Title" xml:space="preserve">Журнал</system:String>
     <system:String x:Key="S.Key.Add" xml:space="preserve">Добавить ключ</system:String>
-    <system:String x:Key="S.Key.AddHint" xml:space="preserve">Ключ проверяется у Venice до сохранения, чтобы опечатка не всплыла посреди ответа.</system:String>
-    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">Новый ключ Venice</system:String>
+    <system:String x:Key="S.Key.AddHint.OpenRouter" xml:space="preserve">Ключ проверяется у OpenRouter до сохранения, чтобы опечатка не всплыла посреди ответа.</system:String>
+    <system:String x:Key="S.Key.AddHint.Venice" xml:space="preserve">Ключ проверяется у Venice до сохранения, чтобы опечатка не всплыла посреди ответа.</system:String>
+    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">Новый ключ</system:String>
     <system:String x:Key="S.Key.BadgeEnvironment" xml:space="preserve">окружение</system:String>
+    <system:String x:Key="S.Key.Balance.AllKeys" xml:space="preserve">Сумма по всем ключам: {0}</system:String>
     <system:String x:Key="S.Key.Balance.Credits" xml:space="preserve">Остаток, кредиты</system:String>
     <system:String x:Key="S.Key.Balance.Diem" xml:space="preserve">{0} DIEM</system:String>
+    <system:String x:Key="S.Key.Balance.Left" xml:space="preserve">Потрачено всего</system:String>
     <system:String x:Key="S.Key.Balance.Refresh" xml:space="preserve">Обновить</system:String>
     <system:String x:Key="S.Key.Balance.Usd" xml:space="preserve">Остаток, USD</system:String>
-    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">Пока идёт ответ, ключ не переключить: половина запросов ушла бы с одним ключом, половина с другим</system:String>
+    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">Пока идёт ответ, ключи не трогаем: половина запросов ушла бы с одним ключом, половина с другим</system:String>
     <system:String x:Key="S.Key.Checking" xml:space="preserve">Проверяем ключ...</system:String>
     <system:String x:Key="S.Key.DeleteConfirm" xml:space="preserve">Удалить ключ «{0}»?</system:String>
-    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">Ключ пропадёт только из этой программы. В Venice он останется.</system:String>
+    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">Ключ пропадёт только из этой программы. У провайдера он останется.</system:String>
+    <system:String x:Key="S.Key.DeleteDesc.Environment" xml:space="preserve">Переменная окружения останется в Windows: программа лишь перестанет брать её ключ. Вернуть его можно строкой под списком.</system:String>
     <system:String x:Key="S.Key.Duplicate" xml:space="preserve">Такой ключ уже есть в списке</system:String>
+    <system:String x:Key="S.Key.DuplicateRemoved" xml:space="preserve">Этот ключ вы убрали из списка. Верните его кнопкой под списком - на диск он не копируется.</system:String>
     <system:String x:Key="S.Key.Empty" xml:space="preserve">Введите ключ</system:String>
     <system:String x:Key="S.Key.FromEnvironment" xml:space="preserve">Из переменной окружения</system:String>
     <system:String x:Key="S.Key.Hide" xml:space="preserve">Скрыть</system:String>
-    <system:String x:Key="S.Key.Invalid" xml:space="preserve">Venice этот ключ не принял</system:String>
+    <system:String x:Key="S.Key.Invalid" xml:space="preserve">Провайдер этот ключ не принял</system:String>
     <system:String x:Key="S.Key.MakeActive" xml:space="preserve">Сделать активным</system:String>
     <system:String x:Key="S.Key.Name" xml:space="preserve">Название</system:String>
     <system:String x:Key="S.Key.NoAccess" xml:space="preserve">Ключ не пускает к моделям</system:String>
-    <system:String x:Key="S.Key.Section" xml:space="preserve">Ключи Venice</system:String>
+    <system:String x:Key="S.Key.Provider" xml:space="preserve">Провайдер</system:String>
+    <system:String x:Key="S.Key.Provider.OpenRouterDesc" xml:space="preserve">Модели разных производителей на одном счёте</system:String>
+    <system:String x:Key="S.Key.Provider.VeniceDesc" xml:space="preserve">Картинки и чтение страниц работают только здесь</system:String>
+    <system:String x:Key="S.Key.ProviderTip" xml:space="preserve">Активный ключ решает, чьи модели доступны</system:String>
+    <system:String x:Key="S.Key.Removed" xml:space="preserve">Ключ из переменной {0} убран</system:String>
+    <system:String x:Key="S.Key.Rename" xml:space="preserve">Переименовать</system:String>
+    <system:String x:Key="S.Key.RenameHint" xml:space="preserve">Название видно только вам и только здесь. Пустое вернёт то, что стояло по умолчанию.</system:String>
+    <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Название ключа</system:String>
+    <system:String x:Key="S.Key.Restore" xml:space="preserve">Вернуть</system:String>
+    <system:String x:Key="S.Key.Section" xml:space="preserve">Ключи</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Показать</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">осталось {0}</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Считаем...</system:String>
@@ -492,6 +511,7 @@
     <system:String x:Key="S.Key.Storage" xml:space="preserve">Зашифрованы средствами Windows</system:String>
     <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Не читается - введите заново</system:String>
     <system:String x:Key="S.Key.Value" xml:space="preserve">Ключ</system:String>
+    <system:String x:Key="S.Key.WhereToGet" xml:space="preserve">Где взять ключ</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Удалить язык</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Удалить язык «{0}»? Перевод придётся заказывать заново.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Не удалось удалить язык. Проверьте доступ к папке с данными программы.</system:String>
@@ -520,18 +540,19 @@
     <system:String x:Key="S.Message.Thought" xml:space="preserve">думал {0}</system:String>
 
     <system:String x:Key="S.Message.Working" xml:space="preserve">Размышляю {0}</system:String>
+    <system:String x:Key="S.Models.AddKey" xml:space="preserve">Добавить ключ</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">Маршрутизатор сам выберет модель</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>
+    <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ДВИЖОК</system:String>
+    <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Код</system:String>
+    <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Картинки</system:String>
+    <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">КЛЮЧ</system:String>
+    <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">По умолчанию</system:String>
+    <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">Ключ выберется сам: первый годный у этого провайдера</system:String>
+    <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">Ключа {0} в программе нет — добавьте его, чтобы выбирать модели этого провайдера.</system:String>
+    <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">ПРОВАЙДЕР</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Поиск...</system:String>
-    <system:String x:Key="S.Models.TabAll" xml:space="preserve">Все</system:String>
-    <system:String x:Key="S.Models.TabRecommended" xml:space="preserve">Рекомендованы</system:String>
-    <system:String x:Key="S.Models.TierBudget" xml:space="preserve">БЮДЖЕТНЫЙ УРОВЕНЬ</system:String>
-    <system:String x:Key="S.Models.TierBudgetDesc" xml:space="preserve">для массовых/простых задач</system:String>
-    <system:String x:Key="S.Models.TierFlagship" xml:space="preserve">ФЛАГМАНСКИЕ</system:String>
-    <system:String x:Key="S.Models.TierFlagshipDesc" xml:space="preserve">макс. надёжность</system:String>
-    <system:String x:Key="S.Models.TierMiddle" xml:space="preserve">СРЕДНИЙ УРОВЕНЬ</system:String>
-    <system:String x:Key="S.Models.TierMiddleDesc" xml:space="preserve">цена/качество</system:String>
 
     <system:String x:Key="S.Name.Desc" xml:space="preserve">Отображается в настройках. Хранится только на этом компьютере.</system:String>
     <system:String x:Key="S.Name.Title" xml:space="preserve">Имя пользователя</system:String>
@@ -567,6 +588,10 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
+    <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">Движок выберет OpenRouter</system:String>
+    <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">Свой у модели</system:String>
+    <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} за запрос по прайсу OpenRouter — он может измениться</system:String>
+    <system:String x:Key="S.Search.Engine.VeniceOnly" xml:space="preserve">У Venice поиск один, движок не выбирается</system:String>
     <system:String x:Key="S.Search.Failed" xml:space="preserve">Поиск не удался. Попробуйте ещё раз.</system:String>
     <system:String x:Key="S.Search.Found" xml:space="preserve">Найдено</system:String>
     <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">По чатам</system:String>
@@ -628,7 +653,12 @@
     <system:String x:Key="S.Spend.Period.Quarter" xml:space="preserve">3 месяца</system:String>
     <system:String x:Key="S.Spend.Period.Week" xml:space="preserve">Неделя</system:String>
     <system:String x:Key="S.Spend.Period.Year" xml:space="preserve">Год</system:String>
+    <system:String x:Key="S.Spend.Scope.All" xml:space="preserve">Все ключи</system:String>
+    <system:String x:Key="S.Spend.Scope.AllTip" xml:space="preserve">Траты всех ключей вместе</system:String>
+    <system:String x:Key="S.Spend.Scope.One" xml:space="preserve">Один ключ</system:String>
+    <system:String x:Key="S.Spend.Scope.OneTip" xml:space="preserve">Только траты выбранного ключа</system:String>
     <system:String x:Key="S.Spend.SourceLocal" xml:space="preserve">Полный журнал Venice открыт только админ-ключу. Показано то, что посчитала программа</system:String>
+    <system:String x:Key="S.Spend.SourceOnlyLocal" xml:space="preserve">Провайдер не отдаёт журнал списаний. Показано то, что посчитала программа</system:String>
     <system:String x:Key="S.Spend.Stale" xml:space="preserve">Показаны сохранённые данные: Venice сейчас не отвечает</system:String>
     <system:String x:Key="S.Spend.Title" xml:space="preserve">Траты</system:String>
     <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} кредитов</system:String>

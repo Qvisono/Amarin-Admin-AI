@@ -28,35 +28,66 @@ public sealed class BalanceStoreTests : IDisposable
     public void A_saved_balance_comes_back_intact()
     {
         var store = new BalanceStore(_root);
-        store.Save(new VeniceBalance { CanConsume = true, Usd = 12.34m, Diem = 5m });
+        store.Save([new KeyBalance("abc123", 12.34m, 5m, DateTime.UtcNow)]);
+
+        var loaded = Assert.Single(store.Load());
+
+        Assert.Equal("abc123", loaded.Fingerprint);
+        Assert.Equal(12.34m, loaded.Usd);
+        Assert.Equal(5m, loaded.Diem);
+    }
+
+    /// <summary>Ключей несколько — значит и остатков столько же, каждый со своим отпечатком.</summary>
+    [Fact]
+    public void Every_key_keeps_its_own_figure()
+    {
+        var store = new BalanceStore(_root);
+        store.Save(
+        [
+            new KeyBalance("aaa", 1m, null, DateTime.UtcNow),
+            new KeyBalance("bbb", 2m, null, DateTime.UtcNow)
+        ]);
 
         var loaded = store.Load();
 
-        Assert.NotNull(loaded);
-        Assert.Equal(12.34m, loaded!.Usd);
-        Assert.Equal(5m, loaded.Diem);
-        Assert.True(loaded.CanConsume);
+        Assert.Equal(2, loaded.Count);
+        Assert.Equal(3m, loaded.Sum(row => row.Usd ?? 0m));
+    }
+
+    /// <summary>Сам секрет на диск не попадает — только его отпечаток.</summary>
+    [Fact]
+    public void The_file_holds_no_secret()
+    {
+        var store = new BalanceStore(_root);
+        store.Save([new KeyBalance(ApiKeyStore.Fingerprint("vk-super-secret"), 1m, null, DateTime.UtcNow)]);
+
+        var text = File.ReadAllText(Path.Combine(_root, "balance.json"));
+
+        Assert.DoesNotContain("vk-super-secret", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void No_file_yet_is_not_an_error() => Assert.Null(new BalanceStore(_root).Load());
+    public void No_file_yet_is_not_an_error() => Assert.Empty(new BalanceStore(_root).Load());
 
     [Fact]
     public void A_damaged_cache_reads_as_no_cache()
     {
         File.WriteAllText(Path.Combine(_root, "balance.json"), "{ not json");
 
-        Assert.Null(new BalanceStore(_root).Load());
+        Assert.Empty(new BalanceStore(_root).Load());
     }
 
+    /// <summary>
+    /// Файл прежнего формата — один остаток без имени владельца — читается как пустой: чей он
+    /// был, в нём не записано, и приписать его какому-то ключу значило бы выдумать.
+    /// </summary>
     [Fact]
-    public void A_cache_without_any_figure_reads_as_no_cache()
+    public void A_file_from_before_several_keys_reads_as_empty()
     {
-        // Venice omits the headers on some responses; a record that carries neither currency
-        // would put the plate back to a dash, which is worse than showing the last known figure.
-        var store = new BalanceStore(_root);
-        store.Save(new VeniceBalance { CanConsume = true });
+        File.WriteAllText(
+            Path.Combine(_root, "balance.json"),
+            """{"canConsume":true,"usd":12.34,"diem":5}""");
 
-        Assert.Null(store.Load());
+        Assert.Empty(new BalanceStore(_root).Load());
     }
 }

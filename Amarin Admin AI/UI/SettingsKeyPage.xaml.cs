@@ -41,6 +41,15 @@ public partial class SettingsKeyPage : UserControl
 
     private SpendPeriod _period = SpendPeriod.Week;
 
+    /// <summary>
+    /// Показывать траты всех ключей разом или только выбранного.
+    /// </summary>
+    /// <remarks>
+    /// Заводское — все: с версии 1.23.0 у каждого слота моделей свой ключ, и сумма по одному
+    /// из них не отвечает на вопрос «сколько стоит программа».
+    /// </remarks>
+    private bool _allKeys = true;
+
     public SettingsKeyPage()
     {
         InitializeComponent();
@@ -63,6 +72,10 @@ public partial class SettingsKeyPage : UserControl
     internal void Attach(AppServices services)
     {
         _services = services;
+        _allKeys = services.Settings.SpendScopeAllKeys;
+        ScopeAll.IsChecked = _allKeys;
+        ScopeOne.IsChecked = !_allKeys;
+
         var root = services.Profiles.DataRootFor(services.ProfileRegistry.ActiveProfileId);
         _spend = new SpendService(services.Venice, new SpendHistoryStore(root), services.Ledger)
         {
@@ -116,8 +129,54 @@ public partial class SettingsKeyPage : UserControl
         }
     }
 
+    private void Scope_Checked(object sender, RoutedEventArgs e)
+    {
+        var all = ReferenceEquals(sender, ScopeAll);
+        if (all == _allKeys)
+        {
+            return;
+        }
+
+        _allKeys = all;
+        if (!IsLoaded || _services is null)
+        {
+            return;
+        }
+
+        _services.Settings.SpendScopeAllKeys = all;
+        _services.SettingsStore.Save(_services.Settings);
+        Detached.Run(ReloadAsync(force: false), "spend_report");
+    }
+
     private void SpendRefreshButton_Click(object sender, RoutedEventArgs e) =>
         Detached.Run(ReloadAsync(force: true), "spend_report");
+
+    /// <summary>
+    /// Ключи, по которым строится график в режиме «все».
+    /// </summary>
+    /// <remarks>
+    /// Нерасшифрованные строки пропускаем: платить ими всё равно нечем, а журнал у них пустой.
+    /// Повторы по одному и тому же секрету отсеет сам <see cref="SpendService"/> — там это
+    /// знание и живёт.
+    /// </remarks>
+    private IReadOnlyList<ApiCredential> AllCredentials()
+    {
+        var list = new List<ApiCredential>();
+        if (_services is null)
+        {
+            return list;
+        }
+
+        foreach (var entry in _services.KeyStore.List())
+        {
+            if (!entry.IsBroken)
+            {
+                list.Add(entry.Credential);
+            }
+        }
+
+        return list;
+    }
 
     private async Task ReloadAsync(bool force)
     {
@@ -131,13 +190,30 @@ public partial class SettingsKeyPage : UserControl
         var cancellation = new CancellationTokenSource();
         _loading = cancellation;
 
-        var secret = _services.KeyStore.ActiveSecret();
         ShowLoading();
 
         try
         {
+            if (_allKeys)
+            {
+                var credentials = AllCredentials();
+                var combined = await _spend
+                    .GetReportAsync(credentials, _period, force, cancellation.Token)
+                    .ConfigureAwait(true);
+
+                if (cancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                ShowReport(combined);
+                await ShowTotalBalanceAsync(credentials, cancellation.Token).ConfigureAwait(true);
+                return;
+            }
+
+            var credential = _services.KeyStore.ActiveCredential();
             var report = await _spend
-                .GetReportAsync(secret, _period, force, cancellation.Token)
+                .GetReportAsync(credential, _period, force, cancellation.Token)
                 .ConfigureAwait(true);
 
             if (cancellation.IsCancellationRequested)
@@ -146,7 +222,7 @@ public partial class SettingsKeyPage : UserControl
             }
 
             ShowReport(report);
-            await ShowBalanceAsync(secret, cancellation.Token).ConfigureAwait(true);
+            await ShowBalanceAsync(credential, cancellation.Token).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -176,17 +252,54 @@ public partial class SettingsKeyPage : UserControl
     /// Откуда взяты цифры. Молчит, когда данные из журнала самого Venice, — это и есть
     /// ожидаемое положение дел, объяснять нечего.
     /// </summary>
+    /// <remarks>
+    /// Причина у собственного журнала бывает разная, и называть её надо честно: у Venice
+    /// журнал есть, но открыт только админ-ключу, а у остальных провайдеров его нет вовсе.
+    /// </remarks>
     private void ShowSourceNote(SpendStatus status)
     {
         var key = status switch
         {
-            SpendStatus.Local => "S.Spend.SourceLocal",
+            SpendStatus.Local => AnyProviderHasUsageHistory()
+                ? "S.Spend.SourceLocal"
+                : "S.Spend.SourceOnlyLocal",
             SpendStatus.Stale => "S.Spend.Stale",
             _ => null
         };
 
         SpendSourceNote.Text = key is null ? "" : Loc.Get(key);
         SpendSourceNote.Visibility = key is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Есть ли среди показанных ключей хоть один, у чьего провайдера журнал трат вообще
+    /// существует.
+    /// </summary>
+    /// <remarks>
+    /// В режиме «все ключи» провайдер не один, и подпись «журнал открыт только админ-ключу»
+    /// была бы враньём, если бы в сумме не было ни одного ключа Venice.
+    /// </remarks>
+    private bool AnyProviderHasUsageHistory()
+    {
+        if (_services is null)
+        {
+            return true;
+        }
+
+        if (!_allKeys)
+        {
+            return ProviderSpec.For(_services.KeyStore.ActiveProvider()).HasUsageHistory;
+        }
+
+        foreach (var credential in AllCredentials())
+        {
+            if (ProviderSpec.For(credential.Provider).HasUsageHistory)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string EmptyNote(SpendReport report) => report.Status switch
@@ -273,9 +386,9 @@ public partial class SettingsKeyPage : UserControl
 
     // ───────────────────────── остаток ─────────────────────────
 
-    private async Task ShowBalanceAsync(string secret, CancellationToken cancellationToken)
+    private async Task ShowBalanceAsync(ApiCredential credential, CancellationToken cancellationToken)
     {
-        if (_services is null || string.IsNullOrWhiteSpace(secret))
+        if (_services is null || credential.IsEmpty)
         {
             BalanceUsdValue.Text = "—";
             BalanceCreditsValue.Text = "—";
@@ -291,9 +404,7 @@ public partial class SettingsKeyPage : UserControl
 
             var usd = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
             BalanceUsdValue.Text = FormatUsd(usd);
-            BalanceCreditsValue.Text = SpendReport
-                .ToCredits(usd)
-                .ToString("0.##", CultureInfo.InvariantCulture);
+            ShowLeftTile(credential.Provider, usd, limits.SpentUsd);
             BalanceNote.Text = BuildBalanceNote(limits);
         }
         catch (OperationCanceledException)
@@ -304,11 +415,110 @@ public partial class SettingsKeyPage : UserControl
             // Остаток из заголовков прошлого ответа — лучше, чем прочерк; он же лежит на плашке.
             var cached = _services.Venice.LastBalance?.Usd;
             BalanceUsdValue.Text = cached is { } value ? FormatUsd(value) : "—";
-            BalanceCreditsValue.Text = cached is { } known
-                ? SpendReport.ToCredits(known).ToString("0.##", CultureInfo.InvariantCulture)
-                : "—";
+            if (cached is { } known)
+            {
+                ShowLeftTile(credential.Provider, known, spent: null);
+            }
+            else
+            {
+                BalanceCreditsValue.Text = "—";
+            }
+
             BalanceNote.Text = Loc.Get("S.Spend.Error");
         }
+    }
+
+    /// <summary>
+    /// Плашки остатка в режиме «все ключи»: сумма по всем, кредиты — по ключам Venice.
+    /// </summary>
+    /// <remarks>
+    /// Кредиты — величина Venice со своим курсом к доллару; пересчитывать по нему остаток
+    /// чужого провайдера значило бы показать число, которого нет нигде.
+    /// <para>
+    /// Опрос последовательный, как и в строках самих ключей: Venice ограничивает частоту, и
+    /// веер по всем ключам сразу отвечал бы отказом ровно тогда, когда ключей стало много.
+    /// Ключ, который не ответил, просто не попадает в сумму — прочерк вместо всей суммы был
+    /// бы хуже.
+    /// </para>
+    /// </remarks>
+    private async Task ShowTotalBalanceAsync(
+        IReadOnlyList<ApiCredential> credentials,
+        CancellationToken cancellationToken)
+    {
+        if (_services is null || credentials.Count == 0)
+        {
+            BalanceUsdValue.Text = "—";
+            BalanceCreditsValue.Text = "—";
+            BalanceNote.Text = Loc.Get("S.Spend.NoKey");
+            return;
+        }
+
+        var total = 0m;
+        var venice = 0m;
+        var answered = false;
+
+        foreach (var credential in credentials)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var limits = await _services.Venice
+                    .GetRateLimitsAsync(credential, cancellationToken)
+                    .ConfigureAwait(true);
+
+                var usd = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
+                total += usd;
+                if (credential.Provider == LlmProvider.Venice)
+                {
+                    venice += usd;
+                }
+
+                answered = true;
+            }
+            catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
+            {
+            }
+        }
+
+        BalanceCreditsCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Credits");
+
+        if (!answered)
+        {
+            BalanceUsdValue.Text = "—";
+            BalanceCreditsValue.Text = "—";
+            BalanceNote.Text = Loc.Get("S.Spend.Error");
+            return;
+        }
+
+        BalanceUsdValue.Text = FormatUsd(total);
+        BalanceCreditsValue.Text = SpendReport
+            .ToCredits(venice)
+            .ToString("0.##", CultureInfo.InvariantCulture);
+        BalanceNote.Text = Loc.Format("S.Key.Balance.AllKeys", credentials.Count.ToString(CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Левая плашка: у Venice — остаток в кредитах, у остальных — сколько всего потрачено.
+    /// </summary>
+    /// <remarks>
+    /// Кредиты — величина Venice со своим курсом к доллару, и пересчитывать по нему чужой счёт
+    /// значило бы показать число, которого нет нигде. Правая плашка и так показывает остаток
+    /// в долларах — повторять его слева незачем, а вот сколько с ключа ушло, видно больше нигде.
+    /// </remarks>
+    private void ShowLeftTile(LlmProvider provider, decimal usd, decimal? spent)
+    {
+        if (provider == LlmProvider.Venice)
+        {
+            BalanceCreditsCaption.SetResourceReference(
+                TextBlock.TextProperty, "S.Key.Balance.Credits");
+            BalanceCreditsValue.Text = SpendReport
+                .ToCredits(usd)
+                .ToString("0.##", CultureInfo.InvariantCulture);
+            return;
+        }
+
+        BalanceCreditsCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Left");
+        BalanceCreditsValue.Text = spent is { } value ? FormatUsd(value) : "—";
     }
 
     private static string BuildBalanceNote(VeniceRateLimitsData limits)
@@ -347,9 +557,17 @@ public partial class SettingsKeyPage : UserControl
         KeyRows.ItemsSource = rows;
         Detached.Run(LoadKeyStatsAsync(entries), "key_stats");
 
-        // Менять ключ на середине хода нельзя: половина запросов ушла бы с одним ключом,
-        // половина с другим, а неверный новый ключ убил бы ход отказом, который читается
-        // как сетевой сбой.
+        // Убранный ключ окружения виден строкой под списком. Без неё вернуть его можно было бы
+        // только через переменные среды Windows: заново вставить то же значение программа не
+        // даёт — она не кладёт ключ из окружения себе на диск.
+        HiddenKeyRows.ItemsSource = _services.KeyStore.HiddenEnvironment()
+            .Select(BuildHiddenKeyRow)
+            .ToList();
+
+        // Удалять и добавлять ключи на середине хода нельзя: у слотов, которым ключ не
+        // назначен, он подбирается по провайдеру, и исчезнувший ключ увёл бы следующий раунд
+        // в отказ, который читается как сетевой сбой. Выбор кружком под запрет не попадает —
+        // он давно уже только про траты.
         KeysBusyNote.Visibility = TurnsRunning ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -364,8 +582,13 @@ public partial class SettingsKeyPage : UserControl
     /// столбиком друг под другом, и карточка читалась как стена: глазу не за что зацепиться,
     /// а высота росла вдвое против нужной. Источник теперь метка рядом с названием, деньги —
     /// справа, где их и ищут.
+    /// <para>
+    /// Деньги стоят на второй строке, у маски ключа. На первой их место заняли название, обе
+    /// плашки и три кнопки — в ширину настроек это уже не помещалось, и плашка «окружение»
+    /// обрезалась до «окр».
+    /// </para>
     /// </remarks>
-    private UIElement BuildKeyRow(VeniceKeyEntry entry)
+    private UIElement BuildKeyRow(ApiKeyEntry entry)
     {
         var revealed = _revealed.Contains(entry.Id);
 
@@ -374,7 +597,7 @@ public partial class SettingsKeyPage : UserControl
             Style = (Style)FindResource("KeyChoice"),
             IsChecked = entry.IsActive,
             Margin = new Thickness(0, 0, 10, 0),
-            IsEnabled = !entry.IsBroken && !TurnsRunning,
+            IsEnabled = !entry.IsBroken,
             ToolTip = Loc.Get(entry.IsActive ? "S.Key.Active" : "S.Key.MakeActive")
         };
         choose.Checked += (_, _) => MakeActive(entry);
@@ -392,19 +615,18 @@ public partial class SettingsKeyPage : UserControl
         var head = new StackPanel { Orientation = Orientation.Horizontal };
         head.Children.Add(label);
 
-        if (entry.Source == VeniceKeySource.Environment)
+        // Провайдер — у каждой строки, а не только у своих: две строки окружения различаются
+        // лишь названием переменной, и с одного взгляда их не разобрать. Он же объясняет,
+        // почему после выбора этого ключа поменялся весь список моделей.
+        head.Children.Add(Badge(
+            ProviderSpec.For(entry.Provider).Name, Loc.Get("S.Key.ProviderTip")));
+
+        if (entry.Source == ApiKeySource.Environment)
         {
             // В плашке одно слово: полная фраза её распирает и обрезается многоточием,
             // а объяснение уходит в подсказку, где на него есть место.
-            var badgeText = new TextBlock { Text = Loc.Get("S.Key.BadgeEnvironment"), FontSize = 10 };
-            badgeText.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
-            var badge = new Border
-            {
-                Style = (Style)FindResource("KeyBadge"),
-                Child = badgeText,
-                ToolTip = Loc.Get("S.Key.FromEnvironment")
-            };
-            head.Children.Add(badge);
+            head.Children.Add(Badge(
+                Loc.Get("S.Key.BadgeEnvironment"), Loc.Get("S.Key.FromEnvironment")));
         }
 
         // Моноширинный: маска из точек и сам ключ иначе прыгают по ширине при раскрытии.
@@ -421,22 +643,30 @@ public partial class SettingsKeyPage : UserControl
         value.SetResourceReference(
             TextBlock.ForegroundProperty, entry.IsBroken ? "Status.Danger" : "Text.Faint");
 
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(head);
-        text.Children.Add(value);
-
         // Своя статистика у каждого ключа: траты за выбранный отрезок и остаток на нём.
-        // Справа и в одну строку — так она не спорит с названием за первую строку карточки.
+        // Справа, но на второй строке, рядом с маской ключа: на первой её место заняли бы
+        // название и плашки, и «окружение» обрезалось бы до «окр».
         var stats = new TextBlock
         {
             Text = entry.IsBroken ? "" : Loc.Get("S.Key.StatsLoading"),
             FontSize = 10.5,
             TextAlignment = TextAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(10, 0, 6, 0)
+            Margin = new Thickness(10, 3, 0, 0)
         };
         stats.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
         _keyStats[entry.Id] = stats;
+
+        var bottom = new Grid();
+        bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        bottom.Children.Add(value);
+        Grid.SetColumn(stats, 1);
+        bottom.Children.Add(stats);
+
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(head);
+        text.Children.Add(bottom);
 
         var buttons = new StackPanel
         {
@@ -456,29 +686,34 @@ public partial class SettingsKeyPage : UserControl
             buttons.Children.Add(eye);
         }
 
-        if (entry.CanRemove)
+        // Переименование есть у любой строки, включая окружение: маска у всех ключей одинаковая,
+        // и между двумя рабочими человек выбирает по названию, а не по «vk-•••••••••ab12».
+        var rename = new Button
         {
-            var remove = new Button
-            {
-                Style = (Style)FindResource("KeyIconButton"),
-                Content = "🗑",
-                ToolTip = Loc.Get("S.Common.Delete")
-            };
-            remove.Click += (_, _) => RemoveKey(entry);
-            buttons.Children.Add(remove);
-        }
+            Style = (Style)FindResource("KeyIconButton"),
+            Content = "✎",
+            ToolTip = Loc.Get("S.Key.Rename")
+        };
+        rename.Click += (_, _) => RenameKey(entry);
+        buttons.Children.Add(rename);
+
+        var remove = new Button
+        {
+            Style = (Style)FindResource("KeyIconButton"),
+            Content = "🗑",
+            ToolTip = Loc.Get("S.Common.Delete")
+        };
+        remove.Click += (_, _) => RemoveKey(entry);
+        buttons.Children.Add(remove);
 
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.Children.Add(choose);
         Grid.SetColumn(text, 1);
         grid.Children.Add(text);
-        Grid.SetColumn(stats, 2);
-        grid.Children.Add(stats);
-        Grid.SetColumn(buttons, 3);
+        Grid.SetColumn(buttons, 2);
         grid.Children.Add(buttons);
 
         var card = new Border
@@ -500,6 +735,62 @@ public partial class SettingsKeyPage : UserControl
     }
 
     /// <summary>
+    /// Строка убранного ключа окружения: чего лишилась программа и кнопка «Вернуть».
+    /// </summary>
+    /// <remarks>
+    /// Нарочно не карточка ключа: ни кружка выбора, ни глаза, ни трат — этим ключом программа
+    /// не платит. Одна приглушённая строка, которая говорит, что переменная в Windows осталась
+    /// на месте.
+    /// </remarks>
+    private UIElement BuildHiddenKeyRow(ApiKeyEntry entry)
+    {
+        var caption = new TextBlock
+        {
+            Text = Loc.Format("S.Key.Removed", entry.Label),
+            FontSize = 11.5,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+        caption.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+
+        var restore = new Button
+        {
+            Style = (Style)FindResource("AddKeyButton"),
+            Content = Loc.Get("S.Key.Restore"),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(10, 0, 0, 0)
+        };
+        restore.Click += (_, _) => RestoreKey(entry);
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(caption);
+        Grid.SetColumn(restore, 1);
+        grid.Children.Add(restore);
+
+        return new Border
+        {
+            Padding = new Thickness(12, 7, 8, 7),
+            Margin = new Thickness(0, 0, 0, 6),
+            Child = grid
+        };
+    }
+
+    /// <summary>Мелкая плашка рядом с названием ключа.</summary>
+    private Border Badge(string text, string tip)
+    {
+        var caption = new TextBlock { Text = text, FontSize = 10 };
+        caption.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
+        return new Border
+        {
+            Style = (Style)FindResource("KeyBadge"),
+            Child = caption,
+            ToolTip = tip
+        };
+    }
+
+    /// <summary>
     /// Дозаполняет строки ключей: сколько по каждому потрачено за выбранный отрезок и сколько
     /// на нём осталось.
     /// </summary>
@@ -508,7 +799,7 @@ public partial class SettingsKeyPage : UserControl
     /// частоту обращений. Отказ по одному ключу гасит только его строку — остальные свои цифры
     /// покажут.
     /// </remarks>
-    private async Task LoadKeyStatsAsync(IReadOnlyList<VeniceKeyEntry> entries)
+    private async Task LoadKeyStatsAsync(IReadOnlyList<ApiKeyEntry> entries)
     {
         if (_services is null || _spend is null)
         {
@@ -517,7 +808,7 @@ public partial class SettingsKeyPage : UserControl
 
         foreach (var entry in entries)
         {
-            if (entry.Secret is not { Length: > 0 } secret ||
+            if (entry.Secret is not { Length: > 0 } ||
                 !_keyStats.TryGetValue(entry.Id, out var line))
             {
                 continue;
@@ -527,7 +818,7 @@ public partial class SettingsKeyPage : UserControl
             try
             {
                 var report = await _spend
-                    .GetReportAsync(secret, _period, force: false, CancellationToken.None)
+                    .GetReportAsync(entry.Credential, _period, force: false, CancellationToken.None)
                     .ConfigureAwait(true);
                 if (report.Status is SpendStatus.Ready or SpendStatus.Stale or SpendStatus.Local)
                 {
@@ -535,7 +826,7 @@ public partial class SettingsKeyPage : UserControl
                 }
 
                 var limits = await _services.Venice
-                    .GetRateLimitsAsync(secret, CancellationToken.None)
+                    .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
                     .ConfigureAwait(true);
                 var left = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
                 parts.Add(Loc.Format("S.Key.StatsLeft", FormatUsd(left)));
@@ -568,9 +859,17 @@ public partial class SettingsKeyPage : UserControl
         RefreshKeyRows();
     }
 
-    private void MakeActive(VeniceKeyEntry entry)
+    /// <summary>
+    /// Кружок в списке: чьи траты и чей остаток показывать.
+    /// </summary>
+    /// <remarks>
+    /// Идущий ход этому больше не помеха. Прежде выбранный ключ задавал провайдера всем слотам
+    /// сразу, и смена посреди хода уводила его следующий раунд на другой сервер; теперь ключ
+    /// хода снят при его начале и с выбором на этой странице не связан.
+    /// </remarks>
+    private void MakeActive(ApiKeyEntry entry)
     {
-        if (_services is null || entry.IsActive || TurnsRunning)
+        if (_services is null || entry.IsActive)
         {
             return;
         }
@@ -578,36 +877,106 @@ public partial class SettingsKeyPage : UserControl
         _services.KeyStore.SetActive(entry.Id);
         _services.ApplyActiveKey();
 
-        // У другого ключа свой остаток и свой доступ к моделям: и плашка, и каталог врут,
-        // пока их не сбросить.
+        // Остаток на плашке принадлежит выбранному ключу — он и сбрасывается. Каталоги моделей
+        // остаются: выбор ключа здесь не двигает ни один слот.
         if (Window.GetWindow(this) is MainWindow owner)
         {
-            owner.OnActiveKeyChanged();
+            owner.OnSelectedKeyChanged();
         }
 
         RefreshKeyRows();
         Detached.Run(ReloadAsync(force: true), "spend_report");
     }
 
-    private void RemoveKey(VeniceKeyEntry entry)
+    private void RemoveKey(ApiKeyEntry entry)
     {
         if (Window.GetWindow(this) is not MainWindow owner)
         {
             return;
         }
 
-        owner.AskKeyRemoval(entry.Label, () =>
+        // Удаление меняет активный ключ — следующим годным становится другой, возможно чужого
+        // провайдера. Посреди хода это увело бы его следующий раунд на другой сервер.
+        if (TurnsRunning)
+        {
+            RefreshKeyRows();
+            return;
+        }
+
+        // У строки окружения вопрос другой: переменную в Windows программа не трогает и
+        // тронуть не может, она лишь перестаёт брать её ключ. Обещать удаление там, где его
+        // не будет, — врать человеку в единственном месте, где он может передумать.
+        owner.AskKeyRemoval(
+            entry.Label,
+            entry.RemovalOnlyHides ? "S.Key.DeleteDesc.Environment" : "S.Key.DeleteDesc",
+            () =>
+            {
+                if (_services is null)
+                {
+                    return;
+                }
+
+                _services.KeyStore.Remove(entry.Id);
+                _services.ApplyActiveKey();
+                owner.OnActiveKeyChanged(entry.Provider);
+                RefreshKeyRows();
+                Detached.Run(ReloadAsync(force: true), "spend_report");
+            });
+    }
+
+    /// <summary>
+    /// Возвращает убранный ключ окружения.
+    /// </summary>
+    /// <remarks>
+    /// Запрет на середине хода тот же, что и у удаления: слот без назначенного ключа берёт
+    /// ключ по провайдеру, и вернувшаяся строка сменила бы его следующему раунду.
+    /// </remarks>
+    private void RestoreKey(ApiKeyEntry entry)
+    {
+        if (_services is null || TurnsRunning)
+        {
+            RefreshKeyRows();
+            return;
+        }
+
+        _services.KeyStore.Restore(entry.Id);
+        _services.ApplyActiveKey();
+        if (Window.GetWindow(this) is MainWindow owner)
+        {
+            owner.OnActiveKeyChanged(entry.Provider);
+        }
+
+        RefreshKeyRows();
+        Detached.Run(ReloadAsync(force: true), "spend_report");
+    }
+
+    /// <summary>
+    /// Переименование строки списка.
+    /// </summary>
+    /// <remarks>
+    /// Идущий ход этому не помеха: название не решает, чем платят, — в отличие от удаления и
+    /// добавления, которые меняют ключ у слотов, его не назначивших.
+    /// </remarks>
+    private void RenameKey(ApiKeyEntry entry)
+    {
+        if (Window.GetWindow(this) is not MainWindow owner)
+        {
+            return;
+        }
+
+        owner.AskKeyRename(entry.Label, name =>
         {
             if (_services is null)
             {
                 return;
             }
 
-            _services.KeyStore.Remove(entry.Id);
-            _services.ApplyActiveKey();
-            owner.OnActiveKeyChanged();
+            _services.KeyStore.Rename(entry.Id, name);
+
+            // Плашка остатка подписывает суммы названиями ключей — после переименования
+            // в подсказке осталось бы прежнее.
+            owner.OnSelectedKeyChanged();
             RefreshKeyRows();
-            Detached.Run(ReloadAsync(force: true), "spend_report");
         });
     }
 
@@ -633,10 +1002,18 @@ public partial class SettingsKeyPage : UserControl
     /// Иначе увидеть страницу целиком можно было бы только запустив программу, а её окно
     /// вылезет поверх того, чем человек занят.
     /// </remarks>
-    internal void ShowForShot(SpendReport report, IReadOnlyList<VeniceKeyEntry> keys)
+    /// <param name="removed">
+    /// Убранные ключи окружения — строки под списком. Пусто, если убирать было нечего.
+    /// </param>
+    internal void ShowForShot(
+        SpendReport report,
+        IReadOnlyList<ApiKeyEntry> keys,
+        IReadOnlyList<ApiKeyEntry>? removed = null)
     {
         ArgumentNullException.ThrowIfNull(report);
         ArgumentNullException.ThrowIfNull(keys);
+
+        HiddenKeyRows.ItemsSource = (removed ?? []).Select(BuildHiddenKeyRow).ToList();
 
         BalanceCreditsValue.Text = "371";
         BalanceUsdValue.Text = "$3.71";

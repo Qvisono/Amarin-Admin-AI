@@ -144,6 +144,20 @@ internal static class VeniceSku
         }
 
         var lowered = raw.ToLowerInvariant();
+
+        // Догадки ниже разбирают биллинговую ленту Venice: и отрезание единицы измерения, и
+        // перебор игл рассчитаны на то, как называет статьи сам Venice. Наша собственная
+        // пометка с приставкой провайдера — точный идентификатор модели, и догадываться по
+        // нему не только незачем, но и вредно: «…gemini-2.5-flash-image» после отрезания
+        // «-image» превратился бы в другую настоящую модель каталога, а
+        // «…sonar-deep-research» попал бы в «поиск в интернете» из-за слова «search» рядом.
+        if (ModelRef.Of(raw) != LlmProvider.Venice)
+        {
+            return MatchModel(lowered, known) is { } exact
+                ? new SkuIdentity(exact, null, raw)
+                : new SkuIdentity(lowered, null, raw);
+        }
+
         var stem = StripUnit(lowered);
 
         if (MatchModel(stem, known) is { } model)

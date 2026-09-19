@@ -25,6 +25,16 @@ internal sealed class VeniceTurnContext
     /// <summary>Модель, которая отвечает сейчас. Съезжает, если сработал fallback.</summary>
     public required string ModelId { get; set; }
 
+    /// <summary>
+    /// Ключ, которым ход платит.
+    /// </summary>
+    /// <remarks>
+    /// На ходе, а не на клиенте: клиент чата один на программу, а ходов одновременно до трёх,
+    /// и модели у них могут быть у разных провайдеров. Отсюда же его берёт поиск в сети —
+    /// он оплачивается токенами модели хода, значит и ключом того же хода.
+    /// </remarks>
+    public ApiCredential Credential { get; set; }
+
     public ReasoningChoice Reasoning { get; set; } = ReasoningChoice.Disabled;
 
     /// <summary>Во что обошёлся маршрутизатор этого хода; null, когда «Авто» не выбрана.</summary>

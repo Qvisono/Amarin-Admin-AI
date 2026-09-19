@@ -329,6 +329,7 @@ internal sealed partial class ChatEngine
         {
             RequestedModelId = requested,
             ModelId = requested,
+            Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning
         };
         using var turnScope = VeniceTurnScope.Push(turn);
@@ -359,6 +360,9 @@ internal sealed partial class ChatEngine
                 assistant.ResolvedModelId = decision.ModelId;
                 observer.OnAssistantText(assistant);
                 turn.ModelId = decision.ModelId;
+                // Ключ вслед за моделью: «лёгкая» и «тяжёлая» могут стоять у разных
+                // провайдеров, и ключ хода обязан смениться вместе с выбором.
+                turn.Credential = KeyFor(decision.ModelId, decision.KeyId);
                 turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
                 turn.RouterCost = decision.Cost;
             }
@@ -475,6 +479,7 @@ internal sealed partial class ChatEngine
         {
             RequestedModelId = requested,
             ModelId = requested,
+            Credential = KeyFor(requested, ReadSelectedKey(session)),
             Reasoning = session.Reasoning
         };
 
@@ -530,6 +535,7 @@ internal sealed partial class ChatEngine
         {
             RequestedModelId = requested,
             ModelId = resolved,
+            Credential = KeyFor(resolved, ReadSelectedKey(session)),
             // Маршрутизатор во второй раз не запускается: модель уже выбрана, и платить за
             // выбор снова не за что. Размышление поэтому берётся под неё, а не под «Авто».
             Reasoning = VeniceModelCatalog.IsAuto(requested)
@@ -610,6 +616,9 @@ internal sealed partial class ChatEngine
                 assistant.ResolvedModelId = decision.ModelId;
                 observer.OnAssistantText(assistant);
                 turn.ModelId = decision.ModelId;
+                // Ключ вслед за моделью: «лёгкая» и «тяжёлая» могут стоять у разных
+                // провайдеров, и ключ хода обязан смениться вместе с выбором.
+                turn.Credential = KeyFor(decision.ModelId, decision.KeyId);
                 turn.Reasoning = ResolveAutoReasoning(decision.ModelId);
                 turn.RouterCost = decision.Cost;
             }
@@ -958,11 +967,17 @@ internal sealed partial class ChatEngine
             ? AgentHost.ForcedAgentModelId
             : settings.AgentFastModelId.Trim();
 
-        // Свой HttpClient по той же причине, что и у агента: VeniceClient правит BaseAddress и
-        // Authorization и не делит клиента с тем, кто уже отправлял запросы.
+        // Свой HttpClient по той же причине, что и у агента: у служебного запроса свой короткий
+        // таймаут, а у клиента — свой счёт потраченного, который не должен смешиваться с ходом.
         using var http = HttpClients.Create(HttpClients.ServiceTimeout);
         return await FollowUpDirector
-            .DecideAsync(new VeniceClient(http, _options), modelId, text, agents, cancellationToken)
+            .DecideAsync(
+                new VeniceClient(http, _options),
+                modelId,
+                text,
+                agents,
+                cancellationToken,
+                KeyFor(SlotBinding(ModelSlot.AgentFast, modelId)))
             .ConfigureAwait(false);
     }
 
@@ -1082,7 +1097,8 @@ internal sealed partial class ChatEngine
                     observer.OnAssistantText(assistant);
                 },
                 cancellationToken,
-                turn.Reasoning)
+                turn.Reasoning,
+                turn.Credential)
             .ConfigureAwait(false);
 
         // Сработавшую модель ход запоминает сам — следующий раунд начнёт с неё, а не с той,
@@ -1550,12 +1566,47 @@ internal sealed partial class ChatEngine
             return settings.ChatModelId.Trim();
         }
 
-        return _options.Model;
+        return ChatFallbackModel();
     }
+
+    /// <summary>
+    /// Ключ, которым платит эта переписка.
+    /// </summary>
+    /// <remarks>
+    /// На переписке, как и модель: два чата могут идти на разных ключах, и выбор, сделанный
+    /// в одном, не должен перекладывать деньги другого. Пусто — ключ из настроек, а нет и
+    /// его — по умолчанию для провайдера модели.
+    /// </remarks>
+    private string? ReadSelectedKey(ChatSession session) =>
+        !string.IsNullOrWhiteSpace(session.SelectedModelId)
+            ? session.SelectedKeyId
+            : ModelSlots.ReadKey(_settings(), ModelSlot.Chat);
+
+    /// <summary>Модель слота вместе с назначенным ей ключом.</summary>
+    private ModelBinding SlotBinding(ModelSlot slot, string modelId) =>
+        new(modelId, ModelSlots.ReadKey(_settings(), slot));
+
+    /// <summary>
+    /// Чем платить за эту модель. Держателя ключей нет — платим тем, с чем программу запустили.
+    /// </summary>
+    private ApiCredential KeyFor(string modelId, string? keyId) =>
+        _options.Keys?.CredentialFor(modelId, keyId) ?? _options.Credential;
+
+    private ApiCredential KeyFor(ModelBinding binding) => KeyFor(binding.ModelId, binding.KeyId);
+
+    /// <summary>
+    /// Модель чата, когда не выбрано ничего: из appsettings.json у Venice, подобранная у
+    /// остальных — идентификатор из appsettings.json чужому провайдеру незнаком.
+    /// </summary>
+    private string ChatFallbackModel() =>
+        ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Chat, _options.Model);
 
     /// <summary>Дешёвая модель: и запас маршрутизатора, и выбор для служебных запросов.</summary>
     private string LiteModelId() =>
-        FirstNonEmpty(_settings().LiteModelId, _options.Model, "openai-gpt-56-luna");
+        FirstNonEmpty(
+            _settings().LiteModelId,
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, "openai-gpt-56-luna"));
 
     /// <summary>
     /// Модели, между которыми выбирает «Авто», - ровно те две, что возвращает
@@ -1581,7 +1632,12 @@ internal sealed partial class ChatEngine
     /// Не голая строка, потому что у выбора модели есть цена, и в разбивке под сообщением она
     /// должна стоять отдельной строкой, а не растворяться в «Модели».
     /// </remarks>
-    internal sealed record RouterDecision(string ModelId, VeniceCost? Cost);
+    /// <param name="KeyId">
+    /// Ключ выбранного слота. Едет вместе с моделью: «лёгкая» и «тяжёлая» могут стоять
+    /// у разных провайдеров, и подобрать ключ по одному идентификатору позже уже нельзя —
+    /// у провайдера ключей бывает несколько.
+    /// </param>
+    internal sealed record RouterDecision(string ModelId, VeniceCost? Cost, string? KeyId = null);
 
     private async Task<RouterDecision> RouteAsync(
         string userText,
@@ -1620,7 +1676,8 @@ internal sealed partial class ChatEngine
                     toolChoice: null,
                     BuildVeniceParameters(_options),
                     cancellationToken,
-                    (_settings().RouterReasoning ?? new ReasoningSettings()).ToChoice())
+                    (settings.RouterReasoning ?? new ReasoningSettings()).ToChoice(),
+                    KeyFor(SlotBinding(ModelSlot.Router, routerId)))
                 .ConfigureAwait(false);
 
             var reply = ReasoningSplit.Split(
@@ -1628,9 +1685,11 @@ internal sealed partial class ChatEngine
 
             // Цена берётся прямо из ответа, а не разницей общего счёта: RecordCost срабатывает
             // только на успешном разборе, поэтому упавшие попытки цепочки fallback в неё не входят.
+            var heavy = ParseRouterComplexity(reply) == "heavy";
             return new RouterDecision(
-                ParseRouterComplexity(reply) == "heavy" ? heavyId : liteId,
-                response.Cost?.ToCost());
+                heavy ? heavyId : liteId,
+                response.Cost?.ToCost(),
+                ModelSlots.ReadKey(settings, heavy ? ModelSlot.Heavy : ModelSlot.Lite));
         }
         catch (OperationCanceledException)
         {
@@ -1640,7 +1699,8 @@ internal sealed partial class ChatEngine
         {
             // Маршрутизатор отработал и свалился в запас: денег не списано, но строка в разбивке
             // всё равно должна сказать, что он был.
-            return new RouterDecision(liteId, new VeniceCost());
+            return new RouterDecision(
+                liteId, new VeniceCost(), ModelSlots.ReadKey(settings, ModelSlot.Lite));
         }
     }
 
@@ -1768,7 +1828,10 @@ internal sealed partial class ChatEngine
     private ReasoningChoice ResolveAutoReasoning(string resolvedModelId)
     {
         var settings = _settings();
-        var liteId = FirstNonEmpty(settings.LiteModelId, _options.Model, "openai-gpt-56-luna");
+        var liteId = FirstNonEmpty(
+            settings.LiteModelId,
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, "openai-gpt-56-luna"));
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var slot = resolvedModelId.Equals(heavyId, StringComparison.OrdinalIgnoreCase)
             ? settings.HeavyReasoning

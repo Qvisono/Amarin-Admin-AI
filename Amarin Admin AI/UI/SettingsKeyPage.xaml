@@ -204,7 +204,8 @@
                 </Grid.ColumnDefinitions>
                 <Border Style="{StaticResource BalanceTile}" Margin="0,0,5,0">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource TileCaption}" Text="{DynamicResource S.Key.Balance.Credits}"/>
+                        <TextBlock x:Name="BalanceCreditsCaption" Style="{StaticResource TileCaption}"
+                                   Text="{DynamicResource S.Key.Balance.Credits}"/>
                         <TextBlock x:Name="BalanceCreditsValue" Style="{StaticResource TileValue}" Text="—"/>
                     </StackPanel>
                 </Border>
@@ -231,6 +232,17 @@
                         Content="⟳" Click="SpendRefreshButton_Click"
                         ToolTip="{DynamicResource S.Key.Balance.Refresh}"/>
             </Grid>
+
+            <!-- Чей график: все ключи или один выбранный. В своей панели и со своей группой —
+                 в общей с отрезками времени выбор одного гасил бы выбор другого. -->
+            <WrapPanel x:Name="ScopeChips" Margin="0,0,0,8">
+                <RadioButton x:Name="ScopeAll" Style="{StaticResource PeriodChip}" GroupName="SpendScope"
+                             IsChecked="True" Content="{DynamicResource S.Spend.Scope.All}"
+                             ToolTip="{DynamicResource S.Spend.Scope.AllTip}" Checked="Scope_Checked"/>
+                <RadioButton x:Name="ScopeOne" Style="{StaticResource PeriodChip}" GroupName="SpendScope"
+                             Content="{DynamicResource S.Spend.Scope.One}"
+                             ToolTip="{DynamicResource S.Spend.Scope.OneTip}" Checked="Scope_Checked"/>
+            </WrapPanel>
 
             <!-- Отрезки времени. Заводской - неделя. -->
             <WrapPanel x:Name="PeriodChips" Margin="0,0,0,10">
@@ -297,6 +309,12 @@
                         Content="{DynamicResource S.Key.Add}" Click="AddKeyButton_Click"/>
             </Grid>
             <ItemsControl x:Name="KeyRows"/>
+            <!--
+                Убранные ключи окружения. Отдельным списком под ключами: это не ключи, которыми
+                программа платит, а напоминание о том, что переменная в Windows осталась и её
+                можно вернуть.
+            -->
+            <ItemsControl x:Name="HiddenKeyRows"/>
             <TextBlock x:Name="KeysBusyNote" Style="{StaticResource SettingDesc}"
                        Text="{DynamicResource S.Key.BusyTurns}" Visibility="Collapsed" Margin="0,8,0,0"/>
         </StackPanel>

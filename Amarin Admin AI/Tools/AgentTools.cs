@@ -4,7 +4,15 @@ namespace Amarin.Tools;
 
 internal static class AgentTools
 {
-    public static ToolRegistry Create(VeniceClient venice, HttpClient downloadHttp, DownloadOptions download) =>
+    /// <param name="webSearch">
+    /// Закреплённый способ поиска в интернете. Читается на каждый вызов: человек мог сменить
+    /// его, пока агент работает.
+    /// </param>
+    public static ToolRegistry Create(
+        VeniceClient venice,
+        HttpClient downloadHttp,
+        DownloadOptions download,
+        Func<WebSearchPlan>? webSearch = null) =>
         new(
         [
             new PowerShellTool(),
@@ -16,7 +24,8 @@ internal static class AgentTools
             new ScreenshotTool(),
             new ClipboardTool(),
             new FolderAnalysisTool(),
-            new WebSearchTool(venice.SearchWebAsync),
+            new WebSearchTool((query, ct) =>
+                venice.SearchWebAsync(query, webSearch?.Invoke(), ct)),
             new ScrapeUrlTool(venice.ScrapeUrlAsync),
             new FetchImageTool(),
             new EventLogTool(),

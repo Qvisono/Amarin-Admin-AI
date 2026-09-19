@@ -34,7 +34,7 @@ public sealed class KeyPageShotTests
             host.Children.Add(page);
             try
             {
-                page.ShowForShot(SampleReport(), SampleKeys());
+                page.ShowForShot(SampleReport(), SampleKeys(), Removed());
                 page.HoverForShot(3);
                 page.Measure(new Size(520, 900));
                 page.Arrange(new Rect(0, 0, 520, 900));
@@ -97,11 +97,18 @@ public sealed class KeyPageShotTests
         };
     }
 
-    private static IReadOnlyList<VeniceKeyEntry> SampleKeys() =>
+    private static IReadOnlyList<ApiKeyEntry> SampleKeys() =>
     [
         new("environment", "VENICE_API_KEY", "VENabcdefghijklmnopqrstuvIyuC",
-            VeniceKeySource.Environment, true),
-        new("k2", "Рабочий", "vk-second-key-abcdefghijkl3F7q", VeniceKeySource.Stored, false),
-        new("k3", "Старый", null, VeniceKeySource.Stored, false)
+            ApiKeySource.Environment, true),
+        new("k2", "Рабочий", "vk-second-key-abcdefghijkl3F7q", ApiKeySource.Stored, false),
+        new("k3", "Старый", null, ApiKeySource.Stored, false)
+    ];
+
+    /// <summary>Убранный ключ окружения: строка под списком с предложением вернуть его.</summary>
+    private static IReadOnlyList<ApiKeyEntry> Removed() =>
+    [
+        new("environment-openrouter", "OPENROUTER_API_KEY", "sk-or-abcdef",
+            ApiKeySource.Environment, false, LlmProvider.OpenRouter)
     ];
 }

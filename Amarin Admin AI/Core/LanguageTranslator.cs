@@ -27,10 +27,22 @@ internal sealed record TranslationResult(
 internal sealed class LanguageTranslator
 {
     /// <summary>
-    /// Модель перевода. Задана пользователем явно; если Venice её не примет, отказ будет с
-    /// понятным текстом, а поправить надо ровно эту строку.
+    /// Модель перевода у Venice. Задана явно; если Venice её не примет, отказ будет с понятным
+    /// текстом, а поправить надо ровно эту строку.
     /// </summary>
     public const string TranslationModelId = "openai-gpt-56-luna-pro";
+
+    /// <summary>
+    /// Модель перевода для активного провайдера.
+    /// </summary>
+    /// <remarks>
+    /// Константа выше — идентификатор Venice, и на ключе OpenRouter перевод интерфейса
+    /// отказывал бы четырёхсоткой «модель не найдена»: единственное место в программе, где
+    /// модель не берётся из настроек и подменить её человеку было бы негде.
+    /// </remarks>
+    private string ModelId => _venice.ActiveProvider == LlmProvider.Venice
+        ? TranslationModelId
+        : ModelSlotDefaults.Resolve(_venice.ActiveProvider, ModelSlot.Title, _catalog?.Invoke());
 
     /// <summary>
     /// Ключей в одной партии. Сорок — компромисс: ответ не упирается в предел длины, а партий
@@ -54,8 +66,17 @@ internal sealed class LanguageTranslator
         """;
 
     private readonly VeniceClient _venice;
+    private readonly Func<IReadOnlyList<VeniceModelInfo>?>? _catalog;
 
-    public LanguageTranslator(VeniceClient venice) => _venice = venice;
+    /// <param name="catalog">
+    /// Загруженный каталог моделей — по нему подбирается модель перевода у провайдеров, кроме
+    /// Venice. <c>null</c> — подбор пойдёт по списку предпочтений вслепую.
+    /// </param>
+    public LanguageTranslator(VeniceClient venice, Func<IReadOnlyList<VeniceModelInfo>?>? catalog = null)
+    {
+        _venice = venice;
+        _catalog = catalog;
+    }
 
     /// <summary>
     /// Переводит <paramref name="source"/> на язык <paramref name="languageName"/>.
@@ -96,7 +117,7 @@ internal sealed class LanguageTranslator
             {
                 return new TranslationResult(
                     false,
-                    Loc.Format("S.Language.ModelRefused", TranslationModelId, ex.Message),
+                    Loc.Format("S.Language.ModelRefused", ModelId, ex.Message),
                     translated);
             }
             catch (HttpRequestException)
@@ -230,7 +251,7 @@ internal sealed class LanguageTranslator
 
         using var charge = VeniceClient.ChargeAs(VeniceSku.Translate);
         var response = await _venice.CreateChatCompletionAsync(
-                TranslationModelId,
+                ModelId,
                 [
                     new ChatMessage { Role = "system", Content = ChatContent.Text(SystemPrompt) },
                     new ChatMessage { Role = "user", Content = ChatContent.Text(payload) }

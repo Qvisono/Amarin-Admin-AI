@@ -10,6 +10,11 @@ namespace Amarin.Core;
 /// видит: неудачные попытки из цепочки замен модели списываются, а до <c>AddCost</c> не
 /// доходят. Заодно журнал знает про траты, сделанные вообще не отсюда, и умеет отвечать
 /// отдельно по каждому ключу.
+/// <para>
+/// У провайдера журнала может не быть — см. <see cref="ProviderSpec.HasUsageHistory"/>. Тогда
+/// отчёт строится из собственного журнала программы, как он строится и для обычного ключа
+/// Venice, которому журнал не отдают.
+/// </para>
 /// </remarks>
 internal sealed class SpendService
 {
@@ -55,14 +60,26 @@ internal sealed class SpendService
     /// <summary>Каталог моделей для разбора sku. Ставится снаружи, как у <see cref="VeniceClient"/>.</summary>
     public Func<IReadOnlyList<VeniceModelInfo>?>? ResolveModels { get; set; }
 
-    public async Task<SpendReport> GetReportAsync(
+    /// <summary>
+    /// Отчёт по ключу Venice. Перегрузка для тех, у кого на руках только строка: до версии
+    /// 1.23.0 провайдер был один, и знать его было незачем.
+    /// </summary>
+    public Task<SpendReport> GetReportAsync(
         string? secret,
+        SpendPeriod period,
+        bool force,
+        CancellationToken cancellationToken = default) =>
+        GetReportAsync(
+            new ApiCredential(LlmProvider.Venice, secret ?? ""), period, force, cancellationToken);
+
+    public async Task<SpendReport> GetReportAsync(
+        ApiCredential credential,
         SpendPeriod period,
         bool force,
         CancellationToken cancellationToken = default)
     {
         var today = DateTime.Now;
-        if (string.IsNullOrWhiteSpace(secret))
+        if (string.IsNullOrWhiteSpace(credential.Secret))
         {
             return new SpendReport
             {
@@ -72,25 +89,138 @@ internal sealed class SpendService
         }
 
         var models = ResolveModels?.Invoke();
+        var source = await SourceForAsync(credential, period, today, force, cancellationToken)
+            .ConfigureAwait(false);
+        return SpendPeriods.Build(source.File, period, today, models, source.Status, source.Error);
+    }
+
+    /// <summary>
+    /// Отчёт сразу по нескольким ключам — режим «все ключи» на странице «Key &amp; Info».
+    /// </summary>
+    /// <remarks>
+    /// С версии 1.23.0 платит не один ключ: у каждого слота моделей свой, и сумма по одному
+    /// ключу больше не отвечает на вопрос «сколько стоит программа».
+    /// <para>
+    /// Ключи разбираются по отпечатку секрета: ключ из окружения и его же копия, сохранённая
+    /// в <c>keys.json</c>, — это один и тот же счёт и один и тот же файл журнала, и сложив их
+    /// как разные, график показал бы двойные деньги.
+    /// </para>
+    /// </remarks>
+    public async Task<SpendReport> GetReportAsync(
+        IReadOnlyList<ApiCredential> credentials,
+        SpendPeriod period,
+        bool force,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(credentials);
+
+        var today = DateTime.Now;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var unique = new List<ApiCredential>();
+        foreach (var credential in credentials)
+        {
+            if (!string.IsNullOrWhiteSpace(credential.Secret) &&
+                seen.Add(ApiKeyStore.Fingerprint(credential.Secret)))
+            {
+                unique.Add(credential);
+            }
+        }
+
+        if (unique.Count == 0)
+        {
+            return new SpendReport { Status = SpendStatus.NoKey, Period = period };
+        }
+
+        var models = ResolveModels?.Invoke();
+        var files = new List<SpendHistoryFile>(unique.Count);
+        var status = SpendStatus.Ready;
+        string? error = null;
+
+        // Последовательно, а не разом: Venice ограничивает частоту запросов, и веер по всем
+        // ключам сразу отвечал бы отказом ровно тогда, когда ключей стало много.
+        foreach (var credential in unique)
+        {
+            var source = await SourceForAsync(credential, period, today, force, cancellationToken)
+                .ConfigureAwait(false);
+            files.Add(source.File);
+            status = Worse(status, source.Status);
+            error ??= source.Error;
+        }
+
+        var combined = SpendFold.Combine(files);
+
+        // Отказ одного ключа не повод объявить пустым весь график: у остальных данные есть,
+        // и «устарело» честнее, чем «не вышло».
+        if (status == SpendStatus.Failed && combined.Days.Count > 0)
+        {
+            status = SpendStatus.Stale;
+        }
+
+        return SpendPeriods.Build(combined, period, today, models, status, error);
+    }
+
+    /// <summary>Чем хуже, тем важнее: итог по нескольким ключам берёт худшее из состояний.</summary>
+    private static SpendStatus Worse(SpendStatus left, SpendStatus right) =>
+        Rank(right) > Rank(left) ? right : left;
+
+    private static int Rank(SpendStatus status) => status switch
+    {
+        SpendStatus.Ready => 0,
+        SpendStatus.NoKey => 1,
+        SpendStatus.Local => 2,
+        SpendStatus.Stale => 3,
+        _ => 4
+    };
+
+    /// <summary>Журнал одного ключа и то, откуда он взялся.</summary>
+    private readonly record struct SpendSource(SpendHistoryFile File, SpendStatus Status, string? Error);
+
+    /// <summary>
+    /// Достаёт журнал одного ключа: из Venice, из кэша или из собственного журнала программы.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от сборки отчёта, потому что режим «все ключи» сводит именно журналы: у готовых
+    /// отчётов левый край периода «всё время» у каждого ключа свой, и сложить их в одну ось
+    /// уже нельзя.
+    /// </remarks>
+    private async Task<SpendSource> SourceForAsync(
+        ApiCredential credential,
+        SpendPeriod period,
+        DateTime today,
+        bool force,
+        CancellationToken cancellationToken)
+    {
+        var secret = credential.Secret;
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            return new SpendSource(new SpendHistoryFile(), SpendStatus.NoKey, null);
+        }
+
+        // Журнала списаний у провайдера может не быть вовсе — тогда своего журнала программы
+        // не «не хватает», он единственный источник, и ходить в сеть незачем.
+        if (!ProviderSpec.For(credential.Provider).HasUsageHistory)
+        {
+            return Local(secret);
+        }
 
         // Ключ уже отказал — идём сразу в свой журнал, не тревожа сеть впустую.
-        if (_needsAdminKey.Contains(VeniceKeyStore.Fingerprint(secret)))
+        if (_needsAdminKey.Contains(ApiKeyStore.Fingerprint(secret)))
         {
-            return LocalReport(secret, period, today, models);
+            return Local(secret);
         }
 
         var file = _store.Load(secret);
         if (!force && !DueForSync(secret))
         {
-            return SpendPeriods.Build(file, period, today, models);
+            return new SpendSource(file, SpendStatus.Ready, null);
         }
 
         try
         {
-            await SyncAsync(secret, file, period, today, cancellationToken).ConfigureAwait(false);
-            _lastSync[VeniceKeyStore.Fingerprint(secret)] = DateTime.UtcNow;
+            await SyncAsync(credential, file, period, today, cancellationToken).ConfigureAwait(false);
+            _lastSync[ApiKeyStore.Fingerprint(secret)] = DateTime.UtcNow;
             _store.Save(secret, file);
-            return SpendPeriods.Build(file, period, today, models);
+            return new SpendSource(file, SpendStatus.Ready, null);
         }
         catch (OperationCanceledException)
         {
@@ -100,8 +230,8 @@ internal sealed class SpendService
         {
             // Не поломка, а свойство ключа: журнал Venice открыт только админ-ключам, а для
             // запросов к моделям человек держит обычный. Свой журнал у программы есть.
-            _needsAdminKey.Add(VeniceKeyStore.Fingerprint(secret));
-            return LocalReport(secret, period, today, models);
+            _needsAdminKey.Add(ApiKeyStore.Fingerprint(secret));
+            return Local(secret);
         }
         catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
         {
@@ -109,27 +239,22 @@ internal sealed class SpendService
             // и говорим, что данные сохранённые; нет — отдаём свой журнал, он всегда под рукой.
             if (file.Days.Count > 0)
             {
-                return SpendPeriods.Build(
-                    file, period, today, models, SpendStatus.Stale, exception.Message);
+                return new SpendSource(file, SpendStatus.Stale, exception.Message);
             }
 
-            var local = LocalReport(secret, period, today, models);
-            return local.TotalUsd > 0 || local.TotalDiem > 0
+            var local = Local(secret);
+            var money = SpendPeriods.Build(local.File, period, today, null, SpendStatus.Local);
+            return money.TotalUsd > 0 || money.TotalDiem > 0
                 ? local
-                : SpendPeriods.Build(file, period, today, models, SpendStatus.Failed, exception.Message);
+                : new SpendSource(file, SpendStatus.Failed, exception.Message);
         }
     }
 
-    /// <summary>Отчёт по собственному журналу программы.</summary>
-    private SpendReport LocalReport(
-        string secret,
-        SpendPeriod period,
-        DateTime today,
-        IReadOnlyList<VeniceModelInfo>? models)
+    /// <summary>Собственный журнал программы по этому ключу.</summary>
+    private SpendSource Local(string secret)
     {
         _ledger.Flush();
-        return SpendPeriods.Build(
-            _ledger.Read(secret), period, today, models, SpendStatus.Local);
+        return new SpendSource(_ledger.Read(secret), SpendStatus.Local, null);
     }
 
     /// <summary>
@@ -144,7 +269,7 @@ internal sealed class SpendService
         new DateTimeOffset(DateTime.SpecifyKind(localDate, DateTimeKind.Local)).ToUniversalTime();
 
     private bool DueForSync(string secret) =>
-        !_lastSync.TryGetValue(VeniceKeyStore.Fingerprint(secret), out var last) ||
+        !_lastSync.TryGetValue(ApiKeyStore.Fingerprint(secret), out var last) ||
         DateTime.UtcNow - last > Throttle;
 
     /// <summary>
@@ -155,7 +280,7 @@ internal sealed class SpendService
     /// слать нельзя, — поэтому обход продолжается одним лишь курсором.
     /// </remarks>
     private async Task SyncAsync(
-        string secret,
+        ApiCredential credential,
         SpendHistoryFile file,
         SpendPeriod period,
         DateTime today,
@@ -182,7 +307,7 @@ internal sealed class SpendService
                     null,
                     cursor,
                     pageSize: 1000,
-                    apiKeyOverride: secret,
+                    credentialOverride: credential,
                     cancellationToken)
                 .ConfigureAwait(false);
 

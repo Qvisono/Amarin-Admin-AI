@@ -1,10 +1,25 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Amarin.Core;
 
 namespace Amarin.UI;
 
+/// <summary>
+/// Выбор модели и ключа к ней: провайдеры слева, модели посередине, ключи справа.
+/// </summary>
+/// <remarks>
+/// До версии 1.23.0 панель показывала модели одного провайдера — того, чей ключ был активен, —
+/// и о ключах не знала вовсе. Теперь слот выбирается из моделей любого провайдера, у которого
+/// есть ключ, и к модели тут же выбирается ключ: заголовки чатов человек может отдать
+/// бесплатной модели одного провайдера, пока разговор идёт у другого.
+/// <para>
+/// Вкладки «Рекомендованы» и «Все» убраны: списка теперь два измерения (провайдер и ключ),
+/// и третье съело бы и место, и понятность. Сверху остался «Авто» — он не модель, а просьба
+/// выбрать её маршрутизатором, и провайдера у него нет.
+/// </para>
+/// </remarks>
 public partial class ModelPickerPanel : UserControl
 {
     public static readonly DependencyProperty AllowAutoProperty =
@@ -14,21 +29,76 @@ public partial class ModelPickerPanel : UserControl
             typeof(ModelPickerPanel),
             new PropertyMetadata(true, OnAllowAutoChanged));
 
-    private IReadOnlyList<VeniceModelInfo> _catalog = [];
-    private string _selectedId = "";
-    private string? _allStatus;
-    private bool _catalogReady;
-    private bool _listsDirty = true;
+    /// <summary>
+    /// Ключ строки подсказки у «Авто».
+    /// </summary>
+    /// <remarks>
+    /// У разных слотов «Авто» значит разное: в чате — «маршрутизатор сам выберет модель»,
+    /// у поиска в интернете — «искать там же, где идёт разговор». Ключ, а не готовый текст:
+    /// подсказка обязана меняться вместе с языком интерфейса.
+    /// </remarks>
+    public static readonly DependencyProperty AutoTipKeyProperty =
+        DependencyProperty.Register(
+            nameof(AutoTipKey),
+            typeof(string),
+            typeof(ModelPickerPanel),
+            new PropertyMetadata("S.Models.AutoTip", OnAutoTipKeyChanged));
+
+    /// <summary>
+    /// Пауза перед пересборкой списка после нажатия клавиши.
+    /// </summary>
+    /// <remarks>
+    /// Человек печатает быстрее, чем строится список из сотен моделей. Без паузы каждый символ
+    /// отправлял в мусор всю предыдущую сборку — набранное слово стоило столько же, сколько
+    /// столько же полных перестроек.
+    /// </remarks>
+    private static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(140);
+
+    private readonly Dictionary<LlmProvider, CatalogState> _catalogs = [];
+
+    /// <summary>
+    /// Ключ, выбранный у каждого провайдера. Помнится по провайдерам, а не одним полем: человек
+    /// ходит по столбцу провайдеров, и выбранный у одного ключ не должен молча стать выбором
+    /// у другого — у другого этого ключа нет вовсе.
+    /// </summary>
+    private readonly Dictionary<LlmProvider, string?> _keyChoice = [];
+
+    private readonly Dictionary<LlmProvider, RadioButton> _providerItems = [];
+    private readonly List<ModelPickerRow> _rows = [];
+
+    private readonly string _providerGroup = "PickerProviders_" + Guid.NewGuid().ToString("N");
+    private readonly string _keyGroup = "PickerKeys_" + Guid.NewGuid().ToString("N");
+
+    private DispatcherTimer? _searchTimer;
+    private DispatcherOperation? _pendingRebuild;
+
+    private IReadOnlyList<ApiKeyEntry> _keys = [];
+    private ModelBinding _selected = ModelBinding.Empty;
+    private LlmProvider _shown = LlmProvider.Venice;
+
+    /// <summary>
+    /// Из чего собран показанный сейчас список моделей.
+    /// </summary>
+    /// <remarks>
+    /// <c>Version = -1</c> значит «не собран ничем»: у настоящего каталога счётчик растёт
+    /// с нуля, и совпасть эти состояния не могут.
+    /// </remarks>
+    private (LlmProvider Provider, string Search, bool Vision, bool Code, int Version) _built = Nothing;
+
+    private static (LlmProvider Provider, string Search, bool Vision, bool Code, int Version) Nothing =>
+        (default, "", false, false, -1);
+
+    private bool _suppressProviderEvent;
+    private bool _suppressKeyEvent;
+    private bool _rebuilding;
 
     public ModelPickerPanel()
     {
         InitializeComponent();
         BindAutoLogo();
-        var group = "ModelPickerTabs_" + Guid.NewGuid().ToString("N");
-        TabRecommended.GroupName = group;
-        TabAll.GroupName = group;
         Loaded += OnLoaded;
-        IsVisibleChanged += (_, _) => EnsureLists();
+        Unloaded += OnUnloaded;
+        IsVisibleChanged += (_, _) => Invalidate();
     }
 
     public bool AllowAuto
@@ -37,37 +107,200 @@ public partial class ModelPickerPanel : UserControl
         set => SetValue(AllowAutoProperty, value);
     }
 
-    public string SelectedModelId => _selectedId;
-
-    public event EventHandler<string>? ModelPicked;
-
-    public void SetSelected(string modelId)
+    public string AutoTipKey
     {
-        _selectedId = modelId ?? "";
-        RefreshSelection();
+        get => (string)GetValue(AutoTipKeyProperty);
+        set => SetValue(AutoTipKeyProperty, value);
     }
 
-    public void ShowLoading()
+    public string SelectedModelId => _selected.ModelId;
+
+    public string? SelectedKeyId => _selected.KeyId;
+
+    /// <summary>Человек выбрал модель. Хозяин закрывает плашку: выбор сделан.</summary>
+    public event EventHandler<ModelBinding>? ModelPicked;
+
+    /// <summary>
+    /// Человек сменил модели ключ.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="ModelPicked"/>, потому что закрывать плашку здесь нельзя: выбор
+    /// ключа — половина дела, и человек обычно тут же выбирает под него модель. Пока оба
+    /// действия шли одним событием, плашка захлопывалась от нажатия на ключ.
+    /// </remarks>
+    public event EventHandler<ModelBinding>? KeyPicked;
+
+    /// <summary>У показанного провайдера нет ключа, и человек просит его завести.</summary>
+    public event EventHandler? AddKeyRequested;
+
+    /// <summary>
+    /// Человек открыл столбец этого провайдера — хозяину пора подвезти его каталог.
+    /// </summary>
+    /// <remarks>
+    /// Событием, а не запросом изнутри: панель не знает ни про ключи, ни про сеть, а каталогов
+    /// теперь несколько, и грузить их все разом ради одного открытого попапа незачем.
+    /// </remarks>
+    public event EventHandler<LlmProvider>? ProviderShown;
+
+    /// <summary>
+    /// Ставит выбор, не трогая показанный столбец провайдеров.
+    /// </summary>
+    /// <remarks>
+    /// Не трогая — потому что зовут это и когда плашка открыта: каталог доезжает, хозяин
+    /// раздаёт полям текущие привязки, и прежняя редакция на этом месте возвращала столбец
+    /// к провайдеру выбранной модели. Со стороны это выглядело так, будто переключение
+    /// провайдера срабатывает через раз.
+    /// </remarks>
+    public void SetSelected(string modelId, string? keyId)
     {
-        _catalogReady = false;
-        _allStatus = Loc.Get("S.Common.Loading");
-        InvalidateLists();
+        _selected = new ModelBinding(modelId ?? "", keyId);
+
+        if (!VeniceModelCatalog.IsAuto(_selected.ModelId) &&
+            !string.IsNullOrWhiteSpace(_selected.ModelId))
+        {
+            _keyChoice[_selected.Provider] = keyId;
+        }
+
+        RefreshMarks();
     }
 
-    public void SetCatalog(IReadOnlyList<VeniceModelInfo> models, string? error = null)
+    /// <summary>
+    /// Открывает плашку на провайдере выбранной модели.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся ровно при открытии попапа: человек чаще смотрит, что стоит сейчас, чем ищет
+    /// замену у соседа. У «Авто» провайдера нет — остаёмся там, где были.
+    /// </remarks>
+    public void ShowSelectedProvider()
     {
-        _catalog = models;
-        _catalogReady = true;
-        _allStatus = error;
-        InvalidateLists();
+        if (!VeniceModelCatalog.IsAuto(_selected.ModelId) &&
+            !string.IsNullOrWhiteSpace(_selected.ModelId))
+        {
+            _shown = _selected.Provider;
+        }
+
+        Invalidate();
+    }
+
+    /// <summary>Ключи программы — из них собирается правый столбец.</summary>
+    public void SetKeys(IReadOnlyList<ApiKeyEntry> keys)
+    {
+        _keys = keys ?? [];
+        Invalidate();
+    }
+
+    /// <summary>Имя ключа по его идентификатору. <c>null</c> — такого ключа больше нет.</summary>
+    public string? LabelOf(string? keyId)
+    {
+        if (string.IsNullOrWhiteSpace(keyId))
+        {
+            return null;
+        }
+
+        foreach (var key in _keys)
+        {
+            if (key.Id.Equals(keyId, StringComparison.Ordinal))
+            {
+                return key.Label;
+            }
+        }
+
+        return null;
+    }
+
+    public void ShowLoading(LlmProvider provider)
+    {
+        var state = State(provider);
+        state.Ready = false;
+        state.Status = Loc.Get("S.Common.Loading");
+        state.Version++;
+        Invalidate();
+    }
+
+    public void SetCatalog(
+        LlmProvider provider,
+        IReadOnlyList<VeniceModelInfo> models,
+        string? error = null)
+    {
+        var state = State(provider);
+        var next = models ?? [];
+
+        // Тот же каталог второй раз — не повод пересобирать список: хозяин раздаёт его всем
+        // плашкам сразу, и открытая перестраивалась бы по разу на каждую раздачу.
+        if (state.Ready &&
+            ReferenceEquals(state.Models, next) &&
+            string.Equals(state.Status, error, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        state.Models = next;
+        state.Ready = true;
+        state.Status = error;
+        state.Version++;
+        Invalidate();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        SmoothScroll.SetIsEnabled(RecommendedScroll, true);
-        SmoothScroll.SetIsEnabled(AllScroll, true);
+        SmoothScroll.SetIsEnabled(KeyScroll, true);
+        if (FindScroll(ModelItems) is { } scroll)
+        {
+            SmoothScroll.SetIsEnabled(scroll, true);
+        }
+
+        ThemeManager.EffectiveThemeChanged += OnThemeChanged;
         ApplyAllowAuto();
-        InvalidateLists();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Снимает всё отложенное: плашку убрали с экрана, и доделывать ей нечего.
+    /// </summary>
+    /// <remarks>
+    /// И пересборка, и отсчёт паузы поиска живут в очереди диспетчера — общей на всё окно.
+    /// Оставленные там, они срабатывали бы уже после того, как плашки не стало.
+    /// </remarks>
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        ThemeManager.EffectiveThemeChanged -= OnThemeChanged;
+
+        _searchTimer?.Stop();
+        if (_pendingRebuild is { Status: DispatcherOperationStatus.Pending } pending)
+        {
+            pending.Abort();
+        }
+
+        _pendingRebuild = null;
+    }
+
+    /// <summary>
+    /// Логотипы строк разрешены по живым ресурсам и держат объект прежней темы — после смены
+    /// список надо собрать заново.
+    /// </summary>
+    private void OnThemeChanged()
+    {
+        _built = Nothing;
+        Invalidate();
+    }
+
+    private static ScrollViewer? FindScroll(DependencyObject root)
+    {
+        if (root is ScrollViewer found)
+        {
+            return found;
+        }
+
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            if (FindScroll(VisualTreeHelper.GetChild(root, i)) is { } deeper)
+            {
+                return deeper;
+            }
+        }
+
+        return null;
     }
 
     private static void OnAllowAutoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -75,7 +308,14 @@ public partial class ModelPickerPanel : UserControl
         if (d is ModelPickerPanel panel)
         {
             panel.ApplyAllowAuto();
-            panel.RefreshSelection();
+        }
+    }
+
+    private static void OnAutoTipKeyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is ModelPickerPanel panel)
+        {
+            panel.ApplyAutoTip();
         }
     }
 
@@ -88,6 +328,19 @@ public partial class ModelPickerPanel : UserControl
 
         AutoItem.Visibility = AllowAuto ? Visibility.Visible : Visibility.Collapsed;
         BindAutoLogo();
+        ApplyAutoTip();
+    }
+
+    /// <summary>
+    /// Через ссылку на ресурс, а не готовой строкой: перевод интерфейса меняет словарь на лету,
+    /// и присвоенный текст остался бы на прежнем языке.
+    /// </summary>
+    private void ApplyAutoTip()
+    {
+        if (AutoItem is not null && !string.IsNullOrWhiteSpace(AutoTipKey))
+        {
+            AutoItem.SetResourceReference(ToolTipProperty, AutoTipKey);
+        }
     }
 
     private void BindAutoLogo()
@@ -99,229 +352,422 @@ public partial class ModelPickerPanel : UserControl
         }
     }
 
-    private void AutoItem_Click(object sender, RoutedEventArgs e) => Pick(VeniceModelCatalog.AutoId);
-
-    private void ModelSearchBox_TextChanged(object sender, TextChangedEventArgs e) => RebuildAll();
-
-    private void FilterChip_Click(object sender, RoutedEventArgs e) => RebuildAll();
-
-    private void Pick(string id)
+    private CatalogState State(LlmProvider provider)
     {
-        _selectedId = id;
-        RefreshSelection();
-        ModelPicked?.Invoke(this, id);
-    }
-
-    private void RefreshSelection()
-    {
-        if (AutoCheck is not null)
+        if (!_catalogs.TryGetValue(provider, out var state))
         {
-            AutoCheck.Visibility = VeniceModelCatalog.IsAuto(_selectedId)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            state = new CatalogState();
+            _catalogs[provider] = state;
         }
 
-        InvalidateLists();
+        return state;
+    }
+
+    private bool HasKey(LlmProvider provider)
+    {
+        foreach (var key in _keys)
+        {
+            if (key.Provider == provider && !key.IsBroken)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AutoItem_Click(object sender, RoutedEventArgs e) => Pick(VeniceModelCatalog.AutoId, null);
+
+    private void AddKeyButton_Click(object sender, RoutedEventArgs e) =>
+        AddKeyRequested?.Invoke(this, EventArgs.Empty);
+
+    private void ModelRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string id })
+        {
+            Pick(id, _keyChoice.GetValueOrDefault(_shown));
+        }
     }
 
     /// <summary>
-    /// Помечает списки к пересборке и собирает их, только если панель на экране.
+    /// Пересобирает список не на каждый символ, а когда человек перестал печатать.
+    /// </summary>
+    private void ModelSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        _searchTimer ??= new DispatcherTimer(DispatcherPriority.Background, Dispatcher)
+        {
+            Interval = SearchDelay
+        };
+
+        _searchTimer.Tick -= OnSearchSettled;
+        _searchTimer.Tick += OnSearchSettled;
+        _searchTimer.Stop();
+        _searchTimer.Start();
+    }
+
+    private void OnSearchSettled(object? sender, EventArgs e)
+    {
+        _searchTimer?.Stop();
+        Invalidate();
+    }
+
+    private void FilterChip_Click(object sender, RoutedEventArgs e) => Invalidate();
+
+    private void ShowProvider(LlmProvider provider)
+    {
+        if (_shown == provider)
+        {
+            return;
+        }
+
+        _shown = provider;
+
+        // Поиск и фильтры принадлежали прежнему списку: у соседнего провайдера свои названия
+        // моделей, и оставленное слово чаще всего не находит там ничего.
+        if (ModelSearchBox is not null && ModelSearchBox.Text.Length > 0)
+        {
+            ModelSearchBox.Text = "";
+        }
+
+        Invalidate();
+
+        // Синхронно: раздача уже разложенного каталога ничего не стоит, а отложенный вызов
+        // в хозяина срабатывал бы после того, как плашку закрыли.
+        ProviderShown?.Invoke(this, provider);
+    }
+
+    private void Pick(string id, string? keyId)
+    {
+        _selected = new ModelBinding(id, keyId);
+        RefreshMarks();
+        ModelPicked?.Invoke(this, _selected);
+    }
+
+    /// <summary>
+    /// Человек выбрал ключ. Если показанная модель этого же провайдера — выбор применяется
+    /// к ней сразу; иначе он запомнится и достанется той модели, которую выберут следующей.
+    /// </summary>
+    private void PickKey(string? keyId)
+    {
+        _keyChoice[_shown] = keyId;
+
+        if (!VeniceModelCatalog.IsAuto(_selected.ModelId) &&
+            !string.IsNullOrWhiteSpace(_selected.ModelId) &&
+            _selected.Provider == _shown)
+        {
+            _selected = new ModelBinding(_selected.ModelId, keyId);
+            KeyPicked?.Invoke(this, _selected);
+        }
+    }
+
+    /// <summary>
+    /// Помечает столбцы к пересборке и собирает их одним кадром.
     /// </summary>
     /// <remarks>
-    /// Панель живёт внутри <see cref="System.Windows.Controls.Primitives.Popup"/>, и в настройках
-    /// таких полей семь. Раньше каждое открытие настроек перестраивало у всех семи оба списка
-    /// целиком — сотни кнопок с подсказками создавались в закрытых попапах и тут же уходили в
-    /// мусор. Видимой панель становится ровно тогда, когда попап открыли, поэтому хозяевам
-    /// панели ничего знать об этом не нужно.
+    /// Через диспетчер, а не сразу: хозяин за одно открытие плашки успевает позвать
+    /// <see cref="SetKeys"/>, <see cref="SetCatalog"/> и <see cref="SetSelected"/> по разу на
+    /// каждого провайдера, и прежняя редакция перестраивала все три столбца на каждый такой
+    /// вызов. Здесь они сливаются в одну пересборку.
+    /// <para>
+    /// Панель живёт внутри <see cref="System.Windows.Controls.Primitives.Popup"/>, и в
+    /// настройках таких полей восемь. Невидимая не собирается вовсе: сотни строк создавались бы
+    /// там, где их никто не видит.
+    /// </para>
     /// </remarks>
-    private void InvalidateLists()
+    private void Invalidate()
     {
-        _listsDirty = true;
-        EnsureLists();
-    }
-
-    private void EnsureLists()
-    {
-        if (!_listsDirty || !IsVisible)
+        if (_rebuilding || _pendingRebuild is { Status: DispatcherOperationStatus.Pending })
         {
             return;
         }
 
-        _listsDirty = false;
-        RebuildRecommended();
-        RebuildAll();
+        _pendingRebuild = Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(Rebuild));
     }
 
-    private void RebuildRecommended()
+    /// <summary>Собирает столбцы прямо сейчас. Для тестов и первого показа.</summary>
+    internal void RebuildNow()
     {
-        if (RecommendedGroups is null)
+        _pendingRebuild?.Abort();
+        _pendingRebuild = null;
+        Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        _pendingRebuild = null;
+        if (_rebuilding || !IsVisible)
         {
             return;
         }
 
-        RecommendedGroups.Children.Clear();
-        foreach (var tier in VeniceModelCatalog.Tiers)
+        _rebuilding = true;
+        try
         {
-            RecommendedGroups.Children.Add(new TextBlock
-            {
-                Style = (Style)FindResource("PickerGroupHeader"),
-                Text = tier.Title
-            });
+            RebuildProviders();
+            RebuildModels();
+            RebuildKeys();
+        }
+        finally
+        {
+            _rebuilding = false;
+        }
+    }
 
-            foreach (var id in tier.Models)
+    /// <summary>
+    /// Столбец провайдеров: кнопки заводятся один раз, дальше им лишь обновляют состояние.
+    /// </summary>
+    /// <remarks>
+    /// Пересоздание переключало провайдера само: новая кнопка со снятым <c>IsChecked</c>
+    /// поднимала <c>Checked</c> прямо внутри обработчика удаляемой соседки, и нажатие
+    /// срабатывало через раз.
+    /// </remarks>
+    private void RebuildProviders()
+    {
+        if (ProviderItems is null)
+        {
+            return;
+        }
+
+        if (ProviderItems.Children.Count == 0)
+        {
+            foreach (var spec in ProviderSpec.All)
             {
-                if (VeniceModelCatalog.IsAuto(id))
+                var provider = spec.Provider;
+                var name = new TextBlock
+                {
+                    Text = spec.Name,
+                    FontSize = 12.5,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                };
+
+                var item = new RadioButton
+                {
+                    Style = (Style)FindResource("ProviderItem"),
+                    GroupName = _providerGroup,
+                    Content = name
+                };
+
+                item.Checked += (_, _) =>
+                {
+                    if (!_suppressProviderEvent)
+                    {
+                        ShowProvider(provider);
+                    }
+                };
+
+                _providerItems[provider] = item;
+                ProviderItems.Children.Add(item);
+            }
+        }
+
+        _suppressProviderEvent = true;
+        try
+        {
+            foreach (var spec in ProviderSpec.All)
+            {
+                if (!_providerItems.TryGetValue(spec.Provider, out var item))
                 {
                     continue;
                 }
 
-                RecommendedGroups.Children.Add(CreateModelButton(
-                    id,
-                    VeniceModelCatalog.GetDisplayName(id),
-                    TooltipFor(id),
-                    IsSelected(id)));
+                var hasKey = HasKey(spec.Provider);
+                item.IsChecked = spec.Provider == _shown;
+                item.ToolTip = hasKey ? null : Loc.Format("S.Models.NoKeyHint", spec.Name);
+
+                // Провайдер без ключа не прячется, а гаснет: увидев его бледным, человек
+                // поймёт, что модели там есть, но платить за них пока нечем.
+                if (item.Content is TextBlock label)
+                {
+                    label.SetResourceReference(
+                        TextBlock.ForegroundProperty,
+                        hasKey ? "Text.Tertiary" : "Text.Faint");
+                }
             }
+        }
+        finally
+        {
+            _suppressProviderEvent = false;
         }
     }
 
-    private void RebuildAll()
+    private void RebuildModels()
     {
-        if (AllItems is null)
+        if (ModelItems is null || NoKeyPane is null)
         {
             return;
         }
 
-        AllItems.Children.Clear();
-        if (!_catalogReady)
+        if (!HasKey(_shown))
         {
-            AllItems.Children.Add(StatusText(_allStatus ?? Loc.Get("S.Common.Loading")));
+            NoKeyPane.Visibility = Visibility.Visible;
+            ModelItems.Visibility = Visibility.Collapsed;
+            SearchRow.Visibility = Visibility.Collapsed;
+            AutoItem.Visibility = Visibility.Collapsed;
+            NoKeyText.Text = Loc.Format("S.Models.NoKeyHint", ProviderSpec.For(_shown).Name);
+            _built = Nothing;
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(_allStatus) && _catalog.Count == 0)
+        NoKeyPane.Visibility = Visibility.Collapsed;
+        ModelItems.Visibility = Visibility.Visible;
+        SearchRow.Visibility = Visibility.Visible;
+        AutoItem.Visibility = AllowAuto ? Visibility.Visible : Visibility.Collapsed;
+
+        var state = State(_shown);
+        var search = ModelSearchBox?.Text ?? "";
+        var vision = VisionChip?.IsChecked == true;
+        var code = CodeChip?.IsChecked == true;
+        var want = (_shown, search, vision, code, state.Version);
+
+        // Ничего не изменилось — список уже такой, какой нужен. Это и есть вся разница между
+        // «плашка открывается мгновенно» и «плашка думает полсекунды».
+        if (_built == want)
         {
-            AllItems.Children.Add(StatusText(_allStatus));
+            RefreshMarks();
             return;
         }
 
-        var filtered = VeniceModelCatalog.FilterAllTab(
-                _catalog,
-                ModelSearchBox?.Text,
-                VisionChip?.IsChecked == true,
-                CodeChip?.IsChecked == true)
-            .ToList();
+        _built = want;
+        _rows.Clear();
 
-        if (filtered.Count == 0)
+        if (!state.Ready)
         {
-            AllItems.Children.Add(StatusText(
-                string.IsNullOrWhiteSpace(ModelSearchBox?.Text) &&
-                VisionChip?.IsChecked != true &&
-                CodeChip?.IsChecked != true
+            ShowStatus(state.Status ?? Loc.Get("S.Common.Loading"));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.Status) && state.Models.Count == 0)
+        {
+            ShowStatus(state.Status);
+            return;
+        }
+
+        foreach (var model in VeniceModelCatalog.FilterAllTab(state.Models, search, vision, code))
+        {
+            _rows.Add(ModelPickerRow.Build(this, model));
+        }
+
+        if (_rows.Count == 0)
+        {
+            ShowStatus(
+                string.IsNullOrWhiteSpace(search) && !vision && !code
                     ? Loc.Get("S.Models.Empty")
-                    : Loc.Get("S.Common.NothingFound")));
+                    : Loc.Get("S.Common.NothingFound"));
             return;
         }
 
-        foreach (var model in filtered)
-        {
-            AllItems.Children.Add(CreateModelButton(
-                model.Id,
-                VeniceModelCatalog.GetListDisplayName(model),
-                VeniceModelCatalog.BuildTooltip(model),
-                IsSelected(model.Id)));
-        }
+        ModelStatus.Visibility = Visibility.Collapsed;
+        ModelItems.ItemsSource = null;
+        ModelItems.ItemsSource = _rows;
+        RefreshMarks();
     }
 
-    private bool IsSelected(string id) =>
-        !string.IsNullOrWhiteSpace(_selectedId) &&
-        _selectedId.Equals(id, StringComparison.OrdinalIgnoreCase);
-
-    private string TooltipFor(string id)
+    private void ShowStatus(string text)
     {
-        foreach (var model in _catalog)
+        ModelItems.ItemsSource = null;
+        ModelStatus.Text = text;
+        ModelStatus.Visibility = Visibility.Visible;
+    }
+
+    private void RebuildKeys()
+    {
+        if (KeyItems is null)
         {
-            if (model.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
+            return;
+        }
+
+        KeyItems.Children.Clear();
+        var chosen = _keyChoice.GetValueOrDefault(_shown);
+
+        _suppressKeyEvent = true;
+        try
+        {
+            KeyItems.Children.Add(CreateKeyItem(
+                null,
+                Loc.Get("S.Models.KeyDefault"),
+                Loc.Get("S.Models.KeyDefaultTip"),
+                string.IsNullOrWhiteSpace(chosen)));
+
+            foreach (var key in _keys)
             {
-                return VeniceModelCatalog.BuildTooltip(model);
+                if (key.Provider != _shown || key.IsBroken)
+                {
+                    continue;
+                }
+
+                KeyItems.Children.Add(CreateKeyItem(
+                    key.Id,
+                    key.Label,
+                    key.Masked,
+                    string.Equals(key.Id, chosen, StringComparison.Ordinal)));
             }
         }
-
-        return id;
+        finally
+        {
+            _suppressKeyEvent = false;
+        }
     }
 
-    private Button CreateModelButton(string id, string display, string tooltip, bool selected)
+    /// <summary>Обновляет галочки, не трогая сами списки.</summary>
+    private void RefreshMarks()
     {
-        var button = new Button
+        if (AutoCheck is not null)
         {
-            Style = (Style)FindResource("ModelItem"),
-            ToolTip = tooltip,
-            Tag = id
-        };
+            AutoCheck.Visibility = VeniceModelCatalog.IsAuto(_selected.ModelId)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
 
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        foreach (var row in _rows)
+        {
+            row.IsSelected = row.Id.Equals(_selected.ModelId, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
-        var glyph = CreateGlyph(id);
+    private RadioButton CreateKeyItem(string? id, string label, string tooltip, bool selected)
+    {
         var name = new TextBlock
         {
-            Style = (Style)FindResource("ModelName"),
-            Text = display
-        };
-        Grid.SetColumn(name, 1);
-        grid.Children.Add(glyph);
-        grid.Children.Add(name);
-
-        if (selected)
-        {
-            var check = new System.Windows.Shapes.Path { Style = (Style)FindResource("SelectedCheck") };
-            Grid.SetColumn(check, 2);
-            grid.Children.Add(check);
-        }
-
-        button.Content = grid;
-        button.Click += (_, _) => Pick(id);
-        return button;
-    }
-
-    private UIElement CreateGlyph(string id)
-    {
-        var key = VeniceModelCatalog.GetLogoResourceKey(id);
-        if (key is not null && TryFindResource(key) is ImageSource source)
-        {
-            var size = key.Equals("Grok", StringComparison.Ordinal) ? 13 : 15;
-            var glyph = new Image
-            {
-                Width = size,
-                Height = size,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            ThemeImages.Assign(glyph, key, source);
-            ModelBrand.ApplyLogoBox(glyph, key);
-            return glyph;
-        }
-
-        return new TextBlock
-        {
-            Text = VeniceModelCatalog.GetLogoLetter(id),
-            FontSize = 11,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x9A, 0x9A)),
-            HorizontalAlignment = HorizontalAlignment.Left,
+            Text = label,
+            FontSize = 11.5,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(2, 0, 0, 0)
+            TextTrimming = TextTrimming.CharacterEllipsis
         };
+        name.SetResourceReference(
+            TextBlock.ForegroundProperty,
+            selected ? "Text.Bright" : "Text.Muted");
+
+        var item = new RadioButton
+        {
+            Style = (Style)FindResource("KeyItem"),
+            GroupName = _keyGroup,
+            Content = name,
+            IsChecked = selected,
+            ToolTip = tooltip
+        };
+
+        item.Checked += (_, _) =>
+        {
+            if (!_suppressKeyEvent)
+            {
+                PickKey(id);
+            }
+        };
+
+        return item;
     }
 
-    private static TextBlock StatusText(string text) =>
-        new()
-        {
-            Text = text,
-            FontSize = 11,
-            Foreground = new SolidColorBrush(Color.FromRgb(0x6E, 0x6E, 0x6E)),
-            Margin = new Thickness(8, 10, 8, 8),
-            TextWrapping = TextWrapping.Wrap
-        };
+    /// <summary>Каталог одного провайдера: что загружено и что сказать, если не загрузилось.</summary>
+    private sealed class CatalogState
+    {
+        public IReadOnlyList<VeniceModelInfo> Models { get; set; } = [];
+
+        public bool Ready { get; set; }
+
+        public string? Status { get; set; }
+
+        /// <summary>Растёт при каждой настоящей смене каталога — по нему видно, что пересобирать.</summary>
+        public int Version { get; set; }
+    }
 }

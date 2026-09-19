@@ -99,6 +99,14 @@ internal static class ChatSummary
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        if (!string.IsNullOrWhiteSpace(settings.SummaryModelId) &&
+            !VeniceModelCatalog.IsAuto(settings.SummaryModelId))
+        {
+            return settings.SummaryModelId.Trim();
+        }
+
+        // Слот пуст только у того, кто его вычистил руками: при первом чтении старых настроек
+        // в него переносится выбор быстрого агента (AppSettingsStore.MigrateSummarySlot).
         if (!string.IsNullOrWhiteSpace(settings.AgentFastModelId) &&
             !VeniceModelCatalog.IsAuto(settings.AgentFastModelId))
         {

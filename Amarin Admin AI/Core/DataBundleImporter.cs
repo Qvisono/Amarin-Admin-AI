@@ -551,6 +551,14 @@ public sealed class DataBundleImporter
             ApplySettings(Path.Combine(source, "settings.json"), targetRoot, state);
         }
 
+        // Заготовки промптов — список, а не набор полей, поэтому они переносятся и в слиянии,
+        // как чаты: «добавить недостающее, своё оставить» для списка выполнимо, а для настроек
+        // нет. Условие overwrite здесь поэтому не проверяется.
+        if (categories.HasFlag(DataCategory.Settings))
+        {
+            ApplyPrompts(Path.Combine(source, "prompts.json"), targetRoot, mode, state);
+        }
+
         if (categories.HasFlag(DataCategory.Appearance) && overwrite)
         {
             ApplyAppearance(source, targetRoot, state);
@@ -658,6 +666,69 @@ public sealed class DataBundleImporter
         incoming.ApprovalMode = mine.ApprovalMode;
 
         store.Save(incoming);
+        state.SettingsChanged = true;
+    }
+
+    /// <summary>
+    /// Библиотека заготовок основного промпта.
+    /// </summary>
+    /// <remarks>
+    /// В слиянии совпавшие заготовки пропускаются дважды: по <c>Id</c> — это «я экспортировал,
+    /// переустановил Windows и вернул своё», и по паре «имя + текст» — это одна и та же
+    /// заготовка, заведённая руками на двух машинах, у которой id разошлись. Без второй проверки
+    /// человек получил бы две неотличимые плитки и не понял бы, какую из них удалять.
+    /// </remarks>
+    private static void ApplyPrompts(
+        string file,
+        string targetRoot,
+        DataImportMode mode,
+        ImportState state)
+    {
+        var incoming = ReadJson<List<PromptPreset>>(file, state);
+        if (incoming is null || incoming.Count == 0)
+        {
+            return;
+        }
+
+        var library = new PromptLibrary(targetRoot);
+        List<PromptPreset> result = mode == DataImportMode.Replace ? [] : library.Load();
+
+        var ids = result.Select(preset => preset.Id).ToHashSet(StringComparer.Ordinal);
+        var texts = result
+            .Select(preset => preset.Name + "\n" + preset.Text)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var added = 0;
+        foreach (var preset in incoming)
+        {
+            // Пустая заготовка не показывается плиткой и удалить её человеку будет нечем —
+            // то же правило, по которому её отбрасывает PromptLibrary.Load.
+            if (string.IsNullOrWhiteSpace(preset.Name) || string.IsNullOrWhiteSpace(preset.Text))
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(preset.Id))
+            {
+                preset.Id = Guid.NewGuid().ToString("N");
+            }
+
+            if (!ids.Add(preset.Id) || !texts.Add(preset.Name + "\n" + preset.Text))
+            {
+                continue;
+            }
+
+            result.Add(preset);
+            added++;
+        }
+
+        if (added == 0 && mode != DataImportMode.Replace)
+        {
+            return;
+        }
+
+        library.Save(result);
         state.SettingsChanged = true;
     }
 

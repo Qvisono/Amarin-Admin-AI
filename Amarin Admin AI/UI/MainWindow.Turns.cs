@@ -175,8 +175,10 @@ namespace Amarin.UI
             }
 
             // Venice штампует остаток на заголовках каждого ответа, так что к этому моменту
-            // клиент держит цифру, которую оставил после себя ход — любой, в том числе фоновый.
-            _balance?.Show(_services?.Venice.LastBalance);
+            // книга уже знает цифру, которую оставил после себя ход — любой, в том числе фоновый.
+            // У остальных ключей её спрашивают отдельно, но не чаще, чем раз в несколько минут.
+            _balance?.Refresh();
+            Detached.Run(RefreshStaleBalancesAsync(), "balances");
 
             UpdateComposerChrome();
             RefreshChatList();

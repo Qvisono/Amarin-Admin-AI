@@ -96,6 +96,13 @@ public sealed class VeniceRateLimitsData
 
     [JsonPropertyName("nextEpochBegins")]
     public DateTimeOffset? NextEpochBegins { get; init; }
+
+    /// <summary>
+    /// Сколько с ключа потрачено за всё время. Только там, где провайдер сам эту цифру
+    /// называет: у Venice её в ответе нет, и остаётся <c>null</c>.
+    /// </summary>
+    [JsonIgnore]
+    public decimal? SpentUsd { get; init; }
 }
 
 /// <summary>

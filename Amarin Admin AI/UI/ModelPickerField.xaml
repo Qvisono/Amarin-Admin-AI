@@ -28,20 +28,40 @@
                 </ControlTemplate>
             </ToggleButton.Template>
         </ToggleButton>
-        <TextBlock x:Name="SelectedLabel" Foreground="{DynamicResource Text.Secondary}" FontSize="12"
-                   Margin="10,0,26,0" VerticalAlignment="Center"
-                   TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
+        <!-- Двумя элементами, а не двумя Run в одном: TextBlock.Text при сложном содержимом
+             отдаёт пустую строку, и подпись становится недоступна и коду, и тестам. -->
+        <Grid Margin="10,0,26,0" VerticalAlignment="Center" IsHitTestVisible="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="SelectedLabel" FontSize="12"
+                       Foreground="{DynamicResource Text.Secondary}"
+                       TextTrimming="CharacterEllipsis"/>
+            <!-- Свёрнута до первого показа: ключ по умолчанию именем не подписывается, а
+                 пустая видимая подпись роняет проверку «ни одной пустой надписи». -->
+            <TextBlock x:Name="SelectedKeyLabel" Grid.Column="1" FontSize="11"
+                       Margin="6,0,0,0" Foreground="{DynamicResource Text.Faint}"
+                       TextTrimming="CharacterEllipsis" MaxWidth="90"
+                       Visibility="Collapsed"/>
+        </Grid>
 
         <Popup x:Name="PickerPopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Bottom"
                VerticalOffset="4"
-               HorizontalOffset="-80"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"
+               Opened="PickerPopup_Opened"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
-            <local:ModelPickerPanel x:Name="Panel" AllowAuto="False" ModelPicked="Panel_ModelPicked"/>
+            <local:ModelPickerPanel x:Name="Panel"
+                                    AllowAuto="{Binding AllowAuto, RelativeSource={RelativeSource AncestorType=local:ModelPickerField}}"
+                                    AutoTipKey="{Binding AutoTipKey, RelativeSource={RelativeSource AncestorType=local:ModelPickerField}}"
+                                    ModelPicked="Panel_ModelPicked"
+                                    KeyPicked="Panel_KeyPicked"
+                                    AddKeyRequested="Panel_AddKeyRequested"
+                                    ProviderShown="Panel_ProviderShown"/>
         </Popup>
     </Grid>
 </UserControl>

@@ -150,6 +150,7 @@
     <system:String x:Key="S.Balance.Title" xml:space="preserve">Venice balance:</system:String>
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
+    <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: no figure yet</system:String>
     <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Approval mode</system:String>
     <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">How the AI agent behaves. Normal means always ask</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
@@ -330,9 +331,13 @@
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Router</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Reads the request and picks one of the models above</system:String>
     <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Service models</system:String>
+    <system:String x:Key="S.Customize.Summary" xml:space="preserve">Chat summary</system:String>
     <system:String x:Key="S.Customize.SystemPrompts" xml:space="preserve">System prompts</system:String>
     <system:String x:Key="S.Customize.TechPrompt" xml:space="preserve">Technical AI prompt</system:String>
 
+    <system:String x:Key="S.Customize.WebSearch" xml:space="preserve">Web search</system:String>
+    <system:String x:Key="S.Customize.WebSearch.AutoTip" xml:space="preserve">Search wherever the conversation is running</system:String>
+    <system:String x:Key="S.Customize.WebSearch.Desc" xml:space="preserve">Which provider searches, and which key pays for it</system:String>
     <system:String x:Key="S.Data.Allowlist" xml:space="preserve">Allowed download sources</system:String>
     <system:String x:Key="S.Data.AllowlistDesc" xml:space="preserve">Downloads from other sites are refused. Subdomains are allowed automatically</system:String>
     <system:String x:Key="S.Data.AllowlistEmpty" xml:space="preserve">The list is empty - every download is blocked</system:String>
@@ -464,26 +469,40 @@
     <system:String x:Key="S.Journal.TimeApproximate" xml:space="preserve">Approximate time: this record has no stamp of its own, so the message time is used.</system:String>
     <system:String x:Key="S.Journal.Title" xml:space="preserve">Journal</system:String>
     <system:String x:Key="S.Key.Add" xml:space="preserve">Add a key</system:String>
-    <system:String x:Key="S.Key.AddHint" xml:space="preserve">The key is checked against Venice before it is saved, so a typo does not surface mid-answer.</system:String>
-    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">New Venice key</system:String>
+    <system:String x:Key="S.Key.AddHint.OpenRouter" xml:space="preserve">The key is checked against OpenRouter before it is saved, so a typo does not surface mid-answer.</system:String>
+    <system:String x:Key="S.Key.AddHint.Venice" xml:space="preserve">The key is checked against Venice before it is saved, so a typo does not surface mid-answer.</system:String>
+    <system:String x:Key="S.Key.AddTitle" xml:space="preserve">New key</system:String>
     <system:String x:Key="S.Key.BadgeEnvironment" xml:space="preserve">environment</system:String>
+    <system:String x:Key="S.Key.Balance.AllKeys" xml:space="preserve">Total across all keys: {0}</system:String>
     <system:String x:Key="S.Key.Balance.Credits" xml:space="preserve">Credits balance</system:String>
     <system:String x:Key="S.Key.Balance.Diem" xml:space="preserve">{0} DIEM</system:String>
+    <system:String x:Key="S.Key.Balance.Left" xml:space="preserve">Spent in total</system:String>
     <system:String x:Key="S.Key.Balance.Refresh" xml:space="preserve">Refresh</system:String>
     <system:String x:Key="S.Key.Balance.Usd" xml:space="preserve">USD balance</system:String>
-    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">The key cannot be switched while an answer is running: half the requests would go with one key and half with the other</system:String>
+    <system:String x:Key="S.Key.BusyTurns" xml:space="preserve">Keys stay put while an answer is running: half the requests would go with one key and half with the other</system:String>
     <system:String x:Key="S.Key.Checking" xml:space="preserve">Checking the key...</system:String>
     <system:String x:Key="S.Key.DeleteConfirm" xml:space="preserve">Delete the {0} key?</system:String>
-    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">The key goes from this program only. It stays on the Venice side.</system:String>
+    <system:String x:Key="S.Key.DeleteDesc" xml:space="preserve">The key goes from this program only. It stays on the provider's side.</system:String>
+    <system:String x:Key="S.Key.DeleteDesc.Environment" xml:space="preserve">The environment variable stays in Windows: the program just stops using its key. The row below the list brings it back.</system:String>
     <system:String x:Key="S.Key.Duplicate" xml:space="preserve">That key is already on the list</system:String>
+    <system:String x:Key="S.Key.DuplicateRemoved" xml:space="preserve">You removed this key from the list. Bring it back with the button below the list - it is never copied to disk.</system:String>
     <system:String x:Key="S.Key.Empty" xml:space="preserve">Enter a key</system:String>
     <system:String x:Key="S.Key.FromEnvironment" xml:space="preserve">From the environment variable</system:String>
     <system:String x:Key="S.Key.Hide" xml:space="preserve">Hide</system:String>
-    <system:String x:Key="S.Key.Invalid" xml:space="preserve">Venice would not take this key</system:String>
+    <system:String x:Key="S.Key.Invalid" xml:space="preserve">The provider would not take this key</system:String>
     <system:String x:Key="S.Key.MakeActive" xml:space="preserve">Make active</system:String>
     <system:String x:Key="S.Key.Name" xml:space="preserve">Name</system:String>
     <system:String x:Key="S.Key.NoAccess" xml:space="preserve">This key is not allowed to reach the models</system:String>
-    <system:String x:Key="S.Key.Section" xml:space="preserve">Venice keys</system:String>
+    <system:String x:Key="S.Key.Provider" xml:space="preserve">Provider</system:String>
+    <system:String x:Key="S.Key.Provider.OpenRouterDesc" xml:space="preserve">Models from many makers on one account</system:String>
+    <system:String x:Key="S.Key.Provider.VeniceDesc" xml:space="preserve">Images and page reading work only here</system:String>
+    <system:String x:Key="S.Key.ProviderTip" xml:space="preserve">The active key decides whose models are available</system:String>
+    <system:String x:Key="S.Key.Removed" xml:space="preserve">The key from {0} is removed</system:String>
+    <system:String x:Key="S.Key.Rename" xml:space="preserve">Rename</system:String>
+    <system:String x:Key="S.Key.RenameHint" xml:space="preserve">The name is yours alone and shows up only here. Leave it empty to go back to the default.</system:String>
+    <system:String x:Key="S.Key.RenameTitle" xml:space="preserve">Key name</system:String>
+    <system:String x:Key="S.Key.Restore" xml:space="preserve">Bring back</system:String>
+    <system:String x:Key="S.Key.Section" xml:space="preserve">Keys</system:String>
     <system:String x:Key="S.Key.Show" xml:space="preserve">Show</system:String>
     <system:String x:Key="S.Key.StatsLeft" xml:space="preserve">{0} left</system:String>
     <system:String x:Key="S.Key.StatsLoading" xml:space="preserve">Adding up...</system:String>
@@ -492,6 +511,7 @@
     <system:String x:Key="S.Key.Storage" xml:space="preserve">Encrypted by Windows</system:String>
     <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Cannot be read - enter it again</system:String>
     <system:String x:Key="S.Key.Value" xml:space="preserve">Key</system:String>
+    <system:String x:Key="S.Key.WhereToGet" xml:space="preserve">Where to get a key</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Delete language</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Delete the language “{0}”? Its translation would have to be ordered again.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Could not delete the language. Check access to the app data folder.</system:String>
@@ -520,18 +540,19 @@
     <system:String x:Key="S.Message.Thought" xml:space="preserve">thought for {0}</system:String>
 
     <system:String x:Key="S.Message.Working" xml:space="preserve">Working {0}</system:String>
+    <system:String x:Key="S.Models.AddKey" xml:space="preserve">Add a key</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">The router will pick a model</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>
+    <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ENGINE</system:String>
+    <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Code</system:String>
+    <system:String x:Key="S.Models.FilterVision" xml:space="preserve">Vision</system:String>
+    <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">KEY</system:String>
+    <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">Default</system:String>
+    <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">The key is picked automatically: the first usable one for this provider</system:String>
+    <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">There is no {0} key yet. Add one to pick models from this provider.</system:String>
+    <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">PROVIDER</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Search...</system:String>
-    <system:String x:Key="S.Models.TabAll" xml:space="preserve">All</system:String>
-    <system:String x:Key="S.Models.TabRecommended" xml:space="preserve">Recommended</system:String>
-    <system:String x:Key="S.Models.TierBudget" xml:space="preserve">BUDGET TIER</system:String>
-    <system:String x:Key="S.Models.TierBudgetDesc" xml:space="preserve">for bulk and simple tasks</system:String>
-    <system:String x:Key="S.Models.TierFlagship" xml:space="preserve">FLAGSHIP</system:String>
-    <system:String x:Key="S.Models.TierFlagshipDesc" xml:space="preserve">max reliability</system:String>
-    <system:String x:Key="S.Models.TierMiddle" xml:space="preserve">MID TIER</system:String>
-    <system:String x:Key="S.Models.TierMiddleDesc" xml:space="preserve">price/quality</system:String>
 
     <system:String x:Key="S.Name.Desc" xml:space="preserve">Shown in the settings. Kept on this computer only.</system:String>
     <system:String x:Key="S.Name.Title" xml:space="preserve">User name</system:String>
@@ -567,6 +588,10 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
+    <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">OpenRouter picks the engine</system:String>
+    <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">The model's own</system:String>
+    <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} per request at OpenRouter's published price, which can change</system:String>
+    <system:String x:Key="S.Search.Engine.VeniceOnly" xml:space="preserve">Venice has a single search; there is no engine to choose</system:String>
     <system:String x:Key="S.Search.Failed" xml:space="preserve">The search did not work out. Try again.</system:String>
     <system:String x:Key="S.Search.Found" xml:space="preserve">Found</system:String>
     <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">By content</system:String>
@@ -628,7 +653,12 @@
     <system:String x:Key="S.Spend.Period.Quarter" xml:space="preserve">3 months</system:String>
     <system:String x:Key="S.Spend.Period.Week" xml:space="preserve">Week</system:String>
     <system:String x:Key="S.Spend.Period.Year" xml:space="preserve">Year</system:String>
-    <system:String x:Key="S.Spend.SourceLocal" xml:space="preserve">Venice opens its full journal to admin keys only. Showing what the program counted</system:String>
+    <system:String x:Key="S.Spend.Scope.All" xml:space="preserve">All keys</system:String>
+    <system:String x:Key="S.Spend.Scope.AllTip" xml:space="preserve">Spending across every key at once</system:String>
+    <system:String x:Key="S.Spend.Scope.One" xml:space="preserve">One key</system:String>
+    <system:String x:Key="S.Spend.Scope.OneTip" xml:space="preserve">Only the selected key's spending</system:String>
+    <system:String x:Key="S.Spend.SourceLocal" xml:space="preserve">The full Venice journal is open to an admin key only. This is what the program counted itself</system:String>
+    <system:String x:Key="S.Spend.SourceOnlyLocal" xml:space="preserve">The provider hands out no spending journal. This is what the program counted itself</system:String>
     <system:String x:Key="S.Spend.Stale" xml:space="preserve">Showing saved data: Venice is not answering right now</system:String>
     <system:String x:Key="S.Spend.Title" xml:space="preserve">Spending</system:String>
     <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} credits</system:String>
