@@ -76,7 +76,11 @@ public static class UpdateChecker
     private const string ProductToken = "Amarin-Admin-AI";
 
     /// <summary>Как часто автопроверка ходит в сеть.</summary>
-    public static readonly TimeSpan AutoCheckInterval = TimeSpan.FromHours(6);
+    /// <remarks>
+    /// Значение живёт в <see cref="UpdateSchedule"/> вместе с остальным расписанием: два
+    /// источника истины для одного срока молча разъехались бы.
+    /// </remarks>
+    public static TimeSpan AutoCheckInterval => UpdateSchedule.Interval;
 
     /// <summary>
     /// Свой клиент, а не общий с Venice.

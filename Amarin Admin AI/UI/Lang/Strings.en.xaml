@@ -694,8 +694,8 @@
     <system:String x:Key="S.Update.Desc" xml:space="preserve">The file is downloaded from GitHub, checked against its checksum and replaces the app in its folder. The previous version stays alongside until the next start. After the replacement the app will restart.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Update the app</system:String>
 
-    <system:String x:Key="S.Updates.Auto" xml:space="preserve">Check automatically</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">At startup, at most once every 6 hours. The check only learns the latest version number - downloading is up to you</system:String>
+    <system:String x:Key="S.Updates.Auto" xml:space="preserve">Auto-update</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Checks for a new version at startup and every 5 hours. A found one is downloaded in the background and installed when you close the app - the file keeps its place and its name</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available - {1} is installed</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
@@ -705,6 +705,7 @@
     <system:String x:Key="S.Updates.Checking" xml:space="preserve">Checking…</system:String>
     <system:String x:Key="S.Updates.ConfirmText" xml:space="preserve">{0} is installed, {1} is available. {2} will be downloaded and written over the current program.</system:String>
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Update to version {0}</system:String>
+    <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Current version</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
     <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Downloading {0} %</system:String>
     <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Replacing the file as administrator did not work.</system:String>
@@ -713,10 +714,17 @@
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub turned the check down. Open the release page by hand.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">The update check must not carry somebody else's key.</system:String>
     <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match - the file was deleted.</system:String>
+    <system:String x:Key="S.Updates.Install" xml:space="preserve">Install now</system:String>
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
+    <system:String x:Key="S.Updates.Installing.OnExit" xml:space="preserve">Installing version {0}. The app will close on its own.</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name - shortcuts and the run-as-administrator flag survive.</system:String>
+    <system:String x:Key="S.Updates.LastCheck" xml:space="preserve">Last check: {0}</system:String>
+    <system:String x:Key="S.Updates.LastCheck.HoursAgo" xml:space="preserve">{0} h ago</system:String>
+    <system:String x:Key="S.Updates.LastCheck.JustNow" xml:space="preserve">just now</system:String>
+    <system:String x:Key="S.Updates.LastCheck.MinutesAgo" xml:space="preserve">{0} min ago</system:String>
+    <system:String x:Key="S.Updates.LastCheck.Never" xml:space="preserve">never run yet</system:String>
     <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Only an administrator may write to the program folder, so Windows will ask for permission.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">No check has run yet</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">No connection to GitHub: {0}</system:String>
@@ -729,10 +737,19 @@
     <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">This file did not come from an update download - the swap was cancelled.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Open release</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Could not make sense of the GitHub answer.</system:String>
+    <system:String x:Key="S.Updates.Pill.Available" xml:space="preserve">Update available</system:String>
+    <system:String x:Key="S.Updates.Pill.Checking" xml:space="preserve">Checking</system:String>
+    <system:String x:Key="S.Updates.Pill.Downloading" xml:space="preserve">Downloading</system:String>
+    <system:String x:Key="S.Updates.Pill.Failed" xml:space="preserve">Check failed</system:String>
+    <system:String x:Key="S.Updates.Pill.Ready" xml:space="preserve">Ready to install</system:String>
+    <system:String x:Key="S.Updates.Pill.UpToDate" xml:space="preserve">Up to date</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
+    <system:String x:Key="S.Updates.Ready" xml:space="preserve">Version {0} is downloaded and will be installed when you close the app</system:String>
+    <system:String x:Key="S.Updates.ReadyAdmin" xml:space="preserve">Version {0} is downloaded and will be installed when you close the app - Windows will ask for administrator rights</system:String>
     <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">The new version is installed, but starting it did not work: {0}</system:String>
     <system:String x:Key="S.Updates.RollbackFailed" xml:space="preserve">The update failed ({0}), and the previous version could not be put back. The old file is next to it: {1}</system:String>
     <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · update available</system:String>
+    <system:String x:Key="S.Updates.SidebarReady" xml:space="preserve">v{0} · update ready</system:String>
     <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">The size did not match: expected {0} bytes, got {1}.</system:String>
     <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub answered {0}.</system:String>
     <system:String x:Key="S.Updates.Timeout" xml:space="preserve">The check took too long.</system:String>

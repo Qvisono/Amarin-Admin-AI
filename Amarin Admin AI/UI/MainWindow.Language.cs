@@ -166,7 +166,7 @@ namespace Amarin.UI
             // Та же беда на странице обновлений: и статус, и подпись кнопки «Обновить» заполнены
             // из кода, причём подпись перекрывает DynamicResource насовсем. Пока идёт загрузка,
             // трогать её нельзя — на кнопке стоит «Отменить», и она там по делу.
-            if (_updateDownload is null)
+            if (_updateDownload is null && _autoDownload is null)
             {
                 LoadUpdatesUi();
             }

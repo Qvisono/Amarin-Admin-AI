@@ -101,7 +101,7 @@ namespace Amarin.UI
         /// </summary>
         private void MaterializeTail()
         {
-            var budget = ViewportHeight() + MaterializeLead;
+            var budget = DocViewportHeight() + MaterializeLead;
             var filled = 0.0;
 
             for (var i = _messageHosts.Count - 1; i >= 0 && filled <= budget; i--)
@@ -122,6 +122,25 @@ namespace Amarin.UI
 
             return ChatScrollViewer.ActualHeight > 1 ? ChatScrollViewer.ActualHeight : AssumedViewport;
         }
+
+        /// <summary>
+        /// Во сколько раз лента увеличена лупой.
+        /// </summary>
+        /// <remarks>
+        /// Единицы у прокрутки и у ленты разные, и всё достраивание живёт на этой границе.
+        /// <see cref="ChatScrollViewer"/> считает в увеличенных пикселях — ими меряются
+        /// <c>VerticalOffset</c>, <c>ViewportHeight</c> и <c>ExtentHeight</c>. А <c>OffsetOf</c>
+        /// и <c>Reserved</c> живут в исходных: лупа их не трогает, в том и смысл. Смешав их,
+        /// на двукратном приближении мы достраивали бы вдвое меньше, чем видно, и сообщения
+        /// появлялись бы прямо на кромке.
+        /// </remarks>
+        private double ChatScale => ChatZoomLayer.Scale;
+
+        /// <summary>Верхняя кромка видимой области в координатах ленты.</summary>
+        private double DocOffset() => ChatScrollViewer.VerticalOffset / ChatScale;
+
+        /// <summary>Высота видимой области в координатах ленты.</summary>
+        private double DocViewportHeight() => ViewportHeight() / ChatScale;
 
         /// <summary>Строит вьюшку сообщения и отдаёт хосту.</summary>
         private void MaterializeHost(ChatMessageHost host)
@@ -161,8 +180,8 @@ namespace Amarin.UI
                 return;
             }
 
-            var top = ChatScrollViewer.VerticalOffset - MaterializeLead;
-            var bottom = ChatScrollViewer.VerticalOffset + ViewportHeight() + MaterializeLead;
+            var top = DocOffset() - MaterializeLead;
+            var bottom = DocOffset() + DocViewportHeight() + MaterializeLead;
 
             MaterializeAnchored(() =>
             {
@@ -267,7 +286,8 @@ namespace Amarin.UI
                     return;
                 }
 
-                var shift = OffsetOf(anchor) - before;
+                // Сдвиг замерен в координатах ленты, а прокрутке его отдают в увеличенных.
+                var shift = (OffsetOf(anchor) - before) * ChatScale;
                 if (Math.Abs(shift) > 0.5)
                 {
                     _autoScrolling = true;
@@ -284,7 +304,7 @@ namespace Amarin.UI
         /// <summary>Первое сообщение, начинающееся не выше верхней кромки видимой области.</summary>
         private ChatMessageHost? AnchorHost()
         {
-            var top = ChatScrollViewer.VerticalOffset;
+            var top = DocOffset();
             foreach (var host in _messageHosts)
             {
                 if (OffsetOf(host) >= top)

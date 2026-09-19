@@ -479,8 +479,17 @@
                     </Grid.RowDefinitions>
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" ClipToBounds="True"
               x:Name="ChatScrollViewer" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="27,18,58,10" MaxWidth="1070" x:Name="MessagesPanel">
-                        </StackPanel>
+                        <!--
+                            Прослойка лупы: Ctrl с колесом приближает ленту, левая кнопка
+                            таскает приближённое. Стоит именно здесь, внутри прокрутки и снаружи
+                            ленты, — тогда увеличенная высота достаётся полосе прокрутки, а ширина,
+                            которой меряются сообщения, остаётся прежней, и текст не переносится
+                            заново. Композер и шапка лежат соседними строками и не увеличиваются.
+                        -->
+                        <local:ChatZoomHost x:Name="ChatZoomLayer">
+                            <StackPanel Margin="27,18,58,10" MaxWidth="1070" x:Name="MessagesPanel">
+                            </StackPanel>
+                        </local:ChatZoomHost>
                     </ScrollViewer>
 
                     <!--
@@ -514,6 +523,20 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+                    <!--
+                        Текущий масштаб лупы. Слева от кнопки журнала (28 + её 30 + 8 зазора), чтобы
+                        не наезжать на неё; Opacity="0" — плашка живёт только во время жеста, её
+                        зажигает и гасит ChatZoom. IsHitTestVisible="False": ловить мышь ей нечем,
+                        а лежит она поверх ленты, которую в этот момент как раз тащат.
+                    -->
+                    <Border x:Name="ChatZoomBadge" Grid.Row="0" Opacity="0" IsHitTestVisible="False"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,66,0"
+                            Height="30" Padding="10,0" CornerRadius="8"
+                            Background="{DynamicResource Bg.Glass}"
+                            BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1">
+                        <TextBlock x:Name="ChatZoomBadgeText" VerticalAlignment="Center"
+                                   FontSize="12" Foreground="{DynamicResource Text.Muted}"/>
+                    </Border>
                     <!--
                         VerticalAlignment="Bottom" и ClipToBounds нужны компактному режиму: при
                         Stretch заданная высота центрируется в строке, и полоска зависла бы над
@@ -1792,7 +1815,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.23.0"
+                                               Text="v1.24.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -3007,55 +3030,106 @@
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
-                                <!-- Обновления -->
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Title}"/>
-                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDesc}"
-                                                   Text="{DynamicResource S.Updates.NeverChecked}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
-                                                Content="{DynamicResource S.Updates.OpenRelease}" Margin="0,0,6,0" Visibility="Collapsed"
-                                                Click="OpenReleaseButton_Click"/>
-                                        <Button x:Name="UpdateNowButton" Style="{StaticResource SecondaryButton}"
-                                                Content="{DynamicResource S.Updates.Update}" Margin="0,0,6,0" Visibility="Collapsed"
-                                                Click="UpdateNowButton_Click"/>
-                                        <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
-                                                Content="{DynamicResource S.Updates.Check}" Click="CheckUpdatesButton_Click"/>
-                                    </StackPanel>
-                                </Grid>
+                                <!--
+                                    Плашка обновлений. Карточкой, а не плоскими строками общего
+                                    потока: версия, дата последней проверки, состояние и кнопки —
+                                    один предмет, и вразброс они читались как несвязанные настройки.
+                                -->
+                                <TextBlock Style="{StaticResource SectionTitle}"
+                                           Text="{DynamicResource S.Updates.Title}" Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource Bg.Card}"
+                                        BorderBrush="{DynamicResource Border.Default}"
+                                        BorderThickness="1" CornerRadius="8" Padding="14,12">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,12,0">
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Updates.CurrentVersion}"
+                                                           Margin="0,0,0,1"/>
+                                                <!--
+                                                    Заготовка для конструктора XAML: живое значение
+                                                    ставит LoadUpdatesUi из RuntimeContext.AppVersion,
+                                                    как и у подписи в боковой колонке.
+                                                -->
+                                                <TextBlock x:Name="UpdateVersionText" Text="v1.24.0"
+                                                           FontSize="20" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Text.Primary}"/>
+                                            </StackPanel>
+                                            <!--
+                                                Пилюля состояния. Заливку, обводку и текст ставит
+                                                код через SetResourceReference: цвет зависит от
+                                                того, что сейчас происходит, а не от разметки.
+                                            -->
+                                            <Border x:Name="UpdateStatePill" Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    CornerRadius="6" Padding="10,4"
+                                                    Background="{DynamicResource Bg.Raised}"
+                                                    BorderBrush="{DynamicResource Accent.Fill}"
+                                                    BorderThickness="1.2">
+                                                <TextBlock x:Name="UpdateStatePillText" FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Text.Secondary}"
+                                                           Text="{DynamicResource S.Updates.Pill.UpToDate}"/>
+                                            </Border>
+                                        </Grid>
 
-                                <!-- Полоса загрузки обновления -->
-                                <Grid x:Name="UpdateProgress" Height="4" Margin="0,10,0,0" Visibility="Collapsed">
-                                    <Border CornerRadius="2" Background="{DynamicResource Bg.Card}"/>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition x:Name="UpdateProgressDone" Width="0*"/>
-                                            <ColumnDefinition x:Name="UpdateProgressLeft" Width="1*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
-                                    </Grid>
-                                </Grid>
-                                <Grid Margin="0,12,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Auto}"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="{DynamicResource S.Updates.AutoDesc}"/>
+                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Updates.NeverChecked}"
+                                                   Margin="0,9,0,0"/>
+                                        <TextBlock x:Name="UpdateLastCheckText" Style="{StaticResource SettingDesc}"
+                                                   Foreground="{DynamicResource Text.Faint}"
+                                                   Margin="0,2,0,0"/>
+
+                                        <!-- Полоса загрузки обновления -->
+                                        <Grid x:Name="UpdateProgress" Height="4" Margin="0,10,0,0" Visibility="Collapsed">
+                                            <Border CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition x:Name="UpdateProgressDone" Width="0*"/>
+                                                    <ColumnDefinition x:Name="UpdateProgressLeft" Width="1*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                                            </Grid>
+                                        </Grid>
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,11,0,0">
+                                            <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
+                                                    Margin="0,0,6,0"
+                                                    Content="{DynamicResource S.Updates.Check}"
+                                                    Click="CheckUpdatesButton_Click"/>
+                                            <Button x:Name="UpdateNowButton" Style="{StaticResource SecondaryButton}"
+                                                    Margin="0,0,6,0" Visibility="Collapsed"
+                                                    Content="{DynamicResource S.Updates.Update}"
+                                                    Click="UpdateNowButton_Click"/>
+                                            <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
+                                                    Margin="0" Visibility="Collapsed"
+                                                    Content="{DynamicResource S.Updates.OpenRelease}"
+                                                    Click="OpenReleaseButton_Click"/>
+                                        </StackPanel>
+
+                                        <Border Style="{StaticResource SettingsDivider}"/>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Auto}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Updates.AutoDesc}"/>
+                                            </StackPanel>
+                                            <CheckBox x:Name="AutoUpdateToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="AutoUpdateToggle_Changed"
+                                                      Unchecked="AutoUpdateToggle_Changed"/>
+                                        </Grid>
                                     </StackPanel>
-                                    <CheckBox x:Name="AutoUpdateToggle" Grid.Column="1"
-                                              Style="{StaticResource SettingsToggle}"
-                                              Checked="AutoUpdateToggle_Changed"
-                                              Unchecked="AutoUpdateToggle_Changed"/>
-                                </Grid>
+                                </Border>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -3758,6 +3832,29 @@
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="UpdateConfirmApplyButton_Click"/>
                         </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Viewbox>
+        </Grid>
+
+        <!--
+            ═══════════ УСТАНОВКА ОБНОВЛЕНИЯ ПРИ ЗАКРЫТИИ ═══════════
+            Человек нажал «закрыть», а окно не исчезло: идёт подмена файла, а в защищённой папке
+            ещё и ждётся окно UAC. Без этого экрана замершее окно выглядело бы как зависание.
+            Скрима с кнопкой отмены здесь нет намеренно — отменять уже нечего, выход неизбежен.
+        -->
+        <Grid x:Name="UpdateExitOverlay" Visibility="Collapsed" Panel.ZIndex="40">
+            <Border Background="{DynamicResource Overlay.Scrim}"/>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border Width="380" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource S.Updates.Installing}" FontSize="15"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="UpdateExitText" FontSize="12.5"
+                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
             </Viewbox>

@@ -100,6 +100,10 @@ namespace Amarin.UI
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
+            // Лупа над лентой. Порядок с SmoothScroll неважен: её обработчики сидят на окне, а не
+            // на ленте, и туннель приводит их первыми в любом случае — см. ChatZoom.
+            InitializeChatZoom();
+
             // Страницы настроек — тем же скроллом, что колонка и чат. Список разрешённых
             // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
             // за это отвечает сам SmoothScroll.
@@ -123,7 +127,7 @@ namespace Amarin.UI
             LanguageManager.LanguageChanged += RelocalizeUi;
             // На Closing, а не на Closed: размер снимается через хэндл окна, а к Closed окно
             // с ним уже расстаётся.
-            Closing += (_, _) =>
+            Closing += (_, e) =>
             {
                 SaveWindowGeometry();
 
@@ -133,9 +137,18 @@ namespace Amarin.UI
 
             // Журнал трат пишется отложенно: без этого последние ответы сеанса до диска не дошли бы.
             _services?.Ledger.Flush();
+
+                // Сбросы выше идут первыми и повторяются на втором проходе — они безобидны, а
+                // вот подмену файла делать до них нельзя. Отмена закрытия здесь работает только
+                // потому, что до неё никто не звал Application.Shutdown: см. RequestExit.
+                if (TryDeferCloseForUpdate())
+                {
+                    e.Cancel = true;
+                }
             };
             Closed += (_, _) =>
             {
+                StopUpdateHeartbeat();
                 CancelAllTurns();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
                 LanguageManager.LanguageChanged -= RelocalizeUi;
@@ -237,8 +250,11 @@ namespace Amarin.UI
             }
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e) =>
-            Application.Current?.Shutdown();
+        /// <remarks>
+        /// Не <c>Application.Shutdown</c>: он гасит диспетчер независимо от того, отменил ли кто
+        /// закрытие окна, и отложить выход ради подмены файла обновления стало бы нечем.
+        /// </remarks>
+        private void CloseButton_Click(object sender, RoutedEventArgs e) => RequestExit();
 
         /// <remarks>
         /// Через <see cref="Application.MainWindow"/>, а не через <c>this</c>: те же три кнопки
@@ -262,8 +278,20 @@ namespace Amarin.UI
             }
         }
 
-        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e) =>
+        /// <remarks>
+        /// Приближённую ленту таскают по ней самой, и окно в этот момент двигать нельзя:
+        /// <c>WM_NCLBUTTONDOWN</c> уводит мышь в модальный цикл системы, после которого WPF
+        /// сообщений мыши больше не видит — панорамирование просто не началось бы.
+        /// </remarks>
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_chatZoom?.SuppressesWindowDrag() == true)
+            {
+                return;
+            }
+
             WindowMoveBehavior.HandleMouseLeftButtonDownForMove(this, e);
+        }
 
         /// <summary>
         /// Разворот и сворачивание гасят открытые попапы: они висят отдельными окнами и остаются
@@ -325,6 +353,10 @@ namespace Amarin.UI
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
+            // Настройки закрывают чат целиком, и возвращаться в загадочно приближённую ленту,
+            // забыв про жест, незачем.
+            ResetChatZoom();
+
             // Панель показываем первой: вся загрузка шла до этой строки, и человек несколько
             // кадров смотрел на замерший интерфейс, прежде чем настройки вообще появлялись.
             SettingsOverlay.Visibility = Visibility.Visible;
@@ -1737,6 +1769,14 @@ namespace Amarin.UI
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Раньше проверки фокуса: приблизить ленту можно и не уходя из поля ввода, и выйти
+            // из этого вида человек попросит оттуда же.
+            if (e.Key == Key.Escape && _chatZoom?.TryHandleEscape() == true)
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (ShouldKeepKeyboardFocus())
             {
                 return;
@@ -1917,6 +1957,11 @@ namespace Amarin.UI
         private void RenderSession()
         {
             using var timer = PerfLog.Measure("chat_render");
+
+            // До постройки: лупа увеличивает то, чем считает прокрутка, и с ней запас, который
+            // резервирует лента под видимую часть, посчитался бы в чужих единицах. Да и открывать
+            // соседний чат приближённым человек не просил — жест относится к тому, что он читал.
+            ResetChatZoom();
             BuildMessageHosts();
 
             if (FindTurn(_session.Id) is { } live)
@@ -2649,6 +2694,14 @@ namespace Amarin.UI
             {
                 _stickToBottom = IsChatScrolledToBottom();
 
+                // Пока идёт жест лупы, достройку пропускаем: смещение меняется каждый кадр, и
+                // проход по всей ленте с пересчётом координат шёл бы по шестьдесят раз в секунду.
+                // ChatZoom позовёт её сам, когда жест кончится.
+                if (ChatZoomBusy)
+                {
+                    return;
+                }
+
                 // Листаем к сообщениям, которые ещё не построены: строим их заранее, с запасом
                 // в несколько экранов, чтобы на кромке ничего не «появлялось».
                 MaterializeAroundViewport();
@@ -2678,7 +2731,11 @@ namespace Amarin.UI
             // position on the next frame, so the two would trade corrections once per frame.
             // This is the only thing the chat scroller does that the sidebar's does not.
             // The flick settles on its own, and the next extent change resumes following.
-            if (SmoothScroll.IsAnimating(ChatScrollViewer))
+            //
+            // Жест лупы — тот же случай, только хуже: во время наезда высота ленты меняется на
+            // каждом кадре, и у нижнего края автопрокрутка швыряла бы её в конец шестьдесят раз
+            // в секунду, вместо того чтобы дать разглядеть то, на что человек навёлся.
+            if (SmoothScroll.IsAnimating(ChatScrollViewer) || ChatZoomBusy)
             {
                 return;
             }

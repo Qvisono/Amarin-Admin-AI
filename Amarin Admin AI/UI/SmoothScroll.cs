@@ -56,6 +56,31 @@ namespace Amarin.UI
         public static bool IsAnimating(ScrollViewer viewer) =>
             ((Hook?)viewer.GetValue(HookProperty))?.IsAnimating ?? false;
 
+        /// <summary>
+        /// Гасит инерцию и отдаёт прокрутку тому, кто зовёт.
+        /// </summary>
+        /// <remarks>
+        /// Нужно всякому, кто собирается двигать вид сам: пока идёт бросок, хук переустанавливает
+        /// <see cref="ScrollViewer.VerticalOffset"/> каждый кадр (см. <see cref="IsAnimating"/>),
+        /// и чужое движение он бы затирал. Заодно снимает резинку: пока она растянута, экранные
+        /// координаты разъезжаются с содержимым на её длину.
+        /// </remarks>
+        public static void Cancel(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.CancelInertia(snap: true);
+
+        /// <summary>
+        /// Бросок извне — с той же инерцией, трением и резинкой, что и у колеса.
+        /// </summary>
+        /// <param name="velocity">
+        /// Пикселей в секунду; положительная — вниз по ленте, как у смещения прокрутки.
+        /// </param>
+        /// <remarks>
+        /// Затем, чтобы перетаскивание не заводило второй физики: доводит бросок тот же код, что
+        /// и после колеса, и рука разницы не чувствует.
+        /// </remarks>
+        public static void Fling(ScrollViewer viewer, double velocity) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.Fling(velocity);
+
         private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not ScrollViewer viewer)
@@ -369,7 +394,7 @@ namespace Amarin.UI
                 }
             }
 
-            private void CancelInertia(bool snap)
+            public void CancelInertia(bool snap)
             {
                 _velocity = 0;
                 if (snap)
@@ -381,6 +406,31 @@ namespace Amarin.UI
 
                 if (IsSettled())
                     StopTicking();
+            }
+
+            /// <summary>
+            /// Принимает бросок снаружи.
+            /// </summary>
+            /// <remarks>
+            /// Пересев <c>_virtual</c> здесь безусловный, а не через <c>SeedVirtual</c>: тот молчит,
+            /// когда позиция уже считается своей, а перетаскивание перед броском писало
+            /// <c>VerticalOffset</c> напрямую — и запомненная позиция отстала от настоящей на всю
+            /// длину жеста. С ней инерция на первом же кадре дёрнула бы ленту обратно к началу
+            /// перетаскивания.
+            /// </remarks>
+            public void Fling(double velocity)
+            {
+                _virtual = Clamp(_viewer.VerticalOffset, 0, GetMaxOffset());
+                _virtualValid = true;
+                _velocity = velocity;
+
+                if (Math.Abs(velocity) < StopVelocity)
+                {
+                    StopTicking();
+                    return;
+                }
+
+                EnsureTicking();
             }
 
             private void OnRendering(object? sender, EventArgs e)
@@ -478,9 +528,21 @@ namespace Amarin.UI
                 return delta > 0 ? offset <= 0.5 : offset >= max - 0.5;
             }
 
+            /// <summary>
+            /// Берёт позицию, от которой поедет бросок.
+            /// </summary>
+            /// <remarks>
+            /// Своя позиция имеет смысл только пока идёт бросок: тогда она и точнее живой (в ней
+            /// учтён разгон за кадр) и умеет заходить за край, где работает резинка. Как только
+            /// цикл встал, хозяин смещения — сам <c>ScrollViewer</c>, и запомненное число живёт
+            /// ровно до того мгновения, когда ленту подвинет кто-нибудь другой: лупа, автопрокрутка,
+            /// достройка сообщений, <c>BringIntoView</c>. Раньше здесь стояла проверка только на
+            /// «число уже своё», и после них первый же щелчок колеса возвращал ленту туда, где её
+            /// застал прошлый бросок, — прыжок на пол-экрана, а дальше всё как ни в чём не бывало.
+            /// </remarks>
             private void SeedVirtual()
             {
-                if (_virtualValid)
+                if (_virtualValid && _ticking)
                     return;
                 _virtual = _viewer.VerticalOffset;
                 _virtualValid = true;
