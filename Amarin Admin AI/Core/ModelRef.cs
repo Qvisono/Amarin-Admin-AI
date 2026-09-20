@@ -18,6 +18,9 @@ namespace Amarin.Core;
 /// </remarks>
 public static class ModelRef
 {
+    /// <summary>Приставка пакетного варианта — то, чем OpenRouter помечает такие модели.</summary>
+    private const string BatchVariant = ":batch";
+
     /// <summary>
     /// Чья это модель. Пустая строка и «авто» — не модели, о провайдере они не говорят
     /// ничего, поэтому для них возвращается <paramref name="fallback"/>.
@@ -60,6 +63,46 @@ public static class ModelRef
 
         var prefix = ProviderSpec.For(provider).Prefix;
         return prefix.Length == 0 ? Bare(id) : prefix + Bare(id);
+    }
+
+    /// <summary>
+    /// Пакетный вариант модели у OpenRouter: <c>…:batch</c>.
+    /// </summary>
+    /// <remarks>
+    /// Половинная цена достаётся ценой асинхронности: такой идентификатор принимает только
+    /// <c>/batches</c>, куда задание кладут файлом и ждут результата часами, а обычный
+    /// <c>/chat/completions</c> отвечает на него 404 «This model is only available through the
+    /// Batch API». Для разговора, где один ход упирается в десяток последовательных запросов
+    /// с вызовами инструментов между ними, это не другой эндпоинт, а другой способ работы, —
+    /// поэтому <see cref="VeniceClient"/> ведёт такой запрос не через <c>/chat/completions</c>,
+    /// а через очередь: кладёт заявку, опрашивает её до готовности и отдаёт ответ обычным
+    /// <see cref="ChatCompletionResponse"/>. Близнец без пометки лежит в том же списке — это
+    /// та же модель по обычной цене и с обычным ожиданием.
+    /// <para>
+    /// Разрез идёт с конца, а не через <see cref="Bare"/>: вариант всегда последний,
+    /// и по строке достаточно пройти один раз, без выделения памяти. Другие варианты
+    /// (<c>:free</c>, <c>:thinking</c>, <c>:nitro</c>) — обычные модели, их трогать нельзя.
+    /// </para>
+    /// </remarks>
+    public static bool IsBatchOnly(string? modelId)
+    {
+        var id = (modelId ?? "").AsSpan().Trim();
+        return id.Length > BatchVariant.Length &&
+               id.EndsWith(BatchVariant, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Идентификатор без пометки пакетного варианта.
+    /// </summary>
+    /// <remarks>
+    /// Нужен заявке в очередь: пакетность там задаёт сам эндпоинт, а <c>model</c> ожидается
+    /// обычным слагом. Приставку провайдера этот метод не трогает — её снимает
+    /// <see cref="Bare"/>, и порядок вызовов значения не имеет.
+    /// </remarks>
+    public static string WithoutBatchVariant(string? modelId)
+    {
+        var id = (modelId ?? "").Trim();
+        return IsBatchOnly(id) ? id[..^BatchVariant.Length] : id;
     }
 
     private static ProviderSpec? FindPrefix(string id)

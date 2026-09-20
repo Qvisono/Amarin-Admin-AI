@@ -31,6 +31,43 @@ public sealed class ModelRefTests
     public void A_model_variant_survives_the_split(string stored, string expected) =>
         Assert.Equal(expected, ModelRef.Bare(stored));
 
+    /// <summary>
+    /// Пакетный вариант приходится узнавать в лицо: обычный <c>/chat/completions</c> отвечает
+    /// ему 404 «This model is only available through the Batch API», и без этой приметы такая
+    /// модель стоит в списке кнопкой, которая всегда возвращает ошибку.
+    /// </summary>
+    [Theory]
+    [InlineData("openrouter:anthropic/claude-sonnet-4.5:batch")]
+    [InlineData("openrouter:openai/gpt-5:BATCH")]
+    [InlineData("  openrouter:openai/gpt-5:batch  ")]
+    public void A_batch_variant_is_recognised(string id) =>
+        Assert.True(ModelRef.IsBatchOnly(id));
+
+    /// <summary>
+    /// Остальные варианты — обычные модели, и спутать их с пакетным нельзя: <c>:free</c>
+    /// и <c>:thinking</c> отвечают тому же эндпоинту, что и все.
+    /// </summary>
+    [Theory]
+    [InlineData("openrouter:anthropic/claude-3.7-sonnet:thinking")]
+    [InlineData("openrouter:meta-llama/llama-3.1-8b-instruct:free")]
+    [InlineData("openrouter:some/batch-model")]
+    [InlineData("grok-4-6")]
+    [InlineData("")]
+    [InlineData(":batch")]
+    public void Everything_else_is_an_ordinary_model(string id) =>
+        Assert.False(ModelRef.IsBatchOnly(id));
+
+    /// <summary>
+    /// Заявке в очередь модель называют обычным слагом: пакетность задаёт эндпоинт, а не имя,
+    /// и <c>:batch</c> в поле <c>model</c> заявку отвергли бы.
+    /// </summary>
+    [Theory]
+    [InlineData("openrouter:openai/gpt-5:batch", "openrouter:openai/gpt-5")]
+    [InlineData("openrouter:openai/gpt-5", "openrouter:openai/gpt-5")]
+    [InlineData("grok-4-6", "grok-4-6")]
+    public void The_queue_is_told_the_plain_slug(string stored, string expected) =>
+        Assert.Equal(expected, ModelRef.WithoutBatchVariant(stored));
+
     [Theory]
     [InlineData("grok-4-6", LlmProvider.Venice)]
     [InlineData("openrouter:openai/gpt-5", LlmProvider.OpenRouter)]

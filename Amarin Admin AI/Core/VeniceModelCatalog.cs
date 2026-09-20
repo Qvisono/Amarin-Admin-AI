@@ -234,7 +234,14 @@ internal static class VeniceModelCatalog
             parts.Add(string.Join(", ", caps));
         }
 
-        return string.Join(" · ", parts);
+        var line = string.Join(" · ", parts);
+
+        // Пометка «(batch)» в имени модели не говорит человеку главного — что ответ придёт
+        // из очереди и ждать его можно часами. Цена вдвое ниже, и без этой строки выбор
+        // выглядит просто выгодным.
+        return ModelRef.IsBatchOnly(model.Id)
+            ? line + Environment.NewLine + Loc.Get("S.Models.BatchHint")
+            : line;
     }
 
     public static string GetDisplayName(string modelId)

@@ -543,6 +543,17 @@
     <system:String x:Key="S.Models.AddKey" xml:space="preserve">Добавить ключ</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">Маршрутизатор сам выберет модель</system:String>
+    <system:String x:Key="S.Models.BatchHint" xml:space="preserve">Пакетная очередь: вдвое дешевле, ответ идёт от минут до 24 часов</system:String>
+    <system:String x:Key="S.Batch.Submitting" xml:space="preserve">Ставлю запрос в пакетную очередь OpenRouter…</system:String>
+    <system:String x:Key="S.Batch.Landing" xml:space="preserve">Заявка принята, очередь её ещё не видит…</system:String>
+    <system:String x:Key="S.Batch.Lost" xml:space="preserve">Пакетная очередь OpenRouter потеряла заявку {0}: она принята, но так и не появилась. Повторите запрос или выберите ту же модель без пометки «(batch)».</system:String>
+    <system:String x:Key="S.Batch.Waiting" xml:space="preserve">Пакетная очередь OpenRouter: {0}</system:String>
+    <system:String x:Key="S.Batch.WaitingCounted" xml:space="preserve">Пакетная очередь OpenRouter: {0} — готово {1} из {2}</system:String>
+    <system:String x:Key="S.Batch.Status.validating" xml:space="preserve">заявка проверяется</system:String>
+    <system:String x:Key="S.Batch.Status.in_progress" xml:space="preserve">запрос считается</system:String>
+    <system:String x:Key="S.Batch.Status.finalizing" xml:space="preserve">ответ собирается</system:String>
+    <system:String x:Key="S.Batch.Failed" xml:space="preserve">Пакетная очередь OpenRouter не отдала ответ: {0} — {1}. Повторите запрос или выберите ту же модель без пометки «(batch)».</system:String>
+    <system:String x:Key="S.Batch.Unsupported" xml:space="preserve">Пакетная очередь OpenRouter не принимает {0}: вложения уходят в запрос строкой data:, а очередь берёт их только ссылкой. Выберите ту же модель без пометки «(batch)» или уберите вложение.</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">Нет доступных моделей</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ДВИЖОК</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Код</system:String>

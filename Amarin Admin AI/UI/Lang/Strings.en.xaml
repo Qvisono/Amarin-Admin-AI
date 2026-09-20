@@ -543,6 +543,17 @@
     <system:String x:Key="S.Models.AddKey" xml:space="preserve">Add a key</system:String>
     <system:String x:Key="S.Models.Auto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Models.AutoTip" xml:space="preserve">The router will pick a model</system:String>
+    <system:String x:Key="S.Models.BatchHint" xml:space="preserve">Batch queue: half price, the answer takes from minutes to 24 hours</system:String>
+    <system:String x:Key="S.Batch.Submitting" xml:space="preserve">Queuing the request in the OpenRouter batch queue…</system:String>
+    <system:String x:Key="S.Batch.Landing" xml:space="preserve">The batch is accepted, the queue cannot see it yet…</system:String>
+    <system:String x:Key="S.Batch.Lost" xml:space="preserve">The OpenRouter batch queue lost batch {0}: it was accepted but never showed up. Retry, or pick the same model without the «(batch)» mark.</system:String>
+    <system:String x:Key="S.Batch.Waiting" xml:space="preserve">OpenRouter batch queue: {0}</system:String>
+    <system:String x:Key="S.Batch.WaitingCounted" xml:space="preserve">OpenRouter batch queue: {0} — {1} of {2} done</system:String>
+    <system:String x:Key="S.Batch.Status.validating" xml:space="preserve">the batch is being validated</system:String>
+    <system:String x:Key="S.Batch.Status.in_progress" xml:space="preserve">the request is running</system:String>
+    <system:String x:Key="S.Batch.Status.finalizing" xml:space="preserve">the answer is being collected</system:String>
+    <system:String x:Key="S.Batch.Failed" xml:space="preserve">The OpenRouter batch queue returned no answer: {0} — {1}. Retry, or pick the same model without the «(batch)» mark.</system:String>
+    <system:String x:Key="S.Batch.Unsupported" xml:space="preserve">The OpenRouter batch queue rejects {0}: attachments go out as a data: string, and the queue only takes them by URL. Pick the same model without the «(batch)» mark, or drop the attachment.</system:String>
     <system:String x:Key="S.Models.Empty" xml:space="preserve">No models available</system:String>
     <system:String x:Key="S.Models.EngineColumn" xml:space="preserve">ENGINE</system:String>
     <system:String x:Key="S.Models.FilterCode" xml:space="preserve">Code</system:String>
