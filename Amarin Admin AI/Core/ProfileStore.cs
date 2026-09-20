@@ -75,11 +75,22 @@ public sealed class ProfileStore
         AppDataFile.WriteAtomic(_file, JsonSerializer.Serialize(registry, AppJson.Options));
     }
 
+    /// <summary>
+    /// Профиль, под которым работают сейчас. Никогда не бросает и никогда не отдаёт <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// Пустой список раньше означал исключение по индексу. <see cref="Load"/> его не допускает —
+    /// заводского «Гостя» он подставляет сам, — но реестр можно собрать и мимо него, и тогда
+    /// падало не здесь, а там, куда исключение доезжало: на применении оформления при выдаче
+    /// окну служб. Пустой реестр — это ровно «профилей ещё нет», то есть заводской профиль,
+    /// чья папка и так совпадает с корнем данных.
+    /// </remarks>
     public UserProfile Active(ProfileRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(registry);
         return registry.Profiles.FirstOrDefault(p => p.Id == registry.ActiveProfileId)
-               ?? registry.Profiles[0];
+               ?? registry.Profiles.FirstOrDefault()
+               ?? new UserProfile { Id = DefaultProfileId, Name = "Гость" };
     }
 
     /// <summary>Creates a profile with its own empty data directory.</summary>

@@ -1539,31 +1539,91 @@
                 </Style>
 
                 <!-- ===== Многострочный промпт ===== -->
+                <!--
+                    Рамка и отступы теперь на карточке (PromptEditor), а не на самом поле:
+                    кнопки «Сбросить» и «Сохранить» стоят внутри той же рамки, под текстом.
+                    Пока они висели над полем, в столбик шли три одинаковые кнопки на три поля,
+                    и какая к какому относится, приходилось угадывать.
+                -->
                 <Style x:Key="PromptTextBox" TargetType="TextBox">
                     <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
                     <Setter Property="CaretBrush" Value="{DynamicResource Text.Bright}"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderThickness" Value="0"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="AcceptsReturn" Value="True"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
-                    <Setter Property="MinHeight" Value="64"/>
+                    <Setter Property="MinHeight" Value="96"/>
                     <!--
                         Без потолка поле растёт вместе с текстом: системный промпт на сотню строк
                         растягивал страницу настроек, и до полей под ним приходилось прокручивать
                         весь его текст. Своя полоса прокрутки у поля была и раньше, но включалась
                         только когда упираться было не во что.
                     -->
-                    <Setter Property="MaxHeight" Value="120"/>
+                    <Setter Property="MaxHeight" Value="176"/>
                     <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TextBox">
-                                <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="8,6">
-                                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
+                                <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!--
+                    Карточка промпта: поле сверху, его кнопки снизу, всё в одной рамке.
+                    Grid со строкой «*» под полем, а не StackPanel: тогда потолок высоты
+                    карточки достаётся полю, а ряд кнопок остаётся на месте при любом тексте.
+                -->
+                <Style x:Key="PromptEditor" TargetType="Border">
+                    <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                    <Setter Property="Padding" Value="8,6"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+
+                <!--
+                    «Сбросить» у технических промптов. Своя копия PromptAddButton: там плюс и
+                    подпись от Content, здесь круговая стрелка и одна подпись на всю программу.
+                    Только у технических — основной промпт человек пишет сам, и «заводского»
+                    текста, к которому его возвращать, у него нет.
+                -->
+                <Style x:Key="ResetPromptButton" TargetType="Button">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="10,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="Transparent"
+                                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                        CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Path x:Name="Glyph" Data="{DynamicResource Icon.Revert}"
+                                              Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.5"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              StrokeLineJoin="Round"
+                                              Width="11" Height="11" Stretch="Uniform"
+                                              Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="Label"
+                                                   Text="{DynamicResource S.Settings.ResetPrompt}" FontSize="11.5"
+                                                   Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"/>
+                                    </StackPanel>
                                 </Border>
                                 <ControlTemplate.Triggers>
-                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                         <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                        <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource Text.Body}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Body}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -1815,7 +1875,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.24.1"
+                                               Text="v1.25.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -2591,6 +2651,16 @@
                                                                NewLanguageRequested="LanguagePicker_NewLanguageRequested"
                                LanguageDeleteRequested="LanguagePicker_LanguageDeleteRequested"/>
                                 </Grid>
+
+                                <!--
+                                    Горячие клавиши. Строки собираются кодом по HotkeyMap.All:
+                                    список действий один на программу, и вторая его копия
+                                    в разметке разошлась бы с ним молча.
+                                -->
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <TextBlock Style="{StaticResource SectionTitle}"
+                                           Text="{DynamicResource S.Behavior.Hotkeys}"/>
+                                <StackPanel x:Name="HotkeyList"/>
                             </StackPanel>
                         </ScrollViewer>
 
@@ -2823,15 +2893,22 @@
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Customize.SystemPrompts}"/>
 
                                 <!-- Основной промпт ИИ -->
-                                <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.MainPrompt}" VerticalAlignment="Center"/>
-                                    <Button x:Name="SaveMainPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveMainPromptButton_Click"/>
-                                </Grid>
-                                <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
+                                <TextBlock Style="{StaticResource SettingTitle}"
+                                           Text="{DynamicResource S.Customize.MainPrompt}" Margin="0,0,0,6"/>
+                                <Border Style="{StaticResource PromptEditor}" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox x:Name="MainPromptTextBox" Style="{StaticResource PromptTextBox}"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                                    HorizontalAlignment="Right" Margin="0,8,0,0">
+                                            <Button x:Name="SaveMainPromptButton" Style="{StaticResource SavePromptButton}"
+                                                    Click="SaveMainPromptButton_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
 
                                 <!--
                                     Библиотека заготовок - только у основного промпта.
@@ -2861,26 +2938,44 @@
                                 <WrapPanel x:Name="PromptLibraryHost" Margin="0,0,0,4"/>
 
                                 <!-- Технический промпт ИИ -->
-                                <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.TechPrompt}" VerticalAlignment="Center"/>
-                                    <Button x:Name="SaveTechAiPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAiPromptButton_Click"/>
-                                </Grid>
-                                <TextBox x:Name="TechAiPromptTextBox" Style="{StaticResource PromptTextBox}" Margin="0,0,0,10"/>
+                                <TextBlock Style="{StaticResource SettingTitle}"
+                                           Text="{DynamicResource S.Customize.TechPrompt}" Margin="0,0,0,6"/>
+                                <Border Style="{StaticResource PromptEditor}" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox x:Name="TechAiPromptTextBox" Style="{StaticResource PromptTextBox}"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                                    HorizontalAlignment="Right" Margin="0,8,0,0">
+                                            <Button x:Name="ResetTechAiPromptButton" Style="{StaticResource ResetPromptButton}"
+                                                    Margin="0,0,8,0" Click="ResetTechAiPromptButton_Click"/>
+                                            <Button x:Name="SaveTechAiPromptButton" Style="{StaticResource SavePromptButton}"
+                                                    Click="SaveTechAiPromptButton_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
 
                                 <!-- Технический промпт агента -->
-                                <Grid Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentPrompt}" VerticalAlignment="Center"/>
-                                    <Button x:Name="SaveTechAgentPromptButton" Grid.Column="1" Style="{StaticResource SavePromptButton}" Click="SaveTechAgentPromptButton_Click"/>
-                                </Grid>
-                                <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
+                                <TextBlock Style="{StaticResource SettingTitle}"
+                                           Text="{DynamicResource S.Customize.AgentPrompt}" Margin="0,0,0,6"/>
+                                <Border Style="{StaticResource PromptEditor}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox x:Name="TechAgentPromptTextBox" Style="{StaticResource PromptTextBox}"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal"
+                                                    HorizontalAlignment="Right" Margin="0,8,0,0">
+                                            <Button x:Name="ResetTechAgentPromptButton" Style="{StaticResource ResetPromptButton}"
+                                                    Margin="0,0,8,0" Click="ResetTechAgentPromptButton_Click"/>
+                                            <Button x:Name="SaveTechAgentPromptButton" Style="{StaticResource SavePromptButton}"
+                                                    Click="SaveTechAgentPromptButton_Click"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
 
@@ -3569,45 +3664,74 @@
                     Width="460" MinHeight="180" MaxHeight="560" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
                     Padding="20,18">
-                <StackPanel>
+                <!--
+                    Grid, а не StackPanel, — и в этом вся суть. StackPanel меряет детей
+                    бесконечностью и раскладывает подряд на полную желаемую высоту: потолок
+                    карточки он не соблюдает, и ряд кнопок, стоявший последним, уезжал ниже её
+                    кромки. Длинное разъяснение с двумя раскрытыми экспандерами набирало под
+                    девятьсот точек против пятисот доступных, и человек видел вопрос без «Да» и
+                    «Нет». Здесь всё, что может вырасти, лежит в строке «*» с прокруткой, а
+                    заголовок и кнопки — в строках Auto, и вытолкнуть их нечем.
+                -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
                     <TextBlock Text="{DynamicResource S.Confirm.Title}" FontSize="15" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,12"/>
                     <!-- Из какого чата пришёл вопрос: спрашивать могут сразу несколько, и
                          «удалить папку X» без имени разговора — опасная неизвестность. -->
-                    <Button x:Name="ConfirmationChatButton" Style="{StaticResource InlineLinkButton}"
+                    <Button x:Name="ConfirmationChatButton" Grid.Row="1" Style="{StaticResource InlineLinkButton}"
                             HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
                             Click="ConfirmationChatButton_Click"/>
-                    <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Text.Tertiary}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
-                               TextWrapping="Wrap" Margin="0,0,0,8"/>
-                    <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                               TextWrapping="Wrap" Margin="0,0,0,8"/>
-                    <!--
-                        Разъяснение от ИИ: то же, что в журнале умеет кнопка «Спросить ИИ», только
-                        здесь оно спрашивается само и заранее. Поле explanation у инструмента —
-                        просьба к модели, а не обязанность, и чаще всего оно пустое; человек при
-                        этом жмёт «Да» под текстом скрипта, который никто ему не объяснил.
-                        Обычный TextBlock: текст пришёл от модели и остаётся текстом.
-                    -->
-                    <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                               TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
-                    <!--
-                        Что именно выполнится, целиком, и технические подробности. Наполняются из
-                        кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
-                        диалоге хуже, чем его отсутствие.
-                    -->
-                    <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,0,0,8"/>
-                    <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                        <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
-                                Style="{StaticResource DialogSecondaryButton}"
-                                Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
-                        <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Common.Yes}"
-                                Style="{StaticResource DialogPrimaryButton}"
-                                Click="ConfirmationYesButton_Click"/>
+
+                    <!-- Отступ справа отрицательный: полоса прокрутки встаёт в поле карточки,
+                         а не отжимает текст от него. -->
+                    <ScrollViewer x:Name="ConfirmationBodyScroll" Grid.Row="2"
+                                  VerticalScrollBarVisibility="Auto" Margin="0,0,-8,0" Padding="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Tertiary}" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <!--
+                                Разъяснение от ИИ: то же, что в журнале умеет кнопка «Спросить ИИ», только
+                                здесь оно спрашивается само и заранее. Поле explanation у инструмента —
+                                просьба к модели, а не обязанность, и чаще всего оно пустое; человек при
+                                этом жмёт «Да» под текстом скрипта, который никто ему не объяснил.
+                                Обычный TextBlock: текст пришёл от модели и остаётся текстом.
+                            -->
+                            <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                                       TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
+                            <!--
+                                Что именно выполнится, целиком, и технические подробности. Наполняются из
+                                кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
+                                диалоге хуже, чем его отсутствие.
+                            -->
+                            <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,0,0,8"/>
+                            <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,0,0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Подвал с волоском сверху: когда тело прокручивается, край должен читаться. -->
+                    <StackPanel Grid.Row="3">
+                        <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,10,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                            <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
+                                    Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                            <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Common.Yes}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="ConfirmationYesButton_Click"/>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
+                </Grid>
             </Border>
             </Viewbox>
         </Grid>

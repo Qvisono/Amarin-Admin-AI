@@ -116,9 +116,11 @@ namespace Amarin.UI
 
                     Persist(session);
 
+                    // Только этот ответ, а не вся лента: сводка дописывается после каждого
+                    // ответа, и перерисовка чата целиком заодно сбрасывала бы лупу.
                     if (repriced && string.Equals(_session.Id, sessionId, StringComparison.Ordinal))
                     {
-                        RenderSession();
+                        RefreshMessageView(assistantId);
                     }
                 });
             }

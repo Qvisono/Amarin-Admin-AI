@@ -91,6 +91,10 @@ internal static class Program
 
     private static int RunWpf(StartupArgs startup)
     {
+        // Замер до первого кадра. Останавливается руками перед app.Run: тот не вернётся до
+        // закрытия программы, и using отмерил бы весь сеанс вместо запуска.
+        var startupTimer = PerfLog.Measure("app_start");
+
         // До первого окна: OverrideMetadata внутри нельзя звать после того, как свойство
         // впервые прочитали.
         ToolTipDefaults.Apply();
@@ -153,12 +157,15 @@ internal static class Program
         CrashHandler.InstallUi(app);
 
         // Тему берём из настроек активного профиля до всего остального: экран входа должен
-        // выглядеть как приложение, а не как белый прямоугольник.
-        var startupSettings = new AppSettingsStore(dataRoot).Load();
-        ThemeManager.Initialize(app, startupSettings.Theme);
+        // выглядеть как приложение, а не как белый прямоугольник. Хранилище заводится одно на
+        // запуск и переживает экран входа: раньше здесь стоял одноразовый экземпляр, и
+        // settings.json успевал разобраться трижды, прежде чем окно показалось.
+        var settingsStore = new AppSettingsStore(dataRoot);
+        var settings = settingsStore.Load();
+        ThemeManager.Initialize(app, settings.Theme);
 
         // Язык — до экрана входа: он тоже часть интерфейса и обязан быть на выбранном языке.
-        LanguageManager.Initialize(app, startupSettings.LanguageCode);
+        LanguageManager.Initialize(app, settings.LanguageCode);
 
         // На экране входа можно выбрать другого пользователя, поэтому настройки читаются
         // только после него — у выбранного профиля своя папка с чатами и своим settings.json.
@@ -176,11 +183,23 @@ internal static class Program
                 profileStore.Save(registry);
                 activeProfile = unlocked;
                 dataRoot = profileStore.DataRootFor(activeProfile.Id);
+
+                // Вошли под другим пользователем — у него своя папка и свои настройки.
+                settingsStore = new AppSettingsStore(dataRoot);
+                settings = settingsStore.Load();
             }
         }
 
-        var settingsStore = new AppSettingsStore(dataRoot);
-        var settings = settingsStore.Load();
+        // Фон считаем, пока WPF разбирает разметку окна: обои бывают на десятки мегапикселей,
+        // и без этого человек успевал увидеть градиент-затычку прежде самой картинки.
+        if (settings.Appearance is { Enabled: true, BackdropMode: BackdropMode.Image } appearance)
+        {
+            AppearanceImageCache.Prewarm(
+                AppearanceImageCache.ResolvePath(appearance.BackgroundImagePath, dataRoot),
+                appearance.ImageSaturation,
+                appearance.ImageBlur,
+                dataRoot);
+        }
 
         // Только теперь известно, чей это профиль, — а ключи у каждого свои. До этой строки
         // программа работает на ключе из окружения, и так же она работает дальше, если своих
@@ -293,6 +312,8 @@ internal static class Program
         // behaviour now that the window it refers to is the one the user actually sees.
         app.MainWindow = window;
         app.ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+        startupTimer.Dispose();
         return app.Run(window);
     }
 

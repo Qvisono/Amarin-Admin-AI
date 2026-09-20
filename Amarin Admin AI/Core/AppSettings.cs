@@ -312,6 +312,18 @@ public sealed class AppSettings
 
     public string? WebSearchEngineMode { get; set; }
 
+    /// <summary>
+    /// Переназначенные сочетания клавиш: имя действия из <see cref="HotkeyMap"/> — запись
+    /// сочетания вроде <c>Ctrl+F</c>.
+    /// </summary>
+    /// <remarks>
+    /// Словарём, а не полем на действие: действий будет больше, и на каждое заводить своё поле
+    /// с миграцией незачем. Отсутствующее действие берёт заводское сочетание — поэтому
+    /// <c>settings.json</c> прежних версий читается как есть, а сброс к заводскому просто
+    /// убирает запись.
+    /// </remarks>
+    public Dictionary<string, string>? Hotkeys { get; set; }
+
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
     public string MainPrompt { get; set; } = "";
 

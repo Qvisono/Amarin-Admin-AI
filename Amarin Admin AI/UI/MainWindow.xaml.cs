@@ -67,7 +67,11 @@ namespace Amarin.UI
 
         public MainWindow()
         {
-            InitializeComponent();
+            using (PerfLog.Measure("main_window_ctor"))
+            {
+                InitializeComponent();
+            }
+
             Title = $"Amarin Admin AI v{RuntimeContext.AppVersion}";
             TitleText.Text = Title;
             SettingsVersionText.Text = $"v{RuntimeContext.AppVersion}";
@@ -112,6 +116,11 @@ namespace Amarin.UI
             SmoothScroll.SetIsEnabled(CustomizePageScroll, true);
             SmoothScroll.SetIsEnabled(DataPageScroll, true);
             SmoothScroll.SetIsEnabled(AllowedDomainsScroll, true);
+
+            // Тело вопроса о подтверждении: у него внутри свои прокрутки — блок кода и
+            // подробности, — и SmoothScroll сам уступает им колесо, а на их краю забирает
+            // обратно. Без него они бы держали колесо и не отдавали наружу.
+            SmoothScroll.SetIsEnabled(ConfirmationBodyScroll, true);
 
             Warn.Visibility = RuntimeContext.IsAdministrator()
                 ? Visibility.Collapsed
@@ -171,6 +180,12 @@ namespace Amarin.UI
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();
             ApplyUiScaleFromSettings();
+
+            // До Show(), а не из Loaded: фон раньше впервые красился вместе со страницами
+            // настроек, то есть уже после того, как окно показалось, — и первым кадром человек
+            // видел голую заливку, а картинку получал следом.
+            ApplyAppearance(save: false);
+
             if (IsLoaded)
             {
                 OnWindowLoaded(this, new RoutedEventArgs());
@@ -232,7 +247,17 @@ namespace Amarin.UI
 
             RefreshChatList();
             UpdateModelButton();
-            LoadSettingsUi();
+
+            // Главному окну нужен от настроек только аватар в углу — остальное живёт на
+            // свёрнутых страницах.
+            LoadAccountUi();
+
+            // Наполнение страниц настроек отложено за первый кадр. Оно стоит несколько сотен
+            // миллисекунд (девять плашек моделей, десять пикеров размышления, библиотека
+            // заготовок, список доменов) и целиком уходит в то, чего на экране ещё нет.
+            // Повторный вызов из SettingsButton_Click был здесь и раньше, так что открыть
+            // настройки раньше, чем фон догонит, безопасно.
+            Dispatcher.BeginInvoke(new Action(LoadSettingsUi), DispatcherPriority.Background);
 
             // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
             UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
@@ -401,7 +426,7 @@ namespace Amarin.UI
 
             _services.Settings.DateFormat = ReadDateFormatCombo();
             _services.SettingsStore.Save(_services.Settings);
-            RenderSession();
+            RebuildTranscript(resetZoom: false);
         }
 
         private DateFormat ReadDateFormatCombo() =>
@@ -1471,6 +1496,40 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
         }
 
+        /// <summary>
+        /// Возвращает техническому промпту заводской текст — и сразу его сохраняет.
+        /// </summary>
+        /// <remarks>
+        /// В настройки пишется пустая строка: это и есть штатный признак «заводской промпт»,
+        /// по нему их подставляют <c>ChatEngine.BuildSystemPrompt</c> и <see cref="Agent"/>.
+        /// Записав туда сам текст, мы заморозили бы сегодняшнюю редакцию промпта навсегда —
+        /// правки в следующих версиях до такого человека уже не дошли бы.
+        /// </remarks>
+        private void ResetTechAiPromptButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            _services.Settings.TechAiPrompt = "";
+            _services.SettingsStore.Save(_services.Settings);
+            TechAiPromptTextBox.Text = ChatEngine.DefaultTechPrompt;
+        }
+
+        /// <inheritdoc cref="ResetTechAiPromptButton_Click"/>
+        private void ResetTechAgentPromptButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            _services.Settings.TechAgentPrompt = "";
+            _services.SettingsStore.Save(_services.Settings);
+            TechAgentPromptTextBox.Text = Agent.BaseSystemPrompt;
+        }
+
         private void LoadSettingsUi()
         {
             if (_services is null)
@@ -1495,6 +1554,7 @@ namespace Amarin.UI
                 SelectDateFormat(settings.DateFormat);
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
+                LoadHotkeysUi(settings);
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
             LanguagePicker.SetSelected(settings.LanguageCode);
                 LoadAccountUi();
@@ -1597,7 +1657,10 @@ namespace Amarin.UI
 
         private void SidebarLogoButton_MouseLeave(object sender, MouseEventArgs e) => UpdateLogoGlyph(hover: false);
 
-        private void NewChatButton_Click(object sender, RoutedEventArgs e)
+        private void NewChatButton_Click(object sender, RoutedEventArgs e) => StartNewChatFromUi();
+
+        /// <summary>Заводит новый чат: кнопкой в колонке или горячей клавишей.</summary>
+        internal void StartNewChatFromUi()
         {
             if (_services is null)
             {
@@ -1772,6 +1835,15 @@ namespace Amarin.UI
             // Раньше проверки фокуса: приблизить ленту можно и не уходя из поля ввода, и выйти
             // из этого вида человек попросит оттуда же.
             if (e.Key == Key.Escape && _chatZoom?.TryHandleEscape() == true)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // Тоже раньше проверки фокуса, и по той же причине: ShouldKeepKeyboardFocus
+            // уступает событие полю ввода при любом Ctrl или Alt, а сочетание без модификатора
+            // назначить нельзя — ниже этой строки ни одно из них не дожило бы.
+            if (TryRunHotkey(e))
             {
                 e.Handled = true;
                 return;
@@ -1954,14 +2026,31 @@ namespace Amarin.UI
         /// Показывает открытый чат. Строится только видимая часть переписки — остальное
         /// достраивается в фоне и по прокрутке, см. <c>MainWindow.Messages.cs</c>.
         /// </summary>
-        private void RenderSession()
+        private void RenderSession() => RebuildTranscript(resetZoom: true);
+
+        /// <summary>
+        /// То же, что <see cref="RenderSession"/>, но с выбором: сбрасывать ли лупу.
+        /// </summary>
+        /// <param name="resetZoom">
+        /// Вернуть ленте обычный вид. Так и есть у <see cref="RenderSession"/>: жест относится
+        /// к тому, что человек читал, и открывать соседний чат приближённым он не просил.
+        /// Перерисовки того же самого чата — смена формата даты, смена языка — передают
+        /// <c>false</c>: содержимое перед глазами то же, и терять приближение не за что.
+        /// </param>
+        /// <remarks>
+        /// Отдельным именем, а не необязательным параметром у <see cref="RenderSession"/>:
+        /// тесты зовут ту через отражение, а <c>MethodBase.Invoke</c> значений по умолчанию не
+        /// подставляет.
+        /// </remarks>
+        private void RebuildTranscript(bool resetZoom)
         {
             using var timer = PerfLog.Measure("chat_render");
 
-            // До постройки: лупа увеличивает то, чем считает прокрутка, и с ней запас, который
-            // резервирует лента под видимую часть, посчитался бы в чужих единицах. Да и открывать
-            // соседний чат приближённым человек не просил — жест относится к тому, что он читал.
-            ResetChatZoom();
+            if (resetZoom)
+            {
+                ResetChatZoom();
+            }
+
             BuildMessageHosts();
 
             if (FindTurn(_session.Id) is { } live)
@@ -2298,7 +2387,7 @@ namespace Amarin.UI
                     // потрачены, а человек видит в списке всё тот же «Новый чат».
                     var repriced = ChatTitleCost.Book(session, draft.Cost);
                     var renamed = !string.IsNullOrWhiteSpace(draft.Title);
-                    if (!renamed && !repriced)
+                    if (!renamed && repriced is null)
                     {
                         return;
                     }
@@ -2309,11 +2398,11 @@ namespace Amarin.UI
                     }
 
                     // Счёт уже закрытого ответа изменился. Ценник и его разбивка собираются при
-                    // отрисовке из самого сообщения, а типизированной ссылки на завершённую
-                    // вьюшку окно не держит, — обновить их можно только перерисовав чат.
-                    if (repriced && string.Equals(_session.Id, sessionId, StringComparison.Ordinal))
+                    // отрисовке из самого сообщения, поэтому пузырь пересобирается заново —
+                    // но только он один: перерисовка всего чата сбрасывала бы лупу.
+                    if (repriced is not null && string.Equals(_session.Id, sessionId, StringComparison.Ordinal))
                     {
-                        RenderSession();
+                        RefreshMessageView(repriced.Id);
                     }
 
                     Persist(session);
@@ -3011,6 +3100,12 @@ namespace Amarin.UI
                 ? request.Info.ToolName
                 : request.Info.ChangeSummary;
             FillConfirmationBody(request.Info);
+
+            // Следующий вопрос начинается сверху: прокрутка, оставшаяся от предыдущего, прятала
+            // бы от человека первые строки нового — а тут он решает, запускать ли скрипт.
+            SmoothScroll.Cancel(ConfirmationBodyScroll);
+            ConfirmationBodyScroll.ScrollToTop();
+
             Detached.Run(ExplainConfirmationAsync(request), "confirmation_explain");
             ConfirmationOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;

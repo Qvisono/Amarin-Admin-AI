@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -29,6 +32,24 @@ internal static class AppearanceImageCache
 
     private const int CacheSize = 4;
 
+    /// <summary>Крупнее этого готовый снимок на диск не пишем — см. <c>WriteDerived</c>.</summary>
+    private const long MaxDerivedPixels = 4_000_000;
+
+    /// <summary>
+    /// Имя готового файла: та же приставка, что у самой картинки.
+    /// </summary>
+    /// <remarks>
+    /// Приставка общая не случайно. Смена обоев перечисляет <c>background.*</c> и стирает всё,
+    /// кроме нового файла (<c>MainWindow.RemoveStoredBackgrounds</c>), — значит устаревший
+    /// готовый снимок уносится оттуда же, и заводить ему вторую уборку не нужно. Хвост
+    /// <see cref="DerivedSuffix"/> отдельно: по нему файл не берут в архив данных
+    /// (<c>DataBundle.CategoryOf</c>) — это производное, оно пересоздаётся само.
+    /// </remarks>
+    private const string DerivedStem = "background";
+
+    /// <summary>Хвост имени готового файла. Тот же литерал знает <c>DataBundle.CategoryOf</c>.</summary>
+    internal const string DerivedSuffix = ".cache.png";
+
     private static readonly Lock Gate = new();
     private static readonly List<(string Key, BitmapSource Image)> Cache = [];
 
@@ -40,10 +61,57 @@ internal static class AppearanceImageCache
     /// The existence check happens on the worker too: a path on a disconnected network share
     /// makes <see cref="File.Exists"/> block for the SMB timeout, and that must not be the UI thread.
     /// </remarks>
-    public static Task<BitmapSource?> LoadAsync(string? path, double saturation, double blur) =>
-        Task.Run(() => Load(path, saturation, blur));
+    /// <param name="cacheRoot">
+    /// Папка профиля, куда кладётся готовый снимок. <c>null</c> — считать заново каждый раз;
+    /// так работают вызовы, у которых профиля под рукой нет.
+    /// </param>
+    public static Task<BitmapSource?> LoadAsync(string? path, double saturation, double blur, string? cacheRoot = null) =>
+        Task.Run(() => Load(path, saturation, blur, cacheRoot));
+
+    /// <summary>
+    /// Считает картинку заранее, ни на что не глядя.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся из <c>Program</c> до создания окна: пока WPF разбирает разметку главного окна,
+    /// рабочий поток успевает распаковать и размыть фон. К первой отрисовке
+    /// <see cref="Peek"/> уже попадает, и градиента-затычки человек не видит вовсе.
+    /// Брошенная задача: не вышло — фон доедет обычным путём, как и раньше.
+    /// </remarks>
+    public static void Prewarm(string? path, double saturation, double blur, string? cacheRoot)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        _ = LoadAsync(path, saturation, blur, cacheRoot);
+    }
+
+    /// <summary>
+    /// Полный путь к картинке фона.
+    /// </summary>
+    /// <remarks>
+    /// Настройки держат голое имя файла: картинка копируется в папку профиля и путешествует
+    /// вместе с ним. Абсолютный путь всё ещё уважаем — так писали до этой перемены. Разрешение
+    /// живёт здесь, а не у <c>AppearanceManager</c>, потому что тем же путём строится ключ
+    /// кэша: разойдись эти две строки, прогрев считал бы впустую.
+    /// </remarks>
+    public static string ResolvePath(string? value, string dataRoot)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "";
+        }
+
+        return Path.IsPathRooted(value) ? value : Path.Combine(dataRoot, value);
+    }
 
     /// <summary>Cache lookup only — safe and instant on the UI thread. <c>null</c> means "not ready".</summary>
+    /// <remarks>
+    /// Округление обязано повторять <see cref="Load"/> до последнего знака. Пока его здесь не
+    /// было, ключ от ползунка (<c>1.1506024096386072</c>) не совпадал с положенным в кэш
+    /// (<c>1.15</c>) никогда, и каждое применение оформления заново мигало градиентом.
+    /// </remarks>
     public static BitmapSource? Peek(string? path, double saturation, double blur)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -51,7 +119,7 @@ internal static class AppearanceImageCache
             return null;
         }
 
-        var key = Key(path, saturation, blur, stamp: null);
+        var key = Key(path, Round(saturation), Round(blur, radius: true), stamp: null);
         lock (Gate)
         {
             foreach (var entry in Cache)
@@ -75,7 +143,7 @@ internal static class AppearanceImageCache
         }
     }
 
-    private static BitmapSource? Load(string? path, double saturation, double blur)
+    private static BitmapSource? Load(string? path, double saturation, double blur, string? cacheRoot)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -84,18 +152,23 @@ internal static class AppearanceImageCache
 
         // Rounded: the sliders move in fine steps and a 1 % change is invisible, but every
         // distinct value would otherwise be a separate cache entry and a separate pixel pass.
-        var sat = Math.Round(Math.Clamp(saturation, 0, 2), 2);
-        var rad = Math.Round(Math.Clamp(blur, 0, 80), 1);
+        var sat = Round(saturation);
+        var rad = Round(blur, radius: true);
 
         string stamp;
         try
         {
-            if (!File.Exists(path))
+            var file = new FileInfo(path);
+            if (!file.Exists)
             {
                 return null;
             }
 
-            stamp = File.GetLastWriteTimeUtc(path).Ticks.ToString();
+            // И время правки, и длина: у скопированного файла время переносится вместе с ним,
+            // и подменённая на такую же по времени картинка иначе показывалась бы старой.
+            stamp = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{file.LastWriteTimeUtc.Ticks}-{file.Length}");
         }
         catch
         {
@@ -121,9 +194,14 @@ internal static class AppearanceImageCache
 
         try
         {
-            var source = Decode(path, rad);
-            var result = Process(source, sat, rad);
-            result.Freeze();
+            var derived = DerivedPath(cacheRoot, key);
+            var result = ReadDerived(derived);
+            if (result is null)
+            {
+                result = Process(Decode(path, rad), sat, rad);
+                result.Freeze();
+                WriteDerived(derived, result);
+            }
 
             lock (Gate)
             {
@@ -144,8 +222,144 @@ internal static class AppearanceImageCache
         }
     }
 
+    /// <summary>Округление ползунка. Одно на <see cref="Load"/> и <see cref="Peek"/>.</summary>
+    private static double Round(double value, bool radius = false) => radius
+        ? Math.Round(Math.Clamp(value, 0, 80), 1)
+        : Math.Round(Math.Clamp(value, 0, 2), 2);
+
     private static string Key(string path, double saturation, double blur, string? stamp) =>
-        $"{path}|{saturation}|{blur}|{stamp}";
+        string.Create(CultureInfo.InvariantCulture, $"{path}|{saturation}|{blur}|{stamp}");
+
+    // ───────────────────────── готовый снимок на диске ─────────────────────────
+
+    /// <summary>
+    /// Куда класть уже посчитанную картинку. <c>null</c> — никуда.
+    /// </summary>
+    /// <remarks>
+    /// Имя — отпечаток ключа: поменялись картинка, насыщенность или размытие — поменялось и
+    /// имя, так что устаревший снимок никогда не будет прочитан как свежий. Подставлять его
+    /// приходится ради запуска: исходные обои бывают и на сорок пять мегапикселей, и их
+    /// распаковка с размытием стоит сотни миллисекунд на каждом старте. Готовый снимок — это
+    /// PNG на полтора мегапикселя, он читается за десятки.
+    /// </remarks>
+    private static string? DerivedPath(string? cacheRoot, string key)
+    {
+        if (string.IsNullOrWhiteSpace(cacheRoot))
+        {
+            return null;
+        }
+
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))).ToLowerInvariant();
+        return Path.Combine(cacheRoot, $"{DerivedStem}.{hash[..16]}{DerivedSuffix}");
+    }
+
+    /// <summary>
+    /// Убирает прежние снимки, оставляя только что записанный.
+    /// </summary>
+    /// <remarks>
+    /// Смену самих обоев подметает <c>MainWindow.RemoveStoredBackgrounds</c>, а вот ползунки
+    /// насыщенности и размытия её не зовут: каждое их новое положение — новый отпечаток,
+    /// и без этой уборки папка профиля обрастала бы снимками на каждый сдвиг ползунка.
+    /// </remarks>
+    private static void SweepDerived(string keep)
+    {
+        var directory = Path.GetDirectoryName(keep);
+        if (string.IsNullOrEmpty(directory))
+        {
+            return;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(directory, DerivedStem + "*" + DerivedSuffix))
+        {
+            if (string.Equals(file, keep, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(file);
+            }
+            catch
+            {
+                // Файл занят или недоступен — это мусор, а не беда: переживёт до следующего раза.
+            }
+        }
+    }
+
+    private static BitmapSource? ReadDerived(string? path)
+    {
+        if (path is null || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(path, UriKind.Absolute);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch
+        {
+            // Недописанный или побитый снимок — не беда: посчитаем заново и перезапишем.
+            return null;
+        }
+    }
+
+    /// <remarks>
+    /// Через временный файл: оборванная запись оставила бы обрезанный PNG под правильным
+    /// именем, и следующий запуск читал бы его как готовый.
+    /// </remarks>
+    private static void WriteDerived(string? path, BitmapSource image)
+    {
+        if (path is null)
+        {
+            return;
+        }
+
+        // Без размытия рабочая картинка остаётся крупной, и PNG на неё вышел бы в несколько
+        // мегабайт — чтение такого файла экономит уже немного, а место в папке профиля занимает
+        // заметно. Размытый фон (обычный случай) считается по куда меньшему полотну и проходит.
+        if ((long)image.PixelWidth * image.PixelHeight > MaxDerivedPixels)
+        {
+            return;
+        }
+
+        var temporary = path + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(image));
+            using (var stream = File.Create(temporary))
+            {
+                encoder.Save(stream);
+            }
+
+            File.Move(temporary, path, overwrite: true);
+            SweepDerived(path);
+        }
+        catch
+        {
+            // Диск полон, папка только для чтения — фон от этого не пострадает, просто
+            // следующий запуск снова посчитает его сам.
+            try
+            {
+                File.Delete(temporary);
+            }
+            catch
+            {
+                // И убрать не вышло. Хвост «.tmp» в архив данных всё равно не попадает.
+            }
+        }
+    }
 
     /// <summary>
     /// Decodes straight to the working size. Dimensions come from the frame header
@@ -155,13 +369,22 @@ internal static class AppearanceImageCache
     private static BitmapSource Decode(string path, double blur)
     {
         var uri = new Uri(path, UriKind.Absolute);
-        var frame = BitmapDecoder.Create(
-            uri,
-            BitmapCreateOptions.DelayCreation | BitmapCreateOptions.IgnoreColorProfile,
-            BitmapCacheOption.None).Frames[0];
 
-        var width = frame.PixelWidth;
-        var height = frame.PixelHeight;
+        // Поток открываем и закрываем сами. С Uri и BitmapCacheOption.None декодер держит файл
+        // открытым до сборки мусора, и картинка оставалась занятой процессом: следующая смена
+        // обоев не могла переписать background.jpg поверх старого.
+        int width, height;
+        using (var probe = File.OpenRead(path))
+        {
+            var frame = BitmapDecoder.Create(
+                probe,
+                BitmapCreateOptions.DelayCreation | BitmapCreateOptions.IgnoreColorProfile,
+                BitmapCacheOption.None).Frames[0];
+
+            width = frame.PixelWidth;
+            height = frame.PixelHeight;
+        }
+
         if (width <= 0 || height <= 0)
         {
             throw new NotSupportedException("Decoder reported an empty frame.");

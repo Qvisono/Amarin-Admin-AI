@@ -54,10 +54,18 @@ internal sealed class AppearanceManager : IDisposable
         ("Text.Dim", "Text.Secondary")
     ];
 
+    /// <summary>Сколько проявляется опоздавшая картинка фона.</summary>
+    private const double PhotoFadeMs = 220;
+
     private readonly Window _window;
     private readonly Panel _host;
     private readonly Rectangle _under = new();
     private readonly Rectangle _base = new();
+
+    /// <summary>
+    /// Картинка, не успевшая к отрисовке, — проявляется поверх градиента на <see cref="_base"/>.
+    /// </summary>
+    private readonly Rectangle _photo = new() { Opacity = 0, Visibility = Visibility.Collapsed };
     private readonly Rectangle _brightness = new();
     private readonly Rectangle _frost = new();
     private readonly Rectangle _sheen = new();
@@ -74,7 +82,9 @@ internal sealed class AppearanceManager : IDisposable
         _window = window ?? throw new ArgumentNullException(nameof(window));
         _host = host ?? throw new ArgumentNullException(nameof(host));
 
-        foreach (var layer in new[] { _under, _base, _brightness, _frost, _sheen, _vignette })
+        // Порядок — это порядок слоёв: _photo проявляется над градиентом, но под затемнением,
+        // морозом, бликом и виньеткой — иначе те гасли бы вместе с ним.
+        foreach (var layer in new[] { _under, _base, _photo, _brightness, _frost, _sheen, _vignette })
         {
             layer.IsHitTestVisible = false;
             _host.Children.Add(layer);
@@ -175,7 +185,18 @@ internal sealed class AppearanceManager : IDisposable
             ? new SolidColorBrush(window.Color)
             : Brushes.Black;
 
-        _base.Fill = mode == BackdropMode.Image ? BuildImageBrush() : BuildGradientBrush();
+        if (mode == BackdropMode.Image)
+        {
+            _base.Fill = BuildImageBrush();
+        }
+        else
+        {
+            // Слой проявления снимаем и здесь: ушли с картинки на градиент — доехавшее фото
+            // не должно остаться висеть поверх него.
+            _imageGeneration++;
+            HidePhotoLayer();
+            _base.Fill = BuildGradientBrush();
+        }
 
         // Brightness as an overlay, not baked: the slider stays live and costs nothing.
         var brightness = _settings.ImageBrightness;
@@ -314,35 +335,69 @@ internal sealed class AppearanceManager : IDisposable
         return (new Point(0.5 - dx, 0.5 - dy), new Point(0.5 + dx, 0.5 + dy));
     }
 
+    /// <summary>
+    /// Кисть фона-картинки. Пока картинки нет, отдаёт градиент и досылает её через
+    /// <see cref="_photo"/>.
+    /// </summary>
+    /// <remarks>
+    /// Готовая картинка ставится прямо на <see cref="_base"/> — слой проявления при этом гасим,
+    /// иначе поверх нового фона осталась бы прошлая картинка. Опоздавшая же приезжает на
+    /// <see cref="_photo"/> и проявляется поверх градиента: раньше она подменялась рывком,
+    /// и на запуске это читалось как «сначала загрузилась затычка, потом фото».
+    /// </remarks>
     private Brush BuildImageBrush()
     {
-        var path = ResolveImagePath();
+        var path = ImagePath();
         var ready = AppearanceImageCache.Peek(path, _settings.ImageSaturation, _settings.ImageBlur);
-        if (ready is null)
+        _imageGeneration++;
+        HidePhotoLayer();
+
+        if (ready is not null)
         {
-            // Not processed yet. Show the gradient meanwhile and swap in when the worker lands,
-            // so picking a 4K wallpaper never stalls the UI thread.
-            var generation = ++_imageGeneration;
-            var saturation = _settings.ImageSaturation;
-            var blur = _settings.ImageBlur;
-            _ = AppearanceImageCache.LoadAsync(path, saturation, blur).ContinueWith(
-                task =>
-                {
-                    if (_disposed || generation != _imageGeneration || task.Result is null)
-                    {
-                        return;
-                    }
-
-                    _base.Fill = ImageBrushFor(task.Result);
-                },
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion,
-                TaskScheduler.FromCurrentSynchronizationContext());
-
-            return BuildGradientBrush();
+            return ImageBrushFor(ready);
         }
 
-        return ImageBrushFor(ready);
+        // Not processed yet. Show the gradient meanwhile and swap in when the worker lands,
+        // so picking a 4K wallpaper never stalls the UI thread.
+        var generation = _imageGeneration;
+        var saturation = _settings.ImageSaturation;
+        var blur = _settings.ImageBlur;
+        _ = AppearanceImageCache.LoadAsync(path, saturation, blur, DataRoot).ContinueWith(
+            task =>
+            {
+                if (_disposed || generation != _imageGeneration || task.Result is null)
+                {
+                    return;
+                }
+
+                FadeInPhoto(ImageBrushFor(task.Result));
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion,
+            TaskScheduler.FromCurrentSynchronizationContext());
+
+        return BuildGradientBrush();
+    }
+
+    private void HidePhotoLayer()
+    {
+        _photo.BeginAnimation(UIElement.OpacityProperty, null);
+        _photo.Opacity = 0;
+        _photo.Fill = null;
+        _photo.Visibility = Visibility.Collapsed;
+    }
+
+    private void FadeInPhoto(Brush brush)
+    {
+        _photo.Fill = brush;
+        _photo.Visibility = Visibility.Visible;
+        _photo.Opacity = 0;
+        _photo.BeginAnimation(
+            UIElement.OpacityProperty,
+            new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(PhotoFadeMs))
+            {
+                FillBehavior = FillBehavior.HoldEnd
+            });
     }
 
     private Brush ImageBrushFor(System.Windows.Media.Imaging.BitmapSource image)
@@ -369,21 +424,11 @@ internal sealed class AppearanceManager : IDisposable
     }
 
     /// <summary>
-    /// The picture is copied into the profile folder, so settings hold a bare file name. An
-    /// absolute path is still honoured for anything written before that change.
+    /// Полный путь к картинке. Разрешает его <see cref="AppearanceImageCache.ResolvePath"/>:
+    /// тем же путём строится ключ кэша, и второй копией правила они бы молча разошлись.
     /// </summary>
-    private string ResolveImagePath()
-    {
-        var value = _settings.BackgroundImagePath;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "";
-        }
-
-        return System.IO.Path.IsPathRooted(value)
-            ? value
-            : System.IO.Path.Combine(DataRoot, value);
-    }
+    private string ImagePath() =>
+        AppearanceImageCache.ResolvePath(_settings.BackgroundImagePath, DataRoot);
 
     // ───────────────────────── движение ─────────────────────────
 

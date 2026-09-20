@@ -454,7 +454,8 @@ namespace Amarin.UI
             LoadSettingsUi();
 
             // LoadSettingsUi только выделяет язык в списке; применяет его LanguageManager.
-            LanguageManager.Apply(_services.Settings.LanguageCode);
+            // force: архив мог принести другие строки под тем же кодом языка.
+            LanguageManager.Apply(_services.Settings.LanguageCode, force: true);
             LanguagePicker.Rebuild();
             ApplyAppearance(save: false);
             RefreshProfileList();

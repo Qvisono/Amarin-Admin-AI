@@ -174,6 +174,10 @@ namespace Amarin.UI
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
             };
 
+            // Тем же плавным колесом, что и вся программа. Заодно это и есть уговор с внешней
+            // прокруткой карточки: докрутив блок кода до края, колесо уходит наружу само.
+            SmoothScroll.SetIsEnabled(scroller, true);
+
             return new Expander
             {
                 Style = (Style)FindResource("ToolsExpander"),

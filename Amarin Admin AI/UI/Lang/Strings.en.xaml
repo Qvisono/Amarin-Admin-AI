@@ -154,6 +154,7 @@
     <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Approval mode</system:String>
     <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">How the AI agent behaves. Normal means always ask</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
+    <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">A card in the bottom right corner when the model has finished and the window is not in focus</system:String>
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Notification sound</system:String>
@@ -378,6 +379,10 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Do not allow</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Site is not on the allowlist</system:String>
 
+    <system:String x:Key="S.Hotkeys.NewChat" xml:space="preserve">New chat</system:String>
+    <system:String x:Key="S.Hotkeys.NewChatDesc" xml:space="preserve">Opens an empty conversation without reaching for the mouse</system:String>
+    <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Press the keys</system:String>
+    <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Restore the default shortcut</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats - while the model answers in one, you can work in another.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Conversations and attachments</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Deleting things, writing to the registry, installing software and anything else irreversible is asked about separately and waits for your answer. The prompt says in plain words what is about to happen, and “Technical details” holds the exact command or script. Refusing is a normal reply: the model sees it and looks for another way. There is a mode that confirms everything automatically, but that is a deliberate choice, not the default.</system:String>
@@ -628,6 +633,7 @@
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Collapse sidebar</system:String>

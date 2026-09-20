@@ -265,6 +265,15 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Готовый снимок фона: уже распакованная, размытая и обесцвеченная копия обоев, которую
+        // кладёт рядом AppearanceImageCache. Имя начинается с «background.», поэтому без этой
+        // строки классификатор отправлял бы его в «Оформление» — а везти с собой мегабайт того,
+        // что пересоздаётся из самой картинки за десятые доли секунды, незачем.
+        if (name.EndsWith(".cache.png", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         return DataUsage.ClassifyAppFile(relative) switch
         {
             DataUsage.SettingsKey => DataCategory.Settings,

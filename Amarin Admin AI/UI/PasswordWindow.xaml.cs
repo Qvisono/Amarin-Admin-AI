@@ -137,11 +137,15 @@ public partial class PasswordWindow : Window
         if (ProfileSwitchPanel.Visibility == Visibility.Visible)
         {
             ProfileSwitchPanel.Visibility = Visibility.Collapsed;
+            SwitchUserButton.Tag = null;
             return;
         }
 
         BuildProfileList();
         ProfileSwitchPanel.Visibility = Visibility.Visible;
+
+        // Подписи у кнопки больше нет — состояние «список открыт» показывает она сама.
+        SwitchUserButton.Tag = "open";
     }
 
     private void BuildProfileList()

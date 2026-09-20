@@ -31,7 +31,7 @@ public sealed class ChatTitleCostTests
         var session = new ChatSession { Id = "s1" };
         session.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "u1", Text = "привет" });
 
-        Assert.False(ChatTitleCost.Book(session, Usd(0.0004m)));
+        Assert.Null(ChatTitleCost.Book(session, Usd(0.0004m)));
 
         var answer = new ChatDisplayMessage { Role = "assistant", Id = "a1" };
         session.Messages.Add(answer);
@@ -50,7 +50,7 @@ public sealed class ChatTitleCostTests
         ChatTitleCost.Attach(session, answer);
         ChatEngine.ApplyCosts(answer, Usd(0.02m));
 
-        Assert.True(ChatTitleCost.Book(session, Usd(0.0004m)));
+        Assert.Same(answer, ChatTitleCost.Book(session, Usd(0.0004m)));
 
         Assert.Equal(0.0204m, answer.Cost?.Usd);
 
@@ -63,11 +63,11 @@ public sealed class ChatTitleCostTests
     {
         var session = WithAnswer(out var answer);
 
-        Assert.False(ChatTitleCost.Book(session, Usd(0.0004m)));
+        Assert.Null(ChatTitleCost.Book(session, Usd(0.0004m)));
         ChatTitleCost.Attach(session, answer);
         ChatEngine.ApplyCosts(answer, Usd(0.02m));
 
-        Assert.False(ChatTitleCost.Book(session, Usd(0.0004m)));
+        Assert.Null(ChatTitleCost.Book(session, Usd(0.0004m)));
         ChatTitleCost.Attach(session, answer);
         ChatEngine.ApplyCosts(answer, Usd(0.02m));
 
@@ -110,8 +110,8 @@ public sealed class ChatTitleCostTests
         // Отсутствующая цифра — это не «бесплатно», это «неизвестно»: строка «$0» соврала бы.
         var session = WithAnswer(out var answer);
 
-        Assert.False(ChatTitleCost.Book(session, null));
-        Assert.False(ChatTitleCost.Book(session, new VeniceCost()));
+        Assert.Null(ChatTitleCost.Book(session, null));
+        Assert.Null(ChatTitleCost.Book(session, new VeniceCost()));
 
         Assert.Null(session.TitleCost);
         Assert.Null(answer.TitleCost);

@@ -151,6 +151,43 @@ namespace Amarin.UI
             }
 
             _unbuiltMessages--;
+            BuildInto(host);
+        }
+
+        /// <summary>
+        /// Пересобирает вьюшку одного, уже построенного сообщения.
+        /// </summary>
+        /// <remarks>
+        /// Ради этого метода он и заведён: цену сводки и цену заголовка приписывают ответу,
+        /// который давно закрыт, и ценник надо перерисовать. Раньше ради него звали
+        /// <c>RenderSession</c> — то есть сносили и строили заново всю ленту, а заодно сбрасывали
+        /// лупу. На экране это выглядело так, будто приближение слетает само по себе через
+        /// секунду после каждого ответа.
+        /// <para>
+        /// Живой ответ не трогаем: его вьюшку держит <c>_liveAssistant</c> и дописывает поток,
+        /// а подменённая из-под него вьюшка осталась бы без остатка текста.
+        /// </para>
+        /// </remarks>
+        private void RefreshMessageView(string? messageId)
+        {
+            if (string.IsNullOrEmpty(messageId) ||
+                !_messageViews.TryGetValue(messageId, out var host) ||
+                !host.IsMaterialized)
+            {
+                return;
+            }
+
+            if (FindTurn(_session.Id) is { Finished: false } live &&
+                string.Equals(live.AssistantId, messageId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            BuildInto(host);
+        }
+
+        private void BuildInto(ChatMessageHost host)
+        {
             var message = host.Message;
             if (message.Role == "user")
             {

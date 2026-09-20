@@ -25,6 +25,9 @@ internal static class LanguageManager
     private static Application? _application;
     private static string _code = DefaultCode;
 
+    /// <summary>Приложение, которому словарь уже поставлен. Им и проверяется, надо ли работать.</summary>
+    private static Application? _applied;
+
     /// <summary>Действующий язык.</summary>
     public static string Current => _code;
 
@@ -61,16 +64,37 @@ internal static class LanguageManager
         return list;
     }
 
-    public static void Apply(string? code)
+    public static void Apply(string? code) => Apply(code, force: false);
+
+    /// <summary>
+    /// Ставит словарь выбранного языка.
+    /// </summary>
+    /// <param name="force">
+    /// Перечитать словарь, даже если язык тот же. Нужно там, где на диске сменились сами
+    /// строки: после машинного перевода того же кода и после разбора архива данных.
+    /// </param>
+    /// <remarks>
+    /// Короткое замыкание — по образцу <see cref="ThemeManager.Apply"/>. Его отсутствие стоило
+    /// запуску целой лишней сборки словаря: <c>Program</c> зовёт язык дважды — до экрана входа
+    /// и после него, — и второй раз переприсваивал слот, обесценивая каждый
+    /// <c>DynamicResource</c> в программе, и заново расплющивал таблицу для <see cref="Loc"/>.
+    /// Приложение в условии не зря: в тестах их несколько, и словарь второго пуст.
+    /// </remarks>
+    public static void Apply(string? code, bool force)
     {
         var normalized = Normalize(code);
+        var same = !force &&
+                   _application is not null &&
+                   ReferenceEquals(_application, _applied) &&
+                   string.Equals(_code, normalized, StringComparison.Ordinal);
         _code = normalized;
 
-        if (_application is null)
+        if (_application is null || same)
         {
             return;
         }
 
+        _applied = _application;
         var dictionary = Build(normalized);
         ThemeManager.EnsureSlots(_application);
         _application.Resources.MergedDictionaries[ThemeManager.StringsSlot] = dictionary;

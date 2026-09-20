@@ -154,6 +154,7 @@
     <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Режим работы</system:String>
     <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">Режим работы для ИИ агента. Normal - спрашивать всегда</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
+    <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">Всплывающее окно в правом нижнем углу, когда модель закончила генерацию, а окно не в фокусе</system:String>
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Звук уведомления</system:String>
@@ -378,6 +379,10 @@
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Сайт не в белом списке</system:String>
 
+    <system:String x:Key="S.Hotkeys.NewChat" xml:space="preserve">Новый чат</system:String>
+    <system:String x:Key="S.Hotkeys.NewChatDesc" xml:space="preserve">Открывает пустую переписку, не уводя рук с клавиатуры</system:String>
+    <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Нажмите клавиши</system:String>
+    <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Вернуть заводское сочетание</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах - пока модель отвечает в одном, в соседнем можно работать.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Переписка и вложения</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Удаление, запись в реестр, установку программ и прочее необратимое программа спрашивает отдельно и ждёт вашего ответа. В самом запросе сказано простыми словами, что произойдёт, а под «Техническими подробностями» лежит точная команда или скрипт. Отказ - обычный ответ: модель его видит и ищет другой путь. Режим «подтверждать всё автоматически» есть, но это осознанный выбор, а не настройка по умолчанию.</system:String>
@@ -628,6 +633,7 @@
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Свернуть панель</system:String>

@@ -14,10 +14,14 @@ internal static class ChatTitleCost
     private static readonly Lock Gate = new();
 
     /// <summary>
-    /// Цена заголовка стала известна. Возвращает <c>true</c>, если пришлось поправить счёт уже
-    /// закрытого сообщения, — тогда его нужно перерисовать и сохранить.
+    /// Цена заголовка стала известна. Возвращает сообщение, у которого пришлось поправить уже
+    /// закрытый счёт, — его нужно перерисовать и сохранить; <c>null</c> — трогать нечего.
     /// </summary>
-    public static bool Book(ChatSession session, VeniceCost? cost)
+    /// <remarks>
+    /// Именно сообщение, а не просто «да/нет»: окну надо перерисовать один пузырь, а не весь
+    /// чат. Пересборка ленты ради ценника заодно сбрасывала лупу.
+    /// </remarks>
+    public static ChatDisplayMessage? Book(ChatSession session, VeniceCost? cost)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -25,7 +29,7 @@ internal static class ChatTitleCost
         // а отсутствующая цифра — это не бесплатно, это неизвестно.
         if (cost is not { HasData: true })
         {
-            return false;
+            return null;
         }
 
         lock (Gate)
@@ -36,7 +40,7 @@ internal static class ChatTitleCost
             if (first is null || first.TitleCost is not null)
             {
                 // Ответа ещё нет — его подберёт Attach, когда ход будет закрывать счёт.
-                return false;
+                return null;
             }
 
             first.TitleCost = cost;
@@ -45,12 +49,12 @@ internal static class ChatTitleCost
             // значит «ещё не закрыт»: сложит он сам, и прибавлять здесь нельзя.
             if (first.Cost is null)
             {
-                return false;
+                return null;
             }
 
             // ModelCost намеренно не трогаем: этих денег в счёте хода не было.
             first.Cost = first.Cost.Add(cost);
-            return true;
+            return first;
         }
     }
 

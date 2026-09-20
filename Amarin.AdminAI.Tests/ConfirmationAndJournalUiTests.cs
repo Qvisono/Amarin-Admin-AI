@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
@@ -118,6 +119,59 @@ public sealed class ConfirmationAndJournalUiTests
         Assert.True(size.Height <= 560, $"карточка выросла до {size.Height}");
         Assert.True(size.Width <= 460, $"карточка расширилась до {size.Width}");
     }
+
+    [Fact]
+    public void The_answer_buttons_stay_inside_the_card_however_much_the_model_says()
+    {
+        // Здесь ломалось: содержимое лежало в StackPanel, а тот границу в своём направлении не
+        // соблюдает — меряет детей бесконечностью и раскладывает подряд. Ряд «Да»/«Нет» стоял
+        // последним и уезжал ниже кромки карточки, где его не видно и не нажать. Человеку
+        // оставалось свернуть экспандеры и догадаться, что кнопки там.
+        var script = string.Join("\r\n", Enumerable.Range(0, 200).Select(i => $"echo line {i}"));
+        var wordy = string.Join(" ", Enumerable.Repeat("Это действие изменит систему.", 140));
+
+        var (card, yes, no, scrollable) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var info = new DangerousActionInfo(
+                "powershell", "Запуск PowerShell", string.Join("\n", Enumerable.Repeat("ключ: значение", 60)),
+                DangerousRiskLevel.High, wordy, script, "powershell");
+
+            Fill(window, info);
+
+            // Оба экспандера раскрыты — худший случай, с которого и началась правка.
+            foreach (var name in new[] { "ConfirmationCodeHost", "ConfirmationDetailsHost" })
+            {
+                if (Named<ContentControl>(window, name).Content is Expander expander)
+                {
+                    expander.IsExpanded = true;
+                }
+            }
+
+            var shell = Named<Border>(window, "ConfirmationCard");
+            shell.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            shell.Arrange(new Rect(new Point(0, 0), shell.DesiredSize));
+            shell.UpdateLayout();
+
+            return (
+                new Rect(new Point(0, 0), shell.RenderSize),
+                Bounds(Named<Button>(window, "ConfirmationYesButton"), shell),
+                Bounds(Named<Button>(window, "ConfirmationNoButton"), shell),
+                Named<ScrollViewer>(window, "ConfirmationBodyScroll").ScrollableHeight);
+        });
+
+        Assert.True(card.Contains(yes), $"кнопка «Да» {yes} вышла за карточку {card}");
+        Assert.True(card.Contains(no), $"кнопка «Нет» {no} вышла за карточку {card}");
+
+        // И лишнее ушло именно в прокрутку тела, а не куда-то за кромку: без этого условия
+        // тест прошёл бы и на карточке, которая просто выросла вместе с содержимым.
+        Assert.True(scrollable > 0, "тело вопроса не прокручивается — переполнению некуда деться");
+    }
+
+    /// <summary>Прямоугольник элемента в координатах предка — геометрией, а не на глаз.</summary>
+    private static Rect Bounds(FrameworkElement element, Visual within) =>
+        element.TransformToAncestor(within)
+            .TransformBounds(new Rect(new Point(0, 0), element.RenderSize));
 
     [Fact]
     public void The_explanation_line_disappears_instead_of_holding_a_technical_dump()

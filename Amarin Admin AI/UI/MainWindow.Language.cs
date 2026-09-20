@@ -131,7 +131,10 @@ namespace Amarin.UI
                 UserLanguageStore.Save(code, strings);
                 _services.Settings.LanguageCode = code;
                 _services.SettingsStore.Save(_services.Settings);
-                LanguageManager.Apply(code);
+
+                // force: перевод мог лечь поверх того же кода, и по одному коду словарь
+                // выглядел бы прежним — а строки в нём уже новые.
+                LanguageManager.Apply(code, force: true);
                 LanguagePicker.Rebuild();
                 LanguagePicker.ShowProgress(Loc.Get("S.Language.Done"));
             }
@@ -179,7 +182,9 @@ namespace Amarin.UI
             // иначе заголовки групп останутся на прежнем.
             _chatListSignature = "";
             RefreshChatList();
-            RenderSession();
+
+            // Чат перед глазами тот же, поменялись только подписи, — приближение остаётся.
+            RebuildTranscript(resetZoom: false);
         }
     }
 }

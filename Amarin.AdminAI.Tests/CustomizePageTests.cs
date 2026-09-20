@@ -49,7 +49,7 @@ public sealed class CustomizePageTests
             return result;
         });
 
-        Assert.True(height <= 120, $"{name}: высота {height} вместо потолка в 120");
+        Assert.True(height <= 176, $"{name}: высота {height} вместо потолка в 176");
         Assert.True(scrollable > 0, $"{name}: текст не прокручивается внутри поля");
     }
 
@@ -66,7 +66,7 @@ public sealed class CustomizePageTests
             window.UpdateLayout();
 
             // Разделы опознаются по первому полю каждого: заголовки — безымянные TextBlock.
-            var page = (Panel)VisualTreeHelper.GetParent((TextBox)window.FindName("MainPromptTextBox")!);
+            var page = Page(window);
             var answer = IndexOf(page, (UIElement)window.FindName("LiteModelPicker")!);
             var service = IndexOf(page, (UIElement)window.FindName("TitleModelPicker")!);
             var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
@@ -128,7 +128,7 @@ public sealed class CustomizePageTests
             ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
             window.UpdateLayout();
 
-            var page = (Panel)VisualTreeHelper.GetParent((TextBox)window.FindName("MainPromptTextBox")!);
+            var page = Page(window);
             var service = IndexOf(page, (UIElement)window.FindName("AgentHeavyModelPicker")!);
             var guard = IndexOf(page, (UIElement)window.FindName("SynGuardToggle")!);
             var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
@@ -147,6 +147,78 @@ public sealed class CustomizePageTests
         Assert.True(order.guard < order.prompts, "SynGuard оказался ниже системных промптов");
         Assert.True(order.shared, "у тумблера защиты свой стиль вместо общего SettingsToggle");
     }
+
+    [Theory]
+    [InlineData("MainPromptTextBox", "SaveMainPromptButton", null)]
+    [InlineData("TechAiPromptTextBox", "SaveTechAiPromptButton", "ResetTechAiPromptButton")]
+    [InlineData("TechAgentPromptTextBox", "SaveTechAgentPromptButton", "ResetTechAgentPromptButton")]
+    public void Each_prompt_keeps_its_own_buttons_inside_its_own_frame(string box, string save, string? reset)
+    {
+        // Кнопки стояли над полями, в столбик: три одинаковые надписи «Сохранить» на три поля,
+        // и какая к какому относится, приходилось угадывать. Теперь каждая лежит в рамке
+        // своего поля — проверяем именно это, а не то, что она просто существует.
+        var (sharesFrame, resetSharesFrame) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Window();
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            overlay.Visibility = Visibility.Visible;
+            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            window.UpdateLayout();
+
+            var frame = Frame((TextBox)window.FindName(box)!);
+            var withSave = ReferenceEquals(frame, Frame((FrameworkElement)window.FindName(save)!));
+            var withReset = reset is null ||
+                            ReferenceEquals(frame, Frame((FrameworkElement)window.FindName(reset)!));
+
+            overlay.Visibility = Visibility.Collapsed;
+            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            return (withSave, withReset);
+        });
+
+        Assert.True(sharesFrame, $"«Сохранить» у {box} стоит вне рамки поля");
+        Assert.True(resetSharesFrame, $"«Сбросить» у {box} стоит вне рамки поля");
+    }
+
+    [Fact]
+    public void Only_the_technical_prompts_can_be_reset()
+    {
+        // У основного промпта заводского текста нет — его пишет сам человек, и возвращать
+        // такое поле не к чему.
+        var names = _wpf.Ui.Invoke(() => (
+            Main: Window().FindName("ResetMainPromptButton"),
+            Ai: Window().FindName("ResetTechAiPromptButton"),
+            Agent: Window().FindName("ResetTechAgentPromptButton")));
+
+        Assert.Null(names.Main);
+        Assert.NotNull(names.Ai);
+        Assert.NotNull(names.Agent);
+    }
+
+    /// <summary>Рамка-карточка, в которой лежит элемент.</summary>
+    private static Border Frame(FrameworkElement element)
+    {
+        DependencyObject? node = element;
+        while (node is not null)
+        {
+            node = VisualTreeHelper.GetParent(node);
+            if (node is Border { Name: "" } border && border.CornerRadius.TopLeft > 0)
+            {
+                return border;
+            }
+        }
+
+        throw new InvalidOperationException($"у {element.GetType().Name} нет рамки-карточки");
+    }
+
+    /// <summary>
+    /// Столбец страницы Customize.
+    /// </summary>
+    /// <remarks>
+    /// От прокрутки, а не от родителя поля промпта: поля переехали внутрь карточек со своими
+    /// кнопками, и их прямой родитель — уже не страница.
+    /// </remarks>
+    private static Panel Page(MainWindow window) =>
+        (Panel)((ScrollViewer)window.FindName("CustomizePageScroll")!).Content;
 
     /// <summary>Номер строки страницы, в которой лежит элемент.</summary>
     private static int IndexOf(Panel page, UIElement element)
