@@ -94,6 +94,7 @@ namespace Amarin.UI
             // Второй запуск программы просит это окно показаться. Вешаем здесь, а не в Program:
             // приём сообщения — дело самого окна, и в тестах оно работает так же, как в бою.
             SingleInstance.Attach(this, ActivateFromSecondInstance);
+            CursorGuard.Attach(this);
             StateChanged += (_, _) => ApplyWindowStateChrome();
 
             // Один обработчик на всю панель вместо подписки на каждой строке — см. ChatListPanel_Click.
@@ -102,21 +103,31 @@ namespace Amarin.UI
                 new RoutedEventHandler(ChatListPanel_Click));
 
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
+            SmoothScroll.SetDragScroll(SideBarScrollViewer, true);
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
             // Лупа над лентой. Порядок с SmoothScroll неважен: её обработчики сидят на окне, а не
             // на ленте, и туннель приводит их первыми в любом случае — см. ChatZoom.
             InitializeChatZoom();
+            InitializeScrollJump();
+
+            // Стрелки вверх и вниз на крайней строке поля ввода уводят каретку в начало или в
+            // конец текста — как в Discord. См. TextCaretEdges.
+            TextCaretEdges.Attach(MessageTextBox);
 
             // Страницы настроек — тем же скроллом, что колонка и чат. Список разрешённых
             // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
             // за это отвечает сам SmoothScroll.
-            SmoothScroll.SetIsEnabled(AppearancePageScroll, true);
-            SmoothScroll.SetIsEnabled(BehaviorPageScroll, true);
-            SmoothScroll.SetIsEnabled(CustomizePageScroll, true);
-            SmoothScroll.SetIsEnabled(DataPageScroll, true);
-            SmoothScroll.SetIsEnabled(AllowedDomainsScroll, true);
+            //
+            // И перетаскиванием — колонку и страницы настроек листают ещё и зажатой кнопкой, той
+            // же инерцией. В ленте чата левая кнопка занята выделением текста и лупой.
+            foreach (var page in (ScrollViewer[])
+                     [AppearancePageScroll, BehaviorPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
+            {
+                SmoothScroll.SetIsEnabled(page, true);
+                SmoothScroll.SetDragScroll(page, true);
+            }
 
             // Тело вопроса о подтверждении: у него внутри свои прокрутки — блок кода и
             // подробности, — и SmoothScroll сам уступает им колесо, а на их краю забирает
@@ -139,7 +150,12 @@ namespace Amarin.UI
             // с ним уже расстаётся.
             Closing += (_, e) =>
             {
-                SaveWindowGeometry();
+                // Спрятанное ради обновления окно геометрию уже сохранило, а сейчас Windows
+                // отдала бы его состоянием «скрыто» — и «развёрнуто» потерялось бы.
+                if (!_hiddenForExit)
+                {
+                    SaveWindowGeometry();
+                }
 
                 // Хранилище пишет в фоне, и без этого последний ответ мог не доехать до диска.
                 FlushPendingPersists();
@@ -156,8 +172,20 @@ namespace Amarin.UI
                     e.Cancel = true;
                 }
             };
+            // Выключение Windows не проходит через Closing с правом отмены — подмена скачанного
+            // обновления делается здесь, пока сеанс ещё ждёт ответа.
+            if (Application.Current is { } application)
+            {
+                application.SessionEnding += OnSessionEnding;
+            }
+
             Closed += (_, _) =>
             {
+                if (Application.Current is { } current)
+                {
+                    current.SessionEnding -= OnSessionEnding;
+                }
+
                 StopUpdateHeartbeat();
                 CancelAllTurns();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
@@ -379,9 +407,8 @@ namespace Amarin.UI
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Настройки закрывают чат целиком, и возвращаться в загадочно приближённую ленту,
-            // забыв про жест, незачем.
-            ResetChatZoom();
+            // Лупу здесь не сбрасываем: настройки лежат поверх ленты, и из них возвращаются к
+            // тому же чату — приближение, которое человек выставил сам, должно его дождаться.
 
             // Панель показываем первой: вся загрузка шла до этой строки, и человек несколько
             // кадров смотрел на замерший интерфейс, прежде чем настройки вообще появлялись.
@@ -2197,7 +2224,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(message.Id);
             PersistCurrent();
             RefreshChatList();
             Detached.Run(ContinueAssistantAsync(), "continue_assistant");
@@ -2221,7 +2248,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(null);
             PersistCurrent();
             RefreshChatList();
         }
@@ -2315,7 +2342,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(null);
             PersistCurrent();
             Detached.Run(ContinueAssistantAsync(), "continue_assistant");
         }
@@ -2807,9 +2834,14 @@ namespace Amarin.UI
 
         private void ChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
+            // Раньше всех выходов: капсуле важно и движение автопрокрутки, и выросшая лента.
+            UpdateScrollJump();
+
             // Плашка «Ответить» стоит там, где отпустили кнопку, и за текстом не едет: уехавший
-            // текст оставил бы её висеть над чужой строкой.
-            if (e.VerticalChange != 0)
+            // текст оставил бы её висеть над чужой строкой. Только своя прокрутка ленты:
+            // ScrollChanged всплывает и от вложенных — блока кода, внутренностей бокса, — и
+            // такая, случившись при выделении, гасила бы плашку в момент её появления.
+            if (e.VerticalChange != 0 && ReferenceEquals(e.OriginalSource, ChatScrollViewer))
             {
                 HideReplyPill();
             }
@@ -2835,8 +2867,10 @@ namespace Amarin.UI
 
                 // Пока идёт жест лупы, достройку пропускаем: смещение меняется каждый кадр, и
                 // проход по всей ленте с пересчётом координат шёл бы по шестьдесят раз в секунду.
-                // ChatZoom позовёт её сам, когда жест кончится.
-                if (ChatZoomBusy)
+                // ChatZoom позовёт её сам, когда жест кончится. Доезд капсулы «в начало / в
+                // конец» — тот же случай: по кадру строилось бы всё, что мелькнуло, а по
+                // прибытии достройку зовёт MainWindow.ScrollJump.
+                if (ChatZoomBusy || SmoothScroll.IsGliding(ChatScrollViewer))
                 {
                     return;
                 }

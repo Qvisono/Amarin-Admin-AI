@@ -466,6 +466,8 @@
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">Результат не сохранён.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">Точек отката пока нет. Они создаются сами перед опасными изменениями в системе.</system:String>
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">Сводок пока нет. Они пишутся сами после каждого ответа модели.</system:String>
+    <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">В начало чата</system:String>
+    <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">В конец чата</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Журнал действий</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Открыть чат</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Не удалось прочитать историю. Проверьте доступ к папке с данными программы.</system:String>
@@ -726,7 +728,7 @@
     <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Автообновление</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Проверяет новую версию при запуске и каждые 5 часов. Найденную скачивает в фоне и ставит, когда вы закрываете программу - файл остаётся на прежнем месте и под прежним именем</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Проверяет новую версию при каждом запуске и дальше каждые 5 часов. Найденную скачивает в фоне и ставит после закрытия программы - окно исчезает сразу, обновление доводится без него. Файл остаётся на прежнем месте и под прежним именем</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} - установлена {1}</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Неожиданный ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Не удалось открыть браузер: {0}</system:String>
@@ -749,7 +751,6 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
-    <system:String x:Key="S.Updates.Installing.OnExit" xml:space="preserve">Устанавливаем версию {0}. Программа закроется сама.</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем - ярлыки и запуск от имени администратора не потеряются.</system:String>
     <system:String x:Key="S.Updates.LastCheck" xml:space="preserve">Последняя проверка: {0}</system:String>
     <system:String x:Key="S.Updates.LastCheck.HoursAgo" xml:space="preserve">{0} ч назад</system:String>

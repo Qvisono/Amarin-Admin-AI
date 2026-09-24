@@ -36,6 +36,7 @@ public partial class SettingsInfoPage : UserControl
         // Та же плавная прокрутка, что у боковой колонки и ленты чата: страница настроек
         // не должна рывками отличаться от остальной программы.
         SmoothScroll.SetIsEnabled(InfoPageScroll, true);
+        SmoothScroll.SetDragScroll(InfoPageScroll, true);
     }
 
     private void OpenVeniceButton_Click(object sender, RoutedEventArgs e) => Open(VeniceUrl);

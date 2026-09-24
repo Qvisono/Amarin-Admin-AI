@@ -110,6 +110,70 @@ public sealed class ChatZoomSurvivalTests
         Assert.True(survived);
     }
 
+    [Fact]
+    public void Opening_settings_keeps_the_zoom()
+    {
+        // Настройки лежат поверх ленты, и возвращаются из них к тому же чату.
+        var scale = WithChat(window =>
+        {
+            var layer = (ChatZoomHost)window.FindName("ChatZoomLayer")!;
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            layer.Scale = 2.0;
+            try
+            {
+                Call(window, "SettingsButton_Click", window, new RoutedEventArgs());
+                return layer.Scale;
+            }
+            finally
+            {
+                overlay.Visibility = Visibility.Collapsed;
+            }
+        });
+
+        Assert.Equal(2.0, scale, 3);
+    }
+
+    [Fact]
+    public void Cutting_messages_out_keeps_the_zoom_and_drops_only_their_bubbles()
+    {
+        // Так работают правка, удаление и перегенерация: из чата вырезают хвост или ход.
+        var (scale, hosts, messages, same) = WithChat(window =>
+        {
+            var layer = (ChatZoomHost)window.FindName("ChatZoomLayer")!;
+            var panel = (System.Windows.Controls.Panel)window.FindName("MessagesPanel")!;
+            var session = Get<ChatSession>(window, "_session");
+            var survivor = panel.Children[0];
+            layer.Scale = 2.0;
+
+            session.Messages.RemoveAt(1);
+            Call(window, "ReconcileTranscript", (string?)null);
+
+            return (layer.Scale, panel.Children.Count, session.Messages.Count, ReferenceEquals(survivor, panel.Children[0]));
+        });
+
+        Assert.Equal(2.0, scale, 3);
+        Assert.Equal(messages, hosts);
+        Assert.True(same);
+    }
+
+    [Fact]
+    public void An_edited_message_is_redrawn_in_place()
+    {
+        var shown = WithChat(window =>
+        {
+            var session = Get<ChatSession>(window, "_session");
+            session.Messages[0].Text = "исправленный вопрос";
+            session.Messages.RemoveAt(1);
+            Call(window, "ReconcileTranscript", "u1");
+            window.UpdateLayout();
+
+            var host = (ChatMessageHost)((System.Windows.Controls.Panel)window.FindName("MessagesPanel")!).Children[0];
+            return host.IsMaterialized && ReferenceEquals(host.Message, session.Messages[0]);
+        });
+
+        Assert.True(shown);
+    }
+
     private T WithChat<T>(Func<MainWindow, T> probe) =>
         _wpf.Ui.Invoke(() =>
         {

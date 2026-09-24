@@ -466,6 +466,8 @@
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">The result was not kept.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">No restore points yet. They are taken automatically before risky changes to the system.</system:String>
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">No summaries yet. They are written after each answer the model gives.</system:String>
+    <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">To the start of the chat</system:String>
+    <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">To the end of the chat</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Action journal</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Open the chat</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Could not read the history. Check access to the program data folder.</system:String>
@@ -726,7 +728,7 @@
     <system:String x:Key="S.Update.Title" xml:space="preserve">Update the app</system:String>
 
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Auto-update</system:String>
-    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Checks for a new version at startup and every 5 hours. A found one is downloaded in the background and installed when you close the app - the file keeps its place and its name</system:String>
+    <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Checks for a new version at every startup and then every 5 hours. A found one is downloaded in the background and installed after you close the app - the window disappears at once and the update finishes without it. The file keeps its place and its name</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available - {1} is installed</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
@@ -749,7 +751,6 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
-    <system:String x:Key="S.Updates.Installing.OnExit" xml:space="preserve">Installing version {0}. The app will close on its own.</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name - shortcuts and the run-as-administrator flag survive.</system:String>
     <system:String x:Key="S.Updates.LastCheck" xml:space="preserve">Last check: {0}</system:String>
     <system:String x:Key="S.Updates.LastCheck.HoursAgo" xml:space="preserve">{0} h ago</system:String>

@@ -29,12 +29,17 @@ namespace Amarin.UI;
 internal static class MathRenderer
 {
     /// <summary>Коробка: элемент и его метрики относительно базовой линии.</summary>
+    /// <param name="IsWord">
+    /// Имя функции (<c>sin</c>, <c>ln</c>): перед ним нужен тонкий промежуток, иначе
+    /// «i sin» склеивается в «isin».
+    /// </param>
     internal sealed record MathVisual(
         FrameworkElement Element,
         double Width,
         double Ascent,
         double Descent,
-        MathTokenKind Kind = MathTokenKind.Variable)
+        MathTokenKind Kind = MathTokenKind.Variable,
+        bool IsWord = false)
     {
         public double Height => Ascent + Descent;
     }
@@ -64,6 +69,16 @@ internal static class MathRenderer
         public FontFamily Font { get; } = MathFont;
 
         public string BrushKey { get; set; } = "Text.Secondary";
+
+        /// <summary>
+        /// Буква i в этой формуле — мнимая единица, и набирается она прямо.
+        /// </summary>
+        /// <remarks>
+        /// Курсивная i в Cambria Math узкая и без засечек: в «+ i sin» и в показателе
+        /// «e^{i3π/4}» её просто не видно. Прямая i для мнимой единицы — ещё и норма ISO 80000-2.
+        /// Если формула берёт i индексом (<c>a_i</c>, <c>\sum_{i=1}</c>), она остаётся курсивной.
+        /// </remarks>
+        public bool UprightImaginaryUnit { get; init; }
     }
 
     /// <summary>
@@ -117,17 +132,63 @@ internal static class MathRenderer
         bool display,
         string brushKey = "Text.Secondary")
     {
-        var context = new Context(host, fontSize, display) { BrushKey = brushKey };
         try
         {
-            return Layout(ParseCached(latex), context, context.Size);
+            var node = ParseCached(latex);
+            var context = new Context(host, fontSize, display)
+            {
+                BrushKey = brushKey,
+                UprightImaginaryUnit = !UsesIAsIndex(node)
+            };
+            return Layout(node, context, context.Size);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or OverflowException)
         {
             // Формула не должна ронять сообщение: показываем исходник моноширинным.
-            return Glyph(context, latex, context.Size, MathTokenKind.Upright);
+            var plain = new Context(host, fontSize, display) { BrushKey = brushKey };
+            return Glyph(plain, latex, plain.Size, MathTokenKind.Upright);
         }
     }
+
+    /// <summary>Буква i стоит в индексе или приравнивается (<c>i = 1</c>) — значит, это номер, а не мнимая единица.</summary>
+    internal static bool UsesIAsIndex(MathNode node) => node switch
+    {
+        MathScripts scripts => ContainsI(scripts.Sub) || UsesIAsIndex(scripts.Base) ||
+                               (scripts.Sup is not null && UsesIAsIndex(scripts.Sup)),
+        MathRow row => IsAssigned(row.Items) || row.Items.Any(UsesIAsIndex),
+        MathFraction fraction => UsesIAsIndex(fraction.Numerator) || UsesIAsIndex(fraction.Denominator),
+        MathRadical radical => UsesIAsIndex(radical.Body),
+        MathFenced fenced => UsesIAsIndex(fenced.Body),
+        MathAccent accent => UsesIAsIndex(accent.Body),
+        MathStyled styled => UsesIAsIndex(styled.Body),
+        MathMatrix matrix => matrix.Rows.Any(cells => cells.Any(UsesIAsIndex)),
+        MathLines lines => lines.Rows.Any(UsesIAsIndex),
+        _ => false
+    };
+
+    private static bool IsAssigned(IReadOnlyList<MathNode> items)
+    {
+        for (var k = 0; k + 1 < items.Count; k++)
+        {
+            if (IsI(items[k]) && items[k + 1] is MathSymbol { Kind: MathTokenKind.Relation })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsI(MathNode? node) => node switch
+    {
+        null => false,
+        MathSymbol => IsI(node),
+        MathRow row => row.Items.Any(ContainsI),
+        MathScripts scripts => ContainsI(scripts.Base),
+        _ => false
+    };
+
+    private static bool IsI(MathNode node) => node is MathSymbol { Text: "i", Kind: MathTokenKind.Variable };
 
     // ───────────────────────── укладка узлов ─────────────────────────
 
@@ -212,6 +273,13 @@ internal static class MathRenderer
         if (previous.Kind == MathTokenKind.BigOperator || previous.Kind == MathTokenKind.Upright)
         {
             return size * 0.12;
+        }
+
+        // Тонкий промежуток перед именем функции, как в наборе TeX: без него «i sin» и
+        // «2 cos» сливались в одно слово, и мнимая единица терялась.
+        if (next.IsWord && previous.Kind is MathTokenKind.Variable or MathTokenKind.Number)
+        {
+            return size * 0.17;
         }
 
         return 0;
@@ -347,7 +415,7 @@ internal static class MathRenderer
             children.Add((sub.Element, body.Width + size * 0.04, ascent + subDrop - sub.Ascent));
         }
 
-        return Compose(width, ascent, descent, children, body.Kind);
+        return Compose(width, ascent, descent, children, body.Kind) with { IsWord = body.IsWord };
     }
 
     private static MathVisual StackedLimits(MathVisual body, MathVisual? sub, MathVisual? sup, double size)
@@ -608,7 +676,8 @@ internal static class MathRenderer
         {
             MathStyleKind.Bold or MathStyleKind.Roman or MathStyleKind.Blackboard => false,
             MathStyleKind.Italic or MathStyleKind.Calligraphic => true,
-            _ => kind == MathTokenKind.Variable && text.Length == 1 && char.IsLetter(text[0])
+            _ => kind == MathTokenKind.Variable && text.Length == 1 && char.IsLetter(text[0]) &&
+                 !(text == "i" && context.UprightImaginaryUnit)
         };
 
         var block = new TextBlock
@@ -634,7 +703,8 @@ internal static class MathRenderer
         var height = block.DesiredSize.Height;
         var ascent = Math.Min(height, block.FontSize * SafeBaseline(context.Font));
 
-        return new MathVisual(block, width, ascent, height - ascent, kind);
+        var word = kind == MathTokenKind.Upright && text.Length > 1 && text.All(char.IsLetter);
+        return new MathVisual(block, width, ascent, height - ascent, kind, word);
     }
 
     private static double SafeBaseline(FontFamily family)

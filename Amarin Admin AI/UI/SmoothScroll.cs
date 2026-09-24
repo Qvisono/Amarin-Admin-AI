@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -16,8 +17,17 @@ using ScrollViewer = System.Windows.Controls.ScrollViewer;
 
 namespace Amarin.UI
 {
+    /// <summary>Край, к которому доезжает <see cref="SmoothScroll.GlideTo"/>.</summary>
+    public enum ScrollEdge
+    {
+        Top,
+        Bottom
+    }
+
     /// <summary>
-    /// Плавная прокрутка колесом: инерция, трение и резинка на краю.
+    /// Плавная прокрутка колесом: инерция, трение и резинка на краю. По желанию — ещё и
+    /// перетаскиванием левой кнопкой (<see cref="DragScrollProperty"/>) и доездом к краю
+    /// (<see cref="GlideTo"/>) — всё на одной физике.
     /// </summary>
     /// <remarks>
     /// Публичный — ради разметки: внутри шаблонов (выпадашка <c>DarkComboBox</c>, поле
@@ -39,11 +49,95 @@ namespace Amarin.UI
                 typeof(Hook),
                 typeof(SmoothScroll));
 
+        /// <summary>
+        /// Листать ещё и перетаскиванием: зажатая левая кнопка тянет содержимое за собой, а
+        /// отпущенная на ходу бросает его с той же инерцией, что и колесо.
+        /// </summary>
+        /// <remarks>
+        /// Действует только вместе с <see cref="IsEnabledProperty"/>: физика броска и резинки
+        /// живёт в том же хуке. Нажатие не забирается — клик по строке или кнопке работает как
+        /// обычно, перетаскиванием оно становится лишь за порогом сдвига.
+        /// </remarks>
+        public static readonly DependencyProperty DragScrollProperty =
+            DependencyProperty.RegisterAttached(
+                "DragScroll",
+                typeof(bool),
+                typeof(SmoothScroll),
+                new PropertyMetadata(false, OnDragScrollChanged));
+
         public static bool GetIsEnabled(DependencyObject obj) =>
             (bool)obj.GetValue(IsEnabledProperty);
 
         public static void SetIsEnabled(DependencyObject obj, bool value) =>
             obj.SetValue(IsEnabledProperty, value);
+
+        public static bool GetDragScroll(DependencyObject obj) =>
+            (bool)obj.GetValue(DragScrollProperty);
+
+        public static void SetDragScroll(DependencyObject obj, bool value) =>
+            obj.SetValue(DragScrollProperty, value);
+
+        /// <summary>
+        /// Плавно доезжает до края и зовёт <paramref name="arrived"/>, когда встал — или когда
+        /// доезд прервали колесом, клавишей или полосой.
+        /// </summary>
+        /// <remarks>
+        /// Цель пересчитывается каждый кадр: низ ленты растёт, пока дописывается ответ, и доезд
+        /// к запомненному числу остановился бы выше настоящего конца. Дальше трёх экранов
+        /// сначала мгновенный перескок на полтора экрана от цели: пролетать сотни сообщений по
+        /// кадру значило бы показывать размазанную пустоту и строить всё, что мелькнуло.
+        /// </remarks>
+        public static void GlideTo(ScrollViewer viewer, ScrollEdge edge, Action? arrived = null)
+        {
+            if (viewer.GetValue(HookProperty) is Hook hook)
+            {
+                hook.Glide(edge, arrived);
+                return;
+            }
+
+            if (edge == ScrollEdge.Top)
+            {
+                viewer.ScrollToTop();
+            }
+            else
+            {
+                viewer.ScrollToEnd();
+            }
+
+            arrived?.Invoke();
+        }
+
+        /// <summary>Идёт доезд к краю (<see cref="GlideTo"/>).</summary>
+        public static bool IsGliding(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.IsGliding ?? false;
+
+        /// <summary>Содержимое тащат мышью прямо сейчас.</summary>
+        public static bool IsDragging(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.IsDragging ?? false;
+
+        /// <summary>Нажатие для перетаскивания — в обход событий, ради тестов.</summary>
+        /// <remarks>
+        /// Положение мыши в поднятом <c>RaiseEvent</c> событии берётся у настоящего курсора, и
+        /// подставить его нельзя — тем же приёмом отделены <c>ChatZoom.ArmPan</c> и <c>PanTo</c>.
+        /// </remarks>
+        internal static void ArmDrag(ScrollViewer viewer, Point press) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.ArmDrag(press);
+
+        /// <inheritdoc cref="ArmDrag"/>
+        internal static bool DragTo(ScrollViewer viewer, Point point) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.DragTo(point) ?? false;
+
+        /// <inheritdoc cref="ArmDrag"/>
+        internal static void EndDrag(ScrollViewer viewer, bool fling) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.EndDrag(fling);
+
+        private static void OnDragScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ScrollViewer viewer && viewer.GetValue(HookProperty) is Hook hook)
+            {
+                hook.DragEnabled = e.NewValue is true;
+            }
+        }
 
         /// <summary>
         /// True while a flick is still being carried by inertia.
@@ -109,6 +203,17 @@ namespace Amarin.UI
             private const double MinDt = 1.0 / 240.0;
             private const double MaxDt = 1.0 / 30.0;
 
+            /// <summary>Сколько длится доезд к краю, секунд.</summary>
+            private const double GlideSeconds = 0.42;
+
+            /// <summary>Скорость старше этого для броска не годится: рука остановилась прежде, чем отпустить.</summary>
+            private const double DragVelocityStaleSeconds = 0.09;
+
+            /// <summary>Потолок скорости броска: рывок мышью не должен уносить в конец длинного списка.</summary>
+            private const double MaxDragVelocity = 9000.0;
+
+            private static readonly Stopwatch Clock = Stopwatch.StartNew();
+
             private readonly ScrollViewer _viewer;
             private readonly EventHandler _onRendering;
             private readonly MouseWheelEventHandler _onWheel;
@@ -130,6 +235,25 @@ namespace Amarin.UI
             private double _virtual;
             private bool _virtualValid;
 
+            private bool _gliding;
+            private ScrollEdge _glideEdge;
+            private double _glideFrom;
+            private double _glideStarted;
+            private Action? _glideArrived;
+
+            private bool _dragArmed;
+            private bool _dragging;
+            private bool _dragCapturing;
+            private Point _dragPress;
+            private double _dragOriginY;
+            private double _dragBase;
+            private double _dragLastVirtual;
+            private double _dragLastAt;
+            private double _dragVelocity;
+
+            /// <summary>Текущую инерцию завело отпущенное перетаскивание, а не колесо.</summary>
+            private bool _dragFling;
+
             public Hook(ScrollViewer viewer)
             {
                 _viewer = viewer;
@@ -143,6 +267,12 @@ namespace Amarin.UI
             }
 
             public bool IsAnimating => _ticking;
+
+            public bool IsGliding => _gliding;
+
+            public bool IsDragging => _dragging;
+
+            public bool DragEnabled { get; set; }
 
             public void Attach()
             {
@@ -161,6 +291,17 @@ namespace Amarin.UI
                 _viewer.Loaded += _onLoaded;
                 _viewer.Unloaded += _onUnloaded;
 
+                DragEnabled = GetDragScroll(_viewer);
+                _viewer.PreviewMouseLeftButtonDown += OnDragPress;
+                _viewer.PreviewMouseMove += OnDragMove;
+                _viewer.PreviewMouseLeftButtonUp += OnDragRelease;
+                _viewer.LostMouseCapture += OnDragLostCapture;
+
+                // Всплывающее нажатие на пустом месте иначе дошло бы до корня окна, а там оно
+                // уводит мышь в перетаскивание окна (WM_NCLBUTTONDOWN, модальный цикл системы) —
+                // и листать было бы уже нечем.
+                _viewer.AddHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
+
                 if (_viewer.IsLoaded)
                     BindTemplateParts();
             }
@@ -171,6 +312,8 @@ namespace Amarin.UI
                     return;
                 _attached = false;
 
+                EndDrag(fling: false);
+                FinishGlide();
                 StopTicking();
                 UnbindTemplateParts();
 
@@ -178,6 +321,11 @@ namespace Amarin.UI
                 _viewer.PreviewKeyDown -= _onKeyDown;
                 _viewer.Loaded -= _onLoaded;
                 _viewer.Unloaded -= _onUnloaded;
+                _viewer.PreviewMouseLeftButtonDown -= OnDragPress;
+                _viewer.PreviewMouseMove -= OnDragMove;
+                _viewer.PreviewMouseLeftButtonUp -= OnDragRelease;
+                _viewer.LostMouseCapture -= OnDragLostCapture;
+                _viewer.RemoveHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
 
                 if (_presenter is not null && ReferenceEquals(_presenter.RenderTransform, _translate))
                     _presenter.RenderTransform = null;
@@ -197,6 +345,8 @@ namespace Amarin.UI
             private void OnUnloaded(object sender, RoutedEventArgs e)
             {
                 // Popup unloads the viewer every close — keep the hook, just stop the loop.
+                EndDrag(fling: false);
+                FinishGlide();
                 StopTicking();
                 _velocity = 0;
                 _virtualValid = false;
@@ -260,6 +410,11 @@ namespace Amarin.UI
                 {
                     return;
                 }
+
+                // Колесо посреди доезда — человек передумал: доезд кончается там, где его
+                // застало колесо, а дальше едет обычная инерция с того же места.
+                FinishGlide();
+                _dragFling = false;
 
                 if (IsStuckFor(e.Delta))
                 {
@@ -396,6 +551,7 @@ namespace Amarin.UI
 
             public void CancelInertia(bool snap)
             {
+                FinishGlide();
                 _velocity = 0;
                 if (snap)
                 {
@@ -420,6 +576,7 @@ namespace Amarin.UI
             /// </remarks>
             public void Fling(double velocity)
             {
+                FinishGlide();
                 _virtual = Clamp(_viewer.VerticalOffset, 0, GetMaxOffset());
                 _virtualValid = true;
                 _velocity = velocity;
@@ -435,6 +592,19 @@ namespace Amarin.UI
 
             private void OnRendering(object? sender, EventArgs e)
             {
+                if (_gliding)
+                {
+                    StepGlide();
+                    return;
+                }
+
+                // Пока содержимое держит рука, кадр не двигает ничего: иначе инерция спорила бы
+                // с ней за смещение.
+                if (_dragging)
+                {
+                    return;
+                }
+
                 var now = e is RenderingEventArgs re
                     ? re.RenderingTime.TotalSeconds
                     : 0;
@@ -477,6 +647,300 @@ namespace Amarin.UI
                     StopTicking();
                 }
             }
+
+            // ───────────────────────── доезд к краю ─────────────────────────
+
+            public void Glide(ScrollEdge edge, Action? arrived)
+            {
+                EndDrag(fling: false);
+                CancelInertia(snap: true);
+
+                var max = GetMaxOffset();
+                var target = edge == ScrollEdge.Top ? 0 : max;
+                var from = _virtual;
+                if (Math.Abs(target - from) < 0.5)
+                {
+                    arrived?.Invoke();
+                    return;
+                }
+
+                var viewport = _viewer.ViewportHeight;
+                if (viewport > 0 && Math.Abs(target - from) > viewport * 3)
+                {
+                    from = edge == ScrollEdge.Top ? viewport * 1.5 : Math.Max(0, max - (viewport * 1.5));
+                    _virtual = from;
+                    ApplyVisual();
+                }
+
+                _gliding = true;
+                _glideEdge = edge;
+                _glideFrom = from;
+                _glideStarted = Clock.Elapsed.TotalSeconds;
+                _glideArrived = arrived;
+                EnsureTicking();
+            }
+
+            private void StepGlide()
+            {
+                var t = Math.Clamp((Clock.Elapsed.TotalSeconds - _glideStarted) / GlideSeconds, 0, 1);
+
+                // Кубическое затухание: быстрый старт и мягкая посадка, как у инерции колеса.
+                var eased = 1 - Math.Pow(1 - t, 3);
+                var target = _glideEdge == ScrollEdge.Top ? 0 : GetMaxOffset();
+                _virtual = _glideFrom + ((target - _glideFrom) * eased);
+                ApplyVisual();
+
+                if (t >= 1)
+                {
+                    _virtual = target;
+                    _velocity = 0;
+                    ApplyVisual();
+
+                    // Цикл — раньше обратного вызова: тот может попросить новый доезд, и
+                    // остановка после него погасила бы уже его.
+                    StopTicking();
+                    FinishGlide();
+                }
+            }
+
+            /// <summary>Заканчивает доезд, где бы он ни был, и сообщает об этом тому, кто его просил.</summary>
+            private void FinishGlide()
+            {
+                if (!_gliding)
+                    return;
+
+                _gliding = false;
+                var arrived = _glideArrived;
+                _glideArrived = null;
+                arrived?.Invoke();
+            }
+
+            // ───────────────────────── перетаскивание ─────────────────────────
+
+            private void OnDragPress(object sender, MouseButtonEventArgs e)
+            {
+                if (!DragEnabled || !SameSource(e) || StartsOwnGesture(e.OriginalSource as DependencyObject))
+                {
+                    return;
+                }
+
+                // Нажатие посреди броска мышью его останавливает, и только: так ведёт себя список
+                // под пальцем, и строка, случайно оказавшаяся под курсором, не должна открыться.
+                // Инерцию колеса так не гасим — после неё человек сразу щёлкает по найденному.
+                if (_ticking && _dragFling && Math.Abs(_velocity) >= StopVelocity * 10)
+                {
+                    CancelInertia(snap: true);
+                    e.Handled = true;
+                }
+
+                ArmDrag(e.GetPosition(_viewer));
+            }
+
+            public void ArmDrag(Point press)
+            {
+                if (GetMaxOffset() <= 0)
+                {
+                    return;
+                }
+
+                _dragArmed = true;
+                _dragPress = press;
+            }
+
+            private void OnDragBubblePress(object sender, MouseButtonEventArgs e)
+            {
+                if (_dragArmed)
+                {
+                    e.Handled = true;
+                }
+            }
+
+            private void OnDragMove(object sender, MouseEventArgs e)
+            {
+                // _dragCapturing: собственный Mouse.Capture синхронно приводит сюда же движение,
+                // и в нём рука, может быть, уже отпущена — жест оборвался бы, не начавшись.
+                if (!_dragArmed || _dragCapturing)
+                {
+                    return;
+                }
+
+                if (e.LeftButton != MouseButtonState.Pressed)
+                {
+                    EndDrag(fling: false);
+                    return;
+                }
+
+                if (DragTo(e.GetPosition(_viewer)))
+                {
+                    e.Handled = true;
+                }
+            }
+
+            /// <summary>Тянет содержимое за мышью. <c>true</c> — перетаскивание вправду идёт.</summary>
+            public bool DragTo(Point point)
+            {
+                if (!_dragArmed)
+                {
+                    return false;
+                }
+
+                if (!_dragging && !BeginDrag(point))
+                {
+                    return false;
+                }
+
+                var now = Clock.Elapsed.TotalSeconds;
+                _virtual = _dragBase - (point.Y - _dragOriginY);
+                _virtualValid = true;
+                ApplyVisual();
+
+                var dt = now - _dragLastAt;
+                if (dt > 0.001)
+                {
+                    // Сглаживание: одно дрогнувшее событие мыши не должно решать силу броска.
+                    var instant = (_virtual - _dragLastVirtual) / dt;
+                    _dragVelocity = (0.65 * instant) + (0.35 * _dragVelocity);
+                    _dragLastVirtual = _virtual;
+                    _dragLastAt = now;
+                }
+
+                return true;
+            }
+
+            private bool BeginDrag(Point point)
+            {
+                var dx = Math.Abs(point.X - _dragPress.X);
+                var dy = Math.Abs(point.Y - _dragPress.Y);
+                if (dx < SystemParameters.MinimumHorizontalDragDistance &&
+                    dy < SystemParameters.MinimumVerticalDragDistance)
+                {
+                    return false;
+                }
+
+                // Рука пошла вбок — это чужой жест (выделение, слайдер), а не прокрутка.
+                if (dx > dy)
+                {
+                    _dragArmed = false;
+                    return false;
+                }
+
+                // Мышь уже у кого-то своего: палитра цвета, собственное перетаскивание. Кнопки и
+                // списки берут её на каждое нажатие по привычке — у них её забрать можно.
+                if (Mouse.Captured is { } owner && !ReferenceEquals(owner, _viewer) &&
+                    owner is not (ButtonBase or Selector or ListBoxItem))
+                {
+                    _dragArmed = false;
+                    return false;
+                }
+
+                CancelInertia(snap: true);
+                _dragging = true;
+                _dragBase = _virtual;
+                _dragOriginY = point.Y;
+                _dragLastVirtual = _virtual;
+                _dragLastAt = Clock.Elapsed.TotalSeconds;
+                _dragVelocity = 0;
+
+                // Захват отбирает мышь у кнопки под курсором — она теряет нажатие, и клика на
+                // отпускании не будет.
+                _dragCapturing = true;
+                try
+                {
+                    Mouse.Capture(_viewer);
+                }
+                finally
+                {
+                    _dragCapturing = false;
+                }
+
+                Mouse.OverrideCursor = Cursors.ScrollNS;
+                return true;
+            }
+
+            private void OnDragRelease(object sender, MouseButtonEventArgs e)
+            {
+                var dragged = _dragging;
+                EndDrag(fling: true);
+
+                // Кнопка срабатывает на отпускании: без этого перетаскивание, брошенное над
+                // строкой чата, открывало бы её.
+                if (dragged)
+                {
+                    e.Handled = true;
+                }
+            }
+
+            private void OnDragLostCapture(object sender, MouseEventArgs e)
+            {
+                // Только свой захват: всплывающее «мышь потеряна» от кнопки, у которой мы её и
+                // отобрали, оборвало бы жест ровно в мгновение его начала.
+                if (_dragging && !_dragCapturing && ReferenceEquals(e.OriginalSource, _viewer))
+                {
+                    EndDrag(fling: false);
+                }
+            }
+
+            public void EndDrag(bool fling)
+            {
+                var wasDragging = _dragging;
+                _dragArmed = false;
+                _dragging = false;
+                if (!wasDragging)
+                {
+                    return;
+                }
+
+                Mouse.OverrideCursor = null;
+                if (ReferenceEquals(Mouse.Captured, _viewer))
+                {
+                    Mouse.Capture(null);
+                }
+
+                var fresh = Clock.Elapsed.TotalSeconds - _dragLastAt <= DragVelocityStaleSeconds;
+                _velocity = fling && fresh
+                    ? Math.Clamp(_dragVelocity, -MaxDragVelocity, MaxDragVelocity)
+                    : 0;
+                if (Math.Abs(_velocity) < StopVelocity)
+                {
+                    _velocity = 0;
+                }
+
+                _dragFling = _velocity != 0;
+
+                // Отпущенное за краем — резинка сама вернёт его на место тем же циклом.
+                if (IsSettled())
+                {
+                    _virtual = Clamp(_virtual, 0, GetMaxOffset());
+                    ApplyVisual();
+                    return;
+                }
+
+                EnsureTicking();
+            }
+
+            /// <summary>
+            /// Нажатие пришлось в то, что тянет мышь само: текст, ползунок, полосу прокрутки,
+            /// вложенный список со своей прокруткой или кнопку, сработавшую уже на нажатии.
+            /// </summary>
+            private bool StartsOwnGesture(DependencyObject? source)
+            {
+                for (var node = source; node is not null && !ReferenceEquals(node, _viewer); node = Up(node))
+                {
+                    switch (node)
+                    {
+                        case TextBoxBase or PasswordBox or Thumb or RangeBase or ComboBox:
+                        case ButtonBase { ClickMode: ClickMode.Press }:
+                        case ScrollViewer { ScrollableHeight: > 0 }:
+                            return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private bool SameSource(RoutedEventArgs e) =>
+                e.OriginalSource is not Visual visual ||
+                ReferenceEquals(PresentationSource.FromVisual(visual), PresentationSource.FromVisual(_viewer));
 
             private void ApplyVisual()
             {
@@ -576,6 +1040,7 @@ namespace Amarin.UI
                 if (!_ticking)
                     return;
                 _ticking = false;
+                _dragFling = false;
                 _lastTime = 0;
                 CompositionTarget.Rendering -= _onRendering;
                 if (IsSettled())

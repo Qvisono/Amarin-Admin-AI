@@ -263,7 +263,10 @@ namespace Amarin.UI
                 return;
             }
 
-            if (e.ClickCount == 2)
+            // Двойной клик сбрасывает лупу только на пустом месте. Два быстрых нажатия на
+            // кнопку сообщения или двойной клик по слову — это действие над ними, а не просьба
+            // вернуть обычный вид; раньше лупа слетала и от них, а слово не выделялось вовсе.
+            if (e.ClickCount == 2 && !IsInteractive(e.OriginalSource as DependencyObject))
             {
                 ResetSmoothly();
                 e.Handled = true;
@@ -577,6 +580,28 @@ namespace Amarin.UI
             ReferenceEquals(
                 PresentationSource.FromVisual(visual),
                 PresentationSource.FromVisual(_viewer));
+
+        /// <summary>Нажатие пришлось в кнопку, ссылку, текст или полосу прокрутки ленты.</summary>
+        private bool IsInteractive(DependencyObject? source)
+        {
+            for (var node = source; node is not null && !ReferenceEquals(node, _viewer); node = Parent(node))
+            {
+                if (node is System.Windows.Controls.Primitives.ButtonBase or
+                    System.Windows.Controls.Primitives.TextBoxBase or
+                    System.Windows.Controls.Primitives.ScrollBar or
+                    System.Windows.Documents.Hyperlink)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static DependencyObject? Parent(DependencyObject node) =>
+            node is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
 
         private double Now => _clock.Elapsed.TotalSeconds;
 

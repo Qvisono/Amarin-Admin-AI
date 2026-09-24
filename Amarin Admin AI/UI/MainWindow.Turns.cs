@@ -336,6 +336,13 @@ namespace Amarin.UI
         /// </remarks>
         internal void ActivateFromSecondInstance() => Ui(() =>
         {
+            // Окно спрятано, пока доводится обновление: вернуть его, а если файл уже
+            // подменяется — дать подмене закончиться и поднять новую версию (см. Updates).
+            if (!ReviveFromBackgroundExit())
+            {
+                return;
+            }
+
             if (WindowState == WindowState.Minimized)
             {
                 WindowState = WindowState.Normal;

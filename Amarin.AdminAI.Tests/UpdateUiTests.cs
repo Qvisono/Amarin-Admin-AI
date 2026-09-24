@@ -224,6 +224,101 @@ public sealed class UpdateUiTests
         Assert.Equal(Loc.Format("S.Updates.SidebarReady", RuntimeContext.AppVersion), badge);
     }
 
+    [Fact]
+    public void A_found_release_does_not_keep_the_process_alive_when_auto_update_is_off()
+    {
+        // Невидимый процесс после закрытия окна допустим только по согласию человека — галке
+        // «Автообновление». Без неё (здесь окно и вовсе без служб) найденная версия ждёт кнопки.
+        var pending = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            try
+            {
+                window.LatestRelease = NewerRelease();
+                return (window.UpdatePendingForExit, window.ShouldDeferClose);
+            }
+            finally
+            {
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.False(pending.Item1);
+        Assert.False(pending.Item2);
+    }
+
+    [Fact]
+    public void A_second_launch_during_the_background_update_brings_the_window_back()
+    {
+        // Человек закрыл программу, пока докачивалось обновление, и тут же открыл снова.
+        // Второй запуск отдаёт запрос этому процессу, и тот обязан показать окно, а не молча
+        // выйти — иначе оба процесса исчезнут, и человек останется ни с чем.
+        var (revived, exiting, hidden, generation) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var before = Get<int>(window, "_exitGeneration");
+            try
+            {
+                Set(window, "_hiddenForExit", true);
+                Set(window, "_exiting", true);
+                var result = Call<bool>(window, "ReviveFromBackgroundExit");
+                return (result, Get<bool>(window, "_exiting"), Get<bool>(window, "_hiddenForExit"),
+                    Get<int>(window, "_exitGeneration") - before);
+            }
+            finally
+            {
+                Set(window, "_hiddenForExit", false);
+                Set(window, "_exiting", false);
+                window.Show();
+            }
+        });
+
+        Assert.True(revived);
+        Assert.False(exiting);
+        Assert.False(hidden);
+
+        // Новый номер попытки: прежний выход, дождавшись загрузки, обязан отступить.
+        Assert.Equal(1, generation);
+    }
+
+    [Fact]
+    public void A_second_launch_after_the_swap_began_asks_for_the_new_version()
+    {
+        var (revived, relaunch) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            try
+            {
+                Set(window, "_hiddenForExit", true);
+                Set(window, "_swapStarted", true);
+                var result = Call<bool>(window, "ReviveFromBackgroundExit");
+                return (result, Get<bool>(window, "_relaunchAfterExit"));
+            }
+            finally
+            {
+                Set(window, "_hiddenForExit", false);
+                Set(window, "_swapStarted", false);
+                Set(window, "_relaunchAfterExit", false);
+            }
+        });
+
+        Assert.False(revived);
+        Assert.True(relaunch);
+    }
+
+    private const System.Reflection.BindingFlags Hidden =
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
+    private static T Get<T>(object target, string field) =>
+        (T)target.GetType().GetField(field, Hidden)!.GetValue(target)!;
+
+    private static void Set(object target, string field, object? value) =>
+        target.GetType().GetField(field, Hidden)!.SetValue(target, value);
+
+    private static T Call<T>(object target, string method) =>
+        (T)target.GetType().GetMethod(method, Hidden)!.Invoke(target, null)!;
+
     /// <summary>Сборка, будто бы уже скачанная и ждущая выхода. На диск ничего не кладётся.</summary>
     private static StagedUpdate StagedBuild()
     {

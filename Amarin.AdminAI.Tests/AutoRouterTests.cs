@@ -27,12 +27,15 @@ public sealed class AutoRouterTests
     }
 
     [Fact]
-    public void Router_prompt_ignores_a_request_to_hand_the_work_to_an_agent()
+    public void Router_prompt_does_not_charge_the_chat_for_work_an_agent_does()
     {
-        Assert.Contains(
-            "hand the work to an agent says nothing about difficulty",
-            ChatEngine.RouterSystemPrompt,
-            StringComparison.Ordinal);
+        // Прежнее «classify the work itself» уводило просьбу поставить драйвер и проверить
+        // Wi-Fi на тяжёлую модель чата: работу делает агент со своим маршрутизатором, а чат
+        // только ставит задачу и пересказывает отчёт.
+        Assert.DoesNotContain("classify the work itself", ChatEngine.RouterSystemPrompt, StringComparison.OrdinalIgnoreCase);
+        var flat = string.Join(' ', ChatEngine.RouterSystemPrompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("work that goes to an agent does not make the chat reply heavy", flat, StringComparison.Ordinal);
+        Assert.Contains("thinking that reply has to do itself", flat, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -972,6 +972,9 @@ internal static class ChatMessageViews
         editor.SetResourceReference(Control.ForegroundProperty, UserForeground);
         editor.SetResourceReference(TextBoxBase.CaretBrushProperty, UserForeground);
 
+        // Правка своего сообщения — то же поле ввода, и стрелки в нём ведут себя так же.
+        TextCaretEdges.Attach(editor);
+
         var hostGrid = new Grid
         {
             HorizontalAlignment = wide ? HorizontalAlignment.Stretch : HorizontalAlignment.Left
