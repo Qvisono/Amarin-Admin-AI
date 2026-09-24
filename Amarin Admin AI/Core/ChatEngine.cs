@@ -154,33 +154,67 @@ internal sealed partial class ChatEngine
     /// в теле HTTP (<c>ParallelTurnTests</c>). Прежний текст описывал heavy формой сообщения
     /// («many steps»), и список из четырёх примеров арифметики честно попадал под это правило —
     /// человек платил флагману за сложение. Теперь мерой служит самый трудный шаг, а не длина.
+    /// <para>
+    /// До 1.26.0 здесь стояло «classify the work itself» — и просьба поставить драйвер и
+    /// разобраться с медленным Wi-Fi уходила на тяжёлую модель чата, хотя всю эту работу делает
+    /// агент, у которого свой маршрутизатор (<see cref="AgentTierRouter"/>). Модель чата при
+    /// этом только ставит задачу и пересказывает отчёт, и флагман там оплачивался впустую.
+    /// Поэтому мерой служит мышление, которое остаётся в самом ответе чата.
+    /// </para>
     /// Названия самих моделей дописываются на лету: см. <see cref="ModelBriefing.ForRouter"/>.
     /// </remarks>
     internal const string RouterSystemPrompt = """
         Classify the user request. Reply with exactly one word: lite or heavy.
         When unsure, reply lite.
 
-        Judge the hardest single step, not how much text or how many items arrived.
-        A list of easy questions is still easy: five sums in one message are five easy sums.
-        Counting sub-questions and calling the total "complex" is the mistake to avoid.
+        You choose the model that writes the chat reply, and nothing else.
+        Judge the hardest single step of the thinking that reply has to do itself, not how much
+        text or how many items arrived. A list of easy questions is still easy: five easy sums
+        in one message are five easy sums. Counting sub-questions and calling the total
+        "complex" is the mistake to avoid.
+
+        Work on this computer -- finding and installing software or drivers, diagnosing and
+        repairing, changing settings, reading the machine's state -- is not done by the chat
+        model. It hands such work to separate agents and retells their report, and the agents'
+        model is chosen separately by what that work needs. So work that goes to an agent does
+        not make the chat reply heavy, however hard the work itself is, and neither does asking
+        for an agent by name.
 
         lite = chat, jokes, opinions, explanations, definitions, translation, short how-to,
         arithmetic of any length or precision, unit / colour / encoding conversion, a fact or
-        a date to recall, one PowerShell one-liner, a routine local status check (a process,
-        a service, free space, a port, an event-log tail, system info) -- however many of
-        these arrive at once, and in any mix.
+        a date to recall, one PowerShell one-liner, a routine local status check, and any job
+        on this computer -- however many of these arrive at once, and in any mix.
 
-        heavy = the answer needs reasoning that can go wrong quietly: an unknown cause behind
-        ambiguous symptoms, a boot or repair job, subtle debugging, writing or reworking a long
-        piece of code, planning against several constraints that fight each other. Pick it when a
-        cheap wrong answer would cost more than the expensive right one.
+        heavy = the reply itself needs reasoning that can go wrong quietly: subtle debugging of
+        code or text the user put into the message, writing or reworking a long piece of code in
+        the reply, a proof or a derivation, planning against several constraints that fight each
+        other. Pick it only when a cheap wrong answer in the chat would cost more than the
+        expensive right one.
 
-        Asking to hand the work to an agent says nothing about difficulty: classify the work
-        itself. Urgency, politeness, length and numbered formatting say nothing either.
+        Urgency, politeness, length and numbered formatting say nothing about difficulty.
 
         The two models are named below. heavy is the user's expensive slot -- choose it only
-        when lite would actually get this wrong.
+        when lite would actually get this reply wrong.
         Do not explain.
+        """;
+
+    /// <summary>
+    /// Как писать формулы. Дописывается к техническому промпту в <see cref="BuildSystemPrompt"/>.
+    /// </summary>
+    /// <remarks>
+    /// Отдельной константой, а не строкой в <see cref="DefaultTechPrompt"/>: у тех, кто однажды
+    /// сохранил свой технический промпт, лежит его замороженная копия, и правка константы до
+    /// них не дошла бы никогда. А без правила модели пишут формулу то в долларах, то голым
+    /// текстом через слэш — и в одном ответе рядом с нарисованной стоит сырая строка.
+    /// </remarks>
+    internal const string FormulaRules = """
+        FORMULAS
+        Every mathematical expression goes in LaTeX between dollars: $...$ inside a sentence,
+        $$...$$ on a line of its own. That covers fractions, roots, powers, indices, Greek
+        letters and function names whenever they are part of a formula.
+        A fraction is \frac{numerator}{denominator}, never a slash. Text outside the dollars is
+        shown exactly as typed, so a formula left there reaches the reader raw.
+        Never put a formula into a code block unless the user asked for code.
         """;
 
     private const string InitAgentToolName = Tools.InitAgentTool.ToolName;
@@ -1814,6 +1848,7 @@ internal sealed partial class ChatEngine
         }
 
         parts.Add(tech);
+        parts.Add(FormulaRules);
         if (models.Length > 0)
         {
             parts.Add(models);

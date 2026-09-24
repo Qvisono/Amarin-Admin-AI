@@ -10,6 +10,12 @@ namespace Amarin.Core;
 /// Разбор ничего не бракует. Незнакомая команда становится обычным словом, незакрытая скобка
 /// закрывается на конце строки: пусть формула выглядит небрежно, но текст ответа не должен
 /// пропадать из-за одной опечатки в разметке.
+/// <para>
+/// Деление через слэш между простыми операндами набирается дробью: модели пишут
+/// <c>3\pi/4</c> и <c>\cos \pi/3</c> куда чаще, чем <c>\frac</c>, а человек ждёт числитель над
+/// знаменателем. Внутри индексов и степеней слэш остаётся слэшем — там этажная дробь
+/// становится нечитаемо мелкой. Правила свёртки — <see cref="FoldSlashes"/>.
+/// </para>
 /// </remarks>
 public static class LatexParser
 {
@@ -23,6 +29,9 @@ public static class LatexParser
         private readonly string _text = text;
         private int _index;
         private int _budget = NodeBudget;
+
+        /// <summary>Глубина индексов и степеней: там слэш в дробь не сворачивается.</summary>
+        private int _scriptDepth;
 
         private bool Eof => _index >= _text.Length;
 
@@ -97,11 +106,192 @@ public static class LatexParser
                 items.Add(ParseScripts(atom));
             }
 
-            return items;
+            return _scriptDepth > 0 ? items : FoldSlashes(items);
         }
 
         private static MathNode Row(List<MathNode> items) =>
             items.Count == 1 ? items[0] : new MathRow(items);
+
+        // ───────────────────────── слэш как дробь ─────────────────────────
+
+        /// <summary>
+        /// Сворачивает <c>a/b</c> в дробь там, где у слэша есть простые операнды с обеих сторон.
+        /// </summary>
+        /// <remarks>
+        /// Числитель — хвост «плотных» звеньев перед слэшем: чисел, букв, групп, уже собранных
+        /// дробей и корней, скобок. Бинарная операция, отношение, запятая и имя функции его
+        /// обрывают: <c>\cos \pi/3</c> читается как косинус от π/3, а <c>-a/b</c> — как минус
+        /// дробь. Имя функции прямо перед скобкой входит в числитель вместе с ней: у
+        /// <c>\sin(x)/2</c> делится синус, а не аргумент. Знаменатель — ровно одно звено:
+        /// <c>1/2x</c> — это половина икс. Скобки, в которые целиком завёрнут операнд, снимаются —
+        /// их роль переходит к черте дроби. Нет операнда с какой-либо стороны — слэш остаётся.
+        /// </remarks>
+        private static List<MathNode> FoldSlashes(List<MathNode> items)
+        {
+            if (!items.Exists(IsSlash))
+            {
+                return items;
+            }
+
+            var result = new List<MathNode>(items.Count);
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (!IsSlash(items[i]))
+                {
+                    result.Add(items[i]);
+                    continue;
+                }
+
+                var numeratorStart = NumeratorStart(result);
+                var denominatorEnd = i + 1 < items.Count ? UnitEnd(items, i + 1) : -1;
+                if (numeratorStart < 0 || denominatorEnd < 0)
+                {
+                    result.Add(items[i]);
+                    continue;
+                }
+
+                var numerator = Operand(result.GetRange(numeratorStart, result.Count - numeratorStart));
+                var denominator = Operand(items.GetRange(i + 1, denominatorEnd - i));
+                result.RemoveRange(numeratorStart, result.Count - numeratorStart);
+                result.Add(new MathFraction(numerator, denominator));
+                i = denominatorEnd;
+            }
+
+            return result;
+        }
+
+        private static bool IsSlash(MathNode node) =>
+            node is MathSymbol { Text: "/", Kind: MathTokenKind.Binary };
+
+        /// <summary>Откуда начинается числитель в уже собранном; <c>-1</c> — числителя нет.</summary>
+        private static int NumeratorStart(List<MathNode> items)
+        {
+            var start = -1;
+            var i = items.Count - 1;
+            while (i >= 0)
+            {
+                if (IsFence(items[i], ")"))
+                {
+                    var open = MatchingOpen(items, i);
+                    if (open < 0)
+                    {
+                        break;
+                    }
+
+                    start = open;
+                    i = open - 1;
+
+                    // Функция перед скобкой — это её аргумент, делится значение функции.
+                    if (i >= 0 && IsFunction(items[i]))
+                    {
+                        start = i;
+                        i--;
+                    }
+
+                    continue;
+                }
+
+                if (!IsTight(items[i]))
+                {
+                    break;
+                }
+
+                start = i;
+                i--;
+            }
+
+            return start;
+        }
+
+        /// <summary>Последний индекс звена, начинающегося с <paramref name="from"/>; <c>-1</c> — звена нет.</summary>
+        private static int UnitEnd(List<MathNode> items, int from)
+        {
+            var node = items[from];
+            if (IsFence(node, "("))
+            {
+                return MatchingClose(items, from);
+            }
+
+            if (IsFunction(node) && from + 1 < items.Count)
+            {
+                // 1/\sin x и 1/\sin(x): знаменатель — функция вместе с аргументом.
+                return UnitEnd(items, from + 1);
+            }
+
+            return IsTight(node) ? from : -1;
+        }
+
+        private static MathNode Operand(List<MathNode> nodes)
+        {
+            if (nodes.Count >= 2 && IsFence(nodes[0], "(") && IsFence(nodes[^1], ")") &&
+                MatchingClose(nodes, 0) == nodes.Count - 1)
+            {
+                nodes = nodes.GetRange(1, nodes.Count - 2);
+            }
+
+            return Row(nodes);
+        }
+
+        private static int MatchingOpen(List<MathNode> items, int close)
+        {
+            var depth = 0;
+            for (var i = close; i >= 0; i--)
+            {
+                if (IsFence(items[i], ")"))
+                {
+                    depth++;
+                }
+                else if (IsFence(items[i], "(") && --depth == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int MatchingClose(List<MathNode> items, int open)
+        {
+            var depth = 0;
+            for (var i = open; i < items.Count; i++)
+            {
+                if (IsFence(items[i], "("))
+                {
+                    depth++;
+                }
+                else if (IsFence(items[i], ")") && --depth == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool IsFence(MathNode node, string text) =>
+            node is MathSymbol { Kind: MathTokenKind.Fence } symbol && symbol.Text == text;
+
+        /// <summary>Имя функции: <c>sin</c>, <c>log</c> — прямое слово длиннее одной буквы.</summary>
+        private static bool IsFunction(MathNode node) =>
+            node is MathSymbol { Kind: MathTokenKind.Upright } symbol &&
+            symbol.Text.Length > 1 &&
+            symbol.Text.All(char.IsLetter);
+
+        /// <summary>Звено, которое может быть операндом дроби само по себе.</summary>
+        private static bool IsTight(MathNode node) => node switch
+        {
+            MathSymbol symbol => symbol.Kind switch
+            {
+                MathTokenKind.Number or MathTokenKind.Variable => true,
+                MathTokenKind.Upright => symbol.Text.Length == 1 && symbol.Text != "′",
+                _ => false
+            },
+            MathScripts scripts => scripts.Base is not MathSymbol { Kind: MathTokenKind.BigOperator } &&
+                                   !IsFunction(scripts.Base),
+            MathRow { Items.Count: > 0 } => true,
+            MathFraction or MathRadical or MathFenced or MathAccent or MathStyled or MathMatrix => true,
+            _ => false
+        };
 
         /// <summary>Индексы, степени и штрихи, навешанные на только что разобранный атом.</summary>
         private MathNode ParseScripts(MathNode atom)
@@ -176,19 +366,27 @@ public static class LatexParser
                 return MathRow.Empty;
             }
 
-            if (Peek == '{')
+            _scriptDepth++;
+            try
             {
-                return ParseGroup();
-            }
+                if (Peek == '{')
+                {
+                    return ParseGroup();
+                }
 
-            var before = _index;
-            var atom = ParseAtom(singleCharacter: true);
-            if (atom is null && _index == before)
+                var before = _index;
+                var atom = ParseAtom(singleCharacter: true);
+                if (atom is null && _index == before)
+                {
+                    _index++;
+                }
+
+                return atom ?? MathRow.Empty;
+            }
+            finally
             {
-                _index++;
+                _scriptDepth--;
             }
-
-            return atom ?? MathRow.Empty;
         }
 
         private MathNode ParseGroup()

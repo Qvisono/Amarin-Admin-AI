@@ -10,14 +10,17 @@ namespace Amarin.Core;
 /// <c>\[…\]</c> для отдельной. Разметка понимает только доллары, поэтому вторая пара
 /// переводится в первую до разбора. Внутри блоков кода и коротких вставок в обратных кавычках
 /// ничего не трогаем: там <c>\(</c> — это регулярное выражение, а не формула.
+/// <para>
+/// Тем же проходом ищутся формулы, оставленные вовсе без разделителей (<see cref="MathAutoWrap"/>):
+/// ограды кода уже отслеживаются здесь, и второй проход по строкам повторял бы ту же работу.
+/// </para>
 /// </remarks>
 public static class MathDelimiterNormalizer
 {
     public static string ToDollars(string? text)
     {
         var source = text ?? "";
-        if (!source.Contains("\\(", StringComparison.Ordinal) &&
-            !source.Contains("\\[", StringComparison.Ordinal))
+        if (!MathAutoWrap.MayContainMath(source))
         {
             return source;
         }
@@ -25,12 +28,20 @@ public static class MathDelimiterNormalizer
         var result = new StringBuilder(source.Length + 16);
         var fence = "";
 
+        // Внутри выключной формулы на несколько строк: её середина долларов не несёт, и без
+        // этого флага MathAutoWrap завернул бы её второй раз — прямо внутри $$…$$.
+        var display = false;
+        var first = true;
+
         foreach (var line in source.Split('\n'))
         {
-            if (result.Length > 0)
+            // Флагом, а не по длине результата: иначе пустая первая строка теряла свой перевод.
+            if (!first)
             {
                 result.Append('\n');
             }
+
+            first = false;
 
             var opener = FenceMarker(line);
             if (fence.Length > 0)
@@ -52,10 +63,43 @@ public static class MathDelimiterNormalizer
                 continue;
             }
 
-            AppendConverted(result, line);
+            var converted = new StringBuilder(line.Length + 8);
+            AppendConverted(converted, line);
+            var mathLine = converted.ToString();
+
+            var pairs = CountDisplayDelimiters(mathLine);
+            if (display || pairs > 0)
+            {
+                result.Append(mathLine);
+            }
+            else
+            {
+                result.Append(MathAutoWrap.WrapLine(mathLine));
+            }
+
+            if (pairs % 2 == 1)
+            {
+                display = !display;
+            }
         }
 
-        return result.ToString();
+        // Ничего не поменялось — отдаём исходный объект: вызывающие сравнивают по ссылке,
+        // чтобы не разбирать разметку заново.
+        var output = result.ToString();
+        return string.Equals(output, source, StringComparison.Ordinal) ? source : output;
+    }
+
+    private static int CountDisplayDelimiters(string line)
+    {
+        var count = 0;
+        for (var at = line.IndexOf("$$", StringComparison.Ordinal);
+             at >= 0;
+             at = line.IndexOf("$$", at + 2, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
     }
 
     /// <summary>Открывающая или закрывающая ограда блока кода: <c>```</c> либо <c>~~~</c>.</summary>
