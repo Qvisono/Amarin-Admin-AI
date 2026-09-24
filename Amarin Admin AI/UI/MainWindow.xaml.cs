@@ -102,6 +102,7 @@ namespace Amarin.UI
                 new RoutedEventHandler(ChatListPanel_Click));
 
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
+            SmoothScroll.SetDragScroll(SideBarScrollViewer, true);
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
@@ -112,11 +113,15 @@ namespace Amarin.UI
             // Страницы настроек — тем же скроллом, что колонка и чат. Список разрешённых
             // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
             // за это отвечает сам SmoothScroll.
-            SmoothScroll.SetIsEnabled(AppearancePageScroll, true);
-            SmoothScroll.SetIsEnabled(BehaviorPageScroll, true);
-            SmoothScroll.SetIsEnabled(CustomizePageScroll, true);
-            SmoothScroll.SetIsEnabled(DataPageScroll, true);
-            SmoothScroll.SetIsEnabled(AllowedDomainsScroll, true);
+            //
+            // И перетаскиванием — колонку и страницы настроек листают ещё и зажатой кнопкой, той
+            // же инерцией. В ленте чата левая кнопка занята выделением текста и лупой.
+            foreach (var page in (ScrollViewer[])
+                     [AppearancePageScroll, BehaviorPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
+            {
+                SmoothScroll.SetIsEnabled(page, true);
+                SmoothScroll.SetDragScroll(page, true);
+            }
 
             // Тело вопроса о подтверждении: у него внутри свои прокрутки — блок кода и
             // подробности, — и SmoothScroll сам уступает им колесо, а на их краю забирает
@@ -2764,6 +2769,9 @@ namespace Amarin.UI
 
         private void ChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
+            // Раньше всех выходов: капсуле важно и движение автопрокрутки, и выросшая лента.
+            UpdateScrollJump();
+
             if (_autoScrolling)
             {
                 return;
@@ -2785,8 +2793,10 @@ namespace Amarin.UI
 
                 // Пока идёт жест лупы, достройку пропускаем: смещение меняется каждый кадр, и
                 // проход по всей ленте с пересчётом координат шёл бы по шестьдесят раз в секунду.
-                // ChatZoom позовёт её сам, когда жест кончится.
-                if (ChatZoomBusy)
+                // ChatZoom позовёт её сам, когда жест кончится. Доезд капсулы «в начало / в
+                // конец» — тот же случай: по кадру строилось бы всё, что мелькнуло, а по
+                // прибытии достройку зовёт MainWindow.ScrollJump.
+                if (ChatZoomBusy || SmoothScroll.IsGliding(ChatScrollViewer))
                 {
                     return;
                 }

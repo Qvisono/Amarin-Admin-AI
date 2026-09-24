@@ -436,6 +436,8 @@ internal static class StringsRu
             ["S.Journal.NoResult"] = "Результат не сохранён.",
             ["S.Journal.NoSnapshots"] = "Точек отката пока нет. Они создаются сами перед опасными изменениями в системе.",
             ["S.Journal.NoSummaries"] = "Сводок пока нет. Они пишутся сами после каждого ответа модели.",
+            ["S.Chat.ScrollTop"] = "В начало чата",
+            ["S.Chat.ScrollBottom"] = "В конец чата",
             ["S.Journal.Open"] = "Журнал действий",
             ["S.Journal.OpenChat"] = "Открыть чат",
             ["S.Journal.ReadFailed"] = "Не удалось прочитать историю. Проверьте доступ к папке с данными программы.",

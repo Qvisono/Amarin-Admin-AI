@@ -453,6 +453,8 @@
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">Результат не сохранён.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">Точек отката пока нет. Они создаются сами перед опасными изменениями в системе.</system:String>
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">Сводок пока нет. Они пишутся сами после каждого ответа модели.</system:String>
+    <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">В начало чата</system:String>
+    <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">В конец чата</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Журнал действий</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Открыть чат</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Не удалось прочитать историю. Проверьте доступ к папке с данными программы.</system:String>

@@ -453,6 +453,8 @@
     <system:String x:Key="S.Journal.NoResult" xml:space="preserve">The result was not kept.</system:String>
     <system:String x:Key="S.Journal.NoSnapshots" xml:space="preserve">No restore points yet. They are taken automatically before risky changes to the system.</system:String>
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">No summaries yet. They are written after each answer the model gives.</system:String>
+    <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">To the start of the chat</system:String>
+    <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">To the end of the chat</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Action journal</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Open the chat</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Could not read the history. Check access to the program data folder.</system:String>
