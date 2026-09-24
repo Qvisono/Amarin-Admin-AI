@@ -2013,7 +2013,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.26.0"
+                                               Text="v1.26.1"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
