@@ -58,6 +58,7 @@ namespace Amarin.UI
         /// <summary>Ставит в ленту хосты под все сообщения чата и строит только видимую часть.</summary>
         private void BuildMessageHosts()
         {
+            HideReplyPill();
             MessagesPanel.Children.Clear();
             _messageViews.Clear();
             _messageHosts.Clear();
@@ -188,6 +189,10 @@ namespace Amarin.UI
 
         private void BuildInto(ChatMessageHost host)
         {
+            // Вьюшку сейчас заменят новой: выделение, под которое открыта «Ответить», исчезнет
+            // вместе со старой — а цена сводки как раз и приезжает через секунду после ответа.
+            CloseReplyPillFor(host);
+
             var message = host.Message;
             if (message.Role == "user")
             {
@@ -404,7 +409,10 @@ namespace Amarin.UI
             var chrome = user ? 34 : 96;
             var images = message.Images.Count > 0 ? 120 : 0;
 
-            return Math.Clamp((lines * 21.0) + chrome + images, 40, 4000);
+            // Карточка цитаты — строка подписи и до трёх строк фрагмента.
+            var quotes = message.Quotes.Count * QuoteViews.CardHeightEstimate;
+
+            return Math.Clamp((lines * 21.0) + chrome + images + quotes, 40, 4000);
         }
     }
 }

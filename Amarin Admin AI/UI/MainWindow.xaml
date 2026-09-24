@@ -493,6 +493,37 @@
                     </ScrollViewer>
 
                     <!--
+                        «Ответить» на выделенное в ответе модели. Встаёт у курсора, а не у текста:
+                        положение курсора верно и под лупой, и когда выделение кончается внутри
+                        формулы или блока кода, у которых нет позиции символа. Регистрируется в
+                        PopupManager — клик мимо, колесо и Esc закрывают её сами.
+                    -->
+                    <Popup x:Name="ReplyPill" Placement="MousePoint" HorizontalOffset="6" VerticalOffset="16"
+                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
+                        <!-- Поля под тень: она рисуется наружу и иначе обрежется. -->
+                        <Border Margin="6,4,10,12" Background="{DynamicResource Bg.Panel}"
+                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                CornerRadius="9" Padding="3">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="4" Opacity="0.4"/>
+                            </Border.Effect>
+                            <Button x:Name="ReplyPillButton" Style="{StaticResource QuotePillButton}"
+                                    Click="ReplyPillButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Source="{DynamicResource Reply}" Width="14" Height="14"
+                                           VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock Text="{DynamicResource S.Quote.Reply}" FontSize="12.5"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Text.Body}"/>
+                                    <TextBlock x:Name="ReplyPillHint" FontSize="11" Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Text.Faint}"/>
+                                </StackPanel>
+                            </Button>
+                        </Border>
+                    </Popup>
+
+                    <!--
                         Журнал действий этого чата. Лежит поверх ленты, а не в тулбаре композера:
                         тулбар целиком уезжает в компактном режиме, и кнопка пропадала бы вместе с
                         ним. Отсюда и непрозрачный фон со скруглением — сообщения проезжают под
@@ -726,6 +757,10 @@
                             <!-- ===== ПРИКРЕПЛЁННЫЕ ВЛОЖЕНИЯ ===== -->
                             <StackPanel x:Name="AttachmentsHost" Grid.Row="0" Visibility="Collapsed"
                                         Margin="0,0,0,8">
+                                <!-- Цитаты из ответов — над картинками и файлами: они про то, на что
+                                     отвечают, и читаются перед текстом сообщения. Строки собирает
+                                     MainWindow.Quotes.cs. -->
+                                <StackPanel x:Name="QuotesPanel" Visibility="Collapsed"/>
                                 <ItemsControl x:Name="AttachmentsPanel">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -749,6 +784,30 @@
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                      Padding="0"
                      PreviewKeyDown="MessageTextBox_PreviewKeyDown"/>
+
+                                <!--
+                                    Подсказка «@»: список прикреплённых цитат над кареткой. Фокус
+                                    остаётся в поле ввода, а стрелки, Enter и Tab разбирает
+                                    MessageTextBox_PreviewKeyDown раньше отправки.
+                                -->
+                                <Popup x:Name="QuoteSuggestPopup" PlacementTarget="{Binding ElementName=MessageTextBox}"
+                                       Placement="Top" AllowsTransparency="True" PopupAnimation="Fade"
+                                       StaysOpen="True" Focusable="False">
+                                    <Border Margin="6,12,10,4" MinWidth="220" MaxWidth="380"
+                                            Background="{DynamicResource Bg.Panel}"
+                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                            CornerRadius="10" Padding="4">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.45"/>
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <TextBlock Text="{DynamicResource S.Quote.SuggestTitle}" FontSize="11"
+                                                       FontWeight="SemiBold" Margin="8,4,8,4"
+                                                       Foreground="{DynamicResource Text.Muted}"/>
+                                            <StackPanel x:Name="QuoteSuggestList"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
                                 <TextBlock x:Name="ComposerPlaceholder" Text="{DynamicResource S.Composer.Placeholder}" FontSize="14.5"
                        Foreground="{DynamicResource Text.Faint}" IsHitTestVisible="False">
                                     <TextBlock.Style>
@@ -1875,7 +1934,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.25.0"
+                                               Text="v1.26.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"

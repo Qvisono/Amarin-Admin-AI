@@ -242,6 +242,21 @@ internal sealed partial class ChatEngine
         IReadOnlyList<ImageAttachment>? images,
         IReadOnlyList<FileAttachment>? files,
         IChatTurnObserver observer,
+        CancellationToken cancellationToken) =>
+        await RunTurnAsync(session, userText, images, files, quotes: null, observer, cancellationToken)
+            .ConfigureAwait(false);
+
+    /// <param name="quotes">
+    /// Фрагменты прежних ответов, на которые отвечает это сообщение. Сами по себе просьбой не
+    /// являются: сообщение из одних цитат без текста не отправляется, как и пустое.
+    /// </param>
+    public async Task RunTurnAsync(
+        ChatSession session,
+        string userText,
+        IReadOnlyList<ImageAttachment>? images,
+        IReadOnlyList<FileAttachment>? files,
+        IReadOnlyList<MessageQuote>? quotes,
+        IChatTurnObserver observer,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -263,18 +278,17 @@ internal sealed partial class ChatEngine
             CreatedAt = now,
             Text = text,
             Images = attachments is null ? [] : [.. attachments],
-            Files = documents is null ? [] : [.. documents]
+            Files = documents is null ? [] : [.. documents],
+            Quotes = quotes is null ? [] : [.. quotes]
         };
         session.Messages.Add(user);
+
+        // Маршрутизатор «Авто» по-прежнему читает только Text: цитата — слова ассистента, а
+        // в них может оказаться текст чужой страницы, которому не место в выборе модели.
         session.ApiMessages.Add(new ChatMessage
         {
             Role = "user",
-            Content = attachments is null && documents is null
-                ? ChatContent.Text(text)
-                : ChatContent.Multipart(
-                    ChatContent.BuildPrompt(text, attachments, documents),
-                    attachments,
-                    documents)
+            Content = ChatContent.ForUser(user, session.Messages, session.Messages.Count - 1)
         });
         session.UpdatedAt = now;
         observer.OnUserAppended(user);

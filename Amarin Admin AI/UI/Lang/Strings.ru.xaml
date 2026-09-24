@@ -262,6 +262,17 @@
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Да</system:String>
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
+    <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Ваш ответ на цитату...</system:String>
+    <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
+    <system:String x:Key="S.Quote.FromLast" xml:space="preserve">из последнего ответа</system:String>
+    <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">из ответа от {0}</system:String>
+    <system:String x:Key="S.Quote.Interrupted" xml:space="preserve">из прерванного ответа</system:String>
+    <system:String x:Key="S.Quote.SourceGone" xml:space="preserve">исходный ответ удалён</system:String>
+    <system:String x:Key="S.Quote.Remove" xml:space="preserve">Убрать цитату</system:String>
+    <system:String x:Key="S.Quote.InsertRef" xml:space="preserve">Нажмите, чтобы вставить @{0} в текст</system:String>
+    <system:String x:Key="S.Quote.ShowSource" xml:space="preserve">Нажмите, чтобы показать фрагмент в ответе</system:String>
+    <system:String x:Key="S.Quote.TooMany" xml:space="preserve">Можно прикрепить не больше {0} цитат.</system:String>
+    <system:String x:Key="S.Quote.SuggestTitle" xml:space="preserve">Цитаты</system:String>
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">Что будет выполнено - {0} стр.</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Технические подробности</system:String>
@@ -381,6 +392,8 @@
 
     <system:String x:Key="S.Hotkeys.NewChat" xml:space="preserve">Новый чат</system:String>
     <system:String x:Key="S.Hotkeys.NewChatDesc" xml:space="preserve">Открывает пустую переписку, не уводя рук с клавиатуры</system:String>
+    <system:String x:Key="S.Hotkeys.Reply" xml:space="preserve">Ответить на выделенное</system:String>
+    <system:String x:Key="S.Hotkeys.ReplyDesc" xml:space="preserve">Прикрепляет выделенный фрагмент ответа к сообщению как цитату</system:String>
     <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Нажмите клавиши</system:String>
     <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Вернуть заводское сочетание</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, переименовывать и удалять. К сообщению прикладываются файлы и картинки. Одновременно идут до трёх ходов в разных чатах - пока модель отвечает в одном, в соседнем можно работать.</system:String>
@@ -700,6 +713,7 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
+    <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">Команда /agent не принимает цитаты.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Не задан API-ключ Venice.ai.&#10;Задайте переменную окружения VENICE_API_KEY.</system:String>

@@ -31,12 +31,20 @@ public static class HotkeyMap
     /// <summary>Новый чат.</summary>
     public const string NewChat = "NewChat";
 
+    /// <summary>Ответить на выделенный фрагмент ответа — прикрепить его к сообщению цитатой.</summary>
+    /// <remarks>
+    /// Срабатывает, только когда в ответе модели что-то выделено; иначе сочетание уходит дальше,
+    /// как будто его и не назначали.
+    /// </remarks>
+    public const string ReplyToSelection = "ReplyToSelection";
+
     /// <summary>
     /// Все действия, в порядке показа в настройках.
     /// </summary>
     public static readonly IReadOnlyList<HotkeyAction> All =
     [
-        new(NewChat, "Ctrl+F", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc")
+        new(NewChat, "Ctrl+F", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc"),
+        new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc")
     ];
 
     /// <summary>Порядок модификаторов в записи. Он же порядок показа человеку.</summary>

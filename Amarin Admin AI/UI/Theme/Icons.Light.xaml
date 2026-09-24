@@ -187,4 +187,21 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <!--
+        «Ответить» на выделенный фрагмент ответа: изогнутая стрелка назад, как у ответа в
+        почте и мессенджерах. Контуром, а не заливкой, — в одну линию с «Повторить» и
+        «Продолжить», и читается вплоть до 13 px.
+    -->
+    <DrawingImage x:Key="Reply">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
+                <GeometryDrawing Geometry="F1 M24,24z M0,0z M9.5,14.5 L4,9 L9.5,3.5 M4,9 L13.5,9 C17.6421,9 21,12.3579 21,16.5 L21,20.5">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#FF1A1A1A" Thickness="2" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
 </ResourceDictionary>

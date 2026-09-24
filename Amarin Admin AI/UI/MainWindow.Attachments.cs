@@ -287,13 +287,18 @@ namespace Amarin.UI
 
         private void ClearPendingAttachments()
         {
-            if (_pendingImages.Count == 0 && _pendingFiles.Count == 0 && _attachmentNotes.Count == 0)
+            if (_pendingImages.Count == 0 && _pendingFiles.Count == 0 && _pendingQuotes.Count == 0 &&
+                _attachmentNotes.Count == 0)
             {
                 return;
             }
 
             _pendingImages.Clear();
             _pendingFiles.Clear();
+
+            // Цитаты — туда же: они указывают на ответы этого чата, и в соседнем чате номер
+            // «@1» ссылался бы на сообщение, которого там нет.
+            _pendingQuotes.Clear();
             _attachmentNotes.Clear();
             RefreshAttachments();
         }
@@ -311,7 +316,12 @@ namespace Amarin.UI
                 AttachmentsPanel.Items.Add(CreateFileCard(file));
             }
 
-            var any = _pendingImages.Count > 0 || _pendingFiles.Count > 0;
+            RefreshQuoteRows();
+
+            var any = _pendingImages.Count > 0 || _pendingFiles.Count > 0 || _pendingQuotes.Count > 0;
+            AttachmentsPanel.Visibility = _pendingImages.Count > 0 || _pendingFiles.Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
             AttachmentsHost.Visibility = any || _attachmentNotes.Count > 0
                 ? Visibility.Visible
                 : Visibility.Collapsed;
@@ -352,7 +362,7 @@ namespace Amarin.UI
             {
                 AttachmentsHost.Visibility = Visibility.Visible;
             }
-            else if (_pendingImages.Count == 0 && _pendingFiles.Count == 0)
+            else if (_pendingImages.Count == 0 && _pendingFiles.Count == 0 && _pendingQuotes.Count == 0)
             {
                 AttachmentsHost.Visibility = Visibility.Collapsed;
             }

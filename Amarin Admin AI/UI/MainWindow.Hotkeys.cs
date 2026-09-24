@@ -140,7 +140,12 @@ namespace Amarin.UI
                     continue;
                 }
 
-                return Run(action.Id);
+                // Отказавшееся действие отдаёт сочетание следующему, а не глотает его: «Ответить»
+                // без выделения не должно отнимать клавишу у того, кому её назначили тоже.
+                if (Run(action.Id))
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -153,6 +158,8 @@ namespace Amarin.UI
                 case HotkeyMap.NewChat:
                     StartNewChatFromUi();
                     return true;
+                case HotkeyMap.ReplyToSelection:
+                    return TryReplyToSelection();
                 default:
                     return false;
             }

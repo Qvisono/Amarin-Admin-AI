@@ -262,6 +262,17 @@
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Yes</system:String>
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Ask anything...</system:String>
+    <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Your reply to the quote...</system:String>
+    <system:String x:Key="S.Quote.Reply" xml:space="preserve">Reply</system:String>
+    <system:String x:Key="S.Quote.FromLast" xml:space="preserve">from the last reply</system:String>
+    <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">from the reply at {0}</system:String>
+    <system:String x:Key="S.Quote.Interrupted" xml:space="preserve">from an interrupted reply</system:String>
+    <system:String x:Key="S.Quote.SourceGone" xml:space="preserve">the original reply was deleted</system:String>
+    <system:String x:Key="S.Quote.Remove" xml:space="preserve">Remove the quote</system:String>
+    <system:String x:Key="S.Quote.InsertRef" xml:space="preserve">Click to insert @{0} into the message</system:String>
+    <system:String x:Key="S.Quote.ShowSource" xml:space="preserve">Click to show the passage in the reply</system:String>
+    <system:String x:Key="S.Quote.TooMany" xml:space="preserve">You can attach at most {0} quotes.</system:String>
+    <system:String x:Key="S.Quote.SuggestTitle" xml:space="preserve">Quotes</system:String>
 
     <system:String x:Key="S.Confirm.Code" xml:space="preserve">What will run - {0} lines</system:String>
     <system:String x:Key="S.Confirm.Details" xml:space="preserve">Technical details</system:String>
@@ -381,6 +392,8 @@
 
     <system:String x:Key="S.Hotkeys.NewChat" xml:space="preserve">New chat</system:String>
     <system:String x:Key="S.Hotkeys.NewChatDesc" xml:space="preserve">Opens an empty conversation without reaching for the mouse</system:String>
+    <system:String x:Key="S.Hotkeys.Reply" xml:space="preserve">Reply to the selection</system:String>
+    <system:String x:Key="S.Hotkeys.ReplyDesc" xml:space="preserve">Attaches the selected part of a reply to your message as a quote</system:String>
     <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Press the keys</system:String>
     <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Restore the default shortcut</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: conversations can be pinned, renamed and deleted. A message can carry attached files and images. Up to three turns run at once in different chats - while the model answers in one, you can work in another.</system:String>
@@ -700,6 +713,7 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
 
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
+    <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">The /agent command takes no quotes.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" - no answer</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running - wait for one of them.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No Venice.ai API key.&#10;Set the VENICE_API_KEY environment variable.</system:String>

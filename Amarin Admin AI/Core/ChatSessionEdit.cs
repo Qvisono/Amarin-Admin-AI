@@ -80,10 +80,52 @@ internal static class ChatSessionEdit
             var from = starts[turnOrdinal];
             var to = turnOrdinal + 1 < starts.Count ? starts[turnOrdinal + 1] : session.ApiMessages.Count;
             session.ApiMessages.RemoveRange(from, to - from);
+            RewrapOrphanedQuotes(session);
         }
 
         session.UpdatedAt = DateTime.Now;
         return true;
+    }
+
+    /// <summary>
+    /// Пересобирает сообщения, цитировавшие ответ, которого больше нет.
+    /// </summary>
+    /// <remarks>
+    /// Блок цитат называет источник («твой последний ответ», «ответ, который начинается с…»), а
+    /// после удаления хода такого ответа в истории уже нет — и модель искала бы его впустую.
+    /// Пересобираются только такие сообщения: у остальных содержимое не меняется ни на байт.
+    /// Вложения при пересборке не теряются — в хранимой истории они лежат целиком, выбрасывает
+    /// их <see cref="ApiContextLimiter"/> лишь из отправляемой копии.
+    /// </remarks>
+    private static void RewrapOrphanedQuotes(ChatSession session)
+    {
+        var starts = ApiTurnStarts(session);
+        var ordinal = 0;
+        for (var i = 0; i < session.Messages.Count; i++)
+        {
+            var message = session.Messages[i];
+            if (!message.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var turn = ordinal++;
+            if (message.Quotes.Count == 0 || turn >= starts.Count)
+            {
+                continue;
+            }
+
+            var orphaned = message.Quotes.Any(quote =>
+                ChatQuotes.Classify(session.Messages, i, quote.SourceMessageId, out _) == QuoteSourceKind.Gone);
+            if (orphaned)
+            {
+                session.ApiMessages[starts[turn]] = new ChatMessage
+                {
+                    Role = "user",
+                    Content = ChatContent.ForUser(message, session.Messages, i)
+                };
+            }
+        }
     }
 
     /// <summary>Index of every <c>user</c> entry in the wire history — one per turn.</summary>
@@ -124,24 +166,18 @@ internal static class ChatSessionEdit
         }
 
         TruncateApiToMatchDisplay(session);
-        var images = session.Messages[index].Images;
-        var files = session.Messages[index].Files;
         for (var i = session.ApiMessages.Count - 1; i >= 0; i--)
         {
             if (session.ApiMessages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
             {
                 // Rewriting the text must not silently drop what the user attached. Documents
                 // were being dropped here: the rebuild read Images only, so the card stayed in
-                // the transcript while the PDF itself vanished from the model's context.
+                // the transcript while the PDF itself vanished from the model's context. The
+                // shared builder carries images, documents and quotes alike.
                 session.ApiMessages[i] = new ChatMessage
                 {
                     Role = "user",
-                    Content = images.Count == 0 && files.Count == 0
-                        ? ChatContent.Text(text)
-                        : ChatContent.Multipart(
-                            ChatContent.BuildPrompt(text, images, files),
-                            images,
-                            files)
+                    Content = ChatContent.ForUser(session.Messages[index], session.Messages, index)
                 };
                 break;
             }

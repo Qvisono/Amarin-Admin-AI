@@ -380,6 +380,9 @@ internal static class ChatMarkdown
         formula.HorizontalAlignment = HorizontalAlignment.Center;
         formula.Margin = new Thickness(0, 4, 0, 4);
 
+        // Формула нарисована, а не набрана: без исходника цитата потеряла бы её целиком.
+        QuoteSelection.SetSource(formula, new QuoteSource("$$", latex.Trim(), "$$", Block: true));
+
         return new BlockUIContainer(formula)
         {
             Margin = new Thickness(0, 0, 0, last ? 0 : BlockGap),
@@ -445,6 +448,7 @@ internal static class ChatMarkdown
         // InlineUIContainer ставит на базовую линию нижний край элемента, а у формулы под ней
         // ещё есть свес — отрицательный отступ опускает коробку ровно на его высоту.
         visual.Element.Margin = new Thickness(1, 0, 1, -visual.Descent);
+        QuoteSelection.SetSource(visual.Element, new QuoteSource(delimiters, content, delimiters));
 
         return new InlineUIContainer(visual.Element)
         {
@@ -463,8 +467,12 @@ internal static class ChatMarkdown
             return BuildSavedFileCard(file, context);
         }
 
-        return new BlockUIContainer(
-            CodeBlockView.Create(context.Host, body, language, cache: !context.Streaming))
+        // chatMenu: правый клик по коду открывает меню ленты («Копировать», «Ответить»), а не
+        // системное. Исходник — чтобы выделение, захватившее блок целиком, донесло код до
+        // цитаты: сам блок лежит в документе элементом интерфейса, а не текстом.
+        var view = CodeBlockView.Create(context.Host, body, language, cache: !context.Streaming, chatMenu: true);
+        QuoteSelection.SetSource(view, new QuoteSource("```" + language?.Trim(), body, "```", Block: true));
+        return new BlockUIContainer(view)
         {
             Margin = new Thickness(0)
         };
@@ -483,6 +491,7 @@ internal static class ChatMarkdown
 
         var card = ChatMessageViews.CreateSavedFileCard(context.Host, file);
         card.Margin = new Thickness(0, 2, 0, 2);
+        QuoteSelection.SetSource(card, new QuoteSource("", file.Path, "", Block: true));
         return new BlockUIContainer(card) { Margin = new Thickness(0, 0, 0, 8) };
     }
 
@@ -896,6 +905,9 @@ internal static class ChatMarkdown
         };
         run.SetResourceReference(TextElement.ForegroundProperty, "Code.Inline");
         run.SetResourceReference(TextElement.BackgroundProperty, "Bg.Raised");
+
+        // Выделенный целиком кусок кода уходит в цитату в обратных кавычках и без шпаций.
+        QuoteSelection.SetSource(run, new QuoteSource("`", content, "`"));
         return run;
     }
 

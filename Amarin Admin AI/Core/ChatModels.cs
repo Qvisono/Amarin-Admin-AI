@@ -117,6 +117,16 @@ public sealed class ChatDisplayMessage
     /// </summary>
     public List<FileAttachment> Files { get; set; } = [];
 
+    /// <summary>
+    /// Фрагменты прежних ответов, на которые человек отвечает этим сообщением.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="Text"/>, а не вписаны в него: см. <see cref="MessageQuote"/>. У
+    /// переписок, сохранённых раньше, поля в JSON нет, и список выходит пустым — чат
+    /// сериализуется рефлексией, миграция не нужна.
+    /// </remarks>
+    public List<MessageQuote> Quotes { get; set; } = [];
+
     public string? RequestedModelId { get; set; }
 
     public string? ResolvedModelId { get; set; }

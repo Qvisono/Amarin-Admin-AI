@@ -39,6 +39,18 @@ internal sealed class MessageActions
 
     /// <summary>Raised by the "add to allowlist" chip under a download blocked by the domain list.</summary>
     public Action<string>? AddDownloadDomain;
+
+    /// <summary>
+    /// Переписка, которой принадлежит сообщение, — по ней карточка цитаты узнаёт, жив ли ещё
+    /// ответ-источник и последний ли он.
+    /// </summary>
+    public Func<IReadOnlyList<ChatDisplayMessage>>? Transcript;
+
+    /// <summary>Показать в ленте место, откуда взята цитата.</summary>
+    public Action<MessageQuote>? ShowQuoteSource;
+
+    /// <summary>Формат даты — для подписи источника цитаты из другого дня.</summary>
+    public Func<DateFormat>? CurrentDateFormat;
 }
 
 internal sealed class UserMessageView
@@ -932,6 +944,10 @@ internal static class ChatMessageViews
         var wide = parsed.HasBlockConstructs;
         var display = CreateReadOnlyBox(UserForeground, 13.5, 19, shrinkWrap: !wide);
         ChatMarkdown.Write(display, host, parsed, 13.5, 19, fillAvailableWidth: wide);
+        if (message.Quotes.Count > 0)
+        {
+            QuoteViews.HighlightReferences(display.Document, message.Quotes, actions?.ShowQuoteSource);
+        }
         if (wide)
         {
             display.MaxWidth = UserBubbleInnerMax;
@@ -987,6 +1003,12 @@ internal static class ChatMessageViews
         if (message.Files.Count > 0)
         {
             root.Children.Add(CreateFileStrip(host, message));
+        }
+
+        // Цитаты — прямо над пузырём: они про то, на что отвечает текст под ними.
+        if (message.Quotes.Count > 0)
+        {
+            root.Children.Add(QuoteViews.BubbleStrip(host, message, actions));
         }
 
         root.Children.Add(bubble);
@@ -1203,6 +1225,10 @@ internal static class ChatMessageViews
         // Само тело наполняется ниже, через SetBody: разметка обязана видеть список файлов
         // этого ответа, а он известен только после UpdateTools.
         var body = CreateReadOnlyBox(AiForeground, 13.5, 21);
+
+        // Из тела ответа можно цитировать — по этой отметке лента отличает его от пузыря
+        // человека и от вложенных боксов кода.
+        QuoteSelection.SetIsQuotable(body, true);
         var streaming = message.Status is AssistantStatus.Streaming;
 
         var buttons = BuildAssistantActions(host, message, actions);
@@ -1294,7 +1320,12 @@ internal static class ChatMessageViews
             CaretBrush = Brushes.Transparent,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            FocusVisualStyle = null
+            FocusVisualStyle = null,
+
+            // Локальный null, а не отсутствие значения: встретив его, редактор текста не
+            // открывает системное меню «Вырезать/Вставить» и не гасит событие, и оно всплывает
+            // до ленты — та открывает своё, в стиле программы и с «Ответить».
+            ContextMenu = null
         };
         box.SetResourceReference(Control.ForegroundProperty, foregroundKey);
         box.SetResourceReference(TextBoxBase.SelectionBrushProperty, "Bg.Elevated");

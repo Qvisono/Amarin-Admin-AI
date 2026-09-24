@@ -39,11 +39,17 @@ internal static class CodeBlockView
     /// у растущего текста ключ меняется на каждой перерисовке, попаданий не бывает, а
     /// промежуточные состояния вытесняют из кэша уже дописанные блоки.
     /// </param>
+    /// <param name="chatMenu">
+    /// Блок стоит в ленте чата: системное меню по правому клику у него снимается, и событие
+    /// доходит до ленты, которая открывает своё — с «Ответить». В журнале и окне подтверждения
+    /// ленты нет, и там остаётся штатное меню.
+    /// </param>
     public static FrameworkElement Create(
         FrameworkElement host,
         string code,
         string? language,
-        bool cache = true)
+        bool cache = true,
+        bool chatMenu = false)
     {
         code = code.Replace("\r\n", "\n").TrimEnd('\n');
 
@@ -70,6 +76,12 @@ internal static class CodeBlockView
         header.Children.Add(copy);
 
         var text = BuildCodeText(host, code, language, cache);
+        if (chatMenu)
+        {
+            // Именно локальный null, а не пустое значение: встретив его, редактор текста не
+            // открывает своё меню и не гасит событие, и оно всплывает до ленты.
+            text.ContextMenu = null;
+        }
         var scroller = new ScrollViewer
         {
             Content = text,

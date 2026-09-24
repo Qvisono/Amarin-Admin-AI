@@ -758,4 +758,50 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- ═══════════ ЦИТАТЫ: «ОТВЕТИТЬ» НА ФРАГМЕНТ ОТВЕТА ═══════════ -->
+    <!-- Кнопки плашки «Ответить» и строк подсказки «@». Фокус им не нужен: нажатие не должно
+         уводить его из ответа (выделение погасло бы) или из поля ввода (каретка ушла бы). -->
+
+    <Style x:Key="QuotePillButton" TargetType="Button">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="9,0,10,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Номер цитаты «@N»: один вид в поле ввода, в подсказке и в пузыре сообщения. -->
+    <Style x:Key="QuoteBadge" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Bg.Elevated}"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="5,0,5,1"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="QuoteBadgeText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+    </Style>
 </ResourceDictionary>

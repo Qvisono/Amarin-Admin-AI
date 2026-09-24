@@ -87,6 +87,7 @@ namespace Amarin.UI
             // за раз, клик мимо закрывает.
             PopupManager.Register(ModelPicker, ModelButton);
             PopupManager.Register(ActionsPopup, AttachButton);
+            InitializeQuotes();
 
             WindowMaximizeFix.Attach(this);
 
@@ -1891,6 +1892,14 @@ namespace Amarin.UI
 
         private void MessageTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Раньше отправки: пока открыта подсказка «@», Enter выбирает цитату, а не шлёт
+            // недописанное сообщение.
+            if (TryHandleQuoteSuggestKey(e))
+            {
+                e.Handled = true;
+                return;
+            }
+
             // Ctrl+V attaches an image when the clipboard holds one; otherwise the TextBox
             // handles the paste itself and text keeps working exactly as before.
             if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -1928,6 +1937,14 @@ namespace Amarin.UI
             // Attachments alone are a valid message — "look at this" needs no words.
             if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0 && _pendingFiles.Count == 0)
             {
+                // A quote alone is not: it says what the reply is about, not what is wanted.
+                // The engine would drop such a turn silently, so keep the person in the field —
+                // its placeholder already asks for the reply.
+                if (_pendingQuotes.Count > 0)
+                {
+                    FocusMessageInput();
+                }
+
                 return;
             }
 
@@ -1957,6 +1974,19 @@ namespace Amarin.UI
                 return;
             }
 
+            // Same for quotes: the agent never sees the chat, so a quote handed to it would
+            // point at replies it has never read.
+            if (command is not null && _pendingQuotes.Count > 0)
+            {
+                MessageBox.Show(
+                    this,
+                    Loc.Get("S.Turn.AgentNoQuotes"),
+                    Title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
             // If the turn finished in the moment between the check and the call, QueueFollowUp
             // says so and the message goes out as an ordinary one instead of vanishing.
             if (IsBusy(_session.Id) && QueueFollowUp(text, command is not null))
@@ -1967,6 +1997,7 @@ namespace Amarin.UI
             MessageTextBox.Clear();
             var images = _pendingImages.Count == 0 ? null : _pendingImages.ToArray();
             var files = _pendingFiles.Count == 0 ? null : _pendingFiles.ToArray();
+            var quotes = _pendingQuotes.Count == 0 ? null : _pendingQuotes.ToArray();
             ClearPendingAttachments();
 
             var session = _session;
@@ -1979,7 +2010,7 @@ namespace Amarin.UI
             }
 
             await RunTurnAsync(session, TurnKind.Send, (chat, observer, token) =>
-                _services.Chat.RunTurnAsync(chat, text, images, files, observer, token));
+                _services.Chat.RunTurnAsync(chat, text, images, files, quotes, observer, token));
         }
 
         private void StartNewSession(bool persist)
@@ -2061,6 +2092,10 @@ namespace Amarin.UI
             // Подпись под композером принадлежит чату: при переходе показывается его, а не
             // та, что осталась от разговора, из которого ушли.
             UpdateAttachmentWarning();
+
+            // Удаление, «Повторить» и смена языка тоже идут сюда: подпись источника у
+            // прикреплённой цитаты («из последнего ответа», «удалён») могла стать неправдой.
+            RefreshQuoteRows();
             MaybeAutoscroll();
             ScheduleBackgroundFill();
         }
@@ -2126,7 +2161,10 @@ namespace Amarin.UI
             Share = ShareMessage,
             Export = ExportMessage,
             SharingEnabled = SharingEnabled,
-            AddDownloadDomain = OpenDomainDialog
+            AddDownloadDomain = OpenDomainDialog,
+            Transcript = () => session.Messages,
+            ShowQuoteSource = quote => ShowQuoteSource(session, quote),
+            CurrentDateFormat = () => ActiveDateFormat
         };
 
         private static void CopyMessage(ChatDisplayMessage message)
@@ -2236,21 +2274,26 @@ namespace Amarin.UI
 
             MessageTextBox.Clear();
 
+            // Quotes, unlike attachments, are plain text for the model, so they fold into the
+            // queued line itself: the block is built now, against the transcript as it stands.
             var user = new ChatDisplayMessage
             {
                 Role = "user",
                 Id = Guid.NewGuid().ToString("N"),
                 CreatedAt = DateTime.Now,
-                Text = text
+                Text = text,
+                Quotes = [.. _pendingQuotes]
             };
             _session.Messages.Add(user);
+            var queued = ChatQuotes.Wrap(text, user.Quotes, _session.Messages, _session.Messages.Count - 1);
+            ClearPendingAttachments();
 
             var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session)).Root;
             AppendMessage(user, userRoot);
             MaybeAutoscroll();
             RefreshChatList();
 
-            turn.Enqueue(text);
+            turn.Enqueue(queued);
             ShowComposerNotice(Loc.Get("S.Turn.Queued"));
             return true;
         }
@@ -2764,6 +2807,13 @@ namespace Amarin.UI
 
         private void ChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
+            // Плашка «Ответить» стоит там, где отпустили кнопку, и за текстом не едет: уехавший
+            // текст оставил бы её висеть над чужой строкой.
+            if (e.VerticalChange != 0)
+            {
+                HideReplyPill();
+            }
+
             if (_autoScrolling)
             {
                 return;

@@ -113,6 +113,33 @@ internal static class ChatContent
     }
 
     /// <summary>
+    /// Содержимое сообщения человека для модели, собранное из того, что лежит в переписке.
+    /// </summary>
+    /// <remarks>
+    /// Одно место на все случаи — первая отправка, правка текста, пересборка после удаления
+    /// хода. Пока их было несколько, каждая новая часть сообщения (сперва документы, теперь
+    /// цитаты) молча терялась в той копии, куда её забыли добавить.
+    /// </remarks>
+    /// <param name="index">Где это сообщение стоит в <paramref name="messages"/>.</param>
+    public static JsonElement ForUser(
+        ChatDisplayMessage user,
+        IReadOnlyList<ChatDisplayMessage> messages,
+        int index)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(messages);
+
+        var images = user.Images.Count == 0 ? null : user.Images;
+        var files = user.Files.Count == 0 ? null : user.Files;
+        var body = images is null && files is null ? user.Text : BuildPrompt(user.Text, images, files);
+        var text = ChatQuotes.Wrap(body, user.Quotes, messages, index);
+
+        return images is null && files is null
+            ? Text(text)
+            : Multipart(text, images, files);
+    }
+
+    /// <summary>
     /// Массив содержимого всегда начинается с текста, поэтому ход из одних вложений нуждается
     /// в подставной просьбе, а не в пустой строке, которую модели приходится угадывать.
     /// </summary>
