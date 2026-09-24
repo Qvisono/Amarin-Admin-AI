@@ -96,6 +96,12 @@ namespace Amarin.UI
         /// <summary>Идущая проверка обновлений — чтобы выход мог её дождаться.</summary>
         private Task? _updateCheckTask;
 
+        /// <summary>
+        /// Когда в этом запуске GitHub в последний раз ответил. В памяти, а не в настройках: при
+        /// закрытии важно, что известно этому процессу, а не то, что было в прошлый раз.
+        /// </summary>
+        private DateTime? _lastSuccessfulCheckUtc;
+
         /// <summary>Идущая фоновая загрузка — чтобы выход мог её дождаться.</summary>
         private Task? _autoDownloadTask;
 
@@ -539,9 +545,24 @@ namespace Amarin.UI
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-                var result = await UpdateChecker.CheckAsync(CurrentVersion, timeout.Token);
+                UpdateCheckResult result;
+                try
+                {
+                    result = await UpdateChecker.CheckAsync(CurrentVersion, timeout.Token);
+                }
+                catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+                {
+                    // Свой срок в двадцать секунд — обычный отказ, а не авария: без этого
+                    // повтор через полчаса не назначался, а выход не узнавал, что проверка кончилась.
+                    result = UpdateCheckResult.Failed(Loc.Get("S.Updates.Timeout"));
+                }
 
                 var now = DateTime.UtcNow;
+                if (result.Ok)
+                {
+                    _lastSuccessfulCheckUtc = now;
+                }
+
                 _services.Settings.LastUpdateCheckUtc = now;
                 _services.SettingsStore.Save(_services.Settings);
 
@@ -806,6 +827,7 @@ namespace Amarin.UI
         internal bool UpdatePendingForExit =>
             _services is { Settings.AutoCheckUpdates: true } &&
             (_updateCheckRunning ||
+             UpdateSchedule.CheckDueOnExit(DateTime.UtcNow, _lastSuccessfulCheckUtc) ||
              _autoDownload is not null ||
              _updateDownload is not null ||
              (_latestRelease is { WindowsBuild: not null } found &&
@@ -905,6 +927,14 @@ namespace Amarin.UI
             using var limit = new CancellationTokenSource(UpdateSchedule.ExitLimit);
             try
             {
+                // Проверка при запуске сорвалась или была давно — спрашиваем GitHub ещё раз,
+                // уже без окна: ставить надо то, что лежит там сейчас.
+                if (!_updateCheckRunning &&
+                    UpdateSchedule.CheckDueOnExit(DateTime.UtcNow, _lastSuccessfulCheckUtc))
+                {
+                    StartUpdateCheck(manual: false);
+                }
+
                 if (_updateCheckTask is { IsCompleted: false } check)
                 {
                     await check.WaitAsync(limit.Token);

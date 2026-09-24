@@ -46,6 +46,21 @@ public static class UpdateSchedule
     /// </remarks>
     public static readonly TimeSpan ExitLimit = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// Удачная проверка старше этого при закрытии программы повторяется — уже без окна.
+    /// </summary>
+    /// <remarks>
+    /// Обновление ставится при закрытии, и ставить надо то, что есть на GitHub сейчас, а не
+    /// то, что было там утром: программа бывает открыта сутками, а такт проверяет раз в пять
+    /// часов. Без повтора проверка, сорвавшаяся при запуске (не было сети), означала бы, что при
+    /// закрытии ставить нечего вовсе.
+    /// </remarks>
+    public static readonly TimeSpan RecheckOnExit = TimeSpan.FromMinutes(30);
+
+    /// <summary>Проверить ли ещё раз при закрытии. <c>null</c> — удачной проверки в этом запуске не было.</summary>
+    public static bool CheckDueOnExit(DateTime nowUtc, DateTime? lastSuccessUtc) =>
+        lastSuccessUtc is not { } last || nowUtc - last >= RecheckOnExit || nowUtc < last;
+
     /// <summary>Пора ли идти в сеть. <c>null</c> — не проверяли ещё ни разу, значит пора.</summary>
     public static bool DueAt(DateTime nowUtc, DateTime? lastCheckUtc) =>
         lastCheckUtc is not { } last || nowUtc - last >= Interval;

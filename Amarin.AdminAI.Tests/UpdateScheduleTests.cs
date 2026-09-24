@@ -40,6 +40,31 @@ public sealed class UpdateScheduleTests
     }
 
     [Fact]
+    public void Closing_rechecks_when_this_launch_never_heard_from_github()
+    {
+        // Проверка при запуске сорвалась (не было сети) — без повтора при закрытии ставить
+        // было бы нечего, и обновление откладывалось бы до следующего удачного запуска.
+        Assert.True(UpdateSchedule.CheckDueOnExit(Now, lastSuccessUtc: null));
+    }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(29, false)]
+    [InlineData(30, true)]
+    [InlineData(600, true)]
+    public void Closing_rechecks_a_stale_answer_but_not_a_fresh_one(int minutesAgo, bool due)
+    {
+        // Программа бывает открыта сутками; ставить при закрытии надо то, что на GitHub сейчас.
+        Assert.Equal(due, UpdateSchedule.CheckDueOnExit(Now, Now - TimeSpan.FromMinutes(minutesAgo)));
+    }
+
+    [Fact]
+    public void Clocks_moved_back_count_as_a_stale_answer()
+    {
+        Assert.True(UpdateSchedule.CheckDueOnExit(Now, Now + TimeSpan.FromHours(2)));
+    }
+
+    [Fact]
     public void A_check_that_never_ran_is_due_at_once()
     {
         Assert.True(UpdateSchedule.DueAt(Now, null));
