@@ -274,6 +274,55 @@ public sealed class DragScrollTests
         Assert.Equal((false, false), empty);
     }
 
+    [Fact]
+    public void The_hint_for_to_the_end_sits_just_above_its_button_and_centred()
+    {
+        // Всплывающая подсказка над этой кнопкой вставала не там и носиком от кнопки, поэтому
+        // подсказка — элемент окна, и положение её задаёт раскладка. Меряем по ней: носик
+        // в четырёх точках над кнопкой, центры на одной вертикали.
+        var (gap, drift) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var button = (FrameworkElement)window.FindName("ScrollBottomButton")!;
+            var hint = (FrameworkElement)window.FindName("ScrollBottomHint")!;
+            window.UpdateLayout();
+
+            // Сдвиг раскладки, без RenderTransform: кнопка проявляется подъёмом, и в середине
+            // анимации её нарисованное положение не то, что положено.
+            var buttonAt = System.Windows.Media.VisualTreeHelper.GetOffset(button);
+            var hintAt = System.Windows.Media.VisualTreeHelper.GetOffset(hint);
+            return (buttonAt.Y - (hintAt.Y + hint.ActualHeight),
+                (buttonAt.X + button.ActualWidth / 2) - (hintAt.X + hint.ActualWidth / 2));
+        });
+
+        Assert.Equal(4, gap, 1);
+        Assert.Equal(0, drift, 1);
+    }
+
+    [Fact]
+    public void The_hint_for_to_the_end_shows_and_hides()
+    {
+        var (shown, hidden) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var state = typeof(MainWindow).GetField("_scrollBottomHintShown", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            try
+            {
+                window.ShowScrollBottomHint(true);
+                var on = (bool)state.GetValue(window)!;
+                window.ShowScrollBottomHint(false);
+                return (on, !(bool)state.GetValue(window)!);
+            }
+            finally
+            {
+                window.ShowScrollBottomHint(false);
+            }
+        });
+
+        Assert.True(shown);
+        Assert.True(hidden);
+    }
+
     private T WithPage<T>(double contentHeight, Func<Window, ScrollViewer, T> body) =>
         _wpf.Ui.Invoke(() =>
         {

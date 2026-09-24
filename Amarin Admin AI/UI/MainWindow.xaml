@@ -548,7 +548,7 @@
                     <Button x:Name="ScrollTopButton" Grid.Row="0" Width="30" Height="30"
                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,28,0"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
-                            ToolTip="{DynamicResource S.Chat.ScrollTop}" ToolTipService.VerticalOffset="8"
+                            ToolTip="{DynamicResource S.Chat.ScrollTop}" ToolTipService.VerticalOffset="4"
                             Click="ScrollTopButton_Click">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
@@ -572,12 +572,9 @@
                     <Button x:Name="ScrollBottomButton" Grid.Row="0" Width="36" Height="36"
                             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
-                            ToolTipService.VerticalOffset="-8" Click="ScrollBottomButton_Click">
-                        <!-- Над кнопкой, а не под ней: снизу поле ввода. Размещение ставит MainWindow.ScrollJump. -->
-                        <Button.ToolTip>
-                            <ToolTip x:Name="ScrollBottomTip" Content="{DynamicResource S.Chat.ScrollBottom}"
-                                     Placement="Custom"/>
-                        </Button.ToolTip>
+                            AutomationProperties.Name="{DynamicResource S.Chat.ScrollBottom}"
+                            MouseEnter="ScrollBottomButton_MouseEnter" MouseLeave="ScrollBottomButton_MouseLeave"
+                            Click="ScrollBottomButton_Click">
                         <Button.RenderTransform>
                             <TranslateTransform x:Name="ScrollBottomShift" Y="8"/>
                         </Button.RenderTransform>
@@ -600,6 +597,25 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+                    <!--
+                        Подсказка к «в конец» — не ToolTip, а элемент окна над кнопкой. Под кнопкой
+                        поле ввода, значит подсказке место сверху, а всплывающее окно подсказки
+                        сверху вставало не там: его высоту WPF отдаёт размещению не такой, какой
+                        карточка выходит на экране. Здесь положение задаёт сама раскладка:
+                        поле 12 + кнопка 36 + зазор 4. Вид — тот же, что у подсказок в
+                        Resources.xaml, только носик снизу и смотрит на кнопку.
+                    -->
+                    <StackPanel x:Name="ScrollBottomHint" Grid.Row="0" Opacity="0" IsHitTestVisible="False"
+                                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,52">
+                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="8" Padding="10,8">
+                            <TextBlock Text="{DynamicResource S.Chat.ScrollBottom}" FontSize="11.5"
+                                       Foreground="{DynamicResource Text.Body}"/>
+                        </Border>
+                        <Path Data="M0,0 L6,6 L12,0 Z" HorizontalAlignment="Center" Margin="0,-1,0,0"
+                              Fill="{DynamicResource Bg.Card}" Stroke="{DynamicResource Border.Default}"
+                              StrokeThickness="1"/>
+                    </StackPanel>
                     <!--
                         VerticalAlignment="Bottom" и ClipToBounds нужны компактному режиму: при
                         Stretch заданная высота центрируется в строке, и полоска зависла бы над

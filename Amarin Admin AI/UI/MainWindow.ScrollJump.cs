@@ -1,7 +1,9 @@
 using System.Runtime.Versioning;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace Amarin.UI
 {
@@ -34,13 +36,51 @@ namespace Amarin.UI
         private bool _scrollTopShown;
         private bool _scrollBottomShown;
 
-        /// <summary>
-        /// Подсказка «в конец» встаёт над кнопкой. Обработчик размещения задаётся только из кода,
-        /// а заданный заранее не даёт общему правилу (<c>UiScale.PlaceUnderTarget</c>) переставить
-        /// её под кнопку, на поле ввода.
-        /// </summary>
-        private void InitializeScrollJump() =>
-            ScrollBottomTip.CustomPopupPlacementCallback = UiScale.PlaceAboveCenter;
+        /// <summary>Задержка перед подсказкой «в конец» — та же, что у всех подсказок (<see cref="ToolTipDefaults"/>).</summary>
+        private static readonly TimeSpan ScrollBottomHintDelay = TimeSpan.FromMilliseconds(220);
+
+        private DispatcherTimer? _scrollBottomHintTimer;
+        private bool _scrollBottomHintShown;
+
+        /// <summary>Заводит задержку подсказки «в конец».</summary>
+        private void InitializeScrollJump()
+        {
+            _scrollBottomHintTimer = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+            {
+                Interval = ScrollBottomHintDelay
+            };
+            _scrollBottomHintTimer.Tick += (_, _) =>
+            {
+                _scrollBottomHintTimer.Stop();
+                if (ScrollBottomButton.IsMouseOver && _scrollBottomShown)
+                {
+                    ShowScrollBottomHint(true);
+                }
+            };
+        }
+
+        private void ScrollBottomButton_MouseEnter(object sender, MouseEventArgs e) =>
+            _scrollBottomHintTimer?.Start();
+
+        private void ScrollBottomButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            _scrollBottomHintTimer?.Stop();
+            ShowScrollBottomHint(false);
+        }
+
+        /// <summary>Проявляет или гасит подсказку «в конец». Отдельно ради тестов.</summary>
+        internal void ShowScrollBottomHint(bool show)
+        {
+            if (show == _scrollBottomHintShown)
+            {
+                return;
+            }
+
+            _scrollBottomHintShown = show;
+            ScrollBottomHint.BeginAnimation(
+                OpacityProperty,
+                new DoubleAnimation(show ? 1 : 0, TimeSpan.FromMilliseconds(show ? 120 : 90)));
+        }
 
         private void ScrollTopButton_Click(object sender, RoutedEventArgs e)
         {
@@ -55,13 +95,17 @@ namespace Amarin.UI
             SmoothScroll.GlideTo(ChatScrollViewer, ScrollEdge.Top, OnChatGlideArrived);
         }
 
-        private void ScrollBottomButton_Click(object sender, RoutedEventArgs e) =>
+        private void ScrollBottomButton_Click(object sender, RoutedEventArgs e)
+        {
+            _scrollBottomHintTimer?.Stop();
+            ShowScrollBottomHint(false);
             SmoothScroll.GlideTo(ChatScrollViewer, ScrollEdge.Bottom, () =>
             {
                 // Доехали до конца — значит, человек снова следит за ответом.
                 _stickToBottom = true;
                 OnChatGlideArrived();
             });
+        }
 
         private void OnChatGlideArrived()
         {
@@ -124,6 +168,10 @@ namespace Amarin.UI
             {
                 _scrollBottomShown = showBottom;
                 Reveal(ScrollBottomButton, showBottom, ScrollBottomShift);
+                if (!showBottom)
+                {
+                    ShowScrollBottomHint(false);
+                }
             }
         }
 
