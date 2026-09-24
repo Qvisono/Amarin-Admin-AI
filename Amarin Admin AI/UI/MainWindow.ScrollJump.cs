@@ -34,6 +34,14 @@ namespace Amarin.UI
         private bool _scrollTopShown;
         private bool _scrollBottomShown;
 
+        /// <summary>
+        /// Подсказка «в конец» встаёт над кнопкой. Обработчик размещения задаётся только из кода,
+        /// а заданный заранее не даёт общему правилу (<c>UiScale.PlaceUnderTarget</c>) переставить
+        /// её под кнопку, на поле ввода.
+        /// </summary>
+        private void InitializeScrollJump() =>
+            ScrollBottomTip.CustomPopupPlacementCallback = UiScale.PlaceAboveCenter;
+
         private void ScrollTopButton_Click(object sender, RoutedEventArgs e)
         {
             _stickToBottom = false;

@@ -64,6 +64,21 @@ internal static class UiScale
         return [new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal)];
     }
 
+    /// <summary>
+    /// Ставит подсказку по центру над целью.
+    /// </summary>
+    /// <remarks>
+    /// Для кнопок у нижнего края ленты: под ними поле ввода, и подсказка снизу легла бы на него.
+    /// Зазор задаёт отрицательный <c>ToolTipService.VerticalOffset</c> хозяина — WPF применяет
+    /// его к результату сам, как и у <see cref="PlaceBelowCenter"/>.
+    /// </remarks>
+    public static CustomPopupPlacement[] PlaceAboveCenter(Size popupSize, Size targetSize, Point offset)
+    {
+        var x = (targetSize.Width - popupSize.Width) / 2.0 + offset.X;
+        var y = -popupSize.Height + offset.Y;
+        return [new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal)];
+    }
+
     public static void AttachCenteredBelowTooltip(FrameworkElement target)
     {
         ArgumentNullException.ThrowIfNull(target);

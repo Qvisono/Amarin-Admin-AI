@@ -548,7 +548,8 @@
                     <Button x:Name="ScrollTopButton" Grid.Row="0" Width="30" Height="30"
                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,28,0"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
-                            ToolTip="{DynamicResource S.Chat.ScrollTop}" Click="ScrollTopButton_Click">
+                            ToolTip="{DynamicResource S.Chat.ScrollTop}" ToolTipService.VerticalOffset="8"
+                            Click="ScrollTopButton_Click">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
@@ -571,7 +572,12 @@
                     <Button x:Name="ScrollBottomButton" Grid.Row="0" Width="36" Height="36"
                             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
                             Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
-                            ToolTip="{DynamicResource S.Chat.ScrollBottom}" Click="ScrollBottomButton_Click">
+                            ToolTipService.VerticalOffset="-8" Click="ScrollBottomButton_Click">
+                        <!-- Над кнопкой, а не под ней: снизу поле ввода. Размещение ставит MainWindow.ScrollJump. -->
+                        <Button.ToolTip>
+                            <ToolTip x:Name="ScrollBottomTip" Content="{DynamicResource S.Chat.ScrollBottom}"
+                                     Placement="Custom"/>
+                        </Button.ToolTip>
                         <Button.RenderTransform>
                             <TranslateTransform x:Name="ScrollBottomShift" Y="8"/>
                         </Button.RenderTransform>
