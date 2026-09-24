@@ -379,9 +379,8 @@ namespace Amarin.UI
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Настройки закрывают чат целиком, и возвращаться в загадочно приближённую ленту,
-            // забыв про жест, незачем.
-            ResetChatZoom();
+            // Лупу здесь не сбрасываем: настройки лежат поверх ленты, и из них возвращаются к
+            // тому же чату — приближение, которое человек выставил сам, должно его дождаться.
 
             // Панель показываем первой: вся загрузка шла до этой строки, и человек несколько
             // кадров смотрел на замерший интерфейс, прежде чем настройки вообще появлялись.
@@ -2160,7 +2159,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(message.Id);
             PersistCurrent();
             RefreshChatList();
             Detached.Run(ContinueAssistantAsync(), "continue_assistant");
@@ -2184,7 +2183,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(null);
             PersistCurrent();
             RefreshChatList();
         }
@@ -2273,7 +2272,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RenderSession();
+            ReconcileTranscript(null);
             PersistCurrent();
             Detached.Run(ContinueAssistantAsync(), "continue_assistant");
         }

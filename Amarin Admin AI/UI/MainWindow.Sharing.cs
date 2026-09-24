@@ -131,8 +131,9 @@ namespace Amarin.UI
             _services.Settings.ChatSharingEnabled = ChatSharingToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
-            // The buttons are built per message, so redraw the transcript to apply the change.
-            RenderSession();
+            // The buttons are built per message, so redraw the transcript to apply the change —
+            // the same chat, so the zoom stays.
+            RebuildTranscript(resetZoom: false);
         }
 
         private void ImportChatButton_Click(object sender, RoutedEventArgs e)

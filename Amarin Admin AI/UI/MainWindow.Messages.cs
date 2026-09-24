@@ -186,6 +186,75 @@ namespace Amarin.UI
             BuildInto(host);
         }
 
+        /// <summary>
+        /// Приводит ленту в соответствие с чатом, из которого убрали сообщения, не трогая
+        /// остальные.
+        /// </summary>
+        /// <param name="refreshId">Сообщение, изменённое на месте, — его пузырь пересобирается.</param>
+        /// <remarks>
+        /// Правка, удаление и перегенерация раньше звали <c>RenderSession</c>: лента строилась
+        /// заново, лупа сбрасывалась, а человек, читавший середину переписки, оказывался в
+        /// другом месте. Все три только вырезают сообщения (правка ещё и меняет текст одного),
+        /// поэтому достаточно снять лишние хосты. Если расхождение оказалось не удалением —
+        /// строим заново, но с сохранённой лупой.
+        /// </remarks>
+        private void ReconcileTranscript(string? refreshId)
+        {
+            var present = new HashSet<ChatDisplayMessage>(_session.Messages, ReferenceEqualityComparer.Instance);
+            var kept = 0;
+            foreach (var host in _messageHosts)
+            {
+                if (!present.Contains(host.Message))
+                {
+                    continue;
+                }
+
+                if (kept >= _session.Messages.Count || !ReferenceEquals(_session.Messages[kept], host.Message))
+                {
+                    RebuildTranscript(resetZoom: false);
+                    return;
+                }
+
+                kept++;
+            }
+
+            if (kept != _session.Messages.Count)
+            {
+                RebuildTranscript(resetZoom: false);
+                return;
+            }
+
+            for (var i = _messageHosts.Count - 1; i >= 0; i--)
+            {
+                var host = _messageHosts[i];
+                if (present.Contains(host.Message))
+                {
+                    continue;
+                }
+
+                if (!host.IsMaterialized)
+                {
+                    _unbuiltMessages--;
+                }
+
+                if (!string.IsNullOrEmpty(host.Id) &&
+                    _messageViews.TryGetValue(host.Id, out var mapped) &&
+                    ReferenceEquals(mapped, host))
+                {
+                    _messageViews.Remove(host.Id);
+                }
+
+                MessagesPanel.Children.Remove(host);
+                _messageHosts.RemoveAt(i);
+            }
+
+            RefreshMessageView(refreshId);
+            UpdateAttachmentWarning();
+            MaybeAutoscroll();
+            MaterializeAroundViewport();
+            ScheduleBackgroundFill();
+        }
+
         private void BuildInto(ChatMessageHost host)
         {
             var message = host.Message;
