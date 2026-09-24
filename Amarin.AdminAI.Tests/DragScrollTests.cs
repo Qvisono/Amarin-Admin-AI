@@ -213,9 +213,11 @@ public sealed class DragScrollTests
     }
 
     [Fact]
-    public void The_jump_pill_shows_on_a_long_chat_and_greys_out_the_edge_it_is_at()
+    public void Each_jump_button_shows_only_while_its_edge_is_far_away()
     {
-        var (shown, up, down, emptyShown) = _wpf.Ui.Invoke(() =>
+        // У низа чата человек проводит почти всё время, и там «в конец» ленту загораживать
+        // не должна; «в начало» — наоборот. На коротком чате не нужна ни одна.
+        var (atTop, atBottom, empty) = _wpf.Ui.Invoke(() =>
         {
             const BindingFlags hidden = BindingFlags.Instance | BindingFlags.NonPublic;
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
@@ -223,13 +225,19 @@ public sealed class DragScrollTests
             var original = field.GetValue(window);
             void Call(string name) => typeof(MainWindow).GetMethod(name, hidden)!.Invoke(window, null);
 
-            var pill = (FrameworkElement)window.FindName("ScrollJumpPill")!;
             var top = (Button)window.FindName("ScrollTopButton")!;
             var bottom = (Button)window.FindName("ScrollBottomButton")!;
             var viewer = (ScrollViewer)window.FindName("ChatScrollViewer")!;
+            (bool Top, bool Bottom) Shown()
+            {
+                window.UpdateLayout();
+                Call("UpdateScrollJump");
+                return (top.IsHitTestVisible, bottom.IsHitTestVisible);
+            }
+
             try
             {
-                var chat = new ChatSession { Id = "jump-pill", Title = "Длинный разговор" };
+                var chat = new ChatSession { Id = "jump-buttons", Title = "Длинный разговор" };
                 for (var i = 0; i < 40; i++)
                 {
                     chat.Messages.Add(new ChatDisplayMessage
@@ -243,16 +251,16 @@ public sealed class DragScrollTests
                 field.SetValue(window, chat);
                 Call("RenderSession");
                 window.UpdateLayout();
+
                 viewer.ScrollToTop();
-                window.UpdateLayout();
-                Call("UpdateScrollJump");
-                var longChat = (pill.IsHitTestVisible, top.IsEnabled, bottom.IsEnabled);
+                var first = Shown();
+
+                viewer.ScrollToEnd();
+                var last = Shown();
 
                 field.SetValue(window, new ChatSession { Id = "jump-empty", Title = "Пусто" });
                 Call("RenderSession");
-                window.UpdateLayout();
-                Call("UpdateScrollJump");
-                return (longChat.Item1, longChat.Item2, longChat.Item3, pill.IsHitTestVisible);
+                return (first, last, Shown());
             }
             finally
             {
@@ -261,10 +269,9 @@ public sealed class DragScrollTests
             }
         });
 
-        Assert.True(shown);
-        Assert.False(up);
-        Assert.True(down);
-        Assert.False(emptyShown);
+        Assert.Equal((false, true), atTop);
+        Assert.Equal((true, false), atBottom);
+        Assert.Equal((false, false), empty);
     }
 
     private T WithPage<T>(double contentHeight, Func<Window, ScrollViewer, T> body) =>

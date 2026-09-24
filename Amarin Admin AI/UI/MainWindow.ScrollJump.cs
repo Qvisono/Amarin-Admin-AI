@@ -1,28 +1,38 @@
 using System.Runtime.Versioning;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace Amarin.UI
 {
     /// <summary>
-    /// Капсула «в начало / в конец» над лентой чата.
+    /// Кнопки «в начало» и «в конец» над лентой чата.
     /// </summary>
     /// <remarks>
     /// Доезд ведёт <see cref="SmoothScroll.GlideTo"/> — той же физикой, что и колесо, поэтому
     /// колесо посреди доезда просто перехватывает его. Пока лента едет, достройка сообщений
     /// ждёт (см. <c>ChatScrollViewer_ScrollChanged</c>): по кадру она строила бы всё, что
     /// мелькнуло, — и в конце строит только то, что осталось на экране.
+    /// <para>
+    /// Каждая кнопка стоит у того края, куда ведёт, и видна, только пока этот край далеко: у
+    /// низа чата — там, где человек проводит почти всё время, — «в конец» не нужна, и ленту
+    /// ничто не загораживает. Первая версия держала обе стрелки капсулой справа внизу постоянно,
+    /// поверх текста, — и выглядело это как помеха, а не помощь.
+    /// </para>
     /// </remarks>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow
     {
-        /// <summary>Меньше этого листать нечего — капсула не показывается.</summary>
-        private const double ScrollJumpMinRange = 40;
+        /// <summary>
+        /// Край считается далёким, когда до него больше этой доли экрана — но не меньше
+        /// <see cref="ScrollJumpMinDistance"/>: иначе кнопка мигала бы от пары строк прокрутки.
+        /// </summary>
+        private const double ScrollJumpViewportShare = 0.35;
 
-        /// <summary>Сколько не доехать до края, чтобы кнопка к нему ещё считалась нужной.</summary>
-        private const double ScrollJumpEdge = 4;
+        private const double ScrollJumpMinDistance = 120;
 
-        private bool _scrollJumpShown;
+        private bool _scrollTopShown;
+        private bool _scrollBottomShown;
 
         private void ScrollTopButton_Click(object sender, RoutedEventArgs e)
         {
@@ -80,48 +90,49 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Показывает капсулу, когда ленту есть куда листать, и гасит кнопку того края, у
-        /// которого лента уже стоит.
+        /// Показывает кнопку края, пока тот далеко, и прячет, когда он рядом.
         /// </summary>
         /// <remarks>
-        /// Зовётся на каждое движение прокрутки, поэтому пишет свойства, только когда они
-        /// вправду меняются. Смещения — в увеличенных лупой пикселях, как у самой прокрутки.
+        /// Зовётся на каждое движение прокрутки, поэтому анимацию заводит, только когда видимость
+        /// вправду меняется. Смещения — в увеличенных лупой пикселях, как у самой прокрутки, и
+        /// порог от высоты экрана считается в них же.
         /// </remarks>
         private void UpdateScrollJump()
         {
             var viewer = ChatScrollViewer;
-            var range = viewer.ScrollableHeight;
-            var show = range > ScrollJumpMinRange;
-
-            if (show != _scrollJumpShown)
-            {
-                _scrollJumpShown = show;
-                ScrollJumpPill.IsHitTestVisible = show;
-                ScrollJumpPill.BeginAnimation(
-                    OpacityProperty,
-                    new DoubleAnimation(show ? 1 : 0, TimeSpan.FromMilliseconds(show ? 160 : 120))
-                    {
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                    });
-            }
-
-            if (!show)
-            {
-                return;
-            }
-
+            var far = Math.Max(ScrollJumpMinDistance, viewer.ViewportHeight * ScrollJumpViewportShare);
             var offset = viewer.VerticalOffset;
-            var canUp = offset > ScrollJumpEdge;
-            var canDown = offset < range - ScrollJumpEdge;
-            if (ScrollTopButton.IsEnabled != canUp)
+
+            var showTop = offset > far;
+            var showBottom = viewer.ScrollableHeight - offset > far;
+
+            if (showTop != _scrollTopShown)
             {
-                ScrollTopButton.IsEnabled = canUp;
+                _scrollTopShown = showTop;
+                Reveal(ScrollTopButton, showTop, shift: null);
             }
 
-            if (ScrollBottomButton.IsEnabled != canDown)
+            if (showBottom != _scrollBottomShown)
             {
-                ScrollBottomButton.IsEnabled = canDown;
+                _scrollBottomShown = showBottom;
+                Reveal(ScrollBottomButton, showBottom, ScrollBottomShift);
             }
+        }
+
+        /// <summary>Проявляет или гасит кнопку; у круглой ещё и приподнимает её снизу.</summary>
+        private static void Reveal(UIElement button, bool show, TranslateTransform? shift)
+        {
+            button.IsHitTestVisible = show;
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var duration = TimeSpan.FromMilliseconds(show ? 180 : 130);
+
+            button.BeginAnimation(
+                UIElement.OpacityProperty,
+                new DoubleAnimation(show ? 1 : 0, duration) { EasingFunction = ease });
+
+            shift?.BeginAnimation(
+                TranslateTransform.YProperty,
+                new DoubleAnimation(show ? 0 : 8, duration) { EasingFunction = ease });
         }
     }
 }

@@ -538,67 +538,62 @@
                                    FontSize="12" Foreground="{DynamicResource Text.Muted}"/>
                     </Border>
                     <!--
-                        В начало и в конец чата. Капсула той же стеклянной породы, что и кнопка
-                        журнала, и с тем же правым полем 28 — место под полосу прокрутки. Прозрачна
-                        и не ловит мышь, пока листать нечего; проявляет её ChatScrollViewer_ScrollChanged.
-                        Подсветка наведения — вкладышем с полями, а не на всю кнопку: так она не
-                        спорит со скруглением капсулы.
+                        В начало и в конец чата — каждая кнопка у того края, куда ведёт, и только
+                        когда он не виден. «В начало» — под кнопкой журнала, той же стеклянной
+                        породы и с тем же правым полем 28 (место под полосу прокрутки); «в конец» —
+                        круглая, по центру над полем ввода, как в мессенджерах. Обе прозрачны и не
+                        ловят мышь, пока не нужны; проявляет их ChatScrollViewer_ScrollChanged.
+                        Прежняя капсула справа внизу висела всегда и лежала прямо на тексте.
                     -->
-                    <Border x:Name="ScrollJumpPill" Grid.Row="0" Opacity="0" IsHitTestVisible="False"
-                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,28,14"
-                            CornerRadius="8" SnapsToDevicePixels="True"
-                            Background="{DynamicResource Bg.Glass}"
-                            BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1">
-                        <Border.Resources>
-                            <Style x:Key="ScrollJumpButton" TargetType="Button">
-                                <Setter Property="Width" Value="30"/>
-                                <Setter Property="Height" Value="28"/>
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Setter Property="Focusable" Value="False"/>
-                                <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="5" Margin="3,2">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                                    <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
-                                                </Trigger>
-                                                <Trigger Property="IsEnabled" Value="False">
-                                                    <Setter Property="Opacity" Value="0.35"/>
-                                                    <Setter Property="Cursor" Value="Arrow"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                            <Style x:Key="ScrollJumpChevron" TargetType="Path">
-                                <Setter Property="Width" Value="11"/>
-                                <Setter Property="Height" Value="7"/>
-                                <Setter Property="Stretch" Value="Uniform"/>
-                                <Setter Property="StrokeThickness" Value="1.6"/>
-                                <Setter Property="StrokeStartLineCap" Value="Round"/>
-                                <Setter Property="StrokeEndLineCap" Value="Round"/>
-                                <Setter Property="StrokeLineJoin" Value="Round"/>
-                                <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                            </Style>
-                        </Border.Resources>
-                        <StackPanel>
-                            <Button x:Name="ScrollTopButton" Style="{StaticResource ScrollJumpButton}"
-                                    ToolTip="{DynamicResource S.Chat.ScrollTop}" Click="ScrollTopButton_Click">
-                                <Path Style="{StaticResource ScrollJumpChevron}" Data="M 1,7 L 6,2 L 11,7"/>
-                            </Button>
-                            <Border Height="1" Margin="7,0" Background="{DynamicResource Border.Subtle}"/>
-                            <Button x:Name="ScrollBottomButton" Style="{StaticResource ScrollJumpButton}"
-                                    ToolTip="{DynamicResource S.Chat.ScrollBottom}" Click="ScrollBottomButton_Click">
-                                <Path Style="{StaticResource ScrollJumpChevron}" Data="M 1,2 L 6,7 L 11,2"/>
-                            </Button>
-                        </StackPanel>
-                    </Border>
+                    <Button x:Name="ScrollTopButton" Grid.Row="0" Width="30" Height="30"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,28,0"
+                            Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
+                            ToolTip="{DynamicResource S.Chat.ScrollTop}" Click="ScrollTopButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Path x:Name="Icon" Data="M 1,7 L 6,2 L 11,7" Width="11" Height="7" Stretch="Uniform"
+                                          Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.6"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button x:Name="ScrollBottomButton" Grid.Row="0" Width="36" Height="36"
+                            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
+                            Opacity="0" IsHitTestVisible="False" Cursor="Hand" Focusable="False"
+                            ToolTip="{DynamicResource S.Chat.ScrollBottom}" Click="ScrollBottomButton_Click">
+                        <Button.RenderTransform>
+                            <TranslateTransform x:Name="ScrollBottomShift" Y="8"/>
+                        </Button.RenderTransform>
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        CornerRadius="18">
+                                    <Path x:Name="Icon" Data="M 1,2 L 6,7 L 11,2" Width="12" Height="7" Stretch="Uniform"
+                                          Margin="0,2,0,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.7"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Bright}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <!--
                         VerticalAlignment="Bottom" и ClipToBounds нужны компактному режиму: при
                         Stretch заданная высота центрируется в строке, и полоска зависла бы над
