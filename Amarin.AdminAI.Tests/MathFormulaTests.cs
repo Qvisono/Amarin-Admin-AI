@@ -128,6 +128,11 @@ public sealed class MathDetectionTests
     [InlineData("E = mc")]
     [InlineData("x")]
     [InlineData("a + b")]
+    [InlineData("|z|")]
+    [InlineData("f(x)")]
+    [InlineData("(x, y)")]
+    [InlineData("z'")]
+    [InlineData("arg(z)")]
     public void Real_formulas_are_recognised(string content) =>
         Assert.True(MathDetection.LooksLikeMath(content));
 
@@ -138,6 +143,10 @@ public sealed class MathDetectionTests
     [InlineData("100")]
     [InlineData("")]
     [InlineData("   ")]
+    [InlineData("HOME")]
+    [InlineData("(TODO)")]
+    [InlineData("(см. ниже)")]
+    [InlineData("5, 10")]
     public void Prose_between_dollars_is_left_alone(string content) =>
         Assert.False(MathDetection.LooksLikeMath(content));
 }
@@ -238,6 +247,81 @@ public sealed class MathRendererTests
         });
 
         Assert.True(fraction > plain * 1.5, $"дробь {fraction}, буква {plain}");
+    }
+
+    [Theory]
+    [InlineData(@"z = x + iy")]
+    [InlineData(@"e^{i3\pi/4}")]
+    [InlineData(@"\cos\varphi + i\sin\varphi")]
+    public void The_imaginary_unit_is_set_upright(string latex)
+    {
+        // Курсивную i в Cambria Math в «+ i sin» и в показателе степени просто не видно.
+        var styles = _wpf.Ui.Invoke(() =>
+            Glyphs(MathRenderer.BuildVisual(new Window(), latex, 16, display: false).Element)
+                .Where(block => block.Text == "i")
+                .Select(block => block.FontStyle)
+                .ToList());
+
+        Assert.NotEmpty(styles);
+        Assert.All(styles, style => Assert.Equal(FontStyles.Normal, style));
+    }
+
+    [Theory]
+    [InlineData(@"\sum_{i=1}^{n} i^2")]
+    [InlineData(@"a_i + b_i")]
+    [InlineData(@"i = 1, 2, 3")]
+    public void An_index_i_stays_italic(string latex)
+    {
+        var styles = _wpf.Ui.Invoke(() =>
+            Glyphs(MathRenderer.BuildVisual(new Window(), latex, 16, display: true).Element)
+                .Where(block => block.Text == "i")
+                .Select(block => block.FontStyle)
+                .ToList());
+
+        Assert.NotEmpty(styles);
+        Assert.All(styles, style => Assert.Equal(FontStyles.Italic, style));
+    }
+
+    [Fact]
+    public void A_function_name_does_not_stick_to_the_letter_before_it()
+    {
+        // Без промежутка «i sin» читалось как одно слово «isin».
+        var gap = _wpf.Ui.Invoke(() =>
+        {
+            var visual = MathRenderer.BuildVisual(new Window(), @"i\sin x", 16, display: false);
+            var canvas = (Canvas)visual.Element;
+            var i = canvas.Children.OfType<TextBlock>().Single(block => block.Text == "i");
+            var sin = canvas.Children.OfType<TextBlock>().Single(block => block.Text == "sin");
+            return Canvas.GetLeft(sin) - (Canvas.GetLeft(i) + i.DesiredSize.Width);
+        });
+
+        Assert.True(gap >= 16 * 0.15, $"промежуток {gap}");
+    }
+
+    private static IEnumerable<TextBlock> Glyphs(DependencyObject root)
+    {
+        if (root is TextBlock block)
+        {
+            yield return block;
+        }
+
+        if (root is Panel panel)
+        {
+            foreach (UIElement child in panel.Children)
+            {
+                foreach (var nested in Glyphs(child))
+                {
+                    yield return nested;
+                }
+            }
+        }
+        else if (root is Decorator { Child: { } child })
+        {
+            foreach (var nested in Glyphs(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     [Fact]
