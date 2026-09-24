@@ -93,6 +93,7 @@ namespace Amarin.UI
             // Второй запуск программы просит это окно показаться. Вешаем здесь, а не в Program:
             // приём сообщения — дело самого окна, и в тестах оно работает так же, как в бою.
             SingleInstance.Attach(this, ActivateFromSecondInstance);
+            CursorGuard.Attach(this);
             StateChanged += (_, _) => ApplyWindowStateChrome();
 
             // Один обработчик на всю панель вместо подписки на каждой строке — см. ChatListPanel_Click.
