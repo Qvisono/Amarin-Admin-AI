@@ -36,6 +36,16 @@ public static class UpdateSchedule
     /// </remarks>
     public static readonly TimeSpan Heartbeat = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// Сколько процесс без окна доводит обновление после закрытия программы.
+    /// </summary>
+    /// <remarks>
+    /// Загрузка семидесяти восьми мегабайт укладывается в минуты даже на медленной связи;
+    /// потолок нужен на случай сети, которая повисла, не оборвавшись, — иначе невидимый процесс
+    /// жил бы до перезагрузки и держал замок единственного экземпляра.
+    /// </remarks>
+    public static readonly TimeSpan ExitLimit = TimeSpan.FromMinutes(15);
+
     /// <summary>Пора ли идти в сеть. <c>null</c> — не проверяли ещё ни разу, значит пора.</summary>
     public static bool DueAt(DateTime nowUtc, DateTime? lastCheckUtc) =>
         lastCheckUtc is not { } last || nowUtc - last >= Interval;

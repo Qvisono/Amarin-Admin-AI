@@ -144,7 +144,12 @@ namespace Amarin.UI
             // с ним уже расстаётся.
             Closing += (_, e) =>
             {
-                SaveWindowGeometry();
+                // Спрятанное ради обновления окно геометрию уже сохранило, а сейчас Windows
+                // отдала бы его состоянием «скрыто» — и «развёрнуто» потерялось бы.
+                if (!_hiddenForExit)
+                {
+                    SaveWindowGeometry();
+                }
 
                 // Хранилище пишет в фоне, и без этого последний ответ мог не доехать до диска.
                 FlushPendingPersists();
@@ -161,8 +166,20 @@ namespace Amarin.UI
                     e.Cancel = true;
                 }
             };
+            // Выключение Windows не проходит через Closing с правом отмены — подмена скачанного
+            // обновления делается здесь, пока сеанс ещё ждёт ответа.
+            if (Application.Current is { } application)
+            {
+                application.SessionEnding += OnSessionEnding;
+            }
+
             Closed += (_, _) =>
             {
+                if (Application.Current is { } current)
+                {
+                    current.SessionEnding -= OnSessionEnding;
+                }
+
                 StopUpdateHeartbeat();
                 CancelAllTurns();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;

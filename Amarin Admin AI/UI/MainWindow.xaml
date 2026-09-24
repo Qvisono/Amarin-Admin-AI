@@ -4023,29 +4023,6 @@
             </Viewbox>
         </Grid>
 
-        <!--
-            ═══════════ УСТАНОВКА ОБНОВЛЕНИЯ ПРИ ЗАКРЫТИИ ═══════════
-            Человек нажал «закрыть», а окно не исчезло: идёт подмена файла, а в защищённой папке
-            ещё и ждётся окно UAC. Без этого экрана замершее окно выглядело бы как зависание.
-            Скрима с кнопкой отмены здесь нет намеренно — отменять уже нечего, выход неизбежен.
-        -->
-        <Grid x:Name="UpdateExitOverlay" Visibility="Collapsed" Panel.ZIndex="40">
-            <Border Background="{DynamicResource Overlay.Scrim}"/>
-            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="380" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource S.Updates.Installing}" FontSize="15"
-                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
-                                   Margin="0,0,0,6"/>
-                        <TextBlock x:Name="UpdateExitText" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
-            </Viewbox>
-        </Grid>
-
         <!-- ═══════════ ЗАПРОС НА РАЗРЕШЕНИЕ ЗАГРУЗКИ ═══════════ -->
         <Grid x:Name="DownloadRequestOverlay" Visibility="Collapsed" Panel.ZIndex="38">
             <Border Background="{DynamicResource Overlay.Scrim}">
