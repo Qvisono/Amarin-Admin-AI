@@ -8,6 +8,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Коммит, ветка или тег, на котором прогнать тесты (пусто — тот, откуда запуск)'
+        required: false
+        default: ''
 
 jobs:
   test:
@@ -15,6 +20,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -31,14 +38,34 @@ jobs:
           if (-not $trx) { 'No test results were written.'; exit 0 }
           [xml]$doc = Get-Content -Raw $trx.FullName
           $ns = @{ t = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010' }
-          $results = @(Select-Xml -Xml $doc -XPath '//t:UnitTestResult' -Namespace $ns | ForEach-Object Node)
-          $failed = @($results | Where-Object outcome -eq 'Failed' | Sort-Object { [datetime]$_.startTime })
+          $results = @(Select-Xml -Xml $doc -XPath '//t:UnitTestResult' -Namespace $ns | ForEach-Object Node |
+            Sort-Object { [datetime]$_.startTime })
+          $failed = @($results | Where-Object outcome -eq 'Failed')
+          $cancelled = { param($r) "$($r.Output.ErrorInfo.Message)" -match 'A task was canceled' }
           "Total: $($results.Count), failed: $($failed.Count)"
-          foreach ($result in $failed | Select-Object -First 12) {
+
+          ''
+          '--- Failed by class'
+          $failed | Group-Object { ($_.testName -replace '\(.*$', '') -replace '\.[^.]+$', '' } |
+            Sort-Object Count -Descending | ForEach-Object { "{0,4}  {1}" -f $_.Count, $_.Name }
+
+          # Первый «A task was canceled» — момент, когда умер общий поток интерфейса; тесты перед
+          # ним — главные подозреваемые.
+          $first = $results | Where-Object { $_.outcome -eq 'Failed' -and (& $cancelled $_) } | Select-Object -First 1
+          if ($first) {
+            $at = [array]::IndexOf($results, $first)
             ''
-            "=== $($result.testName) ($($result.startTime))"
-            $result.Output.ErrorInfo.Message
-            (($result.Output.ErrorInfo.StackTrace -split "`n") | Select-Object -First 20) -join "`n"
+            '--- Tests that ran just before the UI thread died'
+            $results[[math]::Max(0, $at - 8)..$at] | ForEach-Object { "{0,-8} {1}" -f $_.outcome, $_.testName }
+          }
+
+          ''
+          '--- Failures that are not a dead UI thread'
+          foreach ($result in $failed | Where-Object { -not (& $cancelled $_) }) {
+            ''
+            "=== $($result.testName)"
+            (("$($result.Output.ErrorInfo.Message)" -split "`n") | Select-Object -First 6) -join "`n"
+            (("$($result.Output.ErrorInfo.StackTrace)" -split "`n") | Select-Object -First 4) -join "`n"
           }
 
       - uses: actions/upload-artifact@v4

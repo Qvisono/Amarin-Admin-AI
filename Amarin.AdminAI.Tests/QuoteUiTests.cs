@@ -108,6 +108,25 @@ public sealed class QuoteUiTests
     }
 
     [Fact]
+    public void Tables_keep_their_cells_on_one_line()
+    {
+        // Первый абзац ячейки продолжает строку за разделителем, как первый абзац пункта
+        // списка — за маркером: иначе строка таблицы разваливалась на столбик.
+        var text = _wpf.Ui.Invoke(() =>
+        {
+            var view = ChatMessageViews.CreateAssistant(Window(), Answer(
+                "| Порт | Служба |\n|------|--------|\n| 8080 | http |"));
+            Layout(view.Root);
+            view.Body.SelectAll();
+            return QuoteSelection.ExtractText(view.Body.Selection.Start, view.Body.Selection.End);
+        });
+
+        var normalized = ChatQuotes.Normalize(text);
+        Assert.Contains("Порт | Служба", normalized, StringComparison.Ordinal);
+        Assert.Contains("8080 | http", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_short_selection_brings_its_sentence_along()
     {
         var draft = _wpf.Ui.Invoke(() =>

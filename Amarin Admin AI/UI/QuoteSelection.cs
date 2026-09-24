@@ -148,9 +148,18 @@ internal static class QuoteSelection
         switch (element)
         {
             case Paragraph paragraph:
-                // Абзацы верхнего уровня отделены пустой строкой, как в разметке; абзац внутри
-                // пункта списка или ячейки — просто с новой строки.
-                if (paragraph.Parent is FlowDocument or Section)
+                // Абзацы верхнего уровня отделены пустой строкой, как в разметке. Первый абзац
+                // пункта списка или ячейки таблицы продолжает строку: перед ним уже стоят маркер
+                // «- » или разделитель « | », и перенос отрывал бы текст от них — цитата списка
+                // приходила строками «-» и «один» вместо «- один».
+                if (paragraph.Parent is ListItem or TableCell)
+                {
+                    if (paragraph.PreviousBlock is not null)
+                    {
+                        BreakLine(sb);
+                    }
+                }
+                else if (paragraph.Parent is FlowDocument or Section)
                 {
                     BreakParagraph(sb);
                 }
