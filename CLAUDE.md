@@ -27,6 +27,8 @@ dotnet publish "Amarin Admin AI/Amarin Admin AI.csproj" -c Release -r win-x64 \
 результат — один exe ~78 МБ плюс `appsettings.json`. Готовый файл кладётся в `release/` под именем
 `Amarin-Admin-AI-v<версия>-win-x64.exe` и выкладывается как единственное вложение релиза
 (`gh release create v<версия> <файл> --notes-file release/release-notes-v<версия>.md`).
+С 1.26.0 заметки к релизу и `README.md` пишутся **по-английски** — их читают не только
+русскоязычные; комментарии в коде и сама памятка остаются русскими.
 
 Версия живёт в двух местах и меняется вместе: `<Version>` в csproj и `Text="v…"` у
 `SettingsVersionText` в `MainWindow.xaml`. В интерфейсе версия берётся из сборки
