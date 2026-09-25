@@ -1673,12 +1673,22 @@ namespace Amarin.UI
 
         private void CollapseSidebarButton_Click(object sender, RoutedEventArgs e) => SetSidebarCollapsed(true);
 
+        /// <summary>
+        /// Свёрнутую колонку логотип разворачивает, раскрытой — заводит новый чат.
+        /// </summary>
+        /// <remarks>
+        /// В раскрытой колонке кнопка прежде не делала ничего: на логотип нажимают по привычке
+        /// веб-клиентов, где он ведёт «на главную», а главная у чата — пустой разговор.
+        /// </remarks>
         private void SidebarLogoButton_Click(object sender, RoutedEventArgs e)
         {
             if (_sidebarCollapsed)
             {
                 SetSidebarCollapsed(false);
+                return;
             }
+
+            StartNewChatFromUi();
         }
 
         private void SidebarLogoButton_MouseEnter(object sender, MouseEventArgs e) => UpdateLogoGlyph(hover: true);
@@ -2191,7 +2201,9 @@ namespace Amarin.UI
             AddDownloadDomain = OpenDomainDialog,
             Transcript = () => session.Messages,
             ShowQuoteSource = quote => ShowQuoteSource(session, quote),
-            CurrentDateFormat = () => ActiveDateFormat
+            CurrentDateFormat = () => ActiveDateFormat,
+            OpenInstruction = OpenInstruction,
+            InstructionExists = InstructionExists
         };
 
         private static void CopyMessage(ChatDisplayMessage message)
@@ -2728,6 +2740,11 @@ namespace Amarin.UI
             SidebarLogoButton.Margin = collapsed
                 ? new Thickness(0, 6, 0, 6)
                 : new Thickness(6);
+
+            // Ссылкой на ресурс, а не готовой строкой: подсказка обязана смениться вместе с языком.
+            SidebarLogoButton.SetResourceReference(
+                ToolTipProperty,
+                collapsed ? "S.Sidebar.Expand" : "S.ChatList.NewChat");
 
             UpdateLogoGlyph(SidebarLogoButton.IsMouseOver);
         }

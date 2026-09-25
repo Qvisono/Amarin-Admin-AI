@@ -277,6 +277,7 @@
                                 <!-- Лого приложения -->
                                 <Button x:Name="SidebarLogoButton" Margin="6" Height="30" Width="30" HorizontalAlignment="Left"
                                         Cursor="Hand" Click="SidebarLogoButton_Click"
+                                        ToolTip="{DynamicResource S.ChatList.NewChat}"
                                         MouseEnter="SidebarLogoButton_MouseEnter"
                                         MouseLeave="SidebarLogoButton_MouseLeave">
                                     <Button.Template>
@@ -1402,11 +1403,14 @@
                     </Setter>
                 </Style>
 
+                <!-- Отступ сверху 12, а не 14: с пунктом «Инструкции» в колонке восемь страниц,
+                     и плашка версии с надписью об обновлении в две строки иначе вставала
+                     почти вплотную к последнему пункту. -->
                 <Style x:Key="SettingsNavGroup" TargetType="TextBlock">
                     <Setter Property="FontSize" Value="10.5"/>
                     <Setter Property="FontWeight" Value="SemiBold"/>
                     <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
-                    <Setter Property="Margin" Value="18,14,8,4"/>
+                    <Setter Property="Margin" Value="18,12,8,4"/>
                 </Style>
 
                 <!-- ===== Тумблер ===== -->
@@ -1983,6 +1987,7 @@
                                 <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Behavior}" IsChecked="True"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
+                                <RadioButton x:Name="NavInstructions" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Instructions}" Checked="NavInstructions_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Key}"/>
                     <RadioButton x:Name="NavKey" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.KeyInfo}" Checked="NavKey_Checked"/>
                     <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
@@ -2013,7 +2018,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.26.2"
+                                               Text="v1.27.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"
@@ -3453,6 +3458,25 @@
                                 </Style>
                             </local:SettingsKeyPage.Style>
                         </local:SettingsKeyPage>
+
+                        <!-- ═══════════ INSTRUCTIONS ═══════════ -->
+                        <!--
+                            Отдельным UserControl, как Key и Info: список и редактор инструкций.
+                            Стиль с триггером остаётся здесь, потому что ElementName=NavInstructions
+                            ищется в области имён этого файла.
+                        -->
+                        <local:SettingsInstructionsPage x:Name="InstructionsPage">
+                            <local:SettingsInstructionsPage.Style>
+                                <Style TargetType="local:SettingsInstructionsPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavInstructions}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsInstructionsPage.Style>
+                        </local:SettingsInstructionsPage>
 
                         <!-- ═══════════ INFO ═══════════ -->
                         <!--

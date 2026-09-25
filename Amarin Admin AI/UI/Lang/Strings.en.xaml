@@ -451,6 +451,49 @@
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the program</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Start the app and send any message. If an answer comes back, the key is in place. The line about a missing key means the variable never arrived: check that it was created for the user rather than the system, and that the app has been restarted. And if Venice answers that funds are insufficient while the account does have money, then the spend limit sits on the key itself; it is changed in the same API section.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Check that it works</system:String>
+    <system:String x:Key="S.Instructions.Count" xml:space="preserve">{0} total · {1} on</system:String>
+    <system:String x:Key="S.Instructions.Create" xml:space="preserve">Create</system:String>
+    <system:String x:Key="S.Instructions.CreateFirst" xml:space="preserve">Create an instruction</system:String>
+    <system:String x:Key="S.Instructions.DeleteConfirm" xml:space="preserve">Delete the instruction “{0}”?</system:String>
+    <system:String x:Key="S.Instructions.DeleteDesc" xml:space="preserve">The instruction file will be deleted. Marks under earlier replies stay, but they will no longer open it.</system:String>
+    <system:String x:Key="S.Instructions.DeleteFailed" xml:space="preserve">Could not delete the instruction file.</system:String>
+    <system:String x:Key="S.Instructions.Desc" xml:space="preserve">Tell the model how to handle your topics. In chat it sees only the names and trigger words, and opens an instruction by itself when a message touches its topic.</system:String>
+    <system:String x:Key="S.Instructions.DiscardConfirm" xml:space="preserve">Discard changes?</system:String>
+    <system:String x:Key="S.Instructions.DiscardDesc" xml:space="preserve">Unsaved edits to this instruction will be lost.</system:String>
+    <system:String x:Key="S.Instructions.EditTitle" xml:space="preserve">Edit instruction</system:String>
+    <system:String x:Key="S.Instructions.EmptyDesc" xml:space="preserve">Describe how to act in situations you know well and add the words the model should recognise the topic by. It reads the instruction when the topic comes up.</system:String>
+    <system:String x:Key="S.Instructions.EmptyTitle" xml:space="preserve">No instructions yet</system:String>
+    <system:String x:Key="S.Instructions.EnabledLabel" xml:space="preserve">Visible to the model</system:String>
+    <system:String x:Key="S.Instructions.Export" xml:space="preserve">Export .md</system:String>
+    <system:String x:Key="S.Instructions.ExportDone" xml:space="preserve">Saved: {0}</system:String>
+    <system:String x:Key="S.Instructions.ExportFailed" xml:space="preserve">Could not save the file.</system:String>
+    <system:String x:Key="S.Instructions.ExportFilter" xml:space="preserve">Markdown (*.md)|*.md</system:String>
+    <system:String x:Key="S.Instructions.FolderFailed" xml:space="preserve">Could not open the instructions folder.</system:String>
+    <system:String x:Key="S.Instructions.Import" xml:space="preserve">Import .md</system:String>
+    <system:String x:Key="S.Instructions.ImportDone" xml:space="preserve">Imported: {0}. Skipped: {1} — empty or unreadable files.</system:String>
+    <system:String x:Key="S.Instructions.ImportDoneAll" xml:space="preserve">Imported: {0}.</system:String>
+    <system:String x:Key="S.Instructions.ImportFilter" xml:space="preserve">Instructions (*.md;*.txt)|*.md;*.txt</system:String>
+    <system:String x:Key="S.Instructions.NameEmpty" xml:space="preserve">Enter a name.</system:String>
+    <system:String x:Key="S.Instructions.NameLabel" xml:space="preserve">Name</system:String>
+    <system:String x:Key="S.Instructions.NamePlaceholder" xml:space="preserve">In short: what this instruction is about</system:String>
+    <system:String x:Key="S.Instructions.NameTaken" xml:space="preserve">An instruction with this name already exists.</system:String>
+    <system:String x:Key="S.Instructions.NewTitle" xml:space="preserve">New instruction</system:String>
+    <system:String x:Key="S.Instructions.NoTriggers" xml:space="preserve">no trigger words — matched by name only</system:String>
+    <system:String x:Key="S.Instructions.OpenFolder" xml:space="preserve">Open the instructions folder</system:String>
+    <system:String x:Key="S.Instructions.SaveFailed" xml:space="preserve">Could not write the instruction file. Check access to the app's data folder.</system:String>
+    <system:String x:Key="S.Instructions.SearchPlaceholder" xml:space="preserve">Search names, trigger words and text</system:String>
+    <system:String x:Key="S.Instructions.TextEmpty" xml:space="preserve">Write the instruction text.</system:String>
+    <system:String x:Key="S.Instructions.TextLabel" xml:space="preserve">Instruction text</system:String>
+    <system:String x:Key="S.Instructions.TextPlaceholder" xml:space="preserve">What the model needs to know and how to act. Markdown is fine.</system:String>
+    <system:String x:Key="S.Instructions.TextTooLong" xml:space="preserve">The text is longer than {0} characters — shorten it.</system:String>
+    <system:String x:Key="S.Instructions.ToggleTip" xml:space="preserve">The model can see this instruction</system:String>
+    <system:String x:Key="S.Instructions.TriggersFull" xml:space="preserve">No more than {0} trigger words.</system:String>
+    <system:String x:Key="S.Instructions.TriggersHint" xml:space="preserve">Enter or a comma adds one. Case doesn't matter: the model matches meaning, not spelling.</system:String>
+    <system:String x:Key="S.Instructions.TriggersLabel" xml:space="preserve">Trigger words</system:String>
+    <system:String x:Key="S.Instructions.TriggersPlaceholder" xml:space="preserve">Word or phrase</system:String>
+    <system:String x:Key="S.Instructions.UsedGone" xml:space="preserve">This instruction no longer exists.</system:String>
+    <system:String x:Key="S.Instructions.UsedLabel" xml:space="preserve">Instruction</system:String>
+    <system:String x:Key="S.Instructions.UsedTip" xml:space="preserve">The model read this instruction before answering. Click to open it.</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Arguments</system:String>
     <system:String x:Key="S.Journal.Ask" xml:space="preserve">Ask the model</system:String>
     <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">The model answered with nothing. Try again.</system:String>
@@ -636,6 +679,7 @@
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Instructions</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Key and spending</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
@@ -645,6 +689,7 @@
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
     <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Nav.Instructions" xml:space="preserve">Instructions</system:String>
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
@@ -652,6 +697,7 @@
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Collapse sidebar</system:String>
+    <system:String x:Key="S.Sidebar.Expand" xml:space="preserve">Expand sidebar</system:String>
     <system:String x:Key="S.Sidebar.NewChat" xml:space="preserve">New Chat</system:String>
     <system:String x:Key="S.Sidebar.Search" xml:space="preserve">Search</system:String>
 

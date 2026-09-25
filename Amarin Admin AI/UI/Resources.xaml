@@ -793,6 +793,33 @@
     </Style>
 
     <!-- Номер цитаты «@N»: один вид в поле ввода, в подсказке и в пузыре сообщения. -->
+    <!-- Отметка «по инструкции» над ответом модели: пилюля, которая открывает инструкцию. -->
+    <Style x:Key="InstructionChip" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="11" Padding="9,3,10,3">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Cursor" Value="Arrow"/>
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.55"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="QuoteBadge" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Bg.Elevated}"/>
         <Setter Property="CornerRadius" Value="4"/>

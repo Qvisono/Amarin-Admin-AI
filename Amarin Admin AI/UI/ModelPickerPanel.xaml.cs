@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Amarin.Core;
@@ -335,12 +336,86 @@ public partial class ModelPickerPanel : UserControl
     /// Через ссылку на ресурс, а не готовой строкой: перевод интерфейса меняет словарь на лету,
     /// и присвоенный текст остался бы на прежнем языке.
     /// </summary>
+    /// <remarks>
+    /// Меняется содержимое подсказки, а не сама подсказка: объект <see cref="ToolTip"/> несёт
+    /// размещение сбоку от плашки, и строка на его месте встала бы под «Авто», закрыв список.
+    /// </remarks>
     private void ApplyAutoTip()
     {
-        if (AutoItem is not null && !string.IsNullOrWhiteSpace(AutoTipKey))
+        if (AutoTip is not null && !string.IsNullOrWhiteSpace(AutoTipKey))
         {
-            AutoItem.SetResourceReference(ToolTipProperty, AutoTipKey);
+            AutoTip.SetResourceReference(ContentControl.ContentProperty, AutoTipKey);
         }
+    }
+
+    /// <summary>Зазор между плашкой и подсказкой строки, в единицах интерфейса.</summary>
+    private const double SideTipGap = 8;
+
+    /// <summary>
+    /// Ставит подсказку строки сбоку от плашки, а не под строкой.
+    /// </summary>
+    /// <remarks>
+    /// Общее правило программы — подсказка по центру под целью (<c>UiScale.PlaceUnderTarget</c>).
+    /// В списке моделей оно вредно: карточка ложится на соседние строки как раз там, куда едет
+    /// курсор. Колбэк ставится до показа, и раз он задан, общее правило подсказку не трогает.
+    /// </remarks>
+    private void ModelItem_ToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (sender is not FrameworkElement row || row.ToolTip is not ToolTip tip)
+        {
+            return;
+        }
+
+        // Подсказка не в дереве строки, и данные ей передаются явно: у переиспользованного
+        // контейнера она иначе могла бы показать модель, которая стояла в нём до прокрутки.
+        if (!ReferenceEquals(tip.DataContext, row.DataContext))
+        {
+            tip.DataContext = row.DataContext;
+        }
+
+        tip.PlacementTarget = row;
+        tip.Placement = PlacementMode.Custom;
+        tip.CustomPopupPlacementCallback = (popupSize, targetSize, _) =>
+        {
+            // Строка могла уже уехать из дерева (список пересобран под курсором) — тогда
+            // сдвиг от рамки не посчитать, и подсказка встаёт у самой строки справа.
+            var left = row.IsDescendantOf(PanelFrame)
+                ? row.TranslatePoint(new Point(0, 0), PanelFrame).X
+                : 0;
+            var frameWidth = row.IsDescendantOf(PanelFrame) ? PanelFrame.ActualWidth : row.ActualWidth;
+            return PlaceBeside(popupSize, targetSize, left, row.ActualWidth, frameWidth);
+        };
+    }
+
+    /// <summary>
+    /// Два места для подсказки строки: справа от плашки и, если там не хватит экрана, слева.
+    /// </summary>
+    /// <remarks>
+    /// Размеры WPF передаёт в пикселях окна подсказки, а сдвиги строки в плашке известны
+    /// в единицах интерфейса. Множитель между ними берётся из самой строки — её ширина есть
+    /// в обеих системах. Так он учитывает и DPI монитора, и подделанный DPI масштаба
+    /// интерфейса, не спрашивая ни того, ни другого. Выбор из двух мест делает WPF: он берёт
+    /// первое, которое помещается на экран.
+    /// </remarks>
+    /// <param name="rowLeft">Левый край строки от левого края плашки, в единицах интерфейса.</param>
+    /// <param name="rowWidth">Ширина строки в единицах интерфейса.</param>
+    /// <param name="frameWidth">Ширина плашки в единицах интерфейса.</param>
+    internal static CustomPopupPlacement[] PlaceBeside(
+        Size popupSize,
+        Size targetSize,
+        double rowLeft,
+        double rowWidth,
+        double frameWidth)
+    {
+        var scale = rowWidth > 0 && targetSize.Width > 0 ? targetSize.Width / rowWidth : 1;
+        var y = (targetSize.Height - popupSize.Height) / 2;
+        var right = (frameWidth - rowLeft + SideTipGap) * scale;
+        var left = -(rowLeft + SideTipGap) * scale - popupSize.Width;
+        return
+        [
+            new CustomPopupPlacement(new Point(right, y), PopupPrimaryAxis.Vertical),
+            new CustomPopupPlacement(new Point(left, y), PopupPrimaryAxis.Vertical)
+        ];
     }
 
     private void BindAutoLogo()

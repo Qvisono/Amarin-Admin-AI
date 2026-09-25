@@ -557,6 +557,10 @@ public sealed class DataBundleImporter
         if (categories.HasFlag(DataCategory.Settings))
         {
             ApplyPrompts(Path.Combine(source, "prompts.json"), targetRoot, mode, state);
+
+            // Инструкции — такой же список, и правило у них то же: в слиянии добавить недостающие.
+            ApplyInstructions(
+                Path.Combine(source, InstructionLibrary.FolderName), targetRoot, mode, state);
         }
 
         if (categories.HasFlag(DataCategory.Appearance) && overwrite)
@@ -730,6 +734,100 @@ public sealed class DataBundleImporter
 
         library.Save(result);
         state.SettingsChanged = true;
+    }
+
+    /// <summary>
+    /// Переносит инструкции из архива. В слиянии пропускаются совпавшие по идентификатору и
+    /// по паре «название + текст» — по тем же причинам, что у заготовок промпта; при замене
+    /// прежние инструкции профиля убираются.
+    /// </summary>
+    /// <remarks>
+    /// Файл с чужим идентификатором, но занятым названием заводится под «Имя (2)»: две строки
+    /// с одним названием в оглавлении для модели читались бы как одна инструкция.
+    /// </remarks>
+    private static void ApplyInstructions(
+        string source,
+        string targetRoot,
+        DataImportMode mode,
+        ImportState state)
+    {
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+
+        var files = Directory.EnumerateFiles(source, "*" + InstructionLibrary.Extension)
+            .Where(file => Path.GetExtension(file).Equals(
+                InstructionLibrary.Extension, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        var library = new InstructionLibrary(targetRoot);
+        var changed = false;
+        if (mode == DataImportMode.Replace)
+        {
+            foreach (var old in library.Snapshot())
+            {
+                changed |= library.Delete(old.Id);
+            }
+        }
+
+        var existing = library.Snapshot();
+        var ids = existing.Select(item => item.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var texts = existing.Select(item => item.Name + "\n" + item.Text).ToHashSet(StringComparer.Ordinal);
+        var names = existing.Select(item => item.Name).ToList();
+
+        foreach (var file in files)
+        {
+            var id = Path.GetFileNameWithoutExtension(file);
+            Instruction? parsed = null;
+            try
+            {
+                if (InstructionLibrary.IsUsableId(id))
+                {
+                    parsed = InstructionLibrary.Parse(File.ReadAllText(file), id, DateTime.Now);
+                }
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException)
+            {
+            }
+
+            if (parsed is null)
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            if (ids.Contains(id) || texts.Contains(parsed.Name + "\n" + parsed.Text))
+            {
+                continue;
+            }
+
+            var saved = library.Save(parsed with
+            {
+                Id = id,
+                Name = InstructionLibrary.UniqueName(parsed.Name, names)
+            });
+            if (saved is null)
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            ids.Add(saved.Id);
+            texts.Add(saved.Name + "\n" + saved.Text);
+            names.Add(saved.Name);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            state.SettingsChanged = true;
+        }
     }
 
     private static void ApplyAppearance(string source, string targetRoot, ImportState state)

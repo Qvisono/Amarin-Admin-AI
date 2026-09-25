@@ -619,6 +619,7 @@ namespace Amarin.UI
             StartNewSession(persist: false);
             RefreshChatList();
             LoadSettingsUi();
+            InstructionsPage.ResetForProfile();
         }
 
         private void SaveProfiles() => ProfileStore.Save(_services!.ProfileRegistry);

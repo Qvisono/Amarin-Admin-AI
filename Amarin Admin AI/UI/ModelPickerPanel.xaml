@@ -1,8 +1,43 @@
 <UserControl x:Class="Amarin.UI.ModelPickerPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <UserControl.Resources>
         <ResourceDictionary>
+            <!-- Подсказка строки модели: карточка общей подсказки, но без стрелки сверху —
+                 она встаёт сбоку от плашки, а не под строкой, и показывать стрелке не на что.
+                 Мышь её не ловит: подсказка не должна задерживать сама себя под курсором. -->
+            <Style x:Key="ModelSideTip" TargetType="ToolTip">
+                <Setter Property="HasDropShadow" Value="False"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="MaxWidth" Value="320"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToolTip">
+                            <Border Background="{DynamicResource Bg.Card}"
+                                    BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="8" Padding="10,8">
+                                <ContentPresenter>
+                                    <ContentPresenter.Resources>
+                                        <DataTemplate DataType="{x:Type system:String}">
+                                            <TextBlock Text="{Binding}"
+                                                       TextWrapping="Wrap"
+                                                       LineHeight="15"
+                                                       LineStackingStrategy="BlockLineHeight"/>
+                                        </DataTemplate>
+                                    </ContentPresenter.Resources>
+                                </ContentPresenter>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Кнопка провайдера в левом столбце. Форма взята у SettingsNavItem: это тот же
                  жест выбора раздела, и расходиться им незачем. -->
             <Style x:Key="ProviderItem" TargetType="RadioButton">
@@ -35,11 +70,18 @@
                 <Setter Property="Margin" Value="8,2,6,4"/>
             </Style>
 
+            <!-- Подсказки строк ждут дольше общих и не цепляются друг за другом
+                 (BetweenShowDelay=0): прежде, стоило показаться одной, соседние выскакивали
+                 мгновенно, пока курсор ехал к нужной модели, и закрывали собой список.
+                 Встают они сбоку от плашки — это делает ModelItem_ToolTipOpening. -->
             <Style x:Key="ModelItem" TargetType="Button">
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Height" Value="28"/>
                 <Setter Property="Margin" Value="0,1"/>
                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="ToolTipService.InitialShowDelay" Value="700"/>
+                <Setter Property="ToolTipService.BetweenShowDelay" Value="0"/>
+                <EventSetter Event="ToolTipOpening" Handler="ModelItem_ToolTipOpening"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -108,8 +150,13 @@
                  может переиспользовать контейнеры, и список из трёхсот моделей перестаёт
                  строиться целиком на каждый символ в поиске. -->
             <DataTemplate x:Key="ModelRowTemplate">
-                <Button Style="{StaticResource ModelItem}" ToolTip="{Binding Tooltip}"
+                <Button Style="{StaticResource ModelItem}"
                         Tag="{Binding Id}" Click="ModelRow_Click">
+                    <!-- Объектом, а не строкой: объект живёт на контейнере и переживает его
+                         переиспользование, а размещение сбоку ставится именно ему. -->
+                    <Button.ToolTip>
+                        <ToolTip Style="{StaticResource ModelSideTip}" Content="{Binding Tooltip}"/>
+                    </Button.ToolTip>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="22"/>
@@ -189,7 +236,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Width="548" Height="360" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+    <Border x:Name="PanelFrame" Width="548" Height="360" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="10" Padding="6">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
@@ -261,8 +308,11 @@
                 <!-- «Авто» закреплена над списком, а не едет вместе с ним: это не модель,
                      а просьба выбрать её маршрутизатором, и искать её прокруткой незачем. -->
                 <Button x:Name="AutoItem" Grid.Row="1" Style="{StaticResource ModelItem}"
-                        ToolTip="{DynamicResource S.Models.AutoTip}"
                         Click="AutoItem_Click">
+                    <Button.ToolTip>
+                        <ToolTip x:Name="AutoTip" Style="{StaticResource ModelSideTip}"
+                                 Content="{DynamicResource S.Models.AutoTip}"/>
+                    </Button.ToolTip>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="22"/>

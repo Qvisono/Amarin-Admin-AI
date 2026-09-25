@@ -271,6 +271,12 @@ public sealed class ToolCallRecord
     public List<Tools.SavedFile> SavedFiles { get; set; } = [];
 
     /// <summary>
+    /// Инструкция пользователя, которую открыл этот вызов. По ней под ответом стоит отметка
+    /// «по инструкции». У прочих вызовов и у переписок прежних версий — null.
+    /// </summary>
+    public Tools.InstructionRef? Instruction { get; set; }
+
+    /// <summary>
     /// What this one call added to the turn's bill. Display only — it is already inside the
     /// message total, so summing it again would double-count. Set for the tools that actually
     /// cost money (drawing a picture, scraping a page); null everywhere else.

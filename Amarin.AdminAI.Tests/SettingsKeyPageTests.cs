@@ -60,7 +60,7 @@ public sealed class SettingsKeyPageTests
         {
             var window = Window();
             var nav = (RadioButton)window.FindName("NavKey");
-            var previous = new[] { "NavAccount", "NavAppearance", "NavBehavior", "NavCustomize", "NavData", "NavInfo" }
+            var previous = new[] { "NavAccount", "NavAppearance", "NavBehavior", "NavCustomize", "NavInstructions", "NavData", "NavInfo" }
                 .Select(name => (RadioButton)window.FindName(name))
                 .FirstOrDefault(button => button.IsChecked == true);
 
@@ -74,7 +74,8 @@ public sealed class SettingsKeyPageTests
                 }
                 .Select(name => ((FrameworkElement)window.FindName(name)).Visibility)
                 .Count(state => state == Visibility.Visible)
-                + (((FrameworkElement)window.FindName("KeyPage")).Visibility == Visibility.Visible ? 1 : 0);
+                + (((FrameworkElement)window.FindName("KeyPage")).Visibility == Visibility.Visible ? 1 : 0)
+                + (((FrameworkElement)window.FindName("InstructionsPage")).Visibility == Visibility.Visible ? 1 : 0);
             }
             finally
             {

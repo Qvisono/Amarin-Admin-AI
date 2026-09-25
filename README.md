@@ -41,6 +41,12 @@ Any earlier answer, even one from the very start of a long chat, can be answered
 select a passage, press **Reply**, and the model gets exactly those words, marked as the part you
 are responding to.
 
+What you already know, you can teach it once. **Settings → Instructions** holds your own notes on
+particular topics: a name, a few trigger words and the text itself. The chat model sees only the
+names and trigger words, and when a message touches one of those topics it opens the instruction
+and follows it before answering; the reply is marked with the instruction it used. Instructions are
+plain Markdown files — they can be switched off, exported and imported.
+
 ---
 
 ## What it looks like
@@ -124,7 +130,7 @@ provider it belongs to.
 ## Where your data lives
 
 Everything is in `%APPDATA%\Amarin Admin AI`: conversations, settings, attachments, interface
-translations. The program has neither a cloud nor accounts. Several people can share one
+translations, and your instructions (`instructions\*.md`, one file each). The program has neither a cloud nor accounts. Several people can share one
 computer: each profile has its own chats and settings, and a profile can be locked with a password.
 
 Data is exported as a single archive and imported back; a single chat — as JSON or as a string you

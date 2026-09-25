@@ -78,6 +78,7 @@ public sealed class SpendSurvivesChatDeletionTests : IDisposable
             Settings = settings,
             ChatStore = new ChatStore(root),
             Prompts = new PromptLibrary(root),
+            Instructions = new InstructionLibrary(root),
             KeyStore = new ApiKeyStore(root),
             Ledger = new SpendLedger(root),
             Keys = new ApiKeyProvider(),

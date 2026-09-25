@@ -83,6 +83,7 @@ public sealed class SpendBackfillPerProfileTests : IDisposable
             Settings = settings,
             ChatStore = new ChatStore(root),
             Prompts = new PromptLibrary(root),
+            Instructions = new InstructionLibrary(root),
             KeyStore = keyStore,
             Ledger = new SpendLedger(root),
             Keys = new ApiKeyProvider(),

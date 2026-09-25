@@ -77,6 +77,7 @@ public sealed class DataBundleCoverageTests
     [Theory]
     [InlineData("settings.json", DataCategory.Settings)]
     [InlineData("prompts.json", DataCategory.Settings)]
+    [InlineData("instructions/a1b2c3d4.md", DataCategory.Settings)]
     [InlineData("profiles.json", DataCategory.Profiles)]
     [InlineData("chats/index.json", DataCategory.Chats)]
     [InlineData("chats/abc.json", DataCategory.Chats)]
@@ -112,6 +113,8 @@ public sealed class DataBundleCoverageTests
             new AppSettingsStore(root).Save(AppSettings.CreateDefault());
             new ProfileStore(root).Save(new ProfileRegistry());
             File.WriteAllText(Path.Combine(root, "prompts.json"), "[]");
+            Directory.CreateDirectory(Path.Combine(root, "instructions"));
+            File.WriteAllText(Path.Combine(root, "instructions", "a1b2c3d4.md"), "текст");
             File.WriteAllText(Path.Combine(root, "chats", "index.json"), "[]");
             File.WriteAllText(Path.Combine(root, "chats", "one.json"), "{}");
             Directory.CreateDirectory(Path.Combine(root, "languages"));
@@ -136,6 +139,7 @@ public sealed class DataBundleCoverageTests
                     "data/background.jpg",
                     "data/chats/index.json",
                     "data/chats/one.json",
+                    "data/instructions/a1b2c3d4.md",
                     "data/languages/de.json",
                     "data/profiles.json",
                     "data/prompts.json",

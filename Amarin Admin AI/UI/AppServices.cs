@@ -16,6 +16,13 @@ internal sealed class AppServices : IDisposable
     /// <summary>Заготовки основного промпта. Тоже на профиль — как и сам основной промпт.</summary>
     public required PromptLibrary Prompts { get; set; }
 
+    /// <summary>
+    /// Инструкции пользователя. Init-only, как и журнал трат: ссылку на библиотеку держат движок
+    /// чата и инструмент <c>read_instruction</c>, поэтому смена профиля переводит её на другую
+    /// папку, а не подменяет объект.
+    /// </summary>
+    public required InstructionLibrary Instructions { get; init; }
+
     /// <summary>Ключи Venice активного профиля.</summary>
     public required ApiKeyStore KeyStore { get; set; }
 
@@ -171,6 +178,7 @@ internal sealed class AppServices : IDisposable
         SettingsStore = new AppSettingsStore(dataRoot);
         ChatStore = new ChatStore(dataRoot);
         Prompts = new PromptLibrary(dataRoot);
+        Instructions.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе

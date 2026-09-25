@@ -452,6 +452,7 @@ namespace Amarin.UI
             StartNewSession(persist: false);
             RefreshChatList();
             LoadSettingsUi();
+            InstructionsPage.ResetForProfile();
 
             // LoadSettingsUi только выделяет язык в списке; применяет его LanguageManager.
             // force: архив мог принести другие строки под тем же кодом языка.

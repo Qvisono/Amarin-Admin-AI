@@ -51,6 +51,14 @@ internal sealed class MessageActions
 
     /// <summary>Формат даты — для подписи источника цитаты из другого дня.</summary>
     public Func<DateFormat>? CurrentDateFormat;
+
+    /// <summary>Открыть в настройках инструкцию, по которой модель отвечала.</summary>
+    public Action<string>? OpenInstruction;
+
+    /// <summary>
+    /// Есть ли ещё такая инструкция. Отметка удалённой не ведёт никуда и так и говорит.
+    /// </summary>
+    public Func<string, bool>? InstructionExists;
 }
 
 internal sealed class UserMessageView
@@ -113,6 +121,9 @@ internal sealed class AssistantMessageView
 
     /// <summary>Полоса карточек файлов, которые инструменты этого ответа положили на диск.</summary>
     public required StackPanel FilesHost { get; init; }
+
+    /// <summary>Отметки «по инструкции» — какие инструкции пользователя модель прочла.</summary>
+    public required StackPanel InstructionsHost { get; init; }
 
     public required FrameworkElement Host { get; init; }
 
@@ -321,6 +332,37 @@ internal sealed class AssistantMessageView
         FilesHost.Children.Add(ChatMessageViews.CreateSavedFileStrip(Host, rest));
     }
 
+    /// <summary>
+    /// Какие инструкции уже нарисованы отметками. <see cref="UpdateTools"/> зовут на каждую смену
+    /// состояния любого вызова, а отметки меняются лишь с прочтением новой инструкции.
+    /// </summary>
+    private string _shownInstructions = "";
+
+    /// <summary>
+    /// Перерисовывает отметки «по инструкции». Стоят над текстом ответа, а не под ним: модель
+    /// прочла инструкцию до того, как отвечать, и человек видит это раньше самого ответа.
+    /// </summary>
+    public void UpdateInstructions(ChatDisplayMessage message)
+    {
+        var used = ChatMessageViews.CollectInstructions(message);
+        var key = string.Join("\n", used.Select(item => item.Id + "\t" + item.Name));
+        if (key == _shownInstructions)
+        {
+            return;
+        }
+
+        _shownInstructions = key;
+        InstructionsHost.Children.Clear();
+        if (used.Count == 0)
+        {
+            InstructionsHost.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        InstructionsHost.Visibility = Visibility.Visible;
+        InstructionsHost.Children.Add(ChatMessageViews.CreateInstructionStrip(Host, used, Callbacks));
+    }
+
     /// <summary>Сообщение, по которому наполнится разбивка счёта, когда её наведут.</summary>
     private ChatDisplayMessage? _costSource;
 
@@ -354,6 +396,7 @@ internal sealed class AssistantMessageView
     public void UpdateTools(ChatDisplayMessage message)
     {
         UpdateSavedFiles(message);
+        UpdateInstructions(message);
 
         if (message.ToolRounds.Count == 0)
         {
@@ -532,7 +575,11 @@ internal sealed class AssistantMessageView
                 Style = pending
                     ? (Style)Host.FindResource("ToolPendingIcon")
                     : (Style)Host.FindResource("ToolIcon"),
-                Text = call.Name.Equals("search_web", StringComparison.OrdinalIgnoreCase) ? "🔍" : "⚙"
+                Text = call.Name.Equals("search_web", StringComparison.OrdinalIgnoreCase)
+                    ? "🔍"
+                    : call.Name.Equals(Tools.ReadInstructionTool.ToolName, StringComparison.OrdinalIgnoreCase)
+                        ? "📖"
+                        : "⚙"
             };
         }
 
@@ -1241,9 +1288,11 @@ internal static class ChatMessageViews
         // Под текстом ответа, а не над ним: сперва модель объясняет, что сделала, потом лежит то,
         // что она положила на диск.
         var filesHost = new StackPanel { Visibility = Visibility.Collapsed };
+        var instructionsHost = new StackPanel { Visibility = Visibility.Collapsed };
         var column = new StackPanel();
         column.Children.Add(meta);
         column.Children.Add(toolsHost);
+        column.Children.Add(instructionsHost);
         column.Children.Add(body);
         column.Children.Add(filesHost);
         column.Children.Add(buttons.Row);
@@ -1276,6 +1325,7 @@ internal static class ChatMessageViews
             RootElement = grid,
             ToolsHost = toolsHost,
             FilesHost = filesHost,
+            InstructionsHost = instructionsHost,
             Host = host,
             Callbacks = actions
         };
@@ -1601,6 +1651,120 @@ internal static class ChatMessageViews
     /// разворачивать насильно. Содержимого файла в переписке нет, поэтому карточка исчезнувшего
     /// файла гаснет и говорит об этом, а не подсовывает копию из временной папки.
     /// </remarks>
+    /// <summary>
+    /// Инструкции, которые модель прочла за этот ответ, — по одной на идентификатор, в порядке
+    /// прочтения. Неудачные вызовы не считаются: инструкция, которую не открыли, ответ не вела.
+    /// </summary>
+    internal static IReadOnlyList<Tools.InstructionRef> CollectInstructions(ChatDisplayMessage message)
+    {
+        var used = new List<Tools.InstructionRef>();
+        foreach (var call in message.ToolRounds.SelectMany(round => round.Calls))
+        {
+            if (call is { Success: true, Instruction: { } instruction } &&
+                !used.Any(item => string.Equals(item.Id, instruction.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                used.Add(instruction);
+            }
+        }
+
+        return used;
+    }
+
+    /// <summary>Ряд отметок «по инструкции» над ответом.</summary>
+    internal static FrameworkElement CreateInstructionStrip(
+        FrameworkElement host,
+        IReadOnlyList<Tools.InstructionRef> instructions,
+        MessageActions? actions)
+    {
+        var strip = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+
+        foreach (var instruction in instructions)
+        {
+            strip.Children.Add(CreateInstructionChip(host, instruction, actions));
+        }
+
+        return strip;
+    }
+
+    private static Button CreateInstructionChip(
+        FrameworkElement host,
+        Tools.InstructionRef instruction,
+        MessageActions? actions)
+    {
+        var book = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse(
+                "M1,2 C3,1 6,1 8,2.5 C10,1 13,1 15,2 L15,13 C13,12 10,12 8,13.5 C6,12 3,12 1,13 Z M8,2.5 L8,13.5"),
+            Width = 13,
+            Height = 11,
+            Stretch = Stretch.Uniform,
+            StrokeThickness = 1.2,
+            StrokeLineJoin = PenLineJoin.Round,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        book.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Accent.Fill");
+
+        var label = new TextBlock
+        {
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 5, 0)
+        };
+        label.SetResourceReference(TextBlock.TextProperty, "S.Instructions.UsedLabel");
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+
+        var name = new TextBlock
+        {
+            Text = instruction.Name,
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            MaxWidth = 260,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(book);
+        row.Children.Add(label);
+        row.Children.Add(name);
+
+        var chip = new Button
+        {
+            Style = (Style)host.FindResource("InstructionChip"),
+            Content = row,
+            Tag = instruction.Id
+        };
+        ToolTipService.SetShowOnDisabled(chip, true);
+
+        // Удалённая инструкция остаётся отметкой — ответ по ней всё равно был, — но вести
+        // ей некуда, и кнопка об этом говорит, а не молчит на щелчок.
+        var exists = actions?.InstructionExists?.Invoke(instruction.Id) ?? true;
+        chip.IsEnabled = exists && actions?.OpenInstruction is not null;
+        chip.SetResourceReference(
+            FrameworkElement.ToolTipProperty,
+            exists ? "S.Instructions.UsedTip" : "S.Instructions.UsedGone");
+        chip.Click += (_, _) =>
+        {
+            if (actions?.InstructionExists?.Invoke(instruction.Id) == false)
+            {
+                chip.IsEnabled = false;
+                chip.SetResourceReference(FrameworkElement.ToolTipProperty, "S.Instructions.UsedGone");
+                return;
+            }
+
+            actions?.OpenInstruction?.Invoke(instruction.Id);
+        };
+
+        return chip;
+    }
+
     internal static FrameworkElement CreateSavedFileStrip(
         FrameworkElement host,
         IReadOnlyList<Tools.SavedFile> files)

@@ -224,26 +224,55 @@ internal sealed partial class ChatEngine
     private readonly Func<AppSettings> _settings;
     private readonly ToolRegistry _tools;
     private readonly List<ToolDefinition> _toolDefinitions;
+
+    /// <summary>
+    /// Те же инструменты без <c>read_instruction</c> — для хода, когда включённых инструкций
+    /// нет. Собран заранее, а не фильтруется на каждый запрос: список один и тот же.
+    /// </summary>
+    private readonly List<ToolDefinition> _toolDefinitionsWithoutInstructions;
+
     private readonly AgentRegistry? _agents;
+    private readonly InstructionLibrary? _instructions;
 
     /// <param name="agents">
     /// Агенты, работающие прямо сейчас. Нужны, чтобы дописанное во время работы сообщение могло
     /// их остановить или пересадить на другую модель. Null — сообщение просто ждёт границы раунда.
+    /// </param>
+    /// <param name="instructions">
+    /// Инструкции пользователя. Null — блока о них в промпте нет, и инструмента чтения тоже.
     /// </param>
     public ChatEngine(
         VeniceClient venice,
         AgentOptions options,
         Func<AppSettings> settings,
         ToolRegistry tools,
-        AgentRegistry? agents = null)
+        AgentRegistry? agents = null,
+        InstructionLibrary? instructions = null)
     {
         _venice = venice;
         _options = options;
         _settings = settings;
         _tools = tools;
         _toolDefinitions = tools.GetDefinitions();
+        _toolDefinitionsWithoutInstructions = _toolDefinitions
+            .Where(definition => !string.Equals(
+                definition.Function.Name, ReadInstructionTool.ToolName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
         _agents = agents;
+        _instructions = instructions;
     }
+
+    /// <summary>
+    /// Включённые инструкции на этот ход. Снимается один раз, и по нему выбираются и блок
+    /// промпта, и список инструментов: разойдись они, модель видела бы оглавление без способа
+    /// его открыть или инструмент без оглавления.
+    /// </summary>
+    private IReadOnlyList<Instruction> ActiveInstructions() =>
+        _instructions?.EnabledSnapshot() ?? [];
+
+    /// <summary>Инструменты хода: без инструкций инструмент их чтения только сбивал бы модель.</summary>
+    internal List<ToolDefinition> ToolsFor(IReadOnlyList<Instruction> instructions) =>
+        instructions.Count > 0 ? _toolDefinitions : _toolDefinitionsWithoutInstructions;
 
     public async Task RunTurnAsync(
         ChatSession session,
@@ -415,7 +444,7 @@ internal sealed partial class ChatEngine
                 turn.RouterCost = decision.Cost;
             }
 
-            var messages = BuildApiMessages(session, turn.ModelId);
+            var messages = BuildApiMessages(session, turn.ModelId, ActiveInstructions());
 
             // Forge the tool call the chat model would normally have made. Everything
             // downstream — slot limiting, the nested-agent card, cost roll-up — is the
@@ -794,7 +823,9 @@ internal sealed partial class ChatEngine
         VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
-        var messages = BuildApiMessages(session, turn.ModelId);
+        var instructions = ActiveInstructions();
+        var messages = BuildApiMessages(session, turn.ModelId, instructions);
+        var tools = ToolsFor(instructions);
 
         for (var round = 1; round <= _options.MaxToolRounds; round++)
         {
@@ -802,7 +833,7 @@ internal sealed partial class ChatEngine
 
             var streamed = await StreamWithRetryAsync(
                     messages,
-                    _toolDefinitions,
+                    tools,
                     "auto",
                     assistant,
                     observer,
@@ -1322,6 +1353,7 @@ internal sealed partial class ChatEngine
                 call.ResultPreview = ChatToolPreview.Summarize(result);
                 call.ResultText = ChatToolPreview.ForJournal(result);
                 call.SavedFiles = [.. result.GetFiles()];
+                call.Instruction = result.Instruction;
                 call.Duration = callClock.Elapsed;
                 observer.OnToolsChanged(assistant);
             });
@@ -1809,10 +1841,13 @@ internal sealed partial class ChatEngine
         return "openai-gpt-56-luna";
     }
 
-    private List<ChatMessage> BuildApiMessages(ChatSession session, string? currentModelId)
+    private List<ChatMessage> BuildApiMessages(
+        ChatSession session,
+        string? currentModelId,
+        IReadOnlyList<Instruction> instructions)
     {
         var messages = new List<ChatMessage>();
-        var system = BuildSystemPrompt(currentModelId);
+        var system = BuildSystemPrompt(currentModelId, instructions);
         if (!string.IsNullOrWhiteSpace(system))
         {
             messages.Add(new ChatMessage
@@ -1830,7 +1865,8 @@ internal sealed partial class ChatEngine
     /// The system prompt the next request would carry. Exposed so the context gauge can weigh it:
     /// it is a real slice of the window, and rebuilding it in the UI would fork the logic.
     /// </summary>
-    internal string CurrentSystemPrompt() => BuildSystemPrompt(currentModelId: null);
+    internal string CurrentSystemPrompt() =>
+        BuildSystemPrompt(currentModelId: null, ActiveInstructions());
 
     /// <param name="currentModelId">
     /// Модель, на которой идёт ход, — она попадает в блок MODELS. Явным аргументом, а не через
@@ -1838,7 +1874,8 @@ internal sealed partial class ChatEngine
     /// бы в чужой запрос, а аргумент протечь не может. Null у кольца контекста, которое
     /// собирает промпт вне хода.
     /// </param>
-    private string BuildSystemPrompt(string? currentModelId)
+    /// <param name="instructions">Снимок инструкций хода — см. <see cref="ActiveInstructions"/>.</param>
+    private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions)
     {
         // Chat companion only: main + TechAiPrompt. Agent uses TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
@@ -1863,6 +1900,16 @@ internal sealed partial class ChatEngine
 
         parts.Add(tech);
         parts.Add(FormulaRules);
+
+        // Перед блоком моделей, а не после: тот меняется с моделью хода (под «Авто» — хоть каждый
+        // ход), а оглавление инструкций — только когда их правят. Неизменная голова промпта
+        // провайдеры кэшируют сами.
+        var index = InstructionBriefing.ForChat(instructions);
+        if (index.Length > 0)
+        {
+            parts.Add(index);
+        }
+
         if (models.Length > 0)
         {
             parts.Add(models);

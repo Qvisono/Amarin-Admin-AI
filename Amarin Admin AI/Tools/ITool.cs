@@ -25,13 +25,23 @@ public interface ITool
 /// <param name="SizeBytes">Размер на момент записи.</param>
 public sealed record SavedFile(string Path, string FileName, long SizeBytes);
 
+/// <summary>
+/// Инструкция пользователя, которую модель прочла за этот вызов.
+/// </summary>
+/// <remarks>
+/// Название запоминается вместе с идентификатором: отметка под ответом должна остаться
+/// читаемой, даже если инструкцию потом переименуют или удалят.
+/// </remarks>
+public sealed record InstructionRef(string Id, string Name);
+
 public sealed record ToolResult(
     bool Success,
     string Output,
     string? ImageBase64 = null,
     string? ImageMimeType = null,
     IReadOnlyList<ImageAttachment>? Images = null,
-    IReadOnlyList<SavedFile>? Files = null)
+    IReadOnlyList<SavedFile>? Files = null,
+    InstructionRef? Instruction = null)
 {
     public static ToolResult Ok(string output) => new(true, output);
     public static ToolResult Fail(string output) => new(false, output);

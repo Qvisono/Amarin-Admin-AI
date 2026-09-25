@@ -257,6 +257,9 @@ internal static class Program
         var runningAgents = new AgentRegistry();
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find);
+        // Инструкции пользователя — одна библиотека на программу: смена профиля переводит её
+        // на другую папку (AppServices.UseProfile), а движок и инструмент держат ту же ссылку.
+        var instructions = new InstructionLibrary(dataRoot);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
@@ -269,9 +272,10 @@ internal static class Program
                 venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
             new FetchImageTool(),
             new YouTubeTranscriptTool(),
-            new InitAgentTool(new AgentSlotLimiter(), agentHost)
+            new InitAgentTool(new AgentSlotLimiter(), agentHost),
+            new ReadInstructionTool(instructions)
         ]);
-        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents);
+        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions);
         var titles = new ChatTitleGenerator(http, options, ReadSettings);
         var summaries = new ChatSummaryGenerator(http, options, ReadSettings);
 
@@ -282,6 +286,7 @@ internal static class Program
             Settings = settings,
             ChatStore = chatStore,
             Prompts = new PromptLibrary(dataRoot),
+            Instructions = instructions,
             KeyStore = keyStore,
             Ledger = ledger,
             Balances = balances,

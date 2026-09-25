@@ -451,6 +451,49 @@
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Отдайте ключ программе</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ - ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, - значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Проверьте</system:String>
+    <system:String x:Key="S.Instructions.Count" xml:space="preserve">Всего: {0} · включены: {1}</system:String>
+    <system:String x:Key="S.Instructions.Create" xml:space="preserve">Создать</system:String>
+    <system:String x:Key="S.Instructions.CreateFirst" xml:space="preserve">Создать инструкцию</system:String>
+    <system:String x:Key="S.Instructions.DeleteConfirm" xml:space="preserve">Удалить инструкцию «{0}»?</system:String>
+    <system:String x:Key="S.Instructions.DeleteDesc" xml:space="preserve">Файл инструкции будет удалён. Отметки под прежними ответами останутся, но открыть её уже не получится.</system:String>
+    <system:String x:Key="S.Instructions.DeleteFailed" xml:space="preserve">Не удалось удалить файл инструкции.</system:String>
+    <system:String x:Key="S.Instructions.Desc" xml:space="preserve">Подскажите модели, как решать задачи на ваши темы. В чате она видит только названия и триггеры и сама открывает инструкцию, когда сообщение касается её темы.</system:String>
+    <system:String x:Key="S.Instructions.DiscardConfirm" xml:space="preserve">Отменить изменения?</system:String>
+    <system:String x:Key="S.Instructions.DiscardDesc" xml:space="preserve">Несохранённые правки этой инструкции пропадут.</system:String>
+    <system:String x:Key="S.Instructions.EditTitle" xml:space="preserve">Правка инструкции</system:String>
+    <system:String x:Key="S.Instructions.EmptyDesc" xml:space="preserve">Опишите, как поступать в знакомых вам ситуациях, и задайте слова, по которым модель узнает тему. Она прочтёт инструкцию, когда тема всплывёт в разговоре.</system:String>
+    <system:String x:Key="S.Instructions.EmptyTitle" xml:space="preserve">Инструкций пока нет</system:String>
+    <system:String x:Key="S.Instructions.EnabledLabel" xml:space="preserve">Видна модели</system:String>
+    <system:String x:Key="S.Instructions.Export" xml:space="preserve">Экспорт .md</system:String>
+    <system:String x:Key="S.Instructions.ExportDone" xml:space="preserve">Сохранено: {0}</system:String>
+    <system:String x:Key="S.Instructions.ExportFailed" xml:space="preserve">Не удалось сохранить файл.</system:String>
+    <system:String x:Key="S.Instructions.ExportFilter" xml:space="preserve">Markdown (*.md)|*.md</system:String>
+    <system:String x:Key="S.Instructions.FolderFailed" xml:space="preserve">Не удалось открыть папку с инструкциями.</system:String>
+    <system:String x:Key="S.Instructions.Import" xml:space="preserve">Импорт .md</system:String>
+    <system:String x:Key="S.Instructions.ImportDone" xml:space="preserve">Импортировано: {0}. Пропущено: {1} — пустые или нечитаемые файлы.</system:String>
+    <system:String x:Key="S.Instructions.ImportDoneAll" xml:space="preserve">Импортировано: {0}.</system:String>
+    <system:String x:Key="S.Instructions.ImportFilter" xml:space="preserve">Инструкции (*.md;*.txt)|*.md;*.txt</system:String>
+    <system:String x:Key="S.Instructions.NameEmpty" xml:space="preserve">Введите название.</system:String>
+    <system:String x:Key="S.Instructions.NameLabel" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Instructions.NamePlaceholder" xml:space="preserve">Коротко: о чём эта инструкция</system:String>
+    <system:String x:Key="S.Instructions.NameTaken" xml:space="preserve">Инструкция с таким названием уже есть.</system:String>
+    <system:String x:Key="S.Instructions.NewTitle" xml:space="preserve">Новая инструкция</system:String>
+    <system:String x:Key="S.Instructions.NoTriggers" xml:space="preserve">без триггеров — только по названию</system:String>
+    <system:String x:Key="S.Instructions.OpenFolder" xml:space="preserve">Открыть папку с инструкциями</system:String>
+    <system:String x:Key="S.Instructions.SaveFailed" xml:space="preserve">Не удалось записать файл инструкции. Проверьте доступ к папке данных программы.</system:String>
+    <system:String x:Key="S.Instructions.SearchPlaceholder" xml:space="preserve">Поиск по названию, триггерам и тексту</system:String>
+    <system:String x:Key="S.Instructions.TextEmpty" xml:space="preserve">Напишите текст инструкции.</system:String>
+    <system:String x:Key="S.Instructions.TextLabel" xml:space="preserve">Текст инструкции</system:String>
+    <system:String x:Key="S.Instructions.TextPlaceholder" xml:space="preserve">Что модели нужно знать и как действовать. Можно писать в Markdown.</system:String>
+    <system:String x:Key="S.Instructions.TextTooLong" xml:space="preserve">Текст длиннее {0} знаков — сократите его.</system:String>
+    <system:String x:Key="S.Instructions.ToggleTip" xml:space="preserve">Модель видит эту инструкцию</system:String>
+    <system:String x:Key="S.Instructions.TriggersFull" xml:space="preserve">Не больше {0} триггеров.</system:String>
+    <system:String x:Key="S.Instructions.TriggersHint" xml:space="preserve">Enter или запятая — добавить. Регистр не важен: модель сверяет смысл, а не написание.</system:String>
+    <system:String x:Key="S.Instructions.TriggersLabel" xml:space="preserve">Триггеры</system:String>
+    <system:String x:Key="S.Instructions.TriggersPlaceholder" xml:space="preserve">Слово или фраза</system:String>
+    <system:String x:Key="S.Instructions.UsedGone" xml:space="preserve">Этой инструкции больше нет.</system:String>
+    <system:String x:Key="S.Instructions.UsedLabel" xml:space="preserve">По инструкции</system:String>
+    <system:String x:Key="S.Instructions.UsedTip" xml:space="preserve">Модель прочла эту инструкцию перед ответом. Нажмите, чтобы открыть её.</system:String>
     <system:String x:Key="S.Journal.Arguments" xml:space="preserve">Аргументы</system:String>
     <system:String x:Key="S.Journal.Ask" xml:space="preserve">Спросить ИИ</system:String>
     <system:String x:Key="S.Journal.AskEmpty" xml:space="preserve">Модель ничего не ответила. Попробуйте ещё раз.</system:String>
@@ -636,6 +679,7 @@
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Инструкции</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключ и траты</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
@@ -645,6 +689,7 @@
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
     <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Nav.Instructions" xml:space="preserve">Instructions</system:String>
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
@@ -652,6 +697,7 @@
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Свернуть панель</system:String>
+    <system:String x:Key="S.Sidebar.Expand" xml:space="preserve">Развернуть панель</system:String>
     <system:String x:Key="S.Sidebar.NewChat" xml:space="preserve">New Chat</system:String>
     <system:String x:Key="S.Sidebar.Search" xml:space="preserve">Поиск</system:String>
 
