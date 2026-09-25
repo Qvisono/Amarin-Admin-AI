@@ -54,6 +54,10 @@ public partial class SettingsInstructionsPage : UserControl
 
         SmoothScroll.SetIsEnabled(ListScroll, true);
         SmoothScroll.SetDragScroll(ListScroll, true);
+
+        // Список бывает и в одну карточку: тогда листать нечего, и без резинки страница под
+        // зажатой кнопкой казалась бы неживой рядом с длинными соседками.
+        SmoothScroll.SetBounceWhenShort(ListScroll, true);
         NameBox.MaxLength = InstructionLibrary.NameLimit;
         UpdateCounter();
     }

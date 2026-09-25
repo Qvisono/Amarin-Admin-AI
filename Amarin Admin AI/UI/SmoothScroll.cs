@@ -65,6 +65,29 @@ namespace Amarin.UI
                 typeof(SmoothScroll),
                 new PropertyMetadata(false, OnDragScrollChanged));
 
+        /// <summary>
+        /// Тянуть зажатой кнопкой и тогда, когда содержимое влезло целиком: оно пружинит и
+        /// возвращается на место.
+        /// </summary>
+        /// <remarks>
+        /// По умолчанию короткое содержимое жеста не берёт: в колонке чатов нажатие на пустом
+        /// месте иначе отнималось бы у перетаскивания окна. Страницы настроек лежат поверх окна,
+        /// и этой беды у них нет, — а страница, которая то длинная, то короткая (список
+        /// инструкций), без резинки казалась бы сломанной ровно тогда, когда в ней одна строка.
+        /// </remarks>
+        public static readonly DependencyProperty BounceWhenShortProperty =
+            DependencyProperty.RegisterAttached(
+                "BounceWhenShort",
+                typeof(bool),
+                typeof(SmoothScroll),
+                new PropertyMetadata(false));
+
+        public static bool GetBounceWhenShort(DependencyObject obj) =>
+            (bool)obj.GetValue(BounceWhenShortProperty);
+
+        public static void SetBounceWhenShort(DependencyObject obj, bool value) =>
+            obj.SetValue(BounceWhenShortProperty, value);
+
         public static bool GetIsEnabled(DependencyObject obj) =>
             (bool)obj.GetValue(IsEnabledProperty);
 
@@ -738,7 +761,7 @@ namespace Amarin.UI
 
             public void ArmDrag(Point press)
             {
-                if (GetMaxOffset() <= 0)
+                if (GetMaxOffset() <= 0 && !GetBounceWhenShort(_viewer))
                 {
                     return;
                 }

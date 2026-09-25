@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
@@ -377,6 +378,99 @@ public sealed class InstructionUiTests : IDisposable
 
         Assert.False(dirty);
         Assert.False(editing);
+    }
+
+    /// <summary>
+    /// Над всеми страницами настроек в правом верхнем углу висит общий крестик. Тумблер
+    /// «Видна модели» в шапке редактора стоял ровно под ним.
+    /// </summary>
+    [Fact]
+    public void The_visibility_switch_stays_clear_of_the_close_button()
+    {
+        var (toggle, close) = _wpf.Ui.Invoke(() =>
+        {
+            var window = SharedWindow();
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
+            var nav = (RadioButton)window.FindName("NavInstructions");
+            var behavior = (RadioButton)window.FindName("NavBehavior");
+            var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
+            var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
+
+            overlay.Visibility = Visibility.Visible;
+            nav.IsChecked = true;
+            Click(page.CreateButton);
+            window.UpdateLayout();
+            try
+            {
+                return (Bounds(page.EnabledToggle, overlay), Bounds(closeButton, overlay));
+            }
+            finally
+            {
+                Click(page.CancelButton);
+                behavior.IsChecked = true;
+                overlay.Visibility = Visibility.Collapsed;
+            }
+        });
+
+        Assert.False(toggle.IntersectsWith(close), $"тумблер {toggle} под крестиком {close}");
+    }
+
+    private static Rect Bounds(FrameworkElement element, Visual root) =>
+        element.TransformToVisual(root).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+
+    /// <summary>
+    /// Длинные триггеры в карточке переносятся и режутся многоточием внутри своей пилюли, а не
+    /// срезаются краем карточки посреди слова.
+    /// </summary>
+    [Fact]
+    public void Long_triggers_stay_inside_their_card()
+    {
+        var (cardRight, pillRights) = _wpf.Ui.Invoke(() =>
+        {
+            var services = Services();
+            services.Instructions.Save(new Instruction
+            {
+                Name = "Карточка с длинными триггерами",
+                Text = "t",
+                Triggers =
+                [
+                    "Steam: Wallpaper Engine - извлечение оригинала",
+                    "Wallpaper Engine",
+                    "обои из мастерской Steam",
+                    "исходник видеообоев",
+                    "workshop"
+                ]
+            });
+
+            var page = Page(services);
+            var card = FindAll<Button>(page.InstructionItems).First(button => button.Tag is string);
+            var cardBounds = Bounds(card, page);
+            var pills = FindAll<Border>(card)
+                .Where(border => border.Child is TextBlock && border.MaxWidth < double.PositiveInfinity)
+                .Select(border => Bounds(border, page).Right)
+                .ToList();
+            return (cardBounds.Right, pills);
+        });
+
+        Assert.NotEmpty(pillRights);
+        Assert.All(pillRights, right => Assert.True(right <= cardRight, $"пилюля кончается на {right}, карточка на {cardRight}"));
+    }
+
+    private static List<T> FindAll<T>(DependencyObject root) where T : DependencyObject
+    {
+        var found = new List<T>();
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                found.Add(match);
+            }
+
+            found.AddRange(FindAll<T>(child));
+        }
+
+        return found;
     }
 
     [Fact]

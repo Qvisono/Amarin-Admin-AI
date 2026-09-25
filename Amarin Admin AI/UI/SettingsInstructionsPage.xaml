@@ -233,7 +233,12 @@
             <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
         </Style>
 
-        <!-- Карточка инструкции. Кнопкой, как плитка заготовки: вся карточка открывает правку. -->
+        <!--
+            Карточка инструкции. Кнопкой, как плитка заготовки: вся карточка открывает правку.
+            Шаблон — по форме карточек страницы Key: та же заливка Bg.Card и тонкая рамка, чуть
+            больше воздуха внутри и мягкий подсвет рамки под курсором вместо смены заливки
+            целиком.
+        -->
         <Style x:Key="InstructionCard" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -243,12 +248,14 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
                                 BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                CornerRadius="8" Padding="12,10">
+                                CornerRadius="10" Padding="12,12,12,11">
                             <ContentPresenter/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -257,17 +264,63 @@
             </Setter>
         </Style>
 
-        <!-- Триггер в карточке: мелкая неактивная метка. -->
-        <Style x:Key="TriggerTag" TargetType="Border">
+        <!-- Плитка со значком: книга в акценте у включённой, блёклая у выключенной. -->
+        <Style x:Key="CardGlyphTile" TargetType="Border">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="CornerRadius" Value="9"/>
             <Setter Property="Background" Value="{DynamicResource Bg.Selected}"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,1"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style x:Key="CardGlyph" TargetType="Path">
+            <Setter Property="Data" Value="M1,2 C3,1 6,1 8,2.5 C10,1 13,1 15,2 L15,13 C13,12 10,12 8,13.5 C6,12 3,12 1,13 Z M8,2.5 L8,13.5"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="13"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="StrokeThickness" Value="1.3"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Stroke" Value="{DynamicResource Accent.Fill}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Enabled}" Value="False">
+                    <Setter Property="Stroke" Value="{DynamicResource Text.Faint}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CardTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Enabled}" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--
+            Триггер в карточке: пилюля с тонкой рамкой. Длинный триггер обрезается многоточием
+            внутри своей пилюли, а ряд переносится — прежде ряд просто срезался краем карточки
+            посреди слова.
+        -->
+        <Style x:Key="TriggerTag" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Bg.Raised}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border.Subtle}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="9"/>
+            <Setter Property="Padding" Value="8,1,8,2"/>
+            <Setter Property="Margin" Value="0,6,5,0"/>
+            <Setter Property="MaxWidth" Value="190"/>
         </Style>
         <Style x:Key="TriggerTagText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
 
         <DataTemplate x:Key="InstructionRowTemplate">
@@ -279,23 +332,21 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- OneWay: правда о включённости лежит в файле, а не в тумблере.
-                         Щелчок пишет файл, а список перестраивается из библиотеки. -->
-                    <CheckBox Style="{StaticResource SettingsToggle}" Margin="0,0,12,0"
-                              VerticalAlignment="Top"
-                              IsChecked="{Binding Enabled, Mode=OneWay}"
-                              Tag="{Binding Id}" Click="Toggle_Click"
-                              ToolTip="{DynamicResource S.Instructions.ToggleTip}"/>
+                    <Border Style="{StaticResource CardGlyphTile}">
+                        <Path Style="{StaticResource CardGlyph}"/>
+                    </Border>
 
-                    <StackPanel Grid.Column="1" Opacity="{Binding ContentOpacity}">
-                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Body}" TextTrimming="CharacterEllipsis"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0" ClipToBounds="True"
-                                    Visibility="{Binding TriggersVisibility}">
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Name}"/>
+                        <TextBlock Text="{Binding Preview}" FontSize="11.5" Margin="0,3,0,0"
+                                   Foreground="{DynamicResource Text.Dim}" TextTrimming="CharacterEllipsis"
+                                   Opacity="{Binding ContentOpacity}"/>
+
+                        <WrapPanel Opacity="{Binding ContentOpacity}" Visibility="{Binding TriggersVisibility}">
                             <ItemsControl ItemsSource="{Binding Triggers}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal"/>
+                                        <WrapPanel/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
@@ -306,42 +357,60 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Style="{StaticResource TriggerTagText}" Text="{Binding MoreTriggers}"
-                                       Foreground="{DynamicResource Text.Faint}"
-                                       Visibility="{Binding MoreVisibility}"/>
-                        </StackPanel>
-                        <TextBlock Text="{DynamicResource S.Instructions.NoTriggers}" Margin="0,5,0,0"
+                            <Border Style="{StaticResource TriggerTag}" Background="Transparent"
+                                    Visibility="{Binding MoreVisibility}">
+                                <TextBlock Style="{StaticResource TriggerTagText}" Text="{Binding MoreTriggers}"
+                                           Foreground="{DynamicResource Text.Faint}"/>
+                            </Border>
+                        </WrapPanel>
+                        <TextBlock Text="{DynamicResource S.Instructions.NoTriggers}" Margin="0,6,0,0"
                                    Style="{StaticResource TriggerTagText}" FontStyle="Italic"
                                    Foreground="{DynamicResource Text.Faint}"
                                    Visibility="{Binding NoTriggersVisibility}"/>
-                        <TextBlock Text="{Binding Preview}" FontSize="11" Margin="0,5,0,0"
-                                   Foreground="{DynamicResource Text.Faint}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
-                    <!-- Действия видны под курсором: иначе у каждой карточки по три значка шума. -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top"
-                                Margin="8,-3,-4,0">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Hidden"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <Button Style="{StaticResource IconButton}" Tag="{Binding Id}" Click="ExportRow_Click"
-                                ToolTip="{DynamicResource S.Instructions.Export}">
-                            <Path Style="{StaticResource IconGlyph}"
-                                  Data="M7,1 L7,9 M3.5,5.5 L7,9 L10.5,5.5 M1,10 L1,13 L13,13 L13,10"/>
-                        </Button>
-                        <Button Style="{StaticResource IconButton}" Tag="{Binding Id}" Click="DeleteRow_Click"
-                                ToolTip="{DynamicResource S.Common.Delete}">
-                            <Path Style="{StaticResource IconGlyph}"
-                                  Data="M2,4 L12,4 M5,4 L5,2 L9,2 L9,4 M3,4 L4,13 L10,13 L11,4"/>
-                        </Button>
-                    </StackPanel>
+                    <!-- Справа: тумблер сверху, действия под ним. Действия видны под курсором —
+                         иначе у каждой карточки по паре значков шума; место под них занято
+                         всегда, чтобы карточка не прыгала при наведении. -->
+                    <Grid Grid.Column="2" Margin="12,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- OneWay: правда о включённости лежит в файле, а не в тумблере.
+                             Щелчок пишет файл, а список перестраивается из библиотеки. -->
+                        <CheckBox Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                                  VerticalAlignment="Top" Margin="0,1,0,0"
+                                  IsChecked="{Binding Enabled, Mode=OneWay}"
+                                  Tag="{Binding Id}" Click="Toggle_Click"
+                                  ToolTip="{DynamicResource S.Instructions.ToggleTip}"/>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                                    Margin="0,6,-5,-4">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Button Style="{StaticResource IconButton}" Tag="{Binding Id}" Click="ExportRow_Click"
+                                    ToolTip="{DynamicResource S.Instructions.Export}">
+                                <Path Style="{StaticResource IconGlyph}"
+                                      Data="M7,1 L7,9 M3.5,5.5 L7,9 L10.5,5.5 M1,10 L1,13 L13,13 L13,10"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Tag="{Binding Id}" Click="DeleteRow_Click"
+                                    ToolTip="{DynamicResource S.Common.Delete}">
+                                <Path Style="{StaticResource IconGlyph}"
+                                      Data="M2,4 L12,4 M5,4 L5,2 L9,2 L9,4 M3,4 L4,13 L10,13 L11,4"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Button>
         </DataTemplate>
@@ -478,8 +547,10 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Шапка: назад, заголовок, видимость для модели -->
-            <Grid Grid.Row="0">
+            <!-- Шапка: назад, заголовок, видимость для модели. Справа поле в 30: над всеми
+                 страницами настроек в этом углу висит общий крестик (26 и отступ 12 от края),
+                 и тумблер без поля уезжал под него. -->
+            <Grid Grid.Row="0" Margin="0,0,30,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -519,7 +590,7 @@
                 <Border x:Name="TriggerFrame" Style="{StaticResource FieldFrame}" Padding="6,3"
                         MinHeight="30" Cursor="IBeam" MouseLeftButtonDown="TriggerFrame_MouseLeftButtonDown">
                     <WrapPanel x:Name="TriggerPanel" VerticalAlignment="Center">
-                        <Grid x:Name="TriggerInputHost" MinWidth="120" Margin="3,0,0,0">
+                        <Grid x:Name="TriggerInputHost" MinWidth="80" Margin="3,0,0,0">
                             <TextBox x:Name="TriggerInput" Style="{StaticResource FieldTextBox}" Height="24"
                                      PreviewKeyDown="TriggerInput_PreviewKeyDown"
                                      TextChanged="TriggerInput_TextChanged"

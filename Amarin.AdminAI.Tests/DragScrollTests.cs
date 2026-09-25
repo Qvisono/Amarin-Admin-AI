@@ -118,6 +118,33 @@ public sealed class DragScrollTests
         Assert.False(dragged);
     }
 
+    /// <summary>
+    /// Страница, которая просит резинку и на коротком содержимом, берёт жест и тогда, когда
+    /// листать нечего: содержимое пружинит и возвращается. Без просьбы — как прежде.
+    /// </summary>
+    [Fact]
+    public void A_short_page_that_asks_for_it_bounces_under_the_hand()
+    {
+        var (dragged, offset) = WithPage(100, (_, page) =>
+        {
+            SmoothScroll.SetBounceWhenShort(page, true);
+            SmoothScroll.ArmDrag(page, new Point(100, 100));
+            var moved = SmoothScroll.DragTo(page, new Point(100, 180));
+            SmoothScroll.EndDrag(page, fling: false);
+            return (moved, page.VerticalOffset);
+        });
+
+        Assert.True(dragged);
+        Assert.Equal(0, offset, 1);
+    }
+
+    [Fact]
+    public void The_instruction_list_scrolls_by_dragging_even_when_short() =>
+        Assert.True(_wpf.Ui.Invoke(() =>
+            new SettingsInstructionsPage().FindName("ListScroll") is ScrollViewer list &&
+            SmoothScroll.GetDragScroll(list) &&
+            SmoothScroll.GetBounceWhenShort(list)));
+
     [Fact]
     public void A_quick_release_flings_on_with_inertia()
     {
