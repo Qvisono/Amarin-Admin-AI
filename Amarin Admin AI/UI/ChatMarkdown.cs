@@ -370,6 +370,7 @@ internal static class ChatMarkdown
         }
 
         AddInlines(paragraph.Inlines, heading.Inline, context);
+        RelaxLineHeight(paragraph);
         return paragraph;
     }
 
@@ -446,8 +447,12 @@ internal static class ChatMarkdown
         var visual = MathRenderer.BuildVisual(context.Host, content, context.FontSize, display: false);
 
         // InlineUIContainer ставит на базовую линию нижний край элемента, а у формулы под ней
-        // ещё есть свес — отрицательный отступ опускает коробку ровно на его высоту.
-        visual.Element.Margin = new Thickness(1, 0, 1, -visual.Descent);
+        // ещё есть свес. Базовую линию формулы строке сообщает BaselineOffset — его читает
+        // InlineObjectRun.Format. Прежде коробку опускали отрицательным нижним отступом, но
+        // тогда строка не знала о свесе: знаменатели дробей уходили под следующую строку,
+        // и условие «(x ≠ −1)» с новой строки печаталось поверх них.
+        visual.Element.Margin = new Thickness(1, 0, 1, 0);
+        TextBlock.SetBaselineOffset(visual.Element, visual.Ascent);
         QuoteSelection.SetSource(visual.Element, new QuoteSource(delimiters, content, delimiters));
 
         return new InlineUIContainer(visual.Element)
@@ -772,17 +777,32 @@ internal static class ChatMarkdown
     /// </summary>
     private static void RelaxLineHeight(WpfParagraph paragraph)
     {
-        foreach (var inline in paragraph.Inlines)
+        if (!HasEmbeddedElement(paragraph.Inlines))
         {
-            if (inline is not InlineUIContainer)
-            {
-                continue;
-            }
-
-            paragraph.LineHeight = double.NaN;
-            paragraph.LineStackingStrategy = LineStackingStrategy.MaxHeight;
             return;
         }
+
+        paragraph.LineHeight = double.NaN;
+        paragraph.LineStackingStrategy = LineStackingStrategy.MaxHeight;
+    }
+
+    // Формула бывает и внутри выделения или ссылки (**$x^2$**): смотреть только верхний
+    // уровень абзаца значило оставить такой строке жёсткий интерлиньяж.
+    private static bool HasEmbeddedElement(InlineCollection inlines)
+    {
+        foreach (var inline in inlines)
+        {
+            switch (inline)
+            {
+                case InlineUIContainer:
+                    return true;
+
+                case Span span when HasEmbeddedElement(span.Inlines):
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static WpfParagraph BuildParagraphFrom(

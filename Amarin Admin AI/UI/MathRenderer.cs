@@ -42,6 +42,12 @@ internal static class MathRenderer
         bool IsWord = false)
     {
         public double Height => Ascent + Descent;
+
+        /// <summary>
+        /// Сколько курсивная буква выступает за свою ширину справа; уже входит в <see cref="Width"/>.
+        /// Нижний индекс садится без этой прибавки — под наклонной буквой места для него хватает.
+        /// </summary>
+        public double ItalicCorrection { get; init; }
     }
 
     /// <summary>
@@ -216,9 +222,18 @@ internal static class MathRenderer
         }
 
         var boxes = new List<MathVisual>(items.Count);
-        foreach (var item in items)
+        for (var k = 0; k < items.Count; k++)
         {
-            boxes.Add(Layout(item, context, size));
+            var box = Layout(items[k], context, size);
+
+            // Знак операции без левого операнда — унарный: «−1» в «x ≠ −1» набирается
+            // вплотную к числу, а не отбивается с двух сторон, как «a − b».
+            if (box.Kind == MathTokenKind.Binary && IsUnaryPosition(items, k))
+            {
+                box = box with { Kind = MathTokenKind.Variable };
+            }
+
+            boxes.Add(box);
         }
 
         var children = new List<(FrameworkElement, double, double)>(boxes.Count);
@@ -242,6 +257,26 @@ internal static class MathRenderer
 
         var kind = boxes.Count == 1 ? boxes[0].Kind : MathTokenKind.Variable;
         return Compose(Math.Max(x, 0), ascent, descent, children, kind);
+    }
+
+    /// <summary>
+    /// Слева от знака нет операнда: начало строки, другой знак, отношение, запятая или
+    /// открывающая скобка. Правило то же, что у TeX для бинарного атома.
+    /// </summary>
+    internal static bool IsUnaryPosition(IReadOnlyList<MathNode> items, int index)
+    {
+        if (index == 0)
+        {
+            return true;
+        }
+
+        return items[index - 1] switch
+        {
+            MathSymbol { Kind: MathTokenKind.Binary or MathTokenKind.Relation or MathTokenKind.Punctuation or MathTokenKind.BigOperator } => true,
+            MathSymbol { Kind: MathTokenKind.Fence, Text: "(" or "[" or "{" } => true,
+            MathSpace => IsUnaryPosition(items, index - 1),
+            _ => false
+        };
     }
 
     /// <summary>
@@ -398,7 +433,7 @@ internal static class MathRenderer
         if (sub is not null)
         {
             descent = Math.Max(descent, subDrop + sub.Descent);
-            width = Math.Max(width, body.Width + sub.Width + size * 0.06);
+            width = Math.Max(width, body.Width - body.ItalicCorrection + sub.Width + size * 0.06);
         }
 
         // Вертикали считаются от подъёма всей коробки, поэтому дети размещаются после него.
@@ -412,7 +447,7 @@ internal static class MathRenderer
 
         if (sub is not null)
         {
-            children.Add((sub.Element, body.Width + size * 0.04, ascent + subDrop - sub.Ascent));
+            children.Add((sub.Element, body.Width - body.ItalicCorrection + size * 0.04, ascent + subDrop - sub.Ascent));
         }
 
         return Compose(width, ascent, descent, children, body.Kind) with { IsWord = body.IsWord };
@@ -698,13 +733,77 @@ internal static class MathRenderer
             block.FontSize = size * 1.45;
         }
 
+        // Курсивная буква наклонена за свою ширину, и соседа справа она задевала: «a)» в
+        // «2(1 − a)» слипалось со скобкой, показатель в «x²» садился на букву. Выступ
+        // отдаётся ей же отступом справа — как поправка на курсив в TeX.
+        var correction = italic ? ItalicOverhang(context, text, block) : 0;
+        if (correction > 0)
+        {
+            block.Padding = new Thickness(0, 0, correction, 0);
+        }
+
         block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var width = block.DesiredSize.Width;
         var height = block.DesiredSize.Height;
         var ascent = Math.Min(height, block.FontSize * SafeBaseline(context.Font));
 
         var word = kind == MathTokenKind.Upright && text.Length > 1 && text.All(char.IsLetter);
-        return new MathVisual(block, width, ascent, height - ascent, kind, word);
+        return new MathVisual(block, width, ascent, height - ascent, kind, word) { ItalicCorrection = correction };
+    }
+
+    /// <summary>Выступы курсивных букв: считать контур на каждую перерисовку живого ответа дорого.</summary>
+    private const int OverhangCacheCapacity = 512;
+    private static readonly Dictionary<(string Text, double Size, bool Bold, double Dpi), double> OverhangCache = [];
+
+    /// <summary>
+    /// На сколько чернила курсивной буквы выходят за её ширину справа. У Cambria Math своего
+    /// курсива нет, наклон WPF рисует сам, а ширину оставляет прямой буквы.
+    /// </summary>
+    /// <remarks>
+    /// Меряется контур (<see cref="FormattedText.BuildGeometry"/>), а не метрики шрифта: в
+    /// таблицах шрифта наклона нет. Не вышло посчитать — поправки нет, как было раньше.
+    /// </remarks>
+    private static double ItalicOverhang(Context context, string text, TextBlock block)
+    {
+        var dpi = VisualTreeHelper.GetDpi(context.Host).PixelsPerDip;
+        var bold = block.FontWeight == FontWeights.Bold;
+        var key = (text, block.FontSize, bold, dpi);
+        if (OverhangCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var overhang = 0.0;
+        try
+        {
+            var formatted = new FormattedText(
+                text,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(context.Font, FontStyles.Italic, block.FontWeight, FontStretches.Normal),
+                block.FontSize,
+                Brushes.Black,
+                dpi);
+            var ink = formatted.BuildGeometry(new Point(0, 0)).Bounds;
+            if (!ink.IsEmpty)
+            {
+                // Потолок — на случай экзотического знака с длинным росчерком: лучше чуть
+                // тесно, чем дыра в полбуквы посреди формулы.
+                overhang = Math.Clamp(ink.Right - formatted.WidthIncludingTrailingWhitespace, 0, block.FontSize * 0.3);
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            // Шрифт не отдал контур — рисуем без поправки.
+        }
+
+        if (OverhangCache.Count >= OverhangCacheCapacity)
+        {
+            OverhangCache.Clear();
+        }
+
+        OverhangCache[key] = overhang;
+        return overhang;
     }
 
     private static double SafeBaseline(FontFamily family)

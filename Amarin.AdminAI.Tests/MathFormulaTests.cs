@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Media;
 using Amarin.Core;
 using Amarin.UI;
 
@@ -298,6 +300,49 @@ public sealed class MathRendererTests
         Assert.True(gap >= 16 * 0.15, $"промежуток {gap}");
     }
 
+    [Fact]
+    public void A_minus_without_a_left_operand_sits_close_to_its_number()
+    {
+        // «x ≠ −1» набиралось как «x ≠ − 1»: минус отбивался с двух сторон, как в «a − b».
+        var (unary, binary) = _wpf.Ui.Invoke(() => (GapAfterMinus(@"x \neq -1"), GapAfterMinus("a - 1")));
+
+        Assert.True(unary < 16 * 0.05, $"после унарного минуса {unary}");
+        Assert.True(binary >= 16 * 0.15, $"после бинарного минуса {binary}");
+    }
+
+    private static double GapAfterMinus(string latex)
+    {
+        var canvas = (Canvas)MathRenderer.BuildVisual(new Window(), latex, 16, display: false).Element;
+        var minus = canvas.Children.OfType<TextBlock>().Single(block => block.Text == "−");
+        var one = canvas.Children.OfType<TextBlock>().Single(block => block.Text == "1");
+        return Canvas.GetLeft(one) - (Canvas.GetLeft(minus) + minus.DesiredSize.Width);
+    }
+
+    [Fact]
+    public void An_italic_letter_does_not_run_into_the_bracket_after_it()
+    {
+        // В «2(1 − a)» наклонная a заходила на закрывающую скобку.
+        var (inkRight, bracketLeft) = _wpf.Ui.Invoke(() =>
+        {
+            var host = new Window();
+            var canvas = (Canvas)MathRenderer.BuildVisual(host, "2(1-a)", 16, display: false).Element;
+            var letter = canvas.Children.OfType<TextBlock>().Single(block => block.Text == "a");
+            var bracket = canvas.Children.OfType<TextBlock>().Single(block => block.Text == ")");
+            var formatted = new FormattedText(
+                "a",
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(letter.FontFamily, letter.FontStyle, letter.FontWeight, letter.FontStretch),
+                letter.FontSize,
+                Brushes.Black,
+                VisualTreeHelper.GetDpi(host).PixelsPerDip);
+            var ink = formatted.BuildGeometry(new Point(Canvas.GetLeft(letter), 0)).Bounds;
+            return (ink.Right, Canvas.GetLeft(bracket));
+        });
+
+        Assert.True(inkRight <= bracketLeft + 0.01, $"буква до {inkRight}, скобка с {bracketLeft}");
+    }
+
     private static IEnumerable<TextBlock> Glyphs(DependencyObject root)
     {
         if (root is TextBlock block)
@@ -418,6 +463,61 @@ public sealed class ChatMarkdownMathTests
     [Fact]
     public void A_math_fence_becomes_a_block() =>
         Assert.Equal(1, Render("```math\nE = mc^2\n```").MathBlocks);
+
+    [Fact]
+    public void A_line_under_a_fraction_does_not_run_into_its_denominator()
+    {
+        // Условие «(x ≠ −1)» строкой ниже дроби печаталось поверх её знаменателя: коробку
+        // формулы опускали отрицательным отступом, и строка не оставляла места под свес.
+        var (fractionBottom, nextTop) = _wpf.Ui.Invoke(() =>
+        {
+            var box = new RichTextBox();
+            ChatMarkdown.Write(
+                box,
+                new Window(),
+                "1. $\\frac{2x}{x+1} + \\frac{3}{x+1} = \\frac{2x+3}{x+1}$\n   $(x \\neq -1)$",
+                14,
+                21);
+            box.Measure(new Size(600, double.PositiveInfinity));
+            box.Arrange(new Rect(0, 0, 600, box.DesiredSize.Height));
+            box.UpdateLayout();
+
+            var formulas = Embedded(box.Document).ToList();
+            Assert.Equal(2, formulas.Count);
+            var fraction = formulas[0];
+            var condition = formulas[1];
+            return (
+                fraction.TranslatePoint(new Point(0, fraction.ActualHeight), box).Y,
+                condition.TranslatePoint(new Point(0, 0), box).Y);
+        });
+
+        Assert.True(nextTop >= fractionBottom - 0.5, $"дробь до {fractionBottom}, следующая строка с {nextTop}");
+    }
+
+    private static IEnumerable<FrameworkElement> Embedded(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is InlineUIContainer { Child: FrameworkElement element })
+            {
+                yield return element;
+                continue;
+            }
+
+            foreach (var nested in Embedded(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    [Fact]
+    public void A_formula_inside_bold_text_still_relaxes_the_line_height() =>
+        Assert.True(Render(@"**Ответ: $\frac{1}{2}$**").LineHeightIsAuto);
+
+    [Fact]
+    public void A_formula_in_a_heading_relaxes_its_line_height() =>
+        Assert.True(Render(@"## Корни $\frac{-b}{2a}$").LineHeightIsAuto);
 
     [Fact]
     public void A_price_range_is_not_a_formula()
