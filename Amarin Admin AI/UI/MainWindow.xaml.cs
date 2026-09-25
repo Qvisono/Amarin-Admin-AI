@@ -210,6 +210,10 @@ namespace Amarin.UI
             StartSpendBackfill();
             ApplyUiScaleFromSettings();
 
+            // До Show(), как и масштаб: углы — форма окна, и первым кадром она уже должна быть той,
+            // что выбрана, а не заводской системной.
+            WindowCornerStyle.Apply(this, _services.Settings.WindowCorners);
+
             // До Show(), а не из Loaded: фон раньше впервые красился вместе со страницами
             // настроек, то есть уже после того, как окно показалось, — и первым кадром человек
             // видел голую заливку, а картинку получал следом.
@@ -455,6 +459,40 @@ namespace Amarin.UI
             _services.Settings.DateFormat = ReadDateFormatCombo();
             _services.SettingsStore.Save(_services.Settings);
             RebuildTranscript(resetZoom: false);
+        }
+
+        private void WindowCornersComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.WindowCorners = ReadWindowCornersCombo();
+            _services.SettingsStore.Save(_services.Settings);
+            WindowCornerStyle.Apply(this, _services.Settings.WindowCorners);
+        }
+
+        private WindowCorners ReadWindowCornersCombo() =>
+            WindowCornersComboBox.SelectedItem is ComboBoxItem item &&
+            Enum.TryParse<WindowCorners>(Convert.ToString(item.Tag), out var value)
+                ? value
+                : WindowCorners.Small;
+
+        private void SelectWindowCorners(WindowCorners corners)
+        {
+            for (var i = 0; i < WindowCornersComboBox.Items.Count; i++)
+            {
+                if (WindowCornersComboBox.Items[i] is ComboBoxItem item &&
+                    Enum.TryParse<WindowCorners>(Convert.ToString(item.Tag), out var value) &&
+                    value == corners)
+                {
+                    WindowCornersComboBox.SelectedIndex = i;
+                    return;
+                }
+            }
+
+            WindowCornersComboBox.SelectedIndex = 0;
         }
 
         private DateFormat ReadDateFormatCombo() =>
@@ -1580,6 +1618,11 @@ namespace Amarin.UI
                 LoadAppearanceUi(settings);
                 SelectUiScale(settings.UiScalePercent);
                 SelectDateFormat(settings.DateFormat);
+                SelectWindowCorners(settings.WindowCorners);
+
+                // Здесь же, а не только при запуске: сюда приходят и смена профиля, и импорт
+                // архива — у другого профиля углы могут быть другими.
+                WindowCornerStyle.Apply(this, settings.WindowCorners);
                 ApplyUiScaleFromSettings();
                 ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
                 LoadHotkeysUi(settings);

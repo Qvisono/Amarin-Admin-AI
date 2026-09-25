@@ -64,6 +64,9 @@
     <system:String x:Key="S.Appearance.Colours" xml:space="preserve">Colours</system:String>
     <system:String x:Key="S.Appearance.CompactComposer" xml:space="preserve">Compact input box</system:String>
     <system:String x:Key="S.Appearance.CompactComposerDesc" xml:space="preserve">While the box is empty and the mouse is far, it folds into a strip and gives the room to the chat</system:String>
+    <system:String x:Key="S.Appearance.CornersRound" xml:space="preserve">Large</system:String>
+    <system:String x:Key="S.Appearance.CornersSmall" xml:space="preserve">Small</system:String>
+    <system:String x:Key="S.Appearance.CornersSquare" xml:space="preserve">Square</system:String>
     <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Crystal thickness</system:String>
     <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Customisation</system:String>
     <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Backdrop, glass and your own accent colour. Off means the plain theme palette</system:String>
@@ -116,6 +119,8 @@
     <system:String x:Key="S.Appearance.WidthNarrow" xml:space="preserve">Narrow</system:String>
     <system:String x:Key="S.Appearance.WidthNormal" xml:space="preserve">Normal</system:String>
     <system:String x:Key="S.Appearance.WidthWide" xml:space="preserve">Wide</system:String>
+    <system:String x:Key="S.Appearance.WindowCorners" xml:space="preserve">Window corners</system:String>
+    <system:String x:Key="S.Appearance.WindowCornersDesc" xml:space="preserve">Windows 11 draws the rounding. On Windows 10 window corners are always square.</system:String>
 
     <system:String x:Key="S.Attach.ChooseFiles" xml:space="preserve">Choose files</system:String>
     <system:String x:Key="S.Attach.ClipboardUnreadable" xml:space="preserve">The image in the clipboard cannot be read.</system:String>

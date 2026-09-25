@@ -2224,6 +2224,25 @@
                                     </ComboBox>
                                 </Grid>
 
+                                <!-- Углы окна рисует Windows 11, и видов у неё ровно три — см. WindowCornerStyle. -->
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.WindowCorners}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.WindowCornersDesc}"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="WindowCornersComboBox" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                      MinWidth="110" SelectedIndex="0"
+                                      SelectionChanged="WindowCornersComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.CornersSmall}" Tag="Small"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.CornersRound}" Tag="Round"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Appearance.CornersSquare}" Tag="Square"/>
+                                    </ComboBox>
+                                </Grid>
+
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Theme}"/>

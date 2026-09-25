@@ -64,6 +64,9 @@
     <system:String x:Key="S.Appearance.Colours" xml:space="preserve">Цвета</system:String>
     <system:String x:Key="S.Appearance.CompactComposer" xml:space="preserve">Компактное поле ввода</system:String>
     <system:String x:Key="S.Appearance.CompactComposerDesc" xml:space="preserve">Пока поле пустое и мышь далеко, оно сворачивается в полоску и отдаёт место чату</system:String>
+    <system:String x:Key="S.Appearance.CornersRound" xml:space="preserve">Крупные</system:String>
+    <system:String x:Key="S.Appearance.CornersSmall" xml:space="preserve">Небольшие</system:String>
+    <system:String x:Key="S.Appearance.CornersSquare" xml:space="preserve">Прямые</system:String>
     <system:String x:Key="S.Appearance.CrystalDepth" xml:space="preserve">Толщина кристалла</system:String>
     <system:String x:Key="S.Appearance.Customisation" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Appearance.CustomisationDesc" xml:space="preserve">Фон за интерфейсом, стекло и свой акцентный цвет. Выключено - чистая палитра темы</system:String>
@@ -116,6 +119,8 @@
     <system:String x:Key="S.Appearance.WidthNarrow" xml:space="preserve">Узкая</system:String>
     <system:String x:Key="S.Appearance.WidthNormal" xml:space="preserve">Обычная</system:String>
     <system:String x:Key="S.Appearance.WidthWide" xml:space="preserve">Широкая</system:String>
+    <system:String x:Key="S.Appearance.WindowCorners" xml:space="preserve">Углы окна</system:String>
+    <system:String x:Key="S.Appearance.WindowCornersDesc" xml:space="preserve">Скругление рисует Windows 11. В Windows 10 углы окон всегда прямые.</system:String>
 
     <system:String x:Key="S.Attach.ChooseFiles" xml:space="preserve">Выберите файлы</system:String>
     <system:String x:Key="S.Attach.ClipboardUnreadable" xml:space="preserve">Изображение из буфера не читается.</system:String>

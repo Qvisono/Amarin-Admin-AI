@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Amarin.Core;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
@@ -36,6 +37,42 @@ public sealed class MainWindowStyleTests
         // Без кнопки свёртывания в стиле окно не сворачивается щелчком по своей кнопке на панели
         // задач и сочетанием Win+Down — Windows считает, что сворачивать его нельзя.
         Assert.True((style & WsMinimizeBox) != 0, "WS_MINIMIZEBOX не выставлен");
+    }
+
+    /// <summary>
+    /// Три вида углов — ровно три значения атрибута DWM. Перепутанное значение молча дало бы
+    /// другой вид, и заметить это можно только глазами на Windows 11.
+    /// </summary>
+    [Theory]
+    [InlineData(WindowCorners.Small, 3)]
+    [InlineData(WindowCorners.Round, 2)]
+    [InlineData(WindowCorners.Square, 1)]
+    public void Each_corner_choice_maps_to_its_dwm_preference(WindowCorners corners, int expected) =>
+        Assert.Equal(expected, WindowCornerStyle.PreferenceFor(corners));
+
+    /// <summary>
+    /// Заводское — маленькое скругление: таким окно было до 1.27.0, и старый settings.json без
+    /// этого поля должен дать тот же вид.
+    /// </summary>
+    [Fact]
+    public void Old_settings_keep_the_small_corners_people_had()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "amarin-corners-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "settings.json"), "{ \"uiScalePercent\": 100 }");
+            Assert.Equal(WindowCorners.Small, new AppSettingsStore(root).Load().WindowCorners);
+
+            var settings = new AppSettingsStore(root).Load();
+            settings.WindowCorners = WindowCorners.Square;
+            new AppSettingsStore(root).Save(settings);
+            Assert.Equal(WindowCorners.Square, new AppSettingsStore(root).Load().WindowCorners);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     private const int GwlStyle = -16;

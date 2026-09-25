@@ -23,6 +23,25 @@ public enum DateFormat
 }
 
 /// <summary>
+/// Скругление углов главного окна. Его рисует Windows 11, и выбор у неё ровно из трёх видов:
+/// своего радиуса система не принимает.
+/// </summary>
+/// <remarks>
+/// Пишется в <c>settings.json</c> именем, как и прочие перечисления: переименовывать нельзя.
+/// </remarks>
+public enum WindowCorners
+{
+    /// <summary>Маленькое скругление — как было до 1.27.0, пока окно числилось «инструментом».</summary>
+    Small,
+
+    /// <summary>Обычное скругление окон Windows 11.</summary>
+    Round,
+
+    /// <summary>Прямые углы.</summary>
+    Square
+}
+
+/// <summary>
 /// Palette preset. The first three are the originals and keep their names in settings.json;
 /// the rest are the shipped colour presets. See <see cref="ThemeCatalog"/> for what each maps to.
 /// </summary>
@@ -110,6 +129,13 @@ public sealed class AppSettings
     /// Как показывать дату: в подсказке над временем ответа, в журнале и в отчёте об импорте.
     /// </summary>
     public DateFormat DateFormat { get; set; } = DateFormat.DayMonthShort;
+
+    /// <summary>
+    /// Углы главного окна. Отдельно от <see cref="Appearance"/>: форма окна не должна зависеть
+    /// от главного выключателя оформления. Заводское — маленькое скругление, которое люди
+    /// видели до 1.27.0.
+    /// </summary>
+    public WindowCorners WindowCorners { get; set; } = WindowCorners.Small;
 
     /// <summary>
     /// Backdrop, glass and layout customisation on top of <see cref="Theme"/>.
