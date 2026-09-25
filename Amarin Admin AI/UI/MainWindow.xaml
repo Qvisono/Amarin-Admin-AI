@@ -6,13 +6,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        WindowStyle="ToolWindow"
+        WindowStyle="SingleBorderWindow"
         Title="Amarin Admin AI"
         Height="620"
         MinHeight="535"
         Width="1140"
         MinWidth="850"
         WindowStartupLocation="CenterScreen">
+    <!--
+        WindowStyle — обычное окно, а не ToolWindow. Системный заголовок и так убирает
+        WindowChrome (CaptionHeight="0"), а стиль решает, кем окно считает Windows. С ToolWindow
+        (WS_EX_TOOLWINDOW) оно было «окном-инструментом»: не попадало в Alt+Tab, кнопка на
+        панели задач появлялась лишь после первого фокуса, а сворачивание чужой программы
+        уносило его следом. Возвращать ToolWindow ради внешнего вида незачем — вид рисует
+        WindowChrome.
+    -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
