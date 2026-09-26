@@ -42,12 +42,103 @@ internal static class WindowMaximizeFix
     {
         ArgumentNullException.ThrowIfNull(window);
 
+        // Отступ содержимого — на каждое событие, после которого развёрнутое окно могло лечь
+        // иначе: сам разворот, сдвиг на другой монитор, смена размера и масштаба.
+        window.StateChanged += (_, _) => UpdateContentInset(window);
+        window.SizeChanged += (_, _) => UpdateContentInset(window);
+        window.LocationChanged += (_, _) => UpdateContentInset(window);
+        window.DpiChanged += (_, _) => UpdateContentInset(window);
+
+        // Окно, показанное сразу развёрнутым, смены состояния уже не увидит.
+        window.Loaded += (_, _) => UpdateContentInset(window);
+
         if (TryHook(window))
         {
             return;
         }
 
         window.SourceInitialized += (_, _) => TryHook(window);
+    }
+
+    /// <summary>
+    /// Отодвигает содержимое развёрнутого окна от краёв, за которые его вынесла Windows.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Подгонка прямоугольника в <c>WM_GETMINMAXINFO</c> и <c>WM_WINDOWPOSCHANGING</c> хватала,
+    /// пока окно числилось «инструментом». Став в 1.27.0 обычным окном (<c>WS_CAPTION</c>), оно
+    /// при развороте всё равно получало невидимую рамку за краями экрана: содержимое уезжало
+    /// на её ширину влево, вверх и под панель задач. Что именно решает Windows на каждом
+    /// мониторе и масштабе, заранее не угадать, поэтому здесь не предполагается ничего: клиентская
+    /// область меряется по факту и сравнивается с рабочей областью монитора, а разница уходит
+    /// в поле содержимого. Легло окно ровно — поле нулевое.
+    /// </para>
+    /// <para>
+    /// Поле ставится корневому элементу, а не окну: у окна с <c>WindowChrome</c> свои поля
+    /// разметки не двигают саму клиентскую область. Вынесенная полоса при этом лежит за краем
+    /// экрана или под панелью задач — видно её быть не может.
+    /// </para>
+    /// </remarks>
+    internal static void UpdateContentInset(Window window)
+    {
+        if (window.Content is not FrameworkElement root)
+        {
+            return;
+        }
+
+        var inset = new Thickness(0);
+        var handle = new WindowInteropHelper(window).Handle;
+        if (window.WindowState == WindowState.Maximized &&
+            handle != IntPtr.Zero &&
+            TryGetClientOnScreen(handle, out var client) &&
+            TryGetWorkArea(handle, out var work, out _) &&
+            PresentationSource.FromVisual(window)?.CompositionTarget is { } target)
+        {
+            var device = Overhang(client, work);
+            var toDip = target.TransformFromDevice;
+            inset = new Thickness(
+                device.Left * toDip.M11,
+                device.Top * toDip.M22,
+                device.Right * toDip.M11,
+                device.Bottom * toDip.M22);
+        }
+
+        if (root.Margin != inset)
+        {
+            root.Margin = inset;
+        }
+    }
+
+    /// <summary>
+    /// На сколько аппаратных пикселей клиентская область вылезает за рабочую область с каждой
+    /// стороны. Внутрь не бывает: окно меньше рабочей области отступа не просит.
+    /// </summary>
+    internal static Thickness Overhang(Rect client, Rect work) => new(
+        Math.Max(0, work.Left - client.Left),
+        Math.Max(0, work.Top - client.Top),
+        Math.Max(0, client.Right - work.Right),
+        Math.Max(0, client.Bottom - work.Bottom));
+
+    private static bool TryGetClientOnScreen(IntPtr handle, out Rect client)
+    {
+        client = default;
+        if (!GetClientRect(handle, out var local))
+        {
+            return false;
+        }
+
+        var origin = new POINT { x = 0, y = 0 };
+        if (!ClientToScreen(handle, ref origin))
+        {
+            return false;
+        }
+
+        client = new Rect(
+            origin.x,
+            origin.y,
+            Math.Max(0, local.right - local.left),
+            Math.Max(0, local.bottom - local.top));
+        return true;
     }
 
     /// <summary>
@@ -328,6 +419,14 @@ internal static class WindowMaximizeFix
         public RECT rcWork;
         public int dwFlags;
     }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int flags);

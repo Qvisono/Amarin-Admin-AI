@@ -271,6 +271,51 @@ public sealed class MaximizedWindowTests
         Assert.Equal((work.left, work.top, work.right, work.bottom), (rect.left, rect.top, rect.right, rect.bottom));
     }
 
+    /// <summary>
+    /// Меряется то, что видит человек, — само содержимое, а не прямоугольник окна. С 1.27.0 окно
+    /// обычное (не «инструмент»), и прямоугольник у него сходился с рабочей областью, а
+    /// содержимое всё равно уезжало на невидимую рамку за края экрана и под панель задач.
+    /// </summary>
+    [Fact]
+    public void The_content_of_a_maximized_window_stays_on_screen()
+    {
+        var (topLeft, bottomRight, work) = _wpf.Ui.Invoke(() =>
+        {
+            var window = new MainWindow();
+            new System.Windows.Interop.WindowInteropHelper(window).EnsureHandle();
+            window.Show();
+            window.WindowState = WindowState.Maximized;
+            window.UpdateLayout();
+
+            var root = (FrameworkElement)window.Content;
+            var first = root.PointToScreen(new Point(0, 0));
+            var last = root.PointToScreen(new Point(root.ActualWidth, root.ActualHeight));
+            var area = WorkArea(new System.Windows.Interop.WindowInteropHelper(window).Handle);
+            window.Close();
+            return (first, last, area);
+        });
+
+        // Допуск в пиксель — на округление при переводе единиц интерфейса в пиксели экрана.
+        Assert.True(topLeft.X >= work.left - 1, $"левый край содержимого {topLeft.X}, рабочая область с {work.left}");
+        Assert.True(topLeft.Y >= work.top - 1, $"верх содержимого {topLeft.Y}, рабочая область с {work.top}");
+        Assert.True(bottomRight.X <= work.right + 1, $"правый край содержимого {bottomRight.X}, рабочая область до {work.right}");
+        Assert.True(bottomRight.Y <= work.bottom + 1, $"низ содержимого {bottomRight.Y}, рабочая область до {work.bottom}");
+    }
+
+    [Fact]
+    public void Only_the_part_that_sticks_out_is_taken_back()
+    {
+        var work = new Rect(0, 0, 1920, 1040);
+
+        // Невидимая рамка в восемь пикселей со всех сторон — то, что делает Windows с обычным окном.
+        var overhang = WindowMaximizeFix.Overhang(new Rect(-8, -8, 1936, 1056), work);
+        Assert.Equal(new Thickness(8, 8, 8, 8), overhang);
+
+        // Легло ровно — отступа нет; меньше рабочей области — тоже нет, внутрь поле не растёт.
+        Assert.Equal(new Thickness(0), WindowMaximizeFix.Overhang(work, work));
+        Assert.Equal(new Thickness(0), WindowMaximizeFix.Overhang(new Rect(10, 10, 800, 600), work));
+    }
+
     [Fact]
     public void The_window_edge_is_a_real_resize_border()
     {
