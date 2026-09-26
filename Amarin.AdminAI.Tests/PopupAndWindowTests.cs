@@ -316,6 +316,63 @@ public sealed class MaximizedWindowTests
         Assert.Equal(new Thickness(0), WindowMaximizeFix.Overhang(new Rect(10, 10, 800, 600), work));
     }
 
+    /// <summary>
+    /// Клиентская область развёрнутого окна обрезается по рабочей области, даже если само окно
+    /// Windows вынесла на невидимую рамку. Сообщение шлётся настоящему окну: так проверяется
+    /// и то, что ответ даёт наш перехватчик, а не стоящий в той же цепочке WindowChrome, — тот
+    /// вернул бы клиентскую область во всё окно, и содержимое снова уехало бы за края экрана.
+    /// </summary>
+    [Fact]
+    public void A_maximized_window_draws_only_inside_the_work_area_whatever_its_frame()
+    {
+        var (client, work, normal) = _wpf.Ui.Invoke(() =>
+        {
+            var window = new MainWindow();
+            new System.Windows.Interop.WindowInteropHelper(window).EnsureHandle();
+            window.Show();
+            var handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+            var area = WorkArea(handle);
+            var oversized = new RECT
+            {
+                left = area.left - 8,
+                top = area.top - 8,
+                right = area.right + 8,
+                bottom = area.bottom + 8
+            };
+
+            // Обычное окно не трогается: клиентская область остаётся окном целиком.
+            var restored = AskForClientArea(handle, oversized);
+
+            window.WindowState = WindowState.Maximized;
+            window.UpdateLayout();
+            var maximized = AskForClientArea(handle, oversized);
+            window.Close();
+            return (maximized, area, restored);
+        });
+
+        Assert.Equal((work.left, work.top, work.right, work.bottom), (client.left, client.top, client.right, client.bottom));
+        Assert.Equal(
+            (work.left - 8, work.top - 8, work.right + 8, work.bottom + 8),
+            (normal.left, normal.top, normal.right, normal.bottom));
+    }
+
+    [Fact]
+    public void The_client_area_is_the_window_cut_to_the_work_area()
+    {
+        var work = new Rect(0, 0, 1920, 1040);
+
+        // Невидимая рамка со всех сторон и панель задач снизу — остаётся ровно рабочая область.
+        Assert.Equal(work, WindowMaximizeFix.ClientAreaFor(new Rect(-8, -8, 1936, 1096), work));
+
+        // Легло ровно — без изменений.
+        Assert.Equal(work, WindowMaximizeFix.ClientAreaFor(work, work));
+
+        // С рабочей областью не пересекается (монитор определился не тот) — пустой клиент хуже,
+        // окно остаётся как есть.
+        var elsewhere = new Rect(3000, 0, 800, 600);
+        Assert.Equal(elsewhere, WindowMaximizeFix.ClientAreaFor(elsewhere, work));
+    }
+
     [Fact]
     public void The_window_edge_is_a_real_resize_border()
     {
@@ -427,6 +484,26 @@ public sealed class MaximizedWindowTests
         }
     }
 
+    /// <summary>
+    /// <c>WM_NCCALCSIZE</c> с <c>wParam = FALSE</c>: на входе предлагаемое окно, на выходе его
+    /// клиентская область.
+    /// </summary>
+    private static RECT AskForClientArea(IntPtr handle, RECT proposed)
+    {
+        var size = System.Runtime.InteropServices.Marshal.SizeOf<RECT>();
+        var buffer = System.Runtime.InteropServices.Marshal.AllocHGlobal(size);
+        try
+        {
+            System.Runtime.InteropServices.Marshal.StructureToPtr(proposed, buffer, fDeleteOld: false);
+            SendMessage(handle, WM_NCCALCSIZE, IntPtr.Zero, buffer);
+            return System.Runtime.InteropServices.Marshal.PtrToStructure<RECT>(buffer);
+        }
+        finally
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(buffer);
+        }
+    }
+
     private static RECT WorkArea(IntPtr handle)
     {
         var info = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
@@ -437,6 +514,7 @@ public sealed class MaximizedWindowTests
     private const int SWP_NOZORDER = 0x0004;
     private const int SWP_NOACTIVATE = 0x0010;
     private const int WM_GETMINMAXINFO = 0x0024;
+    private const int WM_NCCALCSIZE = 0x0083;
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct POINT

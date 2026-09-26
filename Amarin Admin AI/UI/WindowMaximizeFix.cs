@@ -34,6 +34,8 @@ internal static class WindowMaximizeFix
 {
     private const int WM_GETMINMAXINFO = 0x0024;
     private const int WM_WINDOWPOSCHANGING = 0x0046;
+    private const int WM_NCCALCSIZE = 0x0083;
+    private const int WVR_REDRAW = 0x0300;
     private const int MONITOR_DEFAULTTONEAREST = 0x00000002;
     private const int SWP_NOSIZE = 0x0001;
     private const int SWP_NOMOVE = 0x0002;
@@ -255,9 +257,82 @@ internal static class WindowMaximizeFix
                 ClampMaximized(hwnd, lParam);
                 return IntPtr.Zero;
 
+            case WM_NCCALCSIZE:
+                return OnNcCalcSize(hwnd, wParam, lParam, ref handled);
+
             default:
                 return IntPtr.Zero;
         }
+    }
+
+    /// <summary>
+    /// Клиентская область развёрнутого окна — не больше рабочей области монитора, где бы
+    /// Windows ни поставила само окно.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// До 1.27.0 окно было «инструментом» (<c>WS_EX_TOOLWINDOW</c>), и подгонки прямоугольника в
+    /// <c>WM_GETMINMAXINFO</c>/<c>WM_WINDOWPOSCHANGING</c> хватало. Обычное окно Windows
+    /// разворачивает по другим правилам — даже координаты <c>WINDOWPLACEMENT</c> у него
+    /// считаются от рабочей области, а не от экрана (об этом прямо пишет исходник WPF
+    /// <c>Window.GetNormalRectDeviceUnits</c>), — и содержимое снова уехало за края экрана и под
+    /// панель задач. Здесь окну не навязывается ничего: пусть лежит, как решила система, а
+    /// клиентская область, где рисует WPF, обрезается по рабочей области. Вынесенная полоса
+    /// остаётся неклиентской и лежит за краем экрана или под панелью задач.
+    /// </para>
+    /// <para>
+    /// Этот перехватчик ставится позже, чем у <see cref="System.Windows.Shell.WindowChrome"/>, а
+    /// <see cref="HwndSource"/> зовёт последний добавленный первым, поэтому ответ наш. Обычного
+    /// окна он не касается: там сообщение уходит WindowChrome, и клиентская область, как и
+    /// прежде, равна окну целиком.
+    /// </para>
+    /// </remarks>
+    private static IntPtr OnNcCalcSize(IntPtr hwnd, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        // Разворот ставит WS_MAXIMIZE до того, как назначить прямоугольник, а возврат снимает
+        // его до того, как вернуть обычный, — поэтому сообщение о новом размере судит по флагу.
+        if (lParam == IntPtr.Zero || !IsZoomed(hwnd))
+        {
+            return IntPtr.Zero;
+        }
+
+        // При wParam = TRUE здесь NCCALCSIZE_PARAMS, при FALSE — RECT; первым полем структуры
+        // идёт тот же RECT предлагаемого окна, поэтому читается одинаково.
+        var proposed = Marshal.PtrToStructure<RECT>(lParam);
+        if (!TryGetWorkAreaForRect(proposed, out var work))
+        {
+            return IntPtr.Zero;
+        }
+
+        var client = ClientAreaFor(
+            new Rect(proposed.left, proposed.top, proposed.right - proposed.left, proposed.bottom - proposed.top),
+            work);
+        Marshal.StructureToPtr(
+            new RECT
+            {
+                left = (int)client.Left,
+                top = (int)client.Top,
+                right = (int)client.Right,
+                bottom = (int)client.Bottom
+            },
+            lParam,
+            fDeleteOld: false);
+
+        handled = true;
+
+        // Ноль при wParam = TRUE значил бы «сохрани старую клиентскую область у левого верхнего
+        // угла» — ровно так же, как у WindowChrome, просим перерисовку.
+        return wParam != IntPtr.Zero ? new IntPtr(WVR_REDRAW) : IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Клиентская область развёрнутого окна: его прямоугольник, обрезанный по рабочей области.
+    /// Окно, с рабочей областью не пересекающееся, остаётся как есть — пустой клиент хуже.
+    /// </summary>
+    internal static Rect ClientAreaFor(Rect proposed, Rect work)
+    {
+        var client = Rect.Intersect(proposed, work);
+        return client.IsEmpty || client.Width <= 0 || client.Height <= 0 ? proposed : client;
     }
 
     /// <summary>
@@ -283,7 +358,14 @@ internal static class WindowMaximizeFix
 
         // Монитор считаем по предлагаемому прямоугольнику, а не по текущему положению окна:
         // при переносе развёрнутого окна на другой экран они ещё не совпадают.
-        if (!TryGetWorkAreaForRect(position, out var work))
+        var proposed = new RECT
+        {
+            left = position.x,
+            top = position.y,
+            right = position.x + Math.Max(1, position.cx),
+            bottom = position.y + Math.Max(1, position.cy)
+        };
+        if (!TryGetWorkAreaForRect(proposed, out var work))
         {
             return;
         }
@@ -381,17 +463,9 @@ internal static class WindowMaximizeFix
         return true;
     }
 
-    private static bool TryGetWorkAreaForRect(WINDOWPOS position, out Rect work)
+    private static bool TryGetWorkAreaForRect(RECT rect, out Rect work)
     {
         work = default;
-
-        var rect = new RECT
-        {
-            left = position.x,
-            top = position.y,
-            right = position.x + Math.Max(1, position.cx),
-            bottom = position.y + Math.Max(1, position.cy)
-        };
 
         var screen = MonitorFromRect(ref rect, MONITOR_DEFAULTTONEAREST);
         if (screen == IntPtr.Zero)
