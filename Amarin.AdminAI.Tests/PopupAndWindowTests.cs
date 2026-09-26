@@ -231,7 +231,7 @@ public sealed class MaximizedWindowTests
             window.UpdateLayout();
 
             var handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
-            GetWindowRect(handle, out var actual);
+            var actual = ClientOnScreen(handle);
             var area = WorkArea(handle);
             window.Close();
             return (actual, area);
@@ -263,7 +263,7 @@ public sealed class MaximizedWindowTests
                 area.bottom - area.top + 16,
                 SWP_NOZORDER | SWP_NOACTIVATE);
 
-            GetWindowRect(handle, out var actual);
+            var actual = ClientOnScreen(handle);
             window.Close();
             return (actual, area);
         });
@@ -504,6 +504,26 @@ public sealed class MaximizedWindowTests
         }
     }
 
+    /// <summary>
+    /// Клиентская область в координатах экрана — то, где рисует WPF. Прямоугольник самого окна
+    /// с 1.27.0 здесь не годится: обычное развёрнутое окно Windows всё равно выносит на невидимую
+    /// рамку за края экрана (на раннере GitHub — ровно −8/+8), и сходиться с рабочей областью
+    /// обязано не оно, а то, что видит человек.
+    /// </summary>
+    private static RECT ClientOnScreen(IntPtr handle)
+    {
+        GetClientRect(handle, out var local);
+        var origin = new POINT();
+        ClientToScreen(handle, ref origin);
+        return new RECT
+        {
+            left = origin.x,
+            top = origin.y,
+            right = origin.x + (local.right - local.left),
+            bottom = origin.y + (local.bottom - local.top)
+        };
+    }
+
     private static RECT WorkArea(IntPtr handle)
     {
         var info = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
@@ -555,7 +575,10 @@ public sealed class MaximizedWindowTests
     private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+    private static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ClientToScreen(IntPtr hwnd, ref POINT point);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, int flags);
