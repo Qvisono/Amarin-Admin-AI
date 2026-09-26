@@ -107,6 +107,46 @@ internal static class WindowMaximizeFix
         {
             root.Margin = inset;
         }
+
+        if (Core.PerfLog.IsEnabled && handle != IntPtr.Zero)
+        {
+            LogGeometry(window, handle, inset);
+        }
+    }
+
+    /// <summary>
+    /// Геометрия окна в журнал <c>AMARIN_PERF_LOG</c>.
+    /// </summary>
+    /// <remarks>
+    /// Развёрнутое окно после смены стиля в 1.27.0 уезжало за края экрана у людей, а на машине
+    /// разработки и в тестах сходилось. Угадывать, что делает Windows на чужом мониторе, третий
+    /// раз незачем: строка называет все четыре прямоугольника разом — окно, клиентскую область,
+    /// видимые границы по DWM и рабочую область — вместе с настоящим и подделанным масштабом.
+    /// </remarks>
+    private static void LogGeometry(Window window, IntPtr handle, Thickness inset)
+    {
+        GetWindowRect(handle, out var outer);
+        TryGetClientOnScreen(handle, out var client);
+        TryGetWorkArea(handle, out var work, out var monitor);
+        var visible = DwmGetWindowAttribute(handle, DwmwaExtendedFrameBounds, out RECT frame, Marshal.SizeOf<RECT>()) == 0
+            ? $"{frame.left},{frame.top},{frame.right},{frame.bottom}"
+            : "n/a";
+        var scale = PresentationSource.FromVisual(window)?.CompositionTarget?.TransformToDevice.M11 ?? double.NaN;
+        uint realDpi = 0;
+        try
+        {
+            realDpi = GetDpiForWindow(handle);
+        }
+        catch (EntryPointNotFoundException)
+        {
+        }
+
+        Core.PerfLog.Write(string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"window_geometry state={window.WindowState} window={outer.left},{outer.top},{outer.right},{outer.bottom} " +
+            $"client={client.Left},{client.Top},{client.Right},{client.Bottom} visible={visible} " +
+            $"work={work.Left},{work.Top},{work.Right},{work.Bottom} monitor={monitor.Left},{monitor.Top},{monitor.Right},{monitor.Bottom} " +
+            $"wpf_scale={scale:0.###} real_dpi={realDpi} inset={inset.Left:0.#},{inset.Top:0.#},{inset.Right:0.#},{inset.Bottom:0.#}"));
     }
 
     /// <summary>
@@ -419,6 +459,18 @@ internal static class WindowMaximizeFix
         public RECT rcWork;
         public int dwFlags;
     }
+
+    private const int DwmwaExtendedFrameBounds = 9;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out RECT value, int size);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
