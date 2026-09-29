@@ -61,7 +61,7 @@ public sealed class DevicesTool : ITool
             : Task.FromResult(PowerShellHelper.Run(script, 180));
     }
 
-    private static string Escape(string value) => value.Replace("'", "''", StringComparison.Ordinal);
+    private static string Escape(string value) => PowerShellHelper.QuoteLiteral(value);
 
     private static string PrintersScript(string filter, int max) => $$"""
         Get-Printer -ErrorAction SilentlyContinue |

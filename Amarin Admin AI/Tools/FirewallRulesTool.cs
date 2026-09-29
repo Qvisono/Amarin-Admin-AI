@@ -226,7 +226,7 @@ public sealed class FirewallRulesTool : ITool
 
     private static string ListScript(string filter, int top)
     {
-        var safeFilter = filter.Replace("'", "''", StringComparison.Ordinal);
+        var safeFilter = PowerShellHelper.QuoteLiteral(filter);
 
         return $$"""
             $top = {{top}}
@@ -423,9 +423,9 @@ public sealed class FirewallRulesTool : ITool
             "udp" => "UDP",
             _ => "Any"
         };
-        var safePort = localPort?.Replace("'", "''", StringComparison.Ordinal) ?? "";
-        var safeProg = program?.Replace("'", "''", StringComparison.Ordinal) ?? "";
-        var safeDesc = AmarinDescription.Replace("'", "''", StringComparison.Ordinal);
+        var safePort = PowerShellHelper.QuoteLiteral(localPort);
+        var safeProg = PowerShellHelper.QuoteLiteral(program);
+        var safeDesc = PowerShellHelper.QuoteLiteral(AmarinDescription);
 
         return $$"""
             $displayName = '{{safeName}}'
@@ -488,7 +488,7 @@ public sealed class FirewallRulesTool : ITool
             return false;
         }
 
-        safeName = raw.Replace("'", "''", StringComparison.Ordinal);
+        safeName = PowerShellHelper.QuoteLiteral(raw);
         return true;
     }
 

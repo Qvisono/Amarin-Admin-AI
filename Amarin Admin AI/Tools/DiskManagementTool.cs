@@ -252,7 +252,7 @@ public sealed class DiskManagementTool : ITool
     {
         var filter = driveLetter ?? string.Empty;
         // Escape single quotes for PowerShell string literal only.
-        var safeFilter = filter.Replace("'", "''", StringComparison.Ordinal);
+        var safeFilter = PowerShellHelper.QuoteLiteral(filter);
 
         return $$"""
             Write-Output '=== BitLocker status (no recovery keys) ==='

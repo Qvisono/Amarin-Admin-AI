@@ -1,4 +1,4 @@
-using Amarin.Tools;
+﻿using Amarin.Tools;
 
 namespace Amarin.AdminAI.Tests;
 
@@ -111,5 +111,48 @@ public sealed class ToolArgumentTests
         Assert.True(ScheduledTaskTool.TryBuildCreateArguments(
             "Напоминание", "notepad.exe", null, null, out var arguments, out _));
         Assert.Contains("DAILY", arguments);
+    }
+
+    [Theory]
+    [InlineData("x'; Remove-Item C:\\x; '")]
+    [InlineData("x\u2019; Remove-Item C:\\x; \u2019")]
+    [InlineData("x\u2018; Remove-Item C:\\x; \u2018")]
+    [InlineData("x\u201A; Remove-Item C:\\x; \u201B")]
+    public void A_quote_of_any_shape_cannot_close_a_powershell_string(string value)
+    {
+        // PowerShell считает одинарной кавычкой и типографские ‘ ’ ‚ ‛. Удвоение одной лишь «'»
+        // пропускало их, и значение закрывало строку, дописывая в скрипт свою команду.
+        var quoted = PowerShellHelper.QuoteLiteral(value);
+
+        var run = 0;
+        foreach (var ch in quoted)
+        {
+            if (ch is '\'' or '\u2018' or '\u2019' or '\u201A' or '\u201B')
+            {
+                run++;
+                continue;
+            }
+
+            Assert.True(run % 2 == 0, $"одиночная кавычка осталась в: {quoted}");
+            run = 0;
+        }
+
+        Assert.True(run % 2 == 0, $"одиночная кавычка осталась в: {quoted}");
+    }
+
+    [Theory]
+    [InlineData("example.com", true)]
+    [InlineData("пример.рф", true)]
+    [InlineData("10.0.0.1", true)]
+    [InlineData("fe80::1", true)]
+    [InlineData("example.com; Remove-Item C:\\x", false)]
+    [InlineData("example.com | calc", false)]
+    [InlineData("$(calc)", false)]
+    [InlineData("", false)]
+    public void Only_a_host_name_goes_to_nslookup(string value, bool valid)
+    {
+        // nslookup получал имя без кавычек, и «; команда» после него выполнялась вторым
+        // оператором PowerShell — при том что проверка имени считается чтением.
+        Assert.Equal(valid, DnsConfigTool.IsHostName(value));
     }
 }

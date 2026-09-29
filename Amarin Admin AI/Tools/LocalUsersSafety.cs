@@ -99,7 +99,7 @@ internal static partial class LocalUsersSafety
     }
 
     public static string EscapeForPowerShell(string name) =>
-        name.Replace("'", "''", StringComparison.Ordinal);
+        PowerShellHelper.QuoteLiteral(name);
 
     public static bool TryGetCurrentUserSid(out SecurityIdentifier sid)
     {

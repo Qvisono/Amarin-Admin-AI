@@ -101,10 +101,28 @@ public sealed class DnsConfigTool : ITool
             return ToolResult.Fail("Missing required parameter: hostname");
         }
 
-        var safe = hostname.Replace("'", "''", StringComparison.Ordinal);
+        hostname = hostname.Trim();
+        if (!IsHostName(hostname))
+        {
+            return ToolResult.Fail(
+                "Invalid hostname: only letters, digits, dots, hyphens and underscores (or an IP " +
+                "address) are accepted. Do not retry with the same value.");
+        }
+
+        // Имя проверено и стоит в кавычках в обоих местах. Прежде nslookup получал его без
+        // кавычек, и «example.com; Remove-Item …» выполнялось вторым оператором — а это чтение,
+        // о котором человека не спрашивают.
+        var safe = PowerShellHelper.QuoteLiteral(hostname);
         return PowerShellHelper.Run($$"""
             Resolve-DnsName -Name '{{safe}}' -ErrorAction SilentlyContinue | Format-Table -AutoSize
-            nslookup {{safe}}
+            nslookup '{{safe}}'
             """);
     }
+
+    /// <summary>Имя узла или IP-адрес: ничего, кроме того, что бывает в имени.</summary>
+    internal static bool IsHostName(string value) =>
+        value.Length is > 0 and <= 253 &&
+        (System.Net.IPAddress.TryParse(value, out _) ||
+         value.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '.' or '-' or '_' ||
+                         (ch > 127 && char.IsLetterOrDigit(ch))));
 }

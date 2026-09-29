@@ -78,7 +78,7 @@ public sealed class RestorePointTool : ITool
         }
 
         // Only validated/escaped description enters the script — never free model command text.
-        var safeDescription = description.Replace("'", "''", StringComparison.Ordinal);
+        var safeDescription = PowerShellHelper.QuoteLiteral(description);
         return PowerShellHelper.Run(CreateScript(safeDescription), 180, maxOutput: 4000);
     }
 

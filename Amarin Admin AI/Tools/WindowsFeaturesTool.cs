@@ -95,7 +95,7 @@ public sealed class WindowsFeaturesTool : ITool
             }
         }
 
-        var safeFilter = filter.Replace("'", "''", StringComparison.Ordinal);
+        var safeFilter = PowerShellHelper.QuoteLiteral(filter);
         return PowerShellHelper.Run(ListScript(safeFilter, top), 180, maxOutput: 4000);
     }
 
@@ -273,7 +273,7 @@ public sealed class WindowsFeaturesTool : ITool
             return false;
         }
 
-        safeName = raw.Replace("'", "''", StringComparison.Ordinal);
+        safeName = PowerShellHelper.QuoteLiteral(raw);
         return true;
     }
 

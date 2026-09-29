@@ -136,6 +136,35 @@ internal static partial class PowerShellHelper
     internal static string WrapScript(string script) =>
         ScriptPreamble + Environment.NewLine + script;
 
+    /// <summary>
+    /// Содержимое для строки PowerShell в одинарных кавычках: <c>'…'</c>. Каждая кавычка удвоена.
+    /// </summary>
+    /// <remarks>
+    /// Одинарной кавычкой PowerShell считает не только <c>'</c>, но и типографские
+    /// <c>‘ ’ ‚ ‛</c> (U+2018–U+201B). Прежнее <c>Replace("'", "''")</c> их пропускало, и значение
+    /// от модели вида <c>x’; Remove-Item …; ’</c> закрывало строку и дописывало в скрипт свою
+    /// команду. Удвоенная кавычка любого из этих видов внутри строки — буквальная кавычка.
+    /// </remarks>
+    internal static string QuoteLiteral(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "";
+        }
+
+        var builder = new StringBuilder(value.Length + 8);
+        foreach (var ch in value)
+        {
+            builder.Append(ch);
+            if (ch is '\'' or '‘' or '’' or '‚' or '‛')
+            {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.ToString();
+    }
+
     internal static string EncodeUtf16Base64(string command)
     {
         var byteCount = Encoding.Unicode.GetByteCount(command);
