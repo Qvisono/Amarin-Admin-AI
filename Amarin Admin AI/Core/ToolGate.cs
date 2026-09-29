@@ -66,6 +66,14 @@ internal static class ToolGate
             return Refused(Loc.Format("S.Gate.Disabled", tool));
         }
 
+        // Секреты, ядро Windows, загрузки мимо белого списка, последний администратор — запрет
+        // до всякого вопроса, в том числе в скрипте, который только читает.
+        if (tool.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
+            PowerShellAnalysis.Analyze(args).Refusal is { } scriptRefusal)
+        {
+            return Refused(scriptRefusal);
+        }
+
         if (effect == ToolEffect.Write && settings.ApprovalMode == ApprovalMode.ReadOnly)
         {
             return Refused(ReadOnlyRefusal(tool, args));

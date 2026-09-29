@@ -49,14 +49,45 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.4" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.4" />
-    <PackageReference Include="System.Management" Version="9.0.4" />
+    <!-- 10.x, а не 9.x: их требует System.Management.Automation ниже, и старые версии дали бы
+         NU1605 (понижение пакета) — а он в сборке считается ошибкой. -->
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="10.0.12" />
+    <!--
+      Только ради разборщика PowerShell (Parser.ParseInput) — защита решает по дереву команды,
+      а не по регулярке. Сам PowerShell здесь не исполняется: скрипты идут в powershell.exe 5.1.
+    -->
+    <PackageReference Include="System.Management.Automation" Version="7.6.6" />
     <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
     <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
+
+  <!--
+    SMA и её зависимости не предкомпилируются: ReadyToRun почти удваивает их вес, а работает
+    из них только разборщик, которому хватает JIT при первом вызове (~0,2 с один раз за запуск).
+  -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PublishReadyToRunExclude Include="System.Management.Automation.dll" />
+    <PublishReadyToRunExclude Include="Microsoft.PowerShell.CoreCLR.Eventing.dll" />
+    <PublishReadyToRunExclude Include="Microsoft.ApplicationInsights.dll" />
+    <PublishReadyToRunExclude Include="Newtonsoft.Json.dll" />
+    <PublishReadyToRunExclude Include="System.DirectoryServices.dll" />
+    <PublishReadyToRunExclude Include="System.CodeDom.dll" />
+  </ItemGroup>
+
+  <!--
+    Нативная часть PowerShell (плагин удалённого доступа, манифесты сборки) разборщику не нужна,
+    а публикация клала её рядом с exe двумя лишними файлами — релиз обязан быть одним exe.
+  -->
+  <Target Name="DropPowerShellNativeFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'Microsoft.PowerShell.Native'" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <None Update="appsettings.json">

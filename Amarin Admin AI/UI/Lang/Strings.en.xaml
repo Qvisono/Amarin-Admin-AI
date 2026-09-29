@@ -299,6 +299,7 @@
     <system:String x:Key="S.Confirm.AllowTurn.Desc" xml:space="preserve">{0} will not ask again until the model finishes answering</system:String>
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Chat</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">The existing file {0} will be overwritten.</system:String>
+    <system:String x:Key="S.Confirm.ScriptChanges" xml:space="preserve">Changes the system: {0}</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Audit log</system:String>
     <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} already exists. Only a new file can be created without asking; overwriting needs the user's confirmation. If overwriting is really intended, repeat the call and the user will be asked; otherwise pick another name.</system:String>
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>

@@ -20,6 +20,7 @@ public enum ToolEffect
 /// всё» спросятся. Обратная ошибка (запись, записанная в чтение) молча открывала бы систему.
 /// </para>
 /// <para>
+/// <c>run_powershell</c> решается разбором самого скрипта (<see cref="PowerShellAnalysis"/>).
 /// <c>change_rollback snapshot</c> — чтение: он пишет только во внутреннюю папку снимков, и
 /// снимок перед правкой нужен как раз тогда, когда писать нельзя. <c>generate_image</c> тоже
 /// чтение: он стоит денег, но систему не меняет. <c>init_agent</c> — чтение: вызовы самого агента
@@ -78,6 +79,13 @@ internal static class ToolEffects
         if (ActionlessReads.Contains(tool))
         {
             return ToolEffect.Read;
+        }
+
+        // PowerShell — по дереву скрипта: только чтение проходит как чтение, остальное (и всё,
+        // что разобрать не вышло) — запись. См. PowerShellAnalysis.
+        if (tool.Equals("run_powershell", StringComparison.OrdinalIgnoreCase))
+        {
+            return PowerShellAnalysis.Analyze(arguments).IsWrite ? ToolEffect.Write : ToolEffect.Read;
         }
 
         return ReadActions.TryGetValue(tool, out var reads) && reads.Contains(DangerousActionGuard.ActionOf(arguments))

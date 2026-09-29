@@ -62,7 +62,9 @@ internal static partial class DangerousActionGuard
             // write_file wraps its arguments into a filesystem/write call and executes it
             // directly, so checking only "filesystem" let every file it wrote through unasked.
             "write_file" => true,
-            "run_powershell" => PowerShellAttemptsDanger(arguments),
+            // Разбор по дереву: спрашивается всё, кроме чистого чтения. Прежде — только то, что
+            // нашлось регуляркой в списке опасного, и Set-Content или winget install шли молча.
+            "run_powershell" => PowerShellAnalysis.Analyze(arguments).IsWrite,
             "windows_process" => IsProcessStop(arguments),
             "scheduled_task" => IsTaskMutation(arguments),
             "network" => IsNetworkMutation(arguments),
@@ -155,6 +157,16 @@ internal static partial class DangerousActionGuard
             {
                 risk = DangerousRiskLevel.Medium;
             }
+        }
+
+        // Что именно в скрипте сочтено записью: человек решает про эти команды, а не про весь
+        // текст, в котором их ещё надо найти.
+        if (toolName.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
+            PowerShellAnalysis.Analyze(arguments) is { IsWrite: true, Reasons.Count: > 0 } verdict)
+        {
+            var changes = Amarin.Core.Loc.Format("S.Confirm.ScriptChanges", string.Join(", ", verdict.Reasons));
+            changeSummary += "\n" + changes;
+            sb.AppendLine(changes);
         }
 
         if (unlistedDownloadHost is not null)
