@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace Amarin.UI;
 
@@ -37,6 +37,17 @@ internal sealed class WpfUi : IDisposable
                     ShutdownMode = ShutdownMode.OnExplicitShutdown
                 };
                 application = app;
+
+                // Исключение из отложенной работы окна (таймер, BeginInvoke, отрисовка) роняло
+                // app.Run(), поток умирал, и каждый следующий оконный тест падал одинаковым «A task
+                // was canceled» — а причина не печаталась нигде. Теперь она пишется в журнал рядом
+                // со сборкой тестов, и поток живёт дальше: к самому тесту это исключение отношения
+                // не имеет — его собственные ошибки Invoke возвращает вызывающему.
+                app.DispatcherUnhandledException += (_, args) =>
+                {
+                    RecordUnhandled(args.Exception);
+                    args.Handled = true;
+                };
                 var startupSettings = new Core.AppSettingsStore().Load();
                 ThemeManager.Initialize(app, startupSettings.Theme);
                 LanguageManager.Initialize(app, startupSettings.LanguageCode);
@@ -69,6 +80,7 @@ internal sealed class WpfUi : IDisposable
             }
             catch (Exception ex)
             {
+                RecordUnhandled(ex);
                 error = ex;
                 ready.Set();
             }
@@ -97,6 +109,24 @@ internal sealed class WpfUi : IDisposable
         }
 
         return new WpfUi(thread, application);
+    }
+
+    /// <summary>Журнал необработанных исключений общего потока — его печатает прогон Tests.</summary>
+    internal static string UnhandledLogPath =>
+        Path.Combine(AppContext.BaseDirectory, "wpf-ui-thread-errors.log");
+
+    private static void RecordUnhandled(Exception exception)
+    {
+        try
+        {
+            File.AppendAllText(
+                UnhandledLogPath,
+                $"{DateTime.Now:HH:mm:ss.fff} {exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Журнал — подсказка, а не условие работы тестов.
+        }
     }
 
     /// <summary>Runs <paramref name="action"/> on the UI thread. Used by tests to build windows.</summary>

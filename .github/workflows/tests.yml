@@ -61,6 +61,15 @@ jobs:
             $results[[math]::Max(0, $at - 8)..$at] | ForEach-Object { "{0,-8} {1}" -f $_.outcome, $_.testName }
           }
 
+          # Исключения, которые без перехвата убили бы общий поток интерфейса (WpfUi пишет их
+          # в журнал рядом со сборкой тестов и оставляет поток живым).
+          $uiLog = Get-ChildItem Amarin.AdminAI.Tests/bin -Recurse -Filter wpf-ui-thread-errors.log -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($uiLog) {
+            ''
+            '--- Unhandled exceptions on the shared UI thread (first 80 lines)'
+            Get-Content $uiLog.FullName -TotalCount 80
+          }
+
           ''
           '--- Failures that are not a dead UI thread'
           foreach ($result in $failed | Where-Object { -not (& $cancelled $_) }) {
