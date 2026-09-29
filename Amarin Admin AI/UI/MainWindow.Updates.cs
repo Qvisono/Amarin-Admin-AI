@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
@@ -803,9 +803,32 @@ namespace Amarin.UI
                 return;
             }
 
+            // Чужое окно (в программе его не бывает — только в тестах, рядом с общим) закрывается
+            // само по себе: гасить из-за него всё приложение нельзя.
+            if (!OwnsApplication)
+            {
+                Close();
+                return;
+            }
+
             _exiting = true;
             Detached.Run(FinishExitAsync(), "exit");
         }
+
+        /// <summary>
+        /// Выход этого окна — выход программы: оно главное окно приложения или приложения нет.
+        /// </summary>
+        /// <remarks>
+        /// В программе окно одно, и так было всегда. Но оконные тесты поднимают свои окна рядом с
+        /// общим, и закрытие такого окна при включённом автообновлении откладывалось ради проверки
+        /// версии, а через несколько секунд <see cref="FinishExitAsync"/> звал
+        /// <c>Application.Shutdown</c> — общий поток интерфейса гас посреди чужого теста, и три
+        /// сотни следующих падали одинаковым «A task was canceled».
+        /// </remarks>
+        private bool OwnsApplication =>
+            Application.Current is not { } application ||
+            application.MainWindow is null ||
+            ReferenceEquals(application.MainWindow, this);
 
         /// <summary>
         /// Надо ли отложить закрытие окна ради обновления.
@@ -814,7 +837,8 @@ namespace Amarin.UI
         /// Отдельно от <see cref="TryDeferCloseForUpdate"/>, потому что тому нечем ответить, не
         /// начав выход: проверить решение, не погасив при этом всё приложение, можно только здесь.
         /// </remarks>
-        internal bool ShouldDeferClose => !_exiting && (HasStagedUpdate || UpdatePendingForExit);
+        internal bool ShouldDeferClose =>
+            OwnsApplication && !_exiting && (HasStagedUpdate || UpdatePendingForExit);
 
         /// <summary>
         /// Обновление ещё не скачано, но его стоит довести после закрытия: идёт проверка или

@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using Amarin.Core;
 using Amarin.UI;
@@ -320,6 +320,29 @@ public sealed class UpdateUiTests
         (T)target.GetType().GetMethod(method, Hidden)!.Invoke(target, null)!;
 
     /// <summary>Сборка, будто бы уже скачанная и ждущая выхода. На диск ничего не кладётся.</summary>
+    [Fact]
+    public void A_second_window_closes_by_itself_and_never_shuts_the_application_down()
+    {
+        // Закрытие окна, поднятого тестом рядом с общим, откладывалось ради обновления, а через
+        // несколько секунд FinishExitAsync гасил всё приложение — и общий поток интерфейса умирал
+        // посреди чужого теста. Выход с обновлением — дело только окна, которому принадлежит
+        // приложение.
+        var (deferred, stillOpen, shuttingDown) = _wpf.Ui.Invoke(() =>
+        {
+            var window = new MainWindow();
+            window.Show();
+            window.Staged = StagedBuild();
+            var held = window.ShouldDeferClose;
+
+            window.RequestExit();
+            return (held, window.IsVisible, Application.Current.Dispatcher.HasShutdownStarted);
+        });
+
+        Assert.False(deferred);
+        Assert.False(stillOpen);
+        Assert.False(shuttingDown);
+    }
+
     private static StagedUpdate StagedBuild()
     {
         var release = NewerRelease();
