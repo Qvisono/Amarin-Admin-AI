@@ -90,15 +90,21 @@ public sealed class FileSystemTool : ITool
                 return Task.FromResult(ToolResult.Fail(SensitivePaths.ProgramDataRefusal(path)));
             }
 
+            // Шлюз ставит это поле, когда пропустил запись без вопроса: новый файл в «Загрузках»
+            // или на «Рабочем столе». Проверяет «нового» сама запись, а не шлюз заранее: два
+            // параллельных вызова иначе оба увидели бы «файла нет».
+            var createNew = arguments.TryGetProperty(SafeZone.CreateNewFlag, out var createNewProp) &&
+                            createNewProp.ValueKind == JsonValueKind.True;
+
             return action switch
             {
                 "read" => Task.FromResult(ReadFile(path)),
-                "write" => Task.FromResult(WriteFile(path, arguments)),
+                "write" => Task.FromResult(WriteFile(path, arguments, createNew)),
                 "list" => Task.FromResult(ListDirectory(path)),
                 "exists" => Task.FromResult(CheckExists(path)),
                 "delete" => Task.FromResult(ToolResult.Fail(DeletionGuard.FileDeletionBlockedMessage)),
-                "copy" => Task.FromResult(CopyPath(path, destination, overwrite: true)),
-                "move" => Task.FromResult(MovePath(path, destination)),
+                "copy" => Task.FromResult(CopyPath(path, destination, overwrite: !createNew)),
+                "move" => Task.FromResult(MovePath(path, destination, overwrite: !createNew)),
                 "mkdir" => Task.FromResult(CreateDirectory(path)),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
@@ -108,6 +114,13 @@ public sealed class FileSystemTool : ITool
             return Task.FromResult(ToolResult.Fail($"Filesystem error: {ex.Message}"));
         }
     }
+
+    /// <summary>
+    /// Молча шлюз пропускает только новый файл. Цель уже есть — значит, это перезапись, а о ней
+    /// спрашивают: модель повторит вызов, и шлюз задаст вопрос.
+    /// </summary>
+    private static ToolResult AlreadyExists(string path) =>
+        ToolResult.Fail(Amarin.Core.Loc.Format("S.Gate.AlreadyExists", path));
 
     private static ToolResult ReadFile(string path)
     {
@@ -126,7 +139,7 @@ public sealed class FileSystemTool : ITool
         return ToolResult.Ok(content);
     }
 
-    private static ToolResult WriteFile(string path, JsonElement arguments)
+    private static ToolResult WriteFile(string path, JsonElement arguments, bool createNew)
     {
         if (!arguments.TryGetProperty("content", out var contentProp))
         {
@@ -139,7 +152,26 @@ public sealed class FileSystemTool : ITool
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, contentProp.GetString() ?? string.Empty);
+        var text = contentProp.GetString() ?? string.Empty;
+        if (createNew)
+        {
+            // Тот же UTF-8 без BOM, что у File.WriteAllText, но только если файла ещё нет.
+            try
+            {
+                using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                writer.Write(text);
+            }
+            catch (IOException) when (File.Exists(path) || Directory.Exists(path))
+            {
+                return AlreadyExists(path);
+            }
+        }
+        else
+        {
+            File.WriteAllText(path, text);
+        }
+
         return ToolResult.WithFile($"Written {path}", Describe(path));
     }
 
@@ -179,9 +211,22 @@ public sealed class FileSystemTool : ITool
             return ToolResult.Fail("copy requires destination");
         }
 
+        if (!overwrite && (File.Exists(destination) || Directory.Exists(destination)))
+        {
+            return AlreadyExists(destination);
+        }
+
         if (File.Exists(path))
         {
-            File.Copy(path, destination, overwrite);
+            try
+            {
+                File.Copy(path, destination, overwrite);
+            }
+            catch (IOException) when (!overwrite && File.Exists(destination))
+            {
+                return AlreadyExists(destination);
+            }
+
             return ToolResult.WithFile($"Copied file to {destination}", Describe(destination));
         }
 
@@ -194,11 +239,16 @@ public sealed class FileSystemTool : ITool
         return ToolResult.Fail($"Source not found: {path}");
     }
 
-    private static ToolResult MovePath(string path, string? destination)
+    private static ToolResult MovePath(string path, string? destination, bool overwrite)
     {
         if (destination is null)
         {
             return ToolResult.Fail("move requires destination");
+        }
+
+        if (!overwrite && (File.Exists(destination) || Directory.Exists(destination)))
+        {
+            return AlreadyExists(destination);
         }
 
         if (File.Exists(path) || Directory.Exists(path))
@@ -209,7 +259,15 @@ public sealed class FileSystemTool : ITool
                 return ToolResult.Ok($"Moved to {destination}");
             }
 
-            File.Move(path, destination, overwrite: true);
+            try
+            {
+                File.Move(path, destination, overwrite);
+            }
+            catch (IOException) when (!overwrite && File.Exists(destination))
+            {
+                return AlreadyExists(destination);
+            }
+
             return ToolResult.WithFile($"Moved to {destination}", Describe(destination));
         }
 

@@ -463,6 +463,61 @@
         </Setter>
     </Style>
 
+    <!-- Та же вторичная кнопка, но с выпадашкой: «Разрешить…» в окне подтверждения. -->
+    <Style x:Key="DialogSecondaryToggle" TargetType="ToggleButton">
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="ClickMode" Value="Press"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="12.5"
+                                       Foreground="{DynamicResource Text.Secondary}" VerticalAlignment="Center"/>
+                            <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Width="8" Height="5" Stretch="Uniform" Margin="7,1,0,0"
+                                  VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Пункт выпадашки диалога: название и строка пояснения под ним. -->
+    <Style x:Key="DialogMenuItemButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="7" Padding="10,7">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="DialogPrimaryButton" TargetType="Button">
         <Setter Property="Height" Value="28"/>
         <Setter Property="Padding" Value="16,0"/>

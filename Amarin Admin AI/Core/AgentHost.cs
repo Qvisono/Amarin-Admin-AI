@@ -1,4 +1,4 @@
-using Amarin.Tools;
+﻿using Amarin.Tools;
 
 namespace Amarin.Core;
 
@@ -99,10 +99,8 @@ internal sealed class AgentHost : IAgentHost
         // Один на весь прогон, а не на раунд, и свой, а не общий с агентом: VeniceClient ведёт
         // счёт потраченного у себя, и на общем клиенте деньги защитника слились бы с ценой
         // самого агента — то есть попали бы в итог дважды.
-        using var guardHttp = settings.SynGuardEnabled
-            ? HttpClients.Create(HttpClients.ServiceTimeout)
-            : null;
-        var guard = BuildGuard(settings, guardHttp);
+        using var guardLease = SynGuardLease.Build(settings, _parentOptions, _resolveModelInfo);
+        var guard = guardLease?.Check;
 
         while (true)
         {
@@ -138,7 +136,8 @@ internal sealed class AgentHost : IAgentHost
                 string.IsNullOrWhiteSpace(techAgent) ? null : techAgent)
             {
                 SessionMode = SessionMode.Isolated,
-                Guard = guard
+                Guard = guard,
+                Settings = _settings
             };
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
@@ -272,31 +271,6 @@ internal sealed class AgentHost : IAgentHost
     }
 
     /// <summary>
-    /// Живая проверка SynGuard для этого прогона, либо <c>null</c>, если защита выключена.
-    /// </summary>
-    /// <remarks>
-    /// Собирается один раз на прогон и передаётся всем его попыткам: пересадка агента на другую
-    /// модель защитника не меняет.
-    /// </remarks>
-    private Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? BuildGuard(
-        AppSettings settings,
-        HttpClient? http)
-    {
-        if (!settings.SynGuardEnabled || http is null)
-        {
-            return null;
-        }
-
-        var modelId = SynGuard.ResolveModel(settings);
-        var reasoningSlot = settings.SynGuardReasoning ?? new ReasoningSettings();
-        var options = CloneOptions(
-            _parentOptions, modelId, reasoningSlot, ModelSlots.ReadKey(settings, ModelSlot.SynGuard));
-        var venice = new VeniceClient(http, options) { ResolveModelInfo = _resolveModelInfo };
-        var checker = new SynGuardChecker(venice, modelId, reasoningSlot.ToChoice());
-        return checker.CheckAsync;
-    }
-
-    /// <summary>
     /// Tier to model. A switch rather than the ternary it replaced: with three tiers, "not heavy"
     /// silently meant "lite", so a fast request would have quietly cost flagship money.
     /// </summary>
@@ -337,7 +311,7 @@ internal sealed class AgentHost : IAgentHost
     /// Ключ слота, чью модель этот прогон и берёт. Ставится здесь, в миг сборки копии: клиент
     /// у прогона свой, и внутренние вызовы агента про ключи ничего не знают.
     /// </param>
-    private static AgentOptions CloneOptions(
+    internal static AgentOptions CloneOptions(
         AgentOptions source,
         string model,
         ReasoningSettings reasoning,

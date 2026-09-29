@@ -1,4 +1,4 @@
-using Amarin.Tools;
+﻿using Amarin.Tools;
 
 namespace Amarin.Core;
 
@@ -48,4 +48,14 @@ public interface IAgentUi
     Task<bool> ConfirmDangerousActionAsync(
         DangerousActionInfo info,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// То же, но с тем, кто разрешил: человек, режим «всё автоматически» или разрешение
+    /// инструмента впрок. Нужно журналу аудита.
+    /// </summary>
+    /// <remarks>Реализация по умолчанию — для тех, у кого разрешать впрок нечем.</remarks>
+    async Task<ConfirmationAnswer> ConfirmDetailedAsync(
+        DangerousActionInfo info,
+        CancellationToken cancellationToken = default) =>
+        new(await ConfirmDangerousActionAsync(info, cancellationToken).ConfigureAwait(false), ApprovalSource.Human);
 }

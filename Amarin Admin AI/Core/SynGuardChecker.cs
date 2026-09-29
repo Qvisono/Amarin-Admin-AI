@@ -99,3 +99,49 @@ internal sealed class SynGuardChecker
         }
     }
 }
+
+/// <summary>
+/// Живая проверка SynGuard вместе с клиентом, на котором она ходит в сеть.
+/// </summary>
+/// <remarks>
+/// Одна сборка на агента и на чат: прежде она жила в <c>AgentHost</c>, и инструменты чата
+/// SynGuard не видел вовсе. Клиент свой, а не общий, по той же причине, что у агента: у
+/// <see cref="VeniceClient"/> свой счёт потраченного, и деньги защитника должны лечь отдельной
+/// строкой.
+/// </remarks>
+internal sealed class SynGuardLease : IDisposable
+{
+    private readonly HttpClient _http;
+
+    private SynGuardLease(HttpClient http, Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>> check)
+    {
+        _http = http;
+        Check = check;
+    }
+
+    public Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>> Check { get; }
+
+    /// <summary>Проверка по настройкам; null — защита выключена, и ни одного запроса не уйдёт.</summary>
+    public static SynGuardLease? Build(
+        AppSettings settings,
+        AgentOptions parentOptions,
+        Func<string, VeniceModelInfo?>? resolveModelInfo)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (!settings.SynGuardEnabled)
+        {
+            return null;
+        }
+
+        var http = HttpClients.Create(HttpClients.ServiceTimeout);
+        var modelId = SynGuard.ResolveModel(settings);
+        var reasoning = settings.SynGuardReasoning ?? new ReasoningSettings();
+        var options = AgentHost.CloneOptions(
+            parentOptions, modelId, reasoning, ModelSlots.ReadKey(settings, ModelSlot.SynGuard));
+        var venice = new VeniceClient(http, options) { ResolveModelInfo = resolveModelInfo };
+        var checker = new SynGuardChecker(venice, modelId, reasoning.ToChoice());
+        return new SynGuardLease(http, checker.CheckAsync);
+    }
+
+    public void Dispose() => _http.Dispose();
+}

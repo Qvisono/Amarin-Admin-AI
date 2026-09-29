@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -20,14 +20,15 @@ namespace Amarin.AdminAI.Tests;
 public sealed class DataBundleCoverageTests
 {
     /// <summary>
-    /// Эти два поля импорт намеренно оставляет свои — см. <c>DataBundleImporter.ApplySettings</c>.
-    /// Белый список загрузок и режим подтверждений это настройки безопасности, и приезжать из
-    /// чужого файла они не должны.
+    /// Эти поля импорт намеренно оставляет свои — см. <c>DataBundleImporter.ApplySettings</c>.
+    /// Белый список загрузок, режим доступа и выключенные инструменты — настройки безопасности,
+    /// и приезжать из чужого файла они не должны.
     /// </summary>
     private static readonly string[] NeverImported =
     [
         nameof(AppSettings.DownloadAllowedDomains),
-        nameof(AppSettings.ApprovalMode)
+        nameof(AppSettings.ApprovalMode),
+        nameof(AppSettings.DisabledTools)
     ];
 
     [Fact]

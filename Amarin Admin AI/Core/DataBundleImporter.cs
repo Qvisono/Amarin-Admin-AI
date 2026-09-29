@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text.Json;
 
 namespace Amarin.Core;
@@ -668,6 +668,10 @@ public sealed class DataBundleImporter
 
         // «Подтверждать всё автоматически» — осознанный выбор человека, а не чужого файла.
         incoming.ApprovalMode = mine.ApprovalMode;
+
+        // Выключенные инструменты — та же защита: архив с чужой машины не должен молча включить
+        // то, что здесь выключили.
+        incoming.DisabledTools = mine.DisabledTools;
 
         store.Save(incoming);
         state.SettingsChanged = true;

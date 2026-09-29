@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Amarin.Core;
@@ -196,6 +196,7 @@ namespace Amarin.UI
 
             var deletingOpen = id == _session.Id;
             _services.ChatStore.Delete(id);
+            _services.Confirmations.ForgetSession(id);
             ForgetAttention(id);
 
             if (deletingOpen)

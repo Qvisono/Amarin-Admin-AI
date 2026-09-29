@@ -1,9 +1,23 @@
 ﻿namespace Amarin.Core;
 
+/// <summary>Режим доступа модели к системе.</summary>
+/// <remarks>
+/// Пишется в <c>settings.json</c> именем (<see cref="AppJson"/>), поэтому новые режимы старым
+/// файлам не мешают: там лежит «Normal» или «AlwaysApprove», и оба по-прежнему значат то же.
+/// </remarks>
 public enum ApprovalMode
 {
+    /// <summary>Спрашивать про опасное: запись в реестр, службы, скрипты, перезапись файлов.</summary>
     Normal,
-    AlwaysApprove
+
+    /// <summary>Подтверждать всё автоматически, кроме вопросов SynGuard и белого списка загрузок.</summary>
+    AlwaysApprove,
+
+    /// <summary>Только чтение: любая запись отклоняется, модель узнаёт об этом из отказа.</summary>
+    ReadOnly,
+
+    /// <summary>Спрашивать про любую запись, даже ту, что в обычном режиме идёт молча.</summary>
+    AskAll
 }
 
 /// <summary>
@@ -144,6 +158,12 @@ public sealed class AppSettings
     public AppearanceSettings Appearance { get; set; } = new();
 
     public ApprovalMode ApprovalMode { get; set; } = ApprovalMode.Normal;
+
+    /// <summary>
+    /// Инструменты, которые человек выключил. Модели они не показываются вовсе, а вызов по имени
+    /// всё равно отклоняется. Null и пустой список — выключенных нет (так читаются старые файлы).
+    /// </summary>
+    public List<string>? DisabledTools { get; set; }
 
     /// <summary>Show the bottom-right toast when a turn finishes and the window is not focused.</summary>
     public bool NotifyOnResponseComplete { get; set; } = true;

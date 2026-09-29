@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace Amarin.Tools;
 
@@ -43,14 +43,27 @@ public sealed class WriteFileTool : ITool
             return Task.FromResult(ToolResult.Fail("Missing required parameter: content"));
         }
 
-        var wrapped = JsonSerializer.SerializeToElement(new
-        {
-            action = "write",
-            path = pathProp.GetString(),
-            content = contentProp.ValueKind == JsonValueKind.String
-                ? contentProp.GetString()
-                : contentProp.ToString()
-        });
+        // Условие шлюза «только если файла нет» идёт дальше вместе с записью, иначе молчаливая
+        // запись нового файла в «Загрузки» стала бы молчаливой перезаписью.
+        var createNew = arguments.TryGetProperty(SafeZone.CreateNewFlag, out var createNewProp) &&
+                        createNewProp.ValueKind == JsonValueKind.True;
+        var content = contentProp.ValueKind == JsonValueKind.String
+            ? contentProp.GetString()
+            : contentProp.ToString();
+        var wrapped = createNew
+            ? JsonSerializer.SerializeToElement(new Dictionary<string, object?>
+            {
+                ["action"] = "write",
+                ["path"] = pathProp.GetString(),
+                ["content"] = content,
+                [SafeZone.CreateNewFlag] = true
+            })
+            : JsonSerializer.SerializeToElement(new
+            {
+                action = "write",
+                path = pathProp.GetString(),
+                content
+            });
         return _filesystem.ExecuteAsync(wrapped, cancellationToken);
     }
 }

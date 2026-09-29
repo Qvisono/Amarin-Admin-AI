@@ -87,6 +87,7 @@ namespace Amarin.UI
             // за раз, клик мимо закрывает.
             PopupManager.Register(ModelPicker, ModelButton);
             PopupManager.Register(ActionsPopup, AttachButton);
+            PopupManager.Register(ConfirmationAllowPopup, ConfirmationAllowToggle);
             InitializeQuotes();
 
             WindowMaximizeFix.Attach(this);
@@ -1624,7 +1625,13 @@ namespace Amarin.UI
                 // архива — у другого профиля углы могут быть другими.
                 WindowCornerStyle.Apply(this, settings.WindowCorners);
                 ApplyUiScaleFromSettings();
-                ApprovalModeCombo.SelectedIndex = settings.ApprovalMode == ApprovalMode.AlwaysApprove ? 0 : 1;
+                // По тегу, а не по номеру строки: режимов стало четыре, и номер разошёлся бы с
+                // порядком пунктов при первой же перестановке.
+                ApprovalModeCombo.SelectedItem = ApprovalModeCombo.Items
+                    .OfType<ComboBoxItem>()
+                    .FirstOrDefault(item => item.Tag is string tag &&
+                                            string.Equals(tag, settings.ApprovalMode.ToString(), StringComparison.Ordinal))
+                    ?? ApprovalModeCombo.Items[0];
                 LoadHotkeysUi(settings);
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
             LanguagePicker.SetSelected(settings.LanguageCode);
@@ -3233,6 +3240,7 @@ namespace Amarin.UI
             if (!_services.Confirmations.TryPeek(out var request))
             {
                 _shownConfirmation = null;
+                ConfirmationAllowToggle.IsChecked = false;
                 CancelConfirmationExplain();
                 ConfirmationOverlay.Visibility = Visibility.Collapsed;
                 Chat.IsHitTestVisible = true;
@@ -3240,6 +3248,7 @@ namespace Amarin.UI
             }
 
             _shownConfirmation = request;
+            ShowConfirmationAllow(request);
             ShowConfirmationChat(request.SessionId);
             ConfirmationAgentText.Text = request.AgentLabel;
             ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
@@ -3301,15 +3310,35 @@ namespace Amarin.UI
 
         private void ConfirmationNoButton_Click(object sender, RoutedEventArgs e) => AnswerShownConfirmation(false);
 
-        private void AnswerShownConfirmation(bool approved)
+        private void ConfirmationAllowTurnButton_Click(object sender, RoutedEventArgs e) =>
+            AnswerShownConfirmation(true, AllowanceScope.Turn);
+
+        private void ConfirmationAllowChatButton_Click(object sender, RoutedEventArgs e) =>
+            AnswerShownConfirmation(true, AllowanceScope.Chat);
+
+        private void AnswerShownConfirmation(bool approved, AllowanceScope scope = AllowanceScope.Once)
         {
+            ConfirmationAllowToggle.IsChecked = false;
             if (_services is null || _shownConfirmation is not { } request)
             {
                 return;
             }
 
             _shownConfirmation = null;
-            _services.Confirmations.Complete(request, approved);
+            _services.Confirmations.Complete(request, approved, scope);
+        }
+
+        /// <summary>
+        /// «Разрешить…» есть только там, где разрешение впрок имеет смысл: у вопроса есть чат и
+        /// это не вопрос SynGuard. «Для всего чата» у PowerShell не предлагается.
+        /// </summary>
+        private void ShowConfirmationAllow(ConfirmationRequest request)
+        {
+            ConfirmationAllowToggle.IsChecked = false;
+            ConfirmationAllowToggle.Visibility = request.CanAllowAhead ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationAllowChatButton.Visibility = request.CanAllowForChat ? Visibility.Visible : Visibility.Collapsed;
+            ConfirmationAllowTurnDesc.Text = Loc.Format("S.Confirm.AllowTurn.Desc", request.Info.ToolName);
+            ConfirmationAllowChatDesc.Text = Loc.Format("S.Confirm.AllowChat.Desc", request.Info.ToolName);
         }
     }
 }

@@ -275,7 +275,7 @@ internal static class Program
             new InitAgentTool(new AgentSlotLimiter(), agentHost),
             new ReadInstructionTool(instructions)
         ]);
-        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions);
+        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations);
         var titles = new ChatTitleGenerator(http, options, ReadSettings);
         var summaries = new ChatSummaryGenerator(http, options, ReadSettings);
 

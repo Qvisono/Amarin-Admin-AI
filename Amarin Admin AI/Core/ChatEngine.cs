@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Amarin.Tools;
 
@@ -234,6 +234,18 @@ internal sealed partial class ChatEngine
     private readonly AgentRegistry? _agents;
     private readonly InstructionLibrary? _instructions;
 
+    /// <summary>
+    /// Куда инструменты чата идут за разрешением. Null — спросить некого, и любая запись
+    /// отклоняется: молча писать в систему из чата нельзя.
+    /// </summary>
+    private readonly ConfirmationQueue? _confirmations;
+
+    /// <summary>
+    /// Проверка SynGuard вместо живой. Только для тестов: живая уходит в сеть, а проверять надо
+    /// то, что вокруг неё.
+    /// </summary>
+    internal Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? Guard { get; set; }
+
     /// <param name="agents">
     /// Агенты, работающие прямо сейчас. Нужны, чтобы дописанное во время работы сообщение могло
     /// их остановить или пересадить на другую модель. Null — сообщение просто ждёт границы раунда.
@@ -241,13 +253,17 @@ internal sealed partial class ChatEngine
     /// <param name="instructions">
     /// Инструкции пользователя. Null — блока о них в промпте нет, и инструмента чтения тоже.
     /// </param>
+    /// <param name="confirmations">
+    /// Очередь подтверждений — та же, что у агента. Null — запись из чата отклоняется.
+    /// </param>
     public ChatEngine(
         VeniceClient venice,
         AgentOptions options,
         Func<AppSettings> settings,
         ToolRegistry tools,
         AgentRegistry? agents = null,
-        InstructionLibrary? instructions = null)
+        InstructionLibrary? instructions = null,
+        ConfirmationQueue? confirmations = null)
     {
         _venice = venice;
         _options = options;
@@ -260,6 +276,7 @@ internal sealed partial class ChatEngine
             .ToList();
         _agents = agents;
         _instructions = instructions;
+        _confirmations = confirmations;
     }
 
     /// <summary>
@@ -270,9 +287,14 @@ internal sealed partial class ChatEngine
     private IReadOnlyList<Instruction> ActiveInstructions() =>
         _instructions?.EnabledSnapshot() ?? [];
 
-    /// <summary>Инструменты хода: без инструкций инструмент их чтения только сбивал бы модель.</summary>
+    /// <summary>
+    /// Инструменты хода: без инструкций инструмент их чтения только сбивал бы модель, а
+    /// выключенных человеком инструментов модель не видит вовсе.
+    /// </summary>
     internal List<ToolDefinition> ToolsFor(IReadOnlyList<Instruction> instructions) =>
-        instructions.Count > 0 ? _toolDefinitions : _toolDefinitionsWithoutInstructions;
+        ToolGate.WithoutDisabled(
+            instructions.Count > 0 ? _toolDefinitions : _toolDefinitionsWithoutInstructions,
+            _settings());
 
     public async Task RunTurnAsync(
         ChatSession session,
@@ -1302,6 +1324,21 @@ internal sealed partial class ChatEngine
     {
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
+        Task<GateDecision>[] decisions;
+        try
+        {
+            decisions = await DecideRoundAsync(toolRound, session, assistant, observer, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Отмена во время проверки или вопроса: ответ «отменено» всё равно ляжет на каждый
+            // вызов ниже — без него вызовы в истории модели остались бы без пары.
+            decisions = toolRound.Calls
+                .Select(_ => Task.FromCanceled<GateDecision>(
+                    cancellationToken.IsCancellationRequested ? cancellationToken : new CancellationToken(true)))
+                .ToArray();
+        }
         for (var i = 0; i < toolRound.Calls.Count; i++)
         {
             var index = i;
@@ -1317,8 +1354,16 @@ internal sealed partial class ChatEngine
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var arguments = ParseArguments(call.ArgumentsJson);
-                    if (RedrawOf(assistant, toolRound, call) is { } already)
+
+                    // Каждый вызов ждёт только своего решения: чтения исполняются, пока запись
+                    // ждёт человека.
+                    var decision = await decisions[index].ConfigureAwait(false);
+                    var arguments = decision.Arguments;
+                    if (!decision.Allowed)
+                    {
+                        result = ToolResult.Fail(decision.Refusal ?? ToolGate.DeniedReply);
+                    }
+                    else if (RedrawOf(assistant, toolRound, call) is { } already)
                     {
                         result = ToolResult.Fail(
                             "Эта картинка уже нарисована в этом ходе — вставь готовый хэндл " +
@@ -1436,6 +1481,152 @@ internal sealed partial class ChatEngine
         }
 
         observer.OnToolsChanged(assistant);
+    }
+
+    /// <summary>
+    /// Решения шлюза по всему раунду — до исполнения первого вызова.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Здесь, на вызывающем потоке и по порядку: разбор аргументов, проверка шлюза, один вопрос
+    /// SynGuard на раунд с записью, потом вопросы человеку — в очередь они встают синхронно, без
+    /// ожидания, поэтому окна идут в порядке вызовов, а не в порядке, в каком их успели
+    /// дождаться параллельные задачи.
+    /// </para>
+    /// <para>
+    /// Не бросает, кроме отмены хода: разбор, отказ, сбой проверки — всё это решение по вызову,
+    /// и ответ «tool» на каждый вызов попадает в историю модели.
+    /// </para>
+    /// </remarks>
+    private async Task<Task<GateDecision>[]> DecideRoundAsync(
+        ToolRound toolRound,
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        IChatTurnObserver observer,
+        CancellationToken cancellationToken)
+    {
+        var settings = _settings();
+        var calls = toolRound.Calls;
+        var checks = new GateCheck?[calls.Count];
+        var decisions = new Task<GateDecision>[calls.Count];
+
+        for (var i = 0; i < calls.Count; i++)
+        {
+            try
+            {
+                checks[i] = ToolGate.Check(calls[i].Name, ParseArguments(calls[i].ArgumentsJson), settings);
+            }
+            catch (JsonException ex)
+            {
+                decisions[i] = Task.FromResult(GateDecision.Refuse(
+                    $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}",
+                    ApprovalSource.NotRequired,
+                    default,
+                    ToolEffect.Write));
+            }
+        }
+
+        var guardApproved = new bool[calls.Count];
+        var guardRefused = new bool[calls.Count];
+        if (checks.Any(check => check is { Refusal: null, Effect: ToolEffect.Write }))
+        {
+            await AskGuardAsync(toolRound, session, assistant, observer, settings, guardApproved, guardRefused,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var label = Loc.Get("S.Confirm.ChatLabel");
+        for (var i = 0; i < calls.Count; i++)
+        {
+            if (decisions[i] is not null || checks[i] is not { } check)
+            {
+                continue;
+            }
+
+            if (guardRefused[i])
+            {
+                decisions[i] = Task.FromResult(GateDecision.Refuse(
+                    SynGuard.BlockedReply(check.ToolName), ApprovalSource.SynGuardHuman, check.Arguments, check.Effect));
+                continue;
+            }
+
+            if (check.Effect == ToolEffect.Write && _confirmations is null)
+            {
+                decisions[i] = Task.FromResult(GateDecision.Refuse(
+                    Loc.Get("S.Gate.NoConfirmation"), ApprovalSource.NotRequired, check.Arguments, check.Effect));
+                continue;
+            }
+
+            decisions[i] = ToolGate.DecideAsync(
+                check,
+                (info, token) => _confirmations!.ConfirmDetailedAsync(label, info, session.Id, token),
+                guardApproved[i],
+                cancellationToken);
+        }
+
+        return decisions;
+    }
+
+    /// <summary>
+    /// SynGuard про раунд чата: один запрос на весь раунд, про помеченные вызовы — вопрос
+    /// человеку. Тот же порядок, что у агента, — прежде инструменты чата SynGuard не видел.
+    /// </summary>
+    private async Task AskGuardAsync(
+        ToolRound toolRound,
+        ChatSession session,
+        ChatDisplayMessage assistant,
+        IChatTurnObserver observer,
+        AppSettings settings,
+        bool[] approved,
+        bool[] refused,
+        CancellationToken cancellationToken)
+    {
+        using var lease = Guard is null ? SynGuardLease.Build(settings, _options, _venice.ResolveModelInfo) : null;
+        var guard = Guard ?? lease?.Check;
+        if (guard is null)
+        {
+            return;
+        }
+
+        var calls = toolRound.Calls;
+        var task = session.Messages.LastOrDefault(message => message.Role == "user")?.Text ?? "";
+        var report = await guard(
+                new SynGuardRequest(task, calls.Select(call => new SynGuardCall(call.Name, call.ArgumentsJson ?? "")).ToList()),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        // В чате нет AgentRunScope, поэтому цену защиты кладём на ответ сами — ApplyCosts её
+        // прибавит, а разбивка покажет строкой «Guard».
+        if (report.Cost is { } cost)
+        {
+            assistant.GuardCost = (assistant.GuardCost ?? VeniceCost.Zero).Add(cost);
+        }
+
+        toolRound.GuardOutcome = report.Outcome == SynGuardOutcome.Checked && report.Safe.Count < calls.Count
+            ? SynGuardOutcome.Unparsed
+            : report.Outcome;
+        observer.OnToolsChanged(assistant);
+
+        for (var i = 0; i < calls.Count; i++)
+        {
+            if (report.IsSafe(i))
+            {
+                continue;
+            }
+
+            if (_confirmations is null)
+            {
+                refused[i] = true;
+                continue;
+            }
+
+            var answer = await _confirmations.ConfirmDetailedAsync(
+                    Loc.Get("S.Confirm.ChatLabel"),
+                    SynGuard.DescribeBlock(calls[i].Name, calls[i].ArgumentsJson),
+                    session.Id,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            (answer.Approved ? approved : refused)[i] = true;
+        }
     }
 
     private static ToolRound CreateRound(IReadOnlyList<ToolCall> toolCalls)

@@ -146,6 +146,17 @@ internal static partial class DangerousActionGuard
             }
         }
 
+        // Перезапись — отдельной строкой и в начале: из пути её не видно, а человек решает
+        // именно об этом.
+        if (OverwrittenPath(toolName, action, arguments) is { } overwritten)
+        {
+            changeSummary = Amarin.Core.Loc.Format("S.Confirm.Overwrite", overwritten) + " " + changeSummary;
+            if (risk < DangerousRiskLevel.Medium)
+            {
+                risk = DangerousRiskLevel.Medium;
+            }
+        }
+
         if (unlistedDownloadHost is not null)
         {
             sb.AppendLine();
@@ -234,6 +245,55 @@ internal static partial class DangerousActionGuard
             explanation,
             codeText,
             codeLanguage);
+    }
+
+    /// <summary>Файл, который вызов перезапишет, если он уже есть. Иначе null.</summary>
+    /// <remarks>
+    /// Прежде окно подтверждения о перезаписи молчало: <c>download_file</c> и копирование
+    /// заменяли файл с тем же именем, а вопрос выглядел как про новый.
+    /// </remarks>
+    internal static string? OverwrittenPath(string toolName, string action, JsonElement arguments)
+    {
+        string? target = toolName.ToLowerInvariant() switch
+        {
+            "write_file" => Field(arguments, "path"),
+            "filesystem" when action == "write" => Field(arguments, "path"),
+            "filesystem" when action is "copy" or "move" => Field(arguments, "destination"),
+            "download_file" => DownloadTarget(arguments),
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            return null;
+        }
+
+        try
+        {
+            return File.Exists(target.Trim().Trim('"')) ? target.Trim().Trim('"') : null;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+
+        static string? Field(JsonElement args, string name) =>
+            args.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+
+        static string? DownloadTarget(JsonElement args)
+        {
+            if (Field(args, "url") is not { } url || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            return DownloadPaths.TryResolveDestination(Field(args, "destination"), Field(args, "folder"), uri,
+                out var path, out _)
+                ? path
+                : null;
+        }
     }
 
     /// <summary>

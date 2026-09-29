@@ -15,6 +15,10 @@
 
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Open the project page on GitHub</system:String>
+    <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Approve everything automatically</system:String>
+    <system:String x:Key="S.Access.AskAll" xml:space="preserve">Ask about everything</system:String>
+    <system:String x:Key="S.Access.Normal" xml:space="preserve">Normal</system:String>
+    <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Read only</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Profile picture</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Delete the profile “{0}” together with all of its chats?&#10;&#10;This cannot be undone.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Extra profile</system:String>
@@ -156,8 +160,8 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: no figure yet</system:String>
-    <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Approval mode</system:String>
-    <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">How the AI agent behaves. Normal means always ask</system:String>
+    <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Access mode</system:String>
+    <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">What the model may do on this computer. Normal asks about risky actions, Ask about everything asks about any write, Read only forbids writing altogether, and Approve everything automatically does not ask, except for SynGuard questions and the download allowlist.</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
@@ -268,6 +272,18 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Ask anything...</system:String>
     <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Your reply to the quote...</system:String>
+    <system:String x:Key="S.Confirm.Allow" xml:space="preserve">Allow…</system:String>
+    <system:String x:Key="S.Confirm.Allow.Tooltip" xml:space="preserve">Allow this tool ahead so each call is not asked about</system:String>
+    <system:String x:Key="S.Confirm.AllowChat" xml:space="preserve">For this whole chat</system:String>
+    <system:String x:Key="S.Confirm.AllowChat.Desc" xml:space="preserve">{0} will not ask in this chat until the app restarts</system:String>
+    <system:String x:Key="S.Confirm.AllowTurn" xml:space="preserve">Until this answer ends</system:String>
+    <system:String x:Key="S.Confirm.AllowTurn.Desc" xml:space="preserve">{0} will not ask again until the model finishes answering</system:String>
+    <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Chat</system:String>
+    <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">The existing file {0} will be overwritten.</system:String>
+    <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} already exists. Only a new file can be created without asking; overwriting needs the user's confirmation. If overwriting is really intended, repeat the call and the user will be asked; otherwise pick another name.</system:String>
+    <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>
+    <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
+    <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Read-only mode is on: the app does nothing that changes the system, so the {0} call was not run. Do not repeat it and do not try to do the same with another tool, PowerShell included; tell the user that this needs a different access mode in Settings (Security).</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">This is a Windows restore point, not a snapshot taken by the app. Returning to it rolls back system files, drivers and the whole registry; the System Restore wizard does that, and the computer restarts afterwards.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Windows restore point #{0}</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Windows restore point. You can return to it only through the System Restore wizard.</system:String>

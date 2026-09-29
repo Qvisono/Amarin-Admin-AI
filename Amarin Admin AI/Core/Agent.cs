@@ -203,6 +203,14 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     /// </remarks>
     internal Func<IReadOnlyList<string>>? TakeNotes { get; set; }
 
+    /// <summary>
+    /// Настройки, по которым шлюз решает судьбу вызовов: режим доступа и выключенные
+    /// инструменты. Null — заводские (обычный режим, всё включено), как в тестах.
+    /// </summary>
+    internal Func<AppSettings>? Settings { get; init; }
+
+    private AppSettings CurrentSettings() => Settings?.Invoke() ?? new AppSettings();
+
     public Agent(
         VeniceClient client,
         ToolRegistry tools,
@@ -348,7 +356,9 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             CompleteRequest();
             return FailResult(ex.Message);
         }
-        var toolDefinitions = _toolDefinitions;
+        // Выключенные человеком инструменты модель не видит вовсе; вызов по имени всё равно
+        // отклонит шлюз.
+        var toolDefinitions = ToolGate.WithoutDisabled(_toolDefinitions, CurrentSettings());
 
         string? finalAssistantText = null;
         var emptyResponseRetries = 0;
@@ -612,6 +622,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             return false;
         }
 
+        var settings = CurrentSettings();
         batch = new List<PreparedCall>(toolCalls.Count);
         foreach (var toolCall in toolCalls)
         {
@@ -627,13 +638,15 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             }
 
             var toolName = toolCall.Function.Name;
-            if (!IsParallelSafeToolCall(toolName, arguments))
+            var check = ToolGate.Check(toolName, arguments, settings);
+            if (!IsParallelSafeToolCall(toolName, arguments) ||
+                check.Refusal is not null || check.Question is not null || check.NeedsSnapshot)
             {
                 batch = [];
                 return false;
             }
 
-            batch.Add(new PreparedCall(toolCall, toolName, arguments));
+            batch.Add(new PreparedCall(toolCall, toolName, check.Arguments));
         }
 
         return batch.Count == toolCalls.Count && batch.Count > 1;
@@ -727,33 +740,25 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             return;
         }
 
-        // local_users hard safety (current session user SID / last Administrators member)
-        // must Fail before confirm UI.
-        if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
-            LocalUsersSafety.TryGetHardBlockReason(arguments, out var localUsersBlock))
+        // Шлюз: выключенный инструмент, режим «только чтение», жёсткие запреты (последний
+        // администратор, данные программы) — отказ до всякого вопроса; дальше вопрос, если нужен.
+        var decision = await ToolGate.DecideAsync(
+                ToolGate.Check(toolName, arguments, CurrentSettings()),
+                (info, token) => _ui.ConfirmDetailedAsync(info, token),
+                guardApproved,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!decision.Allowed)
         {
-            result = ToolResult.Fail(localUsersBlock);
+            result = ToolResult.Fail(decision.Refusal ?? ToolGate.DeniedReply);
             _ui.ToolResult(toolName, result);
             messages.Add(BuildToolMessage(toolCall, result));
             return;
         }
 
-        var isDangerous = !guardApproved && DangerousActionGuard.RequiresConfirmation(toolName, arguments);
-        var needsUndoSnapshot = DangerousActionGuard.RequiresUndoSnapshot(toolName, arguments);
-        if (isDangerous)
-        {
-            var approved = await _ui.ConfirmDangerousActionAsync(
-                DangerousActionGuard.DescribeDetailed(toolName, arguments),
-                cancellationToken).ConfigureAwait(false);
-
-            if (!approved)
-            {
-                result = ToolResult.Fail("Действие отменено пользователем.");
-                _ui.ToolResult(toolName, result);
-                messages.Add(BuildToolMessage(toolCall, result));
-                return;
-            }
-        }
+        arguments = decision.Arguments;
+        var needsUndoSnapshot = decision.NeedsSnapshot;
 
         // Снимок решается отдельно от вопроса. Прежде он жил внутри ветки «спросили», и вызов,
         // уже разрешённый в вопросе SynGuard, менял систему без снимка — а RecordMutation ниже

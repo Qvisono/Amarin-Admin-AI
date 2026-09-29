@@ -1,4 +1,4 @@
-using Amarin.Tools;
+﻿using Amarin.Tools;
 
 namespace Amarin.Core;
 
@@ -171,6 +171,11 @@ internal sealed class AgentUiAdapter : IAgentUi
         DangerousActionInfo info,
         CancellationToken cancellationToken = default) =>
         _confirmations.ConfirmAsync(_agentLabel, info, _sessionId, cancellationToken);
+
+    public Task<ConfirmationAnswer> ConfirmDetailedAsync(
+        DangerousActionInfo info,
+        CancellationToken cancellationToken = default) =>
+        _confirmations.ConfirmDetailedAsync(_agentLabel, info, _sessionId, cancellationToken);
 
     private void AppendInfo(string message)
     {

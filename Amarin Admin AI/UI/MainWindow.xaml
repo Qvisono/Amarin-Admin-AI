@@ -2797,10 +2797,12 @@
        Text="{DynamicResource S.Behavior.ApprovalModeDesc}"/>
                                     </StackPanel>
                                     <ComboBox x:Name="ApprovalModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                      MinWidth="140" SelectedIndex="1" VerticalAlignment="Center"
+                                      MinWidth="140" SelectedIndex="0" VerticalAlignment="Center"
                                       SelectionChanged="ApprovalModeCombo_SelectionChanged">
-                                        <ComboBoxItem Content="Always approve" Tag="AlwaysApprove"/>
-                                        <ComboBoxItem Content="Normal" Tag="Normal"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Access.Normal}" Tag="Normal"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Access.AskAll}" Tag="AskAll"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Access.ReadOnly}" Tag="ReadOnly"/>
+                                        <ComboBoxItem Content="{DynamicResource S.Access.AlwaysApprove}" Tag="AlwaysApprove"/>
                                     </ComboBox>
                                 </Grid>
 
@@ -3995,6 +3997,47 @@
                             <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
                                     Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                            <!--
+                                «Разрешить…» — ответ «да» с запасом: этот инструмент в этом чате до
+                                конца ответа или до конца разговора больше не спрашивается. У
+                                вопросов SynGuard и вопросов без чата кнопки нет.
+                            -->
+                            <ToggleButton x:Name="ConfirmationAllowToggle" Content="{DynamicResource S.Confirm.Allow}"
+                                          Style="{StaticResource DialogSecondaryToggle}" Margin="0,0,8,0"
+                                          ToolTip="{DynamicResource S.Confirm.Allow.Tooltip}"/>
+                            <Popup x:Name="ConfirmationAllowPopup"
+                                   PlacementTarget="{Binding ElementName=ConfirmationAllowToggle}"
+                                   Placement="Top" VerticalOffset="-6" AllowsTransparency="True"
+                                   PopupAnimation="Fade"
+                                   IsOpen="{Binding IsChecked, ElementName=ConfirmationAllowToggle, Mode=TwoWay}">
+                                <Border Width="280" Background="{DynamicResource Bg.Panel}"
+                                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                        CornerRadius="10" Padding="5">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <Button x:Name="ConfirmationAllowTurnButton" Style="{StaticResource DialogMenuItemButton}"
+                                                Click="ConfirmationAllowTurnButton_Click">
+                                            <StackPanel>
+                                                <TextBlock Text="{DynamicResource S.Confirm.AllowTurn}" FontSize="12.5"
+                                                           Foreground="{DynamicResource Text.Body}"/>
+                                                <TextBlock x:Name="ConfirmationAllowTurnDesc" FontSize="11" Margin="0,2,0,0"
+                                                           TextWrapping="Wrap" Foreground="{DynamicResource Text.Faint}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button x:Name="ConfirmationAllowChatButton" Style="{StaticResource DialogMenuItemButton}"
+                                                Click="ConfirmationAllowChatButton_Click">
+                                            <StackPanel>
+                                                <TextBlock Text="{DynamicResource S.Confirm.AllowChat}" FontSize="12.5"
+                                                           Foreground="{DynamicResource Text.Body}"/>
+                                                <TextBlock x:Name="ConfirmationAllowChatDesc" FontSize="11" Margin="0,2,0,0"
+                                                           TextWrapping="Wrap" Foreground="{DynamicResource Text.Faint}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Common.Yes}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="ConfirmationYesButton_Click"/>

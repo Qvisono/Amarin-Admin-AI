@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.Windows;
 using Amarin.Core;
 
@@ -157,6 +157,9 @@ namespace Amarin.UI
 
             _turns.Remove(turn.SessionId);
             turn.Finished = true;
+
+            // «Разрешить до конца ответа» заканчивается вместе с ответом.
+            _services?.Confirmations.EndTurn(turn.SessionId);
             RescueQueued(turn);
             ClearComposerNotice(turn.SessionId);
 
