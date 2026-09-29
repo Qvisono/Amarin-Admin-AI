@@ -1,4 +1,4 @@
-using Amarin.Tools;
+﻿using Amarin.Tools;
 
 namespace Amarin.Core;
 
@@ -16,6 +16,10 @@ public sealed class SessionUndoTracker
     private string? _activeUserRequest;
 
     private string? _undoSnapshotId;
+
+    /// <summary>Как снимается состояние системы. Подменяется в тестах: живой снимок читает службы и реестр.</summary>
+    internal Func<string, SnapshotResult> TakeSnapshot { get; init; } =
+        label => ChangeRollbackOperations.CreateSnapshot(label);
 
     /// <summary>Был ли за сессию запрос, который что-то изменил и успел снять снимок.</summary>
     public bool HasUndoPoint => !string.IsNullOrWhiteSpace(_undoSnapshotId);
@@ -35,7 +39,7 @@ public sealed class SessionUndoTracker
         }
 
         var label = $"session-undo: {Truncate(_activeUserRequest ?? toolName, 80)}";
-        var result = ChangeRollbackOperations.CreateSnapshot(label);
+        var result = TakeSnapshot(label);
 
         if (!result.Success)
         {

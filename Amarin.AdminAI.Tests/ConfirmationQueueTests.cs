@@ -45,6 +45,29 @@ public sealed class ConfirmationQueueTests
     }
 
     [Fact]
+    public async Task The_answer_goes_to_the_question_that_was_shown_not_to_the_new_head()
+    {
+        // Окно показало вопрос первого чата; пока человек читал, этот чат отменил ход, и
+        // первым в очереди встал вопрос соседа. «Да» не должно уйти вопросу, которого на
+        // экране не было.
+        var queue = Queue();
+        var mine = queue.ConfirmAsync("Агент", Action("powershell"), "s1");
+        var neighbour = queue.ConfirmAsync("Агент", Action("registry"), "s2");
+        Assert.True(queue.TryPeek(out var shown));
+
+        queue.CancelForSession("s1");
+        Assert.False(queue.Complete(shown, approved: true));
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() => mine);
+        Assert.False(neighbour.IsCompleted);
+
+        Assert.True(queue.TryPeek(out var next));
+        Assert.Equal("registry", next.Info.ToolName);
+        Assert.True(queue.Complete(next, approved: false));
+        Assert.False(await neighbour);
+    }
+
+    [Fact]
     public async Task Cancelling_one_chat_leaves_the_other_chats_question_waiting()
     {
         var queue = Queue();

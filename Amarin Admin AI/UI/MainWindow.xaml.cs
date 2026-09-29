@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -3232,12 +3232,14 @@ namespace Amarin.UI
 
             if (!_services.Confirmations.TryPeek(out var request))
             {
+                _shownConfirmation = null;
                 CancelConfirmationExplain();
                 ConfirmationOverlay.Visibility = Visibility.Collapsed;
                 Chat.IsHitTestVisible = true;
                 return;
             }
 
+            _shownConfirmation = request;
             ShowConfirmationChat(request.SessionId);
             ConfirmationAgentText.Text = request.AgentLabel;
             ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
@@ -3292,10 +3294,22 @@ namespace Amarin.UI
             }
         }
 
-        private void ConfirmationYesButton_Click(object sender, RoutedEventArgs e) =>
-            _services?.Confirmations.CompleteCurrent(true);
+        /// <summary>Вопрос, который сейчас на экране. Кнопки отвечают ему, а не голове очереди.</summary>
+        private ConfirmationRequest? _shownConfirmation;
 
-        private void ConfirmationNoButton_Click(object sender, RoutedEventArgs e) =>
-            _services?.Confirmations.CompleteCurrent(false);
+        private void ConfirmationYesButton_Click(object sender, RoutedEventArgs e) => AnswerShownConfirmation(true);
+
+        private void ConfirmationNoButton_Click(object sender, RoutedEventArgs e) => AnswerShownConfirmation(false);
+
+        private void AnswerShownConfirmation(bool approved)
+        {
+            if (_services is null || _shownConfirmation is not { } request)
+            {
+                return;
+            }
+
+            _shownConfirmation = null;
+            _services.Confirmations.Complete(request, approved);
+        }
     }
 }

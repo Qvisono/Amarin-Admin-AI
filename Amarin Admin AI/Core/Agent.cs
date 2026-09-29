@@ -289,9 +289,15 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             AgentRunScope.ChargeGuard(cost);
         }
 
-        for (var i = 0; i < toolCalls.Count && i < report.Safe.Count; i++)
+        // Короткий отчёт — тоже неразобранный: вызовы за его концом идут без вердикта.
+        var outcome = report.Outcome == SynGuardOutcome.Checked && report.Safe.Count < toolCalls.Count
+            ? SynGuardOutcome.Unparsed
+            : report.Outcome;
+        _ui.GuardChecked(outcome);
+
+        for (var i = 0; i < toolCalls.Count; i++)
         {
-            if (report.Safe[i])
+            if (report.IsSafe(i))
             {
                 continue;
             }
@@ -747,22 +753,25 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 messages.Add(BuildToolMessage(toolCall, result));
                 return;
             }
+        }
 
-            if (needsUndoSnapshot)
+        // Снимок решается отдельно от вопроса. Прежде он жил внутри ветки «спросили», и вызов,
+        // уже разрешённый в вопросе SynGuard, менял систему без снимка — а RecordMutation ниже
+        // всё равно отмечал изменение, и откатывать было нечем.
+        if (needsUndoSnapshot)
+        {
+            var snapshot = await _ui.RunBusyAsync(
+                "Снимок системы для отката…",
+                () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)),
+                cancellationToken).ConfigureAwait(false);
+            if (!snapshot.Success)
             {
-                var snapshot = await _ui.RunBusyAsync(
-                    "Снимок системы для отката…",
-                    () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)),
-                    cancellationToken).ConfigureAwait(false);
-                if (!snapshot.Success)
-                {
-                    _ui.Warn($"Не удалось создать снимок системы: {snapshot.Message}");
-                }
-                else if (snapshot.IsNew)
-                {
-                    _ui.Info(
-                        $"Снимок системы перед изменениями (службы, задачи, реестр): {snapshot.SnapshotId}");
-                }
+                _ui.Warn($"Не удалось создать снимок системы: {snapshot.Message}");
+            }
+            else if (snapshot.IsNew)
+            {
+                _ui.Info(
+                    $"Снимок системы перед изменениями (службы, задачи, реестр): {snapshot.SnapshotId}");
             }
         }
 

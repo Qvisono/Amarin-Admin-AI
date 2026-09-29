@@ -128,13 +128,18 @@ internal static class ChatSessionEdit
         }
     }
 
-    /// <summary>Index of every <c>user</c> entry in the wire history — one per turn.</summary>
+    /// <summary>Index of every turn start in the wire history — one per message of the person.</summary>
+    /// <remarks>
+    /// Картинки инструментов тоже лежат там с ролью <c>user</c>, но ходом не являются: считать
+    /// их значило бы резать историю не там — после скриншота в первом ходе перегенерация
+    /// второго теряла и итог первого ответа, и сам второй вопрос.
+    /// </remarks>
     private static List<int> ApiTurnStarts(ChatSession session)
     {
         var starts = new List<int>();
         for (var i = 0; i < session.ApiMessages.Count; i++)
         {
-            if (IsUser(session.ApiMessages[i]))
+            if (ChatContent.IsTurnStart(session.ApiMessages[i]))
             {
                 starts.Add(i);
             }
@@ -142,6 +147,62 @@ internal static class ChatSessionEdit
 
         return starts;
     }
+
+    /// <summary>
+    /// Сколько записей истории модели относится к первым <paramref name="displayCount"/>
+    /// сообщениям ленты — то есть где история режется, когда лента режется на этом месте.
+    /// </summary>
+    /// <remarks>
+    /// Точный ответ даёт счёт ходов: сообщение человека в ленте — одно начало хода в истории.
+    /// Если счёт не сходится (история сжата или файл правили руками), берётся прежнее
+    /// приближение по закрытым ответам: лучше обрезать лишнее, чем отправить историю, которую
+    /// API отвергнет.
+    /// </remarks>
+    internal static int ApiCut(ChatSession session, int displayCount)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        var count = Math.Clamp(displayCount, 0, session.Messages.Count);
+        var usersBefore = 0;
+        for (var i = 0; i < count; i++)
+        {
+            if (IsUserMessage(session.Messages[i]))
+            {
+                usersBefore++;
+            }
+        }
+
+        if (usersBefore == 0)
+        {
+            return 0;
+        }
+
+        var starts = ApiTurnStarts(session);
+        if (starts.Count == UserCount(session))
+        {
+            // Режут по сообщению человека — история кончается перед его ходом.
+            if (count < session.Messages.Count && IsUserMessage(session.Messages[count]))
+            {
+                return starts[usersBefore];
+            }
+
+            // Режут по ответу сразу за вопросом — от хода остаётся только вопрос.
+            if (count < session.Messages.Count && IsUserMessage(session.Messages[count - 1]))
+            {
+                return starts[usersBefore - 1] + 1;
+            }
+
+            // Режут по концу ленты — история целиком.
+            if (count == session.Messages.Count)
+            {
+                return session.ApiMessages.Count;
+            }
+        }
+
+        return KeepFor(session, count);
+    }
+
+    private static bool IsUserMessage(ChatDisplayMessage message) =>
+        message.Role.Equals("user", StringComparison.OrdinalIgnoreCase);
 
     public static bool ReplaceUserText(ChatSession session, string userId, string newText)
     {
@@ -168,7 +229,7 @@ internal static class ChatSessionEdit
         TruncateApiToMatchDisplay(session);
         for (var i = session.ApiMessages.Count - 1; i >= 0; i--)
         {
-            if (session.ApiMessages[i].Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            if (ChatContent.IsTurnStart(session.ApiMessages[i]))
             {
                 // Rewriting the text must not silently drop what the user attached. Documents
                 // were being dropped here: the rebuild read Images only, so the card stayed in
@@ -204,10 +265,7 @@ internal static class ChatSessionEdit
     }
 
     private static int UserCount(ChatSession session) =>
-        session.Messages.Count(item => item.Role.Equals("user", StringComparison.OrdinalIgnoreCase));
-
-    private static bool IsUser(ChatMessage message) =>
-        message.Role.Equals("user", StringComparison.OrdinalIgnoreCase);
+        session.Messages.Count(IsUserMessage);
 
     private static bool IsFinalAssistant(ChatMessage message) =>
         message.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase) &&
@@ -215,15 +273,34 @@ internal static class ChatSessionEdit
 
     private static void TruncateApiToMatchDisplay(ChatSession session)
     {
-        var usersWanted = UserCount(session);
-        if (usersWanted <= 0)
+        var keep = KeepFor(session, session.Messages.Count);
+        if (keep < session.ApiMessages.Count)
         {
-            session.ApiMessages.Clear();
-            return;
+            session.ApiMessages.RemoveRange(keep, session.ApiMessages.Count - keep);
+        }
+    }
+
+    /// <summary>
+    /// Приближение разреза по закрытым ответам: сколько записей истории оставить под первые
+    /// <paramref name="displayCount"/> сообщений ленты.
+    /// </summary>
+    private static int KeepFor(ChatSession session, int displayCount)
+    {
+        var usersWanted = 0;
+        for (var i = 0; i < displayCount; i++)
+        {
+            if (IsUserMessage(session.Messages[i]))
+            {
+                usersWanted++;
+            }
         }
 
-        var pendingUser = session.Messages.Count > 0 &&
-                          session.Messages[^1].Role.Equals("user", StringComparison.OrdinalIgnoreCase);
+        if (usersWanted <= 0)
+        {
+            return 0;
+        }
+
+        var pendingUser = displayCount > 0 && IsUserMessage(session.Messages[displayCount - 1]);
         var turnsToClose = pendingUser ? usersWanted - 1 : usersWanted;
         var usersSeen = 0;
         var turnsClosed = 0;
@@ -232,7 +309,8 @@ internal static class ChatSessionEdit
         for (var i = 0; i < session.ApiMessages.Count; i++)
         {
             var message = session.ApiMessages[i];
-            if (IsUser(message))
+            var turnStart = ChatContent.IsTurnStart(message);
+            if (turnStart)
             {
                 usersSeen++;
                 if (usersSeen > usersWanted)
@@ -248,7 +326,7 @@ internal static class ChatSessionEdit
                 turnsClosed++;
             }
 
-            if (pendingUser && usersSeen == usersWanted && IsUser(message))
+            if (pendingUser && usersSeen == usersWanted && turnStart)
             {
                 break;
             }
@@ -259,9 +337,6 @@ internal static class ChatSessionEdit
             }
         }
 
-        if (keep < session.ApiMessages.Count)
-        {
-            session.ApiMessages.RemoveRange(keep, session.ApiMessages.Count - keep);
-        }
+        return keep;
     }
 }

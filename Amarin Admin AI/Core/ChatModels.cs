@@ -29,6 +29,13 @@ public enum AgentRunStatus
 
 public sealed class ChatSession
 {
+    /// <summary>
+    /// Замок на перестановку списков вне хода — варианты ответа меняют местами хвосты
+    /// <see cref="Messages"/> и <see cref="ApiMessages"/>, а сериализация в фоне не должна
+    /// застать их посередине. В файл не пишется: свойство не публичное.
+    /// </summary>
+    internal Lock Gate { get; } = new();
+
     public string Id { get; set; } = "";
 
     public string Title { get; set; } = "Новый чат";
@@ -220,6 +227,16 @@ public sealed class ToolRound
     /// вместе с ней. Пусто у чатов, сохранённых до появления поля.
     /// </remarks>
     public string FollowUpNote { get; set; } = "";
+
+    /// <summary>
+    /// Чем кончилась проверка SynGuard этого раунда. <c>null</c> — проверки не было (защита
+    /// выключена или в раунде одно чтение), и у переписок прежних версий.
+    /// </summary>
+    /// <remarks>
+    /// Перечисление, а не готовая строка, в отличие от <see cref="FollowUpNote"/>: пометку
+    /// рисует интерфейс на текущем языке, и после смены языка она не остаётся на прежнем.
+    /// </remarks>
+    public SynGuardOutcome? GuardOutcome { get; set; }
 
     public List<ToolCallRecord> Calls { get; set; } = [];
 }

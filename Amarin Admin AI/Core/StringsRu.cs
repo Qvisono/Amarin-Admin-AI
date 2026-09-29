@@ -732,6 +732,8 @@ internal static class StringsRu
             ["S.Tools.Done"] = "Инструменты выполнены",
             ["S.Tools.FollowUpSeen"] = "Вижу новое сообщение - учитываю",
             ["S.Tools.GuardBlocked"] = "SynGuard прочитал вызов {0} как атаку, и вы его не разрешили",
+            ["S.Tools.GuardFailed"] = "Проверка SynGuard не состоялась - вызовы выполнены без неё",
+            ["S.Tools.GuardUnparsed"] = "Ответ SynGuard не разобран - вызовы без вердикта выполнены без проверки",
             ["S.Tools.Running"] = "Запускаю инструменты",
             ["S.Tools.SavedFile"] = "{0}\nНажмите, чтобы показать в проводнике",
             ["S.Tools.SavedFileGone"] = "{0}\nФайла больше нет на месте",

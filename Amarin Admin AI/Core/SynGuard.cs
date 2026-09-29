@@ -25,7 +25,34 @@ internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGu
 /// Отдельным полем по той же причине, что и у <see cref="AgentTierDecision"/>: проверка стоит
 /// денег, и они должны попасть в счёт, а не потеряться между клиентами.
 /// </param>
-internal sealed record SynGuardReport(IReadOnlyList<bool> Safe, VeniceCost? Cost);
+/// <param name="Outcome">
+/// Состоялась ли проверка. Несостоявшаяся по-прежнему считается «безопасно» — защита, которая
+/// легла вместе с сетью, не должна останавливать работу, — но человек и журнал теперь это видят.
+/// </param>
+internal sealed record SynGuardReport(
+    IReadOnlyList<bool> Safe,
+    VeniceCost? Cost,
+    SynGuardOutcome Outcome = SynGuardOutcome.Checked)
+{
+    /// <summary>Вердикт по вызову. Вызов за пределами отчёта — безопасен, как и прежде.</summary>
+    public bool IsSafe(int index) => index >= Safe.Count || Safe[index];
+}
+
+/// <summary>Чем кончилась проверка раунда.</summary>
+/// <remarks>
+/// Пишется в файл переписки именем (<see cref="AppJson"/>), поэтому члены не переименовывают.
+/// </remarks>
+public enum SynGuardOutcome
+{
+    /// <summary>Защитник ответил, и по каждому вызову есть вердикт.</summary>
+    Checked,
+
+    /// <summary>Запрос не состоялся: сеть, таймаут, отказ провайдера.</summary>
+    Failed,
+
+    /// <summary>Ответ пришёл, но хотя бы для одного вызова вердикта в нём нет.</summary>
+    Unparsed
+}
 
 /// <summary>
 /// Промпт защитника, сборка запроса по раунду и разбор вердикта.
@@ -190,15 +217,21 @@ internal static partial class SynGuard
     /// проверки не было, а «проверки не было» не может значить «не работай». Ровно так же
     /// поступает <see cref="AgentTierRouter.ParseTier"/> с непонятным уровнем.
     /// </remarks>
-    internal static IReadOnlyList<bool> ParseReport(string? text, int count)
+    internal static IReadOnlyList<bool> ParseReport(string? text, int count) =>
+        ParseReport(text, count, out _);
+
+    /// <param name="complete">Для каждого вызова в ответе нашёлся вердикт.</param>
+    internal static IReadOnlyList<bool> ParseReport(string? text, int count, out bool complete)
     {
         var safe = new bool[count];
         Array.Fill(safe, true);
+        complete = count == 0;
         if (string.IsNullOrWhiteSpace(text) || count == 0)
         {
             return safe;
         }
 
+        var seen = new bool[count];
         foreach (Match match in VerdictPattern().Matches(text))
         {
             if (!int.TryParse(match.Groups[1].Value, out var number) ||
@@ -208,9 +241,11 @@ internal static partial class SynGuard
                 continue;
             }
 
+            seen[number - 1] = true;
             safe[number - 1] = !match.Groups[2].Value.Equals("dangerous", StringComparison.OrdinalIgnoreCase);
         }
 
+        complete = Array.TrueForAll(seen, value => value);
         return safe;
     }
 

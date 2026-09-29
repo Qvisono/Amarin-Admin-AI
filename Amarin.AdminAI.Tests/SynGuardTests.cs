@@ -384,6 +384,153 @@ public sealed class SynGuardTests
         Assert.Null(call.Cost);
     }
 
+    // ───────────────────────── несостоявшаяся проверка ─────────────────────────
+
+    [Fact]
+    public void A_reply_with_a_verdict_for_every_call_is_complete()
+    {
+        SynGuard.ParseReport("1: safe\n2: dangerous", 2, out var complete);
+        Assert.True(complete);
+
+        var safe = SynGuard.ParseReport("1: safe", 2, out complete);
+        Assert.False(complete);
+        Assert.Equal([true, true], safe);
+    }
+
+    [Fact]
+    public async Task A_guard_that_cannot_reach_its_model_reports_a_failed_check()
+    {
+        var report = await CheckerOver(new ThrowingHandler(new HttpRequestException("нет сети")))
+            .CheckAsync(OneCallRequest(), CancellationToken.None);
+
+        Assert.Equal(SynGuardOutcome.Failed, report.Outcome);
+        Assert.True(report.IsSafe(0));
+    }
+
+    [Fact]
+    public async Task A_timed_out_guard_is_a_failed_check_and_not_a_cancelled_turn()
+    {
+        // Таймаут HttpClient приходит как TaskCanceledException, хотя ход никто не отменял.
+        // Прежде он пролетал наверх и обрывал раунд так, будто человек нажал «Стоп».
+        var report = await CheckerOver(new ThrowingHandler(new TaskCanceledException("timeout")))
+            .CheckAsync(OneCallRequest(), CancellationToken.None);
+
+        Assert.Equal(SynGuardOutcome.Failed, report.Outcome);
+    }
+
+    [Fact]
+    public async Task Cancelling_the_turn_still_cancels_the_check()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CheckerOver(new ThrowingHandler(new TaskCanceledException("cancelled")))
+                .CheckAsync(OneCallRequest(), cts.Token));
+    }
+
+    [Fact]
+    public async Task A_reply_without_verdicts_is_an_unparsed_check()
+    {
+        var reply = """{"choices":[{"message":{"role":"assistant","content":"не знаю"}}]}""";
+        var report = await CheckerOver(new ScriptedHandler(() => reply))
+            .CheckAsync(OneCallRequest(), CancellationToken.None);
+
+        Assert.Equal(SynGuardOutcome.Unparsed, report.Outcome);
+        Assert.True(report.IsSafe(0));
+    }
+
+    [Fact]
+    public async Task A_short_report_is_shown_as_an_unparsed_check_and_its_tail_still_runs()
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi();
+
+        await RunRoundAsync(ui, ran, new SynGuardReport([true], null));
+
+        Assert.Equal([SynGuardOutcome.Unparsed], ui.GuardOutcomes);
+        Assert.Contains("read_file", ran);
+    }
+
+    [Fact]
+    public async Task A_failed_check_lands_on_the_agent_round()
+    {
+        var record = new AgentRunRecord();
+        var ui = new AgentUiAdapter(record, new ConfirmationQueue(AppSettings.CreateDefault), () => { }, "агент");
+
+        ui.GuardChecked(SynGuardOutcome.Failed);
+        ui.ToolCall("run_powershell", "{}");
+
+        var round = Assert.Single(record.ToolRounds);
+        Assert.Equal(SynGuardOutcome.Failed, round.GuardOutcome);
+        Assert.Single(round.Calls);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task A_change_allowed_in_the_guards_question_still_gets_its_undo_snapshot()
+    {
+        // Снимок жил внутри ветки обычного вопроса, а вызов, уже разрешённый человеком в вопросе
+        // SynGuard, этот вопрос пропускает — и менял реестр без снимка для отката.
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => true };
+        var snapshots = 0;
+        var tracker = new SessionUndoTracker
+        {
+            TakeSnapshot = _ =>
+            {
+                snapshots++;
+                return new SnapshotResult(true, "snap-1", "ok");
+            }
+        };
+
+        var round = 0;
+        var handler = new ScriptedHandler(() => Interlocked.Increment(ref round) == 1
+            ? """
+              {"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[
+                {"id":"c1","type":"function","function":{"name":"registry",
+                 "arguments":"{\"action\":\"write\",\"path\":\"HKCU\\\\Software\\\\X\"}"}}]},
+                "finish_reason":"tool_calls"}]}
+              """
+            : """{"choices":[{"message":{"role":"assistant","content":"Готово."}}]}""");
+
+        var options = Options();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var agent = new Agent(
+            new VeniceClient(http, options),
+            new ToolRegistry([new RecordingTool("registry", ran)]),
+            options,
+            ui,
+            tracker)
+        {
+            Guard = (_, _) => Task.FromResult(new SynGuardReport([false], null))
+        };
+
+        await agent.RunAsync("поправь реестр");
+
+        Assert.Equal(["registry"], ran);
+        Assert.Single(ui.Asked);
+        Assert.Equal(1, snapshots);
+    }
+
+    private static SynGuardRequest OneCallRequest() =>
+        new("наведи порядок", [new SynGuardCall("run_powershell", "{\"command\":\"Get-Date\"}")]);
+
+    private static SynGuardChecker CheckerOver(HttpMessageHandler handler)
+    {
+        var options = Options();
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        return new SynGuardChecker(new VeniceClient(http, options), "guard-model", new ReasoningChoice(true, null));
+    }
+
+    private sealed class ThrowingHandler(Exception error) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(error);
+    }
+
     // ───────────────────────── helpers ─────────────────────────
 
     /// <summary>Раунд из run_powershell и read_file с готовым вердиктом защитника.</summary>
@@ -468,6 +615,11 @@ public sealed class SynGuardTests
 
         /// <summary>Вопросы, дошедшие до человека, по порядку.</summary>
         public List<DangerousActionInfo> Asked { get; } = [];
+
+        /// <summary>Исходы проверок SynGuard, как их увидел раунд.</summary>
+        public List<SynGuardOutcome> GuardOutcomes { get; } = [];
+
+        public void GuardChecked(SynGuardOutcome outcome) => GuardOutcomes.Add(outcome);
 
         public void Warn(string message)
         {

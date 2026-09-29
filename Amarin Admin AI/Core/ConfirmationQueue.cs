@@ -103,6 +103,27 @@ internal sealed class ConfirmationQueue
         return false;
     }
 
+    /// <summary>
+    /// Отвечает на конкретный вопрос — тот, что человек видел на экране.
+    /// </summary>
+    /// <remarks>
+    /// Кнопки окна раньше отвечали голове очереди. Между показом и нажатием голова успевала
+    /// смениться — соседний чат отменил свой вопрос, и следующий встал первым, — и «Да» уходило
+    /// вопросу, которого человек не читал. Вопрос, уже снятый отменой, ответа не получает.
+    /// </remarks>
+    public bool Complete(ConfirmationRequest request, bool approved)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        lock (_gate)
+        {
+            _queue.Remove(request);
+        }
+
+        var answered = request.Completion.TrySetResult(approved);
+        Changed?.Invoke();
+        return answered;
+    }
+
     public void CompleteCurrent(bool approved)
     {
         while (true)

@@ -93,6 +93,21 @@ internal sealed class AgentUiAdapter : IAgentUi
         Notify();
     }
 
+    public void GuardChecked(SynGuardOutcome outcome)
+    {
+        // Проверка идёт до первого вызова раунда, а раунд в записи агента заводит ToolCall.
+        // Поэтому раунд заводится здесь же — тот, в который лягут вызовы этой проверки.
+        var round = CurrentRound();
+        if (round is null || RoundIsSettled(round))
+        {
+            round = new ToolRound { InfoLine = "Запускаю инструменты" };
+            _record.ToolRounds.Add(round);
+        }
+
+        round.GuardOutcome = outcome;
+        Notify();
+    }
+
     public void ToolCall(string name, string argumentsJson)
     {
         var round = CurrentRound();

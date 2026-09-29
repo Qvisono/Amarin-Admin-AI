@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -27,6 +27,7 @@ internal static class ChatShareCodec
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        MaxDepth = AppJson.MaxDepth,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
@@ -42,6 +43,7 @@ internal static class ChatShareCodec
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        MaxDepth = AppJson.MaxDepth,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
@@ -194,7 +196,8 @@ internal static class ChatShareCodec
         var seenUserTurns = 0;
         foreach (var message in session.ApiMessages)
         {
-            if (message.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            // Картинки инструментов ходами не считаются: иначе срез обрывал бы историю раньше.
+            if (ChatContent.IsTurnStart(message))
             {
                 seenUserTurns++;
                 if (seenUserTurns > keptUserTurns)

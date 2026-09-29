@@ -15,6 +15,64 @@ internal static class ChatContent
         Multipart(prompt, images, files: null);
 
     /// <summary>
+    /// Начало текста у сообщения, которым движок отдаёт модели картинки инструмента.
+    /// </summary>
+    /// <remarks>
+    /// Роль у такого сообщения <c>user</c> — иначе картинку модели не показать, — но ходом
+    /// человека оно не является. По этой строке его и отличают при разрезе истории: и в новых
+    /// переписках, и в старых, где она лежит с тех пор, как картинки инструментов появились.
+    /// Менять её нельзя — старые файлы перестали бы узнаваться.
+    /// </remarks>
+    public const string ToolImagePrefix = "Результат инструмента ";
+
+    /// <summary>Картинки, которые вернул инструмент, в виде сообщения для модели.</summary>
+    public static JsonElement ToolImages(
+        string toolName,
+        string placement,
+        IReadOnlyList<Tools.ImageAttachment> images) =>
+        VisionMultiple($"{ToolImagePrefix}{toolName}. {placement}", images);
+
+    /// <summary>
+    /// Сообщение с картинками инструмента, а не ход человека.
+    /// </summary>
+    /// <remarks>
+    /// Два признака сразу: содержимое из нескольких частей и текст с <see cref="ToolImagePrefix"/>.
+    /// Одной строки мало — человек мог сам начать сообщение с этих слов, но тогда без вложений
+    /// оно ушло бы простой строкой, а не массивом.
+    /// </remarks>
+    public static bool IsToolImage(ChatMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        if (!message.Role.Equals("user", StringComparison.OrdinalIgnoreCase) ||
+            message.Content is not { ValueKind: JsonValueKind.Array } content)
+        {
+            return false;
+        }
+
+        foreach (var part in content.EnumerateArray())
+        {
+            if (part.ValueKind == JsonValueKind.Object &&
+                part.TryGetProperty("type", out var type) &&
+                type.ValueKind == JsonValueKind.String &&
+                type.GetString() == "text" &&
+                part.TryGetProperty("text", out var text) &&
+                text.ValueKind == JsonValueKind.String)
+            {
+                return text.GetString()?.StartsWith(ToolImagePrefix, StringComparison.Ordinal) == true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Запись истории модели, с которой начинается ход человека: <c>user</c>, но не картинки
+    /// инструмента.
+    /// </summary>
+    public static bool IsTurnStart(ChatMessage message) =>
+        message.Role.Equals("user", StringComparison.OrdinalIgnoreCase) && !IsToolImage(message);
+
+    /// <summary>
     /// Сообщение из нескольких частей: текст, картинки и документы.
     /// </summary>
     /// <remarks>

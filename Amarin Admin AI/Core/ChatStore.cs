@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -46,7 +46,22 @@ public sealed class ChatStore
 
     private string? _pendingIndex;
     private bool _draining;
+
+    /// <summary>
+    /// Чат, который фоновая запись уже сняла с очереди, но ещё не положила на диск.
+    /// </summary>
+    /// <remarks>
+    /// Без этого <see cref="TryLoad"/> в это окно не находил чат ни в очереди, ни на диске и
+    /// отвечал «такого нет» — переименование сразу после сохранения молча не срабатывало.
+    /// </remarks>
+    private string? _inFlightChat;
     private Task _drain = Task.CompletedTask;
+
+    /// <summary>Зовётся фоновой записью прямо перед записью файла чата. Только для тестов.</summary>
+    internal Action<string>? WritingChat { get; set; }
+
+    /// <summary>Через сколько повторить запись чата, который не удалось сериализовать.</summary>
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(300);
 
     public ChatStore(string? rootDirectory = null)
     {
@@ -155,7 +170,8 @@ public sealed class ChatStore
         bool pending;
         lock (_gate)
         {
-            pending = _pendingChats.ContainsKey(id);
+            pending = _pendingChats.ContainsKey(id) ||
+                      string.Equals(_inFlightChat, id, StringComparison.Ordinal);
         }
 
         if (pending)
@@ -419,6 +435,7 @@ public sealed class ChatStore
             lock (_gate)
             {
                 _draining = false;
+                _inFlightChat = null;
             }
         }
     }
@@ -446,6 +463,7 @@ public sealed class ChatStore
 
                     (chatId, chat) = _pendingChats.First();
                     _pendingChats.Remove(chatId);
+                    _inFlightChat = chatId;
                 }
             }
 
@@ -455,7 +473,13 @@ public sealed class ChatStore
                 continue;
             }
 
-            if (!TryWriteChat(chatId!, chat!))
+            var written = TryWriteChat(chatId!, chat!);
+            lock (_gate)
+            {
+                _inFlightChat = null;
+            }
+
+            if (!written)
             {
                 // Чат прямо сейчас правит идущий ход. Возвращаем его в очередь и уходим:
                 // следующее сохранение — а ход сохраняется и по таймеру, и в конце —
@@ -466,6 +490,10 @@ public sealed class ChatStore
                     _draining = false;
                 }
 
+                // Страховка на случай, когда следующего сохранения нет: правка вне хода
+                // (переключение варианта) сохраняется один раз, и без повтора чат остался бы
+                // лежать в очереди до закрытия программы.
+                _ = Task.Delay(RetryDelay).ContinueWith(_ => StartDrain(), TaskScheduler.Default);
                 return;
             }
         }
@@ -476,12 +504,21 @@ public sealed class ChatStore
         string json;
         try
         {
-            json = JsonSerializer.Serialize(session, AppJson.Options) + Environment.NewLine;
+            // Под замком сессии: вне хода списки меняют только операции с вариантами ответа, и
+            // перестановка хвостов посреди обхода дала бы файл, где лента от одной ветки, а
+            // история модели — от другой.
+            lock (session.Gate)
+            {
+                json = JsonSerializer.Serialize(session, AppJson.Options) + Environment.NewLine;
+            }
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or JsonException)
         {
             // Движок правит списки сообщения из параллельных задач инструментов, и сериализатор
-            // на меняющейся коллекции бросает.
+            // на меняющейся коллекции бросает — не только InvalidOperationException: список он
+            // пишет по индексу, и укоротившийся посреди обхода даёт ArgumentOutOfRangeException.
+            // Раньше такое исключение роняло весь проход, и чат, уже снятый с очереди, терялся.
+            PerfLog.Write($"chat_store serialize_retry {ex.GetType().Name}");
             return false;
         }
 
@@ -497,6 +534,7 @@ public sealed class ChatStore
             }
         }
 
+        WritingChat?.Invoke(id);
         if (!WriteQuietly(ChatPath(id), json))
         {
             return true;

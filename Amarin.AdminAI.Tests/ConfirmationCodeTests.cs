@@ -12,6 +12,21 @@ public sealed class ConfirmationCodeTests
 {
     private static JsonElement Args(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
+    [Theory]
+    [InlineData("registry", """{"action":"WRITE","path":"HKCU\\Software\\X"}""")]
+    [InlineData("registry", """{"action":" Delete_Key ","path":"HKCU\\Software\\X"}""")]
+    [InlineData("windows_service", """{"action":"Stop","service_name":"wuauserv"}""")]
+    [InlineData("filesystem", """{"action":"Write","path":"C:\\x.bat","content":"x"}""")]
+    [InlineData("windows_process", """{"action":"KILL","process_name":"notepad"}""")]
+    [InlineData("scheduled_task", """{"action":"Create","task_name":"t","command":"x"}""")]
+    [InlineData("Registry", """{"action":"write","path":"HKCU\\Software\\X"}""")]
+    public void Letter_case_does_not_let_a_change_through_unasked(string tool, string json)
+    {
+        // Инструменты сами приводят action к нижнему регистру, а проверка сравнивала строку как
+        // есть: {"action":"WRITE"} исполнялся без вопроса и без снимка для отката.
+        Assert.True(DangerousActionGuard.RequiresConfirmation(tool, Args(json)));
+    }
+
     [Fact]
     public void A_powershell_command_reaches_the_dialog_whole()
     {

@@ -888,7 +888,15 @@ internal sealed partial class ChatEngine
 
             toolRound.InfoLine = "Инструменты завершены - запрашиваю ответ модели";
             observer.OnToolsChanged(assistant);
-            cancellationToken.ThrowIfCancellationRequested();
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Наблюдатель мог уже снять дописанные строки с очереди — тогда
+                // RescueQueued их не увидит, и в ленте реплика осталась бы, а в истории модели
+                // нет. Ответы инструментов раунда к этому месту уже записаны, поэтому
+                // дописать строки можно, не разрывая пару «вызовы — ответы».
+                DrainQueued(session, observer, messages, early);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
 
             // The only safe seam for a follow-up. The round's assistant message and every tool
             // reply that answers it are already in `messages`, so the roles stay in the order the
@@ -1421,9 +1429,7 @@ internal sealed partial class ChatEngine
             var visionMessage = new ChatMessage
             {
                 Role = "user",
-                Content = ChatContent.VisionMultiple(
-                    $"Результат инструмента {call.Name}. {placement}",
-                    handled)
+                Content = ChatContent.ToolImages(call.Name, placement, handled)
             };
             messages.Add(visionMessage);
             session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(visionMessage));

@@ -760,6 +760,8 @@
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение - учитываю</system:String>
     <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard прочитал вызов {0} как атаку, и вы его не разрешили</system:String>
+    <system:String x:Key="S.Tools.GuardFailed" xml:space="preserve">Проверка SynGuard не состоялась - вызовы выполнены без неё</system:String>
+    <system:String x:Key="S.Tools.GuardUnparsed" xml:space="preserve">Ответ SynGuard не разобран - вызовы без вердикта выполнены без проверки</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы показать в проводнике</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;Файла больше нет на месте</system:String>

@@ -680,7 +680,76 @@ public sealed class FollowUpControlTests
         Assert.Equal(1, observer.Completed);
     }
 
+    [Fact]
+    public async Task A_line_taken_in_just_before_a_cancel_still_reaches_the_history()
+    {
+        // Наблюдатель забирает дописанную строку с очереди уже во время раунда. Отмена хода
+        // между этим и границей раунда прежде теряла её: в ленте сообщение было, а в истории
+        // модели — нет, и следующий ответ выглядел так, будто модель её проигнорировала.
+        var observer = new QueueingObserver();
+        using var turn = new CancellationTokenSource();
+        var tool = new CancellingTool(observer, turn);
+
+        var handler = new ScriptedHandler(_ => SseWithToolCall("", CancellingTool.ToolName));
+        var options = Options();
+        using var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.venice.ai/api/v1/")
+        };
+        var settings = AppSettings.CreateDefault();
+        var engine = new ChatEngine(
+            new VeniceClient(http, options), options, () => settings, new ToolRegistry([tool]));
+
+        var session = new ChatSession { Id = "s", SelectedModelId = "grok-4-6" };
+        try
+        {
+            await engine.RunTurnAsync(session, "посмотри диск C", observer, turn.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Отмену движок может и отдать наверх, и закрыть ответ сам — важно другое.
+        }
+
+        Assert.True(turn.IsCancellationRequested);
+        Assert.Single(
+            session.ApiMessages,
+            message => ChatContent.ReadText(message.Content) == "и диск D тоже");
+
+        // Пара «вызовы — ответы» не разорвана: строка встаёт после ответа инструмента.
+        var roles = session.ApiMessages.Select(message => message.Role).ToList();
+        Assert.Equal(["user", "assistant", "tool", "user"], roles);
+    }
+
     // ───────────────────────── helpers ─────────────────────────
+
+    /// <summary>
+    /// Кладёт строку в очередь, ждёт, пока её заберёт наблюдатель движка, и отменяет ход.
+    /// </summary>
+    private sealed class CancellingTool(QueueingObserver observer, CancellationTokenSource turn) : ITool
+    {
+        public const string ToolName = "read_file";
+
+        public string Name => ToolName;
+
+        public string Description => "stub";
+
+        public JsonElement ParametersSchema =>
+            JsonDocument.Parse("""{"type":"object","properties":{}}""").RootElement.Clone();
+
+        public async Task<ToolResult> ExecuteAsync(
+            JsonElement arguments,
+            CancellationToken cancellationToken = default)
+        {
+            observer.Enqueue("и диск D тоже");
+            for (var i = 0; i < 50 && observer.HasQueued; i++)
+            {
+                await Task.Delay(50, CancellationToken.None);
+            }
+
+            await turn.CancelAsync();
+            return ToolResult.Ok("свободно 40 ГБ");
+        }
+    }
 
     private static HttpResponseMessage Sse(string text)
     {
@@ -865,6 +934,8 @@ public sealed class FollowUpControlTests
         private readonly System.Collections.Concurrent.ConcurrentQueue<string> _queued = new();
 
         public void Enqueue(string text) => _queued.Enqueue(text);
+
+        public bool HasQueued => !_queued.IsEmpty;
 
         public void OnUserAppended(ChatDisplayMessage user)
         {

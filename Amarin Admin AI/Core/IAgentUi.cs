@@ -33,6 +33,12 @@ public interface IAgentUi
     /// </remarks>
     void UserNote(string text) => Info(text);
 
+    /// <summary>Исход проверки SynGuard для раунда, который сейчас начнётся.</summary>
+    /// <remarks>Реализация по умолчанию — для тех, кому раунды рисовать не надо.</remarks>
+    void GuardChecked(SynGuardOutcome outcome)
+    {
+    }
+
     void ToolCall(string name, string argumentsJson);
 
     void ToolResult(string name, ToolResult result);

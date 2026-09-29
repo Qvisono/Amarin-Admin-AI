@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -107,10 +107,7 @@ internal static partial class DangerousActionGuard
 
     public static DangerousActionInfo DescribeDetailed(string toolName, JsonElement arguments)
     {
-        var action = arguments.TryGetProperty("action", out var actionProp) &&
-                     actionProp.ValueKind == JsonValueKind.String
-            ? actionProp.GetString() ?? ""
-            : "";
+        var action = ActionOf(arguments);
 
         var changeSummary = BuildChangeSummary(toolName, action, arguments);
         var risk = GetRiskLevel(toolName, action, arguments);
@@ -477,64 +474,49 @@ internal static partial class DangerousActionGuard
     }
 
     private static bool IsRegistryWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "write" or "delete_value" or "delete_key";
+        ActionOf(arguments) is "write" or "delete_value" or "delete_key";
 
     private static bool IsServiceControl(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "start" or "stop" or "restart";
+        ActionOf(arguments) is "start" or "stop" or "restart";
 
     private static bool IsFileWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() == "write";
+        ActionOf(arguments) == "write";
 
     private static bool IsProcessStop(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "stop" or "kill";
+        ActionOf(arguments) is "stop" or "kill";
 
     private static bool IsTaskMutation(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "create" or "delete" or "enable" or "disable" or "run";
+        ActionOf(arguments) is "create" or "delete" or "enable" or "disable" or "run";
 
     private static bool IsNetworkMutation(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "flush_dns" or "firewall_enable" or "firewall_disable";
+        ActionOf(arguments) is "flush_dns" or "firewall_enable" or "firewall_disable";
 
     private static bool IsVirtualizationMutation(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "start_vm" or "stop_vm" or "docker_start" or "docker_stop";
+        ActionOf(arguments) is "start_vm" or "stop_vm" or "docker_start" or "docker_stop";
 
     private static bool IsRollbackRestore(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() == "restore";
+        ActionOf(arguments) == "restore";
 
     private static bool IsSystemRepairRun(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "run_sfc" or "run_dism";
+        ActionOf(arguments) is "run_sfc" or "run_dism";
 
     private static bool IsDiskManagementWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "chkdsk_fix";
+        ActionOf(arguments) is "chkdsk_fix";
 
     private static bool IsDiskSpaceWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "cleanup";
+        ActionOf(arguments) is "cleanup";
 
     private static bool IsSoftwareInventoryWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "install" or "upgrade" or "upgrade_all" or "uninstall";
+        ActionOf(arguments) is "install" or "upgrade" or "upgrade_all" or "uninstall";
 
     private static bool IsFirewallRulesWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "enable" or "disable" or "create" or "delete";
+        ActionOf(arguments) is "enable" or "disable" or "create" or "delete";
 
     private static bool IsWindowsFeaturesWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "enable" or "disable";
+        ActionOf(arguments) is "enable" or "disable";
 
     private static bool IsLocalUsersWrite(JsonElement arguments) =>
-        arguments.TryGetProperty("action", out var action) &&
-        action.GetString() is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group";
+        ActionOf(arguments) is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group";
 
     private static bool PowerShellAttemptsDanger(JsonElement arguments)
     {
@@ -546,6 +528,21 @@ internal static partial class DangerousActionGuard
         var command = commandProp.GetString() ?? string.Empty;
         return PowerShellDangerousPattern().IsMatch(command);
     }
+
+    /// <summary>
+    /// Действие вызова в том виде, в каком его понимает сам инструмент: без пробелов по краям и
+    /// в нижнем регистре.
+    /// </summary>
+    /// <remarks>
+    /// Инструменты приводят <c>action</c> к нижнему регистру сами, а проверки здесь сравнивали
+    /// строку как есть — и <c>{"action":"WRITE"}</c> исполнялся без вопроса и без снимка.
+    /// </remarks>
+    internal static string ActionOf(JsonElement arguments) =>
+        arguments.ValueKind == JsonValueKind.Object &&
+        arguments.TryGetProperty("action", out var action) &&
+        action.ValueKind == JsonValueKind.String
+            ? (action.GetString() ?? "").Trim().ToLowerInvariant()
+            : "";
 
     private static string Truncate(string text, int max) =>
         text.Length <= max ? text : text[..max] + "…";

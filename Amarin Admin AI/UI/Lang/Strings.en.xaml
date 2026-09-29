@@ -760,6 +760,8 @@
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Tools finished</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Noticed your new message - taking it in</system:String>
     <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard read the {0} call as an attack and you did not allow it</system:String>
+    <system:String x:Key="S.Tools.GuardFailed" xml:space="preserve">The SynGuard check did not run - the calls went ahead without it</system:String>
+    <system:String x:Key="S.Tools.GuardUnparsed" xml:space="preserve">SynGuard's reply could not be read - calls without a verdict went ahead unchecked</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
     <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to show it in Explorer</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;The file is no longer there</system:String>

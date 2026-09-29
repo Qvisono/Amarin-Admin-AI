@@ -77,18 +77,25 @@ internal sealed class SynGuardChecker
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
 
+            var safe = SynGuard.ParseReport(reply, calls.Count, out var complete);
             return new SynGuardReport(
-                SynGuard.ParseReport(reply, calls.Count),
-                response.Cost?.ToCost());
+                safe,
+                response.Cost?.ToCost(),
+                complete ? SynGuardOutcome.Checked : SynGuardOutcome.Unparsed);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
         catch
         {
+            // Сюда же — таймаут HTTP: он приходит как TaskCanceledException, хотя ход никто не
+            // отменял, и раньше обрывал весь раунд так, будто человек нажал «Стоп».
             // Цена пустая, но не null: денег не списали, а проверка была затеяна.
-            return new SynGuardReport(SynGuard.ParseReport(null, calls.Count), new VeniceCost());
+            return new SynGuardReport(
+                SynGuard.ParseReport(null, calls.Count),
+                new VeniceCost(),
+                SynGuardOutcome.Failed);
         }
     }
 }

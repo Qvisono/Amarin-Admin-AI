@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -515,6 +515,11 @@ internal sealed class AssistantMessageView
                 body.Children.Add(BuildNoteRow(round.ModelNote));
             }
 
+            if (BuildGuardOutcomeRow(round) is { } guardRow)
+            {
+                body.Children.Add(guardRow);
+            }
+
             foreach (var call in round.Calls)
             {
                 body.Children.Add(BuildCallRow(call));
@@ -823,6 +828,11 @@ internal sealed class AssistantMessageView
                 inner.Children.Add(BuildNoteRow(round.ModelNote));
             }
 
+            if (BuildGuardOutcomeRow(round) is { } guardRow)
+            {
+                inner.Children.Add(guardRow);
+            }
+
             foreach (var nested in round.Calls)
             {
                 inner.Children.Add(BuildCallRow(nested));
@@ -914,6 +924,48 @@ internal sealed class AssistantMessageView
         label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
         Grid.SetColumn(label, 1);
         grid.Children.Add(quote);
+        grid.Children.Add(label);
+        return grid;
+    }
+
+    /// <summary>
+    /// Пометка «проверка SynGuard не состоялась». Несостоявшаяся проверка по-прежнему считается
+    /// пройденной — защита, легшая вместе с сетью, не должна останавливать работу, — но молча
+    /// это выглядело так, будто вызовы проверены.
+    /// </summary>
+    private Grid? BuildGuardOutcomeRow(ToolRound round)
+    {
+        var key = round.GuardOutcome switch
+        {
+            SynGuardOutcome.Failed => "S.Tools.GuardFailed",
+            SynGuardOutcome.Unparsed => "S.Tools.GuardUnparsed",
+            _ => null
+        };
+        if (key is null)
+        {
+            return null;
+        }
+
+        var grid = new Grid { Style = (Style)Host.FindResource("ToolRow") };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var icon = new TextBlock
+        {
+            Style = (Style)Host.FindResource("ToolIcon"),
+            Text = "!",
+            FontWeight = FontWeights.Bold
+        };
+        icon.SetResourceReference(TextBlock.ForegroundProperty, "Status.Warning");
+        var label = new TextBlock
+        {
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            Text = Loc.Get(key),
+            TextWrapping = TextWrapping.Wrap
+        };
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Status.Warning");
+        Grid.SetColumn(label, 1);
+        grid.Children.Add(icon);
         grid.Children.Add(label);
         return grid;
     }
