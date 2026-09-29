@@ -268,6 +268,24 @@
 
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
     <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Ваш ответ на цитату...</system:String>
+    <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">Это точка восстановления Windows, а не снимок программы. Вернуться к ней — значит откатить системные файлы, драйверы и реестр целиком; делает это мастер «Восстановление системы», и после него компьютер перезагрузится.</system:String>
+    <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Точка восстановления Windows №{0}</system:String>
+    <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Точка восстановления Windows. Вернуться к ней можно только мастером «Восстановление системы».</system:String>
+    <system:String x:Key="S.Journal.RestorePoints.NeedAdmin" xml:space="preserve">Точки восстановления Windows видны только с правами администратора.</system:String>
+    <system:String x:Key="S.Journal.RestoreSystem" xml:space="preserve">Открыть восстановление системы</system:String>
+    <system:String x:Key="S.Journal.RestoreSystem.Failed" xml:space="preserve">Не удалось открыть «Восстановление системы»: {0}</system:String>
+    <system:String x:Key="S.Journal.Rollback.Apply" xml:space="preserve">Откатить: {0}</system:String>
+    <system:String x:Key="S.Journal.Rollback.Applying" xml:space="preserve">Откатываю…</system:String>
+    <system:String x:Key="S.Journal.Rollback.Busy" xml:space="preserve">Пока в каком-нибудь чате идёт ход, откат недоступен: агент мог бы менять систему одновременно с ним.</system:String>
+    <system:String x:Key="S.Journal.Rollback.Cancel" xml:space="preserve">Отмена</system:String>
+    <system:String x:Key="S.Journal.Rollback.Failed" xml:space="preserve">Сравнить со снимком не удалось: {0}</system:String>
+    <system:String x:Key="S.Journal.Rollback.Hint" xml:space="preserve">Откат вернёт только то, что отличается от снимка. Для части изменений нужны права администратора.</system:String>
+    <system:String x:Key="S.Journal.Rollback.More" xml:space="preserve">И ещё строк: {0}</system:String>
+    <system:String x:Key="S.Journal.Rollback.NotesTitle" xml:space="preserve">Что откат не тронет</system:String>
+    <system:String x:Key="S.Journal.Rollback.PlanTitle" xml:space="preserve">Что вернётся</system:String>
+    <system:String x:Key="S.Journal.Rollback.Planning" xml:space="preserve">Сравниваю со снимком…</system:String>
+    <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Откатить…</system:String>
+    <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">из последнего ответа</system:String>
     <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">из ответа от {0}</system:String>
@@ -667,6 +685,33 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
+    <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">путь раздела не распознан</system:String>
+    <system:String x:Key="S.Rollback.Done" xml:space="preserve">Откат выполнен: {0} из {1}</system:String>
+    <system:String x:Key="S.Rollback.Header" xml:space="preserve">Снимок {0}. Будет возвращено изменений: {1}</system:String>
+    <system:String x:Key="S.Rollback.Legacy.Import" xml:space="preserve">Импортировать {0}</system:String>
+    <system:String x:Key="S.Rollback.Note.Legacy" xml:space="preserve">Снимок старого формата: реестр вернётся импортом .reg, и добавленное после снимка останется на месте.</system:String>
+    <system:String x:Key="S.Rollback.Note.Protected" xml:space="preserve">Служба {0} — часть Windows, останавливать её откат не будет.</system:String>
+    <system:String x:Key="S.Rollback.Note.ServiceDrift" xml:space="preserve">Ещё служб сменили состояние сами (запуск по требованию): {0}. Их откат не трогает.</system:String>
+    <system:String x:Key="S.Rollback.Note.ServiceGone" xml:space="preserve">Служба {0} удалена после снимка — вернуть её откат не может.</system:String>
+    <system:String x:Key="S.Rollback.Note.ServiceKey" xml:space="preserve">Раздел службы {0} появился после снимка — службы и драйверы откат не удаляет.</system:String>
+    <system:String x:Key="S.Rollback.Note.StartupOther" xml:space="preserve">Изменилась автозагрузка вне реестра (папка «Автозагрузка», WMI): {0}. Такие записи откат не возвращает.</system:String>
+    <system:String x:Key="S.Rollback.Note.TaskNoCopy" xml:space="preserve">Задача {0} удалена после снимка, а её копии в снимке нет — вернуть нечем.</system:String>
+    <system:String x:Key="S.Rollback.Note.TaskNotOurs" xml:space="preserve">Задач, появившихся после снимка не через этот запрос: {0}. Их откат не трогает.</system:String>
+    <system:String x:Key="S.Rollback.Nothing" xml:space="preserve">Отличий от снимка нет — откатывать нечего.</system:String>
+    <system:String x:Key="S.Rollback.Registry.CreateKey" xml:space="preserve">Вернуть раздел {0}</system:String>
+    <system:String x:Key="S.Rollback.Registry.Delete" xml:space="preserve">Убрать значение «{0}» из {1} — его не было в снимке</system:String>
+    <system:String x:Key="S.Rollback.Registry.DeleteKey" xml:space="preserve">Убрать раздел {0} — его не было в снимке</system:String>
+    <system:String x:Key="S.Rollback.Registry.Set" xml:space="preserve">Вернуть значение «{0}» в {1}: {2}</system:String>
+    <system:String x:Key="S.Rollback.Service.Start" xml:space="preserve">Служба {0}: запустить</system:String>
+    <system:String x:Key="S.Rollback.Service.StartType" xml:space="preserve">Служба {0}: тип запуска {1} → {2}</system:String>
+    <system:String x:Key="S.Rollback.Service.StartTypeFailed" xml:space="preserve">не удалось записать тип запуска (нужны права администратора?)</system:String>
+    <system:String x:Key="S.Rollback.Service.Stop" xml:space="preserve">Служба {0}: остановить</system:String>
+    <system:String x:Key="S.Rollback.Startup.Remove" xml:space="preserve">Автозагрузка: убрать «{0}» ({1}) — его не было в снимке</system:String>
+    <system:String x:Key="S.Rollback.Startup.Restore" xml:space="preserve">Автозагрузка: вернуть «{0}» ({1})</system:String>
+    <system:String x:Key="S.Rollback.Task.Delete" xml:space="preserve">Задача {0}: удалить — её создал этот запрос</system:String>
+    <system:String x:Key="S.Rollback.Task.Disable" xml:space="preserve">Задача {0}: выключить</system:String>
+    <system:String x:Key="S.Rollback.Task.Enable" xml:space="preserve">Задача {0}: включить</system:String>
+    <system:String x:Key="S.Rollback.Task.Recreate" xml:space="preserve">Задача {0}: вернуть из сохранённой копии</system:String>
     <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">Движок выберет OpenRouter</system:String>
     <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">Свой у модели</system:String>
     <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} за запрос по прайсу OpenRouter — он может измениться</system:String>

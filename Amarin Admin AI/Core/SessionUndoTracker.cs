@@ -1,13 +1,22 @@
-﻿using Amarin.Tools;
+using System.Text.Json;
+using Amarin.Tools;
 
 namespace Amarin.Core;
 
 /// <summary>
-/// Следит за тем, чтобы перед первым изменением в запросе агента появился снимок системы.
+/// Следит за тем, чтобы перед изменением в запросе агента в снимке системы было всё, что оно
+/// тронет.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Снимок снимается один раз на запрос, а не на каждый вызов инструмента: три правки реестра
 /// подряд иначе дали бы три снимка служб и задач, каждый по несколько секунд.
+/// </para>
+/// <para>
+/// Но дописывается снимок перед каждым изменением: раздел реестра, который сейчас поменяют,
+/// копия задачи, которую удалят, имя службы, которую остановят. Раньше вторая правка реестра
+/// за запрос — в другой раздел — в снимок не попадала, и откатывать её было нечем.
+/// </para>
 /// </remarks>
 public sealed class SessionUndoTracker
 {
@@ -21,6 +30,14 @@ public sealed class SessionUndoTracker
     internal Func<string, SnapshotResult> TakeSnapshot { get; init; } =
         label => ChangeRollbackOperations.CreateSnapshot(label);
 
+    /// <summary>Дописывает в снимок то, что тронет вызов. Подменяется в тестах.</summary>
+    internal Action<string, string, JsonElement> ExtendSnapshot { get; init; } =
+        ChangeRollbackOperations.ExtendBeforeMutation;
+
+    /// <summary>Запоминает сделанное вызовом (созданные задачи). Подменяется в тестах.</summary>
+    internal Action<string, string, JsonElement> RecordInSnapshot { get; init; } =
+        ChangeRollbackOperations.RecordAfterMutation;
+
     /// <summary>Был ли за сессию запрос, который что-то изменил и успел снять снимок.</summary>
     public bool HasUndoPoint => !string.IsNullOrWhiteSpace(_undoSnapshotId);
 
@@ -31,26 +48,48 @@ public sealed class SessionUndoTracker
         _activeUserRequest = userRequest;
     }
 
-    public SnapshotEnsureResult EnsureSnapshotBeforeMutation(string toolName)
+    public SnapshotEnsureResult EnsureSnapshotBeforeMutation(string toolName) =>
+        EnsureSnapshotBeforeMutation(toolName, default);
+
+    public SnapshotEnsureResult EnsureSnapshotBeforeMutation(string toolName, JsonElement arguments)
     {
+        SnapshotEnsureResult result;
         if (!string.IsNullOrWhiteSpace(_activeSnapshotId))
         {
-            return SnapshotEnsureResult.Existing(_activeSnapshotId);
+            result = SnapshotEnsureResult.Existing(_activeSnapshotId);
         }
-
-        var label = $"session-undo: {Truncate(_activeUserRequest ?? toolName, 80)}";
-        var result = TakeSnapshot(label);
-
-        if (!result.Success)
+        else
         {
-            return SnapshotEnsureResult.Failed(result.Message);
+            var label = $"session-undo: {Truncate(_activeUserRequest ?? toolName, 80)}";
+            var taken = TakeSnapshot(label);
+            if (!taken.Success)
+            {
+                return SnapshotEnsureResult.Failed(taken.Message);
+            }
+
+            _activeSnapshotId = taken.SnapshotId;
+            result = SnapshotEnsureResult.Created(taken.SnapshotId, taken.Message);
         }
 
-        _activeSnapshotId = result.SnapshotId;
-        return SnapshotEnsureResult.Created(result.SnapshotId, result.Message);
+        if (arguments.ValueKind == JsonValueKind.Object)
+        {
+            ExtendSnapshot(_activeSnapshotId!, toolName, arguments);
+        }
+
+        return result;
     }
 
     public void RecordMutation() => _activeHadMutations = true;
+
+    /// <summary>Изменение состоялось: отмечает его и дописывает в снимок, что создано.</summary>
+    public void RecordMutation(string toolName, JsonElement arguments)
+    {
+        _activeHadMutations = true;
+        if (!string.IsNullOrWhiteSpace(_activeSnapshotId) && arguments.ValueKind == JsonValueKind.Object)
+        {
+            RecordInSnapshot(_activeSnapshotId, toolName, arguments);
+        }
+    }
 
     public void CompleteRequest()
     {

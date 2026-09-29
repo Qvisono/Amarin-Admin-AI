@@ -8,8 +8,11 @@ public sealed class ChangeRollbackTool : ITool
 {
     public string Name => "change_rollback";
     public string Description =>
-        "Snapshot system state before changes and restore services/tasks/registry/startup later. " +
-        "Actions: snapshot, list_snapshots, snapshot_info, compare, restore.";
+        "Snapshot system state before changes and roll it back later. A snapshot keeps the autostart " +
+        "registry keys, services (start type and state), scheduled tasks and any extra registry keys " +
+        "you name. Actions: snapshot, list_snapshots, snapshot_info, compare (what restore would change, " +
+        "without changing anything), restore (returns only what differs: changed values back, values and " +
+        "keys added after the snapshot removed). Run compare before restore and show the list to the user.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -31,7 +34,7 @@ public sealed class ChangeRollbackTool : ITool
             "include_registry_paths": {
               "type": "array",
               "items": { "type": "string" },
-              "description": "Extra registry paths to export (e.g. HKLM\\SOFTWARE\\MyApp)"
+              "description": "Extra registry keys to capture with their whole subtree (e.g. HKLM\\SOFTWARE\\MyApp). Hive roots and HKLM\\SAM/SECURITY are not accepted."
             }
           },
           "required": ["action"]

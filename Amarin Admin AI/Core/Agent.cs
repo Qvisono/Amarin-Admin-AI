@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Amarin.Tools;
 
 namespace Amarin.Core;
@@ -692,7 +692,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
         for (var i = 0; i < batch.Count; i++)
         {
-            AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, results[i], messages, needsUndoSnapshot: false);
+            AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, results[i], messages);
         }
     }
 
@@ -762,7 +762,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         {
             var snapshot = await _ui.RunBusyAsync(
                 "Снимок системы для отката…",
-                () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName)),
+                () => Task.FromResult(_undoTracker.EnsureSnapshotBeforeMutation(toolName, arguments)),
                 cancellationToken).ConfigureAwait(false);
             if (!snapshot.Success)
             {
@@ -776,23 +776,21 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         }
 
         result = await ExecuteToolAsync(toolName, arguments, cancellationToken).ConfigureAwait(false);
-        AppendToolOutcome(toolCall, toolName, result, messages, needsUndoSnapshot);
+        AppendToolOutcome(toolCall, toolName, result, messages);
+        if (needsUndoSnapshot && result.Success)
+        {
+            _undoTracker.RecordMutation(toolName, arguments);
+        }
     }
 
     private void AppendToolOutcome(
         ToolCall toolCall,
         string toolName,
         ToolResult result,
-        List<ChatMessage> messages,
-        bool needsUndoSnapshot)
+        List<ChatMessage> messages)
     {
         _ui.ToolResult(toolName, result);
         messages.Add(BuildToolMessage(toolCall, result));
-
-        if (needsUndoSnapshot && result.Success)
-        {
-            _undoTracker.RecordMutation();
-        }
 
         if (result.HasImages)
         {

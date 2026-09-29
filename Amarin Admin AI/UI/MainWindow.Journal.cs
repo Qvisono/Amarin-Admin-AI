@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -46,6 +46,9 @@ namespace Amarin.UI
 
         /// <summary>Cancels an explanation still in flight when the user navigates away from it.</summary>
         private CancellationTokenSource? _journalAsk;
+
+        /// <summary>Строка под списком сверх счётчика: «точки восстановления видны только админу».</summary>
+        private string? _journalFooterNote;
 
         private void OpenJournal()
         {
@@ -165,10 +168,43 @@ namespace Amarin.UI
             }
 
             var format = ActiveDateFormat;
+            _journalFooterNote = null;
             _journalRows = snapshots
                 .Select(snapshot => (JournalView.ToRow(snapshot, format), JournalView.SearchKey(snapshot)))
                 .ToList();
             ApplyJournalFilter();
+
+            // Точки восстановления Windows приходят вторыми: их отдаёт PowerShell, и это секунда-
+            // другая, которую снимки программы ждать не должны.
+            IReadOnlyList<WindowsRestorePoint> points;
+            bool denied;
+            try
+            {
+                (points, denied) = await Task.Run(() =>
+                {
+                    var list = WindowsRestorePoints.List(out var wasDenied);
+                    return (list, wasDenied);
+                }).ConfigureAwait(true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                return;
+            }
+
+            if (token != _journalLoadToken || _journalTab != JournalTab.Snapshots)
+            {
+                return;
+            }
+
+            _journalFooterNote = denied && points.Count == 0 ? Loc.Get("S.Journal.RestorePoints.NeedAdmin") : null;
+            _journalRows = _journalRows
+                .Concat(points.Select(point => (JournalView.ToRow(point, format), JournalView.SearchKey(point))))
+                .OrderByDescending(item => item.Item1.SortTime)
+                .ToList();
+            if (_journalDetail is null)
+            {
+                ApplyJournalFilter();
+            }
         }
 
         /// <summary>
@@ -233,18 +269,22 @@ namespace Amarin.UI
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
+            var note = _journalTab == JournalTab.Snapshots && _journalFooterNote is { } extra
+                ? "  ·  " + extra
+                : "";
+
             if (rows.Count > 0)
             {
                 JournalEmpty.Visibility = Visibility.Collapsed;
-                JournalFooter.Text = query.Length == 0
+                JournalFooter.Text = (query.Length == 0
                     ? Loc.Format("S.Journal.Count", rows.Count)
-                    : Loc.Format("S.Journal.CountFiltered", rows.Count, _journalRows.Count);
+                    : Loc.Format("S.Journal.CountFiltered", rows.Count, _journalRows.Count)) + note;
                 return;
             }
 
             JournalEmpty.Visibility = Visibility.Visible;
             JournalEmpty.Text = Loc.Get(EmptyKey(query.Length > 0));
-            JournalFooter.Text = "";
+            JournalFooter.Text = note.TrimStart(' ', '·');
         }
 
         private string EmptyKey(bool filtered)
@@ -300,6 +340,7 @@ namespace Amarin.UI
         {
             CancelJournalAsk();
             _journalDetail = null;
+            _rollbackPlan = null;
 
             JournalDetails.Visibility = Visibility.Collapsed;
             JournalList.Visibility = Visibility.Visible;
@@ -323,7 +364,9 @@ namespace Amarin.UI
                 ? JournalView.BuildMeta(entry, ActiveDateFormat)
                 : row.Snapshot is { } snapshot
                     ? JournalView.BuildMeta(snapshot, ActiveDateFormat)
-                    : row.Timestamp;
+                    : row.RestorePoint is { } point
+                        ? JournalView.BuildMeta(point, ActiveDateFormat)
+                        : row.Timestamp;
 
             // A restore point is already fully described by the two lines above; there is nothing
             // for a model to add, so the button that would promise an explanation is not offered.
@@ -340,6 +383,7 @@ namespace Amarin.UI
 
             JournalAnswerBox.Visibility = Visibility.Collapsed;
             JournalAnswerText.Text = "";
+            ResetRollbackUi(row);
 
             JournalArgumentsHost.Content = row.Entry is { } withArgs
                 ? CodeBlockView.Create(this, PrettyJson(withArgs.ArgumentsJson), "json")
@@ -366,6 +410,11 @@ namespace Amarin.UI
             if (row.Snapshot is { } snapshot)
             {
                 return snapshot.Path;
+            }
+
+            if (row.RestorePoint is not null)
+            {
+                return Loc.Get("S.Journal.RestorePoint.Details");
             }
 
             if (row.Entry is not { } entry)

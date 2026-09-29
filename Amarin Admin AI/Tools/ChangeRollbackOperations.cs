@@ -1,5 +1,6 @@
-using System.Collections.Concurrent;
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
+using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
 using Amarin.Core;
@@ -9,12 +10,36 @@ namespace Amarin.Tools;
 [SupportedOSPlatform("windows")]
 internal static class ChangeRollbackOperations
 {
-    private static readonly string[] DefaultRegistryPaths =
+    /// <summary>
+    /// Формат снимка. 2 — реестр состоянием (<c>registry_state.json</c>), дописываемым по ходу
+    /// запроса; у снимков без номера реестр лежит экспортом <c>.reg</c>.
+    /// </summary>
+    internal const int SnapshotFormat = 2;
+
+    internal const string RegistryStateFile = "registry_state.json";
+    internal const string SessionFile = "session.json";
+
+    /// <summary>
+    /// Разделы, которые снимаются всегда: автозагрузка. Всё дерево служб больше не снимается —
+    /// тип запуска и состояние служб лежат в <c>services.json</c>, а импорт экспорта
+    /// <c>HKLM\…\Services</c> целиком возвращал поверх драйверов, обновлённых с тех пор, их
+    /// прежние настройки.
+    /// </summary>
+    internal static readonly string[] DefaultRegistryPaths =
     [
-        @"HKLM\SYSTEM\CurrentControlSet\Services",
         @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
-        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
+        @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run",
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
+        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
+        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
+        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
     ];
+
+    private static readonly JsonSerializerOptions Json = new() { MaxDepth = AppJson.MaxDepth };
+
+    /// <summary>Дописывание снимка — чтение, правка и запись одного файла.</summary>
+    private static readonly Lock Gate = new();
 
     public static SnapshotResult CreateSnapshot(string label, IReadOnlyList<string>? extraRegistryPaths = null)
     {
@@ -24,32 +49,36 @@ internal static class ChangeRollbackOperations
         try
         {
             Directory.CreateDirectory(ChangeRollbackStore.Root);
+            var id = NewSnapshotId(out dir);
 
-            var id = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            dir = Path.Combine(ChangeRollbackStore.Root, id);
-            Directory.CreateDirectory(dir);
-
-            File.WriteAllText(Path.Combine(dir, "meta.json"), JsonSerializer.Serialize(new
+            AppDataFile.WriteAtomic(Path.Combine(dir, "meta.json"), JsonSerializer.Serialize(new
             {
                 id,
                 created = DateTime.Now,
                 label,
-                machine = Environment.MachineName
+                machine = Environment.MachineName,
+                format = SnapshotFormat
             }));
 
-            var regPaths = new List<string>(DefaultRegistryPaths);
-            if (extraRegistryPaths is not null)
+            var paths = new List<RegistryPath>();
+            var skipped = new List<string>();
+            foreach (var raw in DefaultRegistryPaths.Concat(extraRegistryPaths ?? []))
             {
-                regPaths.AddRange(extraRegistryPaths.Where(p => !string.IsNullOrWhiteSpace(p)));
+                if (RegistryPath.TryParse(raw, out var path) &&
+                    !(path.Root == "HKLM" && SensitivePaths.IsSecretHive(path.SubKey)))
+                {
+                    paths.Add(path);
+                }
+                else
+                {
+                    skipped.Add(raw);
+                }
             }
-
-            var regDir = Path.Combine(dir, "registry");
-            Directory.CreateDirectory(regDir);
 
             List<ServiceSnapshotEntry> services = [];
             List<ScheduledTaskSnapshotEntry> tasks = [];
             List<StartupProgramSnapshotEntry> startup = [];
-            var regLog = new ConcurrentBag<string>();
+            var registry = new RegistrySnapshotSet();
 
             Parallel.Invoke(
                 () => services = ChangeRollbackStore.CaptureCurrentServices(),
@@ -57,46 +86,142 @@ internal static class ChangeRollbackOperations
                 () => startup = ChangeRollbackStore.CaptureStartupPrograms(),
                 () =>
                 {
-                    Parallel.ForEach(
-                        regPaths.Distinct(StringComparer.OrdinalIgnoreCase),
-                        regPath =>
-                        {
-                            var fileName = regPath.Replace('\\', '_').Replace(':', '_') + ".reg";
-                            var outFile = Path.Combine(regDir, fileName);
-                            var result = ChangeRollbackStore.ExportRegistryKey(regPath, outFile);
-                            regLog.Add($"{regPath}: {(result.Success ? "ok" : "failed")}");
-                        });
+                    foreach (var path in paths.DistinctBy(path => path.Canonical, StringComparer.OrdinalIgnoreCase))
+                    {
+                        registry.Add(RegistryStateIo.Capture(path, deep: true));
+                    }
                 });
 
             ChangeRollbackStore.SaveJson(services, Path.Combine(dir, "services.json"));
             ChangeRollbackStore.SaveJson(tasks, Path.Combine(dir, "scheduled_tasks.json"));
             ChangeRollbackStore.SaveJson(startup, Path.Combine(dir, "startup_programs.json"));
+            SaveRegistry(dir, registry);
 
             ChangeRollbackStore.PruneOldSnapshots();
 
-            var message =
-                $"Snapshot created: {id}\nPath: {dir}\n" +
-                $"Services: {services.Count}, Tasks: {tasks.Count}, Startup: {startup.Count}\n" +
-                $"Label: {(string.IsNullOrWhiteSpace(label) ? "(none)" : label)}\nRegistry exports:\n" +
-                string.Join(Environment.NewLine, regLog.OrderBy(line => line, StringComparer.OrdinalIgnoreCase));
+            var message = new StringBuilder()
+                .AppendLine($"Snapshot created: {id}")
+                .AppendLine($"Path: {dir}")
+                .AppendLine($"Services: {services.Count}, Tasks: {tasks.Count}, Startup: {startup.Count}")
+                .AppendLine($"Label: {(string.IsNullOrWhiteSpace(label) ? "(none)" : label)}")
+                .AppendLine("Registry keys captured:");
+            foreach (var root in registry.Roots)
+            {
+                message.AppendLine($"  {root.Path}: {Describe(root)}");
+            }
 
-            return new SnapshotResult(true, id, message);
+            foreach (var raw in skipped)
+            {
+                message.AppendLine($"  skipped (not a registry key path, or a protected hive): {raw}");
+            }
+
+            return new SnapshotResult(true, id, message.ToString().TrimEnd());
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Любой сбой снимка — ответ, а не авария: без снимка человеку скажут, что откатить
+            // будет нечем, а ход продолжится. Прежде здесь тоже ловилось всё.
             if (dir is not null)
             {
                 try
                 {
                     Directory.Delete(dir, recursive: true);
                 }
-                catch
+                catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
                 {
-                    // ignore cleanup failures
+                    // Недописанный снимок в списке не страшен: его папку уберёт очистка старых.
                 }
             }
 
             return new SnapshotResult(false, string.Empty, $"Не удалось создать снимок: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Дописывает в снимок то, что сейчас изменит вызов: раздел реестра, копию задачи, имя
+    /// службы. Зовётся перед каждым изменением, а не только перед первым.
+    /// </summary>
+    /// <remarks>
+    /// Снимок один на запрос, и прежде вторая правка реестра за запрос — в другой раздел — в
+    /// него не попадала: откатывать её было нечем. Снимок, которого нет на диске (подменённый
+    /// в тестах), не трогается и не создаётся.
+    /// </remarks>
+    public static void ExtendBeforeMutation(string snapshotId, string toolName, JsonElement arguments)
+    {
+        var dir = ExistingDir(snapshotId);
+        if (dir is null)
+        {
+            return;
+        }
+
+        var action = DangerousActionGuard.ActionOf(arguments);
+        try
+        {
+            switch (toolName.Trim().ToLowerInvariant())
+            {
+                case "registry" when action is "write" or "delete_value" or "delete_key":
+                    if (RegistryPath.TryParse(StringArg(arguments, "path"), out var path, requireSubKey: false) &&
+                        path.SubKey.Length > 0)
+                    {
+                        var capture = action == "delete_key"
+                            ? RegistryStateIo.Capture(path, deep: true)
+                            : RegistryStateIo.CaptureForWrite(path);
+                        lock (Gate)
+                        {
+                            var set = new RegistrySnapshotSet(LoadRegistry(dir));
+                            if (set.Add(capture))
+                            {
+                                SaveRegistry(dir, set);
+                            }
+                        }
+                    }
+
+                    break;
+
+                case "scheduled_task" when action is "delete" or "create":
+                    if (StringArg(arguments, "task_name") is { Length: > 0 } taskName)
+                    {
+                        SaveTaskCopy(dir, RollbackRules.TaskFullName(taskName));
+                    }
+
+                    break;
+
+                case "windows_service" when action is "start" or "stop" or "restart":
+                    if (StringArg(arguments, "name") is { Length: > 0 } service)
+                    {
+                        UpdateSession(dir, record => record.TouchedServices.Add(service.Trim()));
+                    }
+
+                    break;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            // Снимок останется без этого раздела — хуже, но не повод не выполнять вызов:
+            // человек его уже разрешил.
+            PerfLog.Write($"undo_extend_failed {ex.Message}");
+        }
+    }
+
+    /// <summary>После удачного изменения: запоминает, что создал запрос, — это откат удалит.</summary>
+    public static void RecordAfterMutation(string snapshotId, string toolName, JsonElement arguments)
+    {
+        var dir = ExistingDir(snapshotId);
+        if (dir is null ||
+            !toolName.Trim().Equals("scheduled_task", StringComparison.OrdinalIgnoreCase) ||
+            DangerousActionGuard.ActionOf(arguments) != "create" ||
+            StringArg(arguments, "task_name") is not { Length: > 0 } taskName)
+        {
+            return;
+        }
+
+        try
+        {
+            UpdateSession(dir, record => record.CreatedTasks.Add(RollbackRules.TaskFullName(taskName)));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            PerfLog.Write($"undo_record_failed {ex.Message}");
         }
     }
 
@@ -127,133 +252,255 @@ internal static class ChangeRollbackOperations
         sb.AppendLine($"Snapshot: {Path.GetFileName(dir)}");
         sb.AppendLine($"Path: {dir}");
 
-        foreach (var file in new[] { "meta.json", "services.json", "scheduled_tasks.json", "startup_programs.json" })
+        foreach (var file in new[] { "meta.json", "services.json", "scheduled_tasks.json", "startup_programs.json", SessionFile })
         {
             var path = Path.Combine(dir, file);
             sb.AppendLine(File.Exists(path) ? $"{file}: {new FileInfo(path).Length} bytes" : $"{file}: missing");
         }
 
+        if (File.Exists(Path.Combine(dir, RegistryStateFile)))
+        {
+            sb.AppendLine("registry keys:");
+            foreach (var root in LoadRegistry(dir))
+            {
+                sb.AppendLine($"  {root.Path}: {Describe(root)}");
+            }
+        }
+
         var regDir = Path.Combine(dir, "registry");
         if (Directory.Exists(regDir))
         {
-            sb.AppendLine($"registry exports: {Directory.GetFiles(regDir, "*.reg").Length}");
+            sb.AppendLine($"registry exports (old format): {Directory.GetFiles(regDir, "*.reg").Length}");
         }
 
         return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
+    /// <summary>Что вернул бы откат — без изменений.</summary>
     public static ToolResult CompareSnapshot(string snapshotId)
     {
-        try
-        {
-            var dir = ResolveSnapshotDir(snapshotId, out var error);
-            if (dir is null)
-            {
-                return ToolResult.Fail(error!);
-            }
-
-            var sb = new StringBuilder();
-            sb.AppendLine("=== Services ===");
-            try
-            {
-                var oldServices = ChangeRollbackStore.LoadServices(Path.Combine(dir, "services.json"));
-                var currentServices = ChangeRollbackStore.CaptureCurrentServices();
-                sb.AppendLine(ChangeRollbackStore.CompareServices(oldServices, currentServices));
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine($"Сравнение служб не удалось: {ex.Message}");
-            }
-
-            sb.AppendLine();
-            sb.AppendLine("=== Scheduled Tasks ===");
-            try
-            {
-                var oldTasks = DeserializeTasks(Path.Combine(dir, "scheduled_tasks.json"));
-                var currentTasks = ChangeRollbackStore.CaptureCurrentScheduledTasks();
-                sb.AppendLine(ChangeRollbackStore.CompareScheduledTasks(oldTasks, currentTasks));
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine($"Сравнение задач не удалось: {ex.Message}");
-            }
-
-            sb.AppendLine();
-            sb.AppendLine("=== Startup Programs ===");
-            try
-            {
-                var oldStartup = DeserializeStartup(Path.Combine(dir, "startup_programs.json"));
-                var currentStartup = ChangeRollbackStore.CaptureStartupPrograms();
-                sb.AppendLine(ChangeRollbackStore.CompareStartupPrograms(oldStartup, currentStartup));
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine($"Сравнение автозагрузки не удалось: {ex.Message}");
-            }
-
-            return ToolResult.Ok(sb.ToString().TrimEnd());
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Fail($"Сравнение снимка не удалось: {ex.Message}");
-        }
+        var plan = Plan(snapshotId, out var error);
+        return plan is null ? ToolResult.Fail(error!) : ToolResult.Ok(RollbackText.Summary(plan));
     }
 
     public static ToolResult RestoreSnapshot(string snapshotId)
     {
         using var _ = PerfLog.Measure("undo_restore");
-        var dir = ResolveSnapshotDir(snapshotId, out var error);
-        if (dir is null)
+        var plan = Plan(snapshotId, out var error);
+        if (plan is null)
         {
             return ToolResult.Fail(error!);
         }
 
-        var sb = new StringBuilder();
-        sb.AppendLine($"Restoring snapshot {Path.GetFileName(dir)}...");
-
-        var servicesFile = Path.Combine(dir, "services.json");
-        if (File.Exists(servicesFile))
+        if (plan.IsEmpty)
         {
-            var services = ChangeRollbackStore.LoadServices(servicesFile);
-            sb.AppendLine(ChangeRollbackStore.RestoreServices(services));
+            return ToolResult.Ok(RollbackText.Summary(plan));
         }
 
-        var tasksFile = Path.Combine(dir, "scheduled_tasks.json");
-        if (File.Exists(tasksFile))
+        var outcomes = Apply(plan);
+        var text = RollbackText.Result(outcomes);
+        if (plan.Notes.Count > 0)
         {
-            sb.AppendLine();
-            sb.AppendLine(ChangeRollbackStore.RestoreScheduledTasks(DeserializeTasks(tasksFile)));
+            text += Environment.NewLine + Environment.NewLine +
+                    string.Join(Environment.NewLine, plan.Notes.Select(note => "– " + note));
         }
 
-        var regDir = Path.Combine(dir, "registry");
-        if (Directory.Exists(regDir))
-        {
-            var regLog = new StringBuilder();
-            var ok = 0;
-            var failed = 0;
+        return outcomes.All(outcome => outcome.Success) ? ToolResult.Ok(text) : ToolResult.Fail(text);
+    }
 
-            foreach (var regFile in Directory.GetFiles(regDir, "*.reg"))
+    /// <summary>
+    /// Сравнивает снимок с нынешним состоянием. null — снимка нет; <paramref name="error"/> тогда
+    /// объясняет почему.
+    /// </summary>
+    public static RollbackPlan? Plan(string snapshotId, out string? error)
+    {
+        using var _ = PerfLog.Measure("undo_plan");
+        var dir = ResolveSnapshotDir(snapshotId, out error);
+        if (dir is null)
+        {
+            return null;
+        }
+
+        var plan = new RollbackPlan { SnapshotId = Path.GetFileName(dir) };
+        var notes = new List<string>();
+        var session = LoadSession(dir);
+
+        List<RegistryChange> registry = [];
+        List<ServiceChange> services = [];
+        List<TaskChange> tasks = [];
+        var registryNotes = new List<string>();
+        var serviceNotes = new List<string>();
+        var taskNotes = new List<string>();
+        var startupNotes = new List<string>();
+
+        Parallel.Invoke(
+            () =>
             {
-                var import = ChangeRollbackStore.ImportRegistryFile(regFile);
-                if (import.Success)
+                if (File.Exists(Path.Combine(dir, RegistryStateFile)))
                 {
-                    ok++;
-                    regLog.AppendLine($"OK {Path.GetFileName(regFile)}");
+                    var changes = LoadRegistry(dir)
+                        .SelectMany(root => RegistryDiff.Plan(root, RegistryStateIo.CaptureLike(root)));
+                    registry = RollbackRules.FilterRegistry(changes, registryNotes);
                 }
-                else
+            },
+            () =>
+            {
+                var file = Path.Combine(dir, "services.json");
+                if (File.Exists(file))
                 {
-                    failed++;
-                    regLog.AppendLine($"FAIL {Path.GetFileName(regFile)}");
+                    services = RollbackRules.PlanServices(
+                        ChangeRollbackStore.LoadServices(file),
+                        ChangeRollbackStore.CaptureCurrentServices(),
+                        session.TouchedServices.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                        serviceNotes);
                 }
+            },
+            () =>
+            {
+                var file = Path.Combine(dir, "scheduled_tasks.json");
+                if (File.Exists(file))
+                {
+                    tasks = RollbackRules.PlanTasks(
+                        DeserializeTasks(file),
+                        ChangeRollbackStore.CaptureCurrentScheduledTasks(),
+                        session.CreatedTasks.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                        session.TaskCopies
+                            .Where(pair => File.Exists(Path.Combine(dir, pair.Value)))
+                            .ToDictionary(pair => pair.Key, pair => Path.Combine(dir, pair.Value),
+                                StringComparer.OrdinalIgnoreCase),
+                        taskNotes);
+                }
+            },
+            () =>
+            {
+                var file = Path.Combine(dir, "startup_programs.json");
+                if (File.Exists(file))
+                {
+                    RollbackRules.NoteStartup(
+                        DeserializeStartup(file), ChangeRollbackStore.CaptureStartupPrograms(), startupNotes);
+                }
+            });
+
+        plan.Registry.AddRange(registry);
+        plan.Services.AddRange(services);
+        plan.Tasks.AddRange(tasks);
+
+        // Снимок старого формата: состояния реестра нет, есть только экспорт. Он вернётся
+        // импортом, как раньше, — кроме дерева служб, которое затёрло бы обновлённые драйверы.
+        var regDir = Path.Combine(dir, "registry");
+        if (!File.Exists(Path.Combine(dir, RegistryStateFile)) && Directory.Exists(regDir))
+        {
+            foreach (var file in Directory.GetFiles(regDir, "*.reg").Order(StringComparer.OrdinalIgnoreCase))
+            {
+                if (Path.GetFileName(file).StartsWith("HKLM_SYSTEM_CurrentControlSet_Services",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                plan.LegacyRegFiles.Add(file);
             }
 
-            sb.AppendLine();
-            sb.AppendLine("=== Registry ===");
-            sb.AppendLine($"ok={ok}, fail={failed}");
-            sb.Append(regLog);
+            notes.Add(Loc.Get("S.Rollback.Note.Legacy"));
         }
 
-        return ToolResult.Ok(sb.ToString().TrimEnd());
+        plan.Notes.AddRange(notes.Concat(registryNotes).Concat(serviceNotes).Concat(taskNotes).Concat(startupNotes));
+        return plan;
+    }
+
+    /// <summary>Применяет план по порядку: реестр, службы, задачи. Сбой шага не останавливает остальные.</summary>
+    public static IReadOnlyList<RollbackOutcome> Apply(RollbackPlan plan)
+    {
+        using var _ = PerfLog.Measure("undo_apply");
+        var outcomes = new List<RollbackOutcome>();
+        outcomes.AddRange(RegistryStateIo.Apply(plan.Registry));
+
+        foreach (var file in plan.LegacyRegFiles)
+        {
+            var result = ChangeRollbackStore.ImportRegistryFile(file);
+            outcomes.Add(new RollbackOutcome(
+                Loc.Format("S.Rollback.Legacy.Import", Path.GetFileName(file)),
+                result.Success,
+                result.Success ? null : Truncate(result.Output, 200)));
+        }
+
+        foreach (var change in plan.Services)
+        {
+            outcomes.AddRange(ApplyService(change));
+        }
+
+        foreach (var change in plan.Tasks)
+        {
+            outcomes.Add(ApplyTask(change));
+        }
+
+        return outcomes;
+    }
+
+    private static IEnumerable<RollbackOutcome> ApplyService(ServiceChange change)
+    {
+        var lines = RollbackText.Describe(change).ToList();
+        var index = 0;
+
+        if (change.StartTypeTo is not null)
+        {
+            var line = lines[index++];
+            if (!Enum.TryParse<ServiceStartMode>(change.StartTypeTo, true, out var mode) ||
+                !ChangeRollbackStore.TrySetServiceStartType(change.Name, mode, out var error))
+            {
+                yield return new RollbackOutcome(line, false, Loc.Get("S.Rollback.Service.StartTypeFailed"));
+            }
+            else
+            {
+                yield return new RollbackOutcome(line, true, error);
+            }
+        }
+
+        if (change.Run == ServiceRunAction.None)
+        {
+            yield break;
+        }
+
+        var runLine = lines[index];
+        string? failure = null;
+        try
+        {
+            using var service = new ServiceController(change.Name);
+            if (change.Run == ServiceRunAction.Start && service.Status != ServiceControllerStatus.Running)
+            {
+                service.Start();
+                service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
+            }
+            else if (change.Run == ServiceRunAction.Stop && service.Status != ServiceControllerStatus.Stopped)
+            {
+                service.Stop();
+                service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception
+                                       or System.ServiceProcess.TimeoutException)
+        {
+            failure = ex.Message;
+        }
+
+        yield return new RollbackOutcome(runLine, failure is null, failure);
+    }
+
+    private static RollbackOutcome ApplyTask(TaskChange change)
+    {
+        var line = RollbackText.Describe(change);
+        ToolResult result = change.Kind switch
+        {
+            TaskChangeKind.Enable => NativeProcess.Run(
+                "schtasks.exe", ChangeRollbackStore.TaskToggleArguments(change.FullName, disable: false), 60),
+            TaskChangeKind.Disable => NativeProcess.Run(
+                "schtasks.exe", ChangeRollbackStore.TaskToggleArguments(change.FullName, disable: true), 60),
+            TaskChangeKind.Delete => NativeProcess.Run(
+                "schtasks.exe", ChangeRollbackStore.TaskDeleteArguments(change.FullName), 60),
+            _ => ChangeRollbackStore.RegisterTaskFromXml(change.FullName, change.XmlFile!)
+        };
+
+        return new RollbackOutcome(line, result.Success, result.Success ? null : Truncate(result.Output, 200));
     }
 
     public static IReadOnlyList<string>? ParseExtraRegistryPaths(JsonElement arguments)
@@ -278,6 +525,130 @@ internal static class ChangeRollbackOperations
         }
 
         return paths.Count == 0 ? null : paths;
+    }
+
+    /// <summary>Копия задачи до удаления или перезаписи — чтобы откат мог её вернуть.</summary>
+    private static void SaveTaskCopy(string dir, string fullName)
+    {
+        lock (Gate)
+        {
+            if (LoadSession(dir).TaskCopies.Keys.Any(name =>
+                    string.Equals(name, fullName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+        }
+
+        var xml = ChangeRollbackStore.ExportTaskXml(fullName);
+        if (xml is null)
+        {
+            // Задачи с таким именем ещё нет — копировать нечего.
+            return;
+        }
+
+        var file = Path.Combine("tasks", Hash(fullName) + ".xml");
+        Directory.CreateDirectory(Path.Combine(dir, "tasks"));
+        AppDataFile.WriteAtomic(Path.Combine(dir, file), xml);
+        UpdateSession(dir, record => record.TaskCopies.TryAdd(fullName, file));
+    }
+
+    private static void UpdateSession(string dir, Action<SnapshotSessionRecord> change)
+    {
+        lock (Gate)
+        {
+            var record = LoadSession(dir);
+            change(record);
+            AppDataFile.WriteAtomic(Path.Combine(dir, SessionFile), JsonSerializer.Serialize(record, Json));
+        }
+    }
+
+    internal static SnapshotSessionRecord LoadSession(string dir)
+    {
+        var path = Path.Combine(dir, SessionFile);
+        try
+        {
+            return File.Exists(path)
+                ? JsonSerializer.Deserialize<SnapshotSessionRecord>(File.ReadAllText(path), Json) ?? new()
+                : new SnapshotSessionRecord();
+        }
+        catch (JsonException)
+        {
+            return new SnapshotSessionRecord();
+        }
+    }
+
+    internal static List<RegistryKeyState> LoadRegistry(string dir)
+    {
+        var path = Path.Combine(dir, RegistryStateFile);
+        try
+        {
+            return File.Exists(path)
+                ? JsonSerializer.Deserialize<List<RegistryKeyState>>(File.ReadAllText(path), Json) ?? []
+                : [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static void SaveRegistry(string dir, RegistrySnapshotSet set) =>
+        AppDataFile.WriteAtomic(Path.Combine(dir, RegistryStateFile), JsonSerializer.Serialize(set.Roots, Json));
+
+    private static string Describe(RegistryKeyState root)
+    {
+        if (!root.Exists)
+        {
+            return "absent (rollback removes it if it appears)";
+        }
+
+        var (keys, values) = Count(root);
+        var text = root.Shallow ? $"{values} values" : $"{keys} keys, {values} values";
+        return root.Truncated ? text + " (partial)" : text;
+    }
+
+    private static (int Keys, int Values) Count(RegistryKeyState node)
+    {
+        var keys = 1;
+        var values = node.Values.Count;
+        foreach (var child in node.SubKeys)
+        {
+            var (k, v) = Count(child);
+            keys += k;
+            values += v;
+        }
+
+        return (keys, values);
+    }
+
+    /// <summary>
+    /// Имя папки — время до секунды, а два снимка в одну секунду делили бы папку и переписывали
+    /// файлы друг друга.
+    /// </summary>
+    private static string NewSnapshotId(out string dir)
+    {
+        var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        for (var attempt = 1; ; attempt++)
+        {
+            var id = attempt == 1 ? stamp : $"{stamp}_{attempt}";
+            dir = Path.Combine(ChangeRollbackStore.Root, id);
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+                return id;
+            }
+        }
+    }
+
+    private static string? ExistingDir(string snapshotId)
+    {
+        if (string.IsNullOrWhiteSpace(snapshotId))
+        {
+            return null;
+        }
+
+        var dir = Path.Combine(ChangeRollbackStore.Root, Path.GetFileName(snapshotId.Trim()));
+        return Directory.Exists(dir) ? dir : null;
     }
 
     private static string? ResolveSnapshotDir(string snapshotId, out string? error)
@@ -319,11 +690,21 @@ internal static class ChangeRollbackOperations
             var label = doc.RootElement.TryGetProperty("label", out var l) ? l.GetString() : "";
             return string.IsNullOrWhiteSpace(label) ? id : $"{id} - {label}";
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or InvalidOperationException)
         {
             return id;
         }
     }
+
+    private static string? StringArg(JsonElement arguments, string name) =>
+        arguments.ValueKind == JsonValueKind.Object &&
+        arguments.TryGetProperty(name, out var value) &&
+        value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static string Hash(string text) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToUpperInvariant())))[..16];
 
     private static List<ScheduledTaskSnapshotEntry> DeserializeTasks(string path) =>
         File.Exists(path)
@@ -334,6 +715,22 @@ internal static class ChangeRollbackOperations
         File.Exists(path)
             ? JsonSerializer.Deserialize<List<StartupProgramSnapshotEntry>>(File.ReadAllText(path)) ?? []
             : [];
+
+    private static string Truncate(string text, int max) =>
+        text.Length <= max ? text : text[..max] + "…";
+}
+
+/// <summary>Что запрос успел сделать после снимка — то, чего по одному состоянию не узнать.</summary>
+internal sealed class SnapshotSessionRecord
+{
+    /// <summary>Службы, которые запускал или останавливал запрос: им откат вернёт и состояние.</summary>
+    public List<string> TouchedServices { get; set; } = [];
+
+    /// <summary>Задачи, созданные запросом: откат их удалит (или вернёт перезаписанные).</summary>
+    public List<string> CreatedTasks { get; set; } = [];
+
+    /// <summary>Копии XML задач до удаления или перезаписи: полное имя → файл в папке снимка.</summary>
+    public Dictionary<string, string> TaskCopies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 internal sealed record SnapshotResult(bool Success, string SnapshotId, string Message);

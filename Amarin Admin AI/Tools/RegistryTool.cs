@@ -55,11 +55,16 @@ public sealed class RegistryTool : ITool
             var action = actionProp.GetString()?.Trim().ToLowerInvariant();
             var path = pathProp.GetString() ?? string.Empty;
 
-            if (!TryParseHive(path, out var hive, out var subKey))
+            // Тот же разбор, что у снимка для отката: иначе снимок лёг бы на один раздел, а
+            // запись — на другой.
+            if (!RegistryPath.TryParse(path, out var parsed, requireSubKey: false) ||
+                Hive(parsed.Root) is not { } hive)
             {
                 return Task.FromResult(ToolResult.Fail(
                     $"Invalid registry path. Use HKLM\\..., HKCU\\..., etc. Got: {path}"));
             }
+
+            var subKey = parsed.SubKey;
 
             if (ReferenceEquals(hive, Registry.LocalMachine) && SensitivePaths.IsSecretHive(subKey))
             {
@@ -218,36 +223,15 @@ public sealed class RegistryTool : ITool
             : string.Join(Environment.NewLine, names));
     }
 
-    private static bool TryParseHive(string path, out RegistryKey hive, out string subKey)
+    private static RegistryKey? Hive(string root) => root switch
     {
-        hive = Registry.LocalMachine;
-        subKey = string.Empty;
-
-        var separator = path.IndexOf('\\');
-        if (separator <= 0)
-        {
-            return false;
-        }
-
-        var hiveName = path[..separator].ToUpperInvariant();
-        subKey = path[(separator + 1)..];
-
-        hive = hiveName switch
-        {
-            "HKLM" or "HKEY_LOCAL_MACHINE" => Registry.LocalMachine,
-            "HKCU" or "HKEY_CURRENT_USER" => Registry.CurrentUser,
-            "HKCR" or "HKEY_CLASSES_ROOT" => Registry.ClassesRoot,
-            "HKU" or "HKEY_USERS" => Registry.Users,
-            "HKCC" or "HKEY_CURRENT_CONFIG" => Registry.CurrentConfig,
-            _ => Registry.LocalMachine
-        };
-
-        return hiveName is "HKLM" or "HKEY_LOCAL_MACHINE"
-            or "HKCU" or "HKEY_CURRENT_USER"
-            or "HKCR" or "HKEY_CLASSES_ROOT"
-            or "HKU" or "HKEY_USERS"
-            or "HKCC" or "HKEY_CURRENT_CONFIG";
-    }
+        "HKLM" => Registry.LocalMachine,
+        "HKCU" => Registry.CurrentUser,
+        "HKCR" => Registry.ClassesRoot,
+        "HKU" => Registry.Users,
+        "HKCC" => Registry.CurrentConfig,
+        _ => null
+    };
 
     private static int ParseInteger(string? text)
     {

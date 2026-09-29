@@ -1,5 +1,4 @@
 ﻿using System.ServiceProcess;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
 
@@ -66,155 +65,16 @@ internal static class ChangeRollbackStore
         return result;
     }
 
-    public static string CompareServices(IReadOnlyList<ServiceSnapshotEntry> old, IReadOnlyList<ServiceSnapshotEntry> current)
-    {
-        // Service names should be unique, but de-dupe anyway — duplicate keys must not crash a restore.
-        var oldMap = ToFirstMap(old, s => s.Name ?? string.Empty);
-        var sb = new StringBuilder();
-
-        foreach (var service in current.OrderBy(s => s.Name))
-        {
-            if (!oldMap.TryGetValue(service.Name ?? string.Empty, out var previous))
-            {
-                continue;
-            }
-
-            if (!previous.Status.Equals(service.Status, StringComparison.OrdinalIgnoreCase) ||
-                !previous.StartType.Equals(service.StartType, StringComparison.OrdinalIgnoreCase))
-            {
-                sb.AppendLine(
-                    $"{service.Name}: Status {previous.Status} → {service.Status}, StartType {previous.StartType} → {service.StartType}");
-            }
-        }
-
-        return sb.Length == 0 ? "Изменений в службах не найдено." : sb.ToString().TrimEnd();
-    }
-
-    public static string RestoreServices(IReadOnlyList<ServiceSnapshotEntry> snapshot)
-    {
-        var sb = new StringBuilder();
-        var ok = 0;
-        var failed = 0;
-        var skipped = 0;
-
-        foreach (var item in snapshot)
-        {
-            try
-            {
-                using var service = new ServiceController(item.Name);
-
-                if (!Enum.TryParse<ServiceStartMode>(item.StartType, true, out var startMode))
-                {
-                    skipped++;
-                    sb.AppendLine($"SKIP {item.Name}: неизвестный StartType {item.StartType}");
-                    continue;
-                }
-
-                if (!TrySetServiceStartType(item.Name, startMode, out _))
-                {
-                    failed++;
-                    sb.AppendLine($"FAIL {item.Name}: не удалось установить StartType");
-                    continue;
-                }
-
-                service.Refresh();
-
-                if (item.Status.Equals("Running", StringComparison.OrdinalIgnoreCase) &&
-                    service.Status != ServiceControllerStatus.Running)
-                {
-                    service.Start();
-                    service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
-                }
-                else if (item.Status.Equals("Stopped", StringComparison.OrdinalIgnoreCase) &&
-                         service.Status != ServiceControllerStatus.Stopped)
-                {
-                    service.Stop();
-                    service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                }
-
-                ok++;
-                sb.AppendLine($"OK {item.Name}");
-            }
-            catch (Exception ex)
-            {
-                failed++;
-                sb.AppendLine($"FAIL {item.Name}: {ex.Message}");
-            }
-        }
-
-        sb.Insert(0, $"Службы: ok={ok}, fail={failed}, skip={skipped}{Environment.NewLine}");
-        return sb.ToString().TrimEnd();
-    }
-
     public static List<ScheduledTaskSnapshotEntry> CaptureCurrentScheduledTasks()
     {
         var result = PowerShellHelper.Run(
-            "Get-ScheduledTask | Select-Object TaskName, TaskPath, State | ConvertTo-Json -Depth 3 -Compress");
+            "Get-ScheduledTask | Select-Object TaskName, TaskPath, @{n='State';e={[string]$_.State}} | ConvertTo-Json -Depth 3 -Compress");
         if (!result.Success)
         {
             return [];
         }
 
         return DeserializeList<ScheduledTaskSnapshotEntry>(PowerShellHelper.ExtractStdout(result.Output));
-    }
-
-    public static string CompareScheduledTasks(
-        IReadOnlyList<ScheduledTaskSnapshotEntry> old,
-        IReadOnlyList<ScheduledTaskSnapshotEntry> current)
-    {
-        // TaskPath+TaskName should be unique; de-dupe if Get-ScheduledTask returns duplicates.
-        var oldMap = ToFirstMap(old, TaskKey);
-        var sb = new StringBuilder();
-
-        foreach (var task in current.OrderBy(TaskKey))
-        {
-            var key = TaskKey(task);
-            if (!oldMap.TryGetValue(key, out var previous))
-            {
-                continue;
-            }
-
-            if (!previous.State.Equals(task.State, StringComparison.OrdinalIgnoreCase))
-            {
-                sb.AppendLine($"{key}: State {previous.State} → {task.State}");
-            }
-        }
-
-        return sb.Length == 0 ? "Изменений в задачах планировщика не найдено." : sb.ToString().TrimEnd();
-    }
-
-    public static string RestoreScheduledTasks(IReadOnlyList<ScheduledTaskSnapshotEntry> snapshot)
-    {
-        var sb = new StringBuilder();
-        var ok = 0;
-        var failed = 0;
-        var skipped = 0;
-
-        foreach (var task in snapshot)
-        {
-            var fullName = BuildTaskFullName(task);
-            if (string.IsNullOrWhiteSpace(fullName))
-            {
-                skipped++;
-                continue;
-            }
-
-            var disable = task.State.Equals("Disabled", StringComparison.OrdinalIgnoreCase);
-            var result = NativeProcess.Run("schtasks.exe", TaskToggleArguments(fullName, disable), 60);
-            if (result.Success)
-            {
-                ok++;
-                sb.AppendLine($"OK {fullName} → {task.State}");
-            }
-            else
-            {
-                failed++;
-                sb.AppendLine($"FAIL {fullName}: {Truncate(result.Output, 120)}");
-            }
-        }
-
-        sb.Insert(0, $"Задачи: ok={ok}, fail={failed}, skip={skipped}{Environment.NewLine}");
-        return sb.ToString().TrimEnd();
     }
 
     public static List<StartupProgramSnapshotEntry> CaptureStartupPrograms()
@@ -264,92 +124,10 @@ internal static class ChangeRollbackStore
         return DeserializeList<StartupProgramSnapshotEntry>(PowerShellHelper.ExtractStdout(result.Output));
     }
 
-    public static string CompareStartupPrograms(
-        IReadOnlyList<StartupProgramSnapshotEntry> old,
-        IReadOnlyList<StartupProgramSnapshotEntry> current)
-    {
-        // Startup keys are NOT unique: WMI can list the same Name multiple times
-        // (e.g. WMI:OneDriveSetup). Never ToDictionary without de-duplication.
-        var oldMap = ToFirstMap(old, StartupKey);
-        var sb = new StringBuilder();
-        var seenCurrent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var program in current.OrderBy(StartupKey))
-        {
-            var key = StartupKey(program);
-            if (!seenCurrent.Add(key))
-            {
-                continue; // same key twice in current snapshot
-            }
-
-            if (!oldMap.TryGetValue(key, out var previous))
-            {
-                sb.AppendLine($"NEW {key}: {Truncate(program.Command, 80)}");
-                continue;
-            }
-
-            if (!string.Equals(previous.Command, program.Command, StringComparison.OrdinalIgnoreCase))
-            {
-                sb.AppendLine($"{key}: Command changed");
-                sb.AppendLine($"  было: {Truncate(previous.Command, 100)}");
-                sb.AppendLine($"  стало: {Truncate(program.Command, 100)}");
-            }
-        }
-
-        var currentKeys = current.Select(StartupKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var reportedRemoved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var removed in old)
-        {
-            var key = StartupKey(removed);
-            if (currentKeys.Contains(key) || !reportedRemoved.Add(key))
-            {
-                continue;
-            }
-
-            sb.AppendLine($"REMOVED {key}");
-        }
-
-        return sb.Length == 0 ? "Изменений в автозагрузке не найдено." : sb.ToString().TrimEnd();
-    }
-
-    /// <summary>
-    /// Dictionary with first occurrence per key — safe when source data has duplicates.
-    /// </summary>
-    private static Dictionary<string, T> ToFirstMap<T>(
-        IEnumerable<T> items,
-        Func<T, string> keySelector) =>
-        items
-            .GroupBy(keySelector, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-
     public static string SaveJson<T>(IReadOnlyList<T> items, string path)
     {
         File.WriteAllText(path, JsonSerializer.Serialize(items));
         return path;
-    }
-
-    private static string TaskKey(ScheduledTaskSnapshotEntry task) =>
-        $"{task.TaskPath?.TrimEnd('\\')}\\{task.TaskName}".TrimStart('\\');
-
-    private static string BuildTaskFullName(ScheduledTaskSnapshotEntry task)
-    {
-        var path = task.TaskPath?.TrimEnd('\\') ?? string.Empty;
-        return string.IsNullOrWhiteSpace(path) || path == "\\"
-            ? task.TaskName
-            : $"{path}\\{task.TaskName}";
-    }
-
-    /// <summary>
-    /// Logical identity for a startup entry. Not globally unique in WMI dumps —
-    /// callers must de-dupe (see <see cref="ToFirstMap{T}"/>).
-    /// </summary>
-    private static string StartupKey(StartupProgramSnapshotEntry entry)
-    {
-        var source = entry.Source ?? string.Empty;
-        var name = entry.Name ?? string.Empty;
-        // Include location when present so HKLM vs WMI duplicates stay distinct when possible.
-        var loc = string.IsNullOrWhiteSpace(entry.Location) ? "" : ":" + entry.Location;
-        return $"{source}:{name}{loc}";
     }
 
     private static List<T> DeserializeList<T>(string json)
@@ -401,13 +179,54 @@ internal static class ChangeRollbackStore
     internal static IReadOnlyList<string> TaskToggleArguments(string fullName, bool disable) =>
         ["/change", "/tn", fullName, disable ? "/disable" : "/enable"];
 
-    internal static ToolResult ExportRegistryKey(string regPath, string outFile) =>
-        NativeProcess.Run("reg.exe", ["export", regPath, outFile, "/y"], 120);
+    /// <summary>Аргументы schtasks, удаляющие задачу без вопроса.</summary>
+    internal static IReadOnlyList<string> TaskDeleteArguments(string fullName) =>
+        ["/delete", "/tn", fullName, "/f"];
+
+    /// <summary>
+    /// Определение задачи в XML — чтобы откат мог вернуть удалённую или перезаписанную. null,
+    /// если такой задачи нет.
+    /// </summary>
+    internal static string? ExportTaskXml(string fullName)
+    {
+        var (path, name) = SplitTaskName(fullName);
+        var result = PowerShellHelper.Run(
+            $"Export-ScheduledTask -TaskPath '{PowerShellHelper.QuoteLiteral(path)}' " +
+            $"-TaskName '{PowerShellHelper.QuoteLiteral(name)}' -ErrorAction Stop",
+            60,
+            maxOutput: 400_000);
+        if (!result.Success)
+        {
+            return null;
+        }
+
+        var xml = PowerShellHelper.ExtractStdout(result.Output);
+        return xml.Contains("<Task", StringComparison.Ordinal) ? xml : null;
+    }
+
+    /// <summary>Регистрирует задачу заново из сохранённой копии, заменяя одноимённую.</summary>
+    internal static ToolResult RegisterTaskFromXml(string fullName, string xmlFile)
+    {
+        var (path, name) = SplitTaskName(fullName);
+        return PowerShellHelper.Run(
+            $"$xml = Get-Content -LiteralPath '{PowerShellHelper.QuoteLiteral(xmlFile)}' -Raw -Encoding UTF8\n" +
+            $"Register-ScheduledTask -Xml $xml -TaskPath '{PowerShellHelper.QuoteLiteral(path)}' " +
+            $"-TaskName '{PowerShellHelper.QuoteLiteral(name)}' -Force -ErrorAction Stop | Out-Null",
+            120);
+    }
+
+    /// <summary>«\Папка\Имя» → («\Папка\», «Имя»): так их принимают командлеты планировщика.</summary>
+    internal static (string Path, string Name) SplitTaskName(string fullName)
+    {
+        var normalized = RollbackRules.TaskFullName(fullName);
+        var slash = normalized.LastIndexOf('\\');
+        return (normalized[..(slash + 1)], normalized[(slash + 1)..]);
+    }
 
     internal static ToolResult ImportRegistryFile(string regFile) =>
         NativeProcess.Run("reg.exe", ["import", regFile], 120);
 
-    private static bool TrySetServiceStartType(string serviceName, ServiceStartMode mode, out string? error)
+    internal static bool TrySetServiceStartType(string serviceName, ServiceStartMode mode, out string? error)
     {
         error = null;
         try
@@ -440,7 +259,4 @@ internal static class ChangeRollbackStore
             return false;
         }
     }
-
-    private static string Truncate(string text, int max) =>
-        text.Length <= max ? text : text[..max] + "…";
 }

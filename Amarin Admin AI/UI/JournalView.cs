@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Amarin.Core;
 using Amarin.Tools;
 
@@ -48,6 +48,12 @@ internal sealed class JournalRow
 
     /// <summary>Сводка чата, если строка пришла с одноимённой вкладки.</summary>
     public ChatSummaryEntry? Summary { get; init; }
+
+    /// <summary>Точка восстановления Windows — соседка снимков на той же вкладке.</summary>
+    public WindowsRestorePoint? RestorePoint { get; init; }
+
+    /// <summary>Время строки для общей сортировки снимков и точек восстановления.</summary>
+    public DateTime SortTime { get; init; }
 }
 
 /// <summary>Сводка одного чата — то, что показывает вкладка «Сводки».</summary>
@@ -124,8 +130,63 @@ internal static class JournalView
             // Line break assembled here, not inside the caption: XAML would collapse it, and the
             // translator has no business owning the layout of a tooltip.
             Tooltip = Loc.Get("S.Journal.Snapshot.Tooltip") + "\n" + snapshot.Path,
-            Snapshot = snapshot
+            Snapshot = snapshot,
+            SortTime = snapshot.Created
         };
+    }
+
+    public static JournalRow ToRow(WindowsRestorePoint point, DateFormat format = DateFormat.DayMonthShort)
+    {
+        ArgumentNullException.ThrowIfNull(point);
+
+        return new JournalRow
+        {
+            Glyph = "◷",
+            IsFailure = false,
+            IsPending = false,
+            Title = string.IsNullOrWhiteSpace(point.Description)
+                ? Loc.Get("S.Journal.Snapshot.NoLabel")
+                : point.Description,
+            Subtitle = Loc.Format("S.Journal.RestorePoint.Subtitle", point.Sequence),
+            Timestamp = point.Created == DateTime.MinValue
+                ? "-"
+                : ChatFormat.DateTimeShort(point.Created, format),
+            Trailer = "",
+            Tooltip = Loc.Get("S.Journal.RestorePoint.Tooltip"),
+            RestorePoint = point,
+            SortTime = point.Created
+        };
+    }
+
+    public static string SearchKey(WindowsRestorePoint point) =>
+        (point.Description + " " + point.Sequence.ToString(CultureInfo.InvariantCulture)).ToLowerInvariant();
+
+    public static string BuildMeta(WindowsRestorePoint point, DateFormat format = DateFormat.DayMonthShort) =>
+        (point.Created == DateTime.MinValue ? "-" : ChatFormat.DateTimeShort(point.Created, format)) +
+        "  ·  " + Loc.Format("S.Journal.RestorePoint.Subtitle", point.Sequence);
+
+    /// <summary>
+    /// Вызов, создавший точку восстановления Windows: у его подробностей есть кнопка мастера
+    /// «Восстановление системы» — вернуться к точке можно только им.
+    /// </summary>
+    public static bool IsRestorePointCreate(JournalEntry entry)
+    {
+        if (!string.Equals(entry.ToolName, "restore_point", StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(entry.ArgumentsJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(entry.ArgumentsJson);
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                   DangerousActionGuard.ActionOf(document.RootElement) == "create";
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 
     public static JournalRow ToRow(ChatSummaryEntry summary, DateFormat format = DateFormat.DayMonthShort)

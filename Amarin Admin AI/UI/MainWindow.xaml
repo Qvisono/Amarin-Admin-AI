@@ -3804,12 +3804,20 @@
                                                 Content="{DynamicResource S.Journal.Ask}" Margin="0,0,8,0"
                                                 Click="JournalAskButton_Click"/>
                                         <Button x:Name="JournalOpenChatButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Content="{DynamicResource S.Journal.OpenChat}"
+                                                Content="{DynamicResource S.Journal.OpenChat}" Margin="0,0,8,0"
                                                 Click="JournalOpenChatButton_Click"/>
                                         <Button x:Name="JournalRebuildSummaryButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="8,0,0,0"
+                                                Visibility="Collapsed" Margin="0,0,8,0"
                                                 Content="{DynamicResource S.Journal.Summary.Rebuild}"
                                                 Click="JournalRebuildSummaryButton_Click"/>
+                                        <Button x:Name="JournalRollbackButton" Style="{StaticResource DialogPrimaryButton}"
+                                                Visibility="Collapsed" Margin="0,0,8,0"
+                                                Content="{DynamicResource S.Journal.Rollback.Preview}"
+                                                Click="JournalRollbackButton_Click"/>
+                                        <Button x:Name="JournalRestoreSystemButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Visibility="Collapsed" Margin="0,0,8,0"
+                                                Content="{DynamicResource S.Journal.RestoreSystem}"
+                                                Click="JournalRestoreSystemButton_Click"/>
                                     </StackPanel>
 
                                     <Border x:Name="JournalAnswerBox" Visibility="Collapsed" Margin="0,12,0,0"
@@ -3818,6 +3826,78 @@
                                             CornerRadius="8" Padding="12,10">
                                         <TextBlock x:Name="JournalAnswerText" FontSize="12.5" TextWrapping="Wrap"
                                                    LineHeight="18" Foreground="{DynamicResource Text.Body}"/>
+                                    </Border>
+
+                                    <!--
+                                        План отката: что вернётся и чего откат не тронет. Лежит в
+                                        подробностях снимка, а не отдельным окном: окно поверх
+                                        журнала было бы третьим слоем, из которого непонятно, куда
+                                        возвращает Esc. Подтверждение — кнопка под самим списком.
+                                    -->
+                                    <Border x:Name="JournalRollbackBox" Visibility="Collapsed" Margin="0,12,0,0"
+                                            Background="{DynamicResource Bg.Card}"
+                                            BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                            CornerRadius="8" Padding="12,10">
+                                        <StackPanel>
+                                            <TextBlock x:Name="JournalRollbackTitle" FontSize="12.5" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Text.Body}" TextWrapping="Wrap"/>
+                                            <ItemsControl x:Name="JournalRollbackLines" Margin="0,8,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,0,0,4">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="16"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding Glyph}" FontSize="12">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Tone}" Value="Success">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource Status.Success}"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Tone}" Value="Failure">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="12"
+                                                                       TextWrapping="Wrap" LineHeight="17"
+                                                                       Foreground="{DynamicResource Text.Body}"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock x:Name="JournalRollbackNotesTitle" Margin="0,10,0,6"
+                                                       Text="{DynamicResource S.Journal.Rollback.NotesTitle}"
+                                                       FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Text.Faint}"/>
+                                            <ItemsControl x:Name="JournalRollbackNotes">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" FontSize="11.5" TextWrapping="Wrap"
+                                                                   Margin="0,0,0,4" Foreground="{DynamicResource Text.Faint}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock x:Name="JournalRollbackHint" Margin="0,8,0,0"
+                                                       Text="{DynamicResource S.Journal.Rollback.Hint}"
+                                                       FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource Text.Faint}"/>
+                                            <StackPanel x:Name="JournalRollbackActions" Orientation="Horizontal"
+                                                        HorizontalAlignment="Right" Margin="0,12,0,0">
+                                                <Button x:Name="JournalRollbackCancelButton"
+                                                        Style="{StaticResource DialogSecondaryButton}"
+                                                        Content="{DynamicResource S.Journal.Rollback.Cancel}"
+                                                        Margin="0,0,8,0" Click="JournalRollbackCancelButton_Click"/>
+                                                <Button x:Name="JournalRollbackApplyButton"
+                                                        Style="{StaticResource DialogPrimaryButton}"
+                                                        Click="JournalRollbackApplyButton_Click"/>
+                                            </StackPanel>
+                                        </StackPanel>
                                     </Border>
 
                                     <TextBlock Text="{DynamicResource S.Journal.Arguments}" Margin="0,16,0,6"
