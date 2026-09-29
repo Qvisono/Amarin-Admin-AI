@@ -70,14 +70,9 @@ namespace Amarin.UI
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
+            if (!HasUsableKey())
             {
-                MessageBox.Show(
-                    this,
-                    "Не задан API-ключ Venice.ai.\nЗадайте переменную окружения VENICE_API_KEY.",
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowNoKeyNotice();
                 return;
             }
 

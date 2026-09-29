@@ -1829,7 +1829,7 @@ namespace Amarin.UI
             // overlay takes focus itself when it opens, but between that and the first click there
             // is a moment with nothing focused at all, and the early return below would hand those
             // keystrokes to the composer -- including the Escape meant to close the journal.
-            if (JournalOverlay.Visibility == Visibility.Visible)
+            if (JournalOverlay.Visibility == Visibility.Visible || IsNoticeOpen)
             {
                 return true;
             }
@@ -1920,6 +1920,19 @@ namespace Amarin.UI
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Уведомление модально: Escape отвечает «нет», а горячие клавиши и лупа ждут —
+            // «новый чат» под открытым вопросом увёл бы из-под него тот чат, о котором спрашивают.
+            if (IsNoticeOpen)
+            {
+                if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                    CloseNotice(false);
+                }
+
+                return;
+            }
+
             // Раньше проверки фокуса: приблизить ленту можно и не уходя из поля ввода, и выйти
             // из этого вида человек попросит оттуда же.
             if (e.Key == Key.Escape && _chatZoom?.TryHandleEscape() == true)
@@ -2035,14 +2048,9 @@ namespace Amarin.UI
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
+            if (!HasUsableKey())
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Turn.NoApiKey"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowNoKeyNotice();
                 return;
             }
 
@@ -2052,12 +2060,7 @@ namespace Amarin.UI
             // rather than send them off into nothing.
             if (command is not null && (_pendingImages.Count > 0 || _pendingFiles.Count > 0))
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Turn.AgentNoAttachments"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowAgentRefusal("S.Turn.AgentNoAttachments");
                 return;
             }
 
@@ -2065,12 +2068,7 @@ namespace Amarin.UI
             // point at replies it has never read.
             if (command is not null && _pendingQuotes.Count > 0)
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Turn.AgentNoQuotes"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowAgentRefusal("S.Turn.AgentNoQuotes");
                 return;
             }
 
@@ -2169,6 +2167,7 @@ namespace Amarin.UI
                 ResetChatZoom();
             }
 
+            _variantGate.IsOpen = !IsBusy(_session.Id);
             BuildMessageHosts();
 
             if (FindTurn(_session.Id) is { } live)
@@ -2242,6 +2241,8 @@ namespace Amarin.UI
             CommitEdit = CommitUserEdit,
             Delete = DeleteAssistant,
             Regenerate = RegenerateAssistant,
+            SwitchVariant = SwitchVariant,
+            VariantGate = _variantGate,
             Continue = ResumeAssistant,
             CanContinue = message => CanResume(session, message),
             Cancel = _ => CancelTurn(session.Id),
@@ -2274,6 +2275,15 @@ namespace Amarin.UI
             }
         }
 
+        /// <summary>
+        /// Правка вопроса: исправленный вопрос встаёт новым вариантом, а прежний со всем, что
+        /// за ним шло, остаётся соседним — его можно вернуть переключателем под вопросом.
+        /// </summary>
+        /// <remarks>
+        /// Новое сообщение, а не правка старого на месте: у прежнего варианта должен остаться
+        /// прежний вопрос, иначе вернувшийся ответ отвечал бы не на то, что над ним написано.
+        /// Вложения и цитаты переезжают копией — человек правил только текст.
+        /// </remarks>
         private void CommitUserEdit(ChatDisplayMessage message, string text)
         {
             if (_services is null || IsBusy(_session.Id))
@@ -2281,17 +2291,81 @@ namespace Amarin.UI
                 return;
             }
 
-            if (!ChatSessionEdit.ReplaceUserText(_session, message.Id, text))
+            text = text.Trim();
+            var index = _session.Messages.IndexOf(message);
+            if (text.Length == 0 || index < 0 || !message.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            ReconcileTranscript(message.Id);
-            PersistCurrent();
-            RefreshChatList();
-            Detached.Run(ContinueAssistantAsync(), "continue_assistant");
+            // Все проверки — до развилки: отказ после неё оставил бы прежнюю ветку спрятанной,
+            // а на её месте — вопрос без ответа.
+            if (!HasUsableKey())
+            {
+                ShowNoKeyNotice();
+                return;
+            }
+
+            var command = ChatCommands.TryParse(text);
+            if (command is not null && (message.Images.Count > 0 || message.Files.Count > 0))
+            {
+                ShowAgentRefusal("S.Turn.AgentNoAttachments");
+                return;
+            }
+
+            if (command is not null && message.Quotes.Count > 0)
+            {
+                ShowAgentRefusal("S.Turn.AgentNoQuotes");
+                return;
+            }
+
+            if (_turns.Count >= MaxParallelTurns)
+            {
+                ShowTurnLimitNotice();
+                return;
+            }
+
+            var anchor = new ChatDisplayMessage
+            {
+                Role = "user",
+                Id = Guid.NewGuid().ToString("N"),
+                CreatedAt = DateTime.Now,
+                Text = text,
+                Images = [.. message.Images],
+                Files = [.. message.Files],
+                Quotes = [.. message.Quotes]
+            };
+
+            var services = _services;
+            var kind = command is { Name: ChatCommands.Agent } ? TurnKind.AgentCommand : TurnKind.Continue;
+            Detached.Run(RunTurnAsync(_session, kind, (chat, observer, token) =>
+            {
+                var at = chat.Messages.IndexOf(message);
+                if (at < 0)
+                {
+                    return Task.CompletedTask;
+                }
+
+                // Команда кладёт в историю задачу, а не видимый текст, — как при отправке.
+                ChatBranches.Fork(chat, at, anchor, command is { } agent
+                    ? () => ChatEngine.AgentCommandTurn(agent.Argument)
+                    : () => new ChatMessage
+                    {
+                        Role = "user",
+                        Content = ChatContent.ForUser(anchor, chat.Messages, chat.Messages.Count - 1)
+                    });
+                ShowForkedTail(chat);
+
+                return command is { } run
+                    ? services.Chat.RunAgentCommandAsync(chat, text, run.Argument, run.Complexity, observer, token, placed: anchor)
+                    : services.Chat.GenerateAssistantAsync(chat, observer, token);
+            }), "edit_turn");
         }
 
+        /// <summary>
+        /// Удаление ответа. Есть у него другие варианты — удаляется показанный и встаёт соседний;
+        /// нет — прежнее удаление хода.
+        /// </summary>
         private void DeleteAssistant(ChatDisplayMessage message)
         {
             if (_services is null || IsBusy(_session.Id))
@@ -2299,6 +2373,57 @@ namespace Amarin.UI
                 return;
             }
 
+            var group = ChatBranches.FindGroupFor(_session, message);
+            if (group < 0)
+            {
+                DeleteTurn(message);
+                return;
+            }
+
+            // Вариант уносит с собой всё продолжение, а прежнее удаление хода поздние ходы
+            // сохраняло. Только свой ход — то, что человек видит под рукой; есть и поздние —
+            // спрашиваем.
+            var ownTurn = _session.Messages[group].Role.Equals("user", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            if (ChatBranches.TurnsFrom(_session, group) - ownTurn > 0)
+            {
+                Detached.Run(ConfirmVariantDeleteAsync(_session, message), "delete_variant");
+                return;
+            }
+
+            DeleteVariant(_session, message);
+        }
+
+        private async Task ConfirmVariantDeleteAsync(ChatSession session, ChatDisplayMessage message)
+        {
+            var confirmed = await ShowNoticeAsync(
+                Loc.Get("S.Variant.DeleteTitle"),
+                Loc.Get("S.Variant.DeleteText"),
+                Loc.Get("S.Common.Delete"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+
+            // Пока окно было открыто, человек мог уйти в другой чат или запустить ответ.
+            if (confirmed && ReferenceEquals(session, _session) && !IsBusy(session.Id))
+            {
+                DeleteVariant(session, message);
+            }
+        }
+
+        private void DeleteVariant(ChatSession session, ChatDisplayMessage message)
+        {
+            var group = ChatBranches.FindGroupFor(session, message);
+            if (group < 0 || ChatBranches.DeleteActive(session, group) is null)
+            {
+                return;
+            }
+
+            ReconcileTranscript(null);
+            PersistCurrent();
+            RefreshChatList();
+        }
+
+        private void DeleteTurn(ChatDisplayMessage message)
+        {
             if (!ChatSessionEdit.DeleteTurn(_session, message.Id))
             {
                 return;
@@ -2314,6 +2439,55 @@ namespace Amarin.UI
             PersistCurrent();
             RefreshChatList();
         }
+
+        /// <summary>
+        /// Показывает другой вариант продолжения переписки с этого сообщения.
+        /// </summary>
+        /// <param name="target">Место варианта среди всех, с нуля.</param>
+        private void SwitchVariant(ChatDisplayMessage message, int target)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            // Стрелки гаснут на время ответа, но нажатие могло проскочить в тот же кадр.
+            if (IsBusy(_session.Id))
+            {
+                ShowComposerNotice(Loc.Get("S.Variant.Busy"));
+                return;
+            }
+
+            var index = _session.Messages.IndexOf(message);
+            if (index < 0 || ChatBranches.Switch(_session, index, target) is null)
+            {
+                return;
+            }
+
+            // Лента меняет только хвост: лупа и место чтения остаются.
+            ReconcileTranscript(null);
+            PersistCurrent();
+            RefreshChatList();
+        }
+
+        /// <summary>Развилка сделана: лента показывает новый хвост, чат сохраняется сразу.</summary>
+        /// <remarks>
+        /// Сохранение — сразу, а не по таймеру: на диске до этой строки лежит прежний вариант
+        /// без спрятанного хвоста, и сбой до первого планового сохранения потерял бы его.
+        /// </remarks>
+        private void ShowForkedTail(ChatSession chat)
+        {
+            if (ReferenceEquals(chat, _session))
+            {
+                ReconcileTranscript(null);
+            }
+
+            Persist(chat);
+        }
+
+        private void ShowAgentRefusal(string textKey) => Detached.Run(
+            ShowNoticeAsync(Loc.Get("S.Notice.AgentTitle"), Loc.Get(textKey), Loc.Get("S.Common.Close"), null),
+            "agent_refusal");
 
         private void DiscardEmptySession()
         {
@@ -2387,26 +2561,71 @@ namespace Amarin.UI
             return true;
         }
 
+        /// <summary>
+        /// «Повторить»: новый ответ встаёт вариантом, прежний со всем продолжением остаётся
+        /// соседним.
+        /// </summary>
+        /// <remarks>
+        /// Все проверки — до развилки. Раньше «Повторить» без ключа сначала стирало ответ и
+        /// только потом сообщало, что ключа нет; с вариантами отказ после развилки оставил бы
+        /// прежний ответ спрятанным, а на его месте — пустой пузырь. Сама развилка — внутри
+        /// хода, когда он уже заведён: между «спрятали» и «появился новый» нет мгновения, в
+        /// которое сохранение записало бы чат без обоих ответов.
+        /// </remarks>
         private void RegenerateAssistant(ChatDisplayMessage message)
         {
-            if (_services is null || IsBusy(_session.Id))
+            if (_services is null || IsBusy(_session.Id) || message.Status is AssistantStatus.Streaming)
             {
                 return;
             }
 
-            if (message.Status is AssistantStatus.Streaming)
+            var index = _session.Messages.IndexOf(message);
+            if (index < 0)
             {
                 return;
             }
 
-            if (!ChatSessionEdit.TruncateFromMessage(_session, message.Id))
+            if (!HasUsableKey())
+            {
+                ShowNoKeyNotice();
+                return;
+            }
+
+            var question = _session.Messages
+                .Take(index)
+                .LastOrDefault(item => item.Role.Equals("user", StringComparison.OrdinalIgnoreCase));
+            if (!ChatEngine.IsRequest(question))
             {
                 return;
             }
 
-            ReconcileTranscript(null);
-            PersistCurrent();
-            Detached.Run(ContinueAssistantAsync(), "continue_assistant");
+            if (_turns.Count >= MaxParallelTurns)
+            {
+                ShowTurnLimitNotice();
+                return;
+            }
+
+            var anchor = new ChatDisplayMessage
+            {
+                Role = "assistant",
+                Id = Guid.NewGuid().ToString("N"),
+                CreatedAt = DateTime.Now,
+                Status = AssistantStatus.Streaming
+            };
+
+            var services = _services;
+            Detached.Run(RunTurnAsync(_session, TurnKind.Continue, (chat, observer, token) =>
+            {
+                var at = chat.Messages.IndexOf(message);
+                if (at < 0)
+                {
+                    return Task.CompletedTask;
+                }
+
+                ChatBranches.Fork(chat, at, anchor);
+                ShowForkedTail(chat);
+                return services.Chat.GenerateAssistantAsync(chat, observer, token, into: anchor);
+            }), "regenerate");
         }
 
         /// <summary>
@@ -2426,9 +2645,8 @@ namespace Amarin.UI
         /// Возобновляет прерванный ответ, ничего не выбрасывая.
         /// </summary>
         /// <remarks>
-        /// В отличие от <see cref="RegenerateAssistant"/> здесь нет
-        /// <c>ChatSessionEdit.TruncateFromMessage</c>: тот снёс бы вместе с ответом и работу
-        /// инструментов, за которую уже заплачено.
+        /// В отличие от <see cref="RegenerateAssistant"/> здесь нет нового варианта: тот начал бы
+        /// ответ заново, и за уже сделанную работу инструментов человек заплатил бы второй раз.
         /// </remarks>
         private void ResumeAssistant(ChatDisplayMessage message)
         {
@@ -2437,14 +2655,9 @@ namespace Amarin.UI
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
+            if (!HasUsableKey())
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Turn.NoApiKey"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                ShowNoKeyNotice();
                 return;
             }
 
@@ -2452,28 +2665,6 @@ namespace Amarin.UI
                 RunTurnAsync(_session, TurnKind.Continue, (chat, observer, token) =>
                     _services.Chat.ResumeAssistantAsync(chat, message, observer, token)),
                 "resume_turn");
-        }
-
-        private async Task ContinueAssistantAsync()
-        {
-            if (_services is null || IsBusy(_session.Id))
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
-            {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Turn.NoApiKey"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                return;
-            }
-
-            await RunTurnAsync(_session, TurnKind.Continue, (chat, observer, token) =>
-                _services.Chat.GenerateAssistantAsync(chat, observer, token));
         }
 
         private void MaybeStartTitle(ChatSession session, ChatDisplayMessage user)
@@ -3065,7 +3256,7 @@ namespace Amarin.UI
             if (!string.IsNullOrEmpty(assistant.Id) &&
                 _messageViews.TryGetValue(assistant.Id, out var existing))
             {
-                existing.Fill(view.Root);
+                FillHost(existing, view.Root);
             }
             else
             {

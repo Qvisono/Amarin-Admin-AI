@@ -62,7 +62,8 @@ public static class ChatImageRegistry
             return;
         }
 
-        foreach (var message in session.Messages)
+        // Со спрятанными вариантами: переключившись на них, лента откроет и их картинки.
+        foreach (var message in ChatBranches.AllMessages(session))
         {
             foreach (var round in message.ToolRounds)
             {

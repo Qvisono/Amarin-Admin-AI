@@ -19,6 +19,15 @@ internal sealed class MessageActions
     public Action<ChatDisplayMessage>? Regenerate;
     public Action<ChatDisplayMessage>? Cancel;
 
+    /// <summary>
+    /// Показать другой вариант продолжения с этого сообщения. Число — место варианта среди
+    /// всех, с нуля.
+    /// </summary>
+    public Action<ChatDisplayMessage, int>? SwitchVariant;
+
+    /// <summary>Можно ли сейчас листать варианты. Null — всегда можно (тесты без окна).</summary>
+    public VariantGate? VariantGate;
+
     /// <summary>Возобновить прерванный ответ, ничего из уже сделанного не выбрасывая.</summary>
     public Action<ChatDisplayMessage>? Continue;
 
@@ -1092,6 +1101,9 @@ internal static class ChatMessageViews
         var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         var edit = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
+
+        // Правка вопроса оставляет прежнюю ветку вариантом — листать их отсюда же.
+        row.Children.Add(BuildVariantSwitcher(host, message, actions));
         row.Children.Add(copy);
         row.Children.Add(edit);
 
@@ -1213,6 +1225,8 @@ internal static class ChatMessageViews
             HorizontalAlignment = HorizontalAlignment.Left,
             Margin = new Thickness(0, 10, 0, 0)
         };
+        // Первым в ряду: «Повторить» рядом добавляет вариант, а переключатель их листает.
+        row.Children.Add(BuildVariantSwitcher(host, message, actions));
         var resume = IconAction(host, "Continue", Loc.Get("S.Message.Continue"));
         resume.Click += (_, _) => actions?.Continue?.Invoke(message);
         resume.Visibility = Visibility.Collapsed;
@@ -2043,6 +2057,69 @@ internal static class ChatMessageViews
 
         element.Tag = HiddenTag;
         element.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Имя переключателя вариантов — по нему его находят тесты.</summary>
+    internal const string VariantSwitcherName = "VariantSwitcher";
+
+    /// <summary>
+    /// «‹ 2/3 ›» — варианты продолжения переписки с этого сообщения.
+    /// </summary>
+    /// <remarks>
+    /// При одном варианте спрятан меткой, а не просто свёрнут: <see cref="AssistantMessageView.ShowFinished"/>
+    /// заново показывает весь ряд. Крайняя стрелка гаснет, а не заворачивает по кругу: «‹» на
+    /// первом варианте, уводящая на последний, выглядела бы как ошибка счёта.
+    /// </remarks>
+    private static StackPanel BuildVariantSwitcher(
+        FrameworkElement host,
+        ChatDisplayMessage message,
+        MessageActions? actions)
+    {
+        var count = message.VariantCount;
+        var index = Math.Clamp(message.VariantIndex, 0, count - 1);
+
+        var panel = new StackPanel
+        {
+            Name = VariantSwitcherName,
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 4, 0)
+        };
+
+        var previous = IconAction(host, "VariantPrev", Loc.Get("S.Message.VariantPrev"));
+        previous.IsEnabled = index > 0;
+        previous.Click += (_, _) => actions?.SwitchVariant?.Invoke(message, index - 1);
+
+        var label = new TextBlock
+        {
+            Style = (Style)host.FindResource("AiMetaText"),
+            Text = $"{index + 1}/{count}",
+            MinWidth = 24,
+            TextAlignment = TextAlignment.Center,
+            Background = Brushes.Transparent,
+            ToolTip = Loc.Format("S.Message.VariantCount", index + 1, count)
+        };
+
+        // Цифры одной ширины: «9/10» → «10/10» иначе сдвигали бы стрелку из-под курсора.
+        System.Windows.Documents.Typography.SetNumeralAlignment(label, FontNumeralAlignment.Tabular);
+
+        var next = IconAction(host, "VariantNext", Loc.Get("S.Message.VariantNext"));
+        next.IsEnabled = index < count - 1;
+        next.Click += (_, _) => actions?.SwitchVariant?.Invoke(message, index + 1);
+
+        panel.Children.Add(previous);
+        panel.Children.Add(label);
+        panel.Children.Add(next);
+
+        if (actions?.VariantGate is { } gate)
+        {
+            panel.SetBinding(
+                UIElement.IsEnabledProperty,
+                new System.Windows.Data.Binding(nameof(VariantGate.IsOpen)) { Source = gate });
+        }
+
+        HideIf(panel, count <= 1);
+        return panel;
     }
 
     internal static Button IconAction(FrameworkElement host, string resourceKey, string? tooltip = null)

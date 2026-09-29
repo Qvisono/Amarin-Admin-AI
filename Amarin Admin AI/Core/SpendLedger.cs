@@ -257,7 +257,8 @@ internal sealed class SpendLedger
         var collected = new Dictionary<DateTime, Dictionary<string, SpendSkuBucket>>();
         var today = DateTime.Now.Date;
 
-        foreach (var message in sessions.SelectMany(session => session.Messages))
+        // Все варианты, а не только показанный: спрятанный ответ оплачен так же, как видимый.
+        foreach (var message in sessions.SelectMany(ChatBranches.AllMessages))
         {
             if (!string.Equals(message.Role, "assistant", StringComparison.Ordinal) ||
                 message.Cost is not { HasData: true } cost ||

@@ -37,7 +37,7 @@ internal static class ChatTitleCost
             session.TitleCost = cost;
 
             var first = FirstAnswer(session);
-            if (first is null || first.TitleCost is not null)
+            if (first is null || first.TitleCost is not null || Carried(session))
             {
                 // Ответа ещё нет — его подберёт Attach, когда ход будет закрывать счёт.
                 return null;
@@ -62,6 +62,12 @@ internal static class ChatTitleCost
     /// Ход закрывает сообщение: если это первый ответ чата, забираем на него цену заголовка.
     /// Сложит её идущий следом пересчёт счёта.
     /// </summary>
+    /// <remarks>
+    /// Цена заголовка живёт на одном ответе. Перегенерация первого ответа прежний больше не
+    /// выбрасывает, а прячет в вариант — вместе с ценой; взяв её и новый ответ, сумма чата по
+    /// всем вариантам посчитала бы заголовок дважды. Переезжает цена, только когда удаляют
+    /// сам вариант, который её нёс (<see cref="ChatBranches.DeleteActive"/>).
+    /// </remarks>
     public static void Attach(ChatSession session, ChatDisplayMessage assistant)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -71,7 +77,8 @@ internal static class ChatTitleCost
         {
             if (session.TitleCost is not { HasData: true } cost ||
                 assistant.TitleCost is not null ||
-                !ReferenceEquals(FirstAnswer(session), assistant))
+                !ReferenceEquals(FirstAnswer(session), assistant) ||
+                Carried(session))
             {
                 return;
             }
@@ -79,6 +86,10 @@ internal static class ChatTitleCost
             assistant.TitleCost = cost;
         }
     }
+
+    /// <summary>Несёт ли цену заголовка уже какой-нибудь ответ — показанный или спрятанный.</summary>
+    private static bool Carried(ChatSession session) =>
+        ChatBranches.AllMessages(session).Any(message => message.TitleCost is { HasData: true });
 
     private static ChatDisplayMessage? FirstAnswer(ChatSession session) =>
         session.Messages.FirstOrDefault(

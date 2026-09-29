@@ -91,6 +91,17 @@ public sealed class ChatSession
     /// </remarks>
     public string? Summary { get; set; }
 
+    /// <summary>
+    /// Сводку пора собрать заново по показанной ветке, а не дописывать: сменился вариант ответа.
+    /// </summary>
+    /// <remarks>
+    /// Сводка дописывается по одному обмену за раз, и после перегенерации или переключения она
+    /// пересказывала бы уже спрятанный ответ. Пересобирается она при следующем ответе, а не
+    /// в миг переключения: иначе каждое листание вариантов стоило бы запроса к модели.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool SummaryStale { get; set; }
+
     /// <summary>Во что обошёлся придуманный заголовок этой переписки.</summary>
     /// <remarks>
     /// Живёт на чате, а не только на сообщении: заголовок считается в отрыве от хода, и его
@@ -200,6 +211,43 @@ public sealed class ChatDisplayMessage
     public AssistantStatus Status { get; set; }
 
     public List<ToolRound> ToolRounds { get; set; } = [];
+
+    /// <summary>
+    /// Другие варианты продолжения переписки с этого места — по порядку, без показанного.
+    /// </summary>
+    /// <remarks>
+    /// Держит их только «якорь» — первое сообщение показанного варианта: ответ при
+    /// перегенерации, вопрос при правке. Сам показанный вариант лежит в плоских
+    /// <see cref="ChatSession.Messages"/> и <see cref="ChatSession.ApiMessages"/>, поэтому
+    /// сборка истории, отрисовка, сводка и заголовок работают с ним как прежде, а старые файлы
+    /// читаются без миграции: у них этого поля просто нет. Подробности — в
+    /// <see cref="ChatBranches"/>.
+    /// </remarks>
+    public List<ChatBranch>? Variants { get; set; }
+
+    /// <summary>Место показанного варианта среди всех: 0 — первый.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int VariantIndex { get; set; }
+
+    /// <summary>Сколько всего вариантов продолжения с этого места, вместе с показанным.</summary>
+    [JsonIgnore]
+    public int VariantCount => (Variants?.Count ?? 0) + 1;
+}
+
+/// <summary>Спрятанный вариант продолжения: сообщения ленты и история модели с этого места.</summary>
+public sealed class ChatBranch
+{
+    public List<ChatDisplayMessage> Messages { get; set; } = [];
+
+    public List<ChatMessage> ApiMessages { get; set; } = [];
+
+    /// <summary>Замер контекста, если он был сделан на этом варианте.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int LastPromptTokens { get; set; }
+
+    /// <summary>Где был замер — от начала этого варианта в истории модели.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int LastPromptTokensApiOffset { get; set; }
 }
 
 public sealed class ToolRound

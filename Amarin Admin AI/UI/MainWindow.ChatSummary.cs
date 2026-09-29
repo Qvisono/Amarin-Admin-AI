@@ -34,13 +34,20 @@ namespace Amarin.UI
                 return;
             }
 
-            var previous = session.Summary;
+            // Сменился вариант ответа — сводка собирается заново по показанной ветке, с тем же
+            // запасом, что и пересборка из журнала: дописанная, она пересказывала бы спрятанное.
+            var stale = session.SummaryStale;
+            var previous = stale ? null : session.Summary;
             var exchange = ChatSummaryGenerator.BuildExchange(
-                string.IsNullOrWhiteSpace(previous) ? ColdStart(session) : LastExchange(session));
+                stale ? [.. session.Messages.TakeLast(ChatSummary.RebuildMessages)]
+                : string.IsNullOrWhiteSpace(previous) ? ColdStart(session)
+                : LastExchange(session));
             if (exchange.Length == 0)
             {
                 return;
             }
+
+            session.SummaryStale = false;
 
             // Цену припишем этому ответу: он её и вызвал.
             var assistantId = session.Messages
@@ -141,8 +148,9 @@ namespace Amarin.UI
                 return false;
             }
 
-            var message = session.Messages.FirstOrDefault(
-                item => string.Equals(item.Id, assistantId, StringComparison.Ordinal));
+            // Во всех вариантах: пока сводка считалась, человек мог переключить ответ, и её
+            // сообщение лежит спрятанным — цена всё равно его.
+            var message = ChatBranches.FindMessage(session, assistantId);
             if (message is null || message.SummaryCost is not null)
             {
                 return false;
@@ -197,6 +205,7 @@ namespace Amarin.UI
             }
 
             session.Summary = draft.Summary;
+            session.SummaryStale = false;
             BookSummaryCost(
                 session,
                 session.Messages.LastOrDefault(item =>

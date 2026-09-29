@@ -284,6 +284,7 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Read-only mode is on: the app does nothing that changes the system, so the {0} call was not run. Do not repeat it and do not try to do the same with another tool, PowerShell included; tell the user that this needs a different access mode in Settings (Security).</system:String>
+    <system:String x:Key="S.Journal.HiddenVariant" xml:space="preserve">in another version of the answer</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">This is a Windows restore point, not a snapshot taken by the app. Returning to it rolls back system files, drivers and the whole registry; the System Restore wizard does that, and the computer restarts afterwards.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Windows restore point #{0}</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Windows restore point. You can return to it only through the System Restore wizard.</system:String>
@@ -302,6 +303,12 @@
     <system:String x:Key="S.Journal.Rollback.Planning" xml:space="preserve">Comparing with the snapshot…</system:String>
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Roll back…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
+    <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Version {0} of {1}</system:String>
+    <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Next version</system:String>
+    <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
+    <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">The /agent command</system:String>
+    <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">An API key is needed</system:String>
+    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Open Key &amp; Info</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Reply</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">from the last reply</system:String>
     <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">from the reply at {0}</system:String>
@@ -832,7 +839,7 @@
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">The /agent command takes no quotes.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" - no answer</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running - wait for one of them.</system:String>
-    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No Venice.ai API key.&#10;Set the VENICE_API_KEY environment variable.</system:String>
+    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No API key — add a Venice or OpenRouter key on the Key &amp; Info page</system:String>
 
     <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Attachments cannot join an answer already in progress - wait for it to finish.</system:String>
     <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">A command cannot join an answer already in progress - wait for it to finish.</system:String>
@@ -907,6 +914,9 @@
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Update as administrator</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Wait for the answers to finish - the program will restart.</system:String>
 
+    <system:String x:Key="S.Variant.Busy" xml:space="preserve">Versions can be switched once the chat finishes answering.</system:String>
+    <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">The conversation that continued from it will be deleted too. The other versions stay, and the neighbouring one will be shown.</system:String>
+    <system:String x:Key="S.Variant.DeleteTitle" xml:space="preserve">Delete this version?</system:String>
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model - this one is out of the list until the app restarts.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>

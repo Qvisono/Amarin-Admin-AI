@@ -80,6 +80,9 @@ namespace Amarin.UI
         /// </remarks>
         private readonly Dictionary<string, string> _composerNotices = [];
 
+        /// <summary>Листаются ли варианты ответа в открытом чате: пока он отвечает — нет.</summary>
+        private readonly VariantGate _variantGate = new();
+
         /// <summary>Идёт ли ход в этом чате. В одном чате больше одного хода не бывает.</summary>
         internal bool IsBusy(string sessionId) => _turns.ContainsKey(sessionId);
 
@@ -283,6 +286,7 @@ namespace Amarin.UI
             var busy = IsBusy(_session.Id);
             RefreshContextRing();
             _compact?.SetBusy(busy);
+            _variantGate.IsOpen = !busy;
 
             // Stays live while the chat answers: a second line is no longer refused, it is queued
             // and folded into the context at the next round boundary.

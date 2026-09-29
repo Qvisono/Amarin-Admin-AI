@@ -143,6 +143,26 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <!--
+        Переключатель вариантов ответа: шеврон, а не стрелка. Стрелки в ряду уже заняты
+        («поделиться», «повторить»), а шеврон читается как «листать» и различим на 14 px.
+    -->
+    <DrawingImage x:Key="VariantPrev">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V20 H20 V0 H0 Z">
+                <GeometryDrawing Brush="#FF1A1A1A" Geometry="F0 M20,20z M0,0z M12.7,3.3L14.1,4.7 8.8,10 14.1,15.3 12.7,16.7 6,10z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <DrawingImage x:Key="VariantNext">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V20 H20 V0 H0 Z">
+                <GeometryDrawing Brush="#FF1A1A1A" Geometry="F0 M20,20z M0,0z M7.3,3.3L5.9,4.7 11.2,10 5.9,15.3 7.3,16.7 14,10z" />
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
     <DrawingImage x:Key="Copy">
         <DrawingImage.Drawing>
             <DrawingGroup ClipGeometry="M0,0 V20 H20 V0 H0 Z">

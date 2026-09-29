@@ -1,7 +1,9 @@
 using System.IO.Compression;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Amarin.Core;
 
@@ -28,6 +30,7 @@ internal static class ChatShareCodec
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         MaxDepth = AppJson.MaxDepth,
+        TypeInfoResolver = ShownBranchOnly(),
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
@@ -44,7 +47,43 @@ internal static class ChatShareCodec
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         MaxDepth = AppJson.MaxDepth,
+        TypeInfoResolver = ShownBranchOnly(),
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    };
+
+    /// <summary>
+    /// Делятся только показанным вариантом переписки: спрятанные не пишутся и не читаются.
+    /// </summary>
+    /// <remarks>
+    /// Срез «до этого сообщения» режет показанную ветку, а спрятанные варианты на якорях до
+    /// среза утащили бы за собой целые продолжения — то, чем человек делиться не выбирал.
+    /// Вырезаются при записи, а не обнулением на копии: <see cref="Trim"/> держит те же объекты
+    /// сообщений, что и открытый чат, и обнуление стёрло бы варианты у живой переписки.
+    /// Архив данных копирует файлы чатов целиком и сохраняет всё.
+    /// </remarks>
+    private static DefaultJsonTypeInfoResolver ShownBranchOnly() => new()
+    {
+        Modifiers =
+        {
+            static info =>
+            {
+                if (info.Type != typeof(ChatDisplayMessage))
+                {
+                    return;
+                }
+
+                for (var i = info.Properties.Count - 1; i >= 0; i--)
+                {
+                    if (info.Properties[i].AttributeProvider is MemberInfo
+                        {
+                            Name: nameof(ChatDisplayMessage.Variants) or nameof(ChatDisplayMessage.VariantIndex)
+                        })
+                    {
+                        info.Properties.RemoveAt(i);
+                    }
+                }
+            }
+        }
     };
 
     /// <summary>

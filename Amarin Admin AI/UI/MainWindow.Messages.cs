@@ -94,6 +94,25 @@ namespace Amarin.UI
         private void AppendMessage(ChatDisplayMessage message, FrameworkElement view)
         {
             var host = AddMessageHost(message, CreateMessageActions(_session));
+            FillHost(host, view);
+        }
+
+        /// <summary>
+        /// Отдаёт хосту вьюшку. Единственный путь, которым хост становится построенным.
+        /// </summary>
+        /// <remarks>
+        /// Счётчик недостроенных ведётся здесь, а не у каждого, кто наполняет хост: сообщение,
+        /// добавленное сразу готовым (новый ответ, якорь варианта), прежде увеличивало его и
+        /// никогда не уменьшало. Фоновая дорисовка тогда не находила что строить и заводила
+        /// себя снова — до следующей пересборки ленты, на каждом кадре простоя.
+        /// </remarks>
+        private void FillHost(ChatMessageHost host, FrameworkElement view)
+        {
+            if (!host.IsMaterialized)
+            {
+                _unbuiltMessages--;
+            }
+
             host.Fill(view);
         }
 
@@ -151,7 +170,6 @@ namespace Amarin.UI
                 return;
             }
 
-            _unbuiltMessages--;
             BuildInto(host);
         }
 
@@ -188,16 +206,18 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Приводит ленту в соответствие с чатом, из которого убрали сообщения, не трогая
-        /// остальные.
+        /// Приводит ленту в соответствие с чатом: снимает пузыри убранных сообщений и дописывает
+        /// хвост, не трогая остальные.
         /// </summary>
         /// <param name="refreshId">Сообщение, изменённое на месте, — его пузырь пересобирается.</param>
         /// <remarks>
         /// Правка, удаление и перегенерация раньше звали <c>RenderSession</c>: лента строилась
         /// заново, лупа сбрасывалась, а человек, читавший середину переписки, оказывался в
         /// другом месте. Все три только вырезают сообщения (правка ещё и меняет текст одного),
-        /// поэтому достаточно снять лишние хосты. Если расхождение оказалось не удалением —
-        /// строим заново, но с сохранённой лупой.
+        /// поэтому достаточно снять лишние хосты. Варианты ответа ещё и меняют хвост: вместо
+        /// спрятанного продолжения встаёт другое, — его хосты дописываются в конец. Если
+        /// расхождение другое (сообщение переехало в середине) — строим заново, но с
+        /// сохранённой лупой.
         /// </remarks>
         private void ReconcileTranscript(string? refreshId)
         {
@@ -217,12 +237,6 @@ namespace Amarin.UI
                 }
 
                 kept++;
-            }
-
-            if (kept != _session.Messages.Count)
-            {
-                RebuildTranscript(resetZoom: false);
-                return;
             }
 
             for (var i = _messageHosts.Count - 1; i >= 0; i--)
@@ -249,8 +263,25 @@ namespace Amarin.UI
                 _messageHosts.RemoveAt(i);
             }
 
+            // Хвост, которого в ленте ещё нет: показанный вариант после переключения или новый
+            // якорь после развилки. Строится по мере надобности, как при открытии чата.
+            if (kept < _session.Messages.Count)
+            {
+                var actions = CreateMessageActions(_session);
+                for (var i = kept; i < _session.Messages.Count; i++)
+                {
+                    AddMessageHost(_session.Messages[i], actions);
+                }
+            }
+
             RefreshMessageView(refreshId);
             UpdateAttachmentWarning();
+
+            // Подпись источника у прикреплённой цитаты («из последнего ответа», «удалён») могла
+            // стать неправдой: ответ, на который она ссылалась, убрали или спрятали в вариант.
+            // Плашка «Ответить» держала выделение в пузыре, которого, возможно, уже нет.
+            RefreshQuoteRows();
+            HideReplyPill();
             MaybeAutoscroll();
             MaterializeAroundViewport();
             ScheduleBackgroundFill();
@@ -265,12 +296,12 @@ namespace Amarin.UI
             var message = host.Message;
             if (message.Role == "user")
             {
-                host.Fill(ChatMessageViews.CreateUser(this, message, host.Actions).Root);
+                FillHost(host, ChatMessageViews.CreateUser(this, message, host.Actions).Root);
                 return;
             }
 
             var view = ChatMessageViews.CreateAssistant(this, message, host.Actions, ActiveDateFormat);
-            host.Fill(view.Root);
+            FillHost(host, view.Root);
 
             // Вернулись в чат, который ещё отвечает, — подхватываем его вьюшку заново.
             var live = FindTurn(_session.Id);
@@ -342,9 +373,9 @@ namespace Amarin.UI
         {
             _fillScheduled = false;
 
+            var built = 0;
             MaterializeAnchored(() =>
             {
-                var built = 0;
                 for (var i = _messageHosts.Count - 1; i >= 0 && built < BackgroundFillChunk; i--)
                 {
                     if (_messageHosts[i].IsMaterialized)
@@ -358,6 +389,13 @@ namespace Amarin.UI
 
                 return built;
             });
+
+            // Страховка от расхождения счётчика с лентой: строить было нечего, а счётчик говорит
+            // обратное, — сверяемся с лентой, а не заводим пустой заход снова.
+            if (built == 0)
+            {
+                _unbuiltMessages = _messageHosts.Count(host => !host.IsMaterialized);
+            }
 
             ScheduleBackgroundFill();
         }

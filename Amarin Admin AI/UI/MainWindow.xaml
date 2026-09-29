@@ -4520,6 +4520,60 @@
             </Viewbox>
         </Grid>
 
+        <!-- ═══════════ УВЕДОМЛЕНИЕ ═══════════ -->
+        <!--
+            Общее окно «сообщить или переспросить» вместо системного MessageBox: тот рисовался
+            чужим стилем и в системном масштабе (UiScale подменяет DPI только нашему окну).
+            ZIndex выше прочих диалогов: его зовут и из настроек, и поверх других окон.
+        -->
+        <Grid x:Name="NoticeOverlay" Visibility="Collapsed" Panel.ZIndex="46">
+            <Border Background="{DynamicResource Overlay.Scrim}">
+                <Button Opacity="0" Focusable="False" Click="NoticeSecondaryButton_Click"/>
+            </Border>
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+                <Border x:Name="NoticeCard" Width="420" MaxHeight="520"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                    <!-- Grid, а не StackPanel: длинный текст уходит в прокрутку, кнопки остаются. -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Margin="0,0,0,6">
+                            <Ellipse x:Name="NoticeMark" DockPanel.Dock="Left" Width="7" Height="7"
+                                     VerticalAlignment="Center" Margin="0,0,8,0"
+                                     Fill="{DynamicResource Status.Warning}"/>
+                            <TextBlock x:Name="NoticeTitle" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Primary}" TextWrapping="Wrap"/>
+                        </DockPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      Margin="0,0,-8,0" Padding="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock x:Name="NoticeText" FontSize="12.5"
+                                           Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
+                                <!-- Своё содержимое вопроса: галочка, поле для слова-подтверждения. -->
+                                <ContentControl x:Name="NoticeExtra" Focusable="False" Margin="0,12,0,0"
+                                                Visibility="Collapsed"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                                    Margin="0,16,0,0">
+                            <Button x:Name="NoticeSecondaryButton" Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="NoticeSecondaryButton_Click"/>
+                            <Button x:Name="NoticePrimaryButton" Style="{StaticResource DialogPrimaryButton}"
+                                    Click="NoticePrimaryButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Viewbox>
+        </Grid>
+
         <!-- ═══════════ ЗАГОТОВКА ПРОМПТА ═══════════ -->
         <!--
             Оверлеем, а не отдельным окном: UiScale подменяет DPI одному HWND, и второе окно

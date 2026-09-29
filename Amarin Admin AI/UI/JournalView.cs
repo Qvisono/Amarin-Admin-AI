@@ -95,6 +95,13 @@ internal static class JournalView
             trailer = trailer.Length == 0 ? chat : trailer + "  ·  " + chat;
         }
 
+        // Иначе человек открыл бы чат и не нашёл там вызова: он в спрятанном варианте ответа.
+        if (entry.InHiddenVariant)
+        {
+            var hidden = Loc.Get("S.Journal.HiddenVariant");
+            trailer = trailer.Length == 0 ? hidden : trailer + "  ·  " + hidden;
+        }
+
         return new JournalRow
         {
             Glyph = pending ? "⋯" : failure ? "✕" : "✓",
@@ -240,6 +247,11 @@ internal static class JournalView
         if (entry.TimeIsApproximate)
         {
             parts.Add(Loc.Get("S.Journal.TimeApproximate"));
+        }
+
+        if (entry.InHiddenVariant)
+        {
+            parts.Add(Loc.Get("S.Journal.HiddenVariant"));
         }
 
         return string.Join("  ·  ", parts);

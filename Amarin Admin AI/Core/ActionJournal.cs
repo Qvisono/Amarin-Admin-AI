@@ -20,6 +20,12 @@ public sealed record JournalEntry(
 {
     /// <summary>True when the time came from the owning message rather than the call itself.</summary>
     public bool TimeIsApproximate { get; init; }
+
+    /// <summary>
+    /// Вызов из спрятанного варианта ответа: на экране чата его сейчас не видно, но на машине он
+    /// был — поэтому в журнале он есть, с пометкой.
+    /// </summary>
+    public bool InHiddenVariant { get; init; }
 }
 
 /// <summary>
@@ -75,13 +81,16 @@ internal static class ActionJournal
     private static void Collect(ChatSession session, List<JournalEntry> entries)
     {
         var title = session.Title;
-        foreach (var message in session.Messages)
+
+        // Перегенерация прячет прежний ответ в вариант, а не стирает: то, что он сделал на
+        // машине, из журнала пропасть не должно.
+        foreach (var (message, hidden) in ChatBranches.AllWithVisibility(session))
         {
             foreach (var round in message.ToolRounds)
             {
                 foreach (var call in round.Calls)
                 {
-                    Collect(session.Id, title, message, call, agentName: null, entries);
+                    Collect(session.Id, title, message, call, agentName: null, hidden, entries);
                 }
             }
         }
@@ -93,6 +102,7 @@ internal static class ActionJournal
         ChatDisplayMessage message,
         ToolCallRecord call,
         string? agentName,
+        bool hidden,
         List<JournalEntry> entries)
     {
         // Calls recorded before the field existed have no clock of their own. The message they
@@ -111,7 +121,8 @@ internal static class ActionJournal
             call.Status,
             agentName)
         {
-            TimeIsApproximate = approximate
+            TimeIsApproximate = approximate,
+            InHiddenVariant = hidden
         });
 
         if (call.NestedAgent is not { } agent)
@@ -126,7 +137,7 @@ internal static class ActionJournal
         {
             foreach (var nested in round.Calls)
             {
-                Collect(chatId, chatTitle, message, nested, name, entries);
+                Collect(chatId, chatTitle, message, nested, name, hidden, entries);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using Amarin.Tools;
 
@@ -386,13 +386,18 @@ internal sealed partial class ChatEngine
     /// chat model whether it wants to call <c>init_agent</c>, then still runs one ordinary chat
     /// completion so the user gets the usual written report over the agent's result.
     /// </summary>
+    /// <param name="placed">
+    /// Сообщение человека, уже поставленное в ленту и историю, — якорь правки
+    /// (<see cref="ChatBranches.Fork"/>). Null — команду только что отправили.
+    /// </param>
     public async Task RunAgentCommandAsync(
         ChatSession session,
         string displayText,
         string prompt,
         string complexity,
         IChatTurnObserver observer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ChatDisplayMessage? placed = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(observer);
@@ -403,22 +408,21 @@ internal sealed partial class ChatEngine
         }
 
         var now = DateTime.Now;
-        var user = new ChatDisplayMessage
+        if (placed is null)
         {
-            Role = "user",
-            Id = Guid.NewGuid().ToString("N"),
-            CreatedAt = now,
-            Text = displayText.Trim()
-        };
-        session.Messages.Add(user);
-        // The model sees the task, not the slash syntax — it only has to write the report.
-        session.ApiMessages.Add(new ChatMessage
-        {
-            Role = "user",
-            Content = ChatContent.Text(prompt)
-        });
-        session.UpdatedAt = now;
-        observer.OnUserAppended(user);
+            var user = new ChatDisplayMessage
+            {
+                Role = "user",
+                Id = Guid.NewGuid().ToString("N"),
+                CreatedAt = now,
+                Text = displayText.Trim()
+            };
+            session.Messages.Add(user);
+            // The model sees the task, not the slash syntax — it only has to write the report.
+            session.ApiMessages.Add(AgentCommandTurn(prompt));
+            session.UpdatedAt = now;
+            observer.OnUserAppended(user);
+        }
 
         var requested = ReadSelectedModel(session);
 
@@ -546,10 +550,31 @@ internal sealed partial class ChatEngine
         }
     }
 
+    /// <summary>
+    /// Есть ли на что отвечать: текст или вложения. Сообщение из одних вложений — тоже просьба.
+    /// </summary>
+    /// <remarks>
+    /// Перегенерация проверяет это до развилки: <see cref="GenerateAssistantAsync"/> на пустом
+    /// вопросе выходит молча, и спрятанный ответ остался бы без нового на своём месте.
+    /// </remarks>
+    internal static bool IsRequest([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] ChatDisplayMessage? user) =>
+        user is not null &&
+        (!string.IsNullOrWhiteSpace(user.Text) || user.Images.Count > 0 || user.Files.Count > 0);
+
+    /// <summary>Запись истории под команду <c>/agent</c>: модель видит задачу, а не синтаксис команды.</summary>
+    internal static ChatMessage AgentCommandTurn(string prompt) =>
+        new() { Role = "user", Content = ChatContent.Text(prompt) };
+
+    /// <param name="into">
+    /// Ответ, уже стоящий в ленте, — якорь нового варианта после перегенерации
+    /// (<see cref="ChatBranches.Fork"/>). Движок дописывает в него, как «Продолжить» дописывает в
+    /// прерванный, а не ставит второй пузырь. Null — обычный новый ответ.
+    /// </param>
     public async Task GenerateAssistantAsync(
         ChatSession session,
         IChatTurnObserver observer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ChatDisplayMessage? into = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(observer);
@@ -558,8 +583,7 @@ internal sealed partial class ChatEngine
         var text = lastUser?.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(text))
         {
-            // An attachment-only turn has no text but is still a real request.
-            if (lastUser is null || (lastUser.Images.Count == 0 && lastUser.Files.Count == 0))
+            if (!IsRequest(lastUser))
             {
                 return;
             }
@@ -582,17 +606,21 @@ internal sealed partial class ChatEngine
             Reasoning = session.Reasoning
         };
 
-        var assistant = new ChatDisplayMessage
+        var assistant = into ?? new ChatDisplayMessage
         {
             Role = "assistant",
             Id = Guid.NewGuid().ToString("N"),
-            CreatedAt = now,
-            RequestedModelId = requested,
-            ResolvedModelId = requested,
-            Status = AssistantStatus.Streaming,
-            Text = ""
+            CreatedAt = now
         };
-        session.Messages.Add(assistant);
+        assistant.RequestedModelId = requested;
+        assistant.ResolvedModelId = requested;
+        assistant.Status = AssistantStatus.Streaming;
+        assistant.Text = "";
+        if (into is null)
+        {
+            session.Messages.Add(assistant);
+        }
+
         observer.OnAssistantStarted(assistant);
 
         await RunAssistantAsync(session, assistant, text, observer, turn, resumed: false, cancellationToken)
@@ -605,8 +633,8 @@ internal sealed partial class ChatEngine
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Отличие от «Повторить»: та через <c>ChatSessionEdit.TruncateFromMessage</c> выбрасывает
-    /// весь ход вместе с работой инструментов, и за уже сделанное человек платит второй раз.
+    /// Отличие от «Повторить»: та прячет ход в вариант (<see cref="ChatBranches.Fork"/>) и
+    /// начинает ответ заново, и за уже сделанную работу инструментов человек платит второй раз.
     /// Здесь не выбрасывается ничего: после обрыва в <c>ApiMessages</c> остаются и вызовы
     /// инструментов, и все ответы на них (отмену раунд превращает в обычный неуспешный
     /// результат), поэтому продолжать можно прямо с этого места.

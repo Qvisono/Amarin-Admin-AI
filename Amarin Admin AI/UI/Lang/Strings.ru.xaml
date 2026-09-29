@@ -284,6 +284,7 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
+    <system:String x:Key="S.Journal.HiddenVariant" xml:space="preserve">в другом варианте ответа</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">Это точка восстановления Windows, а не снимок программы. Вернуться к ней — значит откатить системные файлы, драйверы и реестр целиком; делает это мастер «Восстановление системы», и после него компьютер перезагрузится.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Точка восстановления Windows №{0}</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Точка восстановления Windows. Вернуться к ней можно только мастером «Восстановление системы».</system:String>
@@ -302,6 +303,12 @@
     <system:String x:Key="S.Journal.Rollback.Planning" xml:space="preserve">Сравниваю со снимком…</system:String>
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Откатить…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
+    <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
+    <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
+    <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
+    <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">Команда /agent</system:String>
+    <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">Нужен ключ API</system:String>
+    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Открыть Key &amp; Info</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">из последнего ответа</system:String>
     <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">из ответа от {0}</system:String>
@@ -832,7 +839,7 @@
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">Команда /agent не принимает цитаты.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
-    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Не задан API-ключ Venice.ai.&#10;Задайте переменную окружения VENICE_API_KEY.</system:String>
+    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Нет ключа API — добавьте ключ Venice или OpenRouter на странице Key &amp; Info</system:String>
 
     <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
     <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
@@ -907,6 +914,9 @@
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Обновить с правами</system:String>
     <system:String x:Key="S.Updates.WaitForTurns" xml:space="preserve">Дождитесь окончания ответов - программа перезапустится.</system:String>
 
+    <system:String x:Key="S.Variant.Busy" xml:space="preserve">Варианты можно листать, когда чат закончит отвечать.</system:String>
+    <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Вместе с ним удалится и вся переписка, которая его продолжала. Остальные варианты останутся — на экране окажется соседний.</system:String>
+    <system:String x:Key="S.Variant.DeleteTitle" xml:space="preserve">Удалить этот вариант?</system:String>
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель - эта убрана из списка до перезапуска.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>

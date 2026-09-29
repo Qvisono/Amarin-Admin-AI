@@ -80,7 +80,7 @@ internal static class ChatSessionEdit
             var from = starts[turnOrdinal];
             var to = turnOrdinal + 1 < starts.Count ? starts[turnOrdinal + 1] : session.ApiMessages.Count;
             session.ApiMessages.RemoveRange(from, to - from);
-            RewrapOrphanedQuotes(session);
+            RewrapQuotes(session);
         }
 
         session.UpdatedAt = DateTime.Now;
@@ -97,7 +97,7 @@ internal static class ChatSessionEdit
     /// Вложения при пересборке не теряются — в хранимой истории они лежат целиком, выбрасывает
     /// их <see cref="ApiContextLimiter"/> лишь из отправляемой копии.
     /// </remarks>
-    private static void RewrapOrphanedQuotes(ChatSession session)
+    internal static void RewrapQuotes(ChatSession session)
     {
         var starts = ApiTurnStarts(session);
         var ordinal = 0;
