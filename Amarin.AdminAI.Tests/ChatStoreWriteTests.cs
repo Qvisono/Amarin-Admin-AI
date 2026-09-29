@@ -13,6 +13,45 @@ namespace Amarin.AdminAI.Tests;
 public sealed class ChatStoreWriteTests
 {
     [Fact]
+    public void Two_threads_saving_one_file_at_once_do_not_collide()
+    {
+        // Общий временный «settings.json.tmp» сталкивал привязку служб окна с фоновым переносом
+        // трат: второй писатель получал IOException, и тест на раннере оставлял после себя
+        // открытое окно — за ним валились три сотни соседних.
+        var root = Path.Combine(Path.GetTempPath(), "amarin-atomic-" + Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(root, "settings.json");
+        try
+        {
+            var errors = 0;
+            Parallel.For(0, 200, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+            {
+                try
+                {
+                    AppDataFile.WriteAtomic(path, $"{{\"n\":{i}}}");
+                }
+                catch (IOException)
+                {
+                    Interlocked.Increment(ref errors);
+                }
+            });
+
+            Assert.Equal(0, errors);
+            Assert.StartsWith("{\"n\":", File.ReadAllText(path), StringComparison.Ordinal);
+            Assert.Empty(Directory.GetFiles(root, "*.tmp"));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    [Fact]
     public async Task A_chat_being_written_right_now_is_still_found()
     {
         // Фоновая запись снимает чат с очереди раньше, чем кладёт его на диск. В это окно
