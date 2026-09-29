@@ -17,7 +17,8 @@ public sealed class ChatStoreWriteTests
     {
         // Общий временный «settings.json.tmp» сталкивал привязку служб окна с фоновым переносом
         // трат: второй писатель получал IOException, и тест на раннере оставлял после себя
-        // открытое окно — за ним валились три сотни соседних.
+        // открытое окно — за ним валились три сотни соседних. А два одновременных
+        // переименования в один файл Windows отвергает как «доступ запрещён».
         var root = Path.Combine(Path.GetTempPath(), "amarin-atomic-" + Guid.NewGuid().ToString("N"));
         var path = Path.Combine(root, "settings.json");
         try
@@ -29,7 +30,7 @@ public sealed class ChatStoreWriteTests
                 {
                     AppDataFile.WriteAtomic(path, $"{{\"n\":{i}}}");
                 }
-                catch (IOException)
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
                     Interlocked.Increment(ref errors);
                 }

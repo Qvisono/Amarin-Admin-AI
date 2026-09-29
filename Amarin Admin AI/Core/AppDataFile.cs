@@ -1,9 +1,16 @@
+using System.Collections.Concurrent;
 using System.Text;
 
 namespace Amarin.Core;
 
 internal static class AppDataFile
 {
+    /// <summary>Замок на каждый путь: писатели одного файла в этом процессе идут по очереди.</summary>
+    private static readonly ConcurrentDictionary<string, object> Locks = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Сколько раз повторить подмену, если файл на миг занят чужим процессом.</summary>
+    private const int MoveAttempts = 5;
+
     /// <summary>Текст в UTF-8 с BOM — так, как его всегда писал <c>File.WriteAllText</c>.</summary>
     public static void WriteAtomic(string path, string contents)
     {
@@ -20,29 +27,58 @@ internal static class AppDataFile
     /// Пишет файл целиком или не пишет вовсе: сначала во временный рядом, потом переименованием.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Временный файл у каждой записи свой. Общий «имя.tmp» сталкивал два потока, сохраняющих
     /// один файл одновременно (привязка служб окна и фоновый перенос трат оба пишут
     /// settings.json): второй получал IOException «файл занят другим процессом», и сохранение
-    /// падало. Теперь побеждает последний, как и положено при записи целиком.
+    /// падало.
+    /// </para>
+    /// <para>
+    /// Своих временных файлов мало: Windows не даёт двум переименованиям одновременно заменить
+    /// один и тот же файл и отвечает второму «доступ запрещён». Поэтому писатели одного пути
+    /// в этом процессе ещё и встают в очередь, а подмена повторяется несколько раз — на случай,
+    /// когда файл на миг открыл чужой процесс (антивирус, индексатор). Побеждает последний.
+    /// </para>
     /// </remarks>
     public static void WriteAtomicBytes(string path, byte[] contents)
     {
-        var directory = Path.GetDirectoryName(path);
+        var full = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(full);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+        var temp = $"{full}.{Guid.NewGuid():N}.tmp";
         try
         {
             File.WriteAllBytes(temp, contents);
-            File.Move(temp, path, overwrite: true);
+            lock (Locks.GetOrAdd(full, _ => new object()))
+            {
+                MoveWithRetry(temp, full);
+            }
         }
         catch
         {
             TryDelete(temp);
             throw;
+        }
+    }
+
+    private static void MoveWithRetry(string temp, string path)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(temp, path, overwrite: true);
+                return;
+            }
+            catch (Exception ex) when (attempt < MoveAttempts &&
+                                       ex is IOException or UnauthorizedAccessException)
+            {
+                Thread.Sleep(20 * attempt);
+            }
         }
     }
 
