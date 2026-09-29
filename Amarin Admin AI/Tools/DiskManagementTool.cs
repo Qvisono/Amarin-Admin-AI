@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -10,6 +10,9 @@ namespace Amarin.Tools;
 [SupportedOSPlatform("windows")]
 public sealed class DiskManagementTool : ITool
 {
+    /// <summary>Сколько ждать chkdsk: на большом томе он идёт дольше десяти минут.</summary>
+    internal const int ChkdskSeconds = 3600;
+
     private static readonly Regex DriveLetterPattern = new(@"^[A-Za-z]$", RegexOptions.Compiled);
 
     public string Name => "disk_management";
@@ -66,8 +69,11 @@ public sealed class DiskManagementTool : ITool
                 "list_disks" => Task.FromResult(PowerShellHelper.Run(ListDisksScript(), 120, maxOutput: 4000)),
                 "list_volumes" => Task.FromResult(PowerShellHelper.Run(ListVolumesScript(), 120, maxOutput: 4000)),
                 "smart_status" => Task.FromResult(PowerShellHelper.Run(SmartStatusScript(), 180, maxOutput: 4000)),
-                "chkdsk_scan" => Task.FromResult(PowerShellHelper.Run(ChkdskScanScript(drive!), 600, maxOutput: 4000)),
-                "chkdsk_fix" => Task.FromResult(PowerShellHelper.Run(ChkdskFixScript(drive!), 600, maxOutput: 4000)),
+                // Долгие операции: проверка большого тома упиралась в общий потолок в 10 минут.
+                "chkdsk_scan" => PowerShellHelper.RunLongAsync(
+                    ChkdskScanScript(drive!), ChkdskSeconds, cancellationToken, maxOutput: 4000),
+                "chkdsk_fix" => PowerShellHelper.RunLongAsync(
+                    ChkdskFixScript(drive!), ChkdskSeconds, cancellationToken, maxOutput: 4000),
                 "bitlocker_status" => Task.FromResult(PowerShellHelper.Run(BitLockerStatusScript(drive), 120, maxOutput: 4000)),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };

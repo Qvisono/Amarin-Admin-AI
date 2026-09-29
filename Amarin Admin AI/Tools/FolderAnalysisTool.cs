@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 
@@ -54,7 +54,18 @@ public sealed class FolderAnalysisTool : ITool
                 return Task.FromResult(ToolResult.Fail("Missing required parameter: path"));
             }
 
-            var path = Path.GetFullPath(pathProp.GetString()!);
+            // Через PathResolver, как у остальных файловых инструментов: «~», «desktop» и
+            // переменные окружения иначе понимались как имя папки рядом с программой.
+            if (!PathResolver.TryResolve(pathProp.GetString(), out var path, out var pathError))
+            {
+                return Task.FromResult(ToolResult.Fail(pathError!));
+            }
+
+            if (SensitivePaths.IsSensitive(path, out var secret))
+            {
+                return Task.FromResult(ToolResult.Fail(secret));
+            }
+
             if (!Directory.Exists(path))
             {
                 return Task.FromResult(ToolResult.Fail($"Папка не найдена: {path}"));
@@ -151,7 +162,7 @@ public sealed class FolderAnalysisTool : ITool
             var name = Path.GetFileName(dir);
             sb.AppendLine($"{indent}[DIR]  {name}\\");
 
-            if (depth < maxDepth)
+            if (depth < maxDepth && !SensitivePaths.IsSensitive(dir, out _))
             {
                 WalkDirectory(root, dir, depth + 1, maxDepth, sb, ref entriesListed, images, maxImages,
                     ref textFilesRead, maxTextFiles);
@@ -168,6 +179,14 @@ public sealed class FolderAnalysisTool : ITool
 
             var info = new FileInfo(file);
             var name = Path.GetFileName(file);
+
+            // Имя видно, содержимое — нет: пароль или ключ в пересказе модели — уже утечка.
+            if (SensitivePaths.IsSensitive(file, out _))
+            {
+                sb.AppendLine($"{indent}[FILE] {name} (содержимое скрыто: файл с секретами)");
+                continue;
+            }
+
             sb.AppendLine($"{indent}[FILE] {name} ({FormatSize(info.Length)})");
 
             if (images.Count < maxImages && ImageHelpers.IsImageFile(file))

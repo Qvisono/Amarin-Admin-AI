@@ -1,18 +1,35 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 
 namespace Amarin.Tools;
 
 internal static class PowerShellProcessRunner
 {
+    /// <summary>Потолок обычного вызова PowerShell.</summary>
+    internal const int DefaultMaxSeconds = 600;
+
+    /// <summary>
+    /// Потолок долгих системных операций: DISM, SFC, chkdsk.
+    /// </summary>
+    /// <remarks>
+    /// Общий потолок в десять минут молча урезал их: <c>system_repair</c> просил для DISM
+    /// 900 секунд, а получал 600, и восстановление образа обрывалось на середине.
+    /// </remarks>
+    internal const int LongOperationMaxSeconds = 7200;
+
+    /// <summary>Сколько на самом деле ждать при запрошенном <paramref name="requested"/>.</summary>
+    internal static int EffectiveTimeout(int requested, bool longOperation) =>
+        Math.Clamp(requested, 5, longOperation ? LongOperationMaxSeconds : DefaultMaxSeconds);
+
     public static async Task<ToolResult> RunAsync(
         string command,
         int timeoutSeconds,
         CancellationToken cancellationToken,
         int maxStdout = 32_000,
-        int maxStderr = 16_000)
+        int maxStderr = 16_000,
+        bool longOperation = false)
     {
-        timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
+        timeoutSeconds = EffectiveTimeout(timeoutSeconds, longOperation);
         // Caller may already wrap; PowerShellHelper.RunAsync wraps before calling here.
         var encoded = PowerShellHelper.EncodeUtf16Base64(command);
 

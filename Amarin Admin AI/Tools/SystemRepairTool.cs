@@ -1,4 +1,4 @@
-using System.Runtime.Versioning;
+﻿using System.Runtime.Versioning;
 using System.Text.Json;
 
 namespace Amarin.Tools;
@@ -32,16 +32,30 @@ public sealed class SystemRepairTool : ITool
             return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
         }
 
-        var action = actionProp.GetString()?.ToLowerInvariant();
+        var action = actionProp.GetString()?.Trim().ToLowerInvariant();
         return action switch
         {
             "status_sfc" => Task.FromResult(RunStatusSfc()),
-            "status_dism" => Task.FromResult(RunStatusDism()),
-            "run_sfc" => Task.FromResult(RunSfc()),
-            "run_dism" => Task.FromResult(RunDism()),
+            "status_dism" => PowerShellHelper.RunLongAsync(
+                "DISM /Online /Cleanup-Image /CheckHealth 2>&1", StatusDismSeconds, cancellationToken),
+            "run_sfc" => PowerShellHelper.RunLongAsync("sfc /scannow 2>&1", SfcSeconds, cancellationToken),
+            "run_dism" => PowerShellHelper.RunLongAsync(
+                "DISM /Online /Cleanup-Image /RestoreHealth 2>&1", DismSeconds, cancellationToken),
             _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
         };
     }
+
+    /// <summary>
+    /// Сколько ждать DISM /RestoreHealth. Предположение, а не замер: на медленном диске и при
+    /// скачивании компонентов из Центра обновления он идёт дольше получаса, а оборванный на
+    /// середине восстановление не доводит.
+    /// </summary>
+    internal const int DismSeconds = 3600;
+
+    /// <summary>Сколько ждать SFC /scannow: десяти минут ему часто не хватает.</summary>
+    internal const int SfcSeconds = 1800;
+
+    private const int StatusDismSeconds = 300;
 
     private static ToolResult RunStatusSfc()
     {
@@ -58,20 +72,5 @@ public sealed class SystemRepairTool : ITool
             """;
 
         return PowerShellHelper.Run(script, 60);
-    }
-
-    private static ToolResult RunStatusDism()
-    {
-        return PowerShellHelper.Run("DISM /Online /Cleanup-Image /CheckHealth 2>&1", 300);
-    }
-
-    private static ToolResult RunSfc()
-    {
-        return PowerShellHelper.Run("sfc /scannow 2>&1", 600);
-    }
-
-    private static ToolResult RunDism()
-    {
-        return PowerShellHelper.Run("DISM /Online /Cleanup-Image /RestoreHealth 2>&1", 900);
     }
 }

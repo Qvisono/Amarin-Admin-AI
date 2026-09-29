@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
 
@@ -52,13 +52,18 @@ public sealed class RegistryTool : ITool
                 return Task.FromResult(ToolResult.Fail("Missing required parameters: action, path"));
             }
 
-            var action = actionProp.GetString()?.ToLowerInvariant();
+            var action = actionProp.GetString()?.Trim().ToLowerInvariant();
             var path = pathProp.GetString() ?? string.Empty;
 
             if (!TryParseHive(path, out var hive, out var subKey))
             {
                 return Task.FromResult(ToolResult.Fail(
                     $"Invalid registry path. Use HKLM\\..., HKCU\\..., etc. Got: {path}"));
+            }
+
+            if (ReferenceEquals(hive, Registry.LocalMachine) && SensitivePaths.IsSecretHive(subKey))
+            {
+                return Task.FromResult(ToolResult.Fail(SensitivePaths.SecretHiveRefusal));
             }
 
             arguments.TryGetProperty("value_name", out var valueNameProp);

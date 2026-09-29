@@ -1,5 +1,4 @@
-using System.Diagnostics;
-using System.ServiceProcess;
+﻿using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32;
@@ -200,11 +199,8 @@ internal static class ChangeRollbackStore
                 continue;
             }
 
-            var action = task.State.Equals("Disabled", StringComparison.OrdinalIgnoreCase)
-                ? "/disable"
-                : "/enable";
-
-            var result = RunNative("schtasks.exe", $"{action} /tn \"{fullName}\"", 60);
+            var disable = task.State.Equals("Disabled", StringComparison.OrdinalIgnoreCase);
+            var result = NativeProcess.Run("schtasks.exe", TaskToggleArguments(fullName, disable), 60);
             if (result.Success)
             {
                 ok++;
@@ -394,11 +390,22 @@ internal static class ChangeRollbackStore
         return start < 0 ? string.Empty : text[start..].TrimEnd();
     }
 
+    /// <summary>
+    /// Аргументы schtasks, включающие или выключающие задачу.
+    /// </summary>
+    /// <remarks>
+    /// <c>/enable</c> и <c>/disable</c> — ключи команды <c>/change</c>, а не команды сами по
+    /// себе: прежняя строка <c>schtasks /enable /tn …</c> отвергалась schtasks как неверный
+    /// синтаксис, и откат задач планировщика не срабатывал ни разу.
+    /// </remarks>
+    internal static IReadOnlyList<string> TaskToggleArguments(string fullName, bool disable) =>
+        ["/change", "/tn", fullName, disable ? "/disable" : "/enable"];
+
     internal static ToolResult ExportRegistryKey(string regPath, string outFile) =>
-        RunNative("reg.exe", $"export \"{regPath}\" \"{outFile}\" /y", 120);
+        NativeProcess.Run("reg.exe", ["export", regPath, outFile, "/y"], 120);
 
     internal static ToolResult ImportRegistryFile(string regFile) =>
-        RunNative("reg.exe", $"import \"{regFile}\"", 120);
+        NativeProcess.Run("reg.exe", ["import", regFile], 120);
 
     private static bool TrySetServiceStartType(string serviceName, ServiceStartMode mode, out string? error)
     {
@@ -431,55 +438,6 @@ internal static class ChangeRollbackStore
         {
             error = ex.Message;
             return false;
-        }
-    }
-
-    private static ToolResult RunNative(string fileName, string arguments, int timeoutSeconds)
-    {
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            Arguments = arguments,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        try
-        {
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                return ToolResult.Fail($"Не удалось запустить {fileName}.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync();
-            var stderrTask = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(TimeSpan.FromSeconds(timeoutSeconds)))
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    // Процесс мог завершиться сам между проверкой таймаута и Kill.
-                }
-
-                return ToolResult.Fail($"{fileName} timed out after {timeoutSeconds} seconds.");
-            }
-
-            var stdout = stdoutTask.GetAwaiter().GetResult();
-            var stderr = stderrTask.GetAwaiter().GetResult();
-            var output = string.IsNullOrWhiteSpace(stdout) ? stderr : stdout;
-            return process.ExitCode == 0
-                ? ToolResult.Ok(output)
-                : ToolResult.Fail(string.IsNullOrWhiteSpace(output) ? $"{fileName} exit {process.ExitCode}" : output);
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Fail($"{fileName}: {ex.Message}");
         }
     }
 

@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -35,9 +35,29 @@ internal static partial class PowerShellHelper
             maxOutput,
             maxOutput / 2);
 
+    /// <summary>
+    /// Долгая системная операция (DISM, SFC, chkdsk): свой потолок времени и отмена вместе с ходом.
+    /// </summary>
+    /// <remarks>
+    /// Асинхронно и с токеном, в отличие от <see cref="Run"/>: синхронный вызов отмену хода не
+    /// слышал, и остановленный человеком ход продолжал ждать DISM до конца.
+    /// </remarks>
+    public static Task<ToolResult> RunLongAsync(
+        string script,
+        int timeoutSeconds,
+        CancellationToken cancellationToken,
+        int maxOutput = 48_000) =>
+        PowerShellProcessRunner.RunAsync(
+            WrapScript(script),
+            timeoutSeconds,
+            cancellationToken,
+            maxOutput,
+            maxOutput / 2,
+            longOperation: true);
+
     public static ToolResult Run(string script, int timeoutSeconds = 120, int maxOutput = 48_000)
     {
-        timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
+        timeoutSeconds = PowerShellProcessRunner.EffectiveTimeout(timeoutSeconds, longOperation: false);
         var encoded = EncodeUtf16Base64(WrapScript(script));
 
         var psi = new ProcessStartInfo

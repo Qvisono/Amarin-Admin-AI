@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace Amarin.Tools;
@@ -49,7 +49,7 @@ public sealed class FileSystemTool : ITool
                 return Task.FromResult(ToolResult.Fail("Missing required parameters: action, path"));
             }
 
-            var action = actionProp.GetString()?.ToLowerInvariant();
+            var action = actionProp.GetString()?.Trim().ToLowerInvariant();
 
             if (!PathResolver.TryResolve(pathProp.GetString(), out var path, out var pathError))
             {
@@ -66,6 +66,28 @@ public sealed class FileSystemTool : ITool
                 }
 
                 destination = resolvedDestination;
+            }
+
+            // Чтение, список и копирование секрета запрещены, куда бы ни вёл путь. Проверка
+            // сидит здесь, а не только в шлюзе: read_file и анализ папок зовут этот инструмент
+            // напрямую.
+            if (action is "read" or "list" or "copy" or "move" &&
+                SensitivePaths.IsSensitive(path, out var secret))
+            {
+                return Task.FromResult(ToolResult.Fail(secret));
+            }
+
+            // Второй рубеж после шлюза: в данные самой программы инструменты не пишут.
+            if (action is "write" or "copy" or "move" or "mkdir" &&
+                (action is "write" or "mkdir" ? path : destination) is { } target &&
+                SensitivePaths.IsProgramData(target))
+            {
+                return Task.FromResult(ToolResult.Fail(SensitivePaths.ProgramDataRefusal(target)));
+            }
+
+            if (action == "move" && SensitivePaths.IsProgramData(path))
+            {
+                return Task.FromResult(ToolResult.Fail(SensitivePaths.ProgramDataRefusal(path)));
             }
 
             return action switch
@@ -226,6 +248,12 @@ public sealed class FileSystemTool : ITool
         Directory.CreateDirectory(destination);
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
+            // Копия папки профиля браузера унесла бы пароли туда, где их уже можно прочитать.
+            if (SensitivePaths.IsSensitive(file, out _))
+            {
+                continue;
+            }
+
             var relative = Path.GetRelativePath(source, file);
             var target = Path.Combine(destination, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);

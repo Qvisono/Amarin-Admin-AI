@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
@@ -51,7 +51,7 @@ public sealed class ProcessTool : ITool
                 return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
             }
 
-            var action = actionProp.GetString()?.ToLowerInvariant();
+            var action = actionProp.GetString()?.Trim().ToLowerInvariant();
             arguments.TryGetProperty("filter", out var filterProp);
             var filter = filterProp.ValueKind == JsonValueKind.String ? filterProp.GetString() : null;
             var limit = GetInt(arguments, "limit", 30, 5, 100);
@@ -109,6 +109,13 @@ public sealed class ProcessTool : ITool
 
     private static ToolResult StopProcess(JsonElement arguments, bool force)
     {
+        // Второй рубеж: шлюз отклоняет такой вызов до вопроса, но инструмент не должен
+        // полагаться на то, что его всегда зовут через шлюз.
+        if (ProtectedSystemTargets.TryGetProcessBlock(arguments, out var blocked))
+        {
+            return ToolResult.Fail(blocked);
+        }
+
         Process? process = null;
 
         if (arguments.TryGetProperty("pid", out var pidProp) && pidProp.TryGetInt32(out var pid))

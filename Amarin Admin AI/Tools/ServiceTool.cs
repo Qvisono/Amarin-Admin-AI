@@ -1,4 +1,4 @@
-using System.ServiceProcess;
+﻿using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
 
@@ -41,11 +41,17 @@ public sealed class ServiceTool : ITool
                 return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
             }
 
-            var action = actionProp.GetString()?.ToLowerInvariant();
+            var action = actionProp.GetString()?.Trim().ToLowerInvariant();
             arguments.TryGetProperty("service_name", out var nameProp);
             var serviceName = nameProp.ValueKind == JsonValueKind.String ? nameProp.GetString() : null;
             arguments.TryGetProperty("filter", out var filterProp);
             var filter = filterProp.ValueKind == JsonValueKind.String ? filterProp.GetString() : null;
+
+            // Второй рубеж после шлюза — см. ProtectedSystemTargets.
+            if (ProtectedSystemTargets.TryGetServiceBlock(arguments, out var blocked))
+            {
+                return Task.FromResult(ToolResult.Fail(blocked));
+            }
 
             return action switch
             {
