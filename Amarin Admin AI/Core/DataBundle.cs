@@ -16,7 +16,10 @@ public enum DataCategory
     Profiles = 4,
     Appearance = 8,
     Languages = 16,
-    All = Chats | Settings | Profiles | Appearance | Languages
+
+    /// <summary>Журнал аудита. Импортом только дописывается — см. <c>DataBundleImporter.ApplyAudit</c>.</summary>
+    Audit = 32,
+    All = Chats | Settings | Profiles | Appearance | Languages | Audit
 }
 
 /// <summary>Что импорт делает с тем, что у человека уже есть.</summary>
@@ -174,7 +177,8 @@ public static class DataBundle
         DataCategory.Settings,
         DataCategory.Profiles,
         DataCategory.Appearance,
-        DataCategory.Languages
+        DataCategory.Languages,
+        DataCategory.Audit
     ];
 
     public static string LabelKeyOf(DataCategory category) => category switch
@@ -184,6 +188,7 @@ public static class DataBundle
         DataCategory.Profiles => "S.Bundle.Cat.Profiles",
         DataCategory.Appearance => "S.Bundle.Cat.Appearance",
         DataCategory.Languages => "S.Bundle.Cat.Languages",
+        DataCategory.Audit => "S.Bundle.Cat.Audit",
         _ => ""
     };
 
@@ -194,6 +199,7 @@ public static class DataBundle
         DataCategory.Profiles => "S.Bundle.Cat.ProfilesDesc",
         DataCategory.Appearance => "S.Bundle.Cat.AppearanceDesc",
         DataCategory.Languages => "S.Bundle.Cat.LanguagesDesc",
+        DataCategory.Audit => "S.Bundle.Cat.AuditDesc",
         _ => ""
     };
 
@@ -280,6 +286,7 @@ public static class DataBundle
             DataUsage.AppearanceKey => DataCategory.Appearance,
             DataUsage.ChatsKey => DataCategory.Chats,
             DataUsage.LanguagesKey => DataCategory.Languages,
+            DataUsage.AuditKey => DataCategory.Audit,
 
             // shared/ — свалка уже сделанных экспортов, handoff/ — записка от второго запуска,
             // всё незнакомое — тем более мимо. Чего нет ни в одной категории, того нет в архиве,

@@ -137,7 +137,8 @@ internal sealed class AgentHost : IAgentHost
             {
                 SessionMode = SessionMode.Isolated,
                 Guard = guard,
-                Settings = _settings
+                Settings = _settings,
+                AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label)
             };
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
@@ -322,6 +323,7 @@ internal sealed class AgentHost : IAgentHost
             Keys = source.Keys,
             Binding = source.Keys?.CredentialFor(model, keyId),
             SpendSink = source.SpendSink,
+            Audit = source.Audit,
             BaseUrl = source.BaseUrl,
             Model = model,
             MaxToolRounds = source.MaxToolRounds,

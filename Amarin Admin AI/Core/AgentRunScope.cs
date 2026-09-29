@@ -14,6 +14,9 @@ internal sealed class AgentRunContext
     /// </summary>
     public string? SessionId { get; init; }
 
+    /// <summary>Заголовок этого чата на момент вызова — для журнала аудита.</summary>
+    public string? ChatTitle { get; init; }
+
     /// <summary>
     /// Уровень агента, названный человеком словом (<c>/agent-fast</c> и соседние команды).
     /// </summary>

@@ -250,14 +250,33 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     /// Вызовы раунда, помеченные защитником: которые человек не разрешил и которые разрешил.
     /// Оба множества пусты, когда защита выключена или ничего не помечено.
     /// </summary>
-    private readonly record struct GuardVerdicts(HashSet<string> Refused, HashSet<string> Approved)
+    /// <param name="Outcome">Чем кончилась проверка раунда; null — её не было.</param>
+    private readonly record struct GuardVerdicts(
+        HashSet<string> Refused,
+        HashSet<string> Approved,
+        SynGuardOutcome? Outcome = null)
     {
         public static GuardVerdicts Empty => new(
             new HashSet<string>(StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal));
 
         public bool Any => Refused.Count > 0 || Approved.Count > 0;
+
+        /// <summary>Что писать в журнал аудита про этот вызов.</summary>
+        public AuditGuard For(string callId) =>
+            Refused.Contains(callId) || Approved.Contains(callId)
+                ? AuditGuard.Flagged
+                : Outcome switch
+                {
+                    null => AuditGuard.Off,
+                    SynGuardOutcome.Failed => AuditGuard.Failed,
+                    SynGuardOutcome.Unparsed => AuditGuard.Unparsed,
+                    _ => AuditGuard.Safe
+                };
     }
+
+    /// <summary>Чей это прогон — для журнала аудита: чат, его заголовок, подпись агента.</summary>
+    internal AuditOrigin? AuditOrigin { get; init; }
 
     /// <summary>
     /// Спрашивает защитника про раунд, а про помеченные им вызовы — человека.
@@ -302,6 +321,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             ? SynGuardOutcome.Unparsed
             : report.Outcome;
         _ui.GuardChecked(outcome);
+        verdicts = verdicts with { Outcome = outcome };
 
         for (var i = 0; i < toolCalls.Count; i++)
         {
@@ -575,7 +595,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
 
         if (toolCalls.Count > 1 && TryBuildParallelBatch(toolCalls, verdicts, out var batch))
         {
-            await ExecuteParallelBatchAsync(batch, messages, cancellationToken).ConfigureAwait(false);
+            await ExecuteParallelBatchAsync(batch, messages, verdicts, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -590,7 +610,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             await ExecuteOneToolCallSequentialAsync(
                     toolCall,
                     messages,
-                    verdicts.Approved.Contains(toolCall.Id),
+                    verdicts,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -604,7 +624,27 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         var result = ToolResult.Fail(SynGuard.BlockedReply(toolName));
         _ui.ToolResult(toolName, result);
         messages.Add(BuildToolMessage(toolCall, result));
+        Audit(toolCall, ToolEffect.Write, AuditOutcome.Refused, ApprovalSource.SynGuardHuman, AuditGuard.Flagged, result);
     }
+
+    /// <summary>Строка журнала аудита про вызов. Удачные чтения журнал отбросит сам.</summary>
+    private void Audit(
+        ToolCall toolCall,
+        ToolEffect effect,
+        AuditOutcome outcome,
+        ApprovalSource approval,
+        AuditGuard guard,
+        ToolResult? result) =>
+        _options.Audit?.Record(
+            AuditOrigin,
+            toolCall.Id,
+            toolCall.Function.Name,
+            toolCall.Function.Arguments,
+            effect,
+            outcome,
+            approval,
+            guard,
+            result?.Output);
 
     /// <param name="verdicts">
     /// Помеченные защитником вызовы. Раунд с таким вызовом параллельным не собирается: его
@@ -672,6 +712,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
     private async Task ExecuteParallelBatchAsync(
         List<PreparedCall> batch,
         List<ChatMessage> messages,
+        GuardVerdicts verdicts,
         CancellationToken cancellationToken)
     {
         foreach (var item in batch)
@@ -706,20 +747,29 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
         for (var i = 0; i < batch.Count; i++)
         {
             AppendToolOutcome(batch[i].ToolCall, batch[i].ToolName, results[i], messages);
+            Audit(
+                batch[i].ToolCall,
+                ToolEffects.Classify(batch[i].ToolName, batch[i].Arguments),
+                results[i].Success ? AuditOutcome.Ok : AuditOutcome.Failed,
+                ApprovalSource.NotRequired,
+                verdicts.For(batch[i].ToolCall.Id),
+                results[i]);
         }
     }
 
-    /// <param name="guardApproved">
-    /// Человек уже разрешил этот вызов в вопросе SynGuard. Обычное подтверждение тогда
-    /// пропускается: иначе на одну задачу планировщика он ответил бы дважды подряд, причём
-    /// второй вопрос слабее первого — в первом ему показали всю команду целиком.
+    /// <param name="verdicts">
+    /// Вердикты защитника. Разрешённый человеком в вопросе SynGuard вызов обычного
+    /// подтверждения не проходит: иначе на одну задачу планировщика он ответил бы дважды
+    /// подряд, причём второй вопрос слабее первого — в первом ему показали всю команду целиком.
     /// </param>
     private async Task ExecuteOneToolCallSequentialAsync(
         ToolCall toolCall,
         List<ChatMessage> messages,
-        bool guardApproved,
+        GuardVerdicts verdicts,
         CancellationToken cancellationToken)
     {
+        var guardApproved = verdicts.Approved.Contains(toolCall.Id);
+        var guardMark = verdicts.For(toolCall.Id);
         cancellationToken.ThrowIfCancellationRequested();
 
         var toolName = toolCall.Function.Name;
@@ -737,6 +787,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
                 $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
             _ui.ToolResult(toolName, result);
             messages.Add(BuildToolMessage(toolCall, result));
+            Audit(toolCall, ToolEffect.Write, AuditOutcome.Refused, ApprovalSource.NotRequired, guardMark, result);
             return;
         }
 
@@ -754,6 +805,7 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             result = ToolResult.Fail(decision.Refusal ?? ToolGate.DeniedReply);
             _ui.ToolResult(toolName, result);
             messages.Add(BuildToolMessage(toolCall, result));
+            Audit(toolCall, decision.Effect, AuditOutcome.Refused, decision.Approval, guardMark, result);
             return;
         }
 
@@ -780,8 +832,25 @@ Paths on this machine - use these exact values, never wildcards (no C:\Users\*\D
             }
         }
 
-        result = await ExecuteToolAsync(toolName, arguments, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            result = await ExecuteToolAsync(toolName, arguments, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Запись, оборванная посреди исполнения, могла успеть что-то поменять — в журнал.
+            Audit(toolCall, decision.Effect, AuditOutcome.Cancelled, decision.Approval, guardMark, null);
+            throw;
+        }
+
         AppendToolOutcome(toolCall, toolName, result, messages);
+        Audit(
+            toolCall,
+            decision.Effect,
+            result.Success ? AuditOutcome.Ok : AuditOutcome.Failed,
+            decision.Approval,
+            guardMark,
+            result);
         if (needsUndoSnapshot && result.Success)
         {
             _undoTracker.RecordMutation(toolName, arguments);

@@ -16,9 +16,13 @@
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Открыть страницу проекта на GitHub</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Подтверждать всё автоматически</system:String>
+    <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">Вопросы не задаются, кроме вопросов SynGuard и постоянных изменений настроек, таких как белый список загрузок. Только если вы уверены в каждой своей просьбе.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Спрашивать всё</system:String>
+    <system:String x:Key="S.Access.AskAllDesc" xml:space="preserve">Спрашивается всё, что хоть что-нибудь меняет. Чтение — без вопроса.</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Обычный</system:String>
+    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Опасные действия спрашиваются. Чтение и новые файлы в «Загрузках» и на «Рабочем столе» — без вопроса.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Только чтение</system:String>
+    <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">Модель может только смотреть: любая запись отклоняется без вопроса.</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Изображение профиля</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Удалить профиль «{0}» вместе со всеми его чатами?&#10;&#10;Это необратимо.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Доп. профиль</system:String>
@@ -150,6 +154,21 @@
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} не влезает: вместе с прикреплённым вышло бы {1} при пределе {2}.</system:String>
     <system:String x:Key="S.Attach.UnsupportedFormat" xml:space="preserve">{0}: формат {1} модель не читает.</system:String>
 
+    <system:String x:Key="S.Audit.By.AllowChat" xml:space="preserve">разрешено для чата</system:String>
+    <system:String x:Key="S.Audit.By.AllowTurn" xml:space="preserve">разрешено до конца ответа</system:String>
+    <system:String x:Key="S.Audit.By.Auto" xml:space="preserve">подтверждено автоматически</system:String>
+    <system:String x:Key="S.Audit.By.Human" xml:space="preserve">решение человека</system:String>
+    <system:String x:Key="S.Audit.By.NotRequired" xml:space="preserve">без вопроса</system:String>
+    <system:String x:Key="S.Audit.By.SynGuardHuman" xml:space="preserve">решение человека после SynGuard</system:String>
+    <system:String x:Key="S.Audit.Guard.Failed" xml:space="preserve">SynGuard: проверка не состоялась</system:String>
+    <system:String x:Key="S.Audit.Guard.Flagged" xml:space="preserve">SynGuard: помечено</system:String>
+    <system:String x:Key="S.Audit.Guard.Off" xml:space="preserve">без проверки SynGuard</system:String>
+    <system:String x:Key="S.Audit.Guard.Safe" xml:space="preserve">SynGuard: безопасно</system:String>
+    <system:String x:Key="S.Audit.Guard.Unparsed" xml:space="preserve">SynGuard: ответ не разобран</system:String>
+    <system:String x:Key="S.Audit.Outcome.Cancelled" xml:space="preserve">прервано</system:String>
+    <system:String x:Key="S.Audit.Outcome.Failed" xml:space="preserve">с ошибкой</system:String>
+    <system:String x:Key="S.Audit.Outcome.Ok" xml:space="preserve">выполнено</system:String>
+    <system:String x:Key="S.Audit.Outcome.Refused" xml:space="preserve">отклонено</system:String>
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок - масштаб.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Область фото профиля</system:String>
 
@@ -160,8 +179,6 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">Ещё {0} — цифра пока не получена</system:String>
-    <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Режим доступа</system:String>
-    <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">Что модель может делать в системе. «Обычный» спрашивает про опасное, «Спрашивать всё» — про любую запись, «Только чтение» запрещает любую запись, «Подтверждать всё автоматически» не спрашивает, кроме вопросов SynGuard и белого списка загрузок.</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
@@ -173,6 +190,8 @@
     <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">При следующем запуске окно откроется того же размера, каким его закрыли</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Изображение профиля и фон окна</system:String>
+    <system:String x:Key="S.Bundle.Cat.Audit" xml:space="preserve">Журнал аудита</system:String>
+    <system:String x:Key="S.Bundle.Cat.AuditDesc" xml:space="preserve">Что программа меняла в системе и в чём отказала. При загрузке только дописывается</system:String>
     <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Чаты</system:String>
     <system:String x:Key="S.Bundle.Cat.ChatsDesc" xml:space="preserve">Переписки вместе с вложениями и закреплениями</system:String>
     <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Языки интерфейса</system:String>
@@ -280,11 +299,19 @@
     <system:String x:Key="S.Confirm.AllowTurn.Desc" xml:space="preserve">{0} больше не спросит, пока модель не закончит отвечать</system:String>
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">Будет перезаписан существующий файл {0}.</system:String>
+    <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Журнал аудита</system:String>
     <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} уже существует. Без вопроса можно создать только новый файл, а перезапись подтверждает пользователь. Если перезапись действительно нужна, повтори вызов — пользователя спросят; иначе выбери другое имя.</system:String>
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
+    <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportJson" xml:space="preserve">Экспорт JSON</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportTitle" xml:space="preserve">Экспорт журнала аудита</system:String>
+    <system:String x:Key="S.Journal.Audit.Exported" xml:space="preserve">Сохранено: {0}</system:String>
     <system:String x:Key="S.Journal.HiddenVariant" xml:space="preserve">в другом варианте ответа</system:String>
+    <system:String x:Key="S.Journal.NoAudit" xml:space="preserve">Журнал аудита пуст: программа ещё ничего не меняла в системе и ни в чём не отказывала.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">Это точка восстановления Windows, а не снимок программы. Вернуться к ней — значит откатить системные файлы, драйверы и реестр целиком; делает это мастер «Восстановление системы», и после него компьютер перезагрузится.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Точка восстановления Windows №{0}</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Точка восстановления Windows. Вернуться к ней можно только мастером «Восстановление системы».</system:String>
@@ -303,6 +330,7 @@
     <system:String x:Key="S.Journal.Rollback.Planning" xml:space="preserve">Сравниваю со снимком…</system:String>
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Откатить…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
+    <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Аудит</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
@@ -746,6 +774,15 @@
     <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Искать пока не по чему: сводки появятся после ответов модели.</system:String>
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - искать по содержимому чатов</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Ищу по сводкам…</system:String>
+    <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Агент</system:String>
+    <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Чат</system:String>
+    <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Включить все</system:String>
+    <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Режим доступа</system:String>
+    <system:String x:Key="S.Security.Shared" xml:space="preserve">и у чата, и у агента</system:String>
+    <system:String x:Key="S.Security.Subtitle" xml:space="preserve">Что модель может делать на этом компьютере и о чём сначала спрашивает вас.</system:String>
+    <system:String x:Key="S.Security.Title" xml:space="preserve">Безопасность</system:String>
+    <system:String x:Key="S.Security.ToolsDesc" xml:space="preserve">Выключенный инструмент модель не видит и вызвать не может.</system:String>
+    <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
@@ -766,6 +803,7 @@
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.Nav.Security" xml:space="preserve">Безопасность</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
@@ -815,6 +853,49 @@
     <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} кредитов</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
+    <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Разбор папок</system:String>
+    <system:String x:Key="S.Tool.capture_screenshot" xml:space="preserve">Снимок экрана</system:String>
+    <system:String x:Key="S.Tool.change_rollback" xml:space="preserve">Снимки и откат</system:String>
+    <system:String x:Key="S.Tool.credentials" xml:space="preserve">Учётные данные и сертификаты</system:String>
+    <system:String x:Key="S.Tool.devices" xml:space="preserve">Устройства и драйверы</system:String>
+    <system:String x:Key="S.Tool.disk_management" xml:space="preserve">Диски и тома</system:String>
+    <system:String x:Key="S.Tool.disk_space" xml:space="preserve">Место на дисках</system:String>
+    <system:String x:Key="S.Tool.dns_config" xml:space="preserve">DNS и прокси</system:String>
+    <system:String x:Key="S.Tool.download_file" xml:space="preserve">Скачивание файлов</system:String>
+    <system:String x:Key="S.Tool.event_log" xml:space="preserve">Журналы событий</system:String>
+    <system:String x:Key="S.Tool.fetch_image" xml:space="preserve">Картинки по ссылке</system:String>
+    <system:String x:Key="S.Tool.filesystem" xml:space="preserve">Файлы и папки</system:String>
+    <system:String x:Key="S.Tool.firewall_rules" xml:space="preserve">Правила брандмауэра</system:String>
+    <system:String x:Key="S.Tool.generate_image" xml:space="preserve">Рисование картинок</system:String>
+    <system:String x:Key="S.Tool.init_agent" xml:space="preserve">Запуск агента</system:String>
+    <system:String x:Key="S.Tool.local_users" xml:space="preserve">Локальные пользователи</system:String>
+    <system:String x:Key="S.Tool.network" xml:space="preserve">Сеть</system:String>
+    <system:String x:Key="S.Tool.performance" xml:space="preserve">Производительность</system:String>
+    <system:String x:Key="S.Tool.port_listener" xml:space="preserve">Открытые порты</system:String>
+    <system:String x:Key="S.Tool.read_clipboard" xml:space="preserve">Буфер обмена</system:String>
+    <system:String x:Key="S.Tool.read_file" xml:space="preserve">Чтение файлов</system:String>
+    <system:String x:Key="S.Tool.read_instruction" xml:space="preserve">Чтение ваших инструкций</system:String>
+    <system:String x:Key="S.Tool.registry" xml:space="preserve">Реестр</system:String>
+    <system:String x:Key="S.Tool.reliability" xml:space="preserve">Надёжность и сбои</system:String>
+    <system:String x:Key="S.Tool.remote_access" xml:space="preserve">Удалённый доступ</system:String>
+    <system:String x:Key="S.Tool.restore_point" xml:space="preserve">Точки восстановления</system:String>
+    <system:String x:Key="S.Tool.run_powershell" xml:space="preserve">Команды PowerShell</system:String>
+    <system:String x:Key="S.Tool.scheduled_task" xml:space="preserve">Планировщик заданий</system:String>
+    <system:String x:Key="S.Tool.scrape_url" xml:space="preserve">Чтение веб-страниц</system:String>
+    <system:String x:Key="S.Tool.search_web" xml:space="preserve">Поиск в интернете</system:String>
+    <system:String x:Key="S.Tool.security_status" xml:space="preserve">Защита Windows</system:String>
+    <system:String x:Key="S.Tool.software_inventory" xml:space="preserve">Установленные программы</system:String>
+    <system:String x:Key="S.Tool.startup_programs" xml:space="preserve">Автозагрузка</system:String>
+    <system:String x:Key="S.Tool.system_info" xml:space="preserve">Сведения о системе</system:String>
+    <system:String x:Key="S.Tool.system_repair" xml:space="preserve">Восстановление системы (SFC, DISM)</system:String>
+    <system:String x:Key="S.Tool.virtualization" xml:space="preserve">Виртуализация</system:String>
+    <system:String x:Key="S.Tool.windows_features" xml:space="preserve">Компоненты Windows</system:String>
+    <system:String x:Key="S.Tool.windows_process" xml:space="preserve">Процессы</system:String>
+    <system:String x:Key="S.Tool.windows_service" xml:space="preserve">Службы Windows</system:String>
+    <system:String x:Key="S.Tool.windows_update" xml:space="preserve">Обновления Windows</system:String>
+    <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">Запросы WMI</system:String>
+    <system:String x:Key="S.Tool.write_file" xml:space="preserve">Запись файлов</system:String>
+    <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">Расшифровка видео YouTube</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">Вводная от пользователя:</system:String>
     <system:String x:Key="S.Tools.AgentRunning" xml:space="preserve">выполняется</system:String>

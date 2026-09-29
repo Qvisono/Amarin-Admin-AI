@@ -33,6 +33,11 @@ internal sealed class AppServices : IDisposable
     public required SpendLedger Ledger { get; init; }
 
     /// <summary>
+    /// Журнал аудита — тот же, что роздан копиям настроек. Null — не ведётся (тесты).
+    /// </summary>
+    internal AuditLog? Audit => Options.Audit;
+
+    /// <summary>
     /// Ключ, которым платят прямо сейчас. Общий на программу и на все копии
     /// <see cref="AgentOptions"/>, поэтому init-only: подменять надо содержимое, а не сам объект.
     /// </summary>
@@ -186,6 +191,7 @@ internal sealed class AppServices : IDisposable
         KeyStore = new ApiKeyStore(dataRoot, EnvironmentKey, OpenRouterEnvironmentKey);
         KeyStore.Load();
         Ledger.UseRoot(dataRoot);
+        Audit?.UseRoot(dataRoot);
         ApplyActiveKey();
     }
 

@@ -122,12 +122,17 @@ internal static class Program
         var ledger = new SpendLedger(AppPaths.Root);
         var balances = new BalanceBook();
 
+        // Журнал аудита — туда же, в AgentOptions, до того как настройки разойдутся копиями.
+        // Ключи из строк вычищаются тем же списком, что и из отчётов о сбоях.
+        var audit = new AuditLog(AppPaths.Root, () => CrashHandler.Secrets);
+
         var options = new AgentOptions
         {
             ApiKey = apiKey,
             Keys = keys,
             SpendSink = ledger.Record,
             BalanceSink = balances.Remember,
+            Audit = audit,
             BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
             Model = configuration["Venice:Model"] ?? "grok-4-6",
             MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
@@ -209,6 +214,7 @@ internal static class Program
         // программа работает на ключе из окружения, и так же она работает дальше, если своих
         // ключей человек не заводил.
         ledger.UseRoot(dataRoot);
+        audit.UseRoot(dataRoot);
         var keyStore = new ApiKeyStore(dataRoot, apiKey, openRouterKey);
         keyStore.Load();
         keys.Use(keyStore.ActiveCredential(), keyStore.VeniceCredential(), keyStore.Handles());

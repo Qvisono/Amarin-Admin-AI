@@ -567,6 +567,45 @@ public sealed class DataBundleImporter
         {
             ApplyAppearance(source, targetRoot, state);
         }
+
+        if (categories.HasFlag(DataCategory.Audit))
+        {
+            ApplyAudit(Path.Combine(source, "audit"), targetRoot, state);
+        }
+    }
+
+    /// <summary>
+    /// Журнал аудита только дописывается — и в слиянии, и в замене.
+    /// </summary>
+    /// <remarks>
+    /// Заменить свой журнал журналом из архива значило бы стереть след того, что делалось на
+    /// этой машине, — ровно то, от чего журнал и заведён. Повторы отсекаются по номеру строки,
+    /// поэтому тот же архив, импортированный дважды, ничего не удвоит. Битая строка пропускается.
+    /// </remarks>
+    private static void ApplyAudit(string source, string targetRoot, ImportState state)
+    {
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+
+        var incoming = new List<AuditEntry>();
+        foreach (var file in Directory.EnumerateFiles(source, "*.jsonl"))
+        {
+            foreach (var line in File.ReadLines(file))
+            {
+                if (AuditLog.Parse(line) is { } entry)
+                {
+                    incoming.Add(entry);
+                }
+                else if (!string.IsNullOrWhiteSpace(line))
+                {
+                    state.Skipped++;
+                }
+            }
+        }
+
+        new AuditLog(targetRoot).Merge(incoming);
     }
 
     private void ApplyChats(

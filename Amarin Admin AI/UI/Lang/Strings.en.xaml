@@ -16,9 +16,13 @@
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Open the project page on GitHub</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Approve everything automatically</system:String>
+    <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">No questions, except SynGuard's and permanent settings changes such as the download allowlist. Only if you are sure of every request you make.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Ask about everything</system:String>
+    <system:String x:Key="S.Access.AskAllDesc" xml:space="preserve">Everything that changes anything is asked about. Reading is not.</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Normal</system:String>
+    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Risky actions are asked about. Reading, and new files in Downloads or on the Desktop, go ahead without a question.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Read only</system:String>
+    <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">The model can only look: any change is refused without a question.</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Profile picture</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Delete the profile “{0}” together with all of its chats?&#10;&#10;This cannot be undone.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Extra profile</system:String>
@@ -150,6 +154,21 @@
     <system:String x:Key="S.Attach.TotalTooBig" xml:space="preserve">{0} does not fit: together with what is attached it would be {1}, and the limit is {2}.</system:String>
     <system:String x:Key="S.Attach.UnsupportedFormat" xml:space="preserve">{0}: the model cannot read {1} files.</system:String>
 
+    <system:String x:Key="S.Audit.By.AllowChat" xml:space="preserve">allowed for the chat</system:String>
+    <system:String x:Key="S.Audit.By.AllowTurn" xml:space="preserve">allowed for the answer</system:String>
+    <system:String x:Key="S.Audit.By.Auto" xml:space="preserve">confirmed automatically</system:String>
+    <system:String x:Key="S.Audit.By.Human" xml:space="preserve">your decision</system:String>
+    <system:String x:Key="S.Audit.By.NotRequired" xml:space="preserve">no question asked</system:String>
+    <system:String x:Key="S.Audit.By.SynGuardHuman" xml:space="preserve">your decision after SynGuard</system:String>
+    <system:String x:Key="S.Audit.Guard.Failed" xml:space="preserve">SynGuard: the check did not run</system:String>
+    <system:String x:Key="S.Audit.Guard.Flagged" xml:space="preserve">SynGuard: flagged</system:String>
+    <system:String x:Key="S.Audit.Guard.Off" xml:space="preserve">no SynGuard check</system:String>
+    <system:String x:Key="S.Audit.Guard.Safe" xml:space="preserve">SynGuard: safe</system:String>
+    <system:String x:Key="S.Audit.Guard.Unparsed" xml:space="preserve">SynGuard: reply not understood</system:String>
+    <system:String x:Key="S.Audit.Outcome.Cancelled" xml:space="preserve">interrupted</system:String>
+    <system:String x:Key="S.Audit.Outcome.Failed" xml:space="preserve">failed</system:String>
+    <system:String x:Key="S.Audit.Outcome.Ok" xml:space="preserve">done</system:String>
+    <system:String x:Key="S.Audit.Outcome.Refused" xml:space="preserve">refused</system:String>
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Drag the image with the mouse; the wheel or the slider sets the zoom.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Profile picture area</system:String>
 
@@ -160,8 +179,6 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: no figure yet</system:String>
-    <system:String x:Key="S.Behavior.ApprovalMode" xml:space="preserve">Access mode</system:String>
-    <system:String x:Key="S.Behavior.ApprovalModeDesc" xml:space="preserve">What the model may do on this computer. Normal asks about risky actions, Ask about everything asks about any write, Read only forbids writing altogether, and Approve everything automatically does not ask, except for SynGuard questions and the download allowlist.</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
@@ -173,6 +190,8 @@
     <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">Next launch opens the window at the size it was closed at</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Profile picture and window backdrop</system:String>
+    <system:String x:Key="S.Bundle.Cat.Audit" xml:space="preserve">Audit log</system:String>
+    <system:String x:Key="S.Bundle.Cat.AuditDesc" xml:space="preserve">What the app changed on this computer and what it refused. On import it is only added to</system:String>
     <system:String x:Key="S.Bundle.Cat.Chats" xml:space="preserve">Chats</system:String>
     <system:String x:Key="S.Bundle.Cat.ChatsDesc" xml:space="preserve">Conversations with their attachments and pins</system:String>
     <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Interface languages</system:String>
@@ -280,11 +299,19 @@
     <system:String x:Key="S.Confirm.AllowTurn.Desc" xml:space="preserve">{0} will not ask again until the model finishes answering</system:String>
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Chat</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">The existing file {0} will be overwritten.</system:String>
+    <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Audit log</system:String>
     <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} already exists. Only a new file can be created without asking; overwriting needs the user's confirmation. If overwriting is really intended, repeat the call and the user will be asked; otherwise pick another name.</system:String>
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Read-only mode is on: the app does nothing that changes the system, so the {0} call was not run. Do not repeat it and do not try to do the same with another tool, PowerShell included; tell the user that this needs a different access mode in Settings (Security).</system:String>
+    <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (chat deleted)</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Export CSV</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Could not save the file. Check that the folder is writable.</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportJson" xml:space="preserve">Export JSON</system:String>
+    <system:String x:Key="S.Journal.Audit.ExportTitle" xml:space="preserve">Export the audit log</system:String>
+    <system:String x:Key="S.Journal.Audit.Exported" xml:space="preserve">Saved: {0}</system:String>
     <system:String x:Key="S.Journal.HiddenVariant" xml:space="preserve">in another version of the answer</system:String>
+    <system:String x:Key="S.Journal.NoAudit" xml:space="preserve">The audit log is empty: nothing has been changed on this computer or refused yet.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Details" xml:space="preserve">This is a Windows restore point, not a snapshot taken by the app. Returning to it rolls back system files, drivers and the whole registry; the System Restore wizard does that, and the computer restarts afterwards.</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Subtitle" xml:space="preserve">Windows restore point #{0}</system:String>
     <system:String x:Key="S.Journal.RestorePoint.Tooltip" xml:space="preserve">Windows restore point. You can return to it only through the System Restore wizard.</system:String>
@@ -303,6 +330,7 @@
     <system:String x:Key="S.Journal.Rollback.Planning" xml:space="preserve">Comparing with the snapshot…</system:String>
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Roll back…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
+    <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Audit</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Version {0} of {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Next version</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
@@ -746,6 +774,15 @@
     <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Nothing to search yet: summaries appear once the model has answered.</system:String>
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - search what the chats are about</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Searching the summaries…</system:String>
+    <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Agent</system:String>
+    <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Chat</system:String>
+    <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Switch all on</system:String>
+    <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Access mode</system:String>
+    <system:String x:Key="S.Security.Shared" xml:space="preserve">chat and agent</system:String>
+    <system:String x:Key="S.Security.Subtitle" xml:space="preserve">What the model may do on this computer and what it asks you first.</system:String>
+    <system:String x:Key="S.Security.Title" xml:space="preserve">Security</system:String>
+    <system:String x:Key="S.Security.ToolsDesc" xml:space="preserve">The model cannot see or call a tool that is switched off.</system:String>
+    <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
@@ -766,6 +803,7 @@
     <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
     <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.Nav.Security" xml:space="preserve">Security</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
@@ -815,6 +853,49 @@
     <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} credits</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
+    <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Folder analysis</system:String>
+    <system:String x:Key="S.Tool.capture_screenshot" xml:space="preserve">Screenshots</system:String>
+    <system:String x:Key="S.Tool.change_rollback" xml:space="preserve">Snapshots and rollback</system:String>
+    <system:String x:Key="S.Tool.credentials" xml:space="preserve">Credentials and certificates</system:String>
+    <system:String x:Key="S.Tool.devices" xml:space="preserve">Devices and drivers</system:String>
+    <system:String x:Key="S.Tool.disk_management" xml:space="preserve">Disks and volumes</system:String>
+    <system:String x:Key="S.Tool.disk_space" xml:space="preserve">Disk space</system:String>
+    <system:String x:Key="S.Tool.dns_config" xml:space="preserve">DNS and proxy</system:String>
+    <system:String x:Key="S.Tool.download_file" xml:space="preserve">Downloading files</system:String>
+    <system:String x:Key="S.Tool.event_log" xml:space="preserve">Event logs</system:String>
+    <system:String x:Key="S.Tool.fetch_image" xml:space="preserve">Images from a link</system:String>
+    <system:String x:Key="S.Tool.filesystem" xml:space="preserve">Files and folders</system:String>
+    <system:String x:Key="S.Tool.firewall_rules" xml:space="preserve">Firewall rules</system:String>
+    <system:String x:Key="S.Tool.generate_image" xml:space="preserve">Image generation</system:String>
+    <system:String x:Key="S.Tool.init_agent" xml:space="preserve">Starting the agent</system:String>
+    <system:String x:Key="S.Tool.local_users" xml:space="preserve">Local users</system:String>
+    <system:String x:Key="S.Tool.network" xml:space="preserve">Network</system:String>
+    <system:String x:Key="S.Tool.performance" xml:space="preserve">Performance</system:String>
+    <system:String x:Key="S.Tool.port_listener" xml:space="preserve">Open ports</system:String>
+    <system:String x:Key="S.Tool.read_clipboard" xml:space="preserve">Clipboard</system:String>
+    <system:String x:Key="S.Tool.read_file" xml:space="preserve">Reading files</system:String>
+    <system:String x:Key="S.Tool.read_instruction" xml:space="preserve">Reading your instructions</system:String>
+    <system:String x:Key="S.Tool.registry" xml:space="preserve">Registry</system:String>
+    <system:String x:Key="S.Tool.reliability" xml:space="preserve">Reliability and crashes</system:String>
+    <system:String x:Key="S.Tool.remote_access" xml:space="preserve">Remote access</system:String>
+    <system:String x:Key="S.Tool.restore_point" xml:space="preserve">Restore points</system:String>
+    <system:String x:Key="S.Tool.run_powershell" xml:space="preserve">PowerShell commands</system:String>
+    <system:String x:Key="S.Tool.scheduled_task" xml:space="preserve">Task Scheduler</system:String>
+    <system:String x:Key="S.Tool.scrape_url" xml:space="preserve">Reading web pages</system:String>
+    <system:String x:Key="S.Tool.search_web" xml:space="preserve">Web search</system:String>
+    <system:String x:Key="S.Tool.security_status" xml:space="preserve">Windows security</system:String>
+    <system:String x:Key="S.Tool.software_inventory" xml:space="preserve">Installed software</system:String>
+    <system:String x:Key="S.Tool.startup_programs" xml:space="preserve">Startup programs</system:String>
+    <system:String x:Key="S.Tool.system_info" xml:space="preserve">System information</system:String>
+    <system:String x:Key="S.Tool.system_repair" xml:space="preserve">System repair (SFC, DISM)</system:String>
+    <system:String x:Key="S.Tool.virtualization" xml:space="preserve">Virtualization</system:String>
+    <system:String x:Key="S.Tool.windows_features" xml:space="preserve">Windows features</system:String>
+    <system:String x:Key="S.Tool.windows_process" xml:space="preserve">Processes</system:String>
+    <system:String x:Key="S.Tool.windows_service" xml:space="preserve">Windows services</system:String>
+    <system:String x:Key="S.Tool.windows_update" xml:space="preserve">Windows Update</system:String>
+    <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">WMI queries</system:String>
+    <system:String x:Key="S.Tool.write_file" xml:space="preserve">Writing files</system:String>
+    <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">YouTube transcripts</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">New input from the user:</system:String>
     <system:String x:Key="S.Tools.AgentRunning" xml:space="preserve">running</system:String>

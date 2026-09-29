@@ -989,19 +989,15 @@ namespace Amarin.UI
             }
         }
 
-        private void ApprovalModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void NavSecurity_Checked(object sender, RoutedEventArgs e)
         {
-            if (_settingsUiLoading || _services is null)
+            if (_services is null)
             {
                 return;
             }
 
-            if (ApprovalModeCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
-                Enum.TryParse(tag, ignoreCase: true, out ApprovalMode mode))
-            {
-                _services.Settings.ApprovalMode = mode;
-                _services.SettingsStore.Save(_services.Settings);
-            }
+            SecurityPage.Attach(_services);
+            SecurityPage.Load(_services.Settings);
         }
 
         private void SettingsModelPicked(object sender, ModelBinding binding)
@@ -1625,13 +1621,14 @@ namespace Amarin.UI
                 // архива — у другого профиля углы могут быть другими.
                 WindowCornerStyle.Apply(this, settings.WindowCorners);
                 ApplyUiScaleFromSettings();
-                // По тегу, а не по номеру строки: режимов стало четыре, и номер разошёлся бы с
-                // порядком пунктов при первой же перестановке.
-                ApprovalModeCombo.SelectedItem = ApprovalModeCombo.Items
-                    .OfType<ComboBoxItem>()
-                    .FirstOrDefault(item => item.Tag is string tag &&
-                                            string.Equals(tag, settings.ApprovalMode.ToString(), StringComparison.Ordinal))
-                    ?? ApprovalModeCombo.Items[0];
+                // Страница «Безопасность» наполняется при заходе на неё; открыта сейчас — значит,
+                // сюда пришли смена профиля или импорт, и показать надо уже новые настройки.
+                if (NavSecurity.IsChecked == true && _services is not null)
+                {
+                    SecurityPage.Attach(_services);
+                    SecurityPage.Load(settings);
+                }
+
                 LoadHotkeysUi(settings);
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
             LanguagePicker.SetSelected(settings.LanguageCode);

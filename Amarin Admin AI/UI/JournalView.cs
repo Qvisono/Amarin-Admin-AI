@@ -52,6 +52,9 @@ internal sealed class JournalRow
     /// <summary>Точка восстановления Windows — соседка снимков на той же вкладке.</summary>
     public WindowsRestorePoint? RestorePoint { get; init; }
 
+    /// <summary>Строка журнала аудита, если строка пришла с одноимённой вкладки.</summary>
+    public AuditEntry? Audit { get; init; }
+
     /// <summary>Время строки для общей сортировки снимков и точек восстановления.</summary>
     public DateTime SortTime { get; init; }
 }
@@ -227,6 +230,89 @@ internal static class JournalView
 
     public static string SearchKey(ChatSummaryEntry summary) =>
         (summary.Title + " " + summary.Text).ToLowerInvariant();
+
+    /// <param name="chatExists">
+    /// Жив ли ещё чат. Журнал аудита переживает удалённые чаты — ради этого он и отдельный, — и
+    /// строка обязана сказать, что открыть такой чат уже нельзя.
+    /// </param>
+    public static JournalRow ToRow(AuditEntry entry, bool chatExists, DateFormat format = DateFormat.DayMonthShort)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        var title = entry.Tool;
+        if (!string.IsNullOrWhiteSpace(entry.Agent))
+        {
+            title += "  ·  " + entry.Agent;
+        }
+
+        return new JournalRow
+        {
+            Glyph = entry.Outcome switch
+            {
+                AuditOutcome.Ok => "✓",
+                AuditOutcome.Failed => "✕",
+                AuditOutcome.Refused => "⊘",
+                _ => "⋯"
+            },
+            IsFailure = entry.Outcome is AuditOutcome.Failed or AuditOutcome.Refused,
+            IsPending = entry.Outcome is AuditOutcome.Cancelled,
+            Title = title,
+            Subtitle = OneLine(entry.Args, SubtitleLimit),
+            Timestamp = FormatTime(entry.Time, approximate: false, format),
+            Trailer = OutcomeLabel(entry.Outcome) + "  ·  " + ChatLabel(entry, chatExists),
+            Tooltip = AuditTooltip(entry, chatExists),
+            ChatId = chatExists ? entry.ChatId : null,
+            Audit = entry,
+            SortTime = entry.Time
+        };
+    }
+
+    public static string SearchKey(AuditEntry entry) =>
+        (entry.Tool + " " + entry.Args + " " + entry.Result + " " + entry.ChatTitle + " " + entry.Agent + " " +
+         OutcomeLabel(entry.Outcome)).ToLowerInvariant();
+
+    /// <summary>Строка под заголовком в подробностях: когда, чем кончилось, кто решал, что сказал SynGuard.</summary>
+    public static string BuildMeta(AuditEntry entry, bool chatExists, DateFormat format = DateFormat.DayMonthShort) =>
+        string.Join(
+            "  ·  ",
+            FormatTime(entry.Time, approximate: false, format),
+            OutcomeLabel(entry.Outcome),
+            ApprovalLabel(entry.ApprovedBy),
+            GuardLabel(entry.Guard),
+            ChatLabel(entry, chatExists));
+
+    public static string OutcomeLabel(AuditOutcome outcome) => Loc.Get("S.Audit.Outcome." + outcome);
+
+    public static string ApprovalLabel(ApprovalSource source) => Loc.Get("S.Audit.By." + source);
+
+    public static string GuardLabel(AuditGuard guard) => Loc.Get("S.Audit.Guard." + guard);
+
+    private static string ChatLabel(AuditEntry entry, bool chatExists)
+    {
+        if (string.IsNullOrEmpty(entry.ChatId))
+        {
+            return "-";
+        }
+
+        var title = MainWindow.DisplayTitle(entry.ChatTitle ?? "");
+        return chatExists ? title : Loc.Format("S.Journal.Audit.ChatGone", title);
+    }
+
+    private static string AuditTooltip(AuditEntry entry, bool chatExists)
+    {
+        var text = entry.Tool + "\n" + BuildMeta(entry, chatExists);
+        if (!string.IsNullOrWhiteSpace(entry.Args))
+        {
+            text += "\n\n" + Trim(entry.Args, 600);
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Result))
+        {
+            text += "\n\n" + Loc.Get("S.Journal.Result") + "\n" + Trim(entry.Result, 600);
+        }
+
+        return text;
+    }
 
     /// <summary>One line of context under the title on the details screen.</summary>
     public static string BuildMeta(JournalEntry entry, DateFormat format = DateFormat.DayMonthShort)

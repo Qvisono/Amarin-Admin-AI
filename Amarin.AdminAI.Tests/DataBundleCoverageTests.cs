@@ -85,6 +85,7 @@ public sealed class DataBundleCoverageTests
     [InlineData("languages/ru.json", DataCategory.Languages)]
     [InlineData("avatar.png", DataCategory.Appearance)]
     [InlineData("background.jpg", DataCategory.Appearance)]
+    [InlineData("audit/2026-09.jsonl", DataCategory.Audit)]
     public void Every_kind_of_file_the_app_writes_has_a_category(string relative, DataCategory expected) =>
         Assert.Equal(expected, CategoryOf(relative));
 
@@ -122,6 +123,8 @@ public sealed class DataBundleCoverageTests
             File.WriteAllText(Path.Combine(root, "languages", "de.json"), "{}");
             File.WriteAllBytes(Path.Combine(root, "avatar.png"), [1, 2, 3]);
             File.WriteAllBytes(Path.Combine(root, "background.jpg"), [4, 5, 6]);
+            Directory.CreateDirectory(Path.Combine(root, "audit"));
+            File.WriteAllText(Path.Combine(root, "audit", "2026-09.jsonl"), "{}\n");
 
             // А это остаётся дома, и каждое по своей причине — см. What_stays_out_of_the_archive.
             File.WriteAllText(Path.Combine(root, "balance.json"), "{}");
@@ -136,6 +139,7 @@ public sealed class DataBundleCoverageTests
             Assert.Equal(
                 new SortedSet<string>(StringComparer.Ordinal)
                 {
+                    "data/audit/2026-09.jsonl",
                     "data/avatar.png",
                     "data/background.jpg",
                     "data/chats/index.json",

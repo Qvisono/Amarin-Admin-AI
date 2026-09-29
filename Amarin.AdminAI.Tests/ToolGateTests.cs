@@ -422,12 +422,55 @@ public sealed class ToolGateTests : IDisposable
         Assert.False(File.Exists(path));
     }
 
+    [Fact]
+    public async Task A_refused_chat_write_lands_in_the_audit_log()
+    {
+        var path = Path.Combine(_temp, "kept.txt");
+        File.WriteAllText(path, "original");
+        var settings = Mode(ApprovalMode.Normal);
+        var queue = new ConfirmationQueue(() => settings);
+        queue.Changed += () =>
+        {
+            if (queue.TryPeek(out var request))
+            {
+                queue.Complete(request, approved: false);
+            }
+        };
+        var audit = new AuditLog(Path.Combine(_temp, "profile"));
+
+        await RunChatAsync(settings, queue, path, "evil", audit: audit);
+
+        var entry = Assert.Single(audit.ReadAll());
+        Assert.Equal("write_file", entry.Tool);
+        Assert.Equal(AuditOutcome.Refused, entry.Outcome);
+        Assert.Equal(ApprovalSource.Human, entry.ApprovedBy);
+        Assert.Equal(AuditGuard.Safe, entry.Guard);
+        Assert.Equal("chat-1", entry.ChatId);
+        Assert.Null(entry.Agent);
+        Assert.Contains("kept.txt", entry.Args, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_quiet_new_file_is_in_the_audit_log_as_done_without_a_question()
+    {
+        var path = Path.Combine(_downloads, "logged.txt");
+        var settings = Mode(ApprovalMode.Normal);
+        var audit = new AuditLog(Path.Combine(_temp, "profile"));
+
+        await RunChatAsync(settings, new ConfirmationQueue(() => settings), path, "text", audit: audit);
+
+        var entry = Assert.Single(audit.ReadAll());
+        Assert.Equal(AuditOutcome.Ok, entry.Outcome);
+        Assert.Equal(ApprovalSource.NotRequired, entry.ApprovedBy);
+    }
+
     private static async Task<ChatSession> RunChatAsync(
         AppSettings settings,
         ConfirmationQueue? queue,
         string path,
         string content,
-        Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? guard = null)
+        Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? guard = null,
+        AuditLog? audit = null)
     {
         var responses = 0;
         var handler = new ScriptedHandler(_ => Interlocked.Increment(ref responses) == 1
@@ -438,7 +481,8 @@ public sealed class ToolGateTests : IDisposable
             ApiKey = "test",
             BaseUrl = "https://api.venice.ai/api/v1",
             Model = "grok-4-6",
-            MaxToolRounds = 3
+            MaxToolRounds = 3,
+            Audit = audit
         };
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
         var engine = new ChatEngine(

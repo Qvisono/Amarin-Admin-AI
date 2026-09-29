@@ -43,6 +43,7 @@ public static class DataUsage
     public const string AttachmentsKey = "S.Data.Usage.Attachments";
     public const string SettingsKey = "S.Data.Usage.Settings";
     public const string LanguagesKey = "S.Data.Usage.Languages";
+    public const string AuditKey = "S.Data.Usage.Audit";
     public const string SharedKey = "S.Data.Usage.Shared";
     public const string AppearanceKey = "S.Data.Usage.Appearance";
     public const string SnapshotsKey = "S.Data.Usage.Snapshots";
@@ -150,6 +151,13 @@ public static class DataUsage
         if (InFolder(relative, "shared"))
         {
             return SharedKey;
+        }
+
+        // Журнал аудита — своя строка: он растёт без предела, и человек должен видеть, сколько
+        // места он занял, прежде чем решать, удалять ли его вместе с данными.
+        if (InFolder(relative, "audit"))
+        {
+            return AuditKey;
         }
 
         return OtherKey;

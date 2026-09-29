@@ -49,48 +49,8 @@ public sealed class VariantUiTests : IDisposable
     private Harness Build(string apiKey, Func<string, HttpResponseMessage> script)
     {
         var root = Path.Combine(Path.GetTempPath(), "amarin-variants-ui-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(root, "chats"));
         _roots.Add(root);
-
-        var options = new AgentOptions
-        {
-            ApiKey = apiKey,
-            BaseUrl = "https://api.venice.ai/api/v1",
-            Model = "grok-4-6",
-            MaxToolRounds = 2
-        };
-
-        var http = new HttpClient(new ScriptedHandler(script)) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
-        var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
-        var settingsStore = new AppSettingsStore(root);
-        var settings = settingsStore.Load();
-
-        var services = new AppServices
-        {
-            Options = options,
-            SettingsStore = settingsStore,
-            Settings = settings,
-            ChatStore = new ChatStore(root),
-            Prompts = new PromptLibrary(root),
-            Instructions = new InstructionLibrary(root),
-            KeyStore = new ApiKeyStore(root),
-            Ledger = new SpendLedger(root),
-            Keys = new ApiKeyProvider(),
-            EnvironmentKey = "",
-            Profiles = new ProfileStore(),
-            ProfileRegistry = new ProfileRegistry(),
-            Http = http,
-            DownloadHttp = download,
-            Venice = venice,
-            Models = new VeniceModelListCache(venice),
-            Balances = new BalanceBook(),
-            Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
-            Titles = new ChatTitleGenerator(http, options, () => settings),
-            Summaries = new ChatSummaryGenerator(http, options, () => settings),
-            Confirmations = new ConfirmationQueue(() => settings)
-        };
-
+        var services = UiServices.Build(root, apiKey, new ScriptedHandler(script));
         var window = new MainWindow();
         window.AttachServices(services);
         return new Harness(window, services);

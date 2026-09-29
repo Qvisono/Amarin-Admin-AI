@@ -1993,6 +1993,7 @@
                                 <RadioButton x:Name="NavAccount" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Account}"/>
                                 <RadioButton x:Name="NavAppearance" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Appearance}"/>
                                 <RadioButton x:Name="NavBehavior" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Behavior}" IsChecked="True"/>
+                                <RadioButton x:Name="NavSecurity" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Security}" Checked="NavSecurity_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
                                 <RadioButton x:Name="NavInstructions" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Instructions}" Checked="NavInstructions_Checked"/>
@@ -2785,26 +2786,6 @@
                                               Checked="NotifySoundToggle_Changed"
                                               Unchecked="NotifySoundToggle_Changed"/>
                                 </Grid>
-                                <Border Style="{StaticResource SettingsDivider}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.ApprovalMode}"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}"
-       Text="{DynamicResource S.Behavior.ApprovalModeDesc}"/>
-                                    </StackPanel>
-                                    <ComboBox x:Name="ApprovalModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                      MinWidth="140" SelectedIndex="0" VerticalAlignment="Center"
-                                      SelectionChanged="ApprovalModeCombo_SelectionChanged">
-                                        <ComboBoxItem Content="{DynamicResource S.Access.Normal}" Tag="Normal"/>
-                                        <ComboBoxItem Content="{DynamicResource S.Access.AskAll}" Tag="AskAll"/>
-                                        <ComboBoxItem Content="{DynamicResource S.Access.ReadOnly}" Tag="ReadOnly"/>
-                                        <ComboBoxItem Content="{DynamicResource S.Access.AlwaysApprove}" Tag="AlwaysApprove"/>
-                                    </ComboBox>
-                                </Grid>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
@@ -3488,6 +3469,21 @@
                             </local:SettingsKeyPage.Style>
                         </local:SettingsKeyPage>
 
+                        <!-- ═══════════ SECURITY ═══════════ -->
+                        <!-- Отдельным UserControl, как Key и Instructions: режим доступа и инструменты. -->
+                        <local:SettingsSecurityPage x:Name="SecurityPage">
+                            <local:SettingsSecurityPage.Style>
+                                <Style TargetType="local:SettingsSecurityPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavSecurity}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsSecurityPage.Style>
+                        </local:SettingsSecurityPage>
+
                         <!-- ═══════════ INSTRUCTIONS ═══════════ -->
                         <!--
                             Отдельным UserControl, как Key и Info: список и редактор инструкций.
@@ -3565,6 +3561,36 @@
                                         <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
                                         <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
                                         <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- ===== Кнопка в строке вкладок: выгрузка аудита ===== -->
+                <Style x:Key="JournalChipButton" TargetType="Button">
+                    <Setter Property="Height" Value="26"/>
+                    <Setter Property="Padding" Value="12,0"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="Margin" Value="6,0,0,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        Padding="{TemplateBinding Padding}">
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
+                                               Foreground="{DynamicResource Text.Tertiary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter Property="Opacity" Value="0.45"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -3681,6 +3707,19 @@
                                 <ToggleButton x:Name="JournalSummariesTab" Style="{StaticResource JournalTab}"
                                               Content="{DynamicResource S.Journal.Tab.Summaries}"
                                               Click="JournalSummariesTab_Click"/>
+                                <ToggleButton x:Name="JournalAuditTab" Style="{StaticResource JournalTab}"
+                                              Content="{DynamicResource S.Journal.Tab.Audit}"
+                                              Click="JournalAuditTab_Click"/>
+                            </StackPanel>
+                            <!-- Выгружается то, что в списке: с поиском — найденное, без него — всё. -->
+                            <StackPanel x:Name="JournalAuditExportPanel" Orientation="Horizontal"
+                                        HorizontalAlignment="Right" Visibility="Collapsed">
+                                <Button x:Name="JournalAuditCsvButton" Style="{StaticResource JournalChipButton}"
+                                        Content="{DynamicResource S.Journal.Audit.ExportCsv}"
+                                        Click="JournalAuditCsvButton_Click"/>
+                                <Button x:Name="JournalAuditJsonButton" Style="{StaticResource JournalChipButton}"
+                                        Content="{DynamicResource S.Journal.Audit.ExportJson}"
+                                        Click="JournalAuditJsonButton_Click"/>
                             </StackPanel>
                             <StackPanel x:Name="JournalScopePanel" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <ToggleButton x:Name="JournalScopeChat" Style="{StaticResource JournalTab}"

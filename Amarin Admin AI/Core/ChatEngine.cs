@@ -1379,13 +1379,16 @@ internal sealed partial class ChatEngine
                 observer.OnToolsChanged(assistant);
 
                 ToolResult result;
+                GateDecision? decision = null;
+                var outcome = AuditOutcome.Refused;
+                var started = false;
                 try
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
                     // Каждый вызов ждёт только своего решения: чтения исполняются, пока запись
                     // ждёт человека.
-                    var decision = await decisions[index].ConfigureAwait(false);
+                    decision = await decisions[index].ConfigureAwait(false);
                     var arguments = decision.Arguments;
                     if (!decision.Allowed)
                     {
@@ -1406,29 +1409,36 @@ internal sealed partial class ChatEngine
                             Assistant = assistant,
                             Observer = observer,
                             SessionId = session.Id,
+                            ChatTitle = session.Title,
                             ForcedTier = forcedAgentTier
                         }))
                         {
+                            started = true;
                             result = await _tools.ExecuteAsync(call.Name, arguments, cancellationToken)
                                 .ConfigureAwait(false);
+                            outcome = result.Success ? AuditOutcome.Ok : AuditOutcome.Failed;
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     result = ToolResult.Fail("Действие отменено пользователем.");
+                    outcome = AuditOutcome.Cancelled;
                 }
                 catch (JsonException ex)
                 {
                     result = ToolResult.Fail(
                         $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
+                    outcome = started ? AuditOutcome.Failed : AuditOutcome.Refused;
                 }
                 catch (Exception ex)
                 {
                     result = ToolResult.Fail(ex.Message);
+                    outcome = started ? AuditOutcome.Failed : AuditOutcome.Refused;
                 }
 
                 results[index] = result;
+                Audit(session, call, toolRound, decision, outcome, result);
                 call.Success = result.Success;
                 call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
                 call.ResultPreview = ChatToolPreview.Summarize(result);
@@ -1509,6 +1519,46 @@ internal sealed partial class ChatEngine
         }
 
         observer.OnToolsChanged(assistant);
+    }
+
+    /// <summary>
+    /// Строка журнала аудита про вызов чата. Удачные чтения журнал отбросит сам.
+    /// </summary>
+    /// <param name="decision">Решение шлюза; null — до него не дошло (отмена, битые аргументы).</param>
+    private void Audit(
+        ChatSession session,
+        ToolCallRecord call,
+        ToolRound round,
+        GateDecision? decision,
+        AuditOutcome outcome,
+        ToolResult result)
+    {
+        if (_options.Audit is not { } audit)
+        {
+            return;
+        }
+
+        var approval = decision?.Approval ?? ApprovalSource.NotRequired;
+        var guard = approval == ApprovalSource.SynGuardHuman
+            ? AuditGuard.Flagged
+            : round.GuardOutcome switch
+            {
+                null => AuditGuard.Off,
+                SynGuardOutcome.Failed => AuditGuard.Failed,
+                SynGuardOutcome.Unparsed => AuditGuard.Unparsed,
+                _ => AuditGuard.Safe
+            };
+
+        audit.Record(
+            new AuditOrigin(session.Id, session.Title, null),
+            call.Id,
+            call.Name,
+            call.ArgumentsJson,
+            decision?.Effect ?? ToolEffect.Write,
+            outcome,
+            approval,
+            guard,
+            result.Output);
     }
 
     /// <summary>

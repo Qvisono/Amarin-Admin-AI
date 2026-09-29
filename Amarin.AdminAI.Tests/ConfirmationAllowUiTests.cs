@@ -58,13 +58,10 @@ public sealed class ConfirmationAllowUiTests
     }
 
     [Fact]
-    public void The_access_mode_list_offers_all_four_modes()
+    public void The_security_page_offers_all_four_access_modes()
     {
         var tags = _wpf.Ui.Invoke(() =>
-            ((ComboBox)Window().FindName("ApprovalModeCombo")).Items
-                .OfType<ComboBoxItem>()
-                .Select(item => item.Tag as string)
-                .ToList());
+            ((SettingsSecurityPage)Window().FindName("SecurityPage")).ModeTags.ToList());
 
         Assert.Equal(Enum.GetNames<ApprovalMode>().Order(), tags.Order());
     }

@@ -29,7 +29,8 @@ namespace Amarin.UI
         {
             Actions,
             Snapshots,
-            Summaries
+            Summaries,
+            Audit
         }
 
         private JournalTab _journalTab = JournalTab.Actions;
@@ -84,9 +85,18 @@ namespace Amarin.UI
             JournalScopePanel.Visibility = _journalTab == JournalTab.Actions
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+            JournalAuditExportPanel.Visibility = _journalTab == JournalTab.Audit
+                ? Visibility.Visible
+                : Visibility.Collapsed;
             JournalSearchBox.Visibility = Visibility.Visible;
 
             var token = ++_journalLoadToken;
+
+            if (_journalTab == JournalTab.Audit)
+            {
+                Detached.Run(LoadAuditAsync(token), "journal_audit");
+                return;
+            }
 
             if (_journalTab == JournalTab.Snapshots)
             {
@@ -208,6 +218,95 @@ namespace Amarin.UI
         }
 
         /// <summary>
+        /// Журнал аудита читается с диска целиком — месяц за месяцем, в фоне: за год работы это
+        /// тысячи строк, и потоку интерфейса их разбор ни к чему.
+        /// </summary>
+        private async Task LoadAuditAsync(int token)
+        {
+            if (_services?.Audit is not { } audit)
+            {
+                _journalRows = [];
+                ApplyJournalFilter();
+                return;
+            }
+
+            ShowJournalBusy();
+
+            var store = _services.ChatStore;
+            List<AuditEntry> entries;
+            HashSet<string> alive;
+            try
+            {
+                (entries, alive) = await Task.Run(() => (
+                        audit.ReadAll(),
+                        store.List().Select(item => item.Id).ToHashSet(StringComparer.Ordinal)))
+                    .ConfigureAwait(true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                ShowJournalError(Loc.Get("S.Journal.ReadFailed"));
+                return;
+            }
+
+            if (token != _journalLoadToken)
+            {
+                return;
+            }
+
+            // Открытый чат может ещё не лежать на диске — он жив, даже если индекс о нём не знает.
+            alive.Add(_session.Id);
+
+            var format = ActiveDateFormat;
+            _journalRows = entries
+                .Select(entry => (
+                    JournalView.ToRow(entry, entry.ChatId is { } id && alive.Contains(id), format),
+                    JournalView.SearchKey(entry)))
+                .ToList();
+            ApplyJournalFilter();
+        }
+
+        /// <summary>Выгружает строки аудита, что сейчас в списке, — с поиском это найденное.</summary>
+        private void ExportAudit(bool csv)
+        {
+            var entries = (JournalList.ItemsSource as IEnumerable<JournalRow> ?? [])
+                .Select(row => row.Audit)
+                .OfType<AuditEntry>()
+                .ToList();
+            if (entries.Count == 0)
+            {
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = Loc.Get("S.Journal.Audit.ExportTitle"),
+                Filter = csv ? "CSV|*.csv" : "JSON|*.json",
+                DefaultExt = csv ? ".csv" : ".json",
+                FileName = "amarin-audit-" + DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) +
+                           (csv ? ".csv" : ".json")
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            try
+            {
+                // CSV — с BOM (он уже в тексте): без него Excel открывает кириллицу кракозябрами.
+                File.WriteAllText(
+                    dialog.FileName,
+                    csv ? AuditLog.ToCsv(entries) : AuditLog.ToJson(entries),
+                    new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                JournalFooter.Text = Loc.Format("S.Journal.Audit.Exported", Path.GetFileName(dialog.FileName));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                JournalFooter.Text = Loc.Get("S.Journal.Audit.ExportFailed");
+            }
+        }
+
+        /// <summary>
         /// Сводки читаются из индекса и потому синхронно: там уже лежит всё, что нужно строке,
         /// и ходить за этим в файлы переписок не приходится.
         /// </summary>
@@ -298,6 +397,7 @@ namespace Amarin.UI
             {
                 JournalTab.Snapshots => "S.Journal.NoSnapshots",
                 JournalTab.Summaries => "S.Journal.NoSummaries",
+                JournalTab.Audit => "S.Journal.NoAudit",
                 _ => _journalAllChats ? "S.Journal.NoActionsAnywhere" : "S.Journal.NoActionsHere"
             };
         }
@@ -325,6 +425,7 @@ namespace Amarin.UI
             JournalActionsTab.IsChecked = tab == JournalTab.Actions;
             JournalSnapshotsTab.IsChecked = tab == JournalTab.Snapshots;
             JournalSummariesTab.IsChecked = tab == JournalTab.Summaries;
+            JournalAuditTab.IsChecked = tab == JournalTab.Audit;
             LoadJournal();
         }
 
@@ -362,6 +463,8 @@ namespace Amarin.UI
             JournalDetailTitle.Text = row.Title;
             JournalDetailMeta.Text = row.Entry is { } entry
                 ? JournalView.BuildMeta(entry, ActiveDateFormat)
+                : row.Audit is { } audit
+                ? JournalView.BuildMeta(audit, row.ChatId is not null, ActiveDateFormat)
                 : row.Snapshot is { } snapshot
                     ? JournalView.BuildMeta(snapshot, ActiveDateFormat)
                     : row.RestorePoint is { } point
@@ -387,7 +490,9 @@ namespace Amarin.UI
 
             JournalArgumentsHost.Content = row.Entry is { } withArgs
                 ? CodeBlockView.Create(this, PrettyJson(withArgs.ArgumentsJson), "json")
-                : null;
+                : row.Audit is { } auditArgs
+                    ? CodeBlockView.Create(this, PrettyJson(auditArgs.Args), "json")
+                    : null;
             JournalResultHost.Content = CodeBlockView.Create(this, ResultOf(row), null);
 
             JournalEmpty.Visibility = Visibility.Collapsed;
@@ -415,6 +520,11 @@ namespace Amarin.UI
             if (row.RestorePoint is not null)
             {
                 return Loc.Get("S.Journal.RestorePoint.Details");
+            }
+
+            if (row.Audit is { } audit)
+            {
+                return string.IsNullOrWhiteSpace(audit.Result) ? Loc.Get("S.Journal.NoResult") : audit.Result;
             }
 
             if (row.Entry is not { } entry)
@@ -528,6 +638,13 @@ namespace Amarin.UI
 
         private void JournalSummariesTab_Click(object sender, RoutedEventArgs e) =>
             SetJournalTab(JournalTab.Summaries);
+
+        private void JournalAuditTab_Click(object sender, RoutedEventArgs e) =>
+            SetJournalTab(JournalTab.Audit);
+
+        private void JournalAuditCsvButton_Click(object sender, RoutedEventArgs e) => ExportAudit(csv: true);
+
+        private void JournalAuditJsonButton_Click(object sender, RoutedEventArgs e) => ExportAudit(csv: false);
 
         private void JournalScopeChat_Click(object sender, RoutedEventArgs e) => SetJournalScope(false);
 
