@@ -1,4 +1,4 @@
-﻿using System.ServiceProcess;
+using System.ServiceProcess;
 using System.Text.Json;
 using Microsoft.Win32;
 

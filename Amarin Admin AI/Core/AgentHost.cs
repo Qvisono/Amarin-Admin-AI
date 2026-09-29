@@ -1,4 +1,4 @@
-﻿using Amarin.Tools;
+using Amarin.Tools;
 
 namespace Amarin.Core;
 
