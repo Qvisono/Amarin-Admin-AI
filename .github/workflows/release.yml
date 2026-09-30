@@ -103,6 +103,21 @@ jobs:
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
           }
 
+      # Подпись проверяется тем же способом, что и у человека на машине: подписанный файл с
+      # битой или неполной подписью программа как обновление не примет (AuthenticodeCheck), и
+      # выложить такой — значит оставить всех на прежней версии.
+      - name: Verify signature
+        if: env.SIGNING_CERT_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          ASSET: ${{ steps.publish.outputs.asset }}
+        run: |
+          $signature = Get-AuthenticodeSignature -FilePath $env:ASSET
+          if ($signature.Status -ne 'Valid') {
+            throw "Signature is $($signature.Status): $($signature.StatusMessage)"
+          }
+          "Signed by: $($signature.SignerCertificate.Subject)"
+
       # Контрольная сумма вторым вложением. GitHub сообщает её в поле digest не у всех
       # релизов, а без суммы программа не обновляется сама — только по отдельному согласию.
       # Формат sha256sum: «сумма, два пробела, имя», перевод строки LF, без BOM.
@@ -117,6 +132,22 @@ jobs:
           $sums = 'release/SHA256SUMS'
           [IO.File]::WriteAllText($sums, "$hash  $name`n", [Text.UTF8Encoding]::new($false))
           "sums=$sums" >> $env:GITHUB_OUTPUT
+
+      # Сумма сверяется с самим файлом прямо перед выкладкой: между подсчётом и выкладкой шагов
+      # больше нет, но формат строки («сумма, два пробела, имя») читает и программа, и опечатка
+      # в нём означала бы релиз, который никто не сможет поставить сам.
+      - name: Verify checksums
+        shell: pwsh
+        env:
+          ASSET: ${{ steps.publish.outputs.asset }}
+          SUMS: ${{ steps.sums.outputs.sums }}
+        run: |
+          $line = [IO.File]::ReadAllText($env:SUMS)
+          if ($line -notmatch '^([0-9a-f]{64})  (\S+)\n$') { throw "Malformed SHA256SUMS: '$line'" }
+          $expected = $Matches[1]
+          if ($Matches[2] -ne (Split-Path $env:ASSET -Leaf)) { throw "SHA256SUMS names $($Matches[2])" }
+          $actual = (Get-FileHash -Algorithm SHA256 $env:ASSET).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "Checksum mismatch: $actual vs $expected" }
 
       # Повторный запуск той же версии не падает на «релиз уже есть», а заменяет файл и заметки.
       - name: Release
