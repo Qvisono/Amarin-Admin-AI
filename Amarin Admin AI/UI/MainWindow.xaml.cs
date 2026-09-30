@@ -2615,7 +2615,7 @@ namespace Amarin.UI
             var queued = ChatQuotes.Wrap(text, user.Quotes, _session.Messages, _session.Messages.Count - 1);
             ClearPendingAttachments();
 
-            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session)).Root;
+            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
             MaybeAutoscroll();
             RefreshChatList();
@@ -3296,7 +3296,7 @@ namespace Amarin.UI
                 return;
             }
 
-            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(turn.Session)).Root;
+            var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(turn.Session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
             MaybeAutoscroll();
             RefreshChatList();

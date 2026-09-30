@@ -1111,7 +1111,8 @@ internal static class ChatMessageViews
     public static UserMessageView CreateUser(
         FrameworkElement host,
         ChatDisplayMessage message,
-        MessageActions? actions = null)
+        MessageActions? actions = null,
+        DateFormat dateFormat = DateFormat.DayMonthShort)
     {
         // Один разбор на все три вопроса к тексту: есть ли блочная разметка, как его нарисовать
         // и как он выглядит без инлайновой. Раньше Markdig проходил по нему трижды.
@@ -1171,6 +1172,28 @@ internal static class ChatMessageViews
         var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         var edit = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
+
+        // Время отправки (D17) — как у ответа: часы, а полная дата в подсказке. Прозрачная обёртка —
+        // чтобы подсказка не мигала на просветах между цифрами.
+        if (message.CreatedAt != default)
+        {
+            var clock = new TextBlock
+            {
+                Style = (Style)host.FindResource("AiMetaText"),
+                Text = ChatFormat.Clock(message.CreatedAt),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var clockChip = new Border
+            {
+                Background = Brushes.Transparent,
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = ChatFormat.Stamp(message.CreatedAt, dateFormat),
+                Child = clock
+            };
+            ToolTipService.SetInitialShowDelay(clockChip, 150);
+            row.Children.Add(clockChip);
+        }
 
         // Правка вопроса оставляет прежнюю ветку вариантом — листать их отсюда же.
         row.Children.Add(BuildVariantSwitcher(host, message, actions));

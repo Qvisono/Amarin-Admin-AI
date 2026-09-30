@@ -296,7 +296,7 @@ namespace Amarin.UI
             var message = host.Message;
             if (message.Role == "user")
             {
-                FillHost(host, ChatMessageViews.CreateUser(this, message, host.Actions).Root);
+                FillHost(host, ChatMessageViews.CreateUser(this, message, host.Actions, ActiveDateFormat).Root);
                 return;
             }
 
