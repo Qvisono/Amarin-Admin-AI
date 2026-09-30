@@ -64,7 +64,7 @@ namespace Amarin.UI
             MessageBox.Show(this, note, Title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void ExportMessage(ChatDisplayMessage message) => ExportSession(_session, message.Id);
+        private void ExportMessage(ChatDisplayMessage message, FrameworkElement anchor) => OpenExportMenu(anchor, _session, message.Id);
 
         /// <summary>Writes <paramref name="session"/> out as plain JSON, whole or up to a message.</summary>
         private void ExportSession(ChatSession session, string? upToMessageId)

@@ -399,6 +399,12 @@ public sealed class AppSettings
     /// </summary>
     public double? SidebarWidth { get; set; }
 
+    /// <summary>Выгрузка чата (D6) кладёт раунды инструментов: вызовы, аргументы и итоги.</summary>
+    public bool ExportIncludeTools { get; set; }
+
+    /// <summary>Выгрузка чата (D6) показывает цену каждого ответа и итог.</summary>
+    public bool ExportIncludeCosts { get; set; }
+
     /// <summary>Боковая панель свёрнута в полоску — запоминается между запусками (D5).</summary>
     public bool SidebarCollapsed { get; set; }
 

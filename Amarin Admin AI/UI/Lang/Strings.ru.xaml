@@ -323,6 +323,7 @@
     <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Удаление чата</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Ранее</system:String>
     <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Развернуть</system:String>
+    <system:String x:Key="S.ChatList.Export" xml:space="preserve">Выгрузить</system:String>
     <system:String x:Key="S.ChatList.ExportJson" xml:space="preserve">Экспорт в JSON</system:String>
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">В папку</system:String>
     <system:String x:Key="S.ChatList.NameDesc" xml:space="preserve">Показывается в списке слева. Хранится только на этом компьютере.</system:String>
@@ -418,6 +419,25 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели (шаг {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Инструменты прерваны</system:String>
+    <system:String x:Key="S.Export.Assistant" xml:space="preserve">Ассистент</system:String>
+    <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Выгружено {0}</system:String>
+    <system:String x:Key="S.Export.Failed" xml:space="preserve">Файл не записан: {0}</system:String>
+    <system:String x:Key="S.Export.FailedTitle" xml:space="preserve">Не удалось выгрузить</system:String>
+    <system:String x:Key="S.Export.Files" xml:space="preserve">Файлы:</system:String>
+    <system:String x:Key="S.Export.Html" xml:space="preserve">HTML-страница (.html)…</system:String>
+    <system:String x:Key="S.Export.Image" xml:space="preserve">Изображение</system:String>
+    <system:String x:Key="S.Export.Markdown" xml:space="preserve">Markdown (.md)…</system:String>
+    <system:String x:Key="S.Export.MessageCount" xml:space="preserve">сообщений: {0}</system:String>
+    <system:String x:Key="S.Export.OpenFolder" xml:space="preserve">Показать в папке</system:String>
+    <system:String x:Key="S.Export.Pdf" xml:space="preserve">PDF…</system:String>
+    <system:String x:Key="S.Export.Print" xml:space="preserve">Печать…</system:String>
+    <system:String x:Key="S.Export.SavedTitle" xml:space="preserve">Чат выгружен</system:String>
+    <system:String x:Key="S.Export.Tool" xml:space="preserve">Инструмент</system:String>
+    <system:String x:Key="S.Export.ToolCount" xml:space="preserve">Инструменты ({0})</system:String>
+    <system:String x:Key="S.Export.ToolFailed" xml:space="preserve">ошибка</system:String>
+    <system:String x:Key="S.Export.WithCosts" xml:space="preserve">С ценами</system:String>
+    <system:String x:Key="S.Export.WithTools" xml:space="preserve">С инструментами</system:String>
+    <system:String x:Key="S.Export.You" xml:space="preserve">Вы</system:String>
     <system:String x:Key="S.Find.Newer" xml:space="preserve">Позже (Shift+Enter)</system:String>
     <system:String x:Key="S.Find.None" xml:space="preserve">нет совпадений</system:String>
     <system:String x:Key="S.Find.Older" xml:space="preserve">Раньше (Enter)</system:String>
@@ -1042,7 +1062,7 @@
     <system:String x:Key="S.Message.Compress" xml:space="preserve">Сжать</system:String>
     <system:String x:Key="S.Message.Continue" xml:space="preserve">Продолжить с места обрыва</system:String>
     <system:String x:Key="S.Message.Expand" xml:space="preserve">Расширить</system:String>
-    <system:String x:Key="S.Message.Export" xml:space="preserve">Экспорт диалога в JSON</system:String>
+    <system:String x:Key="S.Message.Export" xml:space="preserve">Выгрузить диалог до этого места</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">Ответ без текста</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Повторить</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Поделиться диалогом до этого ответа</system:String>
@@ -1158,6 +1178,32 @@
     <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Выполнять команды на</system:String>
     <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">Этот компьютер</system:String>
     <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">Инструмент {0} работает только на этом ПК, а команды этого чата выполняются на машине «{1}». Не повторяй вызов; сделай то же через run_powershell — он выполняется там.</system:String>
+    <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Выводы написать не удалось. Факты ниже — полные.</system:String>
+    <system:String x:Key="S.Report.Analyzing" xml:space="preserve">Модель разбирает факты и пишет выводы…</system:String>
+    <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">по разрешению на ход/чат</system:String>
+    <system:String x:Key="S.Report.ByAuto" xml:space="preserve">автоподтверждение</system:String>
+    <system:String x:Key="S.Report.ByHuman" xml:space="preserve">разрешил человек</system:String>
+    <system:String x:Key="S.Report.ByPlan" xml:space="preserve">по одобренному плану</system:String>
+    <system:String x:Key="S.Report.Changed" xml:space="preserve">изменение</system:String>
+    <system:String x:Key="S.Report.Checked" xml:space="preserve">Что проверено</system:String>
+    <system:String x:Key="S.Report.Copied" xml:space="preserve">Отчёт скопирован в буфер обмена (Markdown).</system:String>
+    <system:String x:Key="S.Report.CopyFailed" xml:space="preserve">Буфер обмена занят другой программой — попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.Report.Counts" xml:space="preserve">действий: {0}, изменений: {1}, ошибок: {2}</system:String>
+    <system:String x:Key="S.Report.Done" xml:space="preserve">Что сделано</system:String>
+    <system:String x:Key="S.Report.MenuItem" xml:space="preserve">Отчёт о работе…</system:String>
+    <system:String x:Key="S.Report.More" xml:space="preserve">…и ещё действий: {0} — полностью они есть в журнале.</system:String>
+    <system:String x:Key="S.Report.NoKey" xml:space="preserve">Выводы не написаны: нет ключа API. Факты ниже — полные.</system:String>
+    <system:String x:Key="S.Report.Nothing" xml:space="preserve">В этой переписке не выполнялось ни одного действия на ПК.</system:String>
+    <system:String x:Key="S.Report.NothingStatus" xml:space="preserve">Разбирать нечего: действий на ПК не было.</system:String>
+    <system:String x:Key="S.Report.Outcome" xml:space="preserve">Итог:</system:String>
+    <system:String x:Key="S.Report.Ready" xml:space="preserve">Готово. Разбор стоил {0}.</system:String>
+    <system:String x:Key="S.Report.Request" xml:space="preserve">Запрос</system:String>
+    <system:String x:Key="S.Report.Save" xml:space="preserve">Сохранить…</system:String>
+    <system:String x:Key="S.Report.Saved" xml:space="preserve">Сохранено: {0}</system:String>
+    <system:String x:Key="S.Report.Snapshots" xml:space="preserve">Снимки для отката</system:String>
+    <system:String x:Key="S.Report.Title" xml:space="preserve">Отчёт о работе: {0}</system:String>
+    <system:String x:Key="S.Report.WindowTitle" xml:space="preserve">Отчёт о работе</system:String>
+    <system:String x:Key="S.Report.Wrong" xml:space="preserve">Что было не так</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">путь раздела не распознан</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Откат выполнен: {0} из {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Снимок {0}. Будет возвращено изменений: {1}</system:String>
@@ -1353,6 +1399,7 @@
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Прочее</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Видео</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Поиск в интернете</system:String>
+    <system:String x:Key="S.Spend.Kind.WorkReport" xml:space="preserve">Отчёт о работе</system:String>
     <system:String x:Key="S.Spend.Loading" xml:space="preserve">Считаем траты...</system:String>
     <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">Разбивка появится, когда будут траты</system:String>
     <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">На что ушло</system:String>

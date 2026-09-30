@@ -175,6 +175,11 @@ internal sealed class AppServices : IDisposable
 
     private void WireOrganizer(ChatStore store) => store.Deleted += id => _organizer?.Forget(id);
 
+    /// <summary>Разбор фактов в отчёте о работе (D7): тем же клиентом и ключами, что и сводка.</summary>
+    internal WorkReportWriter WorkReports => _workReports ??= new WorkReportWriter(Http, Options, () => Settings);
+
+    private WorkReportWriter? _workReports;
+
     /// <summary>Серверы MCP (C11). Null — не заводились (тесты): инструментов MCP нет.</summary>
     internal McpHost? Mcp { get; init; }
 

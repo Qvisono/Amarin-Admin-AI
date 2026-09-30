@@ -80,6 +80,7 @@ namespace Amarin.UI
             AutomationPage.AgentRequested += OnRecipeAgentRequested;
             HealthOverlay.AskRequested += OnHealthAskRequested;
             WireFind();
+            WireWorkReport();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);

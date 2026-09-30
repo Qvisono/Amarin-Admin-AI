@@ -50,6 +50,9 @@ internal static class VeniceSku
     /// <summary>Бриф к инфографике. Сама картинка уходит в статью картинок своим sku.</summary>
     public const string Infographic = "infographic-request";
 
+    /// <summary>Разбор фактов в отчёте о работе (D7).</summary>
+    public const string WorkReport = "work-report-request";
+
     /// <summary>
     /// Наши собственные пометки — разбираются точным совпадением, а не вхождением подстроки.
     /// </summary>
@@ -74,7 +77,8 @@ internal static class VeniceSku
         [Translate] = "S.Spend.Kind.Translate",
         [Explain] = "S.Spend.Kind.Explain",
         [FollowUp] = "S.Spend.Kind.FollowUp",
-        [Infographic] = "S.Spend.Kind.Infographic"
+        [Infographic] = "S.Spend.Kind.Infographic",
+        [WorkReport] = "S.Spend.Kind.WorkReport"
     };
 
     /// <summary>

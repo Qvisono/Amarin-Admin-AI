@@ -40,8 +40,11 @@ internal sealed class MessageActions
     /// <summary>Copy a share code for the dialog up to and including this message.</summary>
     public Action<ChatDisplayMessage>? Share;
 
-    /// <summary>Write the dialog up to this message out as plain JSON.</summary>
-    public Action<ChatDisplayMessage>? Export;
+    /// <summary>
+    /// Выгрузить диалог до этого сообщения (D6): открывает меню форматов у кнопки — она второй
+    /// аргумент.
+    /// </summary>
+    public Action<ChatDisplayMessage, FrameworkElement>? Export;
 
     /// <summary>False hides both of the above (Settings → Data Controls).</summary>
     public Func<bool>? SharingEnabled;
@@ -1336,7 +1339,7 @@ internal static class ChatMessageViews
         HideIf(share, !sharingOn);
         row.Children.Add(share);
         var export = IconAction(host, "ExportJson", Loc.Get("S.Message.Export"));
-        export.Click += (_, _) => actions?.Export?.Invoke(message);
+        export.Click += (_, _) => actions?.Export?.Invoke(message, export);
         HideIf(export, !sharingOn);
         row.Children.Add(export);
         var compress = IconAction(host, "Compress", Loc.Get("S.Message.Compress"));

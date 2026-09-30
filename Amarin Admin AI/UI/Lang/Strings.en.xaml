@@ -323,6 +323,7 @@
     <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Delete chat</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Earlier</system:String>
     <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Expand</system:String>
+    <system:String x:Key="S.ChatList.Export" xml:space="preserve">Export</system:String>
     <system:String x:Key="S.ChatList.ExportJson" xml:space="preserve">Export to JSON</system:String>
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">Move to folder</system:String>
     <system:String x:Key="S.ChatList.NameDesc" xml:space="preserve">Shown in the list on the left. Kept on this computer only.</system:String>
@@ -418,6 +419,25 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Tools finished - asking the model for a reply</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Tools finished - asking the model for a reply (step {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Tools stopped</system:String>
+    <system:String x:Key="S.Export.Assistant" xml:space="preserve">Assistant</system:String>
+    <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Exported {0}</system:String>
+    <system:String x:Key="S.Export.Failed" xml:space="preserve">The file was not written: {0}</system:String>
+    <system:String x:Key="S.Export.FailedTitle" xml:space="preserve">Export failed</system:String>
+    <system:String x:Key="S.Export.Files" xml:space="preserve">Files:</system:String>
+    <system:String x:Key="S.Export.Html" xml:space="preserve">HTML page (.html)…</system:String>
+    <system:String x:Key="S.Export.Image" xml:space="preserve">Image</system:String>
+    <system:String x:Key="S.Export.Markdown" xml:space="preserve">Markdown (.md)…</system:String>
+    <system:String x:Key="S.Export.MessageCount" xml:space="preserve">messages: {0}</system:String>
+    <system:String x:Key="S.Export.OpenFolder" xml:space="preserve">Show in folder</system:String>
+    <system:String x:Key="S.Export.Pdf" xml:space="preserve">PDF…</system:String>
+    <system:String x:Key="S.Export.Print" xml:space="preserve">Print…</system:String>
+    <system:String x:Key="S.Export.SavedTitle" xml:space="preserve">Chat exported</system:String>
+    <system:String x:Key="S.Export.Tool" xml:space="preserve">Tool</system:String>
+    <system:String x:Key="S.Export.ToolCount" xml:space="preserve">Tools ({0})</system:String>
+    <system:String x:Key="S.Export.ToolFailed" xml:space="preserve">failed</system:String>
+    <system:String x:Key="S.Export.WithCosts" xml:space="preserve">Include prices</system:String>
+    <system:String x:Key="S.Export.WithTools" xml:space="preserve">Include tools</system:String>
+    <system:String x:Key="S.Export.You" xml:space="preserve">You</system:String>
     <system:String x:Key="S.Find.Newer" xml:space="preserve">Later (Shift+Enter)</system:String>
     <system:String x:Key="S.Find.None" xml:space="preserve">no matches</system:String>
     <system:String x:Key="S.Find.Older" xml:space="preserve">Earlier (Enter)</system:String>
@@ -1042,7 +1062,7 @@
     <system:String x:Key="S.Message.Compress" xml:space="preserve">Collapse</system:String>
     <system:String x:Key="S.Message.Continue" xml:space="preserve">Resume where it stopped</system:String>
     <system:String x:Key="S.Message.Expand" xml:space="preserve">Expand</system:String>
-    <system:String x:Key="S.Message.Export" xml:space="preserve">Export the conversation to JSON</system:String>
+    <system:String x:Key="S.Message.Export" xml:space="preserve">Export the conversation up to here</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">The answer has no text</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Regenerate</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Share the conversation up to this answer</system:String>
@@ -1158,6 +1178,32 @@
     <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Run commands on</system:String>
     <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">This computer</system:String>
     <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">The tool {0} works only on this PC, but this chat's commands run on "{1}". Don't repeat the call; do the same through run_powershell, which runs there.</system:String>
+    <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Could not write the conclusions. The facts below are complete.</system:String>
+    <system:String x:Key="S.Report.Analyzing" xml:space="preserve">The model is reading the facts and writing conclusions…</system:String>
+    <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">by a turn/chat allowance</system:String>
+    <system:String x:Key="S.Report.ByAuto" xml:space="preserve">auto-approved</system:String>
+    <system:String x:Key="S.Report.ByHuman" xml:space="preserve">approved by a person</system:String>
+    <system:String x:Key="S.Report.ByPlan" xml:space="preserve">by the approved plan</system:String>
+    <system:String x:Key="S.Report.Changed" xml:space="preserve">change</system:String>
+    <system:String x:Key="S.Report.Checked" xml:space="preserve">What was verified</system:String>
+    <system:String x:Key="S.Report.Copied" xml:space="preserve">The report is copied to the clipboard (Markdown).</system:String>
+    <system:String x:Key="S.Report.CopyFailed" xml:space="preserve">The clipboard is busy with another program — try again.</system:String>
+    <system:String x:Key="S.Report.Counts" xml:space="preserve">actions: {0}, changes: {1}, errors: {2}</system:String>
+    <system:String x:Key="S.Report.Done" xml:space="preserve">What was done</system:String>
+    <system:String x:Key="S.Report.MenuItem" xml:space="preserve">Work report…</system:String>
+    <system:String x:Key="S.Report.More" xml:space="preserve">…and {0} more actions — the journal has them all.</system:String>
+    <system:String x:Key="S.Report.NoKey" xml:space="preserve">No conclusions: there is no API key. The facts below are complete.</system:String>
+    <system:String x:Key="S.Report.Nothing" xml:space="preserve">No actions were run on the PC in this conversation.</system:String>
+    <system:String x:Key="S.Report.NothingStatus" xml:space="preserve">Nothing to analyse: no actions were run on the PC.</system:String>
+    <system:String x:Key="S.Report.Outcome" xml:space="preserve">Result:</system:String>
+    <system:String x:Key="S.Report.Ready" xml:space="preserve">Done. The analysis cost {0}.</system:String>
+    <system:String x:Key="S.Report.Request" xml:space="preserve">Request</system:String>
+    <system:String x:Key="S.Report.Save" xml:space="preserve">Save…</system:String>
+    <system:String x:Key="S.Report.Saved" xml:space="preserve">Saved: {0}</system:String>
+    <system:String x:Key="S.Report.Snapshots" xml:space="preserve">Rollback snapshots</system:String>
+    <system:String x:Key="S.Report.Title" xml:space="preserve">Work report: {0}</system:String>
+    <system:String x:Key="S.Report.WindowTitle" xml:space="preserve">Work report</system:String>
+    <system:String x:Key="S.Report.Wrong" xml:space="preserve">What was wrong</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">the key path was not recognised</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Rollback done: {0} of {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Snapshot {0}. Changes to undo: {1}</system:String>
@@ -1353,6 +1399,7 @@
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Other</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Video</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Web search</system:String>
+    <system:String x:Key="S.Spend.Kind.WorkReport" xml:space="preserve">Work report</system:String>
     <system:String x:Key="S.Spend.Loading" xml:space="preserve">Adding up the spending...</system:String>
     <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">The breakdown shows up once there is spending</system:String>
     <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">Where it went</system:String>

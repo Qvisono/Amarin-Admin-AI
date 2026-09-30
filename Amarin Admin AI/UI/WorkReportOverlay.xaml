@@ -1,0 +1,71 @@
+<UserControl x:Class="Amarin.UI.WorkReportOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             KeyboardNavigation.TabNavigation="Cycle"
+             PreviewKeyDown="Overlay_PreviewKeyDown">
+    <!-- Общие стили диалогов подключены здесь же: StaticResource разбирается до вставки в окно. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Border Background="{DynamicResource Overlay.Scrim}"/>
+        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border x:Name="Card" Width="640" Height="620"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <!-- Grid, а не StackPanel: длинный отчёт уходит в прокрутку строки «*», кнопки
+                     в строке Auto остаются на карточке (см. памятку про модалки). -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource S.Report.WindowTitle}" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}"/>
+                        <TextBlock x:Name="StatusText" FontSize="11.5" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Text.Muted}"
+                                   AutomationProperties.LiveSetting="Polite"/>
+                    </StackPanel>
+
+                    <Border Grid.Row="1" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Subtle}"
+                            BorderThickness="1" CornerRadius="8" Padding="12,10,4,10">
+                        <RichTextBox x:Name="Body" IsReadOnly="True" IsDocumentEnabled="True"
+                                     Background="Transparent" BorderThickness="0" Padding="0,0,8,0"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Foreground="{DynamicResource Text.Secondary}"
+                                     AutomationProperties.Name="{DynamicResource S.Report.WindowTitle}"/>
+                    </Border>
+
+                    <StackPanel Grid.Row="2">
+                        <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,12,0,0"/>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="CloseButton" Content="{DynamicResource S.Common.Close}"
+                                    Style="{StaticResource DialogSecondaryButton}" Click="CloseButton_Click"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button x:Name="SaveButton" Content="{DynamicResource S.Report.Save}"
+                                        Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
+                                        Click="SaveButton_Click"/>
+                                <Button x:Name="CopyButton" Content="{DynamicResource S.Common.Copy}"
+                                        Style="{StaticResource DialogPrimaryButton}" Click="CopyButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Viewbox>
+    </Grid>
+</UserControl>

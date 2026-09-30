@@ -101,7 +101,7 @@ namespace Amarin.UI
             {
                 menu.Items.Add(Divider());
                 menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => WithChat(id, s => ShareSession(s, null))));
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.ExportJson"), () => WithChat(id, s => ExportSession(s, null))));
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Export") + "…", () => WithChat(id, s => OpenExportMenu(anchor, s, null))));
             }
 
             menu.Items.Add(Divider());

@@ -158,6 +158,12 @@ internal static class ThemeManager
     /// </summary>
     internal static ResourceDictionary LoadFallbackPalette() => Load("Palette.Dark");
 
+    /// <summary>
+    /// Палитра для бумаги (печать и PDF, D6): тёмный текст на белом, какая бы тема ни стояла.
+    /// Кладётся в ресурсы самого печатаемого документа — тема окна от этого не меняется.
+    /// </summary>
+    internal static ResourceDictionary LoadPrintPalette() => Load("Palette.Light");
+
     private static bool IsSystemLight()
     {
         try
