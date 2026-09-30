@@ -220,6 +220,14 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">Ещё {0} — цифра пока не получена</system:String>
+    <system:String x:Key="S.Batch.EmptyReply" xml:space="preserve">Пакетная очередь OpenRouter вернула пустой ответ.</system:String>
+    <system:String x:Key="S.Batch.Kind.Documents" xml:space="preserve">документы</system:String>
+    <system:String x:Key="S.Batch.Kind.Images" xml:space="preserve">картинки</system:String>
+    <system:String x:Key="S.Batch.NoAnswer" xml:space="preserve">Пакетная очередь OpenRouter: заявка завершилась, но ответа в ней нет. Повторите запрос или выберите модель без пометки «(batch)».</system:String>
+    <system:String x:Key="S.Batch.NoId" xml:space="preserve">Пакетная очередь OpenRouter приняла заявку без номера, и спросить о ней нечем. Повторите запрос.</system:String>
+    <system:String x:Key="S.Batch.NoReason" xml:space="preserve">причина не названа</system:String>
+    <system:String x:Key="S.Batch.RequestRefused" xml:space="preserve">Пакетная очередь OpenRouter: запрос в заявке отказал - {0}</system:String>
+    <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Ответ пакетной очереди OpenRouter не разобрать ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
@@ -486,6 +494,8 @@
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">Команда /agent</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">Нужен ключ API</system:String>
     <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Открыть Key &amp; Info</system:String>
+    <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
+    <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice вернул пустой ответ без изображения.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">из последнего ответа</system:String>
     <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">из ответа от {0}</system:String>

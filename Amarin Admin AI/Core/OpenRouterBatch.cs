@@ -243,12 +243,12 @@ internal static class OpenRouterBatchPlan
 
                 if (HasInlineData(part, "image_url", "url"))
                 {
-                    return "картинки";
+                    return Loc.Get("S.Batch.Kind.Images");
                 }
 
                 if (HasInlineData(part, "file", "file_data"))
                 {
-                    return "документы";
+                    return Loc.Get("S.Batch.Kind.Documents");
                 }
             }
         }
@@ -280,13 +280,11 @@ internal static class OpenRouterBatchPlan
         if (result?.Error is { ValueKind: not JsonValueKind.Null and not JsonValueKind.Undefined } failure)
         {
             throw new VeniceApiException(
-                $"OpenRouter batch: запрос в заявке отказал — {Describe(failure)}");
+                Loc.Format("S.Batch.RequestRefused", Describe(failure)));
         }
 
         var body = result?.Response?.Body
-                   ?? throw new VeniceApiException(
-                       "OpenRouter batch: заявка завершилась, но ответа в ней нет. " +
-                       "Повторите запрос или выберите модель без пометки «(batch)».");
+                   ?? throw new VeniceApiException(Loc.Get("S.Batch.NoAnswer"));
 
         if (body.Error is { } inner)
         {
@@ -309,19 +307,19 @@ internal static class OpenRouterBatchPlan
     {
         if (error is not { ValueKind: not JsonValueKind.Null and not JsonValueKind.Undefined } value)
         {
-            return "причина не названа";
+            return Loc.Get("S.Batch.NoReason");
         }
 
         if (value.ValueKind == JsonValueKind.String)
         {
-            return value.GetString() ?? "причина не названа";
+            return value.GetString() ?? Loc.Get("S.Batch.NoReason");
         }
 
         if (value.ValueKind == JsonValueKind.Object &&
             value.TryGetProperty("message", out var message) &&
             message.ValueKind == JsonValueKind.String)
         {
-            return message.GetString() ?? "причина не названа";
+            return message.GetString() ?? Loc.Get("S.Batch.NoReason");
         }
 
         var raw = value.GetRawText();

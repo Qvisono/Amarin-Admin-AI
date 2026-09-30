@@ -284,7 +284,7 @@ public sealed class VeniceClient
         }
 
         throw lastOverload
-            ?? new VeniceApiException("Все модели в цепочке fallback перегружены. Повторите запрос позже.");
+            ?? new VeniceApiException(Loc.Get("S.Provider.AllOverloaded"));
     }
 
     /// <param name="model">Модель этого хода. Съезжает сама, если сработал fallback.</param>
@@ -351,7 +351,7 @@ public sealed class VeniceClient
         }
 
         throw lastOverload
-            ?? new VeniceApiException("Все модели в цепочке fallback перегружены. Повторите запрос позже.");
+            ?? new VeniceApiException(Loc.Get("S.Provider.AllOverloaded"));
     }
 
     private async Task<ChatCompletionResponse> SendChatCompletionAsync(
@@ -646,8 +646,7 @@ public sealed class VeniceClient
         if (string.IsNullOrWhiteSpace(id))
         {
             throw new VeniceApiException(
-                "OpenRouter batch: заявка принята без идентификатора, спросить о ней нечем. " +
-                "Повторите запрос.");
+                Loc.Get("S.Batch.NoId"));
         }
 
         try
@@ -820,12 +819,12 @@ public sealed class VeniceClient
         try
         {
             return JsonSerializer.Deserialize(body, VeniceJsonContext.Default.OpenRouterBatchObject)
-                   ?? throw new VeniceApiException("OpenRouter batch: пустой ответ очереди.");
+                   ?? throw new VeniceApiException(Loc.Get("S.Batch.EmptyReply"));
         }
         catch (JsonException ex)
         {
             throw new VeniceApiException(
-                $"OpenRouter batch: ответ очереди не разобрать ({ex.Message}). Body: {Preview(body)}");
+                Loc.Format("S.Batch.Unreadable", ex.Message, Preview(body)));
         }
     }
 
@@ -1597,7 +1596,7 @@ public sealed class VeniceClient
         var image = result?.Images.FirstOrDefault(item => !string.IsNullOrWhiteSpace(item));
         if (image is null)
         {
-            throw new VeniceApiException("Venice image error: пустой ответ без изображения.");
+            throw new VeniceApiException(Loc.Get("S.Provider.NoImage"));
         }
 
         AddCost(

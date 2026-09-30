@@ -220,6 +220,14 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: no figure yet</system:String>
+    <system:String x:Key="S.Batch.EmptyReply" xml:space="preserve">The OpenRouter batch queue returned an empty reply.</system:String>
+    <system:String x:Key="S.Batch.Kind.Documents" xml:space="preserve">documents</system:String>
+    <system:String x:Key="S.Batch.Kind.Images" xml:space="preserve">images</system:String>
+    <system:String x:Key="S.Batch.NoAnswer" xml:space="preserve">OpenRouter batch queue: the batch finished but holds no answer. Try again or pick the model without the (batch) mark.</system:String>
+    <system:String x:Key="S.Batch.NoId" xml:space="preserve">The OpenRouter batch queue accepted the request without an id, so there is nothing to ask about. Please try again.</system:String>
+    <system:String x:Key="S.Batch.NoReason" xml:space="preserve">no reason given</system:String>
+    <system:String x:Key="S.Batch.RequestRefused" xml:space="preserve">OpenRouter batch queue: the request in the batch was refused - {0}</system:String>
+    <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Could not read the OpenRouter batch queue's reply ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
@@ -486,6 +494,8 @@
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">The /agent command</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">An API key is needed</system:String>
     <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Open Key &amp; Info</system:String>
+    <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
+    <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice returned an empty reply without an image.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Reply</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">from the last reply</system:String>
     <system:String x:Key="S.Quote.FromAnswer" xml:space="preserve">from the reply at {0}</system:String>
