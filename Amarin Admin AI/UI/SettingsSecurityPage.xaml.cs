@@ -61,6 +61,11 @@ public partial class SettingsSecurityPage : UserControl
 
             EnableAllToolsButton.IsEnabled = settings.DisabledTools is { Count: > 0 };
 
+            foreach (var toggle in PlanToggles)
+            {
+                toggle.IsChecked = AgentPlanSettings.IsOn(settings, (string)toggle.Tag);
+            }
+
             EncryptChatsToggle.IsChecked = settings.EncryptChats;
             LoadAutoLock(settings);
         }
@@ -122,6 +127,19 @@ public partial class SettingsSecurityPage : UserControl
         }
 
         _services.Settings.AutoLockMinutes = int.Parse(tag, System.Globalization.CultureInfo.InvariantCulture);
+        _services.SettingsStore.Save(_services.Settings);
+    }
+
+    private IEnumerable<CheckBox> PlanToggles => [PlanLiteToggle, PlanFastToggle, PlanHeavyToggle];
+
+    private void PlanTierToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null || sender is not CheckBox { Tag: string tier } toggle)
+        {
+            return;
+        }
+
+        AgentPlanSettings.Set(_services.Settings, tier, toggle.IsChecked == true);
         _services.SettingsStore.Save(_services.Settings);
     }
 

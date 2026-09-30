@@ -157,6 +157,12 @@ public sealed class AppSettings
     /// </summary>
     public AppearanceSettings Appearance { get; set; } = new();
 
+    /// <summary>
+    /// Уровни агента, у которых сначала план (lite, fast, heavy). Нет поля — только heavy: у
+    /// тяжёлого агента самые длинные цепочки изменений, и их стоит видеть заранее.
+    /// </summary>
+    public List<string>? PlanFirstTiers { get; set; }
+
     public ApprovalMode ApprovalMode { get; set; } = ApprovalMode.Normal;
 
     /// <summary>

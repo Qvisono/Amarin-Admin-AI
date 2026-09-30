@@ -9,14 +9,17 @@ internal sealed class AgentUiAdapter : IAgentUi
     private readonly Action _changed;
     private readonly string _agentLabel;
     private readonly string? _sessionId;
+    private readonly PlanReviewQueue? _plans;
 
     public AgentUiAdapter(
         AgentRunRecord record,
         ConfirmationQueue confirmations,
         Action changed,
         string agentLabel,
-        string? sessionId = null)
+        string? sessionId = null,
+        PlanReviewQueue? plans = null)
     {
+        _plans = plans;
         _record = record;
         _confirmations = confirmations;
         _changed = changed;
@@ -170,6 +173,27 @@ internal sealed class AgentUiAdapter : IAgentUi
         DangerousActionInfo info,
         CancellationToken cancellationToken = default) =>
         _confirmations.ConfirmAsync(_agentLabel, info, _sessionId, cancellationToken);
+
+    /// <summary>
+    /// План — в запись хода (лента покажет его под блоком агента) и в очередь на рассмотрение.
+    /// </summary>
+    public async Task<PlanDecision> ReviewPlanAsync(AgentPlan plan, CancellationToken cancellationToken = default)
+    {
+        _record.Plan = plan;
+        _record.PlanVerdict = null;
+        Notify();
+        if (_plans is null)
+        {
+            _record.PlanVerdict = PlanVerdict.Execute;
+            Notify();
+            return PlanDecision.Execute;
+        }
+
+        var decision = await _plans.ReviewAsync(_agentLabel, plan, _sessionId, cancellationToken).ConfigureAwait(false);
+        _record.PlanVerdict = decision.Verdict;
+        Notify();
+        return decision;
+    }
 
     public Task<ConfirmationAnswer> ConfirmDetailedAsync(
         DangerousActionInfo info,

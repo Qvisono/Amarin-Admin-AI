@@ -26,6 +26,12 @@ internal sealed class AgentRunContext
     /// обычный вызов, и уровень решает <see cref="AgentTierRouter"/>.
     /// </remarks>
     public string? ForcedTier { get; init; }
+
+    /// <summary>
+    /// Можно ли агенту сначала показать план. Нет — у прогона по расписанию: он идёт без
+    /// человека, и ждать одобрения было бы некому.
+    /// </summary>
+    public bool PlanAllowed { get; init; } = true;
 }
 
 internal static class AgentRunScope

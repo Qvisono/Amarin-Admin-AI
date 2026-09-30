@@ -538,6 +538,27 @@
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">The /agent command</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">An API key is needed</system:String>
     <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Open Key &amp; Info</system:String>
+    <system:String x:Key="S.Plan.Amend" xml:space="preserve">Revise</system:String>
+    <system:String x:Key="S.Plan.AmendReply" xml:space="preserve">The user asks to revise the plan: {0}. Take it into account, check more with read-only calls if needed, and submit the revised plan.</system:String>
+    <system:String x:Key="S.Plan.ApprovedReply" xml:space="preserve">The plan is approved. Carry out the approved steps in order; anything not in the plan will be asked about separately.</system:String>
+    <system:String x:Key="S.Plan.Cancel" xml:space="preserve">Cancel</system:String>
+    <system:String x:Key="S.Plan.CancelledReply" xml:space="preserve">The user cancelled the plan. Do not change anything.</system:String>
+    <system:String x:Key="S.Plan.CancelledReport" xml:space="preserve">The user cancelled the plan - nothing was changed.</system:String>
+    <system:String x:Key="S.Plan.ChangesSystem" xml:space="preserve">Changes the system</system:String>
+    <system:String x:Key="S.Plan.Count" xml:space="preserve">Steps: {0}, changing the system: {1}</system:String>
+    <system:String x:Key="S.Plan.Execute" xml:space="preserve">Run the plan</system:String>
+    <system:String x:Key="S.Plan.InTranscript" xml:space="preserve">Plan — {0}</system:String>
+    <system:String x:Key="S.Plan.NoPlan" xml:space="preserve">No plan came together - going on with the usual questions.</system:String>
+    <system:String x:Key="S.Plan.Planning" xml:space="preserve">Drawing up a plan…</system:String>
+    <system:String x:Key="S.Plan.RemarkLabel" xml:space="preserve">What to change in the plan</system:String>
+    <system:String x:Key="S.Plan.SendRemark" xml:space="preserve">Send the remark</system:String>
+    <system:String x:Key="S.Plan.Title" xml:space="preserve">Agent's plan</system:String>
+    <system:String x:Key="S.Plan.Unreadable" xml:space="preserve">The plan could not be read: it needs summary and a steps array, each step with description, tool and changes_system. Submit it again.</system:String>
+    <system:String x:Key="S.Plan.VerdictAmend" xml:space="preserve">sent back for revision</system:String>
+    <system:String x:Key="S.Plan.VerdictCancel" xml:space="preserve">cancelled</system:String>
+    <system:String x:Key="S.Plan.VerdictExecute" xml:space="preserve">approved</system:String>
+    <system:String x:Key="S.Plan.VerdictPending" xml:space="preserve">awaiting a decision</system:String>
+    <system:String x:Key="S.Plan.WriteRefused" xml:space="preserve">This is the planning phase: nothing may be changed before approval. Put this action into the plan with submit_plan.</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
     <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice returned an empty reply without an image.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Reply</system:String>
@@ -1000,6 +1021,8 @@
     <system:String x:Key="S.Security.LockNow" xml:space="preserve">Lock now</system:String>
     <system:String x:Key="S.Security.Minutes" xml:space="preserve">{0} min</system:String>
     <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Access mode</system:String>
+    <system:String x:Key="S.Security.PlanDesc" xml:space="preserve">The agent first investigates with read-only calls and sends a plan for approval. Steps of an approved plan run without questions; anything outside the plan, and SynGuard questions, are asked as usual.</system:String>
+    <system:String x:Key="S.Security.PlanLabel" xml:space="preserve">Plan before changes</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">chat and agent</system:String>
     <system:String x:Key="S.Security.Subtitle" xml:space="preserve">What the model may do on this computer and what it asks you first.</system:String>
     <system:String x:Key="S.Security.Title" xml:space="preserve">Security</system:String>

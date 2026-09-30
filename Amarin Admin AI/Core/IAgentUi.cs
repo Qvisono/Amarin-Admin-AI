@@ -45,6 +45,16 @@ public interface IAgentUi
 
     Task<T> RunBusyAsync<T>(string message, Func<Task<T>> work, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Показывает план человеку и ждёт решения: выполнить, отменить или поправить.
+    /// </summary>
+    /// <remarks>
+    /// Реализация по умолчанию одобряет: план включают только там, где есть кому его показать
+    /// (<see cref="AgentUiAdapter"/>), и тестам без окна ждать некого.
+    /// </remarks>
+    Task<PlanDecision> ReviewPlanAsync(AgentPlan plan, CancellationToken cancellationToken = default) =>
+        Task.FromResult(PlanDecision.Execute);
+
     Task<bool> ConfirmDangerousActionAsync(
         DangerousActionInfo info,
         CancellationToken cancellationToken = default);

@@ -3968,6 +3968,10 @@
             </Viewbox>
         </Grid>
 
+        <!-- План агента на одобрение (C1). Под вопросом о действии: тот срочнее — ход уже стоит
+             на конкретном вызове, а план лишь ждёт, когда его прочтут. -->
+        <local:PlanReviewOverlay x:Name="PlanOverlay" Visibility="Collapsed" Panel.ZIndex="29"/>
+
         <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="30">
             <Border Background="{DynamicResource Overlay.Scrim}"/>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">

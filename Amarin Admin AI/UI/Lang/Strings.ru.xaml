@@ -538,6 +538,27 @@
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">Команда /agent</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">Нужен ключ API</system:String>
     <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Открыть Key &amp; Info</system:String>
+    <system:String x:Key="S.Plan.Amend" xml:space="preserve">Поправить</system:String>
+    <system:String x:Key="S.Plan.AmendReply" xml:space="preserve">Пользователь просит поправить план: {0}. Учти это, при необходимости проверь ещё что-нибудь чтением и отправь исправленный план.</system:String>
+    <system:String x:Key="S.Plan.ApprovedReply" xml:space="preserve">План одобрен. Выполняй одобренные шаги по порядку; всё, чего нет в плане, будет спрошено отдельно.</system:String>
+    <system:String x:Key="S.Plan.Cancel" xml:space="preserve">Отменить</system:String>
+    <system:String x:Key="S.Plan.CancelledReply" xml:space="preserve">Пользователь отменил план. Ничего не меняй.</system:String>
+    <system:String x:Key="S.Plan.CancelledReport" xml:space="preserve">План отменён пользователем — ничего не изменено.</system:String>
+    <system:String x:Key="S.Plan.ChangesSystem" xml:space="preserve">Меняет систему</system:String>
+    <system:String x:Key="S.Plan.Count" xml:space="preserve">Шагов: {0}, меняют систему: {1}</system:String>
+    <system:String x:Key="S.Plan.Execute" xml:space="preserve">Выполнить план</system:String>
+    <system:String x:Key="S.Plan.InTranscript" xml:space="preserve">План — {0}</system:String>
+    <system:String x:Key="S.Plan.NoPlan" xml:space="preserve">План так и не сложился — выполняю с обычными вопросами.</system:String>
+    <system:String x:Key="S.Plan.Planning" xml:space="preserve">Составляю план…</system:String>
+    <system:String x:Key="S.Plan.RemarkLabel" xml:space="preserve">Что поправить в плане</system:String>
+    <system:String x:Key="S.Plan.SendRemark" xml:space="preserve">Отправить замечание</system:String>
+    <system:String x:Key="S.Plan.Title" xml:space="preserve">План агента</system:String>
+    <system:String x:Key="S.Plan.Unreadable" xml:space="preserve">План не разобрать: нужен summary и массив steps, у каждого шага description, tool и changes_system. Отправь план заново.</system:String>
+    <system:String x:Key="S.Plan.VerdictAmend" xml:space="preserve">отправлен на доработку</system:String>
+    <system:String x:Key="S.Plan.VerdictCancel" xml:space="preserve">отменён</system:String>
+    <system:String x:Key="S.Plan.VerdictExecute" xml:space="preserve">одобрен</system:String>
+    <system:String x:Key="S.Plan.VerdictPending" xml:space="preserve">ждёт решения</system:String>
+    <system:String x:Key="S.Plan.WriteRefused" xml:space="preserve">Сейчас фаза плана: изменения запрещены до одобрения. Включи это действие в план через submit_plan.</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
     <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice вернул пустой ответ без изображения.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
@@ -1000,6 +1021,8 @@
     <system:String x:Key="S.Security.LockNow" xml:space="preserve">Заблокировать сейчас</system:String>
     <system:String x:Key="S.Security.Minutes" xml:space="preserve">{0} мин</system:String>
     <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Режим доступа</system:String>
+    <system:String x:Key="S.Security.PlanDesc" xml:space="preserve">Агент сначала разбирается только чтением и присылает план на одобрение. Шаги одобренного плана идут без вопросов; всё, чего в плане нет, и вопросы SynGuard спрашиваются как обычно.</system:String>
+    <system:String x:Key="S.Security.PlanLabel" xml:space="preserve">План перед изменениями</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">и у чата, и у агента</system:String>
     <system:String x:Key="S.Security.Subtitle" xml:space="preserve">Что модель может делать на этом компьютере и о чём сначала спрашивает вас.</system:String>
     <system:String x:Key="S.Security.Title" xml:space="preserve">Безопасность</system:String>

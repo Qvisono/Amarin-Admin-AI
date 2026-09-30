@@ -21,7 +21,10 @@ public enum ApprovalSource
     AllowChat,
 
     /// <summary>Человек разрешил вызов в вопросе SynGuard, который счёл его атакой.</summary>
-    SynGuardHuman
+    SynGuardHuman,
+
+    /// <summary>Вызов — шаг плана, который человек одобрил целиком (<see cref="AgentPlans"/>).</summary>
+    Plan
 }
 
 /// <summary>Насколько хватает разрешения, данного в окне подтверждения.</summary>

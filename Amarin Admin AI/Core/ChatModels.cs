@@ -366,6 +366,12 @@ public sealed class AgentRunRecord
     public string ReportText { get; set; } = "";
 
     public VeniceCost? Cost { get; set; }
+
+    /// <summary>План, который агент предлагал (C1), — чтобы лента показала его и после хода.</summary>
+    public AgentPlan? Plan { get; set; }
+
+    /// <summary>Что решил человек о последнем плане; null — ещё не решил.</summary>
+    public PlanVerdict? PlanVerdict { get; set; }
 }
 
 public sealed class ChatIndex

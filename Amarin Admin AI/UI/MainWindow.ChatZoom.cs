@@ -42,6 +42,7 @@ namespace Amarin.UI
             ImageViewerOverlay.Visibility == Visibility.Visible ||
             JournalOverlay.Visibility == Visibility.Visible ||
             ConfirmationOverlay.Visibility == Visibility.Visible ||
+            PlanOverlay.Visibility == Visibility.Visible ||
             DomainOverlay.Visibility == Visibility.Visible ||
             IsLocked;
 

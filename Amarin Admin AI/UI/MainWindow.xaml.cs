@@ -76,6 +76,8 @@ namespace Amarin.UI
             TitleText.Text = Title;
             SettingsVersionText.Text = $"v{RuntimeContext.AppVersion}";
 
+            PlanOverlay.Decided += OnPlanDecided;
+
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
             TextOptions.SetTextHintingMode(this, TextHintingMode.Fixed);
@@ -205,10 +207,12 @@ namespace Amarin.UI
             if (_services is not null)
             {
                 _services.Confirmations.Changed -= OnConfirmationChanged;
+                _services.PlanReviews.Changed -= OnPlanReviewChanged;
             }
 
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
+            _services.PlanReviews.Changed += OnPlanReviewChanged;
             WireAutoLock();
 
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);

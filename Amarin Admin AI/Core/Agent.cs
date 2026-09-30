@@ -190,6 +190,15 @@ Paths on this machine - use these exact values, never wildcards:
     /// </summary>
     internal Func<AppSettings>? Settings { get; init; }
 
+    /// <summary>
+    /// Сначала план: агент исследует только чтением, предлагает шаги через <c>submit_plan</c> и
+    /// меняет систему лишь после одобрения человеком (C1).
+    /// </summary>
+    internal bool PlanFirst { get; init; }
+
+    /// <summary>Одобренный план хода: его шаги проходят без повторного вопроса.</summary>
+    private AgentPlan? _approvedPlan;
+
     private AppSettings CurrentSettings() => Settings?.Invoke() ?? new AppSettings();
 
     public Agent(
@@ -328,6 +337,151 @@ Paths on this machine - use these exact values, never wildcards:
     public Task<AgentRunResult> RunAsync(string userRequest, CancellationToken cancellationToken = default) =>
         RunRequestAsync(userRequest, cancellationToken);
 
+    /// <summary>
+    /// Фаза плана. Итог — результат, если прогон на этом и кончается (план отменён или менять
+    /// нечего), и null, если план одобрен и можно выполнять.
+    /// </summary>
+    /// <remarks>
+    /// Пишущие вызовы в этой фазе отклоняются до шлюза — ответом, который модель читает. Круги
+    /// ограничены половиной обычного предела: план, который не сложился за них, выполняется без
+    /// плана, с вопросами как обычно, — это безопасно, просто без одобрения впрок.
+    /// </remarks>
+    private async Task<AgentRunResult?> PlanAsync(
+        string userRequest,
+        List<ChatMessage> messages,
+        List<ToolDefinition> toolDefinitions,
+        CancellationToken cancellationToken)
+    {
+        var system = messages[0];
+        messages[0] = new ChatMessage
+        {
+            Role = "system",
+            Content = ChatContent.Text((ChatContent.ReadText(system.Content) ?? GetSystemPrompt()) + "\n\n" + AgentPlans.PlanningRule)
+        };
+        var definitions = new List<ToolDefinition>(toolDefinitions) { AgentPlans.Definition };
+        var rounds = Math.Max(4, _options.MaxToolRounds / 2);
+
+        try
+        {
+            for (var round = 1; round <= rounds; round++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var response = await _ui.RunBusyAsync(
+                    Loc.Get("S.Plan.Planning"),
+                    () => RequestCompletionAsync(messages, definitions, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+                var choice = response.Choices.FirstOrDefault();
+                if (choice is null)
+                {
+                    continue;
+                }
+
+                var assistantMessage = choice.Message;
+                var text = ExtractAssistantText(assistantMessage, choice.FinishReason);
+                messages.Add(ChatMessageCloner.CloneForStorage(assistantMessage));
+
+                if (assistantMessage.ToolCalls is not { Count: > 0 } calls)
+                {
+                    // Плана нет, потому что менять нечего: это и есть ответ.
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        _ui.AssistantMessage(text);
+                        return OkResult(text);
+                    }
+
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    _ui.AssistantMessage(text);
+                }
+
+                var reads = new List<ToolCall>();
+                ToolCall? submit = null;
+                foreach (var call in calls)
+                {
+                    if (call.Function.Name.Equals(AgentPlans.SubmitTool, StringComparison.OrdinalIgnoreCase))
+                    {
+                        submit ??= call;
+                        continue;
+                    }
+
+                    if (ToolEffects.Classify(call.Function.Name, ParseArgumentsSafe(call.Function.Arguments)) == ToolEffect.Write)
+                    {
+                        messages.Add(BuildToolMessage(call, ToolResult.Fail(Loc.Get("S.Plan.WriteRefused"))));
+                        continue;
+                    }
+
+                    reads.Add(call);
+                }
+
+                if (reads.Count > 0)
+                {
+                    await ExecuteToolCallsAsync(userRequest, reads, messages, cancellationToken).ConfigureAwait(false);
+                }
+
+                foreach (var extra in calls.Where(call => call != submit &&
+                                                          call.Function.Name.Equals(AgentPlans.SubmitTool, StringComparison.OrdinalIgnoreCase)))
+                {
+                    messages.Add(BuildToolMessage(extra, ToolResult.Fail("Only one plan per turn.")));
+                }
+
+                if (submit is null)
+                {
+                    continue;
+                }
+
+                var plan = AgentPlans.Parse(ParseArgumentsSafe(submit.Function.Arguments));
+                if (plan is null)
+                {
+                    messages.Add(BuildToolMessage(submit, ToolResult.Fail(Loc.Get("S.Plan.Unreadable"))));
+                    continue;
+                }
+
+                var decision = await _ui.ReviewPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+                switch (decision.Verdict)
+                {
+                    case PlanVerdict.Execute:
+                        _approvedPlan = plan;
+                        messages.Add(BuildToolMessage(submit, ToolResult.Ok(Loc.Get("S.Plan.ApprovedReply"))));
+                        return null;
+
+                    case PlanVerdict.Cancel:
+                        messages.Add(BuildToolMessage(submit, ToolResult.Fail(Loc.Get("S.Plan.CancelledReply"))));
+                        var report = Loc.Get("S.Plan.CancelledReport");
+                        _ui.AssistantMessage(report);
+                        return OkResult(report);
+
+                    default:
+                        messages.Add(BuildToolMessage(submit, ToolResult.Fail(
+                            Loc.Format("S.Plan.AmendReply", decision.Remark.Trim()))));
+                        break;
+                }
+            }
+
+            _ui.Warn(Loc.Get("S.Plan.NoPlan"));
+            return null;
+        }
+        finally
+        {
+            // Правило плана — только на эту фазу: дальше агент выполняет, а не планирует.
+            messages[0] = system;
+        }
+    }
+
+    private static JsonElement ParseArgumentsSafe(string? json)
+    {
+        try
+        {
+            return ParseArguments(json ?? "{}");
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
     private async Task<AgentRunResult> RunRequestAsync(string userRequest, CancellationToken cancellationToken)
     {
         try
@@ -360,6 +514,15 @@ Paths on this machine - use these exact values, never wildcards:
         // Выключенные человеком инструменты модель не видит вовсе; вызов по имени всё равно
         // отклонит шлюз.
         var toolDefinitions = ToolGate.WithoutDisabled(_toolDefinitions, CurrentSettings());
+
+        _approvedPlan = null;
+        if (PlanFirst && await PlanAsync(userRequest, messages, toolDefinitions, cancellationToken).ConfigureAwait(false)
+                is { } planned)
+        {
+            CompleteRequest();
+            SaveSessionHistory(messages);
+            return planned;
+        }
 
         string? finalAssistantText = null;
         var emptyResponseRetries = 0;
@@ -774,7 +937,7 @@ Paths on this machine - use these exact values, never wildcards:
         // администратор, данные программы) — отказ до всякого вопроса; дальше вопрос, если нужен.
         var decision = await ToolGate.DecideAsync(
                 ToolGate.Check(toolName, arguments, CurrentSettings()),
-                (info, token) => _ui.ConfirmDetailedAsync(info, token),
+                AskAsync,
                 guardApproved,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -833,6 +996,21 @@ Paths on this machine - use these exact values, never wildcards:
         {
             _undoTracker.RecordMutation(toolName, arguments);
         }
+    }
+
+    /// <summary>
+    /// Вопрос шлюза. Шаг одобренного плана проходит без вопроса — кроме вопроса SynGuard: план
+    /// одобряли по описанию, а SynGuard смотрит на то, что пришло на самом деле.
+    /// </summary>
+    private Task<ConfirmationAnswer> AskAsync(DangerousActionInfo info, CancellationToken cancellationToken)
+    {
+        if (_approvedPlan is { } plan && !info.AlwaysAsk && info.Arguments is { } arguments &&
+            AgentPlans.Covers(plan, info.ToolName, arguments))
+        {
+            return Task.FromResult(new ConfirmationAnswer(true, ApprovalSource.Plan));
+        }
+
+        return _ui.ConfirmDetailedAsync(info, cancellationToken);
     }
 
     private void AppendToolOutcome(

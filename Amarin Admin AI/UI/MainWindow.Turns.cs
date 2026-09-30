@@ -240,6 +240,7 @@ namespace Amarin.UI
             }
 
             _services?.Confirmations.CancelForSession(sessionId);
+            _services?.PlanReviews.CancelForSession(sessionId);
         }
 
         /// <summary>Остановить ход открытого чата — это делает кнопка «стоп» в сообщении.</summary>

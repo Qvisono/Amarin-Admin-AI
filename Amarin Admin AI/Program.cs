@@ -275,8 +275,9 @@ internal static class Program
         // на другую папку (AppServices.UseProfile), а движок, хост агентов и инструмент держат
         // ту же ссылку.
         var instructions = new InstructionLibrary(dataRoot);
+        var planReviews = new PlanReviewQueue();
         var agentHost = new AgentHost(
-            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions);
+            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
@@ -320,6 +321,7 @@ internal static class Program
             Titles = titles,
             Summaries = summaries,
             Confirmations = confirmations,
+            PlanReviews = planReviews,
             StartupPrompt = startup.Prompt,
             StartupSend = startup.ShouldSend,
             StartupWipe = wiped

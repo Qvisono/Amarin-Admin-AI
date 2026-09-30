@@ -830,6 +830,11 @@ internal sealed class AssistantMessageView
         header.Children.Add(suffix);
 
         var inner = new StackPanel();
+        if (agent.Plan is { } plan)
+        {
+            inner.Children.Add(BuildPlanBlock(plan, agent.PlanVerdict));
+        }
+
         foreach (var round in agent.ToolRounds)
         {
             if (!string.IsNullOrWhiteSpace(round.ModelNote))
@@ -913,6 +918,71 @@ internal sealed class AssistantMessageView
     /// the two sit in the same list, and if they looked alike the model would read as a program
     /// and the program as the model.
     /// </summary>
+    /// <summary>
+    /// План агента и решение по нему (C1) — первым в блоке агента: по нему читаются все вызовы
+    /// ниже, и видно, какие из них шли без вопроса как шаги одобренного плана.
+    /// </summary>
+    private Border BuildPlanBlock(AgentPlan plan, PlanVerdict? verdict)
+    {
+        var panel = new StackPanel();
+        var title = new TextBlock
+        {
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Text = Loc.Format("S.Plan.InTranscript", PlanVerdictText(verdict))
+        };
+        title.SetResourceReference(TextBlock.ForegroundProperty,
+            verdict == PlanVerdict.Cancel ? "Status.Danger" : "Text.Secondary");
+        panel.Children.Add(title);
+
+        if (!string.IsNullOrWhiteSpace(plan.Summary))
+        {
+            var summary = new TextBlock
+            {
+                FontSize = 12,
+                Margin = new Thickness(0, 3, 0, 0),
+                TextWrapping = TextWrapping.Wrap,
+                Text = plan.Summary
+            };
+            summary.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
+            panel.Children.Add(summary);
+        }
+
+        foreach (var row in PlanReviewOverlay.Rows(plan))
+        {
+            var step = new TextBlock
+            {
+                FontSize = 11.5,
+                Margin = new Thickness(0, 3, 0, 0),
+                TextWrapping = TextWrapping.Wrap,
+                // Номер и разделитель — вёрстка, не текст для перевода.
+                Text = $"{row.Number}. {row.Description}"
+            };
+            step.SetResourceReference(TextBlock.ForegroundProperty,
+                row.ChangesSystem ? "Status.Warning" : "Text.Faint");
+            panel.Children.Add(step);
+        }
+
+        var block = new Border
+        {
+            BorderThickness = new Thickness(2, 0, 0, 0),
+            Padding = new Thickness(8, 2, 0, 2),
+            Margin = new Thickness(4, 2, 0, 6),
+            Child = panel
+        };
+        block.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+        return block;
+    }
+
+    private static string PlanVerdictText(PlanVerdict? verdict) => verdict switch
+    {
+        PlanVerdict.Execute => Loc.Get("S.Plan.VerdictExecute"),
+        PlanVerdict.Cancel => Loc.Get("S.Plan.VerdictCancel"),
+        PlanVerdict.Amend => Loc.Get("S.Plan.VerdictAmend"),
+        _ => Loc.Get("S.Plan.VerdictPending")
+    };
+
     private Grid BuildNoteRow(string text)
     {
         var grid = new Grid { Style = (Style)Host.FindResource("ToolRow") };

@@ -69,6 +69,12 @@ internal sealed class AppServices : IDisposable
 
     public required ConfirmationQueue Confirmations { get; init; }
 
+    /// <summary>
+    /// Планы агентов на одобрение. Не required и с умолчанием: тесты собирают службы руками, а
+    /// без очереди план просто не показывается — <see cref="AgentHost"/> её получает отдельно.
+    /// </summary>
+    internal PlanReviewQueue PlanReviews { get; init; } = new();
+
     public string? StartupPrompt { get; init; }
 
     /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>

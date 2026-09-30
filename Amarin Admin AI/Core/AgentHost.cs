@@ -14,6 +14,9 @@ internal sealed class AgentHost : IAgentHost
     /// <summary>Библиотека инструкций: агент видит из неё только открытые ему (C6).</summary>
     private readonly InstructionLibrary? _instructions;
 
+    /// <summary>Очередь планов на рассмотрение (C1); null — плана нет, некому его показать.</summary>
+    private readonly PlanReviewQueue? _plans;
+
     /// <param name="agents">
     /// Куда записываться на время работы, чтобы агента можно было остановить или пересадить на
     /// другую модель, пока он работает. Null — прежнее поведение «запустили и ждём».
@@ -30,9 +33,11 @@ internal sealed class AgentHost : IAgentHost
         ConfirmationQueue confirmations,
         AgentRegistry? agents = null,
         Func<string, VeniceModelInfo?>? resolveModelInfo = null,
-        InstructionLibrary? instructions = null)
+        InstructionLibrary? instructions = null,
+        PlanReviewQueue? plans = null)
     {
         _instructions = instructions;
+        _plans = plans;
         _parentOptions = parentOptions;
         _downloadHttp = downloadHttp;
         _settings = settings;
@@ -138,7 +143,7 @@ internal sealed class AgentHost : IAgentHost
                 agentInstructions);
 
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
-            var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);
+            var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
             // Agent-only prompt. Chat companion TechAiPrompt is never passed here.
             var techAgent = settings.TechAgentPrompt;
             var agent = new Agent(
@@ -151,6 +156,9 @@ internal sealed class AgentHost : IAgentHost
             {
                 SessionMode = SessionMode.Isolated,
                 Instructions = agentInstructions,
+                // План — только если есть кому его показать и человек включил его для уровня.
+                PlanFirst = _plans is not null && AgentPlanSettings.IsOn(settings, currentComplexity) &&
+                            AgentRunScope.Current?.PlanAllowed != false,
                 Guard = guard,
                 Settings = _settings,
                 AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label)

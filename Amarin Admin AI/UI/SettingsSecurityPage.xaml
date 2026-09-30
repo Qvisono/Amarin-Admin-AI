@@ -206,6 +206,50 @@
                 </RadioButton>
             </StackPanel>
 
+            <!-- ═══════════ ПЛАН ПЕРЕД ИЗМЕНЕНИЯМИ ═══════════ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.PlanLabel}"/>
+            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.PlanDesc}"/>
+            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="8" Padding="12,4" Margin="0,6,0,0">
+                <StackPanel x:Name="PlanTierRows">
+                    <Grid Margin="0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                   Text="{DynamicResource S.Customize.AgentLight}"/>
+                        <CheckBox x:Name="PlanLiteToggle" Grid.Column="1" Tag="lite" Style="{StaticResource SettingsToggle}"
+                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentLight}"
+                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                    </Grid>
+                    <Border Height="1" Background="{DynamicResource Bg.Hover}"/>
+                    <Grid Margin="0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                   Text="{DynamicResource S.Customize.AgentFast}"/>
+                        <CheckBox x:Name="PlanFastToggle" Grid.Column="1" Tag="fast" Style="{StaticResource SettingsToggle}"
+                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentFast}"
+                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                    </Grid>
+                    <Border Height="1" Background="{DynamicResource Bg.Hover}"/>
+                    <Grid Margin="0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                   Text="{DynamicResource S.Customize.AgentHeavy}"/>
+                        <CheckBox x:Name="PlanHeavyToggle" Grid.Column="1" Tag="heavy" Style="{StaticResource SettingsToggle}"
+                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentHeavy}"
+                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- ═══════════ ЗАЩИТА ДАННЫХ ═══════════ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
             <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
