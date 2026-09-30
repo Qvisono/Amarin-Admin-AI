@@ -960,6 +960,42 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">The model answers straight away, without thinking first</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">The model thinks the answer through before writing it</system:String>
 
+    <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Run the recipe "{0}": call the tool {1} with the arguments&#10;{2}&#10;If the call fails, find out why and suggest what to do.</system:String>
+    <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">A parameter is {{name}} inside a string, such as "path": "{{folder}}". Names use Latin letters, digits and "_".</system:String>
+    <system:String x:Key="S.Recipe.ArgumentsLabel" xml:space="preserve">Arguments (JSON)</system:String>
+    <system:String x:Key="S.Recipe.BadArguments" xml:space="preserve">Arguments must be a JSON object: {"key": "value"}.</system:String>
+    <system:String x:Key="S.Recipe.Create" xml:space="preserve">New recipe</system:String>
+    <system:String x:Key="S.Recipe.DefaultsLabel" xml:space="preserve">Default values</system:String>
+    <system:String x:Key="S.Recipe.DeleteFailed" xml:space="preserve">Couldn't delete the recipe file.</system:String>
+    <system:String x:Key="S.Recipe.DeleteText" xml:space="preserve">The recipe "{0}" will be deleted. The action journal and audit log stay as they are.</system:String>
+    <system:String x:Key="S.Recipe.DeleteTitle" xml:space="preserve">Delete the recipe?</system:String>
+    <system:String x:Key="S.Recipe.Desc" xml:space="preserve">Recipes are saved tool actions. They run without a model, with the same questions and rollback as the agent's. Values in {{braces}} are asked for at launch.</system:String>
+    <system:String x:Key="S.Recipe.DescriptionLabel" xml:space="preserve">Description</system:String>
+    <system:String x:Key="S.Recipe.Done" xml:space="preserve">Done</system:String>
+    <system:String x:Key="S.Recipe.Edit" xml:space="preserve">Edit</system:String>
+    <system:String x:Key="S.Recipe.EditTitle" xml:space="preserve">Recipe</system:String>
+    <system:String x:Key="S.Recipe.EmptyDesc" xml:space="preserve">Save a successful action from the journal with "Save as recipe", or create one yourself.</system:String>
+    <system:String x:Key="S.Recipe.EmptyTitle" xml:space="preserve">No recipes yet</system:String>
+    <system:String x:Key="S.Recipe.Failed" xml:space="preserve">The tool reported an error</system:String>
+    <system:String x:Key="S.Recipe.NameLabel" xml:space="preserve">Name</system:String>
+    <system:String x:Key="S.Recipe.NeedName" xml:space="preserve">Give the recipe a name.</system:String>
+    <system:String x:Key="S.Recipe.NewTitle" xml:space="preserve">New recipe</system:String>
+    <system:String x:Key="S.Recipe.NotRun" xml:space="preserve">Not run</system:String>
+    <system:String x:Key="S.Recipe.NotRunnable" xml:space="preserve">The tool "{0}" can't run as a recipe: it needs a model or spends key credit.</system:String>
+    <system:String x:Key="S.Recipe.Origin" xml:space="preserve">Recipe "{0}"</system:String>
+    <system:String x:Key="S.Recipe.Output" xml:space="preserve">Output</system:String>
+    <system:String x:Key="S.Recipe.ParametersLabel" xml:space="preserve">Parameters</system:String>
+    <system:String x:Key="S.Recipe.Run" xml:space="preserve">Run</system:String>
+    <system:String x:Key="S.Recipe.RunHint" xml:space="preserve">Values are inserted as typed; the usual confirmation dialog checks the result.</system:String>
+    <system:String x:Key="S.Recipe.Running" xml:space="preserve">Running…</system:String>
+    <system:String x:Key="S.Recipe.SaveFailed" xml:space="preserve">Couldn't save the recipe: the profile folder isn't writable.</system:String>
+    <system:String x:Key="S.Recipe.SaveFromJournal" xml:space="preserve">Save as recipe</system:String>
+    <system:String x:Key="S.Recipe.SaveFromJournalTip" xml:space="preserve">Repeat this action without a model, from the Automation page.</system:String>
+    <system:String x:Key="S.Recipe.SearchPlaceholder" xml:space="preserve">Search recipes</system:String>
+    <system:String x:Key="S.Recipe.ToolLabel" xml:space="preserve">Tool</system:String>
+    <system:String x:Key="S.Recipe.UnknownTool" xml:space="preserve">There is no tool "{0}".</system:String>
+    <system:String x:Key="S.Recipe.ViaAgent" xml:space="preserve">Via the agent</system:String>
+    <system:String x:Key="S.Recipe.ViaAgentTip" xml:space="preserve">A new chat with the task in the input: the agent runs the recipe and sorts things out if something goes wrong.</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">the key path was not recognised</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Rollback done: {0} of {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Snapshot {0}. Changes to undo: {1}</system:String>
@@ -1030,6 +1066,7 @@
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
@@ -1038,6 +1075,8 @@
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Key and spending</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
+    <system:String x:Key="S.Settings.Nav.AutomationGroup" xml:space="preserve">AUTOMATION</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>

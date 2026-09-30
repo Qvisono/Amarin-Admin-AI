@@ -276,6 +276,20 @@ internal static class Program
         // ту же ссылку.
         var instructions = new InstructionLibrary(dataRoot);
         var planReviews = new PlanReviewQueue();
+
+        // Инструменты рецептов — те же, что у агента, плюс файловые чата: рецепт сохраняют из
+        // журнала любого из них. Лениво и один раз — набор строится за заметное время, а рецепты
+        // запускают редко.
+        var recipeTools = new Lazy<ToolRegistry>(() => new ToolRegistry(
+        [
+            .. AgentTools.Create(
+                venice,
+                downloadHttp,
+                options.Download,
+                knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey)).All,
+            new ReadFileTool(),
+            new WriteFileTool()
+        ]));
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews);
         var chatTools = new ToolRegistry(
@@ -322,6 +336,12 @@ internal static class Program
             Summaries = summaries,
             Confirmations = confirmations,
             PlanReviews = planReviews,
+            Recipes = new RecipeLibrary(dataRoot),
+            RecipeRunner = new RecipeRunner(
+                () => recipeTools.Value,
+                confirmations,
+                ReadSettings,
+                () => options.Audit),
             StartupPrompt = startup.Prompt,
             StartupSend = startup.ShouldSend,
             StartupWipe = wiped

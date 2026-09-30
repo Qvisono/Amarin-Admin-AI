@@ -960,6 +960,42 @@
     <system:String x:Key="S.Reasoning.ToggleOff" xml:space="preserve">Модель отвечает сразу, без обдумывания</system:String>
     <system:String x:Key="S.Reasoning.ToggleOn" xml:space="preserve">Модель обдумывает ответ перед тем, как его написать</system:String>
 
+    <system:String x:Key="S.Recipe.AgentPrompt" xml:space="preserve">Выполни рецепт «{0}»: вызови инструмент {1} с аргументами&#10;{2}&#10;Если вызов не удастся, выясни причину и предложи, что делать.</system:String>
+    <system:String x:Key="S.Recipe.ArgumentsHint" xml:space="preserve">Параметр — {{имя}} внутри строки, например "path": "{{папка}}". Имя — латиница, цифры и «_».</system:String>
+    <system:String x:Key="S.Recipe.ArgumentsLabel" xml:space="preserve">Аргументы (JSON)</system:String>
+    <system:String x:Key="S.Recipe.BadArguments" xml:space="preserve">Аргументы должны быть JSON-объектом: {"ключ": "значение"}.</system:String>
+    <system:String x:Key="S.Recipe.Create" xml:space="preserve">Новый рецепт</system:String>
+    <system:String x:Key="S.Recipe.DefaultsLabel" xml:space="preserve">Значения по умолчанию</system:String>
+    <system:String x:Key="S.Recipe.DeleteFailed" xml:space="preserve">Не удалось удалить файл рецепта.</system:String>
+    <system:String x:Key="S.Recipe.DeleteText" xml:space="preserve">Рецепт «{0}» будет удалён. Журнал действий и аудит это не затронет.</system:String>
+    <system:String x:Key="S.Recipe.DeleteTitle" xml:space="preserve">Удалить рецепт?</system:String>
+    <system:String x:Key="S.Recipe.Desc" xml:space="preserve">Рецепты — сохранённые действия инструментов. Их запускают без модели, с теми же вопросами и откатом, что у агента. Значения в {{скобках}} спрашиваются при запуске.</system:String>
+    <system:String x:Key="S.Recipe.DescriptionLabel" xml:space="preserve">Описание</system:String>
+    <system:String x:Key="S.Recipe.Done" xml:space="preserve">Готово</system:String>
+    <system:String x:Key="S.Recipe.Edit" xml:space="preserve">Изменить</system:String>
+    <system:String x:Key="S.Recipe.EditTitle" xml:space="preserve">Рецепт</system:String>
+    <system:String x:Key="S.Recipe.EmptyDesc" xml:space="preserve">Сохраните удачное действие из журнала кнопкой «Сохранить как рецепт» или заведите рецепт сами.</system:String>
+    <system:String x:Key="S.Recipe.EmptyTitle" xml:space="preserve">Рецептов пока нет</system:String>
+    <system:String x:Key="S.Recipe.Failed" xml:space="preserve">Инструмент сообщил об ошибке</system:String>
+    <system:String x:Key="S.Recipe.NameLabel" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Recipe.NeedName" xml:space="preserve">Назовите рецепт.</system:String>
+    <system:String x:Key="S.Recipe.NewTitle" xml:space="preserve">Новый рецепт</system:String>
+    <system:String x:Key="S.Recipe.NotRun" xml:space="preserve">Не выполнено</system:String>
+    <system:String x:Key="S.Recipe.NotRunnable" xml:space="preserve">Инструмент «{0}» рецептом не запускается: ему нужна модель или он тратит деньги ключа.</system:String>
+    <system:String x:Key="S.Recipe.Origin" xml:space="preserve">Рецепт «{0}»</system:String>
+    <system:String x:Key="S.Recipe.Output" xml:space="preserve">Вывод</system:String>
+    <system:String x:Key="S.Recipe.ParametersLabel" xml:space="preserve">Параметры</system:String>
+    <system:String x:Key="S.Recipe.Run" xml:space="preserve">Запустить</system:String>
+    <system:String x:Key="S.Recipe.RunHint" xml:space="preserve">Значения подставляются как есть; что получилось, проверяет обычное окно подтверждения.</system:String>
+    <system:String x:Key="S.Recipe.Running" xml:space="preserve">Выполняется…</system:String>
+    <system:String x:Key="S.Recipe.SaveFailed" xml:space="preserve">Не удалось сохранить рецепт: папка профиля недоступна для записи.</system:String>
+    <system:String x:Key="S.Recipe.SaveFromJournal" xml:space="preserve">Сохранить как рецепт</system:String>
+    <system:String x:Key="S.Recipe.SaveFromJournalTip" xml:space="preserve">Повторять это действие без модели — со страницы «Автоматизация».</system:String>
+    <system:String x:Key="S.Recipe.SearchPlaceholder" xml:space="preserve">Поиск по рецептам</system:String>
+    <system:String x:Key="S.Recipe.ToolLabel" xml:space="preserve">Инструмент</system:String>
+    <system:String x:Key="S.Recipe.UnknownTool" xml:space="preserve">Инструмента «{0}» нет.</system:String>
+    <system:String x:Key="S.Recipe.ViaAgent" xml:space="preserve">Через агента</system:String>
+    <system:String x:Key="S.Recipe.ViaAgentTip" xml:space="preserve">Новый чат с постановкой в поле: агент выполнит рецепт и разберётся, если что-то пойдёт не так.</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">путь раздела не распознан</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Откат выполнен: {0} из {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Снимок {0}. Будет возвращено изменений: {1}</system:String>
@@ -1030,6 +1066,7 @@
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Автоматизация</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
@@ -1038,6 +1075,8 @@
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключ и траты</system:String>
     <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
+    <system:String x:Key="S.Settings.Nav.AutomationGroup" xml:space="preserve">AUTOMATION</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>

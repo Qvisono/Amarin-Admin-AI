@@ -77,6 +77,7 @@ namespace Amarin.UI
             SettingsVersionText.Text = $"v{RuntimeContext.AppVersion}";
 
             PlanOverlay.Decided += OnPlanDecided;
+            AutomationPage.AgentRequested += OnRecipeAgentRequested;
 
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);

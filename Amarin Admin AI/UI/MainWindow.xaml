@@ -1976,12 +1976,13 @@
 
             <!-- Окно -->
             <!--
-                Высота 500, а не прежние 460: с пунктом «Безопасность» в навигации девять
-                страниц, и последняя наезжала на плашку версии внизу колонки. На маленьком экране
-                Viewbox ужимает окно целиком, так что лишние точки там ничего не выталкивают.
+                Высота 580: с «Автоматизацией» в навигации десять страниц. Колонка навигации ещё и
+                прокручивается, а плашка версии стоит своей строкой под ней — прежде она лежала
+                поверх колонки, и каждый новый пункт наезжал на неё. На маленьком экране Viewbox
+                ужимает окно целиком.
             -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="690" Height="500" Background="{DynamicResource Bg.Panel}"
+            <Border Width="690" Height="580" Background="{DynamicResource Bg.Panel}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -1993,7 +1994,13 @@
                     <Border Background="{DynamicResource Bg.Sidebar}" CornerRadius="10,0,0,10"
                     BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,0,1,0">
                         <Grid>
-                            <StackPanel>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <ScrollViewer x:Name="SettingsNavScroll" VerticalScrollBarVisibility="Hidden"
+                                          HorizontalScrollBarVisibility="Disabled" local:SmoothScroll.IsEnabled="True">
+                            <StackPanel Margin="0,0,0,8">
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.General}" Margin="18,16,8,4"/>
                                 <RadioButton x:Name="NavAccount" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Account}"/>
                                 <RadioButton x:Name="NavAppearance" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Appearance}"/>
@@ -2002,12 +2009,15 @@
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
                                 <RadioButton x:Name="NavInstructions" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Instructions}" Checked="NavInstructions_Checked"/>
+                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.AutomationGroup}"/>
+                                <RadioButton x:Name="NavAutomation" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Automation}" Checked="NavAutomation_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Key}"/>
                     <RadioButton x:Name="NavKey" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.KeyInfo}" Checked="NavKey_Checked"/>
                     <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
                                 <RadioButton x:Name="NavData" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.DataControls}" Checked="NavData_Checked"/>
                                 <RadioButton x:Name="NavInfo" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Info}"/>
                             </StackPanel>
+                            </ScrollViewer>
 
                             <!--
                                 Плашка «версия и репозиторий»: верхняя половина — номер версии,
@@ -2020,7 +2030,7 @@
                                 прямо под страницу настроек; здесь ширина задана полями, а лишнее
                                 уходит в перенос.
                             -->
-                            <Border x:Name="SettingsAboutCard"
+                            <Border x:Name="SettingsAboutCard" Grid.Row="1"
                                     VerticalAlignment="Bottom" Margin="20,0,20,12"
                                     Background="{DynamicResource Bg.Card}"
                                     BorderBrush="{DynamicResource Border.Subtle}"
@@ -3509,6 +3519,21 @@
                             </local:SettingsInstructionsPage.Style>
                         </local:SettingsInstructionsPage>
 
+                        <!-- ═══════════ AUTOMATION ═══════════ -->
+                        <!-- Отдельным UserControl: рецепты (C7), дальше — расписание. -->
+                        <local:SettingsAutomationPage x:Name="AutomationPage">
+                            <local:SettingsAutomationPage.Style>
+                                <Style TargetType="local:SettingsAutomationPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAutomation}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsAutomationPage.Style>
+                        </local:SettingsAutomationPage>
+
                         <!-- ═══════════ INFO ═══════════ -->
                         <!--
                             Отдельным UserControl, а не шестым ScrollViewer в этой разметке: гайд
@@ -3846,26 +3871,32 @@
                                     <TextBlock x:Name="JournalDetailMeta" FontSize="11.5" Margin="0,4,0,0"
                                                Foreground="{DynamicResource Text.Faint}" TextWrapping="Wrap"/>
 
-                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <!-- WrapPanel: кнопок стало шесть, в одну строку на узком журнале они не влезают. -->
+                                    <WrapPanel Margin="0,12,0,-6">
                                         <Button x:Name="JournalAskButton" Style="{StaticResource DialogPrimaryButton}"
-                                                Content="{DynamicResource S.Journal.Ask}" Margin="0,0,8,0"
+                                                Content="{DynamicResource S.Journal.Ask}" Margin="0,0,8,6"
                                                 Click="JournalAskButton_Click"/>
                                         <Button x:Name="JournalOpenChatButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Content="{DynamicResource S.Journal.OpenChat}" Margin="0,0,8,0"
+                                                Content="{DynamicResource S.Journal.OpenChat}" Margin="0,0,8,6"
                                                 Click="JournalOpenChatButton_Click"/>
                                         <Button x:Name="JournalRebuildSummaryButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,0"
+                                                Visibility="Collapsed" Margin="0,0,8,6"
                                                 Content="{DynamicResource S.Journal.Summary.Rebuild}"
                                                 Click="JournalRebuildSummaryButton_Click"/>
                                         <Button x:Name="JournalRollbackButton" Style="{StaticResource DialogPrimaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,0"
+                                                Visibility="Collapsed" Margin="0,0,8,6"
                                                 Content="{DynamicResource S.Journal.Rollback.Preview}"
                                                 Click="JournalRollbackButton_Click"/>
                                         <Button x:Name="JournalRestoreSystemButton" Style="{StaticResource DialogSecondaryButton}"
-                                                Visibility="Collapsed" Margin="0,0,8,0"
+                                                Visibility="Collapsed" Margin="0,0,8,6"
                                                 Content="{DynamicResource S.Journal.RestoreSystem}"
                                                 Click="JournalRestoreSystemButton_Click"/>
-                                    </StackPanel>
+                                        <Button x:Name="JournalSaveRecipeButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Visibility="Collapsed" Margin="0,0,8,6"
+                                                Content="{DynamicResource S.Recipe.SaveFromJournal}"
+                                                ToolTip="{DynamicResource S.Recipe.SaveFromJournalTip}"
+                                                Click="JournalSaveRecipeButton_Click"/>
+                                    </WrapPanel>
 
                                     <Border x:Name="JournalAnswerBox" Visibility="Collapsed" Margin="0,12,0,0"
                                             Background="{DynamicResource Bg.Card}"

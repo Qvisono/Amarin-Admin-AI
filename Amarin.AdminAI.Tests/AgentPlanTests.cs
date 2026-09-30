@@ -251,14 +251,15 @@ public sealed class AgentPlanTests
     public async Task A_remark_reaches_the_model_and_the_new_plan_is_asked_about()
     {
         var ran = new List<string>();
-        var ui = new PlanUi(new PlanDecision(PlanVerdict.Amend, "только a.txt"), PlanDecision.Execute);
+        var ui = new PlanUi(new PlanDecision(PlanVerdict.Amend, "only a.txt please"), PlanDecision.Execute);
         var bodies = new List<string>();
         var agent = CreateAgent(ui, ran, [PlanRound(), PlanRound(), Calls(WriteCall("w1", "C:\\\\Temp\\\\a.txt")), Final()], bodies);
 
         await agent.RunAsync("почини");
 
         Assert.Equal(2, ui.Plans.Count);
-        Assert.Contains("только a.txt", bodies[1], StringComparison.Ordinal);
+        // Замечание латиницей: тело запроса — JSON, и кириллица в нём закодирована как \u0442….
+        Assert.Contains("only a.txt please", bodies[1], StringComparison.Ordinal);
         Assert.Empty(ui.Asked);
         Assert.Single(ran);
     }

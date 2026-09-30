@@ -1,4 +1,5 @@
 using Amarin.Core;
+using Amarin.Tools;
 
 namespace Amarin.UI;
 
@@ -74,6 +75,30 @@ internal sealed class AppServices : IDisposable
     /// без очереди план просто не показывается — <see cref="AgentHost"/> её получает отдельно.
     /// </summary>
     internal PlanReviewQueue PlanReviews { get; init; } = new();
+
+    /// <summary>
+    /// Рецепты профиля (C7). По умолчанию — рядом с настройками: тесты собирают службы руками
+    /// во временной папке, и библиотека попадает туда же, а не в данные человека.
+    /// </summary>
+    internal RecipeLibrary Recipes
+    {
+        get => _recipes ??= new RecipeLibrary(Path.GetDirectoryName(SettingsStore.FilePath)!);
+        init => _recipes = value;
+    }
+
+    private RecipeLibrary? _recipes;
+
+    /// <summary>
+    /// Запуск рецептов. Без собранного в Program — отказ любой записи: исполнять инструменты
+    /// агента мимо настоящего набора тестам незачем.
+    /// </summary>
+    internal RecipeRunner RecipeRunner
+    {
+        get => _recipeRunner ??= new RecipeRunner(() => new ToolRegistry([]), Confirmations, () => Settings, () => Audit);
+        init => _recipeRunner = value;
+    }
+
+    private RecipeRunner? _recipeRunner;
 
     public string? StartupPrompt { get; init; }
 
@@ -199,6 +224,7 @@ internal sealed class AppServices : IDisposable
         ChatStore = new ChatStore(dataRoot) { Encrypt = () => Settings.EncryptChats };
         Prompts = new PromptLibrary(dataRoot);
         Instructions.UseRoot(dataRoot);
+        Recipes.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе

@@ -130,10 +130,10 @@ public static class DataUsage
             return AppearanceKey;
         }
 
-        // Инструкции — тоже личная настройка того, как модель работает, и уезжают вместе
-        // с заготовками промптов. Без этой строки папка ушла бы в «прочее», а прочее экспорт
+        // Инструкции и рецепты — тоже личная настройка того, как программа работает, и уезжают
+        // вместе с заготовками промптов. Без этой строки папка ушла бы в «прочее», а прочее экспорт
         // не берёт.
-        if (InFolder(relative, InstructionLibrary.FolderName))
+        if (InFolder(relative, InstructionLibrary.FolderName) || InFolder(relative, RecipeLibrary.FolderName))
         {
             return SettingsKey;
         }

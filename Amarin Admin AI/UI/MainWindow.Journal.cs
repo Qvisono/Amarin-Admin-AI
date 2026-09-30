@@ -478,6 +478,13 @@ namespace Amarin.UI
             JournalOpenChatButton.Visibility =
                 string.IsNullOrEmpty(row.ChatId) ? Visibility.Collapsed : Visibility.Visible;
 
+            // Рецепт — только из действия журнала: в строке аудита аргументы урезаны и вычищены
+            // от секретов, и рецепт из неё повторял бы не то, что было.
+            JournalSaveRecipeButton.Visibility = row.Entry is { } action && RecipeRules.IsRunnable(action.ToolName)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            JournalSaveRecipeButton.IsEnabled = true;
+
             // Пересобрать можно только сводку, и только когда ясно, какого она чата.
             JournalRebuildSummaryButton.Visibility =
                 row.Summary is null ? Visibility.Collapsed : Visibility.Visible;
