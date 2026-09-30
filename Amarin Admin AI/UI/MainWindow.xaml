@@ -1574,6 +1574,48 @@
                                         </StackPanel>
                                     </Border>
 
+                                    <!--
+                                        Голосовой ввод (D14): щелчок — начать и остановить, удержание —
+                                        говорить, пока держишь; Esc отменяет. Круг за кнопкой дышит
+                                        громкостью, рядом — время записи.
+                                    -->
+                                    <TextBlock x:Name="VoiceTimer" Visibility="Collapsed" FontSize="12" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                               Foreground="{DynamicResource Status.Danger}"
+                                               AutomationProperties.LiveSetting="Polite"/>
+                                    <Grid Width="32" Height="32" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Ellipse x:Name="VoiceLevel" Fill="{DynamicResource Status.Danger}" Opacity="0"
+                                                 IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                                            <Ellipse.RenderTransform>
+                                                <ScaleTransform x:Name="VoiceLevelScale" ScaleX="1" ScaleY="1"/>
+                                            </Ellipse.RenderTransform>
+                                        </Ellipse>
+                                        <Button x:Name="MicButton" Cursor="Hand"
+                                                ToolTip="{DynamicResource S.Voice.Button}"
+                                                AutomationProperties.Name="{DynamicResource S.Voice.Button}"
+                                                PreviewMouseLeftButtonDown="MicButton_PreviewMouseLeftButtonDown"
+                                                PreviewMouseLeftButtonUp="MicButton_PreviewMouseLeftButtonUp"
+                                                Click="MicButton_Click">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8"
+                                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                                                        <Path Data="M6,1 A2.5,2.5 0 0 1 8.5,3.5 L8.5,7.5 A2.5,2.5 0 0 1 3.5,7.5 L3.5,3.5 A2.5,2.5 0 0 1 6,1 Z M1,7 A5,5 0 0 0 11,7 M6,12 L6,14.5"
+                                                              Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4"
+                                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                              Width="12" Height="15" Stretch="Uniform"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bg" Property="Opacity" Value="0.85"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
+
                                     </StackPanel>
 
                                     <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
@@ -3156,6 +3198,8 @@
                                               AutomationProperties.Name="{DynamicResource S.Behavior.CodeLineNumbers}"
                                               Checked="CodeLineNumbersToggle_Changed" Unchecked="CodeLineNumbersToggle_Changed"/>
                                 </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <local:VoiceSettingsBlock x:Name="VoiceSettings"/>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>

@@ -53,6 +53,9 @@ internal static class VeniceSku
     /// <summary>Сжатие контекста: пересказ старой части переписки (D10).</summary>
     public const string ContextCompact = "context-compact-request";
 
+    /// <summary>Распознавание речи в облаке (D14).</summary>
+    public const string Transcription = "transcription-request";
+
     /// <summary>Разбор фактов в отчёте о работе (D7).</summary>
     public const string WorkReport = "work-report-request";
 
@@ -82,7 +85,8 @@ internal static class VeniceSku
         [FollowUp] = "S.Spend.Kind.FollowUp",
         [Infographic] = "S.Spend.Kind.Infographic",
         [WorkReport] = "S.Spend.Kind.WorkReport",
-        [ContextCompact] = "S.Cost.Compact"
+        [ContextCompact] = "S.Cost.Compact",
+        [Transcription] = "S.Spend.Kind.Transcription"
     };
 
     /// <summary>

@@ -65,6 +65,9 @@ public static class HotkeyMap
     /// <summary>Панель «Состояние ПК» (D8).</summary>
     public const string Health = "Health";
 
+    /// <summary>Голосовой ввод: начать или закончить запись (D14).</summary>
+    public const string Microphone = "Microphone";
+
     /// <summary>Шпаргалка по сочетаниям (D8).</summary>
     public const string Cheatsheet = "Cheatsheet";
 
@@ -89,6 +92,7 @@ public static class HotkeyMap
         new(ToggleSidebar, "Ctrl+B", "S.Hotkeys.ToggleSidebar", "S.Hotkeys.ToggleSidebarDesc"),
         new(OpenSettings, "Ctrl+OemComma", "S.Hotkeys.OpenSettings", "S.Hotkeys.OpenSettingsDesc"),
         new(Health, "Ctrl+Shift+H", "S.Hotkeys.Health", "S.Hotkeys.HealthDesc"),
+        new(Microphone, "Ctrl+Shift+M", "S.Hotkeys.Microphone", "S.Hotkeys.MicrophoneDesc"),
         new(Cheatsheet, "Ctrl+OemQuestion", "S.Hotkeys.Cheatsheet", "S.Hotkeys.CheatsheetDesc")
     ];
 

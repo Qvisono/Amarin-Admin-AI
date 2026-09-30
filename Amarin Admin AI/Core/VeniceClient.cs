@@ -1521,6 +1521,83 @@ public sealed class VeniceClient
     }
 
     /// <summary>
+    /// Распознавание речи в облаке (D14): OpenAI-совместимый <c>POST audio/transcriptions</c>
+    /// с WAV формой multipart — так его принимают и Venice, и OpenRouter.
+    /// </summary>
+    /// <remarks>
+    /// Цена записывается, только если провайдер назвал её в ответе (<c>usage.cost</c> или
+    /// <c>cost</c>): придумывать тариф за провайдера нельзя, а без цифры деньги лучше не показать,
+    /// чем показать неверные.
+    /// </remarks>
+    public async Task<string> TranscribeAsync(
+        byte[] wav,
+        string modelId,
+        string? language,
+        ApiCredential credential,
+        CancellationToken cancellationToken = default)
+    {
+        using var form = new MultipartFormDataContent();
+        var file = new ByteArrayContent(wav);
+        file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        form.Add(file, "file", "speech.wav");
+        form.Add(new StringContent(ModelRef.Bare(modelId)), "model");
+        form.Add(new StringContent("json"), "response_format");
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            form.Add(new StringContent(language.Trim()), "language");
+        }
+
+        using var httpRequest = Request(HttpMethod.Post, "audio/transcriptions", credential);
+        httpRequest.Content = form;
+        using var response = await _http.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        UpdateBalanceFromHeaders(response, credential);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(body));
+        }
+
+        var (text, cost) = ParseTranscription(body);
+        if (cost is { } usd)
+        {
+            AddCost(new VeniceCost { Usd = usd, HasData = true }, VeniceSku.Transcription, credential);
+        }
+
+        return text;
+    }
+
+    /// <summary>Текст и цена из ответа распознавания; незнакомый ответ — пустой текст.</summary>
+    internal static (string Text, decimal? Cost) ParseTranscription(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            var text = root.TryGetProperty("text", out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()?.Trim() ?? ""
+                : "";
+            decimal? cost = null;
+            if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object &&
+                usage.TryGetProperty("cost", out var usageCost) && usageCost.TryGetDecimal(out var fromUsage))
+            {
+                cost = fromUsage;
+            }
+            else if (root.TryGetProperty("cost", out var plain) && plain.ValueKind == JsonValueKind.Number &&
+                     plain.TryGetDecimal(out var fromRoot))
+            {
+                cost = fromRoot;
+            }
+
+            return (text, cost);
+        }
+        catch (JsonException)
+        {
+            return ("", null);
+        }
+    }
+
+    /// <summary>
     /// Default image model — Google's "nano banana" through Venice. Costs more than a diffusion
     /// model, but it is the one that renders legible text inside the picture, which is the whole
     /// point for diagrams and infographics.

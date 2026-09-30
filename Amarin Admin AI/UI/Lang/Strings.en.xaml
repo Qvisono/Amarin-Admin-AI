@@ -642,6 +642,8 @@
     <system:String x:Key="S.Hotkeys.Health" xml:space="preserve">PC health</system:String>
     <system:String x:Key="S.Hotkeys.HealthDesc" xml:space="preserve">The panel with disk, memory, updates and protection.</system:String>
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Recall the last sent message (empty field)</system:String>
+    <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Voice input</system:String>
+    <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Start or stop recording from the microphone.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">New line in the message</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Next chat</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">The chat below in the list — in the order shown.</system:String>
@@ -1475,6 +1477,7 @@
     <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Images</system:String>
     <system:String x:Key="S.Spend.Kind.Infographic" xml:space="preserve">Infographics</system:String>
     <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Page reading</system:String>
+    <system:String x:Key="S.Spend.Kind.Transcription" xml:space="preserve">Speech recognition</system:String>
     <system:String x:Key="S.Spend.Kind.Translate" xml:space="preserve">Interface translation</system:String>
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Other</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Video</system:String>
@@ -1696,6 +1699,30 @@
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Save image</system:String>
+    <system:String x:Key="S.Voice.Button" xml:space="preserve">Voice input: click to start and stop, or hold while you speak</system:String>
+    <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Recording cancelled.</system:String>
+    <system:String x:Key="S.Voice.Desc" xml:space="preserve">Recognised text goes into the input field and is not sent by itself.</system:String>
+    <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Auto</system:String>
+    <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">In the cloud</system:String>
+    <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">On this PC</system:String>
+    <system:String x:Key="S.Voice.Failed" xml:space="preserve">Recognition failed: {0}</system:String>
+    <system:String x:Key="S.Voice.Language" xml:space="preserve">Speech language</system:String>
+    <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Same as the interface</system:String>
+    <system:String x:Key="S.Voice.LocalList" xml:space="preserve">Windows recogniser languages on this PC: {0}</system:String>
+    <system:String x:Key="S.Voice.LocalNone" xml:space="preserve">No Windows speech recognisers on this PC — cloud only.</system:String>
+    <system:String x:Key="S.Voice.Model" xml:space="preserve">Cloud recognition model</system:String>
+    <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Not set</system:String>
+    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">The provider's speech recognition model ID. With the openrouter: prefix it goes through OpenRouter, without it through Venice. Paid with that provider's key.</system:String>
+    <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Windows has no recogniser for “{0}”, and no cloud model is set. Set one in Settings, on the Behavior page.</system:String>
+    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">There is no key for the recognition model's provider — add one on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">Windows has no recogniser for “{0}”. Installed: {1}. Choose Auto or Cloud and set a model in Settings (Behavior page).</system:String>
+    <system:String x:Key="S.Voice.NoMic" xml:space="preserve">No microphone found, or access to it is blocked in Windows settings.</system:String>
+    <system:String x:Key="S.Voice.Nothing" xml:space="preserve">No speech recognised.</system:String>
+    <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Recognising speech…</system:String>
+    <system:String x:Key="S.Voice.Recording" xml:space="preserve">Recording. Click to finish, Esc to cancel</system:String>
+    <system:String x:Key="S.Voice.Title" xml:space="preserve">Voice input</system:String>
+    <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Too short — nothing was recorded.</system:String>
+    <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Voice input is not set up</system:String>
     <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Type "{0}" to delete the data. This cannot be undone.</system:String>
     <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Confirm deletion</system:String>
     <system:String x:Key="S.Wipe.Done" xml:space="preserve">The profile's data has been deleted; the program starts from a clean slate.</system:String>

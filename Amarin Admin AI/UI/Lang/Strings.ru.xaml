@@ -642,6 +642,8 @@
     <system:String x:Key="S.Hotkeys.Health" xml:space="preserve">Состояние ПК</system:String>
     <system:String x:Key="S.Hotkeys.HealthDesc" xml:space="preserve">Панель с диском, памятью, обновлениями и защитой.</system:String>
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Вернуть последнее отправленное (поле пустое)</system:String>
+    <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Голосовой ввод</system:String>
+    <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Начать или закончить запись с микрофона.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">Новая строка в сообщении</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Следующий чат</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">Чат ниже в списке — в том порядке, что на экране.</system:String>
@@ -1475,6 +1477,7 @@
     <system:String x:Key="S.Spend.Kind.Image" xml:space="preserve">Картинки</system:String>
     <system:String x:Key="S.Spend.Kind.Infographic" xml:space="preserve">Инфографика</system:String>
     <system:String x:Key="S.Spend.Kind.Scrape" xml:space="preserve">Чтение страниц</system:String>
+    <system:String x:Key="S.Spend.Kind.Transcription" xml:space="preserve">Распознавание речи</system:String>
     <system:String x:Key="S.Spend.Kind.Translate" xml:space="preserve">Перевод интерфейса</system:String>
     <system:String x:Key="S.Spend.Kind.Unknown" xml:space="preserve">Прочее</system:String>
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Видео</system:String>
@@ -1696,6 +1699,30 @@
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Сохранить изображение</system:String>
+    <system:String x:Key="S.Voice.Button" xml:space="preserve">Голосовой ввод: щелчок — начать и закончить, удержание — говорить, пока держите</system:String>
+    <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Запись отменена.</system:String>
+    <system:String x:Key="S.Voice.Desc" xml:space="preserve">Распознанный текст ложится в поле ввода и не отправляется сам.</system:String>
+    <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Авто</system:String>
+    <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">В облаке</system:String>
+    <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">На этом ПК</system:String>
+    <system:String x:Key="S.Voice.Failed" xml:space="preserve">Распознать не удалось: {0}</system:String>
+    <system:String x:Key="S.Voice.Language" xml:space="preserve">Язык речи</system:String>
+    <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Как у интерфейса</system:String>
+    <system:String x:Key="S.Voice.LocalList" xml:space="preserve">Языки распознавателей Windows на этом ПК: {0}</system:String>
+    <system:String x:Key="S.Voice.LocalNone" xml:space="preserve">Распознавателей речи Windows на этом ПК нет — только облако.</system:String>
+    <system:String x:Key="S.Voice.Model" xml:space="preserve">Модель распознавания в облаке</system:String>
+    <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Не указана</system:String>
+    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">Идентификатор модели распознавания речи у провайдера. С приставкой openrouter: — через OpenRouter, без неё — через Venice. Платится ключом провайдера.</system:String>
+    <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Для языка «{0}» в Windows нет распознавателя, а модель для облака не указана. Укажите её в настройках, на странице Behavior.</system:String>
+    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">Для модели распознавания нет ключа её провайдера — добавьте его на странице Key &amp; Info.</system:String>
+    <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">В Windows нет распознавателя для языка «{0}». Установленные: {1}. Выберите «Авто» или «В облаке» и укажите модель в настройках (страница Behavior).</system:String>
+    <system:String x:Key="S.Voice.NoMic" xml:space="preserve">Микрофон не найден или доступ к нему закрыт в параметрах Windows.</system:String>
+    <system:String x:Key="S.Voice.Nothing" xml:space="preserve">Речь не распознана.</system:String>
+    <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Распознаю речь…</system:String>
+    <system:String x:Key="S.Voice.Recording" xml:space="preserve">Идёт запись. Щелчок — закончить, Esc — отменить</system:String>
+    <system:String x:Key="S.Voice.Title" xml:space="preserve">Голосовой ввод</system:String>
+    <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Слишком коротко — ничего не записалось.</system:String>
+    <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Голосовой ввод не настроен</system:String>
     <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Введите «{0}», чтобы удалить данные. Отменить это будет нельзя.</system:String>
     <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Подтвердите удаление</system:String>
     <system:String x:Key="S.Wipe.Done" xml:space="preserve">Данные профиля удалены, программа начинает с чистого листа.</system:String>

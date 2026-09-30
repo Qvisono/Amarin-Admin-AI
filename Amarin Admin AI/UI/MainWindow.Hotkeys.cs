@@ -205,6 +205,8 @@ namespace Amarin.UI
                 case HotkeyMap.Health:
                     OpenHealth();
                     return true;
+                case HotkeyMap.Microphone:
+                    return ToggleRecording();
                 case HotkeyMap.Cheatsheet:
                     HotkeySheet.Show(_services?.Settings.Hotkeys);
                     return true;

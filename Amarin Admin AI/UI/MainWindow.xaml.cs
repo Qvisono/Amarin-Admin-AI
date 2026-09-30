@@ -87,6 +87,7 @@ namespace Amarin.UI
             WireCodeBlocks();
             WireDropZone();
             WireChatProfile();
+            WireVoice();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -1671,6 +1672,10 @@ namespace Amarin.UI
                 var settings = _services.Settings;
                 AutoScrollToggle.IsChecked = settings.AutoScroll;
                 CodeLineNumbersToggle.IsChecked = settings.CodeLineNumbers;
+                if (_services is not null)
+                {
+                    VoiceSettings.Load(_services);
+                }
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
                 RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;
@@ -2019,6 +2024,13 @@ namespace Amarin.UI
             // Раньше проверки фокуса: приблизить ленту можно и не уходя из поля ввода, и выйти
             // из этого вида человек попросит оттуда же.
             if (e.Key == Key.Escape && _chatZoom?.TryHandleEscape() == true)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // Esc во время записи голоса (D14) отменяет запись — раньше всего остального.
+            if (e.Key == Key.Escape && IsRecording && CancelRecording())
             {
                 e.Handled = true;
                 return;

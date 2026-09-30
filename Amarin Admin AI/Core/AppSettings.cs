@@ -399,6 +399,18 @@ public sealed class AppSettings
     /// </summary>
     public double? SidebarWidth { get; set; }
 
+    /// <summary>Чем распознавать голос (D14). Заводское — «Авто»: на ПК, если есть распознаватель языка.</summary>
+    public VoiceEngine VoiceEngine { get; set; } = VoiceEngine.Auto;
+
+    /// <summary>
+    /// Модель распознавания в облаке (D14): как у моделей чата, приставка задаёт провайдера
+    /// (<c>openrouter:…</c>), без неё — Venice. Пусто — облако не настроено.
+    /// </summary>
+    public string? VoiceModel { get; set; }
+
+    /// <summary>Язык речи (D14): код вроде «ru» или «en-US». Пусто — язык интерфейса.</summary>
+    public string? VoiceLanguage { get; set; }
+
     /// <summary>Номера строк у блоков кода в ленте (D13). Заводское — без них, как было.</summary>
     public bool CodeLineNumbers { get; set; }
 
