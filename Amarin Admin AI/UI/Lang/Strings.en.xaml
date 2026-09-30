@@ -307,19 +307,47 @@
 
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Actions</system:String>
 
+    <system:String x:Key="S.ChatList.All" xml:space="preserve">All chats</system:String>
+    <system:String x:Key="S.ChatList.AllTags" xml:space="preserve">All</system:String>
+    <system:String x:Key="S.ChatList.Archive" xml:space="preserve">Archive</system:String>
+    <system:String x:Key="S.ChatList.ArchiveGroup" xml:space="preserve">Archive</system:String>
+    <system:String x:Key="S.ChatList.ClearSelection" xml:space="preserve">Clear selection</system:String>
+    <system:String x:Key="S.ChatList.Collapse" xml:space="preserve">Collapse</system:String>
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Delete every saved chat? This cannot be undone.</system:String>
     <system:String x:Key="S.ChatList.DeleteConfirm" xml:space="preserve">Delete {0}? This cannot be undone.</system:String>
+    <system:String x:Key="S.ChatList.DeleteFolder" xml:space="preserve">Delete folder</system:String>
+    <system:String x:Key="S.ChatList.DeleteFolderText" xml:space="preserve">Delete the folder “{0}”? Its chats stay — just without a folder.</system:String>
+    <system:String x:Key="S.ChatList.DeleteManyConfirm" xml:space="preserve">Delete the selected chats ({0})? This cannot be undone.</system:String>
+    <system:String x:Key="S.ChatList.DeleteTag" xml:space="preserve">Delete tag</system:String>
+    <system:String x:Key="S.ChatList.DeleteTagText" xml:space="preserve">Delete the tag “{0}”? It is removed from every chat; the chats themselves stay.</system:String>
+    <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Delete chat</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Earlier</system:String>
+    <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Expand</system:String>
     <system:String x:Key="S.ChatList.ExportJson" xml:space="preserve">Export to JSON</system:String>
+    <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">Move to folder</system:String>
     <system:String x:Key="S.ChatList.NameDesc" xml:space="preserve">Shown in the list on the left. Kept on this computer only.</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Chat name</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">New chat</system:String>
+    <system:String x:Key="S.ChatList.NewFolder" xml:space="preserve">New folder</system:String>
+    <system:String x:Key="S.ChatList.NewFolderDesc" xml:space="preserve">Folder name in the chat list.</system:String>
+    <system:String x:Key="S.ChatList.NewTag" xml:space="preserve">New tag</system:String>
+    <system:String x:Key="S.ChatList.NewTagDesc" xml:space="preserve">Tag name. A colour is picked automatically.</system:String>
+    <system:String x:Key="S.ChatList.NoFolder" xml:space="preserve">No folder</system:String>
+    <system:String x:Key="S.ChatList.Options" xml:space="preserve">Sorting, folders and tags</system:String>
     <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Pin to the top</system:String>
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Pinned</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Rename</system:String>
+    <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Rename folder</system:String>
+    <system:String x:Key="S.ChatList.Selected" xml:space="preserve">Selected: {0}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Share</system:String>
+    <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">By cost</system:String>
+    <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">By date created</system:String>
+    <system:String x:Key="S.ChatList.SortTitle" xml:space="preserve">By title</system:String>
+    <system:String x:Key="S.ChatList.SortUpdated" xml:space="preserve">By last change</system:String>
+    <system:String x:Key="S.ChatList.Tags" xml:space="preserve">Tags</system:String>
     <system:String x:Key="S.ChatList.ThisChat" xml:space="preserve">this chat</system:String>
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Today</system:String>
+    <system:String x:Key="S.ChatList.Unarchive" xml:space="preserve">Restore from archive</system:String>
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Unpin</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Yesterday</system:String>
 

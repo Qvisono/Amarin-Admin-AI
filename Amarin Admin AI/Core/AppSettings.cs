@@ -389,6 +389,19 @@ public sealed class AppSettings
     /// </remarks>
     public Dictionary<string, string>? Hotkeys { get; set; }
 
+    /// <summary>Порядок чатов в боковой панели (D5). Заводское — по последнему изменению, как было.</summary>
+    public ChatSort ChatSort { get; set; } = ChatSort.Updated;
+
+    /// <summary>
+    /// Ширина боковой панели, которую человек выставил ручкой у края (D5). Null — заводские 184.
+    /// Читается через <see cref="SidebarWidths.Clamp"/>: руками поправленный файл не должен
+    /// ни спрятать список, ни отнять у ленты всё окно.
+    /// </summary>
+    public double? SidebarWidth { get; set; }
+
+    /// <summary>Боковая панель свёрнута в полоску — запоминается между запусками (D5).</summary>
+    public bool SidebarCollapsed { get; set; }
+
     /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
     public string MainPrompt { get; set; } = "";
 

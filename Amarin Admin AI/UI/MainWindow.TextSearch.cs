@@ -30,6 +30,13 @@ namespace Amarin.UI
                 try
                 {
                     index.Build(store.List(), store.TryLoad, cancel.Token);
+
+                    // Тем же проходом — дата начала и цена у записей описи прежних версий: по ним
+                    // сортирует список (D5). Один раз за жизнь профиля.
+                    if (store.BackfillIndex(cancel.Token) > 0)
+                    {
+                        Ui(RefreshChatList);
+                    }
                 }
                 catch (OperationCanceledException)
                 {

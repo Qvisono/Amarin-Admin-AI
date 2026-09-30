@@ -87,6 +87,39 @@ public static class ChatRowState
     public static bool GetIsWorking(DependencyObject element) =>
         Get(element, IsWorkingProperty);
 
+    /// <summary>Чат выбран для пакетного действия (Ctrl/Shift+щелчок, D5).</summary>
+    public static readonly DependencyProperty IsSelectedProperty =
+        DependencyProperty.RegisterAttached("IsSelected", typeof(bool), typeof(ChatRowState), new PropertyMetadata(false));
+
+    public static void SetIsSelected(DependencyObject element, bool value) => Set(element, IsSelectedProperty, value);
+
+    public static bool GetIsSelected(DependencyObject element) => Get(element, IsSelectedProperty);
+
+    /// <summary>
+    /// Кисти тегов строки — до трёх точек перед названием (D5). Кисть ставится ссылкой на ресурс
+    /// (<c>SetResourceReference</c>), поэтому точки перекрашиваются вместе с темой.
+    /// </summary>
+    public static readonly DependencyProperty Tag1Property =
+        DependencyProperty.RegisterAttached("Tag1", typeof(System.Windows.Media.Brush), typeof(ChatRowState), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty Tag2Property =
+        DependencyProperty.RegisterAttached("Tag2", typeof(System.Windows.Media.Brush), typeof(ChatRowState), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty Tag3Property =
+        DependencyProperty.RegisterAttached("Tag3", typeof(System.Windows.Media.Brush), typeof(ChatRowState), new PropertyMetadata(null));
+
+    public static System.Windows.Media.Brush? GetTag1(DependencyObject element) => (System.Windows.Media.Brush?)element.GetValue(Tag1Property);
+
+    public static void SetTag1(DependencyObject element, System.Windows.Media.Brush? value) => element.SetValue(Tag1Property, value);
+
+    public static System.Windows.Media.Brush? GetTag2(DependencyObject element) => (System.Windows.Media.Brush?)element.GetValue(Tag2Property);
+
+    public static void SetTag2(DependencyObject element, System.Windows.Media.Brush? value) => element.SetValue(Tag2Property, value);
+
+    public static System.Windows.Media.Brush? GetTag3(DependencyObject element) => (System.Windows.Media.Brush?)element.GetValue(Tag3Property);
+
+    public static void SetTag3(DependencyObject element, System.Windows.Media.Brush? value) => element.SetValue(Tag3Property, value);
+
     private static void Set(DependencyObject element, DependencyProperty property, bool value)
     {
         ArgumentNullException.ThrowIfNull(element);

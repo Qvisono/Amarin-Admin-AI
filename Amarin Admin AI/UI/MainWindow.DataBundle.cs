@@ -582,6 +582,7 @@ namespace Amarin.UI
 
             // Открытый чат мог быть удалён режимом «Заменить».
             StartNewSession(persist: false);
+            ResetChatListView();
             RefreshChatList();
             LoadSettingsUi();
             InstructionsPage.ResetForProfile();

@@ -377,8 +377,35 @@ public sealed class ChatStore
         return count;
     }
 
+    /// <summary>
+    /// Дописывает в опись поля, которых у записей прежних версий нет: дату начала и цену чата
+    /// целиком (D5, E3). Читает только такие чаты и только раз — дальше их поля обновляет
+    /// обычное сохранение. Для рабочего потока.
+    /// </summary>
+    public int BackfillIndex(CancellationToken cancellationToken)
+    {
+        var count = 0;
+        foreach (var entry in List().Where(entry => entry.CreatedAt == default))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TryLoad(entry.Id) is { } session)
+            {
+                UpsertIndex(session);
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     private void UpsertIndex(ChatSession session)
     {
+        // Вне замка хранилища: цена считается под замком сессии, а брать их в обратном порядке
+        // где-то ещё было бы приглашением к взаимной блокировке.
+        var cost = ChatCost.Total(session);
+        // У очень старых переписок даты начала нет — берём последнюю: иначе дозаполнение
+        // описи (BackfillIndex) перечитывало бы такой чат на каждом запуске.
+        var created = session.CreatedAt == default ? session.UpdatedAt : session.CreatedAt;
         lock (_gate)
         {
             var index = LoadIndexLocked();
@@ -390,7 +417,9 @@ public sealed class ChatStore
             }
             else if (entry.Title == session.Title &&
                      entry.UpdatedAt == session.UpdatedAt &&
-                     entry.Summary == session.Summary)
+                     entry.Summary == session.Summary &&
+                     entry.CreatedAt == created &&
+                     entry.TotalCost == cost)
             {
                 // Опись уже описывает этот чат верно. Прежде она перезаписывалась при каждом
                 // сохранении, то есть дважды в секунду на протяжении всего ответа.
@@ -400,6 +429,8 @@ public sealed class ChatStore
             entry.Title = session.Title;
             entry.UpdatedAt = session.UpdatedAt;
             entry.Summary = session.Summary;
+            entry.CreatedAt = created;
+            entry.TotalCost = cost;
             SaveIndexLocked(index);
         }
     }

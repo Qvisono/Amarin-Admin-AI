@@ -300,6 +300,8 @@ namespace Amarin.UI
 
             StartNewSession(persist: false);
 
+            // Ширина и свёрнутость панели — до первого кадра: иначе список мигнул бы заводской ширины.
+            SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
             RefreshChatList();
             UpdateModelButton();
 
@@ -2831,11 +2833,19 @@ namespace Amarin.UI
             }
 
             var items = ChatListItems(query);
+            var organize = _services.Organizer.Snapshot();
+            var sort = _services.Settings.ChatSort;
+            if (_tagFilter is not null && organize.Tags.All(tag => tag.Id != _tagFilter))
+            {
+                _tagFilter = null;
+            }
+
+            RefreshTagFilterRow(organize);
 
             // Перерисовка стоит полной пересборки панели, а зовут её и фоновые ходы — по
             // несколько раз за секунду. Если состав списка не изменился, строки остаются на
             // месте, а признаки на них правятся поштучно.
-            var signature = BuildChatListSignature(query, items);
+            var signature = BuildChatListSignature(query, items, organize, sort);
             if (signature == _chatListSignature && ChatListPanel.Children.Count > 0)
             {
                 RefreshChatRowStates();
@@ -2844,62 +2854,23 @@ namespace Amarin.UI
 
             _chatListSignature = signature;
             ChatListPanel.Children.Clear();
-            var today = DateTime.Today;
-            var yesterday = today.AddDays(-1);
 
-            var first = true;
-
-            void AddGroup(string title, IEnumerable<ChatIndexEntry> group)
+            IReadOnlyList<ChatListNode> nodes;
+            if ((IsContentSearchResult && items.Count > 0) || query.Trim().Length > 0)
             {
-                var list = group.ToList();
-                if (list.Count == 0)
-                {
-                    return;
-                }
-
-                var header = new TextBlock
-                {
-                    Style = (Style)ChatListPanel.FindResource("GroupHeader"),
-                    Text = title
-                };
-                if (first)
-                {
-                    // The topmost header sits right under the search box and needs less air.
-                    header.Margin = new Thickness(14, 6, 6, 4);
-                    first = false;
-                }
-
-                ChatListPanel.Children.Add(header);
-                foreach (var item in list)
-                {
-                    var button = new Button
-                    {
-                        Content = DisplayTitle(item.Title),
-                        Tag = item.Id,
-                        Style = (Style)ChatListPanel.FindResource("ChatItem")
-                    };
-
-                    // Закрепление живёт только в описи, а меню действий читает его со строки.
-                    ChatRowState.SetIsPinned(button, item.IsPinned);
-                    ChatListPanel.Children.Add(button);
-                    ApplyChatRowState(button, item.Id);
-                }
-            }
-
-            if (IsContentSearchResult && items.Count > 0)
-            {
-                // Порядок задала модель, и это порядок близости к запросу. Разложить его по
-                // «Сегодня» и «Вчера» значило бы перемешать ответ: самый подходящий чат уехал
-                // бы вниз только потому, что в нём давно не писали.
-                AddGroup(Loc.Get("S.Search.Found"), items);
+                // Выдача поиска — одним списком. У ответа модели порядок — это близость к запросу,
+                // и разложить его по «Сегодня» и «Вчера» значило бы перемешать ответ; у поиска по
+                // заголовку папки и архив прятали бы найденное за свёрнутыми группами.
+                var ordered = IsContentSearchResult ? items : ChatListLayout.Sort(items, sort).ToList();
+                nodes = ChatListLayout.Flat(ordered, organize, "S.Search.Found");
             }
             else
             {
-                AddGroup(Loc.Get("S.ChatList.Pinned"), items.Where(i => i.IsPinned));
-                AddGroup(Loc.Get("S.ChatList.Today"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == today));
-                AddGroup(Loc.Get("S.ChatList.Yesterday"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date == yesterday));
-                AddGroup(Loc.Get("S.ChatList.Earlier"), items.Where(i => !i.IsPinned && i.UpdatedAt.Date < yesterday));
+                nodes = ChatListLayout.Build(items, organize, sort, _tagFilter, _archiveExpanded, DateTime.Today);
             }
+
+            RenderChatListNodes(nodes);
+            UpdateBatchBar();
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
             {
@@ -2945,6 +2916,7 @@ namespace Amarin.UI
                 string.Equals(sessionId, _session.Id, StringComparison.Ordinal));
             Flip(row, ChatRowState.IsWorkingProperty, IsBusy(sessionId));
             Flip(row, ChatRowState.NeedsAttentionProperty, _attention.Contains(sessionId));
+            Flip(row, ChatRowState.IsSelectedProperty, _selectedChats.Contains(sessionId));
         }
 
         /// <summary>
@@ -2975,11 +2947,30 @@ namespace Amarin.UI
         /// Слепок состава списка. Открытый чат, идущие ходы и метки внимания в него намеренно
         /// не входят: они правятся признаками на уже стоящих строках, а не пересборкой панели.
         /// </summary>
-        private string BuildChatListSignature(string query, IReadOnlyList<ChatIndexEntry> items)
+        private string BuildChatListSignature(
+            string query,
+            IReadOnlyList<ChatIndexEntry> items,
+            ChatOrganizer.State organize,
+            ChatSort sort)
         {
+            // День входит в слепок: после полуночи «Сегодня» обязано стать «Вчера» и без правок.
             var builder = new System.Text.StringBuilder(query)
                 .Append('|').Append(_searchByContent ? '1' : '0')
-                .Append('|').Append((int)_contentSearchState);
+                .Append('|').Append((int)_contentSearchState)
+                .Append('|').Append((int)sort)
+                .Append('|').Append(_tagFilter)
+                .Append('|').Append(_archiveExpanded ? '1' : '0')
+                .Append('|').Append(DateTime.Today.Ticks);
+            foreach (var folder in organize.Folders)
+            {
+                builder.Append("|f").Append(folder.Id).Append('~').Append(folder.Name).Append('~').Append(folder.Collapsed ? '1' : '0');
+            }
+
+            foreach (var tag in organize.Tags)
+            {
+                builder.Append("|t").Append(tag.Id).Append('~').Append(tag.Color);
+            }
+
             foreach (var item in items)
             {
                 builder.Append('|')
@@ -2987,6 +2978,17 @@ namespace Amarin.UI
                     .Append(item.Title).Append('~')
                     .Append(item.UpdatedAt.Ticks).Append('~')
                     .Append(item.IsPinned ? '1' : '0');
+                if (sort == ChatSort.Cost)
+                {
+                    builder.Append('~').Append(item.TotalCost);
+                }
+
+                if (organize.Chats.TryGetValue(item.Id, out var placement))
+                {
+                    builder.Append('~').Append(placement.FolderId)
+                        .Append('~').Append(string.Join(',', placement.Tags))
+                        .Append('~').Append(placement.Archived ? '1' : '0');
+                }
             }
 
             return builder.ToString();
@@ -3025,7 +3027,23 @@ namespace Amarin.UI
         private void SetSidebarCollapsed(bool collapsed)
         {
             _sidebarCollapsed = collapsed;
-            SidebarColumn.Width = new GridLength(collapsed ? 42 : 184);
+            SidebarColumn.Width = new GridLength(collapsed ? 42 : SidebarWidths.Clamp(_services?.Settings.SidebarWidth));
+            SidebarGrip.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+            TagFilterRow.Visibility = collapsed || TagFilterRow.Children.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (collapsed)
+            {
+                BatchBar.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                UpdateBatchBar();
+            }
+
+            if (_services is { } services && services.Settings.SidebarCollapsed != collapsed)
+            {
+                services.Settings.SidebarCollapsed = collapsed;
+                services.SettingsStore.Save(services.Settings);
+            }
             CollapseSidebarButton.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             SearchBorder.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             ChatListPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;

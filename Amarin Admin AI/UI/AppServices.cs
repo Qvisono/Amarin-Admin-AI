@@ -153,6 +153,28 @@ internal sealed class AppServices : IDisposable
         store.Deleted += id => _textIndex?.Remove(id);
     }
 
+    /// <summary>
+    /// Папки, теги и архив списка чатов (D5). Удалённый чат вычищается из раскладки событием
+    /// хранилища — какой бы путь его ни удалил.
+    /// </summary>
+    internal ChatOrganizer Organizer
+    {
+        get
+        {
+            if (_organizer is null)
+            {
+                _organizer = new ChatOrganizer(Path.GetDirectoryName(SettingsStore.FilePath)!);
+                WireOrganizer(ChatStore);
+            }
+
+            return _organizer;
+        }
+    }
+
+    private ChatOrganizer? _organizer;
+
+    private void WireOrganizer(ChatStore store) => store.Deleted += id => _organizer?.Forget(id);
+
     /// <summary>Серверы MCP (C11). Null — не заводились (тесты): инструментов MCP нет.</summary>
     internal McpHost? Mcp { get; init; }
 
@@ -286,6 +308,13 @@ internal sealed class AppServices : IDisposable
             _textIndex.UseRoot(dataRoot, () => Settings.EncryptChats);
             WireTextIndex(ChatStore);
         }
+
+        if (_organizer is not null)
+        {
+            _organizer.UseRoot(dataRoot);
+            WireOrganizer(ChatStore);
+        }
+
         Prompts = new PromptLibrary(dataRoot);
         Instructions.UseRoot(dataRoot);
         Recipes.UseRoot(dataRoot);

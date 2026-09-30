@@ -405,4 +405,10 @@ public sealed class ChatIndexEntry
     /// чтений с диска на каждое нажатие.
     /// </summary>
     public string? Summary { get; set; }
+
+    /// <summary>Когда чат начат — для сортировки «по созданию». У описи прежних версий пусто.</summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>Во что обошёлся чат целиком, со всеми вариантами (<see cref="ChatCost.Total"/>).</summary>
+    public decimal TotalCost { get; set; }
 }

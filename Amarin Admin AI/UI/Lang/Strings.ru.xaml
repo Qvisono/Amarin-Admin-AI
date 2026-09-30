@@ -307,19 +307,47 @@
 
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
 
+    <system:String x:Key="S.ChatList.All" xml:space="preserve">Все чаты</system:String>
+    <system:String x:Key="S.ChatList.AllTags" xml:space="preserve">Все</system:String>
+    <system:String x:Key="S.ChatList.Archive" xml:space="preserve">В архив</system:String>
+    <system:String x:Key="S.ChatList.ArchiveGroup" xml:space="preserve">Архив</system:String>
+    <system:String x:Key="S.ChatList.ClearSelection" xml:space="preserve">Снять выбор</system:String>
+    <system:String x:Key="S.ChatList.Collapse" xml:space="preserve">Свернуть</system:String>
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Удалить все сохранённые чаты? Это нельзя отменить.</system:String>
     <system:String x:Key="S.ChatList.DeleteConfirm" xml:space="preserve">Удалить {0}? Это действие нельзя отменить.</system:String>
+    <system:String x:Key="S.ChatList.DeleteFolder" xml:space="preserve">Удалить папку</system:String>
+    <system:String x:Key="S.ChatList.DeleteFolderText" xml:space="preserve">Удалить папку «{0}»? Чаты из неё останутся — просто без папки.</system:String>
+    <system:String x:Key="S.ChatList.DeleteManyConfirm" xml:space="preserve">Удалить выбранные чаты ({0})? Это действие нельзя отменить.</system:String>
+    <system:String x:Key="S.ChatList.DeleteTag" xml:space="preserve">Удалить тег</system:String>
+    <system:String x:Key="S.ChatList.DeleteTagText" xml:space="preserve">Удалить тег «{0}»? Он снимется со всех чатов; сами чаты останутся.</system:String>
+    <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Удаление чата</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Ранее</system:String>
+    <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Развернуть</system:String>
     <system:String x:Key="S.ChatList.ExportJson" xml:space="preserve">Экспорт в JSON</system:String>
+    <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">В папку</system:String>
     <system:String x:Key="S.ChatList.NameDesc" xml:space="preserve">Показывается в списке слева. Хранится только на этом компьютере.</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Название чата</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">Новый чат</system:String>
+    <system:String x:Key="S.ChatList.NewFolder" xml:space="preserve">Новая папка</system:String>
+    <system:String x:Key="S.ChatList.NewFolderDesc" xml:space="preserve">Название папки в списке чатов.</system:String>
+    <system:String x:Key="S.ChatList.NewTag" xml:space="preserve">Новый тег</system:String>
+    <system:String x:Key="S.ChatList.NewTagDesc" xml:space="preserve">Название тега. Цвет подберётся сам.</system:String>
+    <system:String x:Key="S.ChatList.NoFolder" xml:space="preserve">Без папки</system:String>
+    <system:String x:Key="S.ChatList.Options" xml:space="preserve">Сортировка, папки и теги</system:String>
     <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Закрепить наверху</system:String>
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Закреплённые</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
+    <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Переименовать папку</system:String>
+    <system:String x:Key="S.ChatList.Selected" xml:space="preserve">Выбрано: {0}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Поделиться</system:String>
+    <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">По цене</system:String>
+    <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">По дате создания</system:String>
+    <system:String x:Key="S.ChatList.SortTitle" xml:space="preserve">По названию</system:String>
+    <system:String x:Key="S.ChatList.SortUpdated" xml:space="preserve">По последнему изменению</system:String>
+    <system:String x:Key="S.ChatList.Tags" xml:space="preserve">Теги</system:String>
     <system:String x:Key="S.ChatList.ThisChat" xml:space="preserve">этот чат</system:String>
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Сегодня</system:String>
+    <system:String x:Key="S.ChatList.Unarchive" xml:space="preserve">Вернуть из архива</system:String>
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Открепить</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Вчера</system:String>
 

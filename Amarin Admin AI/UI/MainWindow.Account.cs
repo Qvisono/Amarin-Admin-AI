@@ -625,6 +625,8 @@ namespace Amarin.UI
             ProfileOverlay.Visibility = Visibility.Collapsed;
             ClearPendingAttachments();
             StartNewSession(persist: false);
+            ResetChatListView();
+            SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
             RefreshChatList();
             LoadSettingsUi();
             InstructionsPage.ResetForProfile();

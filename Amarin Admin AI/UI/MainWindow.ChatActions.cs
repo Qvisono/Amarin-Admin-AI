@@ -42,6 +42,21 @@ namespace Amarin.UI
                 return;
             }
 
+            // Ctrl и Shift выбирают, а не открывают (D5): так же, как в Проводнике.
+            var modifiers = System.Windows.Input.Keyboard.Modifiers;
+            if (modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
+            {
+                ToggleChatSelection(id);
+                return;
+            }
+
+            if (modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift))
+            {
+                SelectChatRange(id);
+                return;
+            }
+
+            ClearChatSelection();
             OpenChat(id);
         }
 
@@ -73,6 +88,15 @@ namespace Amarin.UI
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChat(id)));
             menu.Items.Add(MenuItemFor(pinned ? Loc.Get("S.ChatList.Unpin") : Loc.Get("S.ChatList.Pin"), () => PinChat(id, !pinned)));
 
+            // Раскладка (D5). Вложенных меню у AppMenuItem нет — выбор открывается вторым меню
+            // на том же месте.
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, [id])));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, [id])));
+            var archived = _services?.Organizer.PlacementOf(id).Archived == true;
+            menu.Items.Add(MenuItemFor(
+                Loc.Get(archived ? "S.ChatList.Unarchive" : "S.ChatList.Archive"),
+                () => ArchiveChats([id], !archived)));
+
             if (SharingEnabled())
             {
                 menu.Items.Add(Divider());
@@ -81,7 +105,7 @@ namespace Amarin.UI
             }
 
             menu.Items.Add(Divider());
-            menu.Items.Add(MenuItemFor(Loc.Get("S.Common.Delete"), () => DeleteChat(id), danger: true));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.Common.Delete"), () => Detached.Run(DeleteChatsAsync([id]), "delete_chat"), danger: true));
 
             menu.IsOpen = true;
         }
@@ -169,35 +193,52 @@ namespace Amarin.UI
             RefreshChatList();
         }
 
-        private void DeleteChat(string id)
+        /// <summary>
+        /// Спрашивает и удаляет один или несколько чатов. Вопрос — своим окном, а не
+        /// <see cref="MessageBox"/>: системное рисовалось чужим стилем и в системном масштабе.
+        /// </summary>
+        private async Task DeleteChatsAsync(IReadOnlyList<string> ids)
         {
-            if (_services is null)
+            if (_services is null || ids.Count == 0)
             {
                 return;
             }
 
-            var entry = _services.ChatStore.Search("").FirstOrDefault(item => item.Id == id);
-            var title = string.IsNullOrWhiteSpace(entry?.Title) ? Loc.Get("S.ChatList.ThisChat") : $"«{entry!.Title}»";
-            var answer = MessageBox.Show(
-                this,
-                Loc.Format("S.ChatList.DeleteConfirm", title),
-                Title,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+            string text;
+            if (ids.Count == 1)
+            {
+                var entry = _services.ChatStore.List().FirstOrDefault(item => item.Id == ids[0]);
+                var title = string.IsNullOrWhiteSpace(entry?.Title) ? Loc.Get("S.ChatList.ThisChat") : $"«{DisplayTitle(entry!.Title)}»";
+                text = Loc.Format("S.ChatList.DeleteConfirm", title);
+            }
+            else
+            {
+                text = Loc.Format("S.ChatList.DeleteManyConfirm", ids.Count);
+            }
 
-            if (answer != MessageBoxResult.Yes)
+            var confirmed = await ShowNoticeAsync(
+                Loc.Get("S.ChatList.DeleteTitle"),
+                text,
+                Loc.Get("S.Common.Delete"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+            if (!confirmed || _services is null)
             {
                 return;
             }
 
-            // Останавливаем ход удаляемого чата всегда, а не только когда он открыт: фоновый
-            // ход по завершении сохранил бы себя обратно на диск, и чат «воскрес» бы.
-            CancelTurn(id);
-
-            var deletingOpen = id == _session.Id;
-            _services.ChatStore.Delete(id);
-            _services.Confirmations.ForgetSession(id);
-            ForgetAttention(id);
+            var deletingOpen = false;
+            foreach (var id in ids)
+            {
+                // Останавливаем ход удаляемого чата всегда, а не только когда он открыт: фоновый
+                // ход по завершении сохранил бы себя обратно на диск, и чат «воскрес» бы.
+                CancelTurn(id);
+                deletingOpen |= id == _session.Id;
+                _services.ChatStore.Delete(id);
+                _services.Confirmations.ForgetSession(id);
+                ForgetAttention(id);
+                _selectedChats.Remove(id);
+            }
 
             if (deletingOpen)
             {

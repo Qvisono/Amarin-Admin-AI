@@ -264,14 +264,16 @@ public static class DataBundle
             return DataCategory.None;
         }
 
-        // Список удалённых машин и серверов MCP несёт пароли и токены под DPAPI — то же правило,
-        // что у ключей.
         // Индекс поиска по тексту — производное от чатов: на новом месте он соберётся сам.
+        // Раскладка по папкам (chats/organize.json) — нет: её человек собирал руками, и она едет
+        // вместе с чатами.
         if (name == ChatTextIndex.FileName)
         {
             return DataCategory.None;
         }
 
+        // Список удалённых машин и серверов MCP несёт пароли и токены под DPAPI — то же правило,
+        // что у ключей.
         if (name == MachineBook.FileName || name == McpHost.FileName)
         {
             return DataCategory.None;
