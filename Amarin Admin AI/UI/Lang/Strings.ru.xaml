@@ -495,6 +495,9 @@
     <system:String x:Key="S.Infographic.NoTranscript" xml:space="preserve">Не удалось получить расшифровку.</system:String>
     <system:String x:Key="S.Infographic.Request" xml:space="preserve">Инфографика по видео: {0}</system:String>
     <system:String x:Key="S.Infographic.Subtitles" xml:space="preserve">Получаю субтитры…</system:String>
+    <system:String x:Key="S.Instructions.AgentBadge" xml:space="preserve">агент</system:String>
+    <system:String x:Key="S.Instructions.AgentLabel" xml:space="preserve">Агенту</system:String>
+    <system:String x:Key="S.Instructions.AgentTip" xml:space="preserve">Видна агенту: он получит её в оглавлении и прочтёт сам, когда задача к ней относится. Агент выполняет команды на компьютере — открывайте ему только то, что ему нужно.</system:String>
     <system:String x:Key="S.Journal.AskFailed" xml:space="preserve">Не удалось спросить модель. Проверьте ключ и сеть и попробуйте ещё раз.</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>

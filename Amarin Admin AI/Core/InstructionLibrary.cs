@@ -31,6 +31,12 @@ public sealed record Instruction
     /// <summary>Выключенная инструкция лежит на диске, но модель о ней не знает.</summary>
     public bool Enabled { get; init; } = true;
 
+    /// <summary>
+    /// Видит ли её агент. Нет поля в шапке — не видит: так работали все инструкции до 1.28.0, и
+    /// заведённые тогда не должны молча попасть к модели, которая исполняет команды на машине.
+    /// </summary>
+    public bool VisibleToAgent { get; init; }
+
     public DateTime CreatedAt { get; init; }
 }
 
@@ -153,6 +159,10 @@ internal sealed class InstructionLibrary
     public IReadOnlyList<Instruction> EnabledSnapshot() =>
         Snapshot().Where(instruction => instruction.Enabled).ToList();
 
+    /// <summary>Включённые инструкции, которые человек открыл агенту.</summary>
+    public IReadOnlyList<Instruction> AgentSnapshot() =>
+        Snapshot().Where(instruction => instruction.Enabled && instruction.VisibleToAgent).ToList();
+
     /// <summary>
     /// Ищет по идентификатору, а если такого нет — по названию. Регистр не важен ни там, ни там:
     /// файловая система Windows его тоже не различает, а модель пишет название как придётся.
@@ -224,6 +234,12 @@ internal sealed class InstructionLibrary
             return true;
         }
     }
+
+    /// <summary>Открывает инструкцию агенту или закрывает. Null — такой нет.</summary>
+    public Instruction? SetVisibleToAgent(string id, bool visible) =>
+        Find(id) is { } found && string.Equals(found.Id, id, StringComparison.OrdinalIgnoreCase)
+            ? found.VisibleToAgent == visible ? found : Save(found with { VisibleToAgent = visible })
+            : null;
 
     public Instruction? SetEnabled(string id, bool enabled) =>
         Find(id) is { } found && string.Equals(found.Id, id, StringComparison.OrdinalIgnoreCase)
@@ -392,6 +408,7 @@ internal sealed class InstructionLibrary
         string? name = null;
         var triggers = new List<string>();
         var enabled = true;
+        var agent = false;
         var created = fallbackCreated;
         var bodyStart = 0;
 
@@ -446,6 +463,11 @@ internal sealed class InstructionLibrary
                                       !value.Equals("no", StringComparison.OrdinalIgnoreCase) &&
                                       value != "0";
                             break;
+                        case "agent":
+                            agent = value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                                    value.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                                    value == "1";
+                            break;
                         case "created":
                             if (DateTime.TryParse(
                                     Unquote(value),
@@ -487,6 +509,7 @@ internal sealed class InstructionLibrary
             Triggers = NormalizeTriggers(triggers),
             Text = body,
             Enabled = enabled,
+            VisibleToAgent = agent,
             CreatedAt = created
         };
     }
@@ -499,6 +522,7 @@ internal sealed class InstructionLibrary
         builder.Append("name: ").Append(instruction.Name).Append("\r\n");
         builder.Append("triggers: ").Append(string.Join(", ", instruction.Triggers)).Append("\r\n");
         builder.Append("enabled: ").Append(instruction.Enabled ? "true" : "false").Append("\r\n");
+        builder.Append("agent: ").Append(instruction.VisibleToAgent ? "true" : "false").Append("\r\n");
         builder.Append("created: ")
             .Append(instruction.CreatedAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture))
             .Append("\r\n");

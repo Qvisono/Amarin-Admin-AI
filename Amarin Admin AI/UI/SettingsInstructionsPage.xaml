@@ -337,7 +337,17 @@
                     </Border>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Name}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Name}"/>
+                            <!-- Метка «агент»: инструкцию видит и агент, а не только чат. -->
+                            <Border Style="{StaticResource TriggerTag}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                    Visibility="{Binding AgentVisibility}"
+                                    ToolTip="{DynamicResource S.Instructions.AgentTip}">
+                                <TextBlock Style="{StaticResource TriggerTagText}"
+                                           Text="{DynamicResource S.Instructions.AgentBadge}"
+                                           Foreground="{DynamicResource Link.Default}"/>
+                            </Border>
+                        </StackPanel>
                         <TextBlock Text="{Binding Preview}" FontSize="11.5" Margin="0,3,0,0"
                                    Foreground="{DynamicResource Text.Dim}" TextTrimming="CharacterEllipsis"
                                    Opacity="{Binding ContentOpacity}"/>
@@ -563,11 +573,21 @@
                 <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}"
                            VerticalAlignment="Center" Text="{DynamicResource S.Instructions.NewTitle}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Агенту — отдельным тумблером: он исполняет команды на машине, и открывать
+                         ему инструкцию человек решает сам (1.28.0). -->
+                    <TextBlock Text="{DynamicResource S.Instructions.AgentLabel}" FontSize="11.5"
+                               Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <CheckBox x:Name="AgentToggle" Style="{StaticResource SettingsToggle}" IsChecked="False"
+                              Click="Draft_Changed" ToolTip="{DynamicResource S.Instructions.AgentTip}"
+                              AutomationProperties.Name="{DynamicResource S.Instructions.AgentLabel}"
+                              Margin="0,0,16,0"/>
                     <TextBlock Text="{DynamicResource S.Instructions.EnabledLabel}" FontSize="11.5"
                                Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"
                                Margin="0,0,8,0"/>
                     <CheckBox x:Name="EnabledToggle" Style="{StaticResource SettingsToggle}" IsChecked="True"
-                              Click="Draft_Changed" ToolTip="{DynamicResource S.Instructions.ToggleTip}"/>
+                              Click="Draft_Changed" ToolTip="{DynamicResource S.Instructions.ToggleTip}"
+                              AutomationProperties.Name="{DynamicResource S.Instructions.EnabledLabel}"/>
                 </StackPanel>
             </Grid>
 

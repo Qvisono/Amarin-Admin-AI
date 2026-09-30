@@ -416,6 +416,72 @@ public sealed class InstructionUiTests : IDisposable
         Assert.False(toggle.IntersectsWith(close), $"тумблер {toggle} под крестиком {close}");
     }
 
+    [Fact]
+    public void The_agent_switch_is_saved_and_marks_the_card()
+    {
+        var (stored, badge) = _wpf.Ui.Invoke(() =>
+        {
+            var services = Services();
+            var page = Page(services);
+            Click(page.CreateButton);
+            page.NameBox.Text = "Принтеры";
+            page.BodyBox.Text = "Перезапускать спулер.";
+            page.AgentToggle.IsChecked = true;
+            page.Save();
+            Layout(page);
+            var card = InstructionRow.From(services.Instructions.Snapshot().Single());
+            return (services.Instructions.Snapshot().Single(), card.AgentVisibility);
+        });
+
+        Assert.True(stored.VisibleToAgent);
+        Assert.Equal(Visibility.Visible, badge);
+    }
+
+    [Fact]
+    public void A_new_instruction_is_closed_to_the_agent()
+    {
+        var isChecked = _wpf.Ui.Invoke(() =>
+        {
+            var page = Page(Services());
+            Click(page.CreateButton);
+            return page.AgentToggle.IsChecked;
+        });
+
+        Assert.False(isChecked);
+    }
+
+    [Fact]
+    public void The_agent_switch_stays_clear_of_the_title_and_the_close_button()
+    {
+        var (agent, title, close) = _wpf.Ui.Invoke(() =>
+        {
+            var window = SharedWindow();
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
+            var nav = (RadioButton)window.FindName("NavInstructions");
+            var behavior = (RadioButton)window.FindName("NavBehavior");
+            var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
+            var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
+
+            overlay.Visibility = Visibility.Visible;
+            nav.IsChecked = true;
+            Click(page.CreateButton);
+            window.UpdateLayout();
+            try
+            {
+                return (Bounds(page.AgentToggle, overlay), Bounds(page.EditorTitle, overlay), Bounds(closeButton, overlay));
+            }
+            finally
+            {
+                Click(page.CancelButton);
+                behavior.IsChecked = true;
+                overlay.Visibility = Visibility.Collapsed;
+            }
+        });
+
+        Assert.False(agent.IntersectsWith(close), $"тумблер {agent} под крестиком {close}");
+        Assert.True(agent.Left >= title.Left + 40, $"тумблер {agent} налез на заголовок {title}");
+    }
+
     private static Rect Bounds(FrameworkElement element, Visual root) =>
         element.TransformToVisual(root).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
 

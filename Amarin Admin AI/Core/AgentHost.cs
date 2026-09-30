@@ -11,6 +11,9 @@ internal sealed class AgentHost : IAgentHost
     private readonly AgentRegistry? _agents;
     private readonly Func<string, VeniceModelInfo?>? _resolveModelInfo;
 
+    /// <summary>Библиотека инструкций: агент видит из неё только открытые ему (C6).</summary>
+    private readonly InstructionLibrary? _instructions;
+
     /// <param name="agents">
     /// Куда записываться на время работы, чтобы агента можно было остановить или пересадить на
     /// другую модель, пока он работает. Null — прежнее поведение «запустили и ждём».
@@ -26,8 +29,10 @@ internal sealed class AgentHost : IAgentHost
         Func<AppSettings> settings,
         ConfirmationQueue confirmations,
         AgentRegistry? agents = null,
-        Func<string, VeniceModelInfo?>? resolveModelInfo = null)
+        Func<string, VeniceModelInfo?>? resolveModelInfo = null,
+        InstructionLibrary? instructions = null)
     {
+        _instructions = instructions;
         _parentOptions = parentOptions;
         _downloadHttp = downloadHttp;
         _settings = settings;
@@ -120,12 +125,17 @@ internal sealed class AgentHost : IAgentHost
             // бы себе и деньги чужого хода.
             using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
             var venice = new VeniceClient(http, options);
+            // Снимок инструкций — один на прогон: по нему собираются и оглавление, и инструмент,
+            // и правка на странице посреди работы не расщепит их надвое.
+            var agentInstructions = _instructions?.AgentSnapshot() ?? [];
             var tools = AgentTools.Create(
                 venice,
                 _downloadHttp,
                 options.Download,
                 () => ModelSlots.WebSearch(_settings()),
-                () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey));
+                () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
+                _instructions,
+                agentInstructions);
 
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);
@@ -140,6 +150,7 @@ internal sealed class AgentHost : IAgentHost
                 string.IsNullOrWhiteSpace(techAgent) ? null : techAgent)
             {
                 SessionMode = SessionMode.Isolated,
+                Instructions = agentInstructions,
                 Guard = guard,
                 Settings = _settings,
                 AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label)

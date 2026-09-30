@@ -1049,9 +1049,25 @@ Paths on this machine - use these exact values, never wildcards:
             : ExtractAssistantText(choice.Message, choice.FinishReason);
     }
 
+    /// <summary>
+    /// Инструкции пользователя, открытые агенту, — снимок на весь прогон. Пусто — блока нет.
+    /// </summary>
+    /// <remarks>
+    /// Отдельным блоком после путей машины, а не внутри <see cref="BaseSystemPrompt"/>: у тех, кто
+    /// сохранил свой промпт агента, лежит его замороженная копия, и оглавление до неё иначе бы
+    /// не дошло.
+    /// </remarks>
+    internal IReadOnlyList<Instruction> Instructions { get; init; } = [];
+
     private string GetSystemPrompt()
     {
-        _cachedSystemPrompt ??= _basePrompt + BuildMachinePathsPrompt();
+        if (_cachedSystemPrompt is null)
+        {
+            var briefing = InstructionBriefing.ForAgent(Instructions);
+            _cachedSystemPrompt = _basePrompt + BuildMachinePathsPrompt() +
+                                  (briefing.Length == 0 ? "" : "\n\n" + briefing);
+        }
+
         return _cachedSystemPrompt;
     }
 

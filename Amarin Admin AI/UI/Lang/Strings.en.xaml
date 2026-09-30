@@ -495,6 +495,9 @@
     <system:String x:Key="S.Infographic.NoTranscript" xml:space="preserve">Could not get the transcript.</system:String>
     <system:String x:Key="S.Infographic.Request" xml:space="preserve">Infographic of the video: {0}</system:String>
     <system:String x:Key="S.Infographic.Subtitles" xml:space="preserve">Fetching subtitles…</system:String>
+    <system:String x:Key="S.Instructions.AgentBadge" xml:space="preserve">agent</system:String>
+    <system:String x:Key="S.Instructions.AgentLabel" xml:space="preserve">Agent</system:String>
+    <system:String x:Key="S.Instructions.AgentTip" xml:space="preserve">Visible to the agent: it gets this instruction in its index and reads it when a task relates to it. The agent runs commands on this computer - open to it only what it needs.</system:String>
     <system:String x:Key="S.Journal.AskFailed" xml:space="preserve">Could not ask the model. Check the key and the network, then try again.</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (chat deleted)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Export CSV</system:String>

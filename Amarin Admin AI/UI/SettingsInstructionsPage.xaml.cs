@@ -273,6 +273,7 @@ public partial class SettingsInstructionsPage : UserControl
             NameBox.Text = instruction?.Name ?? "";
             BodyBox.Text = instruction?.Text ?? "";
             EnabledToggle.IsChecked = instruction?.Enabled ?? true;
+            AgentToggle.IsChecked = instruction?.VisibleToAgent ?? false;
             TriggerInput.Text = "";
             _triggers = [.. instruction?.Triggers ?? []];
             RebuildChips();
@@ -342,7 +343,8 @@ public partial class SettingsInstructionsPage : UserControl
         NameBox.Text.Trim(),
         string.Join("\n", _triggers) + "\n" + TriggerInput.Text.Trim(),
         BodyBox.Text.Trim(),
-        EnabledToggle.IsChecked == true);
+        EnabledToggle.IsChecked == true,
+        AgentToggle.IsChecked == true);
 
     private void Back_Click(object sender, RoutedEventArgs e) => ConfirmLeave(CloseEditor);
 
@@ -396,7 +398,8 @@ public partial class SettingsInstructionsPage : UserControl
             Name = name,
             Triggers = [.. _triggers],
             Text = BodyBox.Text,
-            Enabled = EnabledToggle.IsChecked == true
+            Enabled = EnabledToggle.IsChecked == true,
+            VisibleToAgent = AgentToggle.IsChecked == true
         };
 
         if (_services.Instructions.Save(draft) is null)
@@ -519,7 +522,8 @@ public partial class SettingsInstructionsPage : UserControl
             Name = name,
             Triggers = [.. _triggers],
             Text = BodyBox.Text,
-            Enabled = EnabledToggle.IsChecked == true
+            Enabled = EnabledToggle.IsChecked == true,
+            VisibleToAgent = AgentToggle.IsChecked == true
         });
     }
 
@@ -798,9 +802,9 @@ public partial class SettingsInstructionsPage : UserControl
         }
     }
 
-    private readonly record struct DraftState(string Name, string Triggers, string Text, bool Enabled)
+    private readonly record struct DraftState(string Name, string Triggers, string Text, bool Enabled, bool Agent)
     {
-        public static DraftState Empty => new("", "", "", true);
+        public static DraftState Empty => new("", "", "", true, false);
     }
 }
 
@@ -825,6 +829,10 @@ internal sealed class InstructionRow
 
     public bool Enabled { get; init; }
 
+    public bool VisibleToAgent { get; init; }
+
+    public Visibility AgentVisibility => VisibleToAgent ? Visibility.Visible : Visibility.Collapsed;
+
     public double ContentOpacity => Enabled ? 1 : 0.5;
 
     public Visibility TriggersVisibility => Triggers.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -843,7 +851,8 @@ internal sealed class InstructionRow
             Triggers = instruction.Triggers.Take(SettingsInstructionsPage.CardTriggerLimit).ToList(),
             MoreTriggers = extra > 0 ? "+" + extra.ToString(CultureInfo.CurrentCulture) : "",
             Preview = InstructionLibrary.Preview(instruction.Text),
-            Enabled = instruction.Enabled
+            Enabled = instruction.Enabled,
+            VisibleToAgent = instruction.VisibleToAgent
         };
     }
 }

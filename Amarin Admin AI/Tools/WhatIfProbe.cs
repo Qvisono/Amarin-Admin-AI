@@ -141,7 +141,11 @@ internal static class WhatIfProbe
     /// <summary>Из вывода прогона — то, что стоит показать человеку.</summary>
     internal static WhatIfOutcome? Interpret(ToolResult result)
     {
-        var stdout = PowerShellHelper.ExtractStdout(result.Output);
+        // Без блока stdout вывода нет вовсе: ExtractStdout отдал бы тогда всю строку «Exit code: 1»,
+        // и она встала бы в окно как «что изменится».
+        var stdout = result.Output.Contains("--- stdout ---", StringComparison.Ordinal)
+            ? PowerShellHelper.ExtractStdout(result.Output)
+            : "";
         if (stdout.Contains(UnsupportedMarker, StringComparison.Ordinal))
         {
             return new WhatIfOutcome(false, "");

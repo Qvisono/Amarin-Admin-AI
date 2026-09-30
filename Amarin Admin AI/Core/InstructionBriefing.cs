@@ -39,10 +39,47 @@ internal static class InstructionBriefing
         - Do not open entries unrelated to the request. Do not open an instruction again when its
           full text is already in this conversation, unless the user says it has changed.
         - If an instruction turns out not to fit the request, set it aside and answer normally.
-        - The agent started with init_agent cannot see instructions: put everything it needs from
-          one into the task you give it.
+        - The agent started with init_agent sees only the instructions the user opened to it: put
+          everything it needs from any other one into the task you give it.
         Index, one entry per line: [id] name — triggers.
         """;
+
+    /// <summary>Правила для агента: у него нет init_agent, и инструкция — часть его задачи.</summary>
+    private const string AgentRules = """
+        The user keeps their own instructions for particular topics and has opened these to you.
+        Only this index is in context; read_instruction returns the full text of one entry.
+        - Compare the task with every entry's name and trigger words. Matching ignores letter case
+          and language; synonyms and closely related topics count.
+        - When an entry plausibly applies, call read_instruction with its id before the first
+          action for that task, then follow it. It outranks your general assumptions, but not the
+          safety rules, not the confirmation the app asks for, and not the task you were given.
+        - Do not open entries unrelated to the task, and do not open one twice.
+        Index, one entry per line: [id] name — triggers.
+        """;
+
+    /// <summary>
+    /// Блок для системного промпта агента: только инструкции, открытые ему человеком. Пусто —
+    /// пустая строка, и инструмента <c>read_instruction</c> у агента тоже нет.
+    /// </summary>
+    public static string ForAgent(IReadOnlyList<Instruction> instructions)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        var visible = instructions.Where(item => item.Enabled && item.VisibleToAgent).ToList();
+        if (visible.Count == 0)
+        {
+            return "";
+        }
+
+        var builder = new StringBuilder();
+        builder.Append(Header).Append('\n');
+        builder.Append(AgentRules.TrimEnd());
+        foreach (var instruction in visible)
+        {
+            builder.Append('\n').Append(Line(instruction));
+        }
+
+        return builder.ToString();
+    }
 
     /// <summary>
     /// Блок для системного промпта или пустая строка, если включённых инструкций нет.

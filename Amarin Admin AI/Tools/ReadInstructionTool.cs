@@ -22,8 +22,19 @@ public sealed class ReadInstructionTool : ITool
     public const string ToolName = "read_instruction";
 
     private readonly InstructionLibrary _library;
+    private readonly IReadOnlyList<Instruction>? _agentView;
 
     internal ReadInstructionTool(InstructionLibrary library) => _library = library;
+
+    /// <param name="agentView">
+    /// Снимок инструкций, открытых агенту, на весь его прогон. Агент ищет только в нём: закрытая
+    /// от агента инструкция не находится ни по id, ни по названию.
+    /// </param>
+    internal ReadInstructionTool(InstructionLibrary library, IReadOnlyList<Instruction> agentView)
+    {
+        _library = library;
+        _agentView = agentView;
+    }
 
     public string Name => ToolName;
 
@@ -59,7 +70,7 @@ public sealed class ReadInstructionTool : ITool
                 "Missing required parameter: id. " + Available()));
         }
 
-        var instruction = _library.Find(id);
+        var instruction = _agentView is null ? _library.Find(id) : FindInAgentView(id);
         if (instruction is null)
         {
             return Task.FromResult(ToolResult.Fail(
@@ -111,9 +122,16 @@ public sealed class ReadInstructionTool : ITool
         return builder.ToString();
     }
 
+    private Instruction? FindInAgentView(string id)
+    {
+        var key = id.Trim().Trim('[', ']').Trim();
+        return _agentView!.FirstOrDefault(item => string.Equals(item.Id, key, StringComparison.OrdinalIgnoreCase))
+            ?? _agentView!.FirstOrDefault(item => string.Equals(item.Name, key, StringComparison.OrdinalIgnoreCase));
+    }
+
     private string Available()
     {
-        var ids = _library.EnabledSnapshot().Select(item => item.Id).ToList();
+        var ids = (_agentView ?? _library.EnabledSnapshot()).Select(item => item.Id).ToList();
         return ids.Count == 0
             ? "The user has no active instructions; answer without one."
             : "Available ids: " + string.Join(", ", ids) + ".";

@@ -13,9 +13,15 @@ internal static class AgentTools
         HttpClient downloadHttp,
         DownloadOptions download,
         Func<WebSearchPlan>? webSearch = null,
-        Func<IEnumerable<string?>>? knownSecrets = null) =>
+        Func<IEnumerable<string?>>? knownSecrets = null,
+        InstructionLibrary? instructions = null,
+        IReadOnlyList<Instruction>? agentInstructions = null) =>
         new(
         [
+            // Инструкции — только если человек открыл агенту хоть одну: без них и инструмента нет.
+            .. instructions is not null && agentInstructions is { Count: > 0 }
+                ? [new ReadInstructionTool(instructions, agentInstructions)]
+                : Array.Empty<ITool>(),
             new PowerShellTool(),
             new RegistryTool(),
             new ServiceTool(),
