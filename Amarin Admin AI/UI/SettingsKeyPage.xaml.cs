@@ -91,6 +91,11 @@ public partial class SettingsKeyPage : UserControl
     internal void Activate()
     {
         RefreshKeyRows();
+        if (_services is not null)
+        {
+            LimitsBlock.Load(_services);
+        }
+
         Detached.Run(BackfillThenReloadAsync(), "spend_report");
     }
 
@@ -111,6 +116,10 @@ public partial class SettingsKeyPage : UserControl
 
         await ReloadAsync(force: false).ConfigureAwait(true);
     }
+
+    /// <summary>Доезжает до лимитов: сюда ведёт «Изменить лимиты» из вопроса посреди хода.</summary>
+    internal void ShowLimits() =>
+        Dispatcher.BeginInvoke(() => LimitsBlock.BringIntoView(), System.Windows.Threading.DispatcherPriority.Loaded);
 
     // ───────────────────────── траты ─────────────────────────
 

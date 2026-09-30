@@ -127,6 +127,11 @@ internal static class Program
         var ledger = new SpendLedger(AppPaths.Root);
         var balances = new BalanceBook();
 
+        // Лимиты трат — туда же и по той же причине. Настройки он читает из служб, когда те
+        // соберутся; до того лимитов нет.
+        AppServices? spendServices = null;
+        var spendGuard = new SpendGuard(() => spendServices?.Settings, ledger);
+
         // Журнал аудита — туда же, в AgentOptions, до того как настройки разойдутся копиями.
         // Ключи из строк вычищаются тем же списком, что и из отчётов о сбоях.
         var audit = new AuditLog(AppPaths.Root, () => CrashHandler.Secrets);
@@ -136,6 +141,7 @@ internal static class Program
             ApiKey = apiKey,
             Keys = keys,
             SpendSink = ledger.Record,
+            SpendGate = spendGuard.CheckAsync,
             BalanceSink = balances.Remember,
             Audit = audit,
             BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
@@ -327,6 +333,7 @@ internal static class Program
             Instructions = instructions,
             KeyStore = keyStore,
             Ledger = ledger,
+            SpendGuard = spendGuard,
             Balances = balances,
             Keys = keys,
             EnvironmentKey = apiKey,
@@ -358,6 +365,7 @@ internal static class Program
             StartupWipe = wiped,
             StartupChatId = startup.OpenChatId
         };
+        spendServices = services;
 
         var disposable = services;
         app.Exit += (_, _) => disposable.Dispose();

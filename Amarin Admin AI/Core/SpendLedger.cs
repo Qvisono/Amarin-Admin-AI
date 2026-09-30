@@ -33,6 +33,9 @@ internal sealed class SpendLedger
     private string _root;
     private DateTime _lastWrite = DateTime.MinValue;
 
+    /// <summary>Прочитаны ли уже с диска журналы всех ключей профиля — для лимитов (E1).</summary>
+    private bool _scanned;
+
     public SpendLedger(string root) => _root = root;
 
     /// <summary>Переезд на другой профиль: у него своя папка и свой журнал.</summary>
@@ -44,6 +47,7 @@ internal sealed class SpendLedger
             _root = root;
             _files.Clear();
             _dirty.Clear();
+            _scanned = false;
         }
     }
 
@@ -107,6 +111,91 @@ internal sealed class SpendLedger
         lock (_gate)
         {
             return Loaded(ApiKeyStore.Fingerprint(secret));
+        }
+    }
+
+    /// <summary>
+    /// Потрачено сегодня и в этом календарном месяце: ключом <paramref name="secret"/> и всеми
+    /// ключами профиля. Для лимитов трат (E1).
+    /// </summary>
+    /// <remarks>
+    /// Зовётся перед каждым платным запросом, поэтому без диска: журналы всех ключей читаются
+    /// один раз за профиль и дальше живут в памяти, как и журнал любого ключа здесь. «Все
+    /// ключи» — это все журналы в папке профиля, включая ключи, уже убранные из списка: деньги
+    /// ими потрачены этим профилем.
+    /// </remarks>
+    public SpendTotals Totals(string? secret, DateTime now)
+    {
+        var fingerprint = ApiKeyStore.Fingerprint(secret);
+        var today = now.Date;
+        var monthStart = new DateTime(today.Year, today.Month, 1);
+        decimal keyDay = 0, keyMonth = 0, allDay = 0, allMonth = 0;
+
+        lock (_gate)
+        {
+            LoadAll();
+            foreach (var (owner, file) in _files)
+            {
+                var mine = string.Equals(owner, fingerprint, StringComparison.Ordinal);
+
+                // Все дни, без расчёта на порядок: перенос из переписок дописывает старые даты,
+                // а дней в журнале сотни — дешевле пройти, чем полагаться на сортировку.
+                foreach (var day in file.Days)
+                {
+                    var date = day.Date.Date;
+                    if (date < monthStart || date > today)
+                    {
+                        continue;
+                    }
+
+                    allMonth += day.Usd;
+                    if (mine)
+                    {
+                        keyMonth += day.Usd;
+                    }
+
+                    if (date == today)
+                    {
+                        allDay += day.Usd;
+                        if (mine)
+                        {
+                            keyDay += day.Usd;
+                        }
+                    }
+                }
+            }
+        }
+
+        return new SpendTotals(keyDay, keyMonth, allDay, allMonth);
+    }
+
+    /// <summary>Подгружает журналы всех ключей из папки профиля. Под замком.</summary>
+    private void LoadAll()
+    {
+        if (_scanned)
+        {
+            return;
+        }
+
+        _scanned = true;
+        const string suffix = ".local.json";
+        try
+        {
+            var folder = Path.Combine(_root, "usage");
+            if (!Directory.Exists(folder))
+            {
+                return;
+            }
+
+            foreach (var path in Directory.EnumerateFiles(folder, "*" + suffix))
+            {
+                var name = Path.GetFileName(path);
+                Loaded(name[..^suffix.Length]);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Нечитаемая папка — лимит считает то, что есть в памяти; ронять запрос незачем.
         }
     }
 

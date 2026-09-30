@@ -34,6 +34,12 @@ internal sealed class AppServices : IDisposable
     public required SpendLedger Ledger { get; init; }
 
     /// <summary>
+    /// Лимиты трат — тот же объект, что роздан копиям настроек. По умолчанию свой: тесты
+    /// собирают службы руками и лимитов не касаются.
+    /// </summary>
+    internal SpendGuard SpendGuard { get; init; } = new(() => null, new SpendLedger(Path.GetTempPath()));
+
+    /// <summary>
     /// Журнал аудита — тот же, что роздан копиям настроек. Null — не ведётся (тесты).
     /// </summary>
     internal AuditLog? Audit => Options.Audit;

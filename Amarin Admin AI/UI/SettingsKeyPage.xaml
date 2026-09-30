@@ -282,6 +282,11 @@
 
             <Border Style="{StaticResource SettingsDivider}"/>
 
+            <!-- ═══ Лимиты трат (E1) ═══ -->
+            <local:SpendLimitsBlock x:Name="LimitsBlock"/>
+
+            <Border Style="{StaticResource SettingsDivider}"/>
+
             <!-- ═══ Разбивка по моделям ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Spend.Models.Title}"/>
             <TextBlock x:Name="ModelsEmpty" Style="{StaticResource SettingDesc}"

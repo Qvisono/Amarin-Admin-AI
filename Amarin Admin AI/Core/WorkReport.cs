@@ -362,6 +362,7 @@ internal sealed class WorkReportWriter
             Keys = _options.Keys,
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Summary)),
             SpendSink = _options.SpendSink,
+            SpendGate = _options.SpendGate,
             BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,

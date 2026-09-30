@@ -249,6 +249,7 @@ public sealed class VeniceClient
         // с неё. Раньше он стартовал с поля клиента, то есть с модели, которую никто не просил.
         var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
         var key = RequireKey(Resolve(credential), startingModel);
+        await GuardSpendAsync(key, cancellationToken).ConfigureAwait(false);
         VeniceApiException? lastOverload = null;
 
         // Провайдер цепочки — из ключа запроса, а не из клиента: замена модели обязана остаться
@@ -324,6 +325,7 @@ public sealed class VeniceClient
     {
         var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
         var key = RequireKey(Resolve(credential), startingModel);
+        await GuardSpendAsync(key, cancellationToken).ConfigureAwait(false);
         VeniceApiException? lastOverload = null;
 
         foreach (var model in VeniceModelFallback.GetModelsFrom(
@@ -1458,6 +1460,7 @@ public sealed class VeniceClient
         // Свой счёт у каждого хода чата: один общий RequestCost на несколько одновременных
         // ходов не делится. Сам он остаётся — им пользуется агент, у которого клиент на прогон.
         VeniceTurnScope.Current?.Add(cost);
+        SpendScope.Current?.Add(cost);
         AgentRunScope.Charge(cost);
     }
 
@@ -1487,9 +1490,22 @@ public sealed class VeniceClient
         return credential;
     }
 
+    /// <summary>
+    /// Лимиты трат (E1) — до того, как запрос уйдёт: списание уже не отменить.
+    /// </summary>
+    /// <remarks>
+    /// Одна проверка на вход в каждый платный путь, а не на каждую попытку внутри: цепочка
+    /// запасных моделей и очередь OpenRouter идут дальше тем же решением. Цены запроса заранее
+    /// никто не знает, поэтому лимит — порог по уже потраченному: последний запрос может
+    /// перешагнуть его на свою цену.
+    /// </remarks>
+    private Task GuardSpendAsync(ApiCredential credential, CancellationToken cancellationToken) =>
+        _options.SpendGate?.Invoke(credential, cancellationToken) ?? Task.CompletedTask;
+
     public async Task<string> ScrapeUrlAsync(string url, CancellationToken cancellationToken = default)
     {
         var credential = RequireVenice(VeniceCredential(), "Чтение страниц");
+        await GuardSpendAsync(credential, cancellationToken).ConfigureAwait(false);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
             new ScrapeUrlRequest { Url = url },
             VeniceJsonContext.Default.ScrapeUrlRequest);
@@ -1536,6 +1552,7 @@ public sealed class VeniceClient
         ApiCredential credential,
         CancellationToken cancellationToken = default)
     {
+        await GuardSpendAsync(credential, cancellationToken).ConfigureAwait(false);
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(wav);
         file.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
@@ -1634,6 +1651,7 @@ public sealed class VeniceClient
         }
 
         var credential = RequireVenice(VeniceCredential(), "Рисование картинок");
+        await GuardSpendAsync(credential, cancellationToken).ConfigureAwait(false);
         var resolved = string.IsNullOrWhiteSpace(model) ? DefaultImageModel : model;
         var byRatio = UsesAspectRatio(resolved);
 

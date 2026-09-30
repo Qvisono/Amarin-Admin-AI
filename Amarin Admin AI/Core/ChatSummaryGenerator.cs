@@ -159,6 +159,7 @@ internal sealed class ChatSummaryGenerator
             // модели другого провайдера, пока разговор идёт у своего.
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Summary)),
             SpendSink = _options.SpendSink,
+            SpendGate = _options.SpendGate,
             BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,

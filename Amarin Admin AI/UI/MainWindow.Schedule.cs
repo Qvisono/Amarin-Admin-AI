@@ -19,6 +19,10 @@ namespace Amarin.UI
     /// спросить его о записи или о плане некому. Запись отклоняется шлюзом, и агент пишет в
     /// отчёте, что надо бы сделать.
     /// </para>
+    /// <para>
+    /// Деньги — так же: потолок прогона (<see cref="ScheduledJob.MaxCostUsd"/>) и лимиты трат
+    /// (E1) действуют без вопроса — дойдя до них, прогон обрывается отказом провайдера.
+    /// </para>
     /// </remarks>
     public partial class MainWindow
     {
@@ -59,6 +63,7 @@ namespace Amarin.UI
                 PlanAllowed = false
             }))
             using (ToolGate.ForceReadOnly())
+            using (SpendScope.Push(new SpendMeter { Unattended = true, Cap = job.MaxCostUsd }))
             {
                 result = await services.AgentHost!.RunAsync(job.Prompt + ScheduleReport.Rule, null, cancellationToken)
                     .ConfigureAwait(false);

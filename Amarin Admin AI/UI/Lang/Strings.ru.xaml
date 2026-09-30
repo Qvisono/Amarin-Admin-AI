@@ -708,6 +708,33 @@
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Аудит</system:String>
     <system:String x:Key="S.Key.Active" xml:space="preserve">Активный ключ</system:String>
+    <system:String x:Key="S.Limit.Continue" xml:space="preserve">Продолжить</system:String>
+    <system:String x:Key="S.Limit.Desc" xml:space="preserve">Считаются доллары из журнала трат программы: траты в Diem и траты вне программы лимит не видит. Пустое поле — без лимита. Лимит — порог по уже потраченному, и последний запрос может перешагнуть его на свою цену.</system:String>
+    <system:String x:Key="S.Limit.Edit" xml:space="preserve">Изменить лимиты</system:String>
+    <system:String x:Key="S.Limit.KeyRow" xml:space="preserve">{0} · {1}</system:String>
+    <system:String x:Key="S.Limit.Kind.KeyDay" xml:space="preserve">дневной лимит ключа</system:String>
+    <system:String x:Key="S.Limit.Kind.KeyMonth" xml:space="preserve">месячный лимит ключа</system:String>
+    <system:String x:Key="S.Limit.Kind.ProfileDay" xml:space="preserve">дневной лимит всех ключей</system:String>
+    <system:String x:Key="S.Limit.Kind.ProfileMonth" xml:space="preserve">месячный лимит всех ключей</system:String>
+    <system:String x:Key="S.Limit.Kind.Run" xml:space="preserve">потолок прогона по расписанию</system:String>
+    <system:String x:Key="S.Limit.Kind.Turn" xml:space="preserve">потолок хода</system:String>
+    <system:String x:Key="S.Limit.None" xml:space="preserve">нет</system:String>
+    <system:String x:Key="S.Limit.PerDay" xml:space="preserve">В день</system:String>
+    <system:String x:Key="S.Limit.PerMonth" xml:space="preserve">В месяц</system:String>
+    <system:String x:Key="S.Limit.PeriodAsk" xml:space="preserve">Достигнут {0}: {1}, потрачено {2}. Продолжить этот ход? До его конца запросы пойдут без вопроса.</system:String>
+    <system:String x:Key="S.Limit.PeriodTitle" xml:space="preserve">Лимит трат достигнут</system:String>
+    <system:String x:Key="S.Limit.Profile" xml:space="preserve">Все ключи</system:String>
+    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Достигнут {0} ({1}, потрачено {2}). Запрос не отправлен; повтор не поможет — лимиты меняют на странице «Key &amp; Info».</system:String>
+    <system:String x:Key="S.Limit.Stop" xml:space="preserve">Остановить</system:String>
+    <system:String x:Key="S.Limit.Title" xml:space="preserve">Лимиты трат</system:String>
+    <system:String x:Key="S.Limit.TurnAsk" xml:space="preserve">Ход потратил {0} — больше потолка {1}. Продолжить? Следующий вопрос — ещё через {1}.</system:String>
+    <system:String x:Key="S.Limit.TurnHint" xml:space="preserve">Дойдя до этой суммы вместе с агентами, ход спрашивает, продолжать ли.</system:String>
+    <system:String x:Key="S.Limit.TurnLabel" xml:space="preserve">Потолок одного хода</system:String>
+    <system:String x:Key="S.Limit.TurnStopped" xml:space="preserve">Ход остановлен: {0} ({1}), потрачено {2}.</system:String>
+    <system:String x:Key="S.Limit.TurnTitle" xml:space="preserve">Ход дорожает</system:String>
+    <system:String x:Key="S.Limit.Warn" xml:space="preserve">Потрачено {1} из {2}: близок {0}.</system:String>
+    <system:String x:Key="S.Limit.WarnHint" xml:space="preserve">Доля дневного или месячного лимита, после которой появится предупреждение — раз за период.</system:String>
+    <system:String x:Key="S.Limit.WarnLabel" xml:space="preserve">Предупреждать с</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Профиль «{0}». Введите пароль, чтобы продолжить.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">Программа заблокирована</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">Ответ готов. Программа заблокирована.</system:String>
@@ -1324,8 +1351,10 @@
     <system:String x:Key="S.Rollback.Undo.Invalid" xml:space="preserve">шаг снимка повреждён или неполон — пропущен</system:String>
     <system:String x:Key="S.Rollback.Undo.Wifi" xml:space="preserve">Вернуть профиль Wi-Fi «{0}»</system:String>
     <system:String x:Key="S.Schedule.AddHealth" xml:space="preserve">Проверка здоровья ПК</system:String>
+    <system:String x:Key="S.Schedule.BadCap" xml:space="preserve">Потолок — сумма в долларах, например 0.50.</system:String>
     <system:String x:Key="S.Schedule.BadHours" xml:space="preserve">Интервал — от 1 до 168 часов.</system:String>
     <system:String x:Key="S.Schedule.BadTime" xml:space="preserve">Время — в виде ЧЧ:мм, например 09:30.</system:String>
+    <system:String x:Key="S.Schedule.CapLabel" xml:space="preserve">Потолок цены прогона</system:String>
     <system:String x:Key="S.Schedule.ChatTitle" xml:space="preserve">{0} · {1}</system:String>
     <system:String x:Key="S.Schedule.Create" xml:space="preserve">Новая задача</system:String>
     <system:String x:Key="S.Schedule.Day.Friday" xml:space="preserve">Пт</system:String>

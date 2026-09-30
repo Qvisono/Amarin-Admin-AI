@@ -28,6 +28,7 @@ public partial class SchedulePanel : UserControl
     public SchedulePanel()
     {
         InitializeComponent();
+        CapBox.TextChanged += (_, _) => CapPlaceholder.Visibility = CapBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         foreach (var day in Week)
         {
             var chip = new CheckBox { Tag = day, Style = (Style)FindResource("ChipCheck"), Margin = new Thickness(0, 0, 5, 4) };
@@ -153,6 +154,7 @@ public partial class SchedulePanel : UserControl
         EnabledToggle.IsChecked = job.Enabled;
         TimeBox.Text = ScheduleClock.TimeOfDay(job).ToString(@"hh\:mm", CultureInfo.InvariantCulture);
         HoursBox.Text = ScheduleClock.Hours(job).ToString(CultureInfo.InvariantCulture);
+        CapBox.Text = SpendRules.FormatField(job.MaxCostUsd);
         foreach (var chip in DaysRow.Children.OfType<CheckBox>())
         {
             chip.IsChecked = job.Days.Contains((DayOfWeek)chip.Tag);
@@ -232,7 +234,9 @@ public partial class SchedulePanel : UserControl
 
         var kind = SelectedKind;
         var days = DaysRow.Children.OfType<CheckBox>().Where(chip => chip.IsChecked == true).Select(chip => (DayOfWeek)chip.Tag).ToList();
-        if (Validate(NameBox.Text, PromptBox.Text, kind, TimeBox.Text, HoursBox.Text, days.Count) is { } problem)
+        var problem = Validate(NameBox.Text, PromptBox.Text, kind, TimeBox.Text, HoursBox.Text, days.Count)
+            ?? (CapBox.Text.Trim().Length > 0 && SpendRules.ParseUsd(CapBox.Text) is null ? Loc.Get("S.Schedule.BadCap") : null);
+        if (problem is not null)
         {
             ErrorText.Text = problem;
             ErrorText.Visibility = Visibility.Visible;
@@ -254,6 +258,8 @@ public partial class SchedulePanel : UserControl
         {
             job.EveryHours = int.Parse(HoursBox.Text.Trim(), CultureInfo.InvariantCulture);
         }
+
+        job.MaxCostUsd = SpendRules.ParseUsd(CapBox.Text);
 
         var jobs = _services.Schedule.Load();
         if (string.IsNullOrEmpty(job.Id))

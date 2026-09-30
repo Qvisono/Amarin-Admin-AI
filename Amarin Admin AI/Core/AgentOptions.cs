@@ -33,6 +33,17 @@ public sealed class AgentOptions
     public Action<ApiCredential, VeniceBalance>? BalanceSink { get; init; }
 
     /// <summary>
+    /// Лимиты трат (E1): зовётся перед каждым платным запросом и бросает
+    /// <see cref="SpendLimitException"/>, если платить больше нельзя.
+    /// </summary>
+    /// <remarks>
+    /// Через настройки, по образцу <see cref="SpendSink"/>: клиентов в программе несколько —
+    /// у агента, у сводки, у заголовков, — и лимит обязан держать их всех. Копия настроек без
+    /// этого поля платила бы мимо лимита молча. <c>null</c> — лимитов нет; на этом стоят тесты.
+    /// </remarks>
+    public Func<ApiCredential, CancellationToken, Task>? SpendGate { get; init; }
+
+    /// <summary>
     /// Журнал аудита: каждая запись в систему и каждый отказ, от чата и от агентов.
     /// </summary>
     /// <remarks>

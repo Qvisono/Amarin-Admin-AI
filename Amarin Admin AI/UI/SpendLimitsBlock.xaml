@@ -1,0 +1,61 @@
+<UserControl x:Class="Amarin.UI.SpendLimitsBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        Лимиты трат (E1). Суммы — полями, а не ползунками: лимит ставят числом «$5 в день»,
+        и ползунок с шагом в цент был бы мучением. Строки собираются в коде: ключей у человека
+        сколько угодно, и у каждого своя пара полей.
+    -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Limit.Title}"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.Desc}" Margin="0,0,0,10"/>
+
+        <Grid x:Name="PeriodGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+        </Grid>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.TurnLabel}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.TurnHint}"/>
+            </StackPanel>
+            <ContentControl x:Name="TurnSlot" Grid.Column="1" Focusable="False" VerticalAlignment="Center"/>
+        </Grid>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.WarnLabel}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.WarnHint}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Style="{StaticResource FieldFrame}" Height="28" Width="52">
+                    <TextBox x:Name="WarnBox" Style="{StaticResource FieldTextBox}" MaxLength="2"
+                             HorizontalContentAlignment="Center" LostFocus="WarnBox_LostFocus"
+                             AutomationProperties.Name="{DynamicResource S.Limit.WarnLabel}"/>
+                </Border>
+                <TextBlock Text="%" FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"
+                           Foreground="{DynamicResource Text.Dim}"/>
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</UserControl>

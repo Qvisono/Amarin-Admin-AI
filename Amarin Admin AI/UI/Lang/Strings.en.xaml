@@ -708,6 +708,33 @@
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Audit</system:String>
     <system:String x:Key="S.Key.Active" xml:space="preserve">Active key</system:String>
+    <system:String x:Key="S.Limit.Continue" xml:space="preserve">Continue</system:String>
+    <system:String x:Key="S.Limit.Desc" xml:space="preserve">Counted in dollars from the app's own spending log: Diem and spending outside the app are not seen. An empty field means no limit. A limit is a threshold on what is already spent, so the last request may go past it by its own price.</system:String>
+    <system:String x:Key="S.Limit.Edit" xml:space="preserve">Change limits</system:String>
+    <system:String x:Key="S.Limit.KeyRow" xml:space="preserve">{0} · {1}</system:String>
+    <system:String x:Key="S.Limit.Kind.KeyDay" xml:space="preserve">the key's daily limit</system:String>
+    <system:String x:Key="S.Limit.Kind.KeyMonth" xml:space="preserve">the key's monthly limit</system:String>
+    <system:String x:Key="S.Limit.Kind.ProfileDay" xml:space="preserve">the daily limit for all keys</system:String>
+    <system:String x:Key="S.Limit.Kind.ProfileMonth" xml:space="preserve">the monthly limit for all keys</system:String>
+    <system:String x:Key="S.Limit.Kind.Run" xml:space="preserve">the scheduled run's cost cap</system:String>
+    <system:String x:Key="S.Limit.Kind.Turn" xml:space="preserve">the turn ceiling</system:String>
+    <system:String x:Key="S.Limit.None" xml:space="preserve">none</system:String>
+    <system:String x:Key="S.Limit.PerDay" xml:space="preserve">Per day</system:String>
+    <system:String x:Key="S.Limit.PerMonth" xml:space="preserve">Per month</system:String>
+    <system:String x:Key="S.Limit.PeriodAsk" xml:space="preserve">Reached {0}: {1}, spent {2}. Continue this turn? Until it ends, requests go through without asking.</system:String>
+    <system:String x:Key="S.Limit.PeriodTitle" xml:space="preserve">Spending limit reached</system:String>
+    <system:String x:Key="S.Limit.Profile" xml:space="preserve">All keys</system:String>
+    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Reached {0} ({1}, spent {2}). The request was not sent; retrying will not help — limits are changed on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Limit.Stop" xml:space="preserve">Stop</system:String>
+    <system:String x:Key="S.Limit.Title" xml:space="preserve">Spending limits</system:String>
+    <system:String x:Key="S.Limit.TurnAsk" xml:space="preserve">This turn has spent {0}, past the {1} ceiling. Continue? The next question comes after another {1}.</system:String>
+    <system:String x:Key="S.Limit.TurnHint" xml:space="preserve">When a turn, agents included, reaches this sum, it asks whether to go on.</system:String>
+    <system:String x:Key="S.Limit.TurnLabel" xml:space="preserve">Per-turn ceiling</system:String>
+    <system:String x:Key="S.Limit.TurnStopped" xml:space="preserve">Turn stopped at {0} ({1}); spent {2}.</system:String>
+    <system:String x:Key="S.Limit.TurnTitle" xml:space="preserve">This turn is getting expensive</system:String>
+    <system:String x:Key="S.Limit.Warn" xml:space="preserve">Spent {1} of {2}: approaching {0}.</system:String>
+    <system:String x:Key="S.Limit.WarnHint" xml:space="preserve">Share of a daily or monthly limit after which a warning appears, once per period.</system:String>
+    <system:String x:Key="S.Limit.WarnLabel" xml:space="preserve">Warn at</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Profile "{0}". Enter the password to continue.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">The program is locked</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">The reply is ready. The program is locked.</system:String>
@@ -1324,8 +1351,10 @@
     <system:String x:Key="S.Rollback.Undo.Invalid" xml:space="preserve">the snapshot step is damaged or incomplete - skipped</system:String>
     <system:String x:Key="S.Rollback.Undo.Wifi" xml:space="preserve">Restore Wi-Fi profile "{0}"</system:String>
     <system:String x:Key="S.Schedule.AddHealth" xml:space="preserve">PC health check</system:String>
+    <system:String x:Key="S.Schedule.BadCap" xml:space="preserve">The cap is a dollar amount, like 0.50.</system:String>
     <system:String x:Key="S.Schedule.BadHours" xml:space="preserve">The interval is 1 to 168 hours.</system:String>
     <system:String x:Key="S.Schedule.BadTime" xml:space="preserve">Enter the time as HH:mm, such as 09:30.</system:String>
+    <system:String x:Key="S.Schedule.CapLabel" xml:space="preserve">Cost cap per run</system:String>
     <system:String x:Key="S.Schedule.ChatTitle" xml:space="preserve">{0} · {1}</system:String>
     <system:String x:Key="S.Schedule.Create" xml:space="preserve">New task</system:String>
     <system:String x:Key="S.Schedule.Day.Friday" xml:space="preserve">Fri</system:String>

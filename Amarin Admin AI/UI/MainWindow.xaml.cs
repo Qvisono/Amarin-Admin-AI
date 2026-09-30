@@ -236,6 +236,7 @@ namespace Amarin.UI
             _services.Confirmations.Changed += OnConfirmationChanged;
             _services.PlanReviews.Changed += OnPlanReviewChanged;
             WireAutoLock();
+            WireSpendLimits();
 
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();

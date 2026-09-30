@@ -137,8 +137,10 @@ namespace Amarin.UI
                 // Цель чата (C10) — на весь ход: её видят шлюз, агент, исполнитель PowerShell и аудит.
                 // «Только чтение» у этого чата (D9) — тем же ambient, что у прогонов по расписанию:
                 // его видят и шлюз чата, и агенты, запущенные из хода.
+                // Счётчик лимитов (E1) — тоже на весь ход: потолок хода считается вместе с агентами.
                 using (ExecutionTarget.Push(_services?.Machines.Find(session.TargetMachineId)))
                 using (session.ReadOnly ? ToolGate.ForceReadOnly() : null)
+                using (SpendScope.Push(new SpendMeter()))
                 {
                     await work(session, router, turn.Cancellation.Token);
                 }

@@ -224,6 +224,9 @@ public sealed class AppSettings
     /// </remarks>
     public bool SpendScopeAllKeys { get; set; } = true;
 
+    /// <summary>Лимиты трат (E1). Заводское — всё выключено.</summary>
+    public SpendLimits SpendLimits { get; set; } = new();
+
     /// <summary>
     /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
     /// </summary>

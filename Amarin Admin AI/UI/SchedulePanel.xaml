@@ -219,6 +219,22 @@
                     <TextBlock Text="{DynamicResource S.Schedule.HoursUnit}" FontSize="12" VerticalAlignment="Center"
                                Foreground="{DynamicResource Text.Body}" Margin="8,0,0,0"/>
                 </StackPanel>
+                <!-- Потолок цены прогона (E1): дойдя до него, прогон обрывается без вопроса. -->
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock Text="{DynamicResource S.Schedule.CapLabel}" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Text.Body}" Margin="0,0,8,0"/>
+                    <TextBlock Text="$" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Text.Dim}" Margin="0,0,4,0"/>
+                    <Border Style="{StaticResource FieldFrame}" Height="28" Width="70">
+                        <Grid>
+                            <TextBox x:Name="CapBox" Style="{StaticResource FieldTextBox}" MaxLength="8"
+                                     HorizontalContentAlignment="Center"
+                                     AutomationProperties.Name="{DynamicResource S.Schedule.CapLabel}"/>
+                            <TextBlock x:Name="CapPlaceholder" Style="{StaticResource Placeholder}" HorizontalAlignment="Center"
+                                       Text="{DynamicResource S.Limit.None}"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
                 <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Schedule.ReadOnlyHint}"/>
             </StackPanel>
 

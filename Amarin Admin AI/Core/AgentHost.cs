@@ -357,6 +357,7 @@ internal sealed class AgentHost : IAgentHost
             Keys = source.Keys,
             Binding = source.Keys?.CredentialFor(model, keyId),
             SpendSink = source.SpendSink,
+            SpendGate = source.SpendGate,
             Audit = source.Audit,
             BaseUrl = source.BaseUrl,
             Model = model,
