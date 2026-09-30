@@ -370,6 +370,11 @@
     <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">поток интерфейса</system:String>
     <system:String x:Key="S.Crash.WindowTitle" xml:space="preserve">Amarin Admin AI - сбой</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Журнал аудита</system:String>
+    <system:String x:Key="S.DataSafety.KeptAt" xml:space="preserve">Повреждённый файл сохранён: {0}</system:String>
+    <system:String x:Key="S.DataSafety.Reset" xml:space="preserve">Файл {0} оказался повреждён, а запасной копии не было или она тоже повреждена — используются заводские значения.</system:String>
+    <system:String x:Key="S.DataSafety.Restored" xml:space="preserve">Файл {0} оказался повреждён — восстановлен из запасной копии, сделанной при последнем удачном сохранении.</system:String>
+    <system:String x:Key="S.DataSafety.Show" xml:space="preserve">Показать файл</system:String>
+    <system:String x:Key="S.DataSafety.Title" xml:space="preserve">Файл данных был повреждён</system:String>
     <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">Агент завершил работу - готовлю отчёт</system:String>
     <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">отменено</system:String>
     <system:String x:Key="S.Engine.StartingAgent" xml:space="preserve">Запускаю агента</system:String>

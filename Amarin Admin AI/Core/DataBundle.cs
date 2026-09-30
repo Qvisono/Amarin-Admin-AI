@@ -256,6 +256,14 @@ public static class DataBundle
         // уходит в None: архив человек отправляет в облако и пересылает, и цена ошибки в
         // классификаторе — уехавший ключ. Блоб DPAPI на чужой машине всё равно не расшифруется,
         // но и попадать туда ему незачем.
+        // Запасные и отложенные копии (keys.json.bak, settings.json.broken-…) — тоже мимо: копия
+        // ключей — это ключи, а копии настроек на другой машине не нужны.
+        if (name.EndsWith(".bak", StringComparison.Ordinal) ||
+            name.Contains(".broken-", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         if (name == "keys.json" ||
             relative == "usage" ||
             relative.StartsWith("usage/", StringComparison.Ordinal) ||

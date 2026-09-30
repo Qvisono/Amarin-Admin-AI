@@ -41,6 +41,11 @@ public sealed class AppSettingsStore
         try
         {
             var text = ReadCached();
+            if (text is null)
+            {
+                return AppSettings.CreateDefault();
+            }
+
             var settings = JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options)
                            ?? AppSettings.CreateDefault();
             var changed = MigrateLegacyChatPrompts(settings);
@@ -73,7 +78,16 @@ public sealed class AppSettingsStore
         }
     }
 
-    private string ReadCached()
+    /// <summary>
+    /// Текст файла, который разбирается, или <c>null</c> (файла нет, он не открылся или
+    /// повреждён вместе с копией).
+    /// </summary>
+    /// <remarks>
+    /// Повреждённый файл <see cref="GuardedJsonFile"/> откладывает в сторону и поднимает
+    /// запасную копию: иначе заводские значения, прочитанные вместо него, первым же сохранением
+    /// затёрли бы файл человека.
+    /// </remarks>
+    private string? ReadCached()
     {
         var stamp = File.GetLastWriteTimeUtc(_file);
         lock (_gate)
@@ -84,15 +98,23 @@ public sealed class AppSettingsStore
             }
         }
 
-        var text = File.ReadAllText(_file);
+        GuardedJsonFile.Read(_file, IsReadable, out var text);
+        if (text is null)
+        {
+            return null;
+        }
+
         lock (_gate)
         {
             _cachedText = text;
-            _cachedStamp = stamp;
+            _cachedStamp = File.Exists(_file) ? File.GetLastWriteTimeUtc(_file) : stamp;
         }
 
         return text;
     }
+
+    internal static bool IsReadable(string text) =>
+        JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options) is not null;
 
     /// <summary>Former shipped personality texts. Matching AppData is cleared so the user writes their own.</summary>
     internal static readonly string[] LegacyPersonalityPrompts =
@@ -259,7 +281,7 @@ public sealed class AppSettingsStore
     {
         ArgumentNullException.ThrowIfNull(settings);
         var json = JsonSerializer.Serialize(settings, AppJson.Options) + Environment.NewLine;
-        AppDataFile.WriteAtomic(_file, json);
+        GuardedJsonFile.Write(_file, json);
 
         lock (_gate)
         {

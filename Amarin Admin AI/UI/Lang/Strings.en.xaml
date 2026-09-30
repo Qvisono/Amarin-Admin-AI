@@ -370,6 +370,11 @@
     <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">UI thread</system:String>
     <system:String x:Key="S.Crash.WindowTitle" xml:space="preserve">Amarin Admin AI - crash</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Audit log</system:String>
+    <system:String x:Key="S.DataSafety.KeptAt" xml:space="preserve">The damaged file was kept at {0}</system:String>
+    <system:String x:Key="S.DataSafety.Reset" xml:space="preserve">{0} was damaged, and its backup was missing or damaged too, so the defaults are used.</system:String>
+    <system:String x:Key="S.DataSafety.Restored" xml:space="preserve">{0} was damaged and has been restored from the backup made at the last successful save.</system:String>
+    <system:String x:Key="S.DataSafety.Show" xml:space="preserve">Show the file</system:String>
+    <system:String x:Key="S.DataSafety.Title" xml:space="preserve">A data file was damaged</system:String>
     <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">The agent has finished - preparing the report</system:String>
     <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">cancelled</system:String>
     <system:String x:Key="S.Engine.StartingAgent" xml:space="preserve">Starting the agent</system:String>

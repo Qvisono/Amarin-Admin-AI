@@ -114,8 +114,14 @@ public static class ProfileDataWiper
         !string.IsNullOrWhiteSpace(typed) &&
         string.Equals(typed.Trim(), word, StringComparison.CurrentCultureIgnoreCase);
 
+    /// <summary>
+    /// Недописанные «.tmp», запасные «.bak» и отложенные повреждённые «.broken-…» тех же файлов:
+    /// в копии настроек и ключей — то же, что человек велел удалить.
+    /// </summary>
     private static bool IsLeftoverOf(string name) =>
-        name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase) &&
+        (name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase) ||
+         name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase) ||
+         name.Contains(".broken-", StringComparison.OrdinalIgnoreCase)) &&
         DefaultProfileFiles.Any(file => name.StartsWith(file + ".", StringComparison.OrdinalIgnoreCase));
 
     private static void DeleteFile(string root, string name, List<string> failed)

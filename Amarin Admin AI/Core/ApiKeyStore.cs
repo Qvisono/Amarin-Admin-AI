@@ -222,10 +222,12 @@ internal sealed class ApiKeyStore
     {
         try
         {
-            _file = File.Exists(_path)
-                ? JsonSerializer.Deserialize<ApiKeyFile>(File.ReadAllText(_path), AppJson.Options)
-                  ?? new ApiKeyFile()
-                : new ApiKeyFile();
+            // Проверяется только то, что файл разбирается: секреты под DPAPI здесь не
+            // расшифровываются, и копия .bak остаётся такой же зашифрованной, как сам файл.
+            GuardedJsonFile.Read(_path, IsReadable, out var text);
+            _file = text is null
+                ? new ApiKeyFile()
+                : JsonSerializer.Deserialize<ApiKeyFile>(text, AppJson.Options) ?? new ApiKeyFile();
             _file.Keys ??= [];
             _file.EnvironmentLabels ??= [];
             _file.HiddenEnvironmentKeys ??= [];
@@ -245,13 +247,16 @@ internal sealed class ApiKeyStore
     {
         try
         {
-            AppDataFile.WriteAtomic(_path, JsonSerializer.Serialize(_file, AppJson.Options));
+            GuardedJsonFile.Write(_path, JsonSerializer.Serialize(_file, AppJson.Options));
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or NotSupportedException)
         {
         }
     }
+
+    internal static bool IsReadable(string text) =>
+        JsonSerializer.Deserialize<ApiKeyFile>(text, AppJson.Options) is not null;
 
     /// <summary>Строки для списка: ключи из окружения первыми, остальные в порядке добавления.</summary>
     public IReadOnlyList<ApiKeyEntry> List()

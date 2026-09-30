@@ -37,10 +37,12 @@ public sealed class ProfileStore
         ProfileRegistry? registry = null;
         try
         {
-            if (File.Exists(_file))
+            // Повреждённый реестр откладывается, и встаёт его копия: без неё пропали бы имена и
+            // пароли всех профилей, а их чаты осталось бы только искать по папкам.
+            GuardedJsonFile.Read(_file, IsReadable, out var text);
+            if (text is not null)
             {
-                registry = JsonSerializer.Deserialize<ProfileRegistry>(
-                    File.ReadAllText(_file), AppJson.Options);
+                registry = JsonSerializer.Deserialize<ProfileRegistry>(text, AppJson.Options);
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
@@ -72,8 +74,11 @@ public sealed class ProfileStore
     {
         ArgumentNullException.ThrowIfNull(registry);
         Directory.CreateDirectory(_root);
-        AppDataFile.WriteAtomic(_file, JsonSerializer.Serialize(registry, AppJson.Options));
+        GuardedJsonFile.Write(_file, JsonSerializer.Serialize(registry, AppJson.Options));
     }
+
+    internal static bool IsReadable(string text) =>
+        JsonSerializer.Deserialize<ProfileRegistry>(text, AppJson.Options) is not null;
 
     /// <summary>
     /// Профиль, под которым работают сейчас. Никогда не бросает и никогда не отдаёт <c>null</c>.

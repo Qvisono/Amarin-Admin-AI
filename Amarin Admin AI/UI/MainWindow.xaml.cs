@@ -314,6 +314,11 @@ namespace Amarin.UI
             {
                 ShowWipeReport(wiped);
             }
+
+            // Повреждённые настройки, профили или ключи, найденные при чтении до окна.
+            Dispatcher.BeginInvoke(
+                new Action(() => Detached.Run(ShowDataFileIncidentsAsync(), "data_file_incidents")),
+                DispatcherPriority.Background);
         }
 
         /// <remarks>
