@@ -75,6 +75,31 @@ public sealed class ChatSession
     /// <summary>Удалённая машина, на которой исполняются команды этого чата (C10); null — этот ПК.</summary>
     public string? TargetMachineId { get; set; }
 
+    /// <summary>Чат в режиме «только чтение» (команда /readonly, D9): его ходы ничего не меняют.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// Сжатие контекста (D10): сколько первых сообщений истории модели заменены сводкой
+    /// <see cref="CompactSummary"/>. Ноль — не сжимали. Сами сообщения остаются на месте и на
+    /// экране — меняется только то, что уходит модели (<see cref="ContextCompaction"/>).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int CompactedThrough { get; set; }
+
+    /// <summary>Сводка сжатой части переписки; null — не сжимали.</summary>
+    public string? CompactSummary { get; set; }
+
+    /// <summary>
+    /// Отпечаток сжатой части истории. Правка, удаление или другой вариант ответа в этой части
+    /// меняют отпечаток — и сводка перестаёт применяться: лучше отправить всё, чем пересказ
+    /// разговора, которого на экране уже нет.
+    /// </summary>
+    public string? CompactFingerprint { get; set; }
+
+    /// <summary>Последнее сообщение ленты, которое сводка покрывает, — под ним стоит отметка.</summary>
+    public string? CompactedAfterMessageId { get; set; }
+
     /// <summary>
     /// Context the model read on the last request, as Venice counted it. Kept with
     /// <see cref="LastPromptTokensApiIndex"/> so the gauge can add an estimate for whatever was
@@ -213,6 +238,12 @@ public sealed class ChatDisplayMessage
     /// проверку: человеку важно, сколько стоила защита, а не сколько раз она срабатывала.
     /// </remarks>
     public VeniceCost? GuardCost { get; set; }
+
+    /// <summary>
+    /// Цена сжатия контекста (D10), приписанная ответу, после которого сжимали. Как у сводки —
+    /// своим клиентом, поэтому прибавляется к итогу, а в разбивке стоит своей строкой.
+    /// </summary>
+    public VeniceCost? CompactCost { get; set; }
 
     public AssistantStatus Status { get; set; }
 
@@ -353,6 +384,13 @@ public sealed class ToolCallRecord
     /// cost money (drawing a picture, scraping a page); null everywhere else.
     /// </summary>
     public VeniceCost? Cost { get; set; }
+
+    /// <summary>
+    /// Вывод инструмента длиннее того, что уходит модели (<see cref="ChatToolPreview.FormatForApi"/>):
+    /// модель видела его обрезанным (D10). У вызовов прежних версий — false: этого не знали.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool TruncatedForModel { get; set; }
 
     public AgentRunRecord? NestedAgent { get; set; }
 }

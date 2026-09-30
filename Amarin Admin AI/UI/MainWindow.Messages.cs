@@ -296,12 +296,12 @@ namespace Amarin.UI
             var message = host.Message;
             if (message.Role == "user")
             {
-                FillHost(host, ChatMessageViews.CreateUser(this, message, host.Actions, ActiveDateFormat).Root);
+                FillHost(host, WithCompactionMark(message, ChatMessageViews.CreateUser(this, message, host.Actions, ActiveDateFormat).Root));
                 return;
             }
 
             var view = ChatMessageViews.CreateAssistant(this, message, host.Actions, ActiveDateFormat);
-            FillHost(host, view.Root);
+            FillHost(host, WithCompactionMark(message, view.Root));
 
             // Вернулись в чат, который ещё отвечает, — подхватываем его вьюшку заново.
             var live = FindTurn(_session.Id);

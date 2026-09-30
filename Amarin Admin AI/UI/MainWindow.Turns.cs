@@ -135,7 +135,10 @@ namespace Amarin.UI
             try
             {
                 // Цель чата (C10) — на весь ход: её видят шлюз, агент, исполнитель PowerShell и аудит.
+                // «Только чтение» у этого чата (D9) — тем же ambient, что у прогонов по расписанию:
+                // его видят и шлюз чата, и агенты, запущенные из хода.
                 using (ExecutionTarget.Push(_services?.Machines.Find(session.TargetMachineId)))
+                using (session.ReadOnly ? ToolGate.ForceReadOnly() : null)
                 {
                     await work(session, router, turn.Cancellation.Token);
                 }
@@ -279,10 +282,12 @@ namespace Amarin.UI
                 ? _services.Chat.AutoCandidateModelIds().Select(_services.Models.Find).ToList()
                 : [_services.Models.Find(modelId)];
 
-            _context?.Show(ContextGauge.Measure(
+            var usage = ContextGauge.Measure(
                 _session,
                 _services.Chat.CurrentSystemPrompt(),
-                candidates));
+                candidates);
+            _context?.Show(usage);
+            UpdateCompactHint(usage);
         }
 
         /// <summary>Кнопки композера по состоянию открытого чата.</summary>

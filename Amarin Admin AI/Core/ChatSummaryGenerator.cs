@@ -62,6 +62,27 @@ internal sealed class ChatSummaryGenerator
     }
 
     /// <summary>
+    /// Пересказ старой части переписки для сжатия контекста (D10). Null в тексте — модель
+    /// ничего не вернула: сжатие не применяется.
+    /// </summary>
+    public async Task<ChatSummaryDraft> CompactAsync(string transcript, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(transcript))
+        {
+            return new ChatSummaryDraft(null, null);
+        }
+
+        using var charge = VeniceClient.ChargeAs(VeniceSku.ContextCompact);
+        var answer = await AskAsync(
+                ChatSummary.CompactSystemPrompt(ChatSummary.LanguageName()),
+                transcript,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var text = answer.Text?.Trim();
+        return new ChatSummaryDraft(string.IsNullOrWhiteSpace(text) ? null : text, answer.Cost);
+    }
+
+    /// <summary>
     /// Ищет среди сводок то, о чём спросили. Чаты без сводки в запрос не попадают — искать
     /// в них нечего.
     /// </summary>

@@ -148,6 +148,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
         call.ResultPreview = ChatToolPreview.Summarize(result);
         call.ResultText = ChatToolPreview.ForJournal(result);
+        call.TruncatedForModel = ChatToolPreview.IsTruncatedForApi(result);
         call.SavedFiles = [.. result.GetFiles()];
 
         // Measured from the record, not a stopwatch: the agent reports the result on whichever

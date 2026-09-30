@@ -44,9 +44,16 @@ internal static class ChatToolPreview
             : output[..maxChars] + "\n… [обрезано для журнала]";
     }
 
+    /// <summary>Сколько знаков вывода инструмента уходит модели.</summary>
+    internal const int ApiLimit = 12_000;
+
+    /// <summary>Модель увидит этот вывод обрезанным (D10): лента помечает такой вызов.</summary>
+    public static bool IsTruncatedForApi(ToolResult result) =>
+        (result.Success ? result.Output?.Length ?? 0 : (result.Output?.Length ?? 0) + "ERROR: ".Length) > ApiLimit;
+
     public static string FormatForApi(ToolResult result)
     {
-        const int maxChars = 12_000;
+        const int maxChars = ApiLimit;
         var output = result.Success ? result.Output : $"ERROR: {result.Output}";
         return output.Length <= maxChars
             ? output

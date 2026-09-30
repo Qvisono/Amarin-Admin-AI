@@ -359,6 +359,28 @@
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Сброс</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>
 
+    <system:String x:Key="S.Command.Agent" xml:space="preserve">Поручить задачу агенту.</system:String>
+    <system:String x:Key="S.Command.Arg.Format" xml:space="preserve">md | html | pdf | print | json</system:String>
+    <system:String x:Key="S.Command.Arg.Name" xml:space="preserve">[название]</system:String>
+    <system:String x:Key="S.Command.Arg.Task" xml:space="preserve">[lite | fast | heavy] задача</system:String>
+    <system:String x:Key="S.Command.Arg.Text" xml:space="preserve">[текст]</system:String>
+    <system:String x:Key="S.Command.Compact" xml:space="preserve">Сжать старую часть переписки в сводку, чтобы освободить контекст.</system:String>
+    <system:String x:Key="S.Command.Export" xml:space="preserve">Выгрузить чат в выбранный формат.</system:String>
+    <system:String x:Key="S.Command.Instr" xml:space="preserve">Открыть инструкцию по названию.</system:String>
+    <system:String x:Key="S.Command.Model" xml:space="preserve">Выбрать модель по названию; без названия — открыть список.</system:String>
+    <system:String x:Key="S.Command.ModelSet" xml:space="preserve">Модель чата: {0}</system:String>
+    <system:String x:Key="S.Command.New" xml:space="preserve">Новый чат; текст после команды ляжет в поле.</system:String>
+    <system:String x:Key="S.Command.NoInstruction" xml:space="preserve">Инструкция «{0}» не найдена.</system:String>
+    <system:String x:Key="S.Command.NoModel" xml:space="preserve">Модель «{0}» не найдена в загруженных каталогах — выберите в списке.</system:String>
+    <system:String x:Key="S.Command.NoRecipe" xml:space="preserve">Рецепт «{0}» не найден.</system:String>
+    <system:String x:Key="S.Command.ReadOnly" xml:space="preserve">Включить или выключить «только чтение» для этого чата.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyBusy" xml:space="preserve">Режим меняется между ответами — дождитесь конца или остановите ответ.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyChip" xml:space="preserve">Только чтение</system:String>
+    <system:String x:Key="S.Command.ReadOnlyChipTip" xml:space="preserve">Этот чат ничего не меняет на ПК. Щелчок — выключить.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyOff" xml:space="preserve">Режим «только чтение» для чата выключен.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyOn" xml:space="preserve">Чат в режиме «только чтение»: ничего на ПК меняться не будет.</system:String>
+    <system:String x:Key="S.Command.Recipe" xml:space="preserve">Запустить рецепт по названию.</system:String>
+    <system:String x:Key="S.Command.SuggestTitle" xml:space="preserve">Команды</system:String>
     <system:String x:Key="S.Common.Add" xml:space="preserve">Добавить</system:String>
     <system:String x:Key="S.Common.AllFiles" xml:space="preserve">Все файлы</system:String>
     <system:String x:Key="S.Common.Apply" xml:space="preserve">Применить</system:String>
@@ -382,6 +404,19 @@
     <system:String x:Key="S.Common.Save" xml:space="preserve">Сохранить</system:String>
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Да</system:String>
 
+    <system:String x:Key="S.Compact.Busy" xml:space="preserve">Сжать можно, когда чат не отвечает.</system:String>
+    <system:String x:Key="S.Compact.Done" xml:space="preserve">Готово: старая часть уходит модели сводкой.</system:String>
+    <system:String x:Key="S.Compact.Failed" xml:space="preserve">Сжать не удалось — переписка уходит целиком, как раньше.</system:String>
+    <system:String x:Key="S.Compact.Hint" xml:space="preserve">Сжать</system:String>
+    <system:String x:Key="S.Compact.HintTip" xml:space="preserve">Окно модели почти заполнено. Сжать старую часть переписки в сводку?</system:String>
+    <system:String x:Key="S.Compact.Mark" xml:space="preserve">Выше этой черты модель видит только сводку</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">Сообщения остаются на экране, но модели уходит их пересказ. Вернуть — в меню кольца контекста.</system:String>
+    <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Сжать контекст</system:String>
+    <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Сжимать нечего: переписка короткая или уже сжата.</system:String>
+    <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">Провайдер отказал: контекст превышен. Сжать старую часть переписки в сводку и повторить?</system:String>
+    <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">Переписка не помещается в модель</system:String>
+    <system:String x:Key="S.Compact.Undo" xml:space="preserve">Отправлять переписку целиком</system:String>
+    <system:String x:Key="S.Compact.Working" xml:space="preserve">Сжимаю старую часть переписки…</system:String>
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Спросите что-нибудь...</system:String>
     <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Ваш ответ на цитату...</system:String>
     <system:String x:Key="S.Confirm.Allow" xml:space="preserve">Разрешить…</system:String>
@@ -396,6 +431,7 @@
     <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">Что изменится — пробный прогон</system:String>
     <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">Пробный прогон не нашёл, что менять: под условия команды сейчас ничего не подходит.</system:String>
     <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Пробный прогон с -WhatIf…</system:String>
+    <system:String x:Key="S.Cost.Compact" xml:space="preserve">Сжатие контекста</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">домен приложения</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">отмена</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>
@@ -1533,10 +1569,12 @@
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;Файла больше нет на месте</system:String>
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
 
+    <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Вывод длинный: модель видела только его начало. Целиком — в журнале.</system:String>
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">Команда /agent не принимает цитаты.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>
     <system:String x:Key="S.Turn.CutByTokens" xml:space="preserve">Ответ обрезан лимитом токенов ({0}). Повторите запрос или упростите вопрос.</system:String>
+    <system:String x:Key="S.Turn.ErrorTitle" xml:space="preserve">Ответ не получен</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Нет ключа API — добавьте ключ Venice или OpenRouter на странице Key &amp; Info</system:String>
 

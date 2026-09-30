@@ -90,6 +90,19 @@ public partial class SettingsAutomationPage : UserControl
     /// <summary>Открывает вкладку «Расписание».</summary>
     internal void ShowScheduleTab() => ScheduleTab.IsChecked = true;
 
+    /// <summary>Форма запуска рецепта — для команды <c>/recipe</c> (D9). False — такого нет.</summary>
+    internal bool Run(string id)
+    {
+        if (_services?.Recipes.Find(id) is not { } recipe)
+        {
+            return false;
+        }
+
+        RecipesTab.IsChecked = true;
+        OpenRun(recipe);
+        return true;
+    }
+
     /// <summary>Открывает редактор рецепта — после «Сохранить как рецепт» в журнале.</summary>
     internal void Edit(string id)
     {

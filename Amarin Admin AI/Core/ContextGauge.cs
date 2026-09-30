@@ -79,7 +79,10 @@ internal static class ContextGauge
         if (anchor <= 0)
         {
             // Nothing measured yet: the whole conversation is a guess, system prompt included.
-            var estimated = EstimateTokens(session.ApiMessages, 0) + EstimateTokens(systemPrompt);
+            // A compacted chat sends its summary instead of the old part (D10) — weigh that.
+            var compacted = ContextCompaction.IsActive(session);
+            var estimated = EstimateTokens(ContextCompaction.Tail(session), 0) + EstimateTokens(systemPrompt) +
+                            (compacted ? EstimateTokens(session.CompactSummary) : 0);
             return new ContextUsage(estimated, Math.Max(max, 0), true, floor);
         }
 

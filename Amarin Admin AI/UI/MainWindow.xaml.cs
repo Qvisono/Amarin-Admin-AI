@@ -82,6 +82,7 @@ namespace Amarin.UI
             WireFind();
             WireWorkReport();
             WireShortcuts();
+            WireCommands();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -2061,7 +2062,7 @@ namespace Amarin.UI
         {
             // Раньше отправки: пока открыта подсказка «@», Enter выбирает цитату, а не шлёт
             // недописанное сообщение.
-            if (TryHandleQuoteSuggestKey(e))
+            if (TryHandleQuoteSuggestKey(e) || TryHandleCommandSuggestKey(e))
             {
                 e.Handled = true;
                 return;
@@ -2118,6 +2119,15 @@ namespace Amarin.UI
                     FocusMessageInput();
                 }
 
+                return;
+            }
+
+            // Команды окна (D9) — до проверки ключа: новый чат или выгрузка денег не стоят.
+            if (ChatCommands.TryParseLocal(text) is { } local)
+            {
+                MessageTextBox.Clear();
+                CloseCommandSuggest();
+                RunLocalCommand(local);
                 return;
             }
 
@@ -3518,7 +3528,13 @@ namespace Amarin.UI
 
             if (IsVisibleTurn(turn))
             {
-                MessageBox.Show(this, message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                // Своим окном, а не MessageBox (см. памятку). Переполненный контекст — не авария,
+                // а повод сжать переписку (D10): так и предлагаем.
+                Detached.Run(
+                    ContextCompaction.IsContextOverflow(message)
+                        ? OfferCompactionAsync(message)
+                        : ShowNoticeAsync(Loc.Get("S.Turn.ErrorTitle"), message, Loc.Get("S.Common.Close"), null, NoticeTone.Danger),
+                    "turn_error");
                 return;
             }
 

@@ -8,6 +8,8 @@ namespace Amarin.UI
     {
         private void RefreshTargetPicker()
         {
+            // Та же точка «открыли другой чат» — и для отметки «только чтение» (D9).
+            UpdateReadOnlyChip();
             if (_services is null)
             {
                 return;

@@ -128,6 +128,12 @@ internal static class CostBreakdownTooltip
             AddRow(rows, ref line, Loc.Get("S.Cost.Summary"), message.SummaryCost, bold: false);
         }
 
+        // Сжатие контекста (D10) — тоже своими деньгами, прибавленными к итогу.
+        if (message.CompactCost is { HasData: true })
+        {
+            AddRow(rows, ref line, Loc.Get("S.Cost.Compact"), message.CompactCost, bold: false);
+        }
+
         // With a single line there is nothing to add up, and a total under it would just repeat
         // the row above.
         if (line > 1)

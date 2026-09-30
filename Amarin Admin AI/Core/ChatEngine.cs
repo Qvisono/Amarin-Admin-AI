@@ -1443,6 +1443,7 @@ internal sealed partial class ChatEngine
                 call.Status = result.Success ? ToolCallStatus.Done : ToolCallStatus.Failed;
                 call.ResultPreview = ChatToolPreview.Summarize(result);
                 call.ResultText = ChatToolPreview.ForJournal(result);
+                call.TruncatedForModel = ChatToolPreview.IsTruncatedForApi(result);
                 call.SavedFiles = [.. result.GetFiles()];
                 call.Instruction = result.Instruction;
                 call.Duration = callClock.Elapsed;
@@ -2122,6 +2123,21 @@ internal sealed partial class ChatEngine
     {
         var messages = new List<ChatMessage>();
         var system = BuildSystemPrompt(currentModelId, instructions);
+
+        // Сжатый чат (D10): старая часть уходит сводкой в системном промпте, а не отдельным
+        // сообщением — два сообщения user подряд или выдуманный ответ ассистента принимают
+        // не все провайдеры.
+        IReadOnlyList<ChatMessage> history;
+        lock (session.Gate)
+        {
+            if (ContextCompaction.IsActive(session))
+            {
+                system = (system + "\n\n" + ContextCompaction.PromptBlock(session.CompactSummary!)).Trim();
+            }
+
+            history = ContextCompaction.Tail(session);
+        }
+
         if (!string.IsNullOrWhiteSpace(system))
         {
             messages.Add(new ChatMessage
@@ -2131,7 +2147,7 @@ internal sealed partial class ChatEngine
             });
         }
 
-        messages.AddRange(ChatMessageCloner.CloneAll(session.ApiMessages));
+        messages.AddRange(ChatMessageCloner.CloneAll(history));
         return messages;
     }
 
@@ -2174,6 +2190,10 @@ internal sealed partial class ChatEngine
 
         parts.Add(tech);
         parts.Add(FormulaRules);
+
+        // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать
+        // нужную, а сохранённые техпромпты не отстают, потому что строка дописывается здесь.
+        parts.Add(ChatCommands.PromptBlock());
 
         // Перед блоком моделей, а не после: тот меняется с моделью хода (под «Авто» — хоть каждый
         // ход), а оглавление инструкций — только когда их правят. Неизменная голова промпта

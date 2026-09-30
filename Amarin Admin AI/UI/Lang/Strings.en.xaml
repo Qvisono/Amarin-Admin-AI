@@ -359,6 +359,28 @@
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Back to the theme colour</system:String>
 
+    <system:String x:Key="S.Command.Agent" xml:space="preserve">Hand a task to the agent.</system:String>
+    <system:String x:Key="S.Command.Arg.Format" xml:space="preserve">md | html | pdf | print | json</system:String>
+    <system:String x:Key="S.Command.Arg.Name" xml:space="preserve">[name]</system:String>
+    <system:String x:Key="S.Command.Arg.Task" xml:space="preserve">[lite | fast | heavy] task</system:String>
+    <system:String x:Key="S.Command.Arg.Text" xml:space="preserve">[text]</system:String>
+    <system:String x:Key="S.Command.Compact" xml:space="preserve">Compress the older part of the conversation into a summary to free the context.</system:String>
+    <system:String x:Key="S.Command.Export" xml:space="preserve">Export the chat in the chosen format.</system:String>
+    <system:String x:Key="S.Command.Instr" xml:space="preserve">Open an instruction by name.</system:String>
+    <system:String x:Key="S.Command.Model" xml:space="preserve">Pick a model by name; without a name, open the list.</system:String>
+    <system:String x:Key="S.Command.ModelSet" xml:space="preserve">Chat model: {0}</system:String>
+    <system:String x:Key="S.Command.New" xml:space="preserve">New chat; text after the command goes into the field.</system:String>
+    <system:String x:Key="S.Command.NoInstruction" xml:space="preserve">No instruction “{0}”.</system:String>
+    <system:String x:Key="S.Command.NoModel" xml:space="preserve">No model “{0}” in the loaded catalogs — pick one from the list.</system:String>
+    <system:String x:Key="S.Command.NoRecipe" xml:space="preserve">No recipe “{0}”.</system:String>
+    <system:String x:Key="S.Command.ReadOnly" xml:space="preserve">Turn read-only on or off for this chat.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyBusy" xml:space="preserve">The mode changes between answers — wait for the end or stop the answer.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyChip" xml:space="preserve">Read-only</system:String>
+    <system:String x:Key="S.Command.ReadOnlyChipTip" xml:space="preserve">This chat changes nothing on the PC. Click to turn off.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyOff" xml:space="preserve">Read-only is off for this chat.</system:String>
+    <system:String x:Key="S.Command.ReadOnlyOn" xml:space="preserve">The chat is read-only: nothing on the PC will be changed.</system:String>
+    <system:String x:Key="S.Command.Recipe" xml:space="preserve">Run a recipe by name.</system:String>
+    <system:String x:Key="S.Command.SuggestTitle" xml:space="preserve">Commands</system:String>
     <system:String x:Key="S.Common.Add" xml:space="preserve">Add</system:String>
     <system:String x:Key="S.Common.AllFiles" xml:space="preserve">All files</system:String>
     <system:String x:Key="S.Common.Apply" xml:space="preserve">Apply</system:String>
@@ -382,6 +404,19 @@
     <system:String x:Key="S.Common.Save" xml:space="preserve">Save</system:String>
     <system:String x:Key="S.Common.Yes" xml:space="preserve">Yes</system:String>
 
+    <system:String x:Key="S.Compact.Busy" xml:space="preserve">You can compact when the chat is not answering.</system:String>
+    <system:String x:Key="S.Compact.Done" xml:space="preserve">Done: the older part now goes to the model as a summary.</system:String>
+    <system:String x:Key="S.Compact.Failed" xml:space="preserve">Could not compact — the conversation is sent whole, as before.</system:String>
+    <system:String x:Key="S.Compact.Hint" xml:space="preserve">Compact</system:String>
+    <system:String x:Key="S.Compact.HintTip" xml:space="preserve">The model's window is almost full. Compress the older part of the conversation into a summary?</system:String>
+    <system:String x:Key="S.Compact.Mark" xml:space="preserve">Above this line the model sees only a summary</system:String>
+    <system:String x:Key="S.Compact.MarkTip" xml:space="preserve">The messages stay on screen, but the model gets their summary. To undo, use the context ring menu.</system:String>
+    <system:String x:Key="S.Compact.MenuItem" xml:space="preserve">Compact the context</system:String>
+    <system:String x:Key="S.Compact.Nothing" xml:space="preserve">Nothing to compact: the conversation is short or already compacted.</system:String>
+    <system:String x:Key="S.Compact.OverflowText" xml:space="preserve">The provider refused: the context is exceeded. Compress the older part into a summary and try again?</system:String>
+    <system:String x:Key="S.Compact.OverflowTitle" xml:space="preserve">The conversation does not fit the model</system:String>
+    <system:String x:Key="S.Compact.Undo" xml:space="preserve">Send the whole conversation again</system:String>
+    <system:String x:Key="S.Compact.Working" xml:space="preserve">Compressing the older part of the conversation…</system:String>
     <system:String x:Key="S.Composer.Placeholder" xml:space="preserve">Ask anything...</system:String>
     <system:String x:Key="S.Composer.PlaceholderQuote" xml:space="preserve">Your reply to the quote...</system:String>
     <system:String x:Key="S.Confirm.Allow" xml:space="preserve">Allow…</system:String>
@@ -396,6 +431,7 @@
     <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">What will change - a dry run</system:String>
     <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">The dry run found nothing to change: nothing currently matches the command's conditions.</system:String>
     <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Dry run with -WhatIf…</system:String>
+    <system:String x:Key="S.Cost.Compact" xml:space="preserve">Context compaction</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">application domain</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">cancellation</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">startup</system:String>
@@ -1533,10 +1569,12 @@
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;The file is no longer there</system:String>
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
 
+    <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Long output: the model saw only its beginning. The full text is in the journal.</system:String>
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">The /agent command takes no quotes.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" - no answer</system:String>
     <system:String x:Key="S.Turn.CutByTokens" xml:space="preserve">The reply was cut short by the token limit ({0}). Try again or simplify the question.</system:String>
+    <system:String x:Key="S.Turn.ErrorTitle" xml:space="preserve">No answer</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running - wait for one of them.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No API key — add a Venice or OpenRouter key on the Key &amp; Info page</system:String>
 

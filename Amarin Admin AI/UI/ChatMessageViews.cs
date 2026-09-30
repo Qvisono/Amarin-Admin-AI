@@ -645,6 +645,13 @@ internal sealed class AssistantMessageView
         grid.Children.Add(name);
         grid.Children.Add(preview);
 
+        // Вывод длиннее того, что ушло модели (D10): в журнале он целиком, а модель видела начало.
+        if (call.TruncatedForModel)
+        {
+            preview.ToolTip = Loc.Get("S.Tools.TruncatedForModel");
+            preview.Text = "✂ " + preview.Text;
+        }
+
         // Инструменты вроде generate_image стоят заметно дороже самого разговора — без ценника
         // прямо здесь непонятно, откуда в шапке сообщения взялась вся сумма.
         if (ChatFormat.Cost(call.Cost) is { Length: > 0 } price)
