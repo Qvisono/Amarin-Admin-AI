@@ -30,7 +30,12 @@ public sealed class AtRestEncryptionTests : IDisposable
         }
     }
 
-    private const string Secret = "пароль от роутера 7fq-Kd9";
+    /// <summary>
+    /// Латиницей нарочно: JSON пишет кириллицу как <c>\u043F…</c>, и поиск русской строки в
+    /// файле не нашёл бы её и в открытом тексте — проверка «шифр прячет текст» прошла бы и без
+    /// шифра.
+    /// </summary>
+    private const string Secret = "router-pass 7fq-Kd9-unique";
 
     private static ChatSession Session(string id = "c1")
     {
