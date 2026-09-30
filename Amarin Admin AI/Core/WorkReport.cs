@@ -136,7 +136,9 @@ internal static class WorkReport
         var changes = ToolEffects.Classify(call.Name, root) == ToolEffect.Write;
 
         // Скрипт показывается скриптом, а не строкой JSON с \n внутри: отчёт читает человек.
-        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("script", out var script) &&
+        // У run_powershell скрипт лежит в поле command.
+        if (call.Name.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
+            root.ValueKind == JsonValueKind.Object && root.TryGetProperty("command", out var script) &&
             script.ValueKind == JsonValueKind.String)
         {
             return (action, Clip(script.GetString() ?? "", ArgumentLimit), changes);

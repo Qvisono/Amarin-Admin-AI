@@ -164,7 +164,7 @@ public sealed class ChatExportTests
                             {
                                 Id = "ps-1",
                                 Name = "run_powershell",
-                                ArgumentsJson = Args(new { script = "Get-Volume\nGet-Disk" }),
+                                ArgumentsJson = Args(new { command = "Get-Volume\nGet-Disk" }),
                                 ResultPreview = "C: healthy",
                                 Success = true,
                                 Status = ToolCallStatus.Done,
