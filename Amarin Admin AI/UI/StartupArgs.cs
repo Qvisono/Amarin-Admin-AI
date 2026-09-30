@@ -4,8 +4,9 @@ namespace Amarin.UI;
 
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
-/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>, <c>--wipe</c> и
-/// <c>--open-chat</c>.
+/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>, <c>--wipe</c>,
+/// <c>--open-chat</c> и действия интеграции с Windows (G): <c>--new-chat</c>, <c>--health</c>,
+/// <c>--tray</c>, <c>--ask-path</c>.
 /// </summary>
 /// <remarks>
 /// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
@@ -75,6 +76,19 @@ internal sealed class StartupArgs
     /// </summary>
     public string? OpenChatId { get; private set; }
 
+    /// <summary>Что сделать при запуске или в уже открытом окне (список переходов, Проводник, автозапуск).</summary>
+    public StartupAction Action { get; private set; }
+
+    /// <summary>
+    /// Путь из пункта «Спросить Amarin» в Проводнике. Только полный путь разумной длины: он
+    /// ложится в поле ввода текстом, а не открывается программой.
+    /// </summary>
+    public string? AskPath { get; private set; }
+
+    internal static bool IsAskPath(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && value.Length <= 1024 &&
+        value.IndexOfAny(['\r', '\n', '\0']) < 0 && Path.IsPathFullyQualified(value);
+
     internal static bool IsChatId(string? value) =>
         !string.IsNullOrEmpty(value) && value.Length <= 64 &&
         value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
@@ -95,6 +109,35 @@ internal sealed class StartupArgs
             if (a.Equals("--send", StringComparison.OrdinalIgnoreCase))
             {
                 result.Send = true;
+                continue;
+            }
+
+            if (a.Equals("--new-chat", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Action = StartupAction.NewChat;
+                continue;
+            }
+
+            if (a.Equals("--health", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Action = StartupAction.Health;
+                continue;
+            }
+
+            if (a.Equals("--tray", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Action = StartupAction.Tray;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--ask-path", out var askPath))
+            {
+                if (IsAskPath(askPath))
+                {
+                    result.Action = StartupAction.AskPath;
+                    result.AskPath = askPath;
+                }
+
                 continue;
             }
 
@@ -212,4 +255,22 @@ internal sealed class StartupArgs
             return null;
         }
     }
+}
+
+/// <summary>Действие запуска (G6): из списка переходов, Проводника или автозапуска.</summary>
+internal enum StartupAction
+{
+    None,
+
+    /// <summary>Открыть новый чат.</summary>
+    NewChat,
+
+    /// <summary>Открыть «Состояние ПК».</summary>
+    Health,
+
+    /// <summary>Запуститься без окна, только значком в трее (автозапуск).</summary>
+    Tray,
+
+    /// <summary>Новый чат с путём из Проводника в поле ввода.</summary>
+    AskPath
 }

@@ -37,7 +37,10 @@ public sealed class DataBundleCoverageTests
         nameof(AppSettings.Backup),
 
         // Хранение чатов: автоудаление, приехавшее в архиве, стёрло бы переписки без спроса.
-        nameof(AppSettings.Retention)
+        nameof(AppSettings.Retention),
+
+        // Автозапуск, Проводник, трей и глобальные сочетания — настройки этой машины.
+        nameof(AppSettings.Windows)
     ];
 
     [Fact]

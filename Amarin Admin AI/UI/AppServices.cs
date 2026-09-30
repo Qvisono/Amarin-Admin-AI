@@ -227,6 +227,12 @@ internal sealed class AppServices : IDisposable
     /// <summary>Чат из <c>--open-chat</c>: открыть его при запуске.</summary>
     public string? StartupChatId { get; init; }
 
+    /// <summary>Действие запуска (G6): новый чат, состояние ПК, трей, путь из Проводника.</summary>
+    internal StartupAction StartupAction { get; init; }
+
+    /// <summary>Путь из «Спросить Amarin» в Проводнике.</summary>
+    public string? StartupAskPath { get; init; }
+
     /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
     public required string EnvironmentKey { get; init; }
 

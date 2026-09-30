@@ -851,6 +851,11 @@ namespace Amarin.UI
             }
 
             _exiting = true;
+
+            // Значок в трее уходит вместе с программой: пока выход доводит обновление без окна,
+            // щелчок по нему вёл бы в никуда. Второй запуск вернёт и окно, и значок.
+            _tray?.Dispose();
+            _tray = null;
             Detached.Run(FinishExitAsync(), "exit");
         }
 
@@ -1095,6 +1100,11 @@ namespace Amarin.UI
             _hiddenForExit = false;
             Show();
             _updateHeartbeat?.Start();
+            if (_services is { } services)
+            {
+                ApplyTray(services.Settings.Windows);
+            }
+
             return true;
         }
 

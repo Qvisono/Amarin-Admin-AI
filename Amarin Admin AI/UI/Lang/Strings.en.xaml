@@ -1842,6 +1842,43 @@
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Voice input</system:String>
     <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Too short — nothing was recorded.</system:String>
     <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Voice input is not set up</system:String>
+    <system:String x:Key="S.Windows.AskPathPrompt" xml:space="preserve">File or folder: {0}</system:String>
+    <system:String x:Key="S.Windows.AutoStart" xml:space="preserve">Start with Windows</system:String>
+    <system:String x:Key="S.Windows.AutoStartDesc" xml:space="preserve">Straight to the tray, without a window.</system:String>
+    <system:String x:Key="S.Windows.CloseToTray" xml:space="preserve">Close to the tray</system:String>
+    <system:String x:Key="S.Windows.ConfirmLocked" xml:space="preserve">The app is waiting for you to approve an action.</system:String>
+    <system:String x:Key="S.Windows.ConfirmTitle" xml:space="preserve">Your approval is needed</system:String>
+    <system:String x:Key="S.Windows.Desc" xml:space="preserve">Tray icon, notifications, start with Windows, an Explorer menu item and shortcuts that work from any app.</system:String>
+    <system:String x:Key="S.Windows.Explorer" xml:space="preserve">“Ask Amarin” in Explorer</system:String>
+    <system:String x:Key="S.Windows.ExplorerDesc" xml:space="preserve">A menu item on files and folders: a new chat with the path in the message box. On Windows 11 it is under Show more options.</system:String>
+    <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Ask Amarin</system:String>
+    <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">New chat with clipboard text</system:String>
+    <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">New chat with a screenshot</system:String>
+    <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Show or hide the window</system:String>
+    <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Not a shortcut: it needs Ctrl, Alt or Win plus a key.</system:String>
+    <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">none</system:String>
+    <system:String x:Key="S.Windows.HotkeyTaken" xml:space="preserve">This shortcut is taken by another app or by Windows.</system:String>
+    <system:String x:Key="S.Windows.Hotkeys" xml:space="preserve">Shortcuts from any app</system:String>
+    <system:String x:Key="S.Windows.HotkeysHint" xml:space="preserve">For example Ctrl+Alt+Space or Win+Shift+A. An empty field means no shortcut.</system:String>
+    <system:String x:Key="S.Windows.JumpHealth" xml:space="preserve">PC health</system:String>
+    <system:String x:Key="S.Windows.JumpNewChat" xml:space="preserve">New chat</system:String>
+    <system:String x:Key="S.Windows.JumpRecent" xml:space="preserve">Recent chats</system:String>
+    <system:String x:Key="S.Windows.MenuExit" xml:space="preserve">Exit</system:String>
+    <system:String x:Key="S.Windows.MenuHealth" xml:space="preserve">PC health</system:String>
+    <system:String x:Key="S.Windows.MenuNewChat" xml:space="preserve">New chat</system:String>
+    <system:String x:Key="S.Windows.MenuOpen" xml:space="preserve">Open</system:String>
+    <system:String x:Key="S.Windows.MenuWaiting" xml:space="preserve">Waiting for approval ({0})</system:String>
+    <system:String x:Key="S.Windows.MinimizeToTray" xml:space="preserve">Minimize to the tray</system:String>
+    <system:String x:Key="S.Windows.Notifications" xml:space="preserve">Notifications</system:String>
+    <system:String x:Key="S.Windows.NotifyCard" xml:space="preserve">App card</system:String>
+    <system:String x:Key="S.Windows.NotifyHint" xml:space="preserve">System notifications go through the tray icon and into the notification center; without the icon the app card is used.</system:String>
+    <system:String x:Key="S.Windows.NotifySystem" xml:space="preserve">System</system:String>
+    <system:String x:Key="S.Windows.ScreenshotName" xml:space="preserve">screenshot.png</system:String>
+    <system:String x:Key="S.Windows.TipBusy" xml:space="preserve">Amarin Admin AI — answering: {0}</system:String>
+    <system:String x:Key="S.Windows.TipWaiting" xml:space="preserve">Amarin Admin AI — waiting for approval: {0}</system:String>
+    <system:String x:Key="S.Windows.Title" xml:space="preserve">Windows</system:String>
+    <system:String x:Key="S.Windows.TrayIcon" xml:space="preserve">Icon in the notification area</system:String>
+    <system:String x:Key="S.Windows.TrayIconDesc" xml:space="preserve">A dot on the icon shows that the app is working or waiting for your answer.</system:String>
     <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Type "{0}" to delete the data. This cannot be undone.</system:String>
     <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Confirm deletion</system:String>
     <system:String x:Key="S.Wipe.Done" xml:space="preserve">The profile's data has been deleted; the program starts from a clean slate.</system:String>

@@ -732,6 +732,10 @@ public sealed class DataBundleImporter
         incoming.Backup = mine.Backup;
         incoming.Retention = mine.Retention;
 
+        // Автозапуск, пункт Проводника и глобальные сочетания — настройки этой машины: архив
+        // не должен ни прописать программу в автозапуск, ни занять чужие сочетания.
+        incoming.Windows = mine.Windows;
+
         store.Save(incoming);
         state.SettingsChanged = true;
     }

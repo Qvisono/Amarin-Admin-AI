@@ -12,6 +12,27 @@ internal sealed class HandoffRequest
     /// <remarks>Файлы прежних версий этого поля не несут и читаются как «только в поле» — как и было.</remarks>
     public bool Send { get; init; }
 
+    /// <summary>Действие из списка переходов или Проводника (G6). Нет поля — только текст, как раньше.</summary>
+    public StartupAction Action { get; init; }
+
+    /// <summary>Чат, который открыть (<c>--open-chat</c>).</summary>
+    public string? ChatId { get; init; }
+
+    /// <summary>Путь из «Спросить Amarin» в Проводнике.</summary>
+    public string? AskPath { get; init; }
+
+    /// <summary>Есть ли что делать: текст, действие или чат.</summary>
+    public bool IsEmpty =>
+        string.IsNullOrWhiteSpace(Prompt) && Action == StartupAction.None && string.IsNullOrWhiteSpace(ChatId);
+
+    /// <summary>
+    /// Последний запрос с действием или чатом — его и выполняет окно. Текст берётся отдельно
+    /// (<see cref="Latest"/>): несколько запусков подряд с разными ключами не должны терять ни
+    /// последнюю вкладку, ни последний набранный текст.
+    /// </summary>
+    public static HandoffRequest? LatestAction(IEnumerable<HandoffRequest> requests) =>
+        requests.LastOrDefault(item => item.Action != StartupAction.None || !string.IsNullOrWhiteSpace(item.ChatId));
+
     /// <summary>
     /// Что делать с накопившимися запросами: берётся последний непустой, вместе с его флагом.
     /// </summary>
@@ -39,9 +60,16 @@ internal static class SingleInstanceHandoff
     public static string DirectoryFor(string root) => Path.Combine(root, FolderName);
 
     /// <summary>Кладёт запрос. Ничего не бросает: несостоявшаяся передача не повод падать.</summary>
-    public static void Write(string root, string? prompt, bool send = false)
+    public static void Write(
+        string root,
+        string? prompt,
+        bool send = false,
+        StartupAction action = StartupAction.None,
+        string? chatId = null,
+        string? askPath = null)
     {
-        if (string.IsNullOrWhiteSpace(prompt))
+        var request = new HandoffRequest { Prompt = prompt, Send = send, Action = action, ChatId = chatId, AskPath = askPath };
+        if (request.IsEmpty)
         {
             return;
         }
@@ -51,8 +79,7 @@ internal static class SingleInstanceHandoff
             var directory = DirectoryFor(root);
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, Guid.NewGuid().ToString("N") + ".json");
-            AppDataFile.WriteAtomic(path, JsonSerializer.Serialize(
-                new HandoffRequest { Prompt = prompt, Send = send }, AppJson.Options));
+            AppDataFile.WriteAtomic(path, JsonSerializer.Serialize(request, AppJson.Options));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
@@ -87,7 +114,7 @@ internal static class SingleInstanceHandoff
             {
                 var request = JsonSerializer.Deserialize<HandoffRequest>(
                     File.ReadAllText(file), AppJson.Options);
-                if (request is not null && !string.IsNullOrWhiteSpace(request.Prompt))
+                if (request is not null && !request.IsEmpty)
                 {
                     found.Add(request);
                 }

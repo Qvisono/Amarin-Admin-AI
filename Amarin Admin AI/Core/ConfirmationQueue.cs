@@ -166,6 +166,18 @@ internal sealed class ConfirmationQueue
         }
     }
 
+    /// <summary>Сколько вопросов ждут ответа — для значка в трее и его меню (G1).</summary>
+    public int PendingCount
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _queue.Count(request => !request.Completion.Task.IsCompleted);
+            }
+        }
+    }
+
     public bool TryPeek(out ConfirmationRequest request)
     {
         lock (_gate)

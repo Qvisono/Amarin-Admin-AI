@@ -94,6 +94,19 @@ public sealed class ScreenshotTool : ITool
         }
     }
 
+    /// <summary>
+    /// Снимок основного экрана в PNG base64 — для глобального сочетания «новый чат со снимком»
+    /// (G2). Тот же путь, что у инструмента, и то же уменьшение.
+    /// </summary>
+    internal static string CapturePrimaryPng()
+    {
+        using var bitmap = CaptureScreen("primary");
+        using var resized = DownscaleIfNeeded(bitmap);
+        using var stream = new MemoryStream();
+        resized.Save(stream, ImageFormat.Png);
+        return Convert.ToBase64String(stream.ToArray());
+    }
+
     private static Bitmap CaptureScreen(string scope)
     {
         var bounds = scope.Equals("all_monitors", StringComparison.OrdinalIgnoreCase)

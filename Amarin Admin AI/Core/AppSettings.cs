@@ -236,6 +236,9 @@ public sealed class AppSettings
     /// <summary>Хранение старых чатов (F3). Заводское — ничего не трогать.</summary>
     public ChatRetention Retention { get; set; } = new();
 
+    /// <summary>Интеграция с Windows (G): трей, уведомления, сочетания, автозапуск, Проводник.</summary>
+    public WindowsIntegrationSettings Windows { get; set; } = new();
+
     /// <summary>
     /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
     /// </summary>

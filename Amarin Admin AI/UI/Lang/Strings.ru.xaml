@@ -1842,6 +1842,43 @@
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Голосовой ввод</system:String>
     <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Слишком коротко — ничего не записалось.</system:String>
     <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Голосовой ввод не настроен</system:String>
+    <system:String x:Key="S.Windows.AskPathPrompt" xml:space="preserve">Файл или папка: {0}</system:String>
+    <system:String x:Key="S.Windows.AutoStart" xml:space="preserve">Запускать вместе с Windows</system:String>
+    <system:String x:Key="S.Windows.AutoStartDesc" xml:space="preserve">Сразу в трей, без окна.</system:String>
+    <system:String x:Key="S.Windows.CloseToTray" xml:space="preserve">Закрывать в трей</system:String>
+    <system:String x:Key="S.Windows.ConfirmLocked" xml:space="preserve">Программа ждёт подтверждения действия.</system:String>
+    <system:String x:Key="S.Windows.ConfirmTitle" xml:space="preserve">Нужно ваше подтверждение</system:String>
+    <system:String x:Key="S.Windows.Desc" xml:space="preserve">Значок в трее, уведомления, автозапуск, пункт в Проводнике и сочетания, которые работают из любой программы.</system:String>
+    <system:String x:Key="S.Windows.Explorer" xml:space="preserve">«Спросить Amarin» в Проводнике</system:String>
+    <system:String x:Key="S.Windows.ExplorerDesc" xml:space="preserve">Пункт меню у файлов и папок: новый чат с путём в поле ввода. В Windows 11 — в «Показать дополнительные параметры».</system:String>
+    <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Спросить Amarin</system:String>
+    <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">Новый чат с текстом из буфера</system:String>
+    <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">Новый чат со снимком экрана</system:String>
+    <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Показать или спрятать окно</system:String>
+    <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Не сочетание: нужен Ctrl, Alt или Win и клавиша.</system:String>
+    <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">нет</system:String>
+    <system:String x:Key="S.Windows.HotkeyTaken" xml:space="preserve">Сочетание занято другой программой или Windows.</system:String>
+    <system:String x:Key="S.Windows.Hotkeys" xml:space="preserve">Сочетания из любой программы</system:String>
+    <system:String x:Key="S.Windows.HotkeysHint" xml:space="preserve">Например Ctrl+Alt+Space или Win+Shift+A. Пустое поле — без сочетания.</system:String>
+    <system:String x:Key="S.Windows.JumpHealth" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Windows.JumpNewChat" xml:space="preserve">Новый чат</system:String>
+    <system:String x:Key="S.Windows.JumpRecent" xml:space="preserve">Последние чаты</system:String>
+    <system:String x:Key="S.Windows.MenuExit" xml:space="preserve">Выход</system:String>
+    <system:String x:Key="S.Windows.MenuHealth" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Windows.MenuNewChat" xml:space="preserve">Новый чат</system:String>
+    <system:String x:Key="S.Windows.MenuOpen" xml:space="preserve">Открыть</system:String>
+    <system:String x:Key="S.Windows.MenuWaiting" xml:space="preserve">Ожидают подтверждения ({0})</system:String>
+    <system:String x:Key="S.Windows.MinimizeToTray" xml:space="preserve">Сворачивать в трей</system:String>
+    <system:String x:Key="S.Windows.Notifications" xml:space="preserve">Уведомления</system:String>
+    <system:String x:Key="S.Windows.NotifyCard" xml:space="preserve">Своя карточка</system:String>
+    <system:String x:Key="S.Windows.NotifyHint" xml:space="preserve">Системные показываются через значок в трее и попадают в центр уведомлений; без значка остаётся своя карточка.</system:String>
+    <system:String x:Key="S.Windows.NotifySystem" xml:space="preserve">Системные</system:String>
+    <system:String x:Key="S.Windows.ScreenshotName" xml:space="preserve">снимок экрана.png</system:String>
+    <system:String x:Key="S.Windows.TipBusy" xml:space="preserve">Amarin Admin AI — отвечает: {0}</system:String>
+    <system:String x:Key="S.Windows.TipWaiting" xml:space="preserve">Amarin Admin AI — ждёт подтверждения: {0}</system:String>
+    <system:String x:Key="S.Windows.Title" xml:space="preserve">Windows</system:String>
+    <system:String x:Key="S.Windows.TrayIcon" xml:space="preserve">Значок в области уведомлений</system:String>
+    <system:String x:Key="S.Windows.TrayIconDesc" xml:space="preserve">Точка на значке показывает, что программа работает или ждёт ответа на вопрос.</system:String>
     <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Введите «{0}», чтобы удалить данные. Отменить это будет нельзя.</system:String>
     <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Подтвердите удаление</system:String>
     <system:String x:Key="S.Wipe.Done" xml:space="preserve">Данные профиля удалены, программа начинает с чистого листа.</system:String>

@@ -89,6 +89,7 @@ namespace Amarin.UI
             WireChatProfile();
             WireVoice();
             WireCostEstimate();
+            WireWindowsIntegration();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -175,9 +176,18 @@ namespace Amarin.UI
             // с ним уже расстаётся.
             Closing += (_, e) =>
             {
+                // Закрыть в трей (G1), если так выбрано: окно прячется, программа работает дальше.
+                if (ShouldCloseToTray())
+                {
+                    e.Cancel = true;
+                    HideToTray();
+                    return;
+                }
+
                 // Спрятанное ради обновления окно геометрию уже сохранило, а сейчас Windows
-                // отдала бы его состоянием «скрыто» — и «развёрнуто» потерялось бы.
-                if (!_hiddenForExit)
+                // отдала бы его состоянием «скрыто» — и «развёрнуто» потерялось бы. То же у
+                // спрятанного в трей: геометрию оно сохранило, прячась.
+                if (!_hiddenForExit && !_hiddenToTray)
                 {
                     SaveWindowGeometry();
                 }
@@ -242,6 +252,9 @@ namespace Amarin.UI
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();
             ApplyUiScaleFromSettings();
+
+            // Трей, глобальные сочетания и записи в реестре (G) — хэндл окна уже есть: его завёл масштаб.
+            ApplyWindowsIntegration();
 
             // До Show(), как и масштаб: углы — форма окна, и первым кадром она уже должна быть той,
             // что выбрана, а не заводской системной.
@@ -349,6 +362,17 @@ namespace Amarin.UI
 
             PlaceIncomingPrompt(_services.StartupPrompt, _services.StartupSend);
 
+            // Действие из списка переходов, Проводника или автозапуска (G6).
+            if (_startInTray)
+            {
+                _startInTray = false;
+                Dispatcher.BeginInvoke(FinishStartInTray, DispatcherPriority.Background);
+            }
+            else if (_services.StartupAction != StartupAction.None)
+            {
+                RunStartupAction(_services.StartupAction, null, _services.StartupAskPath);
+            }
+
             // Этот запуск стёр данные по просьбе прежнего — сказать об этом, а о неудаче тем более.
             if (_services.StartupWipe is { } wiped)
             {
@@ -365,7 +389,16 @@ namespace Amarin.UI
         /// Не <c>Application.Shutdown</c>: он гасит диспетчер независимо от того, отменил ли кто
         /// закрытие окна, и отложить выход ради подмены файла обновления стало бы нечем.
         /// </remarks>
-        private void CloseButton_Click(object sender, RoutedEventArgs e) => RequestExit();
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ShouldCloseToTray())
+            {
+                HideToTray();
+                return;
+            }
+
+            RequestExit();
+        }
 
         /// <remarks>
         /// Через <see cref="Application.MainWindow"/>, а не через <c>this</c>: те же три кнопки
@@ -699,26 +732,13 @@ namespace Amarin.UI
         internal void ShowCompletionToast(ChatDisplayMessage assistant)
         {
             // Replace any toast still on screen outright — no fade, so the cards don't overlap.
-            _toast?.Close();
-
             var modelId = assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "";
             var id = assistant.Id;
-            var toast = NotificationToast.Show(
+            Notify(
                 modelId,
                 ToastText(FirstLine(assistant.Text)),
                 BuildToastMeta(modelId, assistant.Duration),
-                _services?.Settings.UiScalePercent ?? 100,
-                OwnHandle(),
                 () => OpenFromToast(id));
-
-            _toast = toast;
-            toast.Closed += (_, _) =>
-            {
-                if (ReferenceEquals(_toast, toast))
-                {
-                    _toast = null;
-                }
-            };
         }
 
         /// <summary>
@@ -727,25 +747,15 @@ namespace Amarin.UI
         /// </summary>
         private void ShowBackgroundTurnError(RunningTurn turn, string message)
         {
-            _toast?.Close();
-
             var sessionId = turn.SessionId;
-            var toast = NotificationToast.Show(
+            _trayError = true;
+            UpdateTrayState();
+            Notify(
                 turn.Assistant?.ResolvedModelId ?? turn.Assistant?.RequestedModelId ?? "",
                 ToastText(FirstLine(message)),
                 IsLocked ? "" : Loc.Format("S.Turn.BackgroundFailed", DisplayTitle(turn.Session.Title)),
-                _services?.Settings.UiScalePercent ?? 100,
-                OwnHandle(),
-                () => OpenChat(sessionId));
-
-            _toast = toast;
-            toast.Closed += (_, _) =>
-            {
-                if (ReferenceEquals(_toast, toast))
-                {
-                    _toast = null;
-                }
-            };
+                () => OpenChat(sessionId),
+                warning: true);
         }
 
         private IntPtr OwnHandle()
@@ -1678,6 +1688,13 @@ namespace Amarin.UI
                 if (_services is not null)
                 {
                     VoiceSettings.Load(_services);
+                    WindowsSettings.Applied ??= () =>
+                    {
+                        ApplyWindowsIntegration();
+                        return GlobalHotkeyProblems;
+                    };
+                    WindowsSettings.Load(_services);
+                    WindowsSettings.ShowHotkeyProblems(GlobalHotkeyProblems);
                 }
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
@@ -2887,6 +2904,9 @@ namespace Amarin.UI
                 return;
             }
 
+            // Список переходов (G6) — пять последних чатов; пересобирается, только если они сменились.
+            UpdateJumpList(_services.ChatStore.List());
+
             var query = SearchBox.Text;
 
             // Поиск по тексту — своя выдача: находки в сообщениях, а не строки чатов.
@@ -3584,7 +3604,11 @@ namespace Amarin.UI
             ShowBackgroundTurnError(turn, message);
         });
 
-        private void OnConfirmationChanged() => Ui(ShowNextConfirmation);
+        private void OnConfirmationChanged() => Ui(() =>
+        {
+            ShowNextConfirmation();
+            NotifyConfirmationIfAway();
+        });
 
         private void ShowNextConfirmation()
         {

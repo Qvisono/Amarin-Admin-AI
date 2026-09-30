@@ -299,6 +299,7 @@ namespace Amarin.UI
             var busy = IsBusy(_session.Id);
             RefreshContextRing();
             UpdateChatCostChip();
+            UpdateTrayState();
             _compact?.SetBusy(busy);
             _variantGate.IsOpen = !busy;
 
@@ -364,6 +365,12 @@ namespace Amarin.UI
                 return;
             }
 
+            // Спрятано в трей (G1) — показать, как по щелчку на значке.
+            if (!IsVisible)
+            {
+                ShowFromTray();
+            }
+
             if (WindowState == WindowState.Minimized)
             {
                 WindowState = WindowState.Normal;
@@ -383,7 +390,16 @@ namespace Amarin.UI
         /// </summary>
         private void TakeHandoffPrompt()
         {
-            if (HandoffRequest.Latest(SingleInstanceHandoff.TryTakeAll(AppPaths.Root)) is { } request)
+            var requests = SingleInstanceHandoff.TryTakeAll(AppPaths.Root);
+
+            // Сначала действие (новый чат, открыть чат, Проводник), потом текст: иначе текст
+            // лёг бы в поле прежнего чата, а действие тут же увело бы от него.
+            if (HandoffRequest.LatestAction(requests) is { } action)
+            {
+                RunStartupAction(action.Action, action.ChatId, action.AskPath);
+            }
+
+            if (HandoffRequest.Latest(requests) is { } request)
             {
                 PlaceIncomingPrompt(request.Prompt, request.Send);
             }

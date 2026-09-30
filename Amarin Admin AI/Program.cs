@@ -44,7 +44,15 @@ internal static class Program
         {
             // --model намеренно не передаём: он пишет модель в настройки всей программы, и
             // менять её у работающего окна из ярлыка за спиной пользователя хуже, чем не менять.
-            SingleInstanceHandoff.Write(AppPaths.Root, startup.Prompt, startup.Send);
+            // Автозапуск (--tray) при уже работающей программе делать нечего: окно поднимать
+            // незачем — человек его не просил.
+            if (startup.Action == StartupAction.Tray)
+            {
+                return 0;
+            }
+
+            SingleInstanceHandoff.Write(
+                AppPaths.Root, startup.Prompt, startup.Send, startup.Action, startup.OpenChatId, startup.AskPath);
             SingleInstance.Activate();
             return 0;
         }
@@ -363,7 +371,9 @@ internal static class Program
             StartupPrompt = startup.Prompt,
             StartupSend = startup.ShouldSend,
             StartupWipe = wiped,
-            StartupChatId = startup.OpenChatId
+            StartupChatId = startup.OpenChatId,
+            StartupAction = startup.Action,
+            StartupAskPath = startup.AskPath
         };
         spendServices = services;
 
@@ -377,6 +387,13 @@ internal static class Program
         // поддельным WM_DPICHANGED и переписал бы выставленный размер), а Show() ещё не
         // случился — иначе окно мигнёт на экране прежними размерами.
         WindowGeometry.Restore(window, settings);
+
+        // Автозапуск (--tray, G3): сразу в трей. Без значка — обычный запуск: иначе окно было бы
+        // недостижимо.
+        if (startup.Action == StartupAction.Tray && settings.Windows is { ShowTrayIcon: true })
+        {
+            window.PrepareStartInTray();
+        }
 
         // Claim the slot the lock screen may have taken, then restore the normal close-to-exit
         // behaviour now that the window it refers to is the one the user actually sees.

@@ -21,8 +21,7 @@ namespace Amarin.UI
             }
 
             services.SpendGuard.Ask = AskSpendAsync;
-            services.SpendGuard.Warned = breach => Ui(() => ShowTransientNotice(
-                _session.Id,
+            services.SpendGuard.Warned = breach => Ui(() => NotifyStatus(
                 Loc.Format("S.Limit.Warn", SpendRules.KindName(breach.Kind), SpendRules.Money(breach.Spent), SpendRules.Money(breach.Limit))));
         }
 
@@ -33,7 +32,7 @@ namespace Amarin.UI
                 ? Loc.Format("S.Balance.AlertKey", key, SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold))
                 : Loc.Format(alert.Level == BalanceLevel.Critical ? "S.Balance.AlertCritical" : "S.Balance.AlertLow",
                     SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold));
-            ShowTransientNotice(_session.Id, text);
+            NotifyStatus(text);
         }
 
         /// <summary>Вопрос человеку. True — продолжать ход.</summary>

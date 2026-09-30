@@ -3218,6 +3218,8 @@
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <local:VoiceSettingsBlock x:Name="VoiceSettings"/>
                                 <Border Style="{StaticResource SettingsDivider}"/>
+                                <local:WindowsIntegrationBlock x:Name="WindowsSettings"/>
+                                <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>

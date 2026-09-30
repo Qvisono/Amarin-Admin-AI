@@ -1,0 +1,36 @@
+<UserControl x:Class="Amarin.UI.WindowsIntegrationBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Интеграция с Windows (G1–G5): трей, уведомления, автозапуск, Проводник, глобальные сочетания. -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.Title}"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.Desc}" Margin="0,2,0,8"/>
+        <StackPanel x:Name="Toggles"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Windows.Notifications}" Margin="0,10,0,4"/>
+        <WrapPanel>
+            <RadioButton x:Name="NotifyCard" GroupName="NotifyStyle" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Windows.NotifyCard}" Checked="Notify_Checked"/>
+            <RadioButton x:Name="NotifySystem" GroupName="NotifyStyle" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Windows.NotifySystem}" Checked="Notify_Checked"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Windows.NotifyHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Windows.Hotkeys}" Margin="0,12,0,4"/>
+        <Grid x:Name="HotkeyGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+        </Grid>
+        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Windows.HotkeysHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    </StackPanel>
+</UserControl>

@@ -68,7 +68,7 @@ namespace Amarin.UI
             {
                 backup.LastError = ex.Message;
                 backup.LastErrorAt = now;
-                ShowTransientNotice(_session.Id, Loc.Format("S.Backup.FailedNotice", ex.Message));
+                NotifyStatus(Loc.Format("S.Backup.FailedNotice", ex.Message));
             }
             finally
             {

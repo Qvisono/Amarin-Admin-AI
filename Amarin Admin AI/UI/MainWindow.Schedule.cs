@@ -156,8 +156,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _toast?.Close();
-            var toast = NotificationToast.Show(
+            Notify(
                 "",
                 IsLocked ? Loc.Get("S.Schedule.ToastLocked") : Loc.Format("S.Schedule.Toast", job.Name),
                 Loc.Get(outcome.Status switch
@@ -166,17 +165,8 @@ namespace Amarin.UI
                     ScheduleStatus.Failed => "S.Schedule.Status.Failed",
                     _ => "S.Schedule.Status.Attention"
                 }),
-                _services?.Settings.UiScalePercent ?? 100,
-                OwnHandle(),
-                () => OpenChat(chatId));
-            _toast = toast;
-            toast.Closed += (_, _) =>
-            {
-                if (ReferenceEquals(_toast, toast))
-                {
-                    _toast = null;
-                }
-            };
+                () => OpenChat(chatId),
+                warning: outcome.Status != ScheduleStatus.Attention);
         }
     }
 }
