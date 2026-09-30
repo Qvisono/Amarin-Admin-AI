@@ -34,6 +34,11 @@ public sealed class ChatCommandsUiTests : IDisposable
             .Single(m => m.Name == method && m.GetParameters().Length == args.Length)
             .Invoke(window, args);
 
+    private static int Suggested(MainWindow window) =>
+        ((System.Collections.IEnumerable)typeof(MainWindow)
+            .GetField("_commandItems", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(window)!).Cast<object>().Count();
+
     private static ChatSession Session(MainWindow window) =>
         (ChatSession)typeof(MainWindow).GetField("_session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
 
@@ -58,13 +63,14 @@ public sealed class ChatCommandsUiTests : IDisposable
         var (slash, path) = With((window, _) =>
         {
             var box = (TextBox)window.FindName("MessageTextBox");
-            var popup = (Popup)window.FindName("CommandSuggestPopup");
+            // Окно в тесте не показано, и Popup откладывает открытие до Loaded: IsOpen читается
+            // ложью. Поэтому смотрим на то, что попап покажет, — список предложенных команд.
             box.Text = "/re";
             box.CaretIndex = box.Text.Length;
-            var opened = popup.IsOpen;
+            var opened = Suggested(window) > 0;
             box.Text = "/usr/bin";
             box.CaretIndex = box.Text.Length;
-            return (opened, popup.IsOpen);
+            return (opened, Suggested(window) > 0);
         });
 
         Assert.True(slash);

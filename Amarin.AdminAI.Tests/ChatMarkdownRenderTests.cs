@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
@@ -139,7 +140,10 @@ public sealed class ChatMarkdownRenderTests
             var label = Find<TextBlock>(root).First();
             var before = label.Text;
 
-            Find<Button>(root).First().RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            // Кнопок в шапке несколько (D13), «Копировать» узнаётся по подписи для дикторов.
+            Find<Button>(root)
+                .Single(button => AutomationProperties.GetName(button) == Loc.Get("S.Common.Copy"))
+                .RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
 
             string? clipboard;
             try

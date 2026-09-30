@@ -22,7 +22,8 @@
             <RadioButton x:Name="EngineCloud" GroupName="VoiceEngine" Style="{StaticResource ChipRadio}"
                          Content="{DynamicResource S.Voice.EngineCloud}" Checked="Engine_Checked"/>
         </WrapPanel>
-        <TextBlock x:Name="LocalLanguagesText" Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <TextBlock x:Name="LocalLanguagesText" Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="{DynamicResource S.Voice.LocalNone}"/>
 
         <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Voice.Model}"/>
         <Border Style="{StaticResource FieldFrame}" Margin="0,4,0,2">
