@@ -25,6 +25,9 @@ namespace Amarin.UI
                 {
                     Detached.Run(RunBackupAsync(manual: false), "backup_scheduled");
                 }
+
+                // Хранение чатов (F3) — на том же таймере: при старте и дальше раз в сутки.
+                ApplyRetentionIfDue();
             };
             _backupTimer.Start();
             Closed += (_, _) => _backupTimer.Stop();

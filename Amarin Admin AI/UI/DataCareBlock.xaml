@@ -1,0 +1,46 @@
+<UserControl x:Class="Amarin.UI.DataCareBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Хранение и очистка (F3): старые чаты, лишние файлы, самые тяжёлые переписки. -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Retention}"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.RetentionDesc}" Margin="0,2,0,8"/>
+        <WrapPanel>
+            <RadioButton x:Name="ModeOff" GroupName="Retention" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Care.ModeOff}" Checked="Mode_Checked"/>
+            <RadioButton x:Name="ModeArchive" GroupName="Retention" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Care.ModeArchive}" Checked="Mode_Checked"/>
+            <RadioButton x:Name="ModeDelete" GroupName="Retention" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Care.ModeDelete}" Checked="Mode_Checked"/>
+        </WrapPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="{DynamicResource S.Care.OlderThan}" FontSize="12" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Text.Body}" Margin="0,0,8,0"/>
+            <Border Style="{StaticResource FieldFrame}" Height="28" Width="60">
+                <TextBox x:Name="DaysBox" Style="{StaticResource FieldTextBox}" MaxLength="4"
+                         HorizontalContentAlignment="Center" LostFocus="DaysBox_LostFocus"
+                         AutomationProperties.Name="{DynamicResource S.Care.OlderThan}"/>
+            </Border>
+            <TextBlock Text="{DynamicResource S.Care.Days}" FontSize="12" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Text.Body}" Margin="8,0,0,0"/>
+        </StackPanel>
+        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Care.RetentionHint}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+
+        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Cleanup}" Margin="0,18,0,0"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.CleanupDesc}" Margin="0,2,0,6"/>
+        <StackPanel x:Name="CleanupRows"/>
+
+        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Largest}" Margin="0,18,0,0"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LargestDesc}" Margin="0,2,0,6"/>
+        <TextBlock x:Name="LargestEmpty" Style="{StaticResource FieldHint}" Text="{DynamicResource S.Data.Usage.Counting}"/>
+        <StackPanel x:Name="LargestRows"/>
+    </StackPanel>
+</UserControl>

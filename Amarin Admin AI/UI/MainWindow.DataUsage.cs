@@ -155,6 +155,8 @@ namespace Amarin.UI
                 BackupPanel.RunNow ??= () => RunBackupAsync(manual: true);
                 BackupPanel.Load(_services);
                 BackupPanel.ShowStatus(_services.Settings.Backup ?? new BackupSettings(), _backupRunning);
+                WireDataCare();
+                DataCarePanel.Load(_services);
             }
 
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");

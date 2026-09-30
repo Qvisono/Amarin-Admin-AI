@@ -331,6 +331,34 @@
     <system:String x:Key="S.Bundle.Row" xml:space="preserve">Экспорт и импорт данных</system:String>
     <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Сохранить всё, что хранит программа, в один архив - или загрузить данные обратно</system:String>
 
+    <system:String x:Key="S.Care.Archived" xml:space="preserve">В архив убрано старых чатов: {0}.</system:String>
+    <system:String x:Key="S.Care.BackgroundCache" xml:space="preserve">Готовые снимки фона</system:String>
+    <system:String x:Key="S.Care.Clean" xml:space="preserve">Очистить</system:String>
+    <system:String x:Key="S.Care.Cleanup" xml:space="preserve">Очистка</system:String>
+    <system:String x:Key="S.Care.CleanupDesc" xml:space="preserve">Чаты, настройки и ключи здесь не удаляются.</system:String>
+    <system:String x:Key="S.Care.Confirm" xml:space="preserve">«{0}»: будет удалено {1}.</system:String>
+    <system:String x:Key="S.Care.ConfirmSnapshots" xml:space="preserve">«{0}»: будет удалено {1}. Останутся {2} последних — откатить более ранние изменения будет нельзя.</system:String>
+    <system:String x:Key="S.Care.ConfirmTitle" xml:space="preserve">Очистить?</system:String>
+    <system:String x:Key="S.Care.Days" xml:space="preserve">дней</system:String>
+    <system:String x:Key="S.Care.DeleteConfirm" xml:space="preserve">Чаты, не менявшиеся {0} дней, будут удаляться без возврата. Сейчас под правило попадает {1}.</system:String>
+    <system:String x:Key="S.Care.DeleteTitle" xml:space="preserve">Удалять старые чаты?</system:String>
+    <system:String x:Key="S.Care.Deleted" xml:space="preserve">Удалено старых чатов: {0}.</system:String>
+    <system:String x:Key="S.Care.EnableDelete" xml:space="preserve">Включить удаление</system:String>
+    <system:String x:Key="S.Care.Largest" xml:space="preserve">Крупнейшие чаты</system:String>
+    <system:String x:Key="S.Care.LargestDesc" xml:space="preserve">Вместе со вложениями. Щелчок открывает чат.</system:String>
+    <system:String x:Key="S.Care.LargestNone" xml:space="preserve">Чатов пока нет.</system:String>
+    <system:String x:Key="S.Care.Logs" xml:space="preserve">Журналы сбоев и замеров</system:String>
+    <system:String x:Key="S.Care.ModeArchive" xml:space="preserve">Убирать в архив</system:String>
+    <system:String x:Key="S.Care.ModeDelete" xml:space="preserve">Удалять</system:String>
+    <system:String x:Key="S.Care.ModeOff" xml:space="preserve">Ничего</system:String>
+    <system:String x:Key="S.Care.Nothing" xml:space="preserve">Пусто</system:String>
+    <system:String x:Key="S.Care.OlderThan" xml:space="preserve">Если не менялись</system:String>
+    <system:String x:Key="S.Care.Retention" xml:space="preserve">Хранение чатов</system:String>
+    <system:String x:Key="S.Care.RetentionDesc" xml:space="preserve">Что делать с чатами, которые давно не менялись.</system:String>
+    <system:String x:Key="S.Care.RetentionHint" xml:space="preserve">Закреплённые, открытый и отвечающие чаты не трогаются. Проверка — при запуске и раз в сутки.</system:String>
+    <system:String x:Key="S.Care.Shared" xml:space="preserve">Сделанные экспорты чатов</system:String>
+    <system:String x:Key="S.Care.Size" xml:space="preserve">{0} · файлов: {1}</system:String>
+    <system:String x:Key="S.Care.Snapshots" xml:space="preserve">Снимки для отката изменений</system:String>
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
 
     <system:String x:Key="S.ChatCost.Name" xml:space="preserve">Цена всего чата</system:String>

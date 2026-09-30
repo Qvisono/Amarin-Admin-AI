@@ -34,7 +34,10 @@ public sealed class DataBundleCoverageTests
 
         // Лимиты трат — защита по тому же правилу; резервные копии — настройки этой машины.
         nameof(AppSettings.SpendLimits),
-        nameof(AppSettings.Backup)
+        nameof(AppSettings.Backup),
+
+        // Хранение чатов: автоудаление, приехавшее в архиве, стёрло бы переписки без спроса.
+        nameof(AppSettings.Retention)
     ];
 
     [Fact]

@@ -730,6 +730,7 @@ public sealed class DataBundleImporter
         // автоудаление старых чатов, приехавшее в архиве, стёрло бы переписки без спроса.
         incoming.SpendLimits = mine.SpendLimits;
         incoming.Backup = mine.Backup;
+        incoming.Retention = mine.Retention;
 
         store.Save(incoming);
         state.SettingsChanged = true;

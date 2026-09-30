@@ -233,6 +233,9 @@ public sealed class AppSettings
     /// <summary>Автоматические резервные копии (F1). Заводское — выключены.</summary>
     public BackupSettings Backup { get; set; } = new();
 
+    /// <summary>Хранение старых чатов (F3). Заводское — ничего не трогать.</summary>
+    public ChatRetention Retention { get; set; } = new();
+
     /// <summary>
     /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
     /// </summary>

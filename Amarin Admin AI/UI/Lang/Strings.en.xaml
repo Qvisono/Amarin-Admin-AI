@@ -331,6 +331,34 @@
     <system:String x:Key="S.Bundle.Row" xml:space="preserve">Export and import data</system:String>
     <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Save everything the app stores into one archive, or load it back</system:String>
 
+    <system:String x:Key="S.Care.Archived" xml:space="preserve">Old chats moved to the archive: {0}.</system:String>
+    <system:String x:Key="S.Care.BackgroundCache" xml:space="preserve">Prepared background images</system:String>
+    <system:String x:Key="S.Care.Clean" xml:space="preserve">Clean up</system:String>
+    <system:String x:Key="S.Care.Cleanup" xml:space="preserve">Cleanup</system:String>
+    <system:String x:Key="S.Care.CleanupDesc" xml:space="preserve">Chats, settings and keys are never removed here.</system:String>
+    <system:String x:Key="S.Care.Confirm" xml:space="preserve">{0}: {1} will be removed.</system:String>
+    <system:String x:Key="S.Care.ConfirmSnapshots" xml:space="preserve">{0}: {1} will be removed. The last {2} stay; earlier changes can no longer be rolled back.</system:String>
+    <system:String x:Key="S.Care.ConfirmTitle" xml:space="preserve">Clean up?</system:String>
+    <system:String x:Key="S.Care.Days" xml:space="preserve">days</system:String>
+    <system:String x:Key="S.Care.DeleteConfirm" xml:space="preserve">Chats unchanged for {0} days will be deleted for good. Right now that is {1}.</system:String>
+    <system:String x:Key="S.Care.DeleteTitle" xml:space="preserve">Delete old chats?</system:String>
+    <system:String x:Key="S.Care.Deleted" xml:space="preserve">Old chats deleted: {0}.</system:String>
+    <system:String x:Key="S.Care.EnableDelete" xml:space="preserve">Turn on deletion</system:String>
+    <system:String x:Key="S.Care.Largest" xml:space="preserve">Largest chats</system:String>
+    <system:String x:Key="S.Care.LargestDesc" xml:space="preserve">Attachments included. Click to open the chat.</system:String>
+    <system:String x:Key="S.Care.LargestNone" xml:space="preserve">No chats yet.</system:String>
+    <system:String x:Key="S.Care.Logs" xml:space="preserve">Crash and timing logs</system:String>
+    <system:String x:Key="S.Care.ModeArchive" xml:space="preserve">Move to archive</system:String>
+    <system:String x:Key="S.Care.ModeDelete" xml:space="preserve">Delete</system:String>
+    <system:String x:Key="S.Care.ModeOff" xml:space="preserve">Nothing</system:String>
+    <system:String x:Key="S.Care.Nothing" xml:space="preserve">Empty</system:String>
+    <system:String x:Key="S.Care.OlderThan" xml:space="preserve">If unchanged for</system:String>
+    <system:String x:Key="S.Care.Retention" xml:space="preserve">Chat retention</system:String>
+    <system:String x:Key="S.Care.RetentionDesc" xml:space="preserve">What to do with chats that have not changed for a long time.</system:String>
+    <system:String x:Key="S.Care.RetentionHint" xml:space="preserve">Pinned, open and answering chats are never touched. Checked at start and once a day.</system:String>
+    <system:String x:Key="S.Care.Shared" xml:space="preserve">Chat exports already made</system:String>
+    <system:String x:Key="S.Care.Size" xml:space="preserve">{0} · files: {1}</system:String>
+    <system:String x:Key="S.Care.Snapshots" xml:space="preserve">Change rollback snapshots</system:String>
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Actions</system:String>
 
     <system:String x:Key="S.ChatCost.Name" xml:space="preserve">Cost of the whole chat</system:String>

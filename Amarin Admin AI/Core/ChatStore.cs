@@ -100,6 +100,9 @@ public sealed class ChatStore
         _indexFile = Path.Combine(_chatsDirectory, "index.json");
     }
 
+    /// <summary>Папка чатов этого профиля — для «Крупнейших чатов» (F3).</summary>
+    internal string Folder => _chatsDirectory;
+
     public ChatSession CreateNew(string? selectedModelId = null)
     {
         var now = DateTime.Now;
