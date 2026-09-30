@@ -190,6 +190,7 @@ internal static class Program
         // settings.json успевал разобраться трижды, прежде чем окно показалось.
         var settingsStore = new AppSettingsStore(dataRoot);
         var settings = settingsStore.Load();
+        ThemeManager.FollowHighContrast = settings.FollowHighContrast;
         ThemeManager.Initialize(app, settings.Theme);
 
         // Язык — до экрана входа: он тоже часть интерфейса и обязан быть на выбранном языке.
@@ -238,7 +239,9 @@ internal static class Program
         keyStore.Load();
         keys.Use(keyStore.ActiveCredential(), keyStore.VeniceCredential(), keyStore.Handles());
         CrashHandler.Secrets = keyStore.AllSecrets();
+        ThemeManager.FollowHighContrast = settings.FollowHighContrast;
         ThemeManager.Apply(settings.Theme);
+        ChatFonts.Apply(settings);
         LanguageManager.Apply(settings.LanguageCode);
 
         // The effective allowlist lives in settings.json; appsettings.json only seeded it.

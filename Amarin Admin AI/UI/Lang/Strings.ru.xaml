@@ -13,16 +13,33 @@
         Наборы ключей всех языков обязаны совпадать — это проверяет LocalizationTests.
     -->
 
+    <system:String x:Key="S.A11y.Attach" xml:space="preserve">Прикрепить</system:String>
+    <system:String x:Key="S.A11y.CloseApp" xml:space="preserve">Закрыть программу</system:String>
+    <system:String x:Key="S.A11y.Maximize" xml:space="preserve">Развернуть</system:String>
+    <system:String x:Key="S.A11y.Minimize" xml:space="preserve">Свернуть</system:String>
+    <system:String x:Key="S.A11y.Model" xml:space="preserve">Модель</system:String>
+    <system:String x:Key="S.A11y.Send" xml:space="preserve">Отправить</system:String>
+    <system:String x:Key="S.A11y.Settings" xml:space="preserve">Настройки</system:String>
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Открыть страницу проекта на GitHub</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Подтверждать всё автоматически</system:String>
     <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">Вопросы не задаются, кроме вопросов SynGuard и постоянных изменений настроек, таких как белый список загрузок. Только если вы уверены в каждой своей просьбе.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Спрашивать всё</system:String>
     <system:String x:Key="S.Access.AskAllDesc" xml:space="preserve">Спрашивается всё, что хоть что-нибудь меняет. Чтение — без вопроса.</system:String>
+    <system:String x:Key="S.Access.CodeFont" xml:space="preserve">Шрифт кода</system:String>
+    <system:String x:Key="S.Access.CodeFontHint" xml:space="preserve">Cascadia Mono есть не в каждой Windows 10 — без неё будет Consolas.</system:String>
+    <system:String x:Key="S.Access.Contrast" xml:space="preserve">Следовать высокой контрастности Windows</system:String>
+    <system:String x:Key="S.Access.ContrastDesc" xml:space="preserve">Пока в Windows включена высокая контрастность, программа рисуется контрастной темой.</system:String>
+    <system:String x:Key="S.Access.FontSize" xml:space="preserve">Размер текста в чате</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Обычный</system:String>
     <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Опасные действия спрашиваются. Чтение и новые файлы в «Загрузках» и на «Рабочем столе» — без вопроса.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Только чтение</system:String>
     <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">Модель может только смотреть: любая запись отклоняется без вопроса.</system:String>
+    <system:String x:Key="S.Access.SizeHuge" xml:space="preserve">Очень крупный</system:String>
+    <system:String x:Key="S.Access.SizeLarge" xml:space="preserve">Крупный</system:String>
+    <system:String x:Key="S.Access.SizeNormal" xml:space="preserve">Обычный</system:String>
+    <system:String x:Key="S.Access.SizeSmall" xml:space="preserve">Мелкий</system:String>
+    <system:String x:Key="S.Access.Title" xml:space="preserve">Специальные возможности</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Изображение профиля</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Удалить профиль «{0}» вместе со всеми его чатами?&#10;&#10;Это необратимо.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Доп. профиль</system:String>

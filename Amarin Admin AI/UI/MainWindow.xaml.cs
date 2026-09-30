@@ -90,6 +90,9 @@ namespace Amarin.UI
             WireVoice();
             WireCostEstimate();
             WireWindowsIntegration();
+
+            // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).
+            AccessibilityDefaults.Register();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -1694,6 +1697,8 @@ namespace Amarin.UI
                         return GlobalHotkeyProblems;
                     };
                     WindowsSettings.Load(_services);
+                    AccessibilitySettings.Changed ??= ApplyAccessibility;
+                    AccessibilitySettings.Load(_services);
                     WindowsSettings.ShowHotkeyProblems(GlobalHotkeyProblems);
                 }
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;

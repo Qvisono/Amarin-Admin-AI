@@ -16,14 +16,13 @@ namespace Amarin.UI;
 /// </summary>
 internal static class CodeBlockView
 {
-    private const double CodeFontSize = 12.5;
-    private const double CodeLineHeight = 18;
-    private static readonly FontFamily Mono = new("Consolas, Cascadia Mono, Courier New");
-
-    /// <summary>Начертание для замера строк. Статическое: составное имя семейства разбирается
-    /// при создании, а замер идёт на каждую строку каждого блока каждой перерисовки.</summary>
-    private static readonly Typeface MonoTypeface =
-        new(Mono, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+    // Размер и шрифт кода — от настроек ленты (I3). Начертание для замера строк держит
+    // ChatFonts: составное имя семейства разбирается при создании, а замер идёт на каждую
+    // строку каждого блока каждой перерисовки.
+    private static double CodeFontSize => ChatFonts.CodeSize;
+    private static double CodeLineHeight => ChatFonts.CodeLine;
+    private static FontFamily Mono => ChatFonts.Mono;
+    private static Typeface MonoTypeface => ChatFonts.MonoTypeface;
 
     /// <summary>Сколько держать надпись «Скопировано» вместо имени языка.</summary>
     private static readonly TimeSpan CopiedFor = TimeSpan.FromSeconds(1.5);
@@ -32,8 +31,8 @@ internal static class CodeBlockView
     // самая дорогая его часть. Ключ включает DPI: на другом мониторе ширина другая.
     // Блокировки нет и не нужно: документ собирается только на UI-потоке.
     private const int WidthCacheCapacity = 64;
-    private static readonly Dictionary<(string Code, double Dip), double> WidthCache = [];
-    private static readonly Queue<(string Code, double Dip)> WidthCacheOrder = new();
+    private static readonly Dictionary<(string Code, double Dip, int Fonts), double> WidthCache = [];
+    private static readonly Queue<(string Code, double Dip, int Fonts)> WidthCacheOrder = new();
 
     /// <param name="cache">
     /// Запоминать ли подсветку и замер ширины. <c>false</c> — пока блок дописывает модель:
@@ -292,7 +291,7 @@ internal static class CodeBlockView
             // design-time / окно ещё не в дереве
         }
 
-        var key = (code, dip);
+        var key = (code, dip, ChatFonts.Version);
         if (cache && WidthCache.TryGetValue(key, out var cached))
         {
             return cached;

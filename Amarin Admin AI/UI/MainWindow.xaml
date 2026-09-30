@@ -478,7 +478,7 @@
                                         </ControlTemplate>
                                     </Button.Template>
                                 </Button>
-                            <Button x:Name="NewChatButton" Cursor="Hand" Margin="0,5,0,0" Click="NewChatButton_Click">
+                            <Button x:Name="NewChatButton" AutomationProperties.Name="{DynamicResource S.ChatList.NewChat}" Cursor="Hand" Margin="0,5,0,0" Click="NewChatButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6"
@@ -682,7 +682,7 @@
                                 <TextBlock x:Name="SidebarAccountMode" Text="{DynamicResource S.Account.LocalMode}" FontSize="9.5" Foreground="{DynamicResource Text.Faint}"/>
                             </StackPanel>
 
-                            <Button x:Name="SettingsButton" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
+                            <Button x:Name="SettingsButton" AutomationProperties.Name="{DynamicResource S.A11y.Settings}" Grid.Column="2" Width="26" Height="26" VerticalAlignment="Center"
                                     Cursor="Hand" Click="SettingsButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
@@ -1117,7 +1117,7 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                 </ItemsControl>
-                                <TextBlock x:Name="AttachmentsWarning" Visibility="Collapsed"
+                                <TextBlock x:Name="AttachmentsWarning" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"
                                            FontSize="11" Margin="2,6,0,0" TextWrapping="Wrap"
                                            Foreground="{DynamicResource Status.Warning}"/>
                             </StackPanel>
@@ -1205,7 +1205,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Кнопка "+" (прикрепить/добавить контекст) -->
-                                <ToggleButton x:Name="AttachButton" Grid.Column="0" Width="32" Height="32"
+                                <ToggleButton x:Name="AttachButton" AutomationProperties.Name="{DynamicResource S.A11y.Attach}" Grid.Column="0" Width="32" Height="32"
               Margin="0,0,6,0" Cursor="Hand">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
@@ -1347,7 +1347,7 @@
                                 </Popup>
                                 
                                 <!-- Селектор модели AI -->
-                                <ToggleButton x:Name="ModelButton" Grid.Column="1" Height="32" Cursor="Hand" Margin="0,0,6,0">
+                                <ToggleButton x:Name="ModelButton" AutomationProperties.Name="{DynamicResource S.A11y.Model}" Grid.Column="1" Height="32" Cursor="Hand" Margin="0,0,6,0">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
                                             <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6" Padding="6,0,10,0">
@@ -1635,7 +1635,7 @@
 
                                     </StackPanel>
 
-                                    <Button x:Name="SendButton" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
+                                    <Button x:Name="SendButton" AutomationProperties.Name="{DynamicResource S.A11y.Send}" Grid.Column="4" Width="32" Height="32" Cursor="Hand" Click="SendButton_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="8">
@@ -1749,13 +1749,13 @@
            Margin="6" />
                         </Button>
                         <Button Style="{StaticResource LockChromeButton}"
-                                Tag="{DynamicResource Minimize}"
+                                Tag="{DynamicResource Minimize}" AutomationProperties.Name="{DynamicResource S.A11y.Minimize}"
                                 Click="MinimizeButton_Click"/>
                         <Button Style="{StaticResource LockChromeButton}"
-                                Tag="{DynamicResource Maximize}"
+                                Tag="{DynamicResource Maximize}" AutomationProperties.Name="{DynamicResource S.A11y.Maximize}"
                                 Click="MaximizeButton_Click"/>
                         <Button Style="{StaticResource LockChromeCloseButton}"
-                                Tag="{DynamicResource Close}"
+                                Tag="{DynamicResource Close}" AutomationProperties.Name="{DynamicResource S.A11y.CloseApp}"
                                 Click="CloseButton_Click"/>
                     </StackPanel>
                 </Grid>
@@ -2424,7 +2424,7 @@
 
             <!-- Затемнение -->
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="SettingsCloseButton_Click"></Button>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="SettingsCloseButton_Click"></Button>
             </Border>
 
             <!-- Окно -->
@@ -2515,7 +2515,7 @@
                     <Grid Grid.Column="1">
 
                         <!-- Крестик поверх всех страниц -->
-                        <Button x:Name="SettingsCloseButton" Width="26" Height="26" Panel.ZIndex="1"
+                        <Button x:Name="SettingsCloseButton" AutomationProperties.Name="{DynamicResource S.Common.Close}" Width="26" Height="26" Panel.ZIndex="1"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0"
                         Cursor="Hand" Click="SettingsCloseButton_Click">
                             <Button.Template>
@@ -2713,6 +2713,8 @@
                                     </ComboBox>
                                 </Grid>
 
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <local:AccessibilityBlock x:Name="AccessibilitySettings"/>
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
                                 <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Appearance.Theme}"/>
@@ -4144,7 +4146,7 @@
             </Grid.Resources>
 
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="JournalCloseButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="JournalCloseButton_Click"/>
             </Border>
 
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
@@ -4190,7 +4192,7 @@
                                            FontSize="15" FontWeight="SemiBold"
                                            Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button x:Name="JournalCloseButton" Width="26" Height="26"
+                            <Button x:Name="JournalCloseButton" AutomationProperties.Name="{DynamicResource S.Common.Close}" Width="26" Height="26"
                                     HorizontalAlignment="Right" VerticalAlignment="Top"
                                     Cursor="Hand" Click="JournalCloseButton_Click">
                                 <Button.Template>
@@ -4649,7 +4651,7 @@
         <!-- ═══════════ ДОБАВЛЕНИЕ ДОМЕНА В БЕЛЫЙ СПИСОК ═══════════ -->
         <Grid x:Name="DomainOverlay" Visibility="Collapsed" Panel.ZIndex="35">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="DomainCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DomainCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
             <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -4695,7 +4697,7 @@
         <Grid x:Name="DataExportOverlay" Visibility="Collapsed" Panel.ZIndex="31"
               Focusable="True" PreviewKeyDown="DataExport_PreviewKeyDown">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="DataExportCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DataExportCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <!--
@@ -4795,7 +4797,7 @@
         <Grid x:Name="DataImportOverlay" Visibility="Collapsed" Panel.ZIndex="32"
               Focusable="True" PreviewKeyDown="DataImport_PreviewKeyDown">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="DataImportCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DataImportCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <!--
@@ -4892,7 +4894,7 @@
         <!-- ═══════════ ПОДТВЕРЖДЕНИЕ ОБНОВЛЕНИЯ ═══════════ -->
         <Grid x:Name="UpdateConfirmOverlay" Visibility="Collapsed" Panel.ZIndex="39">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="UpdateConfirmCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="UpdateConfirmCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -4958,7 +4960,7 @@
         <!-- ═══════════ ЗАПРОС НА РАЗРЕШЕНИЕ ЗАГРУЗКИ ═══════════ -->
         <Grid x:Name="DownloadRequestOverlay" Visibility="Collapsed" Panel.ZIndex="38">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="DownloadRequestDenyButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DownloadRequestDenyButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -4999,7 +5001,7 @@
         <!-- ═══════════ ПЕРЕИМЕНОВАНИЕ ПРОФИЛЯ ═══════════ -->
         <Grid x:Name="NameOverlay" Visibility="Collapsed" Panel.ZIndex="36">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="NameCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="NameCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5037,7 +5039,7 @@
         <!-- ═══════════ ДОБАВЛЕНИЕ КЛЮЧА ═══════════ -->
         <Grid x:Name="KeyOverlay" Visibility="Collapsed" Panel.ZIndex="42">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="KeyDialogCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyDialogCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5144,7 +5146,7 @@
         -->
         <Grid x:Name="KeyRenameOverlay" Visibility="Collapsed" Panel.ZIndex="44">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="KeyRenameCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyRenameCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5178,7 +5180,7 @@
         <!-- ═══════════ УДАЛЕНИЕ КЛЮЧА ═══════════ -->
         <Grid x:Name="KeyRemoveOverlay" Visibility="Collapsed" Panel.ZIndex="43">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="KeyRemoveNoButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyRemoveNoButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5298,7 +5300,7 @@
                 </Style>
             </Grid.Resources>
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="PromptPresetCancelButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptPresetCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5357,7 +5359,7 @@
         -->
         <Grid x:Name="PromptApplyOverlay" Visibility="Collapsed" Panel.ZIndex="41">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="PromptApplyNoButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptApplyNoButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5385,7 +5387,7 @@
         <!-- ═══════════ ВЫБОР ПРОФИЛЯ ═══════════ -->
         <Grid x:Name="ProfileOverlay" Visibility="Collapsed" Panel.ZIndex="37">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="ProfileCloseButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="ProfileCloseButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
                 <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -5424,7 +5426,7 @@
         <Grid x:Name="ImageViewerOverlay" Visibility="Collapsed" Panel.ZIndex="38"
               Focusable="True" PreviewKeyDown="ImageViewer_PreviewKeyDown">
             <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" Click="ImageViewerCloseButton_Click"/>
+                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="ImageViewerCloseButton_Click"/>
             </Border>
 
             <!-- Кадр просмотра. Картинка двигается трансформом, поэтому область фиксирована. -->

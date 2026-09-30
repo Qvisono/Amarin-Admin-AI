@@ -24,11 +24,11 @@
         <!-- Те же три кнопки, что у экрана входа: заголовок окна на время блокировки спрятан. -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                     Margin="0,6,8,0">
-            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Minimize}"
+            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Minimize}" AutomationProperties.Name="{DynamicResource S.A11y.Minimize}"
                     Focusable="False" Click="MinimizeButton_Click"/>
-            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Maximize}"
+            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Maximize}" AutomationProperties.Name="{DynamicResource S.A11y.Maximize}"
                     Focusable="False" Click="MaximizeButton_Click"/>
-            <Button Style="{StaticResource LockChromeCloseButton}" Tag="{DynamicResource Close}"
+            <Button Style="{StaticResource LockChromeCloseButton}" Tag="{DynamicResource Close}" AutomationProperties.Name="{DynamicResource S.A11y.CloseApp}"
                     Focusable="False" Click="CloseButton_Click"/>
         </StackPanel>
 

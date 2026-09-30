@@ -13,16 +13,33 @@
         Наборы ключей всех языков обязаны совпадать — это проверяет LocalizationTests.
     -->
 
+    <system:String x:Key="S.A11y.Attach" xml:space="preserve">Attach</system:String>
+    <system:String x:Key="S.A11y.CloseApp" xml:space="preserve">Close the app</system:String>
+    <system:String x:Key="S.A11y.Maximize" xml:space="preserve">Maximize</system:String>
+    <system:String x:Key="S.A11y.Minimize" xml:space="preserve">Minimize</system:String>
+    <system:String x:Key="S.A11y.Model" xml:space="preserve">Model</system:String>
+    <system:String x:Key="S.A11y.Send" xml:space="preserve">Send</system:String>
+    <system:String x:Key="S.A11y.Settings" xml:space="preserve">Settings</system:String>
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Open the project page on GitHub</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Approve everything automatically</system:String>
     <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">No questions, except SynGuard's and permanent settings changes such as the download allowlist. Only if you are sure of every request you make.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Ask about everything</system:String>
     <system:String x:Key="S.Access.AskAllDesc" xml:space="preserve">Everything that changes anything is asked about. Reading is not.</system:String>
+    <system:String x:Key="S.Access.CodeFont" xml:space="preserve">Code font</system:String>
+    <system:String x:Key="S.Access.CodeFontHint" xml:space="preserve">Cascadia Mono is missing on some Windows 10 installs; Consolas is used instead.</system:String>
+    <system:String x:Key="S.Access.Contrast" xml:space="preserve">Follow Windows high contrast</system:String>
+    <system:String x:Key="S.Access.ContrastDesc" xml:space="preserve">While Windows high contrast is on, the app uses its high-contrast theme.</system:String>
+    <system:String x:Key="S.Access.FontSize" xml:space="preserve">Chat text size</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Normal</system:String>
     <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Risky actions are asked about. Reading, and new files in Downloads or on the Desktop, go ahead without a question.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Read only</system:String>
     <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">The model can only look: any change is refused without a question.</system:String>
+    <system:String x:Key="S.Access.SizeHuge" xml:space="preserve">Extra large</system:String>
+    <system:String x:Key="S.Access.SizeLarge" xml:space="preserve">Large</system:String>
+    <system:String x:Key="S.Access.SizeNormal" xml:space="preserve">Normal</system:String>
+    <system:String x:Key="S.Access.SizeSmall" xml:space="preserve">Small</system:String>
+    <system:String x:Key="S.Access.Title" xml:space="preserve">Accessibility</system:String>
     <system:String x:Key="S.Account.Avatar" xml:space="preserve">Profile picture</system:String>
     <system:String x:Key="S.Account.DeleteProfileConfirm" xml:space="preserve">Delete the profile “{0}” together with all of its chats?&#10;&#10;This cannot be undone.</system:String>
     <system:String x:Key="S.Account.ExtraProfileShort" xml:space="preserve">Extra profile</system:String>

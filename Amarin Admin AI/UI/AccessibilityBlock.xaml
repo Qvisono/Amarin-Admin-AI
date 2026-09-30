@@ -1,0 +1,53 @@
+<UserControl x:Class="Amarin.UI.AccessibilityBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- Специальные возможности (I2, I3): высокая контрастность Windows, размер текста ленты, шрифт кода. -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Access.Title}"/>
+
+        <Grid Margin="0,4,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Access.Contrast}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.ContrastDesc}"/>
+            </StackPanel>
+            <CheckBox x:Name="ContrastToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" VerticalAlignment="Center"
+                      Checked="ContrastToggle_Changed" Unchecked="ContrastToggle_Changed"
+                      AutomationProperties.Name="{DynamicResource S.Access.Contrast}"/>
+        </Grid>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Access.FontSize}" Margin="0,6,0,4"/>
+        <WrapPanel x:Name="SizeChips">
+            <RadioButton Tag="12" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Access.SizeSmall}" Checked="Size_Checked"/>
+            <RadioButton Tag="13.5" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Access.SizeNormal}" Checked="Size_Checked"/>
+            <RadioButton Tag="15" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Access.SizeLarge}" Checked="Size_Checked"/>
+            <RadioButton Tag="17" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
+                         Content="{DynamicResource S.Access.SizeHuge}" Checked="Size_Checked"/>
+        </WrapPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Access.CodeFont}" Margin="0,10,0,4"/>
+        <WrapPanel x:Name="MonoChips">
+            <RadioButton Tag="consolas" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
+                         Content="Consolas" FontFamily="Consolas" Checked="Mono_Checked"/>
+            <RadioButton Tag="cascadia" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
+                         Content="Cascadia Mono" FontFamily="Cascadia Mono, Consolas" Checked="Mono_Checked"/>
+            <RadioButton Tag="courier" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
+                         Content="Courier New" FontFamily="Courier New" Checked="Mono_Checked"/>
+        </WrapPanel>
+        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Access.CodeFontHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    </StackPanel>
+</UserControl>

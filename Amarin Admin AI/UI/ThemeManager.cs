@@ -29,6 +29,23 @@ internal static class ThemeManager
     /// <summary>Raised on the UI thread after the dictionaries were swapped.</summary>
     public static event Action? EffectiveThemeChanged;
 
+    /// <summary>
+    /// Следовать режиму высокой контрастности Windows (I2): пока он включён, рисуется палитра
+    /// <see cref="AppTheme.Contrast"/>, выключили — возвращается выбранная тема. Статическое
+    /// изменяемое состояние: тест, который его меняет, обязан вернуть прежнее.
+    /// </summary>
+    public static bool FollowHighContrast { get; set; } = true;
+
+    /// <summary>
+    /// Включён ли в Windows режим высокой контрастности. Функцией — ради тестов: переключить
+    /// режим Windows в тесте нельзя.
+    /// </summary>
+    internal static Func<bool> SystemHighContrast { get; set; } = () => SystemParameters.HighContrast;
+
+    /// <summary>Какая тема рисуется: выбранная или контрастная поверх неё.</summary>
+    internal static AppTheme Effective(AppTheme chosen) =>
+        FollowHighContrast && SystemHighContrast() ? AppTheme.Contrast : chosen;
+
     public static void Initialize(Application application, AppTheme theme)
     {
         ArgumentNullException.ThrowIfNull(application);
@@ -63,7 +80,7 @@ internal static class ThemeManager
     public static void Apply(AppTheme theme)
     {
         _theme = theme;
-        var preset = ThemeCatalog.Resolve(theme, IsSystemLight());
+        var preset = ThemeCatalog.Resolve(Effective(theme), IsSystemLight());
 
         EnsureSystemHook();
 
@@ -186,7 +203,20 @@ internal static class ThemeManager
 
         _systemHooked = true;
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+
+        // Высокая контрастность включается и выключается на ходу (Alt+Shift+PrtScn): тема
+        // следует сразу, без перезапуска.
+        SystemParameters.StaticPropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SystemParameters.HighContrast) && FollowHighContrast)
+            {
+                _application?.Dispatcher.BeginInvoke(() => Apply(_theme));
+            }
+        };
     }
+
+    /// <summary>Настройка «Следовать высокой контрастности» сменилась — перерисовать с ней.</summary>
+    public static void Reapply() => Apply(_theme);
 
     private static void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {

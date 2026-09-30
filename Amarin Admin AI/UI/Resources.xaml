@@ -411,6 +411,21 @@
         <Setter Property="HorizontalAlignment" Value="Left"/>
     </Style>
 
+    <!--
+        Рамка фокуса с клавиатуры (I1) — цветом акцента, а не системный пунктир: тот на тёмных
+        темах почти не виден. Ставит её AccessibilityDefaults всем элементам, у которых своей нет.
+    -->
+    <Style x:Key="AppFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-2" StrokeThickness="1.5" RadiusX="6" RadiusY="6"
+                               Stroke="{DynamicResource Accent.Fill}" SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="InlineLinkButton" TargetType="Button">
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">

@@ -426,6 +426,15 @@ public sealed class AppSettings
     /// <summary>Язык речи (D14): код вроде «ru» или «en-US». Пусто — язык интерфейса.</summary>
     public string? VoiceLanguage { get; set; }
 
+    /// <summary>Следовать режиму высокой контрастности Windows (I2). Заводское — да.</summary>
+    public bool FollowHighContrast { get; set; } = true;
+
+    /// <summary>Размер текста сообщений в ленте (I3). Null — заводские 13,5.</summary>
+    public double? ChatFontSize { get; set; }
+
+    /// <summary>Моноширинный шрифт кода (I3): consolas, cascadia, courier. Null — Consolas, как было.</summary>
+    public string? CodeFont { get; set; }
+
     /// <summary>Номера строк у блоков кода в ленте (D13). Заводское — без них, как было.</summary>
     public bool CodeLineNumbers { get; set; }
 

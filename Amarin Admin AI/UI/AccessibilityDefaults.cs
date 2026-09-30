@@ -1,0 +1,105 @@
+using System.Globalization;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+
+namespace Amarin.UI;
+
+/// <summary>
+/// Доступность по умолчанию (I1): имя для экранного диктора и рамка фокуса — всем, у кого их нет.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Кнопок-иконок в программе больше сотни, и половина собирается кодом (действия под сообщением,
+/// шапки блоков кода, строки списков). Проставлять каждой имя руками значило бы забыть
+/// следующую. Поэтому имя берётся из подсказки: у кнопки-иконки она есть почти всегда, и это
+/// ровно то, что человек прочитал бы глазами. Привязкой, а не копией: подсказка сменит язык —
+/// сменится и имя.
+/// </para>
+/// <para>
+/// Рамка фокуса — только там, где её не задали: элемент со своей рамкой (или с явным «без
+/// рамки») решил это сам.
+/// </para>
+/// </remarks>
+internal static class AccessibilityDefaults
+{
+    private static bool _registered;
+
+    public static void Register()
+    {
+        if (_registered)
+        {
+            return;
+        }
+
+        _registered = true;
+        EventManager.RegisterClassHandler(typeof(ButtonBase), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnButtonLoaded));
+        EventManager.RegisterClassHandler(typeof(Control), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnControlLoaded));
+    }
+
+    private static void OnButtonLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ButtonBase button)
+        {
+            NameFromToolTip(button);
+        }
+    }
+
+    /// <summary>Имя из подсказки — если своего имени и текста у кнопки нет.</summary>
+    internal static void NameFromToolTip(ButtonBase button)
+    {
+        if (!string.IsNullOrWhiteSpace(AutomationProperties.GetName(button)) ||
+            BindingOperations.IsDataBound(button, AutomationProperties.NameProperty) ||
+            HasOwnText(button.Content) ||
+            button.ToolTip is null)
+        {
+            return;
+        }
+
+        button.SetBinding(AutomationProperties.NameProperty, new Binding(nameof(FrameworkElement.ToolTip))
+        {
+            RelativeSource = RelativeSource.Self,
+            Converter = ToolTipText.Instance
+        });
+    }
+
+    private static bool HasOwnText(object? content) => content switch
+    {
+        string text => !string.IsNullOrWhiteSpace(text),
+        TextBlock block => !string.IsNullOrWhiteSpace(block.Text),
+        AccessText access => !string.IsNullOrWhiteSpace(access.Text),
+        _ => false
+    };
+
+    private static void OnControlLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Control control || !control.Focusable)
+        {
+            return;
+        }
+
+        var source = DependencyPropertyHelper.GetValueSource(control, FrameworkElement.FocusVisualStyleProperty).BaseValueSource;
+        if (source is BaseValueSource.Default or BaseValueSource.DefaultStyle or BaseValueSource.DefaultStyleTrigger)
+        {
+            control.SetResourceReference(FrameworkElement.FocusVisualStyleProperty, "AppFocusVisual");
+        }
+    }
+
+    /// <summary>Текст подсказки, чем бы она ни была: строкой или <see cref="ToolTip"/> со строкой внутри.</summary>
+    private sealed class ToolTipText : IValueConverter
+    {
+        public static readonly ToolTipText Instance = new();
+
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+        {
+            string text => text,
+            ToolTip { Content: string text } => text,
+            _ => ""
+        };
+
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+            Binding.DoNothing;
+    }
+}

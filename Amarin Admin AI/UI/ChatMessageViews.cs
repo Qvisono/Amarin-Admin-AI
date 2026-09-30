@@ -207,7 +207,7 @@ internal sealed class AssistantMessageView
         // Полоса под ответом перестраивается вслед за телом, а не до него: какие файлы названы
         // в тексте, известно только после разбора разметки.
         _placedInText = ChatMarkdown.Write(
-            Body, Host, text, fontSize: 13.5, lineHeight: 21, files: _files, streaming: streaming);
+            Body, Host, text, fontSize: ChatFonts.BodySize, lineHeight: ChatFonts.AssistantLine, files: _files, streaming: streaming);
         RefreshFileStrip();
     }
 
@@ -1131,8 +1131,8 @@ internal static class ChatMessageViews
         // Блочная разметка не влезает в обжатый по тексту пузырь — такие сообщения
         // растягиваем до максимума, как ответы ассистента.
         var wide = parsed.HasBlockConstructs;
-        var display = CreateReadOnlyBox(UserForeground, 13.5, 19, shrinkWrap: !wide);
-        ChatMarkdown.Write(display, host, parsed, 13.5, 19, fillAvailableWidth: wide);
+        var display = CreateReadOnlyBox(UserForeground, ChatFonts.BodySize, ChatFonts.UserLine, shrinkWrap: !wide);
+        ChatMarkdown.Write(display, host, parsed, ChatFonts.BodySize, ChatFonts.UserLine, fillAvailableWidth: wide);
         if (message.Quotes.Count > 0)
         {
             QuoteViews.HighlightReferences(display.Document, message.Quotes, actions?.ShowQuoteSource);
@@ -1150,7 +1150,7 @@ internal static class ChatMessageViews
         {
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
-            FontSize = 13.5,
+            FontSize = ChatFonts.BodySize,
             TextWrapping = TextWrapping.Wrap,
             AcceptsReturn = true,
             Visibility = Visibility.Collapsed,
@@ -1443,7 +1443,7 @@ internal static class ChatMessageViews
 
         // Само тело наполняется ниже, через SetBody: разметка обязана видеть список файлов
         // этого ответа, а он известен только после UpdateTools.
-        var body = CreateReadOnlyBox(AiForeground, 13.5, 21);
+        var body = CreateReadOnlyBox(AiForeground, ChatFonts.BodySize, ChatFonts.AssistantLine);
 
         // Из тела ответа можно цитировать — по этой отметке лента отличает его от пузыря
         // человека и от вложенных боксов кода.
@@ -1580,7 +1580,7 @@ internal static class ChatMessageViews
             // design-time / not yet attached
         }
 
-        var width = MeasureWrappedWidth(text, 13.5, 19, UserBubbleInnerMax, Math.Max(1.0, dip));
+        var width = MeasureWrappedWidth(text, ChatFonts.BodySize, ChatFonts.UserLine, UserBubbleInnerMax, Math.Max(1.0, dip));
         box.Width = width;
         box.Document.PageWidth = width;
     }

@@ -52,7 +52,8 @@ internal static class ChatMarkdown
     /// разбирается при создании, а таких Run-ов в ответе бывают десятки, и каждая перерисовка
     /// живого ответа создавала их заново.
     /// </summary>
-    private static readonly FontFamily MonoFamily = new("Consolas, Cascadia Mono, Courier New");
+    /// <summary>Моноширинный для кода в строке — тот же, что у блоков кода (I3).</summary>
+    private static FontFamily MonoFamily => ChatFonts.Mono;
 
     public static IReadOnlyList<string> PreviewLines(string text)
     {
