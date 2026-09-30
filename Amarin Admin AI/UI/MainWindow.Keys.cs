@@ -32,6 +32,9 @@ namespace Amarin.UI
             }
 
             KeyPage.Attach(_services);
+            KeyPage.ShowProblem ??= text => Detached.Run(
+                ShowNoticeAsync(Loc.Get("S.Spend.ExportFailedTitle"), text, Loc.Get("S.Common.Close"), null),
+                "spend_export_failed");
             KeyPage.Activate();
         }
 

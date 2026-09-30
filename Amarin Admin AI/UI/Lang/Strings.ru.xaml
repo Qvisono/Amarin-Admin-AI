@@ -1514,6 +1514,10 @@
 
     <system:String x:Key="S.Spend.Empty" xml:space="preserve">За этот отрезок трат не было</system:String>
     <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice не ответил. Попробуйте обновить</system:String>
+    <system:String x:Key="S.Spend.Export" xml:space="preserve">Выгрузить траты в CSV</system:String>
+    <system:String x:Key="S.Spend.ExportFailed" xml:space="preserve">Не удалось записать CSV: {0}</system:String>
+    <system:String x:Key="S.Spend.ExportFailedTitle" xml:space="preserve">Файл не записан</system:String>
+    <system:String x:Key="S.Spend.ExportTip" xml:space="preserve">Выгрузить траты в CSV — тот же период и те же ключи, что на графике, из журнала трат программы.</system:String>
     <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Звук</system:String>
     <system:String x:Key="S.Spend.Kind.ChatSearch" xml:space="preserve">Поиск по чатам</system:String>
     <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Векторы</system:String>

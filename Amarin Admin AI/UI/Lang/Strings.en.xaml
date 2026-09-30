@@ -1514,6 +1514,10 @@
 
     <system:String x:Key="S.Spend.Empty" xml:space="preserve">Nothing was spent over this stretch</system:String>
     <system:String x:Key="S.Spend.Error" xml:space="preserve">Venice did not answer. Try refreshing</system:String>
+    <system:String x:Key="S.Spend.Export" xml:space="preserve">Export spending to CSV</system:String>
+    <system:String x:Key="S.Spend.ExportFailed" xml:space="preserve">Could not write the CSV: {0}</system:String>
+    <system:String x:Key="S.Spend.ExportFailedTitle" xml:space="preserve">The file was not written</system:String>
+    <system:String x:Key="S.Spend.ExportTip" xml:space="preserve">Export spending to CSV: the same period and keys as the chart, from the app's own spending log.</system:String>
     <system:String x:Key="S.Spend.Kind.Audio" xml:space="preserve">Audio</system:String>
     <system:String x:Key="S.Spend.Kind.ChatSearch" xml:space="preserve">Chat search</system:String>
     <system:String x:Key="S.Spend.Kind.Embedding" xml:space="preserve">Embeddings</system:String>

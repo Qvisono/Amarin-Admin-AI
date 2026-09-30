@@ -161,6 +161,80 @@ public partial class SettingsKeyPage : UserControl
     private void SpendRefreshButton_Click(object sender, RoutedEventArgs e) =>
         Detached.Run(ReloadAsync(force: true), "spend_report");
 
+    /// <summary>Сказать человеку о сбое — окном уведомлений главного окна. Ставит окно.</summary>
+    internal Action<string>? ShowProblem { get; set; }
+
+    private void SpendExportButton_Click(object sender, RoutedEventArgs e) =>
+        Detached.Run(ExportSpendAsync(), "spend_export");
+
+    /// <summary>Журналы для выгрузки: по одному на секрет, в том охвате, что выбран у графика.</summary>
+    internal IReadOnlyList<SpendCsvSource> ExportSources()
+    {
+        if (_services is not { } services)
+        {
+            return [];
+        }
+
+        var entries = services.KeyStore.List().Where(entry => !entry.IsBroken).ToList();
+        IEnumerable<ApiCredential> credentials = _allKeys ? AllCredentials() : [services.KeyStore.ActiveCredential()];
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var sources = new List<SpendCsvSource>();
+        foreach (var credential in credentials)
+        {
+            var fingerprint = ApiKeyStore.Fingerprint(credential.Secret);
+            if (!seen.Add(fingerprint))
+            {
+                continue;
+            }
+
+            var label = entries.FirstOrDefault(entry => ApiKeyStore.Fingerprint(entry.Secret) == fingerprint)?.Label ?? fingerprint;
+            sources.Add(new SpendCsvSource(label, credential.Provider, services.Ledger.Copy(credential.Secret)));
+        }
+
+        return sources;
+    }
+
+    private async Task ExportSpendAsync()
+    {
+        if (_services is not { } services)
+        {
+            return;
+        }
+
+        var today = DateTime.Today;
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = $"amarin-spend-{_period.ToString().ToLowerInvariant()}-{today:yyyy-MM-dd}.csv",
+            Filter = "CSV (*.csv)|*.csv",
+            DefaultExt = ".csv",
+            AddExtension = true
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true)
+        {
+            return;
+        }
+
+        var sources = ExportSources();
+        var known = services.Models.Cached;
+        var from = SpendPeriods.Start(_period, today);
+        var culture = CultureInfo.CurrentCulture;
+        var path = dialog.FileName;
+        try
+        {
+            // BOM — ради Excel: без него он читает UTF-8 как ANSI, и русские названия ключей
+            // превращаются в кракозябры.
+            await Task.Run(() => File.WriteAllText(
+                    path,
+                    SpendCsv.Build(sources, from, today, known, culture),
+                    new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true)))
+                .ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowProblem?.Invoke(Loc.Format("S.Spend.ExportFailed", ex.Message));
+        }
+    }
+
     /// <summary>
     /// Ключи, по которым строится график в режиме «все».
     /// </summary>

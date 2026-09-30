@@ -115,6 +115,34 @@ internal sealed class SpendLedger
     }
 
     /// <summary>
+    /// Копия журнала ключа для выгрузки (E5). Копия, а не сам журнал: ход дописывает в него из
+    /// своего потока, и обход живого списка дней мог бы упасть посреди записи файла.
+    /// </summary>
+    public SpendHistoryFile Copy(string? secret)
+    {
+        lock (_gate)
+        {
+            var source = Loaded(ApiKeyStore.Fingerprint(secret));
+            return new SpendHistoryFile
+            {
+                Days = source.Days.Select(day => new SpendDay
+                {
+                    Date = day.Date,
+                    Usd = day.Usd,
+                    Diem = day.Diem,
+                    Skus = day.Skus.Select(bucket => new SpendSkuBucket
+                    {
+                        Sku = bucket.Sku,
+                        Usd = bucket.Usd,
+                        Diem = bucket.Diem,
+                        Requests = bucket.Requests
+                    }).ToList()
+                }).ToList()
+            };
+        }
+    }
+
+    /// <summary>
     /// Потрачено сегодня и в этом календарном месяце: ключом <paramref name="secret"/> и всеми
     /// ключами профиля. Для лимитов трат (E1).
     /// </summary>

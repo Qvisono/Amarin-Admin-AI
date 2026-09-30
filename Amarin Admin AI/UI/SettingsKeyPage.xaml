@@ -228,9 +228,17 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,8,0" VerticalAlignment="Center"
                            Text="{DynamicResource S.Spend.Title}"/>
-                <Button x:Name="SpendRefreshButton" Grid.Column="1" Style="{StaticResource KeyIconButton}"
-                        Content="⟳" Click="SpendRefreshButton_Click"
-                        ToolTip="{DynamicResource S.Key.Balance.Refresh}"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Выгрузка трат в CSV (E5): тот же период и тот же охват, что на графике. -->
+                    <Button x:Name="SpendExportButton" Style="{StaticResource KeyIconButton}" Margin="0,0,4,0"
+                            Content="⤓" Click="SpendExportButton_Click"
+                            ToolTip="{DynamicResource S.Spend.ExportTip}"
+                            AutomationProperties.Name="{DynamicResource S.Spend.Export}"/>
+                    <Button x:Name="SpendRefreshButton" Style="{StaticResource KeyIconButton}"
+                            Content="⟳" Click="SpendRefreshButton_Click"
+                            ToolTip="{DynamicResource S.Key.Balance.Refresh}"
+                            AutomationProperties.Name="{DynamicResource S.Key.Balance.Refresh}"/>
+                </StackPanel>
             </Grid>
 
             <!-- Чей график: все ключи или один выбранный. В своей панели и со своей группой —
