@@ -37,6 +37,10 @@ step, picks its own tools and comes back with the result, and a report on every 
 there in the conversation — expand it and read it. Who takes the job — a light model or a
 strong one — the program decides by itself, by the task, not by how long it is worded.
 
+An answer you didn't like is not lost when you ask again: **Retry** and editing your question keep
+the earlier answer — with everything that followed it — as a version, and the ‹ 2/3 › arrows under
+the message switch between them.
+
 Any earlier answer, even one from the very start of a long chat, can be answered point by point:
 select a passage, press **Reply**, and the model gets exactly those words, marked as the part you
 are responding to.
@@ -71,8 +75,8 @@ money never runs out mid-task unnoticed.</sup>
 ## Installation
 
 **1. Download the program.** The [Releases](https://github.com/Qvisono/Amarin-Admin-AI/releases/latest)
-page holds a single file, `Amarin-Admin-AI-v<version>-win-x64.exe`. No need to install .NET — it is
-inside.
+page holds a single file, `Amarin-Admin-AI-v<version>-win-x64.exe`, and `SHA256SUMS` with its
+checksum. No need to install .NET — it is inside.
 
 **2. Give the program a key.** A Venice key, an OpenRouter key or both will do — paste them into
 **Settings → Key & Info**. The key is stored on disk encrypted with Windows' own means: only your
@@ -94,7 +98,8 @@ pasted on the Key & Info page works right away.
 
 > Where to get the key itself, what it costs and how to cap your spending — the program has its
 > own guide with screenshots: **Settings → Info**, five steps from sign-up to the first answer.
-> The program finds new versions on GitHub by itself and installs them.
+> The program finds new versions on GitHub by itself and installs them — only after checking the
+> SHA-256 checksum, and, if your copy is signed, the publisher's signature.
 
 ---
 
@@ -105,20 +110,37 @@ The model works with a live system, so it has limits — and they are on by defa
 **Anything dangerous is asked about.** Writing to the registry, managing services, installing and
 removing software, firewall rules, disk cleanup — only with explicit consent and a description of
 what exactly will change. A refusal is an ordinary answer for the model: it sees it and looks for
-another way.
+another way. The chat's own tools pass the same gate as the agent's: only a new file in Downloads
+or on the Desktop is written without a question, and nothing may write into the program's own data
+folder.
+
+**You choose how much it may do.** **Settings → Security** offers four access modes — normal, ask
+about everything, read only, and approve everything automatically — and switches individual tools
+off; a switched-off tool is not even shown to the model. A confirmation can allow a tool until the
+end of the reply or for the whole chat.
+
+**PowerShell is read, not guessed.** A script is analysed by its syntax tree, and only reading runs
+without a question; the confirmation lists what the script is going to change.
 
 **A second model checks the intent.** A list of dangerous cmdlets catches what a command touches,
 but not why it was written: a script that collects passwords and sends them out contains not a
 single suspicious cmdlet. That is why every agent round is read by a separate guard before it
 runs.
 
-**Changes can be rolled back.** Before an edit, the state of services, scheduled tasks and the
-affected registry keys is captured — the agent can put it back. Where there is no rollback
-(firewall rules, Windows features), the program says so honestly in the request itself.
+**Changes can be rolled back.** Before an edit, the state of services, scheduled tasks, startup
+entries and the affected registry keys is captured, value by value. A rollback returns what was
+changed and removes what was added, and shows you what it will do before it does it. Where there is
+no rollback (firewall rules, Windows features), the program says so honestly in the request itself.
+
+**Everything is on record.** Every call that changes the system and every refusal lands in an audit
+log — with the chat, the arguments (secrets removed), who allowed it and what the guard said. The
+log outlives deleted chats and exports to CSV and JSON.
 
 **The limits are hard.** Deleting files through PowerShell and the file tool is forbidden.
 Downloads come only from allow-listed domains. The current user can't be disabled and the last
-administrator can't be removed. BitLocker keys and passwords are never handed out.
+administrator can't be removed. Critical Windows processes and services can't be stopped. Browser
+password stores, SSH keys, password vaults and the Windows credential stores are never read.
+BitLocker keys and passwords are never handed out.
 
 **The key goes nowhere.** On disk it is encrypted with Windows' own means — or it stays in an
 environment variable altogether, if that's what you chose. It is not in `appsettings.json`, it
@@ -133,9 +155,13 @@ Everything is in `%APPDATA%\Amarin Admin AI`: conversations, settings, attachmen
 translations, and your instructions (`instructions\*.md`, one file each). The program has neither a cloud nor accounts. Several people can share one
 computer: each profile has its own chats and settings, and a profile can be locked with a password.
 
-Data is exported as a single archive and imported back; a single chat — as JSON or as a string you
-can forward. All of these are plain unencrypted files: the profile password locks entry to the
-program, not the data folder.
+Conversations can be stored encrypted with Windows' own means (**Settings → Security**): then only
+your Windows account can read them. A profile with a password can lock itself after a few idle
+minutes, or on request.
+
+Data is exported as a single archive and imported back, optionally protected with a password; a
+single chat — as JSON or as a string you can forward. **Delete all data** wipes the current profile
+and starts it from a clean slate.
 
 ---
 
@@ -163,9 +189,9 @@ dotnet build "Amarin Admin AI/Amarin Admin AI.csproj"
 dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj
 ```
 
-There are more than seventeen hundred tests, and they are green — including those that bring up
-real WPF and check the window, the chat markup and the order in which popups close, without
-showing anything on screen.
+There are more than two thousand four hundred tests — including those that bring up real WPF and
+check the window, the chat markup and the order in which popups close, without showing anything on
+screen.
 
 The release build is a single self-contained file:
 
