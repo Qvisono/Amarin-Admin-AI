@@ -27,13 +27,21 @@ public partial class SettingsConnectionsPage : UserControl
     /// <summary>Список машин изменился — выбор цели в чате перечитывает его.</summary>
     internal event Action? MachinesChanged;
 
-    internal void Attach(AppServices services) => _services = services;
+    internal void Attach(AppServices services)
+    {
+        _services = services;
+        McpPane.Attach(services);
+    }
 
     internal void Load()
     {
         EditorPane.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Visible;
         Refresh();
+        if (McpPane.Visibility == Visibility.Visible)
+        {
+            McpPane.Load();
+        }
     }
 
     private void Refresh()
@@ -50,7 +58,19 @@ public partial class SettingsConnectionsPage : UserControl
 
     private void Tab_Checked(object sender, RoutedEventArgs e)
     {
-        // Вкладка одна; вторая (MCP) заводится своим пунктом.
+        if (McpPane is null || MachinesContent is null)
+        {
+            // Checked у заранее отмеченной вкладки приходит из InitializeComponent, до полей.
+            return;
+        }
+
+        var mcp = McpTab.IsChecked == true;
+        MachinesContent.Visibility = mcp ? Visibility.Collapsed : Visibility.Visible;
+        McpPane.Visibility = mcp ? Visibility.Visible : Visibility.Collapsed;
+        if (mcp)
+        {
+            McpPane.Load();
+        }
     }
 
     private RemoteMachine? MachineOf(object sender) =>

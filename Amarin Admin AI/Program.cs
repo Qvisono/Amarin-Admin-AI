@@ -277,6 +277,11 @@ internal static class Program
         var instructions = new InstructionLibrary(dataRoot);
         var planReviews = new PlanReviewQueue();
 
+        // Серверы MCP (C11): свой HTTP-клиент — у них свои тайм-ауты и свои адресаты.
+        var mcp = new McpHost(dataRoot, HttpClients.Create(TimeSpan.FromMinutes(2)));
+        mcp.Refresh();
+        ToolGate.McpReadOnly = name => mcp.ReadOnlyNames.Contains(name);
+
         // Инструменты рецептов — те же, что у агента, плюс файловые чата: рецепт сохраняют из
         // журнала любого из них. Лениво и один раз — набор строится за заметное время, а рецепты
         // запускают редко.
@@ -291,7 +296,8 @@ internal static class Program
             new WriteFileTool()
         ]));
         var agentHost = new AgentHost(
-            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews);
+            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
+            mcp.Tools);
         var chatTools = new ToolRegistry(
         [
             new ReadFileTool(),
@@ -340,6 +346,7 @@ internal static class Program
             Schedule = new ScheduleBook(dataRoot),
             Health = new HealthCache(dataRoot),
             Machines = new MachineBook(dataRoot),
+            Mcp = mcp,
             AgentHost = agentHost,
             RecipeRunner = new RecipeRunner(
                 () => recipeTools.Value,

@@ -27,6 +27,8 @@
                 <WrapPanel x:Name="Tabs">
                     <RadioButton x:Name="MachinesTab" GroupName="ConnectionsTab" Style="{StaticResource ChipRadio}"
                                  IsChecked="True" Content="{DynamicResource S.Machines.Tab}" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="McpTab" GroupName="ConnectionsTab" Style="{StaticResource ChipRadio}"
+                                 Content="{DynamicResource S.Mcp.Tab}" Checked="Tab_Checked"/>
                 </WrapPanel>
             </StackPanel>
 
@@ -87,6 +89,8 @@
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+
+            <local:McpPanel x:Name="McpPane" Grid.Row="2" Margin="0,10,0,0" Visibility="Collapsed"/>
         </Grid>
 
         <!-- ═══════════ РЕДАКТОР ═══════════ -->

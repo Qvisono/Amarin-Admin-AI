@@ -17,6 +17,9 @@ internal sealed class AgentHost : IAgentHost
     /// <summary>Очередь планов на рассмотрение (C1); null — плана нет, некому его показать.</summary>
     private readonly PlanReviewQueue? _plans;
 
+    /// <summary>Инструменты сверх своих — серверов MCP (C11). Берутся заново на каждый прогон.</summary>
+    private readonly Func<IReadOnlyList<ITool>>? _extraTools;
+
     /// <param name="agents">
     /// Куда записываться на время работы, чтобы агента можно было остановить или пересадить на
     /// другую модель, пока он работает. Null — прежнее поведение «запустили и ждём».
@@ -34,8 +37,10 @@ internal sealed class AgentHost : IAgentHost
         AgentRegistry? agents = null,
         Func<string, VeniceModelInfo?>? resolveModelInfo = null,
         InstructionLibrary? instructions = null,
-        PlanReviewQueue? plans = null)
+        PlanReviewQueue? plans = null,
+        Func<IReadOnlyList<ITool>>? extraTools = null)
     {
+        _extraTools = extraTools;
         _instructions = instructions;
         _plans = plans;
         _parentOptions = parentOptions;
@@ -141,6 +146,12 @@ internal sealed class AgentHost : IAgentHost
                 () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
                 _instructions,
                 agentInstructions);
+            if (_extraTools?.Invoke() is { Count: > 0 } extra)
+            {
+                // Два сервера с одинаковым именем дали бы одинаковые имена инструментов, а реестр
+                // на повторе падает — оставляем первый.
+                tools = new ToolRegistry([.. tools.All, .. extra.DistinctBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase)]);
+            }
 
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);

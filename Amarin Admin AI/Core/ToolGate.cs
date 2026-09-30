@@ -57,6 +57,13 @@ internal static class ToolGate
     private static readonly AsyncLocal<bool> ReadOnlyForced = new();
 
     /// <summary>
+    /// Отметки «только чтение» у инструментов MCP. Ставится один раз при запуске (<see cref="McpHost"/>);
+    /// null — все инструменты MCP пишущие. Статическое состояние: тест, который его меняет,
+    /// возвращает прежнее.
+    /// </summary>
+    internal static Func<string, bool>? McpReadOnly { get; set; }
+
+    /// <summary>
     /// Режим «только чтение» для всего, что выполнится в этом асинхронном потоке, — какой бы
     /// режим ни стоял в настройках. Так идут прогоны по расписанию: человека рядом нет, и
     /// спросить его о записи некому.
@@ -83,6 +90,13 @@ internal static class ToolGate
         var tool = (toolName ?? "").Trim();
         var args = WithoutInternalFields(arguments);
         var effect = ToolEffects.Classify(tool, args);
+
+        // Инструмент MCP читает, только если так его отметил человек: сервер о себе может сказать
+        // что угодно, и верить его описанию значило бы пропускать запись без вопроса.
+        if (effect == ToolEffect.Write && McpNames.IsMcp(tool) && McpReadOnly?.Invoke(tool) == true)
+        {
+            effect = ToolEffect.Read;
+        }
 
         if (IsDisabled(settings, tool))
         {
@@ -213,6 +227,12 @@ internal static class ToolGate
     /// </summary>
     private static bool RequiresConfirmation(string tool, JsonElement args)
     {
+        // Инструмент сервера MCP: что он делает, знает только сервер, — спрашиваем всегда.
+        if (McpNames.IsMcp(tool))
+        {
+            return true;
+        }
+
         if (tool.Equals("filesystem", StringComparison.OrdinalIgnoreCase) &&
             DangerousActionGuard.ActionOf(args) is "copy" or "move")
         {

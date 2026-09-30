@@ -264,8 +264,9 @@ public static class DataBundle
             return DataCategory.None;
         }
 
-        // Список удалённых машин несёт их пароли под DPAPI — то же правило, что у ключей.
-        if (name == MachineBook.FileName)
+        // Список удалённых машин и серверов MCP несёт пароли и токены под DPAPI — то же правило,
+        // что у ключей.
+        if (name == MachineBook.FileName || name == McpHost.FileName)
         {
             return DataCategory.None;
         }

@@ -130,6 +130,9 @@ internal sealed class AppServices : IDisposable
 
     private MachineBook? _machines;
 
+    /// <summary>Серверы MCP (C11). Null — не заводились (тесты): инструментов MCP нет.</summary>
+    internal McpHost? Mcp { get; init; }
+
     public string? StartupPrompt { get; init; }
 
     /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>
@@ -261,6 +264,8 @@ internal sealed class AppServices : IDisposable
         Schedule.UseRoot(dataRoot);
         Health.UseRoot(dataRoot);
         Machines.UseRoot(dataRoot);
+        Mcp?.UseRoot(dataRoot);
+        Mcp?.Refresh();
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе
@@ -278,6 +283,7 @@ internal sealed class AppServices : IDisposable
 
     public void Dispose()
     {
+        Mcp?.StopAll();
         Http.Dispose();
         DownloadHttp.Dispose();
     }
