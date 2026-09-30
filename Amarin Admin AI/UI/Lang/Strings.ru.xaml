@@ -952,6 +952,7 @@
     <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">Контрольная сумма не совпала - файл удалён.</system:String>
     <system:String x:Key="S.Updates.Install" xml:space="preserve">Установить сейчас</system:String>
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
+    <system:String x:Key="S.Updates.InstallUnverified" xml:space="preserve">Обновить без проверки</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем - ярлыки и запуск от имени администратора не потеряются.</system:String>
@@ -962,6 +963,8 @@
     <system:String x:Key="S.Updates.LastCheck.Never" xml:space="preserve">ещё не запускалась</system:String>
     <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Папку программы правит только администратор, поэтому Windows спросит разрешение.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">Проверка ещё не запускалась</system:String>
+    <system:String x:Key="S.Updates.NoChecksum" xml:space="preserve">У этой сборки нет контрольной суммы, и сама программа её не ставит. Обновиться можно кнопкой в окне обновления, отдельно согласившись.</system:String>
+    <system:String x:Key="S.Updates.NoChecksumNote" xml:space="preserve">Контрольной суммы нет: GitHub не сообщил её, а в релизе нет файла SHA256SUMS. Проверить, что файл не подменён по дороге, нечем.</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">Нет связи с GitHub: {0}</system:String>
     <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Не удалось определить папку программы.</system:String>
     <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Не удалось определить файл программы.</system:String>
@@ -970,7 +973,9 @@
     <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Не удалось подготовить папку для загрузки ({0}). Скачайте новую версию вручную.</system:String>
     <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">Файл релиза лежит не на GitHub - обновление отменено.</system:String>
     <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">Этот файл не из загрузок обновления - подмена отменена.</system:String>
+    <system:String x:Key="S.Updates.NotSigned" xml:space="preserve">Новая сборка не подписана или её подпись не прошла проверку, а установленная подписана. Обновление отменено.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Открыть релиз</system:String>
+    <system:String x:Key="S.Updates.OtherPublisher" xml:space="preserve">Новая сборка подписана другим издателем, чем установленная. Обновление отменено.</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Не удалось разобрать ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.Pill.Available" xml:space="preserve">Есть обновление</system:String>
     <system:String x:Key="S.Updates.Pill.Checking" xml:space="preserve">Проверяем</system:String>
@@ -991,6 +996,8 @@
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Версия и обновления</system:String>
     <system:String x:Key="S.Updates.TooBig" xml:space="preserve">Файл релиза неправдоподобно велик.</system:String>
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">неизвестно сколько</system:String>
+    <system:String x:Key="S.Updates.UnverifiedText" xml:space="preserve">Программа скачает файл с GitHub, но не сможет убедиться, что это тот самый файл, который выложили в релиз. Продолжайте, только если доверяете источнику; иначе скачайте сборку со страницы релиза сами.</system:String>
+    <system:String x:Key="S.Updates.UnverifiedTitle" xml:space="preserve">Поставить сборку без проверки?</system:String>
     <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">Установлена последняя версия - {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Обновить</system:String>
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Обновить с правами</system:String>

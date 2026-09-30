@@ -368,6 +368,6 @@ public sealed class UpdateUiTests
                     "Amarin-Admin-AI-v99.0.0-win-x64.exe",
                     "https://github.com/Qvisono/Amarin-Admin-AI/releases/download/v99.0.0/Amarin-Admin-AI-v99.0.0-win-x64.exe",
                     1024,
-                    null)
+                    new string('b', 64))
             ]);
 }

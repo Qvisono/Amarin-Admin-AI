@@ -4299,10 +4299,25 @@
                         <TextBlock Text="{DynamicResource S.Update.Desc}"
                                    FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
                                    TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <!--
+                            Сборку нечем сверить: сама программа её не ставит, а кнопкой — только
+                            отдельным согласием. Плашка стоит над кнопками, чтобы её нельзя было
+                            не прочитать по пути к «Обновить».
+                        -->
+                        <Border x:Name="UpdateConfirmNoChecksum" Visibility="Collapsed" Margin="0,12,0,0"
+                                Background="{DynamicResource Status.WarningSurface}"
+                                BorderBrush="{DynamicResource Status.WarningBorder}" BorderThickness="1"
+                                CornerRadius="6" Padding="10,7">
+                            <TextBlock Text="{DynamicResource S.Updates.NoChecksumNote}" FontSize="11.5"
+                                       Foreground="{DynamicResource Status.Warning}" TextWrapping="Wrap"/>
+                        </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                             <Button x:Name="UpdateConfirmCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="UpdateConfirmCancelButton_Click"/>
+                            <Button x:Name="UpdateConfirmUnverifiedButton" Content="{DynamicResource S.Updates.InstallUnverified}"
+                                    Style="{StaticResource DialogSecondaryButton}" Visibility="Collapsed"
+                                    Margin="0,0,8,0" Click="UpdateConfirmUnverifiedButton_Click"/>
                             <Button x:Name="UpdateConfirmApplyButton" Content="{DynamicResource S.Update.Confirm}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="UpdateConfirmApplyButton_Click"/>

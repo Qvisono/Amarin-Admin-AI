@@ -34,7 +34,8 @@ internal static class Program
             // Единственная работа этого запуска — подменить файл и выйти. Ни окна, ни настроек,
             // ни чатов: процесс поднят через UAC, и делать под администратором что-то ещё он не
             // должен.
-            return UpdateInstaller.ApplyElevated(startup.ApplyUpdateFrom, Environment.ProcessPath).Ok
+            return UpdateInstaller.ApplyElevated(
+                    startup.ApplyUpdateFrom, Environment.ProcessPath, startup.ApplyUpdateSha256).Ok
                 ? 0
                 : 1;
         }

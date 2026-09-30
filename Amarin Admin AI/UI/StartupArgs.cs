@@ -36,6 +36,13 @@ internal sealed class StartupArgs
     /// </remarks>
     public string? ApplyUpdateFrom { get; private set; }
 
+    /// <summary>
+    /// Сумма SHA-256 файла для <see cref="ApplyUpdateFrom"/>: повышенный процесс файла не
+    /// скачивал и сверяет его сам, прямо перед подменой. Null — обновление без проверки, на
+    /// которое человек отдельно согласился.
+    /// </summary>
+    public string? ApplyUpdateSha256 { get; private set; }
+
     public static StartupArgs Parse(string[] args)
     {
         var result = new StartupArgs();
@@ -70,6 +77,12 @@ internal sealed class StartupArgs
             if (TryTakeValue(args, ref i, "--apply-update", out var incoming))
             {
                 result.ApplyUpdateFrom = string.IsNullOrWhiteSpace(incoming) ? null : incoming;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--sha256", out var sha))
+            {
+                result.ApplyUpdateSha256 = sha.Length == 64 && sha.All(Uri.IsHexDigit) ? sha : null;
                 continue;
             }
 

@@ -244,6 +244,82 @@ public static class UpdateChecker
         return hex.Length == 64 && hex.All(Uri.IsHexDigit) ? hex.ToLowerInvariant() : null;
     }
 
+    /// <summary>Имя файла со списком сумм в релизе — его выкладывает <c>release.yml</c>.</summary>
+    public const string SumsAssetName = "SHA256SUMS";
+
+    /// <summary>
+    /// Сумма сборки из файла <c>SHA256SUMS</c>, если GitHub не прислал её в <c>digest</c>.
+    /// </summary>
+    /// <remarks>
+    /// Поле <c>digest</c> GitHub заполняет не у всех релизов, а без суммы программа сама
+    /// обновляться не станет. Файл сумм лежит в том же релизе и скачивается с того же проверенного
+    /// домена; ошибка его чтения — не повод проваливать проверку: сборка просто останется
+    /// «без суммы», и решать о ней будет человек.
+    /// </remarks>
+    private static async Task<ReleaseInfo> WithSumsFileAsync(
+        HttpClient http,
+        ReleaseInfo release,
+        Version current,
+        CancellationToken cancellationToken)
+    {
+        if (release.WindowsBuild is not { Sha256: null } build ||
+            release.Assets.FirstOrDefault(asset =>
+                    asset.Name.Equals(SumsAssetName, StringComparison.OrdinalIgnoreCase) ||
+                    asset.Name.Equals(SumsAssetName + ".txt", StringComparison.OrdinalIgnoreCase))
+                is not { } sums ||
+            !UpdateInstaller.IsTrustedUrl(sums.Url) ||
+            sums.Size > 64 * 1024)
+        {
+            return release;
+        }
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, sums.Url);
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
+            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return release;
+            }
+
+            var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            return ReadSha256Sums(text, build.Name) is { } hash
+                ? release with { Assets = [.. release.Assets.Select(asset => ReferenceEquals(asset, build) ? asset with { Sha256 = hash } : asset)] }
+                : release;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return release;
+        }
+    }
+
+    /// <summary>
+    /// Сумма файла из текста в формате <c>sha256sum</c>: «сумма, пробел(ы), необязательная
+    /// звёздочка, имя». Строки с чужими именами и мусор пропускаются.
+    /// </summary>
+    internal static string? ReadSha256Sums(string? text, string fileName)
+    {
+        foreach (var raw in (text ?? "").Split('\n'))
+        {
+            var line = raw.Trim();
+            var space = line.IndexOfAny([' ', '\t']);
+            if (space != 64)
+            {
+                continue;
+            }
+
+            var hex = line[..64];
+            var name = line[64..].TrimStart(' ', '\t').TrimStart('*').Trim();
+            if (hex.All(Uri.IsHexDigit) && name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                return hex.ToLowerInvariant();
+            }
+        }
+
+        return null;
+    }
+
     public static Task<UpdateCheckResult> CheckAsync(
         Version current,
         CancellationToken cancellationToken = default) =>
@@ -278,7 +354,10 @@ public static class UpdateChecker
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                return ReadRelease(json, current);
+                var result = ReadRelease(json, current);
+                return result.Latest is { } latest
+                    ? result with { Latest = await WithSumsFileAsync(http, latest, current, cancellationToken).ConfigureAwait(false) }
+                    : result;
             }
 
             if (response.StatusCode is not (HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests))

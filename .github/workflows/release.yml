@@ -23,6 +23,10 @@ jobs:
   release:
     runs-on: windows-latest
     timeout-minutes: 60
+    # Секреты в условиях шагов недоступны напрямую — только через окружение.
+    env:
+      SIGNING_CERT_PFX_BASE64: ${{ secrets.SIGNING_CERT_PFX_BASE64 }}
+      SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -72,6 +76,42 @@ jobs:
           Move-Item "release/publish/Amarin Admin AI.exe" $asset
           "asset=$asset" >> $env:GITHUB_OUTPUT
 
+      # Подпись — только если в репозитории заведён сертификат. Программа ставит обновление,
+      # подписанное тем же издателем, что и установленная сборка; неподписанную проверяет по
+      # SHA256SUMS ниже. Подписывать нужно до подсчёта суммы: подпись меняет байты файла.
+      - name: Sign
+        if: env.SIGNING_CERT_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          ASSET: ${{ steps.publish.outputs.asset }}
+        run: |
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found.' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERT_PFX_BASE64))
+          try {
+            & $signtool.FullName sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $pfx /p $env:SIGNING_CERT_PASSWORD $env:ASSET
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally {
+            Remove-Item $pfx -Force -ErrorAction SilentlyContinue
+          }
+
+      # Контрольная сумма вторым вложением. GitHub сообщает её в поле digest не у всех
+      # релизов, а без суммы программа не обновляется сама — только по отдельному согласию.
+      # Формат sha256sum: «сумма, два пробела, имя», перевод строки LF, без BOM.
+      - name: Checksums
+        id: sums
+        shell: pwsh
+        env:
+          ASSET: ${{ steps.publish.outputs.asset }}
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 $env:ASSET).Hash.ToLowerInvariant()
+          $name = Split-Path $env:ASSET -Leaf
+          $sums = 'release/SHA256SUMS'
+          [IO.File]::WriteAllText($sums, "$hash  $name`n", [Text.UTF8Encoding]::new($false))
+          "sums=$sums" >> $env:GITHUB_OUTPUT
+
       # Повторный запуск той же версии не падает на «релиз уже есть», а заменяет файл и заметки.
       - name: Release
         shell: pwsh
@@ -81,15 +121,16 @@ jobs:
           TITLE: ${{ steps.version.outputs.title }}
           NOTES: ${{ steps.version.outputs.notes }}
           ASSET: ${{ steps.publish.outputs.asset }}
+          SUMS: ${{ steps.sums.outputs.sums }}
         run: |
           # «Релиза нет» — это ответ, а не авария: ненулевой код gh здесь не должен ронять шаг.
           $PSNativeCommandUseErrorActionPreference = $false
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $env:TAG $env:ASSET --clobber
+            gh release upload $env:TAG $env:ASSET $env:SUMS --clobber
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             gh release edit $env:TAG --title $env:TITLE --notes-file $env:NOTES
           } else {
-            gh release create $env:TAG $env:ASSET --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES
+            gh release create $env:TAG $env:ASSET $env:SUMS --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES
           }
           exit $LASTEXITCODE

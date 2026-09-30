@@ -952,6 +952,7 @@
     <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match - the file was deleted.</system:String>
     <system:String x:Key="S.Updates.Install" xml:space="preserve">Install now</system:String>
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
+    <system:String x:Key="S.Updates.InstallUnverified" xml:space="preserve">Update without checking</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
     <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name - shortcuts and the run-as-administrator flag survive.</system:String>
@@ -962,6 +963,8 @@
     <system:String x:Key="S.Updates.LastCheck.Never" xml:space="preserve">never run yet</system:String>
     <system:String x:Key="S.Updates.NeedsAdmin" xml:space="preserve">Only an administrator may write to the program folder, so Windows will ask for permission.</system:String>
     <system:String x:Key="S.Updates.NeverChecked" xml:space="preserve">No check has run yet</system:String>
+    <system:String x:Key="S.Updates.NoChecksum" xml:space="preserve">This build has no checksum, so the app will not install it by itself. You can still update from the update dialog after confirming separately.</system:String>
+    <system:String x:Key="S.Updates.NoChecksumNote" xml:space="preserve">There is no checksum: GitHub did not report one and the release has no SHA256SUMS file. Nothing can confirm the file was not tampered with on the way.</system:String>
     <system:String x:Key="S.Updates.NoConnection" xml:space="preserve">No connection to GitHub: {0}</system:String>
     <system:String x:Key="S.Updates.NoExeFolder" xml:space="preserve">Could not work out the program folder.</system:String>
     <system:String x:Key="S.Updates.NoExePath" xml:space="preserve">Could not work out the program file.</system:String>
@@ -970,7 +973,9 @@
     <system:String x:Key="S.Updates.NoWriteAccess" xml:space="preserve">Could not prepare a folder for the download ({0}). Download the new version by hand.</system:String>
     <system:String x:Key="S.Updates.NotOnGitHub" xml:space="preserve">The release file is not hosted on GitHub - the update was cancelled.</system:String>
     <system:String x:Key="S.Updates.NotOurFile" xml:space="preserve">This file did not come from an update download - the swap was cancelled.</system:String>
+    <system:String x:Key="S.Updates.NotSigned" xml:space="preserve">The new build is unsigned or its signature failed the check, while the installed one is signed. The update was cancelled.</system:String>
     <system:String x:Key="S.Updates.OpenRelease" xml:space="preserve">Open release</system:String>
+    <system:String x:Key="S.Updates.OtherPublisher" xml:space="preserve">The new build is signed by a different publisher than the installed one. The update was cancelled.</system:String>
     <system:String x:Key="S.Updates.ParseFailed" xml:space="preserve">Could not make sense of the GitHub answer.</system:String>
     <system:String x:Key="S.Updates.Pill.Available" xml:space="preserve">Update available</system:String>
     <system:String x:Key="S.Updates.Pill.Checking" xml:space="preserve">Checking</system:String>
@@ -991,6 +996,8 @@
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Version and updates</system:String>
     <system:String x:Key="S.Updates.TooBig" xml:space="preserve">The release file is implausibly large.</system:String>
     <system:String x:Key="S.Updates.UnknownSize" xml:space="preserve">an unknown amount</system:String>
+    <system:String x:Key="S.Updates.UnverifiedText" xml:space="preserve">The app will download the file from GitHub but cannot confirm it is the file that was published in the release. Continue only if you trust the source; otherwise download the build from the release page yourself.</system:String>
+    <system:String x:Key="S.Updates.UnverifiedTitle" xml:space="preserve">Install a build that cannot be checked?</system:String>
     <system:String x:Key="S.Updates.UpToDate" xml:space="preserve">The latest version is installed - {0}</system:String>
     <system:String x:Key="S.Updates.Update" xml:space="preserve">Update</system:String>
     <system:String x:Key="S.Updates.UpdateAsAdmin" xml:space="preserve">Update as administrator</system:String>

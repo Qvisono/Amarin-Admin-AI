@@ -130,6 +130,16 @@ public sealed class UpdateScheduleTests
     }
 
     [Fact]
+    public void A_build_without_a_checksum_is_never_downloaded_by_itself()
+    {
+        // Сама программа ставит только то, что может сверить; без суммы решает человек кнопкой.
+        var release = Release(new Version(9, 0, 0));
+        var unverified = release with { Assets = [release.Assets[0] with { Sha256 = null }] };
+
+        Assert.False(UpdateSchedule.ShouldAutoDownload(autoUpdate: true, unverified, staged: null));
+    }
+
+    [Fact]
     public void An_already_downloaded_version_is_not_downloaded_again()
     {
         var release = Release(new Version(9, 0, 0));
@@ -151,6 +161,6 @@ public sealed class UpdateScheduleTests
                     $"Amarin-Admin-AI-v{version}-win-x64.exe",
                     $"https://github.com/Qvisono/Amarin-Admin-AI/releases/download/v{version}/Amarin-Admin-AI-v{version}-win-x64.exe",
                     1024,
-                    null)
+                    new string('a', 64))
             ]);
 }

@@ -106,9 +106,11 @@ public static class UpdateSchedule
     /// <remarks>
     /// Релиз без готовой сборки для Windows пропускается: так выглядит запасной путь через
     /// редирект страницы релизов, у которого списка файлов нет вовсе, — качать оттуда нечего.
+    /// Сборка без контрольной суммы — тоже: сама, без человека, программа ставит только то,
+    /// что может сверить. Такую сборку человек ставит кнопкой, отдельно согласившись.
     /// </remarks>
     public static bool ShouldAutoDownload(bool autoUpdate, ReleaseInfo? latest, Version? staged) =>
         autoUpdate &&
-        latest?.WindowsBuild is not null &&
+        latest?.WindowsBuild is { Sha256.Length: 64 } &&
         (staged is null || latest.Version > staged);
 }

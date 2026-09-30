@@ -15,6 +15,12 @@ public sealed record UpdatePlan(
     bool NeedsElevation = false)
 {
     public string Folder => Path.GetDirectoryName(ExePath) ?? WorkDirectory;
+
+    /// <summary>
+    /// Есть ли чем сверить файл. Без суммы обновление не ставится само — только по отдельному
+    /// согласию человека (<c>allowUnverified</c>).
+    /// </summary>
+    public bool Verified => Asset.Sha256 is { Length: 64 };
 }
 
 /// <summary>Результат шага обновления: либо получилось, либо человеческая причина отказа.</summary>
@@ -44,9 +50,12 @@ public sealed record UpdateStepResult(bool Ok, string? Error = null)
 /// разом, поэтому имя остаётся прежним, а версия внутри — новой.
 /// </para>
 /// <para>
-/// Проверок три, и все обязательные: адрес должен быть https на домене релизов GitHub, размер
-/// обязан совпасть с заявленным в API, и файл обязан сойтись по SHA-256, который тот же API
-/// отдаёт вместе с релизом. Не сошлось — файл удаляется и ничего не подменяется.
+/// Проверки: адрес должен быть https на домене релизов GitHub, размер обязан совпасть
+/// с заявленным в API, и файл обязан сойтись по SHA-256 — из поля <c>digest</c> API или из
+/// файла <c>SHA256SUMS</c> того же релиза. Суммы нет — сам по себе файл не ставится: только
+/// если человек отдельно согласился обновиться без проверки. Перед самой подменой сумма
+/// считается ещё раз (файл мог поменяться, пока лежал), а подпись Authenticode сверяется по
+/// правилу <see cref="AuthenticodeCheck.Refusal"/>. Не сошлось — ничего не подменяется.
 /// </para>
 /// </remarks>
 public static class UpdateInstaller
@@ -136,14 +145,24 @@ public static class UpdateInstaller
     }
 
     /// <summary>Скачивает файл релиза и сверяет его. Возвращает путь к проверенному файлу.</summary>
+    /// <param name="allowUnverified">
+    /// Человек отдельно согласился поставить сборку, которую нечем сверить. Без этого сборка без
+    /// контрольной суммы не скачивается вовсе.
+    /// </param>
     public static async Task<(UpdateStepResult Result, string? File)> DownloadAsync(
         UpdatePlan plan,
         HttpClient http,
         IProgress<double>? progress,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool allowUnverified = false)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(http);
+
+        if (!plan.Verified && !allowUnverified)
+        {
+            return (UpdateStepResult.Failed(Loc.Get("S.Updates.NoChecksum")), null);
+        }
 
         var target = Path.Combine(plan.WorkDirectory, plan.Asset.Name);
         var partial = target + ".part";
@@ -205,11 +224,51 @@ public static class UpdateInstaller
     }
 
     /// <summary>
+    /// Последняя проверка перед подменой: сумма ещё раз и подпись по правилу.
+    /// </summary>
+    /// <remarks>
+    /// Сумма — ещё раз, а не только при скачивании: между ними файл лежит на диске, и во
+    /// временной папке его может подменить любой процесс этого пользователя. Для подмены с
+    /// правами администратора это вообще единственная проверка — повышенный процесс файла не
+    /// скачивал и ничему в нём не обязан верить.
+    /// </remarks>
+    /// <returns>Текст отказа; null — можно ставить.</returns>
+    public static string? VerifyBeforeSwap(string downloadedFile, string exePath, string? expectedSha256)
+    {
+        if (expectedSha256 is { Length: > 0 })
+        {
+            string actual;
+            try
+            {
+                using var stream = File.OpenRead(downloadedFile);
+                actual = Convert.ToHexString(SHA256.HashData(stream));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return Loc.Format("S.Updates.InstallFailed", ex.Message);
+            }
+
+            if (!actual.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return Loc.Get("S.Updates.HashMismatch");
+            }
+        }
+
+        return AuthenticodeCheck.Refusal(AuthenticodeCheck.Inspect(exePath), AuthenticodeCheck.Inspect(downloadedFile));
+    }
+
+    /// <summary>
     /// Ставит скачанный файл на место работающей программы. При любой осечке возвращает
     /// прежний exe обратно — остаться без исполняемого файла программа не должна.
     /// </summary>
-    public static UpdateStepResult Swap(string downloadedFile, string exePath)
+    /// <param name="expectedSha256">Сумма из релиза; null — обновление без проверки, с согласия.</param>
+    public static UpdateStepResult Swap(string downloadedFile, string exePath, string? expectedSha256 = null)
     {
+        if (VerifyBeforeSwap(downloadedFile, exePath, expectedSha256) is { } refusal)
+        {
+            return UpdateStepResult.Failed(refusal);
+        }
+
         var backup = exePath + BackupSuffix;
 
         try
@@ -256,7 +315,8 @@ public static class UpdateInstaller
     /// любого другого» он давать не должен. Отсюда две проверки: цель — сам работающий exe,
     /// источник — файл из папки загрузки обновлений, и ничей больше.
     /// </remarks>
-    public static UpdateStepResult ApplyElevated(string? source, string? exePath)
+    /// <param name="expectedSha256">Сумма, переданная обычным процессом ключом <c>--sha256</c>.</param>
+    public static UpdateStepResult ApplyElevated(string? source, string? exePath, string? expectedSha256 = null)
     {
         if (string.IsNullOrWhiteSpace(exePath) ||
             !exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
@@ -270,7 +330,7 @@ public static class UpdateInstaller
             return UpdateStepResult.Failed(Loc.Get("S.Updates.NotOurFile"));
         }
 
-        return Swap(source!, exePath);
+        return Swap(source!, exePath, expectedSha256);
     }
 
     /// <summary>

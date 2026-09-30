@@ -265,11 +265,43 @@ namespace Amarin.UI
             UpdateConfirmApplyButton.Content = plan.NeedsElevation
                 ? Loc.Get("S.Updates.UpdateAsAdmin")
                 : Loc.Get("S.Update.Confirm");
+
+            // Без суммы обычной кнопки нет: ставить непроверенное — отдельное решение, со своим
+            // вторым вопросом.
+            UpdateConfirmNoChecksum.Visibility = plan.Verified ? Visibility.Collapsed : Visibility.Visible;
+            UpdateConfirmApplyButton.Visibility = plan.Verified ? Visibility.Visible : Visibility.Collapsed;
+            UpdateConfirmUnverifiedButton.Visibility = plan.Verified ? Visibility.Collapsed : Visibility.Visible;
             UpdateConfirmOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
         }
 
         private void UpdateConfirmCancelButton_Click(object sender, RoutedEventArgs e) => CloseUpdateConfirm();
+
+        private void UpdateConfirmUnverifiedButton_Click(object sender, RoutedEventArgs e)
+        {
+            var plan = _pendingUpdate;
+            CloseUpdateConfirm();
+            if (plan is not null)
+            {
+                Detached.Run(ConfirmUnverifiedInstallAsync(plan), "install_unverified");
+            }
+        }
+
+        /// <summary>Второй вопрос перед сборкой, которую нечем сверить.</summary>
+        private async Task ConfirmUnverifiedInstallAsync(UpdatePlan plan)
+        {
+            var confirmed = await ShowNoticeAsync(
+                Loc.Get("S.Updates.UnverifiedTitle"),
+                Loc.Get("S.Updates.UnverifiedText"),
+                Loc.Get("S.Updates.InstallUnverified"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+            if (confirmed)
+            {
+                _installTask = InstallUpdateAsync(plan, allowUnverified: true);
+                Detached.Run(_installTask, "install_update");
+            }
+        }
 
         private void UpdateConfirmApplyButton_Click(object sender, RoutedEventArgs e)
         {
@@ -292,7 +324,8 @@ namespace Amarin.UI
         /// Скачивает сборку, сверяет её и подменяет ею себя. Отмена возможна до самой подмены;
         /// после неё остаётся только перезапуск — программа уже лежит на диске новой версией.
         /// </summary>
-        private async Task InstallUpdateAsync(UpdatePlan plan)
+        /// <param name="allowUnverified">Человек дважды согласился поставить сборку без контрольной суммы.</param>
+        private async Task InstallUpdateAsync(UpdatePlan plan, bool allowUnverified = false)
         {
             if (_services is null || _updateDownload is not null || _autoDownload is not null)
             {
@@ -330,7 +363,8 @@ namespace Amarin.UI
                         plan,
                         _services.DownloadHttp,
                         progress,
-                        cancellation.Token);
+                        cancellation.Token,
+                        allowUnverified);
 
                     if (!result.Ok || downloaded is null)
                     {
@@ -362,7 +396,7 @@ namespace Amarin.UI
 
                 var swap = plan.NeedsElevation
                     ? await SwapWithElevationAsync(plan, file)
-                    : UpdateInstaller.Swap(file, plan.ExePath);
+                    : UpdateInstaller.Swap(file, plan.ExePath, plan.Asset.Sha256);
 
                 if (!swap.Ok)
                 {
@@ -412,6 +446,11 @@ namespace Amarin.UI
             };
             start.ArgumentList.Add("--apply-update");
             start.ArgumentList.Add(file);
+            if (plan.Asset.Sha256 is { Length: 64 } sha)
+            {
+                start.ArgumentList.Add("--sha256");
+                start.ArgumentList.Add(sha);
+            }
 
             try
             {
@@ -927,7 +966,7 @@ namespace Amarin.UI
                 _swapStarted = true;
                 var swap = staged.Plan.NeedsElevation
                     ? await SwapWithElevationAsync(staged.Plan, staged.File)
-                    : UpdateInstaller.Swap(staged.File, staged.Plan.ExePath);
+                    : UpdateInstaller.Swap(staged.File, staged.Plan.ExePath, staged.Plan.Asset.Sha256);
 
                 if (!swap.Ok)
                 {
@@ -1096,7 +1135,7 @@ namespace Amarin.UI
             }
 
             _swapStarted = true;
-            var swap = UpdateInstaller.Swap(staged.File, staged.Plan.ExePath);
+            var swap = UpdateInstaller.Swap(staged.File, staged.Plan.ExePath, staged.Plan.Asset.Sha256);
             if (!swap.Ok)
             {
                 PerfLog.Write("update_on_session_end failed " + swap.Error);

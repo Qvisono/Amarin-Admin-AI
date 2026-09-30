@@ -332,19 +332,35 @@ public sealed class ReleaseAssetParsingTests
     }
 
     [Fact]
-    public void A_digest_in_an_unknown_shape_is_ignored()
+    public void A_digest_in_an_unknown_shape_leaves_the_build_unverified_and_never_installed_by_itself()
     {
+        // Прежде такая сборка тихо ставилась без сверки: сумма «не пришла» значило «не нужна».
         var result = UpdateChecker.ReadRelease(
             """
             {
               "tag_name": "v1.15.0",
               "assets": [
-                { "name": "app.exe", "browser_download_url": "https://github.com/a/b/app.exe", "size": 1, "digest": "md5:abc" }
+                { "name": "app-win-x64.exe", "browser_download_url": "https://github.com/a/b/app.exe", "size": 1, "digest": "md5:abc" }
               ]
             }
             """,
             new Version(1, 0, 0));
 
-        Assert.Null(result.Latest!.WindowsBuild!.Sha256);
+        var root = Path.Combine(Path.GetTempPath(), "amarin-digest-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(root);
+        try
+        {
+            var exe = Path.Combine(root, "app.exe");
+            File.WriteAllText(exe, "программа");
+
+            Assert.Null(result.Latest!.WindowsBuild!.Sha256);
+            Assert.True(UpdateInstaller.TryPlan(result.Latest, exe, out var plan, out _));
+            Assert.False(plan.Verified);
+            Assert.False(UpdateSchedule.ShouldAutoDownload(autoUpdate: true, result.Latest, staged: null));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 }
