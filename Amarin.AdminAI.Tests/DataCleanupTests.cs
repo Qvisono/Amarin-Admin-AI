@@ -37,7 +37,10 @@ public sealed class DataCleanupTests : IDisposable
         Assert.Empty(DataCleanup.PickForRetention(items, organize, new ChatRetention(), Now, busy));
 
         // Опечатка «1 день» не превращается в «удалить почти всё»: меньше недели не бывает.
-        Assert.DoesNotContain("recent", DataCleanup.PickForRetention(items, organize, new ChatRetention { Mode = RetentionMode.Delete, Days = 1 }, Now, busy));
+        var typo = DataCleanup.PickForRetention(
+            [.. items, Entry("fresh", 3)], organize, new ChatRetention { Mode = RetentionMode.Delete, Days = 1 }, Now, busy);
+        Assert.DoesNotContain("fresh", typo);
+        Assert.Contains("recent", typo);
     }
 
     private string Write(string relative, int bytes)
