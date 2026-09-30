@@ -54,6 +54,35 @@ public sealed class WindowsIntegrationTests
         }
     }
 
+    [Fact]
+    public void Handoff_requests_are_taken_in_the_order_they_were_written()
+    {
+        // Имена файлов были случайными GUID, а порядок — порядком имён: «последним» оказывался
+        // любой из запросов, и предыдущий тест проходил через раз.
+        var root = Path.Combine(Path.GetTempPath(), "amarin-handoff-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            for (var i = 0; i < 40; i++)
+            {
+                SingleInstanceHandoff.Write(root, "p" + i, chatId: "c" + i);
+            }
+
+            var taken = SingleInstanceHandoff.TryTakeAll(root);
+
+            Assert.Equal(Enumerable.Range(0, 40).Select(i => "c" + i), taken.Select(item => item.ChatId));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
     [Theory]
     [InlineData("Win+Shift+A", GlobalHotkeys.ModWin | GlobalHotkeys.ModShift, 'A')]
     [InlineData("ctrl + alt + F5", GlobalHotkeys.ModControl | GlobalHotkeys.ModAlt, 0x74)]

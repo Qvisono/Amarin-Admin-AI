@@ -57,6 +57,9 @@ internal static class SingleInstanceHandoff
 {
     private const string FolderName = "handoff";
 
+    /// <summary>Разводит запросы этого процесса, записанные в один и тот же тик часов.</summary>
+    private static long _sequence;
+
     public static string DirectoryFor(string root) => Path.Combine(root, FolderName);
 
     /// <summary>Кладёт запрос. Ничего не бросает: несостоявшаяся передача не повод падать.</summary>
@@ -78,7 +81,13 @@ internal static class SingleInstanceHandoff
         {
             var directory = DirectoryFor(root);
             Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, Guid.NewGuid().ToString("N") + ".json");
+            // Имя начинается со времени записи: «последний запрос» — последний по имени. Пока имя
+            // было голым GUID, порядок файлов был случайным, и из двух запусков подряд побеждал
+            // любой — окно открывало то один чат, то другой.
+            var name = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"{DateTime.UtcNow.Ticks:D19}-{Interlocked.Increment(ref _sequence):D10}-{Guid.NewGuid():N}.json");
+            var path = Path.Combine(directory, name);
             AppDataFile.WriteAtomic(path, JsonSerializer.Serialize(request, AppJson.Options));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
