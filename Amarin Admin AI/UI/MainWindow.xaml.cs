@@ -85,6 +85,7 @@ namespace Amarin.UI
             WireCommands();
             WireDrafts();
             WireCodeBlocks();
+            WireDropZone();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);

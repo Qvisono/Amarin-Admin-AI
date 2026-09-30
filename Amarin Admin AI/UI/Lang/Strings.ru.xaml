@@ -450,6 +450,8 @@
     <system:String x:Key="S.DataSafety.Restored" xml:space="preserve">Файл {0} оказался повреждён — восстановлен из запасной копии, сделанной при последнем удачном сохранении.</system:String>
     <system:String x:Key="S.DataSafety.Show" xml:space="preserve">Показать файл</system:String>
     <system:String x:Key="S.DataSafety.Title" xml:space="preserve">Файл данных был повреждён</system:String>
+    <system:String x:Key="S.Drop.Title" xml:space="preserve">Отпустите, чтобы прикрепить</system:String>
+    <system:String x:Key="S.Drop.Types" xml:space="preserve">Картинки, PDF, EPUB, Word, Excel, PowerPoint, таблицы CSV, текст и исходный код. Прочее программа не возьмёт и скажет почему.</system:String>
     <system:String x:Key="S.Elevation.Failed" xml:space="preserve">Не удалось запустить программу от имени администратора. Попробуйте запустить её так вручную: правой кнопкой по значку — «Запуск от имени администратора».</system:String>
     <system:String x:Key="S.Elevation.Restart" xml:space="preserve">Перезапустить от имени администратора</system:String>
     <system:String x:Key="S.Elevation.StopsTurns" xml:space="preserve">Идущие ответы будут остановлены: {0}.</system:String>

@@ -4367,6 +4367,28 @@
         <local:PlanReviewOverlay x:Name="PlanOverlay" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:WorkReportOverlay x:Name="ReportOverlay" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:HotkeySheetOverlay x:Name="HotkeySheet" Visibility="Collapsed" Panel.ZIndex="29"/>
+        <!--
+            Перетаскивание на всё окно (D15). Появляется, когда файл внесли в окно, и накрывает его
+            целиком: дальше события получает только он, и уход курсора с него — это уход из окна.
+        -->
+        <Grid x:Name="DropOverlay" Visibility="Collapsed" Panel.ZIndex="28" AllowDrop="True" Background="Transparent"
+              DragOver="DropOverlay_DragOver" DragLeave="DropOverlay_DragLeave" Drop="DropOverlay_Drop">
+            <!-- Потомки не ловят мышь: тогда DragLeave приходит, только когда курсор ушёл из окна
+                 или перетаскивание отменили, а не на каждом переходе между надписями. -->
+            <Border Background="{DynamicResource Overlay.Scrim}" IsHitTestVisible="False"/>
+            <Border Margin="28" CornerRadius="16" BorderThickness="2" Background="Transparent" IsHitTestVisible="False"
+                    BorderBrush="{DynamicResource Accent.Fill}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440">
+                    <Path Data="M12,3 L12,15 M7,10 L12,15 L17,10 M4,17 L4,20 L20,20 L20,17" Width="34" Height="34"
+                          Stretch="Uniform" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" Stroke="{DynamicResource Accent.Fill}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource S.Drop.Title}" FontSize="17" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Text.Primary}" HorizontalAlignment="Center" Margin="0,12,0,4"/>
+                    <TextBlock Text="{DynamicResource S.Drop.Types}" FontSize="12.5" TextWrapping="Wrap"
+                               TextAlignment="Center" Foreground="{DynamicResource Text.Secondary}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="30">
             <Border Background="{DynamicResource Overlay.Scrim}"/>
