@@ -64,6 +64,27 @@ public static class AtRestCipher
             : null;
     }
 
+    /// <summary>
+    /// Шифрует двоичный файл — вложение чата (F4); null — Windows отказалась шифровать. Та же
+    /// метка в начале, что у текстовых файлов.
+    /// </summary>
+    public static byte[]? EncryptBytes(byte[] content)
+    {
+        if (Protect(content) is not { } blob)
+        {
+            return null;
+        }
+
+        var result = new byte[FileMagic.Length + blob.Length];
+        FileMagic.CopyTo(result, 0);
+        blob.CopyTo(result, FileMagic.Length);
+        return result;
+    }
+
+    /// <summary>Двоичный файл в любом из двух форматов; null — не расшифровывается здесь.</summary>
+    public static byte[]? DecryptBytes(byte[] content) =>
+        IsEncrypted(content) ? Unprotect(content.AsSpan(FileMagic.Length).ToArray()) : content;
+
     /// <summary>Шифрует строку журнала; null — Windows отказалась шифровать.</summary>
     public static string? EncryptLine(string line) =>
         Protect(Encoding.UTF8.GetBytes(line)) is { } blob ? LinePrefix + Convert.ToBase64String(blob) : null;

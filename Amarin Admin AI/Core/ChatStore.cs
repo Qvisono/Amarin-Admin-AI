@@ -45,6 +45,9 @@ public sealed class ChatStore
     /// <summary>Чаты, ждущие записи. Словарь, а не очередь: повторное сохранение заменяет прежнее.</summary>
     private readonly Dictionary<string, ChatSession> _pendingChats = new(StringComparer.Ordinal);
 
+    /// <summary>Набор вложений, записанный у чата последним: убирать сирот — только когда он сменился.</summary>
+    private readonly Dictionary<string, string> _blobSets = new(StringComparer.Ordinal);
+
     private string? _pendingIndex;
     private bool _draining;
 
@@ -220,7 +223,7 @@ public sealed class ChatStore
         try
         {
             return ReadText(path) is { } text
-                ? JsonSerializer.Deserialize<ChatSession>(text, AppJson.Options)
+                ? JsonSerializer.Deserialize<ChatSession>(InlineAttachments(id, text), AppJson.Options)
                 : null;
         }
         catch
@@ -323,6 +326,24 @@ public sealed class ChatStore
             {
                 File.Delete(path);
             }
+
+            // Вложения чата (F4) — вместе с ним.
+            var folder = Path.Combine(_chatsDirectory, id);
+            if (IsSafeId(id) && Directory.Exists(ChatAttachmentFiles.FolderOf(_chatsDirectory, id)))
+            {
+                try
+                {
+                    Directory.Delete(folder, recursive: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+        }
+
+        lock (_gate)
+        {
+            _blobSets.Remove(id);
         }
 
         bool removed;
@@ -368,6 +389,26 @@ public sealed class ChatStore
                     // continue wiping the rest
                 }
             }
+
+            // Папки вложений (F4): только те, где и правда лежат вложения, — другие папки не наши.
+            foreach (var folder in Directory.GetDirectories(_chatsDirectory))
+            {
+                if (Directory.Exists(Path.Combine(folder, ChatAttachmentFiles.FolderName)))
+                {
+                    try
+                    {
+                        Directory.Delete(folder, recursive: true);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                    }
+                }
+            }
+        }
+
+        lock (_gate)
+        {
+            _blobSets.Clear();
         }
 
         Directory.CreateDirectory(_chatsDirectory);
@@ -611,7 +652,7 @@ public sealed class ChatStore
         }
 
         WritingChat?.Invoke(id);
-        if (!WriteQuietly(ChatPath(id), json, encrypt))
+        if (!WriteChatQuietly(id, json, encrypt))
         {
             return true;
         }
@@ -622,6 +663,204 @@ public sealed class ChatStore
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Пишет чат: сначала вынесенные вложения (F4), потом сам файл со ссылками, потом убирает
+    /// вложения, на которые чат больше не ссылается. В таком порядке сбой посередине оставляет
+    /// лишний файл, а не ссылку в никуда.
+    /// </summary>
+    private bool WriteChatQuietly(string id, string json, bool encrypt)
+    {
+        var path = ChatPath(id);
+        var stored = ChatAttachmentFiles.Externalize(json, out var blobs);
+        try
+        {
+            lock (FileLock(path))
+            {
+                if (!WriteBlobs(id, blobs, encrypt))
+                {
+                    return false;
+                }
+
+                if (!WriteQuietly(path, stored, encrypt))
+                {
+                    return false;
+                }
+
+                RemoveOrphans(id, blobs);
+                return true;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Кладёт вложения, которых ещё нет. Файл назван отпечатком содержимого, поэтому уже
+    /// лежащий не переписывается: иначе картинка писалась бы на диск на каждом сохранении хода.
+    /// </summary>
+    private bool WriteBlobs(string id, IReadOnlyList<AttachmentBlob> blobs, bool encrypt)
+    {
+        if (blobs.Count == 0 || !IsSafeId(id))
+        {
+            return blobs.Count == 0;
+        }
+
+        var folder = ChatAttachmentFiles.FolderOf(_chatsDirectory, id);
+        Directory.CreateDirectory(folder);
+        foreach (var blob in blobs)
+        {
+            var file = ChatAttachmentFiles.BlobPath(folder, blob.Sha);
+            if (File.Exists(file))
+            {
+                continue;
+            }
+
+            // Отказ Windows шифровать — не повод класть картинку открытой вопреки галочке.
+            var content = encrypt ? AtRestCipher.EncryptBytes(blob.Bytes) : blob.Bytes;
+            if (content is null)
+            {
+                PerfLog.Write("chat_store encrypt_failed");
+                return false;
+            }
+
+            AppDataFile.WriteAtomicBytes(file, content);
+        }
+
+        return true;
+    }
+
+    /// <summary>Убирает вложения, на которые чат больше не ссылается (сообщение удалили, ветку стёрли).</summary>
+    private void RemoveOrphans(string id, IReadOnlyList<AttachmentBlob> blobs)
+    {
+        var key = string.Join(',', blobs.Select(blob => blob.Sha).Order(StringComparer.Ordinal));
+        lock (_gate)
+        {
+            if (_blobSets.TryGetValue(id, out var previous) && previous == key)
+            {
+                return;
+            }
+
+            _blobSets[id] = key;
+        }
+
+        var folder = ChatAttachmentFiles.FolderOf(_chatsDirectory, id);
+        if (!IsSafeId(id) || !Directory.Exists(folder))
+        {
+            return;
+        }
+
+        var keep = blobs.Select(blob => blob.Sha).ToHashSet(StringComparer.Ordinal);
+        foreach (var file in Directory.GetFiles(folder, "*.bin"))
+        {
+            if (!keep.Contains(Path.GetFileNameWithoutExtension(file)))
+            {
+                TryDeleteFile(file);
+            }
+        }
+    }
+
+    /// <summary>Разворачивает ссылки на вынесенные вложения; чат прежнего формата — как есть.</summary>
+    private string InlineAttachments(string id, string text) =>
+        !ChatAttachmentFiles.HasRefs(text) || !IsSafeId(id)
+            ? text
+            : ChatAttachmentFiles.Inline(text, sha => ReadBlob(ChatAttachmentFiles.FolderOf(_chatsDirectory, id), sha));
+
+    internal static byte[]? ReadBlob(string folder, string sha)
+    {
+        try
+        {
+            var file = ChatAttachmentFiles.BlobPath(folder, sha);
+            return File.Exists(file) ? AtRestCipher.DecryptBytes(File.ReadAllBytes(file)) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Имя чата годится в путь: папка вложений строится из него.</summary>
+    private static bool IsSafeId(string id) =>
+        id.Length > 0 && id.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && !id.Contains("..", StringComparison.Ordinal);
+
+    private static void TryDeleteFile(string file)
+    {
+        try
+        {
+            File.Delete(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Выносит вложения из чатов, записанных до F4, — байтами и под замком файла, как и
+    /// перешифровка: разбор в <see cref="ChatSession"/> и сохранение затёрли бы свежий ответ
+    /// идущего хода копией с диска. Формат файла (открытый или зашифрованный) остаётся прежним.
+    /// </summary>
+    /// <returns>Сколько чатов переписано.</returns>
+    public int ExternalizeExisting(CancellationToken cancellationToken)
+    {
+        Flush();
+        string[] files;
+        try
+        {
+            files = Directory.Exists(_chatsDirectory) ? Directory.GetFiles(_chatsDirectory, "*.json") : [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        foreach (var file in files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var id = Path.GetFileNameWithoutExtension(file);
+            if (string.Equals(id, "index", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            try
+            {
+                lock (FileLock(file))
+                {
+                    if (!File.Exists(file))
+                    {
+                        continue;
+                    }
+
+                    var bytes = File.ReadAllBytes(file);
+                    if (AtRestCipher.DecryptFile(bytes) is not { } text)
+                    {
+                        continue;
+                    }
+
+                    var stored = ChatAttachmentFiles.Externalize(text, out var blobs);
+                    if (blobs.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    var encrypted = AtRestCipher.IsEncrypted(bytes);
+                    if (WriteBlobs(id, blobs, encrypted) && WriteQuietly(file, stored, encrypted))
+                    {
+                        count++;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Занятый файл останется прежним — читается он и так.
+            }
+        }
+
+        return count;
     }
 
     private bool WriteQuietly(string path, string json, bool encrypt)
@@ -709,6 +948,10 @@ public sealed class ChatStore
                 return;
             }
 
+            // Вложения — отдельно от самого чата: прерванный прежний проход мог перевести файл
+            // чата и не успеть с его вложениями.
+            ReformatBlobs(file, encrypt);
+
             try
             {
                 lock (FileLock(file))
@@ -741,6 +984,39 @@ public sealed class ChatStore
             {
                 // Файл занят — останется в прежнем формате, читается он и так.
             }
+        }
+    }
+
+    /// <summary>Вложения чата (F4) — в тот же формат, что и сам чат, под тем же замком.</summary>
+    private void ReformatBlobs(string chatFile, bool encrypt)
+    {
+        var id = Path.GetFileNameWithoutExtension(chatFile);
+        var folder = ChatAttachmentFiles.FolderOf(_chatsDirectory, id);
+        if (!IsSafeId(id) || !Directory.Exists(folder))
+        {
+            return;
+        }
+
+        try
+        {
+            lock (FileLock(chatFile))
+            {
+                foreach (var blob in Directory.GetFiles(folder, "*.bin"))
+                {
+                    if (HasFormat(blob, encrypt) || AtRestCipher.DecryptBytes(File.ReadAllBytes(blob)) is not { } plain)
+                    {
+                        continue;
+                    }
+
+                    if ((encrypt ? AtRestCipher.EncryptBytes(plain) : plain) is { } content)
+                    {
+                        AppDataFile.WriteAtomicBytes(blob, content);
+                    }
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
         }
     }
 

@@ -271,6 +271,14 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Вложения чатов, вынесенные в файлы (F4): экспорт возвращает их внутрь файла чата, а
+        // импорт вынесет заново по правилам того профиля, куда кладёт.
+        if (relative.StartsWith("chats/", StringComparison.Ordinal) &&
+            relative.Contains("/" + ChatAttachmentFiles.FolderName + "/", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         // Индекс поиска по тексту — производное от чатов: на новом месте он соберётся сам.
         // Раскладка по папкам (chats/organize.json) — нет: её человек собирал руками, и она едет
         // вместе с чатами.

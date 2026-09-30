@@ -38,6 +38,21 @@
         <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.CleanupDesc}" Margin="0,2,0,6"/>
         <StackPanel x:Name="CleanupRows"/>
 
+        <!-- Вложения старых чатов (F4): вынести из файлов чатов прежних версий. -->
+        <Grid Margin="0,4,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Attachments}"/>
+                <TextBlock x:Name="AttachmentsText" Style="{StaticResource FieldHint}" TextWrapping="Wrap"
+                           Text="{DynamicResource S.Care.AttachmentsDesc}"/>
+            </StackPanel>
+            <Button x:Name="RewriteButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
+                    Content="{DynamicResource S.Care.Rewrite}" Click="Rewrite_Click"/>
+        </Grid>
+
         <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Largest}" Margin="0,18,0,0"/>
         <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LargestDesc}" Margin="0,2,0,6"/>
         <TextBlock x:Name="LargestEmpty" Style="{StaticResource FieldHint}" Text="{DynamicResource S.Data.Usage.Counting}"/>

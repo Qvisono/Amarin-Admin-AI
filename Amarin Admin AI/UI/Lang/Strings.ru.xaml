@@ -332,6 +332,8 @@
     <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Сохранить всё, что хранит программа, в один архив - или загрузить данные обратно</system:String>
 
     <system:String x:Key="S.Care.Archived" xml:space="preserve">В архив убрано старых чатов: {0}.</system:String>
+    <system:String x:Key="S.Care.Attachments" xml:space="preserve">Вложения старых чатов</system:String>
+    <system:String x:Key="S.Care.AttachmentsDesc" xml:space="preserve">Новые чаты хранят картинки и файлы рядом, а не внутри себя. Чаты прежних версий можно переписать так же — они станут легче и будут сохраняться быстрее.</system:String>
     <system:String x:Key="S.Care.BackgroundCache" xml:space="preserve">Готовые снимки фона</system:String>
     <system:String x:Key="S.Care.Clean" xml:space="preserve">Очистить</system:String>
     <system:String x:Key="S.Care.Cleanup" xml:space="preserve">Очистка</system:String>
@@ -356,6 +358,9 @@
     <system:String x:Key="S.Care.Retention" xml:space="preserve">Хранение чатов</system:String>
     <system:String x:Key="S.Care.RetentionDesc" xml:space="preserve">Что делать с чатами, которые давно не менялись.</system:String>
     <system:String x:Key="S.Care.RetentionHint" xml:space="preserve">Закреплённые, открытый и отвечающие чаты не трогаются. Проверка — при запуске и раз в сутки.</system:String>
+    <system:String x:Key="S.Care.Rewrite" xml:space="preserve">Переписать</system:String>
+    <system:String x:Key="S.Care.Rewriting" xml:space="preserve">Переписываю…</system:String>
+    <system:String x:Key="S.Care.Rewritten" xml:space="preserve">Переписано чатов: {0}.</system:String>
     <system:String x:Key="S.Care.Shared" xml:space="preserve">Сделанные экспорты чатов</system:String>
     <system:String x:Key="S.Care.Size" xml:space="preserve">{0} · файлов: {1}</system:String>
     <system:String x:Key="S.Care.Snapshots" xml:space="preserve">Снимки для отката изменений</system:String>

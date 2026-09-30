@@ -332,6 +332,8 @@
     <system:String x:Key="S.Bundle.RowDesc" xml:space="preserve">Save everything the app stores into one archive, or load it back</system:String>
 
     <system:String x:Key="S.Care.Archived" xml:space="preserve">Old chats moved to the archive: {0}.</system:String>
+    <system:String x:Key="S.Care.Attachments" xml:space="preserve">Attachments of older chats</system:String>
+    <system:String x:Key="S.Care.AttachmentsDesc" xml:space="preserve">New chats keep pictures and files next to themselves, not inside. Chats from earlier versions can be rewritten the same way, becoming lighter and faster to save.</system:String>
     <system:String x:Key="S.Care.BackgroundCache" xml:space="preserve">Prepared background images</system:String>
     <system:String x:Key="S.Care.Clean" xml:space="preserve">Clean up</system:String>
     <system:String x:Key="S.Care.Cleanup" xml:space="preserve">Cleanup</system:String>
@@ -356,6 +358,9 @@
     <system:String x:Key="S.Care.Retention" xml:space="preserve">Chat retention</system:String>
     <system:String x:Key="S.Care.RetentionDesc" xml:space="preserve">What to do with chats that have not changed for a long time.</system:String>
     <system:String x:Key="S.Care.RetentionHint" xml:space="preserve">Pinned, open and answering chats are never touched. Checked at start and once a day.</system:String>
+    <system:String x:Key="S.Care.Rewrite" xml:space="preserve">Rewrite</system:String>
+    <system:String x:Key="S.Care.Rewriting" xml:space="preserve">Rewriting…</system:String>
+    <system:String x:Key="S.Care.Rewritten" xml:space="preserve">Chats rewritten: {0}.</system:String>
     <system:String x:Key="S.Care.Shared" xml:space="preserve">Chat exports already made</system:String>
     <system:String x:Key="S.Care.Size" xml:space="preserve">{0} · files: {1}</system:String>
     <system:String x:Key="S.Care.Snapshots" xml:space="preserve">Change rollback snapshots</system:String>

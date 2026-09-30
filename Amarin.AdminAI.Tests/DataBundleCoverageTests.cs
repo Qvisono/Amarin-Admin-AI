@@ -107,6 +107,8 @@ public sealed class DataBundleCoverageTests
     [InlineData("handoff/aaa.json")]
     // Недописанный файл от AppDataFile.WriteAtomic.
     [InlineData("settings.json.tmp")]
+    // Вложения, вынесенные из чата (F4): экспорт возвращает их внутрь файла чата.
+    [InlineData("chats/abc/attachments/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.bin")]
     public void What_stays_out_of_the_archive_stays_out(string relative) =>
         Assert.Equal(DataCategory.None, CategoryOf(relative));
 

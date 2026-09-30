@@ -228,6 +228,32 @@ public partial class DataCareBlock : UserControl
         Save(copy => copy.Mode = mode);
     }
 
+    /// <summary>
+    /// Переписывает чаты прежних версий: вложения уходят в отдельные файлы (F4). Байтами и под
+    /// замком файла — идущий ход при этом не теряет ни слова (см. <c>ChatStore.ExternalizeExisting</c>).
+    /// </summary>
+    private async void Rewrite_Click(object sender, RoutedEventArgs e)
+    {
+        if (_services is not { } services)
+        {
+            return;
+        }
+
+        RewriteButton.IsEnabled = false;
+        AttachmentsText.Text = Loc.Get("S.Care.Rewriting");
+        try
+        {
+            var count = await Task.Run(() => services.ChatStore.ExternalizeExisting(CancellationToken.None)).ConfigureAwait(true);
+            AttachmentsText.Text = Loc.Format("S.Care.Rewritten", count.ToString(CultureInfo.InvariantCulture));
+            Cleaned?.Invoke();
+            await MeasureAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            RewriteButton.IsEnabled = true;
+        }
+    }
+
     private void DaysBox_LostFocus(object sender, RoutedEventArgs e)
     {
         var current = _services?.Settings.Retention?.Days ?? 180;

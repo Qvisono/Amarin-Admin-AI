@@ -357,7 +357,7 @@ public sealed class DataBundleExporter
 
         return source.Category switch
         {
-            DataCategory.Chats => OpenChat(bytes),
+            DataCategory.Chats => OpenChat(bytes, source.SourcePath),
             DataCategory.Audit => OpenAudit(bytes),
             _ => bytes
         };
@@ -372,12 +372,26 @@ public sealed class DataBundleExporter
     /// здесь файл (сам перенесён с другой машины) пропускается — его и так никто не прочтёт.
     /// Защитить сам архив можно паролем (<see cref="PasswordEnvelope"/>).
     /// </remarks>
-    private static byte[]? OpenChat(byte[] bytes) =>
-        !AtRestCipher.IsEncrypted(bytes)
-            ? bytes
-            : AtRestCipher.DecryptFile(bytes) is { } text
-                ? Encoding.UTF8.GetBytes(text)
-                : null;
+    /// <remarks>
+    /// Вложения, вынесенные в папку чата (F4), возвращаются внутрь файла: архив — это перенос,
+    /// а импорт на той стороне вынесет их снова по своим правилам. Папки вложений в архив поэтому
+    /// не входят вовсе (<see cref="DataBundle.CategoryOf"/>).
+    /// </remarks>
+    private static byte[]? OpenChat(byte[] bytes, string path)
+    {
+        if (AtRestCipher.DecryptFile(bytes) is not { } text)
+        {
+            return null;
+        }
+
+        if (!ChatAttachmentFiles.HasRefs(text))
+        {
+            return AtRestCipher.IsEncrypted(bytes) ? Encoding.UTF8.GetBytes(text) : bytes;
+        }
+
+        var folder = ChatAttachmentFiles.FolderOf(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path));
+        return Encoding.UTF8.GetBytes(ChatAttachmentFiles.Inline(text, sha => ChatStore.ReadBlob(folder, sha)));
+    }
 
     /// <summary>Журнал аудита — построчно: зашифрованные строки раскрываются, чужие отбрасываются.</summary>
     private static byte[] OpenAudit(byte[] bytes)

@@ -88,7 +88,11 @@ public static class DataUsage
 
             if (key == ChatsKey)
             {
-                attachments += CountAttachmentBytes(file, ref buffer);
+                // Вложения, вынесенные в файлы (F4), — целиком вложения; в самом чате — проходом по JSON.
+                attachments += file.Name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase) &&
+                               file.Directory?.Name == ChatAttachmentFiles.FolderName
+                    ? file.Length
+                    : CountAttachmentBytes(file, ref buffer);
             }
         }
 
