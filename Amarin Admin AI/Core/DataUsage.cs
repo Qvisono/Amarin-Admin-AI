@@ -139,7 +139,8 @@ public static class DataUsage
             return SettingsKey;
         }
 
-        if (InFolder(relative, "chats"))
+        // Черновики (D12) — недописанные сообщения чатов: считаются вместе с чатами.
+        if (InFolder(relative, "chats") || InFolder(relative, DraftStore.FolderName))
         {
             return ChatsKey;
         }

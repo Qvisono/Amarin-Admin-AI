@@ -25,6 +25,7 @@ namespace Amarin.UI
             var cancel = _textIndexBuild = new CancellationTokenSource();
             var store = _services.ChatStore;
             var index = _services.TextIndex;
+            var drafts = _services.Drafts;
             Detached.Run(Task.Run(() =>
             {
                 try
@@ -37,6 +38,9 @@ namespace Amarin.UI
                     {
                         Ui(RefreshChatList);
                     }
+
+                    // Черновики чатов, удалённых мимо окна (из другого запуска, из архива), — вон.
+                    drafts.Prune(store.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal));
                 }
                 catch (OperationCanceledException)
                 {

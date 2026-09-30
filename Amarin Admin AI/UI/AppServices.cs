@@ -173,7 +173,29 @@ internal sealed class AppServices : IDisposable
 
     private ChatOrganizer? _organizer;
 
-    private void WireOrganizer(ChatStore store) => store.Deleted += id => _organizer?.Forget(id);
+    private void WireOrganizer(ChatStore store) => store.Deleted += id =>
+    {
+        _organizer?.Forget(id);
+        _drafts?.Delete(id);
+    };
+
+    /// <summary>Черновики чатов (D12). Удалённый чат уносит и свой черновик — тем же событием.</summary>
+    internal DraftStore Drafts
+    {
+        get
+        {
+            if (_drafts is null)
+            {
+                _drafts = new DraftStore(Path.GetDirectoryName(SettingsStore.FilePath)!, () => Settings.EncryptChats);
+                // Удаление чата слушает раскладка (WireOrganizer) — она и заводится, если ещё нет.
+                _ = Organizer;
+            }
+
+            return _drafts;
+        }
+    }
+
+    private DraftStore? _drafts;
 
     /// <summary>Разбор фактов в отчёте о работе (D7): тем же клиентом и ключами, что и сводка.</summary>
     internal WorkReportWriter WorkReports => _workReports ??= new WorkReportWriter(Http, Options, () => Settings);
@@ -314,6 +336,7 @@ internal sealed class AppServices : IDisposable
             WireTextIndex(ChatStore);
         }
 
+        _drafts?.UseRoot(dataRoot, () => Settings.EncryptChats);
         if (_organizer is not null)
         {
             _organizer.UseRoot(dataRoot);

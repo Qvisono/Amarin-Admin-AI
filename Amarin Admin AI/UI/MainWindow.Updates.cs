@@ -1052,6 +1052,7 @@ namespace Amarin.UI
             _hiddenForExit = true;
             SaveWindowGeometry();
             FlushPendingPersists();
+            FlushDraft();
             _services?.ChatStore.Flush();
             _services?.Ledger.Flush();
             CancelAllTurns();

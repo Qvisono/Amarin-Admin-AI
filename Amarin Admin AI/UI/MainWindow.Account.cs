@@ -616,6 +616,8 @@ namespace Amarin.UI
 
             // Flush the outgoing profile's chat before any path changes underneath it.
             PersistCurrent();
+            StashDraft();
+            FlushDraft();
 
             registry.ActiveProfileId = target.Id;
             ProfileStore.Save(registry);
@@ -627,6 +629,7 @@ namespace Amarin.UI
             StartNewSession(persist: false);
             ResetChatListView();
             SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
+            RestoreDraft(_session);
             RefreshChatList();
             LoadSettingsUi();
             InstructionsPage.ResetForProfile();

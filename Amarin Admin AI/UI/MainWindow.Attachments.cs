@@ -305,6 +305,8 @@ namespace Amarin.UI
 
         private void RefreshAttachments()
         {
+            // Прикрепили или убрали — черновик чата (D12) запишется после паузы.
+            NoteDraftChanged();
             AttachmentsPanel.Items.Clear();
             foreach (var attachment in _pendingImages)
             {

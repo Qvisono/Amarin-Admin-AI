@@ -264,6 +264,13 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Черновики (D12) — недописанное на этом ПК, в том числе вставленные пароли и ключи:
+        // архив человек пересылает, и везти их туда незачем.
+        if (relative == DraftStore.FolderName || relative.StartsWith(DraftStore.FolderName + "/", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         // Индекс поиска по тексту — производное от чатов: на новом месте он соберётся сам.
         // Раскладка по папкам (chats/organize.json) — нет: её человек собирал руками, и она едет
         // вместе с чатами.

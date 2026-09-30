@@ -83,6 +83,7 @@ namespace Amarin.UI
             WireWorkReport();
             WireShortcuts();
             WireCommands();
+            WireDrafts();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -181,6 +182,7 @@ namespace Amarin.UI
 
                 // Хранилище пишет в фоне, и без этого последний ответ мог не доехать до диска.
                 FlushPendingPersists();
+                FlushDraft();
                 _services?.ChatStore.Flush();
 
             // Журнал трат пишется отложенно: без этого последние ответы сеанса до диска не дошли бы.
@@ -305,6 +307,7 @@ namespace Amarin.UI
 
             // Ширина и свёрнутость панели — до первого кадра: иначе список мигнул бы заводской ширины.
             SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
+            RestoreDraft(_session);
             RefreshChatList();
             UpdateModelButton();
 
@@ -1795,8 +1798,9 @@ namespace Amarin.UI
             }
 
             PersistCurrent();
-            ClearPendingAttachments();
+            StashDraft();
             StartNewSession(persist: false);
+            RestoreDraft(_session);
             RenderSession();
             RefreshChatList();
             MessageTextBox.Focus();
@@ -2175,6 +2179,7 @@ namespace Amarin.UI
             var files = _pendingFiles.Count == 0 ? null : _pendingFiles.ToArray();
             var quotes = _pendingQuotes.Count == 0 ? null : _pendingQuotes.ToArray();
             ClearPendingAttachments();
+            ForgetDraft(_session);
 
             var session = _session;
             if (command is { Name: ChatCommands.Agent } agent)
@@ -2644,6 +2649,7 @@ namespace Amarin.UI
             _session.Messages.Add(user);
             var queued = ChatQuotes.Wrap(text, user.Quotes, _session.Messages, _session.Messages.Count - 1);
             ClearPendingAttachments();
+            ForgetDraft(_session);
 
             var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
@@ -3030,8 +3036,9 @@ namespace Amarin.UI
             using var timer = PerfLog.Measure("chat_open");
             PersistCurrent();
 
-            // Прикреплённое, но не отправленное, принадлежит тому чату, где его набрали.
-            ClearPendingAttachments();
+            // Набранное и прикреплённое принадлежит тому чату, где его набрали (D12): уходит в
+            // его черновик, а открытый чат получает свой.
+            StashDraft();
 
             // Метку «ответ готов» снимаем до загрузки: RefreshChatList ниже уже нарисует строку
             // без неё, и лишней перерисовки не будет.
@@ -3046,6 +3053,7 @@ namespace Amarin.UI
             }
 
             LoadSession(loaded);
+            RestoreDraft(loaded);
             RefreshChatList();
         }
 
