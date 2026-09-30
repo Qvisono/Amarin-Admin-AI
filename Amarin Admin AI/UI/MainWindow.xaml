@@ -1526,6 +1526,10 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
+                                    <!-- Оценка цены следующего ответа (E2): тихой подписью, без плашки. -->
+                                    <TextBlock x:Name="CostEstimateText" Visibility="Collapsed" Margin="0,0,8,0"
+                                               FontSize="11.5" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Text.Faint}"/>
                                     <Border x:Name="ContextBadge"
                                             VerticalAlignment="Center"
                                             Height="28" CornerRadius="8" Padding="8,0,10,0"

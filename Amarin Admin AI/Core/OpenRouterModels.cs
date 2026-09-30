@@ -36,6 +36,24 @@ internal sealed class OpenRouterModel
     /// </summary>
     [JsonPropertyName("supported_parameters")]
     public List<string>? SupportedParameters { get; init; }
+
+    /// <summary>
+    /// Цены (E2): строки, доллары за один токен — так их описывает официальный SDK OpenRouter
+    /// (<c>@openrouter/sdk</c>, тип <c>PublicPricing</c>).
+    /// </summary>
+    [JsonPropertyName("pricing")]
+    public OpenRouterPricing? Pricing { get; init; }
+}
+
+internal sealed class OpenRouterPricing
+{
+    [JsonPropertyName("prompt")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? Prompt { get; init; }
+
+    [JsonPropertyName("completion")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? Completion { get; init; }
 }
 
 internal sealed class OpenRouterArchitecture
@@ -151,6 +169,7 @@ internal static class OpenRouterMapper
                 Offline = false,
                 Beta = false,
                 Traits = Traits(model),
+                Pricing = Pricing(model.Pricing),
                 Capabilities = new VeniceModelCapabilities
                 {
                     SupportsFunctionCalling = Has(parameters, "tools"),
@@ -169,6 +188,20 @@ internal static class OpenRouterMapper
             }
         };
     }
+
+    /// <summary>
+    /// Цены в единицах Venice — за миллион токенов. Отрицательная цена у OpenRouter значит
+    /// «зависит от выбранной модели» (у маршрутизаторов вроде <c>openrouter/auto</c>) — это не
+    /// цена, и оценка без неё честнее, чем с ней.
+    /// </summary>
+    private static VeniceModelPricing? Pricing(OpenRouterPricing? pricing) =>
+        pricing is { Prompt: >= 0m, Completion: >= 0m }
+            ? new VeniceModelPricing
+            {
+                Input = new VeniceUnitPrice { Usd = pricing.Prompt * 1_000_000m },
+                Output = new VeniceUnitPrice { Usd = pricing.Completion * 1_000_000m }
+            }
+            : null;
 
     /// <summary>
     /// Имя для списка. OpenRouter пишет его как «Anthropic: Claude Sonnet 4.5», а в выпадашке

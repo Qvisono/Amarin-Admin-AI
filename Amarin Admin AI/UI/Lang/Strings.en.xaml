@@ -474,6 +474,11 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Tools finished - asking the model for a reply</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Tools finished - asking the model for a reply (step {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Tools stopped</system:String>
+    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Agent work, web search and images are charged on top of this estimate.</system:String>
+    <system:String x:Key="S.Estimate.AutoTip" xml:space="preserve">Auto picks the model while answering, so the range runs from the cheapest candidate to the most expensive.</system:String>
+    <system:String x:Key="S.Estimate.Images" xml:space="preserve">Images and PDFs are not counted: the provider decides how many tokens they take.</system:String>
+    <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Estimate for the chat model's answer: about {0} input tokens and {1} output tokens, judged by this chat's earlier answers. Prices come from the provider's catalog.</system:String>
+    <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">The catalog gives no price for some models; they are left out.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Assistant</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Exported {0}</system:String>
     <system:String x:Key="S.Export.Failed" xml:space="preserve">The file was not written: {0}</system:String>

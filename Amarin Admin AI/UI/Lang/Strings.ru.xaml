@@ -474,6 +474,11 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели (шаг {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Инструменты прерваны</system:String>
+    <system:String x:Key="S.Estimate.Agent" xml:space="preserve">Работа агента, поиск и картинки оплачиваются сверх этой оценки.</system:String>
+    <system:String x:Key="S.Estimate.AutoTip" xml:space="preserve">«Авто» выбирает модель уже при ответе — показан разброс от самой дешёвой до самой дорогой.</system:String>
+    <system:String x:Key="S.Estimate.Images" xml:space="preserve">Картинки и PDF не учтены: сколько токенов они займут, решает провайдер.</system:String>
+    <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Оценка ответа модели чата: вход ≈ {0} токенов, ответ ≈ {1} — по длине прошлых ответов этого чата. Цены — из каталога провайдера.</system:String>
+    <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">У части моделей каталог не назвал цену — они не учтены.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Ассистент</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Выгружено {0}</system:String>
     <system:String x:Key="S.Export.Failed" xml:space="preserve">Файл не записан: {0}</system:String>

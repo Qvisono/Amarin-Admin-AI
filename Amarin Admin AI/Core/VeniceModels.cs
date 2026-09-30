@@ -465,6 +465,74 @@ public sealed class VeniceModelSpec
 
     [JsonPropertyName("capabilities")]
     public VeniceModelCapabilities? Capabilities { get; init; }
+
+    /// <summary>
+    /// Цены модели (E2): у текстовых — <c>input</c>/<c>output</c>, доллары за миллион токенов,
+    /// по спецификации Venice (<c>veniceai/api-docs</c>, <c>model_spec.pricing</c>). У моделей
+    /// OpenRouter заполняется при сведении каталога, в тех же единицах.
+    /// </summary>
+    [JsonPropertyName("pricing")]
+    public VeniceModelPricing? Pricing { get; init; }
+}
+
+/// <summary>Цены за миллион токенов. У картинок и речи там другие поля — их здесь не читаем.</summary>
+public sealed class VeniceModelPricing
+{
+    [JsonPropertyName("input")]
+    public VeniceUnitPrice? Input { get; init; }
+
+    [JsonPropertyName("output")]
+    public VeniceUnitPrice? Output { get; init; }
+}
+
+public sealed class VeniceUnitPrice
+{
+    /// <summary>
+    /// Доллары. Числом по спецификации; разборщик терпит и строку: ошибка типа в одной цене не
+    /// должна ронять весь список моделей.
+    /// </summary>
+    [JsonPropertyName("usd")]
+    [JsonConverter(typeof(LenientDecimalConverter))]
+    public decimal? Usd { get; init; }
+}
+
+/// <summary>
+/// Десятичное из числа или строки; всё остальное — «не знаем». Каталог моделей важнее цены:
+/// без него не открыть ни одного чата.
+/// </summary>
+public sealed class LenientDecimalConverter : JsonConverter<decimal?>
+{
+    public override decimal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Number when reader.TryGetDecimal(out var number):
+                return number;
+            case JsonTokenType.String when decimal.TryParse(
+                reader.GetString(),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var parsed):
+                return parsed;
+            case JsonTokenType.StartObject or JsonTokenType.StartArray:
+                reader.Skip();
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, decimal? value, JsonSerializerOptions options)
+    {
+        if (value is { } number)
+        {
+            writer.WriteNumberValue(number);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
 }
 
 public sealed class VeniceModelCapabilities
