@@ -563,14 +563,41 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+                    <!-- «Состояние ПК» (C4): рядом с журналом и в той же подложке. -->
+                    <Button x:Name="HealthButton" Grid.Row="0" Width="30" Height="30"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,12,66,0" Cursor="Hand"
+                            ToolTip="{DynamicResource S.Health.Open}"
+                            AutomationProperties.Name="{DynamicResource S.Health.Open}"
+                            Click="HealthButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bg" Background="{DynamicResource Bg.Glass}"
+                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Path x:Name="Icon" Data="M0,7 L3,7 L5,2 L8,12 L10,5 L12,7 L15,7"
+                                          Width="15" Height="13" Stretch="Uniform" Opacity="0.55"
+                                          Stroke="{DynamicResource Text.Primary}" StrokeThickness="1.5"
+                                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        <Setter TargetName="Icon" Property="Opacity" Value="1"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <!--
-                        Текущий масштаб лупы. Слева от кнопки журнала (28 + её 30 + 8 зазора), чтобы
-                        не наезжать на неё; Opacity="0" — плашка живёт только во время жеста, её
+                        Текущий масштаб лупы. Слева от кнопок журнала и «Состояния ПК» (28 + 30 + 8 +
+                        30 + 8), чтобы не наезжать на них; Opacity="0" — плашка живёт только во время жеста, её
                         зажигает и гасит ChatZoom. IsHitTestVisible="False": ловить мышь ей нечем,
                         а лежит она поверх ленты, которую в этот момент как раз тащат.
                     -->
                     <Border x:Name="ChatZoomBadge" Grid.Row="0" Opacity="0" IsHitTestVisible="False"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,66,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,104,0"
                             Height="30" Padding="10,0" CornerRadius="8"
                             Background="{DynamicResource Bg.Glass}"
                             BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1">
@@ -3586,6 +3613,8 @@
             из журнала можно открыть чат, а тот способен тут же спросить про домен, и вопрос
             обязан лечь поверх. Карточка шире обычных диалогов на 420: это таблица, а не вопрос.
         -->
+        <local:HealthPanel x:Name="HealthOverlay" Visibility="Collapsed" Panel.ZIndex="33"/>
+
         <Grid x:Name="JournalOverlay" Visibility="Collapsed" Panel.ZIndex="34"
               Focusable="True" PreviewKeyDown="Journal_PreviewKeyDown">
             <Grid.Resources>

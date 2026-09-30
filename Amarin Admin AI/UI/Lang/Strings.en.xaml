@@ -488,6 +488,44 @@
     <system:String x:Key="S.Guard.UsersSnapshot" xml:space="preserve">The session snapshot covers services/tasks/registry; it does NOT restore the Enabled state or group membership.</system:String>
     <system:String x:Key="S.Guard.WingetNoUndo" xml:space="preserve">A session snapshot cannot undo this - winget install/uninstall is not rolled back by snapshots.</system:String>
     <system:String x:Key="S.Guard.WingetSource" xml:space="preserve">Source: winget (App Installer). Flags: --silent --accept-*-agreements --disable-interactivity.</system:String>
+    <system:String x:Key="S.Health.AppCrashes" xml:space="preserve">App crashes: {0}</system:String>
+    <system:String x:Key="S.Health.Area.Disks" xml:space="preserve">Disks</system:String>
+    <system:String x:Key="S.Health.Area.Security" xml:space="preserve">Protection</system:String>
+    <system:String x:Key="S.Health.Area.Stability" xml:space="preserve">Stability</system:String>
+    <system:String x:Key="S.Health.Area.System" xml:space="preserve">System</system:String>
+    <system:String x:Key="S.Health.Area.Updates" xml:space="preserve">Updates</system:String>
+    <system:String x:Key="S.Health.Ask" xml:space="preserve">Look into it</system:String>
+    <system:String x:Key="S.Health.AskIntro" xml:space="preserve">PC health panel, "{0}" section: {1}:</system:String>
+    <system:String x:Key="S.Health.AskOutro" xml:space="preserve">Find out what's causing this and what to do about it.</system:String>
+    <system:String x:Key="S.Health.Checking" xml:space="preserve">Checking…</system:String>
+    <system:String x:Key="S.Health.Cpu" xml:space="preserve">CPU load {0}%</system:String>
+    <system:String x:Key="S.Health.DefenderAbsent" xml:space="preserve">Windows Defender isn't responding; another antivirus may be installed</system:String>
+    <system:String x:Key="S.Health.DefenderOff" xml:space="preserve">Windows Defender or real-time protection is off</system:String>
+    <system:String x:Key="S.Health.DefenderOn" xml:space="preserve">Windows Defender is on</system:String>
+    <system:String x:Key="S.Health.DiskUnhealthy" xml:space="preserve">Disk "{0}": {1}, {2}</system:String>
+    <system:String x:Key="S.Health.DriveFree" xml:space="preserve">{0}: {1} of {2} GB free ({3}%)</system:String>
+    <system:String x:Key="S.Health.Events" xml:space="preserve">Last 24 h: {0} critical events, {1} errors</system:String>
+    <system:String x:Key="S.Health.FirewallOff" xml:space="preserve">Firewall is off: {0}</system:String>
+    <system:String x:Key="S.Health.FirewallOn" xml:space="preserve">Firewall is on in every profile</system:String>
+    <system:String x:Key="S.Health.Memory" xml:space="preserve">Memory in use {0}%</system:String>
+    <system:String x:Key="S.Health.NotChecked" xml:space="preserve">Couldn't check</system:String>
+    <system:String x:Key="S.Health.Open" xml:space="preserve">PC health</system:String>
+    <system:String x:Key="S.Health.RebootPending" xml:space="preserve">Windows is waiting for a restart</system:String>
+    <system:String x:Key="S.Health.Refresh" xml:space="preserve">Refresh</system:String>
+    <system:String x:Key="S.Health.SignaturesOld" xml:space="preserve">Defender signatures are {0} days old</system:String>
+    <system:String x:Key="S.Health.SmartOk" xml:space="preserve">Physical disks: {0}, all healthy</system:String>
+    <system:String x:Key="S.Health.SmartUnknown" xml:space="preserve">Couldn't read drive health</system:String>
+    <system:String x:Key="S.Health.Status.Attention" xml:space="preserve">attention</system:String>
+    <system:String x:Key="S.Health.Status.Ok" xml:space="preserve">fine</system:String>
+    <system:String x:Key="S.Health.Status.Problem" xml:space="preserve">problem</system:String>
+    <system:String x:Key="S.Health.Status.Unknown" xml:space="preserve">not checked</system:String>
+    <system:String x:Key="S.Health.Title" xml:space="preserve">PC health</system:String>
+    <system:String x:Key="S.Health.Updated" xml:space="preserve">Updated {0}</system:String>
+    <system:String x:Key="S.Health.UpdatesNone" xml:space="preserve">No pending updates</system:String>
+    <system:String x:Key="S.Health.UpdatesPending" xml:space="preserve">Waiting to install: {0}</system:String>
+    <system:String x:Key="S.Health.UpdatesUnknown" xml:space="preserve">Couldn't get the update list</system:String>
+    <system:String x:Key="S.Health.Uptime" xml:space="preserve">Up for {0} days</system:String>
+    <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Hasn't restarted in a while; some updates and fixes wait for it</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Not in effect: you assigned this shortcut to another action. Record a different one here</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">The image is no longer available.</system:String>
     <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (the image is no longer available)</system:String>

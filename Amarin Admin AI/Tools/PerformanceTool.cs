@@ -224,7 +224,7 @@ public sealed class PerformanceTool : ITool
         }
     }
 
-    private static async Task<double?> ReadCpuPercentAsync(int sampleMs, CancellationToken cancellationToken)
+    internal static async Task<double?> ReadCpuPercentAsync(int sampleMs, CancellationToken cancellationToken)
     {
         try
         {
@@ -269,9 +269,9 @@ public sealed class PerformanceTool : ITool
         }
     }
 
-    private sealed record MemoryInfo(ulong TotalPhys, ulong AvailPhys, ulong UsedPhys, ulong TotalPage, ulong AvailPage, uint Load);
+    internal sealed record MemoryInfo(ulong TotalPhys, ulong AvailPhys, ulong UsedPhys, ulong TotalPage, ulong AvailPage, uint Load);
 
-    private static MemoryInfo? ReadMemory()
+    internal static MemoryInfo? ReadMemory()
     {
         var status = new MemoryStatusEx();
         if (!GlobalMemoryStatusEx(status))

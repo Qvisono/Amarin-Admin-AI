@@ -338,6 +338,7 @@ internal static class Program
             PlanReviews = planReviews,
             Recipes = new RecipeLibrary(dataRoot),
             Schedule = new ScheduleBook(dataRoot),
+            Health = new HealthCache(dataRoot),
             AgentHost = agentHost,
             RecipeRunner = new RecipeRunner(
                 () => recipeTools.Value,

@@ -78,6 +78,8 @@ namespace Amarin.UI
 
             PlanOverlay.Decided += OnPlanDecided;
             AutomationPage.AgentRequested += OnRecipeAgentRequested;
+            HealthOverlay.AskRequested += OnHealthAskRequested;
+            HealthOverlay.CloseRequested += CloseHealth;
             AutomationPage.Schedule.RunNow = RunScheduledJobNowAsync;
             AutomationPage.Schedule.OpenChatRequested += chatId =>
             {
@@ -1856,7 +1858,8 @@ namespace Amarin.UI
             // overlay takes focus itself when it opens, but between that and the first click there
             // is a moment with nothing focused at all, and the early return below would hand those
             // keystrokes to the composer -- including the Escape meant to close the journal.
-            if (JournalOverlay.Visibility == Visibility.Visible || IsNoticeOpen)
+            if (JournalOverlay.Visibility == Visibility.Visible || HealthOverlay.Visibility == Visibility.Visible ||
+                IsNoticeOpen)
             {
                 return true;
             }

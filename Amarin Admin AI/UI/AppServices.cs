@@ -112,6 +112,15 @@ internal sealed class AppServices : IDisposable
 
     private ScheduleBook? _schedule;
 
+    /// <summary>Последний снимок «Состояния ПК» (C4).</summary>
+    internal HealthCache Health
+    {
+        get => _health ??= new HealthCache(Path.GetDirectoryName(SettingsStore.FilePath)!);
+        init => _health = value;
+    }
+
+    private HealthCache? _health;
+
     public string? StartupPrompt { get; init; }
 
     /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>
@@ -241,6 +250,7 @@ internal sealed class AppServices : IDisposable
         Instructions.UseRoot(dataRoot);
         Recipes.UseRoot(dataRoot);
         Schedule.UseRoot(dataRoot);
+        Health.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе

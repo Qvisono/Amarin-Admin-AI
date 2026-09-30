@@ -488,6 +488,44 @@
     <system:String x:Key="S.Guard.UsersSnapshot" xml:space="preserve">Снимок сессии - службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.</system:String>
     <system:String x:Key="S.Guard.WingetNoUndo" xml:space="preserve">Откат снимком сессии не применим - winget install/uninstall снимком не откатывается.</system:String>
     <system:String x:Key="S.Guard.WingetSource" xml:space="preserve">Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.</system:String>
+    <system:String x:Key="S.Health.AppCrashes" xml:space="preserve">Падений программ: {0}</system:String>
+    <system:String x:Key="S.Health.Area.Disks" xml:space="preserve">Диски</system:String>
+    <system:String x:Key="S.Health.Area.Security" xml:space="preserve">Защита</system:String>
+    <system:String x:Key="S.Health.Area.Stability" xml:space="preserve">Стабильность</system:String>
+    <system:String x:Key="S.Health.Area.System" xml:space="preserve">Система</system:String>
+    <system:String x:Key="S.Health.Area.Updates" xml:space="preserve">Обновления</system:String>
+    <system:String x:Key="S.Health.Ask" xml:space="preserve">Разобраться</system:String>
+    <system:String x:Key="S.Health.AskIntro" xml:space="preserve">Панель «Состояние ПК», раздел «{0}» — {1}:</system:String>
+    <system:String x:Key="S.Health.AskOutro" xml:space="preserve">Разберись, в чём причина и что с этим сделать.</system:String>
+    <system:String x:Key="S.Health.Checking" xml:space="preserve">Проверяю…</system:String>
+    <system:String x:Key="S.Health.Cpu" xml:space="preserve">Процессор загружен на {0}%</system:String>
+    <system:String x:Key="S.Health.DefenderAbsent" xml:space="preserve">Защитник Windows не отвечает — возможно, стоит другой антивирус</system:String>
+    <system:String x:Key="S.Health.DefenderOff" xml:space="preserve">Защитник Windows или защита в реальном времени выключены</system:String>
+    <system:String x:Key="S.Health.DefenderOn" xml:space="preserve">Защитник Windows работает</system:String>
+    <system:String x:Key="S.Health.DiskUnhealthy" xml:space="preserve">Диск «{0}»: {1}, {2}</system:String>
+    <system:String x:Key="S.Health.DriveFree" xml:space="preserve">{0}: свободно {1} из {2} ГБ ({3}%)</system:String>
+    <system:String x:Key="S.Health.Events" xml:space="preserve">За сутки: критических событий {0}, ошибок {1}</system:String>
+    <system:String x:Key="S.Health.FirewallOff" xml:space="preserve">Брандмауэр выключен: {0}</system:String>
+    <system:String x:Key="S.Health.FirewallOn" xml:space="preserve">Брандмауэр включён во всех профилях</system:String>
+    <system:String x:Key="S.Health.Memory" xml:space="preserve">Память занята на {0}%</system:String>
+    <system:String x:Key="S.Health.NotChecked" xml:space="preserve">Проверить не удалось</system:String>
+    <system:String x:Key="S.Health.Open" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Health.RebootPending" xml:space="preserve">Windows ждёт перезагрузки</system:String>
+    <system:String x:Key="S.Health.Refresh" xml:space="preserve">Обновить</system:String>
+    <system:String x:Key="S.Health.SignaturesOld" xml:space="preserve">Базы Защитника не обновлялись {0} дн.</system:String>
+    <system:String x:Key="S.Health.SmartOk" xml:space="preserve">Физических дисков: {0}, все исправны</system:String>
+    <system:String x:Key="S.Health.SmartUnknown" xml:space="preserve">Исправность дисков узнать не удалось</system:String>
+    <system:String x:Key="S.Health.Status.Attention" xml:space="preserve">внимание</system:String>
+    <system:String x:Key="S.Health.Status.Ok" xml:space="preserve">в порядке</system:String>
+    <system:String x:Key="S.Health.Status.Problem" xml:space="preserve">проблема</system:String>
+    <system:String x:Key="S.Health.Status.Unknown" xml:space="preserve">не проверено</system:String>
+    <system:String x:Key="S.Health.Title" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Health.Updated" xml:space="preserve">Обновлено {0}</system:String>
+    <system:String x:Key="S.Health.UpdatesNone" xml:space="preserve">Ожидающих обновлений нет</system:String>
+    <system:String x:Key="S.Health.UpdatesPending" xml:space="preserve">Ожидают установки: {0}</system:String>
+    <system:String x:Key="S.Health.UpdatesUnknown" xml:space="preserve">Список обновлений получить не удалось</system:String>
+    <system:String x:Key="S.Health.Uptime" xml:space="preserve">Без перезагрузки: {0} дн.</system:String>
+    <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Давно без перезагрузки — часть обновлений и исправлений ждёт её</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">Изображение больше недоступно.</system:String>
     <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (изображение больше недоступно)</system:String>
