@@ -111,7 +111,7 @@ internal sealed class AgentHost : IAgentHost
                 ReasoningFor(currentComplexity, settings),
                 ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
             record.ModelId = modelId;
-            record.DisplayName = "Агент " + modelId;
+            record.DisplayName = Loc.Format("S.Agent.Label", modelId);
             record.Status = AgentRunStatus.Running;
             notify();
 
@@ -123,7 +123,7 @@ internal sealed class AgentHost : IAgentHost
             var tools = AgentTools.Create(
                 venice, _downloadHttp, options.Download, () => ModelSlots.WebSearch(_settings()));
 
-            var label = "Агент " + VeniceModelCatalog.GetDisplayName(modelId);
+            var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);
             // Agent-only prompt. Chat companion TechAiPrompt is never passed here.
             var techAgent = settings.TechAgentPrompt;

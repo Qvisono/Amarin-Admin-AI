@@ -99,6 +99,32 @@ public sealed class LocalizationTests
     [InlineData("Core", "DataBundle.cs")]
     [InlineData("Core", "DataBundleExporter.cs")]
     [InlineData("Core", "DataBundleImporter.cs")]
+    // 1.28.0: окно подтверждения, статусы агента, «Поделиться», просмотр картинок, отчёт о
+    // сбое, экран блокировки и удаление данных — всё, что человек читает, идёт через Loc.
+    [InlineData("UI", "CodeBlockView.cs")]
+    [InlineData("UI", "MainWindow.Sharing.cs")]
+    [InlineData("UI", "MainWindow.ImageViewer.cs")]
+    [InlineData("UI", "ImageBlockView.cs")]
+    [InlineData("UI", "MainWindow.Summarize.cs")]
+    [InlineData("UI", "CostBreakdownTooltip.cs")]
+    [InlineData("UI", "ColorPickerField.xaml.cs")]
+    [InlineData("UI", "CrashHandler.cs")]
+    [InlineData("UI", "CrashWindow.xaml.cs")]
+    [InlineData("UI", "MainWindow.Wipe.cs")]
+    [InlineData("UI", "MainWindow.Lock.cs")]
+    [InlineData("UI", "LockScreen.xaml.cs")]
+    [InlineData("UI", "MainWindow.Appearance.cs")]
+    [InlineData("UI", "ReasoningPicker.xaml.cs")]
+    [InlineData("UI", "ChatMessageViews.cs")]
+    [InlineData("UI", "SettingsSecurityPage.xaml.cs")]
+    [InlineData("UI", "MainWindow.Notice.cs")]
+    [InlineData("UI", "MainWindow.Hotkeys.cs")]
+    [InlineData("UI", "HotkeyField.xaml.cs")]
+    [InlineData("Tools", "DangerousActionGuard.cs")]
+    [InlineData("Core", "Agent.cs")]
+    [InlineData("Core", "AgentUiAdapter.cs")]
+    [InlineData("Core", "ChatEngineInfographic.cs")]
+    [InlineData("Core", "ProfileDataWiper.cs")]
     public void The_login_and_account_screens_hold_no_literal_russian(string folder, string file)
     {
         // Эти экраны написали до локализации, и подписи так и остались литералами: при
@@ -399,4 +425,20 @@ public sealed class LocalizationTests
             or "ConfirmationExplanationText" or "DomainError" or "NameError" or "UpdateStatusText"
             or "SummarizeError" or "BalanceAmount" or "AllowedDomainsEmpty" or "UsageAppText"
             or "ConfirmationAiText";
+
+    [Fact]
+    public void Round_markers_stay_russian_on_disk_but_are_shown_in_the_interface_language()
+    {
+        // Маркеры сравниваются (адаптер агента, лента) и лежат в файлах чатов, поэтому на диске
+        // они русские; показ идёт через словарь. До 1.28.0 лента сравнивала строку с переводом,
+        // и в английском интерфейсе «Запускаю инструменты» показывалось как есть.
+        Assert.Equal("Запускаю инструменты", EngineLines.RunningTools);
+        Assert.Equal(Loc.Get("S.Tools.Running"), EngineLines.Display(EngineLines.RunningTools));
+        Assert.Equal(Loc.Get("S.Engine.Cancelled"), EngineLines.Display(EngineLines.Cancelled));
+        Assert.Equal(Loc.Format("S.Engine.ToolsDoneStep", 3), EngineLines.Display(EngineLines.ToolsDoneStep(3)));
+        Assert.StartsWith(EngineLines.ToolsDone, EngineLines.ToolsDoneStep(3), StringComparison.Ordinal);
+
+        // Строка, записанная уже на языке интерфейса, показывается как есть.
+        Assert.Equal("Model X is overloaded", EngineLines.Display("Model X is overloaded"));
+    }
 }

@@ -49,7 +49,7 @@ internal sealed partial class ChatEngine
             Role = "user",
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = now,
-            Text = $"Инфографика по видео: {videoUrl}"
+            Text = Loc.Format("S.Infographic.Request", videoUrl)
         };
         session.Messages.Add(user);
         session.ApiMessages.Add(new ChatMessage { Role = "user", Content = ChatContent.Text(user.Text) });
@@ -94,28 +94,28 @@ internal sealed partial class ChatEngine
 
         try
         {
-            Progress("Получаю субтитры…");
+            Progress(Loc.Get("S.Infographic.Subtitles"));
             var transcript = await YouTubeTranscriptTool
                 .FetchTranscriptAsync(videoUrl, language: null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!transcript.Success)
             {
-                Fail(session, assistant, observer, clock, transcript.Error ?? "Не удалось получить расшифровку.");
+                Fail(session, assistant, observer, clock, transcript.Error ?? Loc.Get("S.Infographic.NoTranscript"));
                 return;
             }
 
-            Progress("Выделяю главное…");
+            Progress(Loc.Get("S.Infographic.Brief"));
             var imagePrompt = await BuildInfographicPromptAsync(
                     briefModel, briefKey, transcript.Text, cancellationToken)
                 .ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(imagePrompt))
             {
-                Fail(session, assistant, observer, clock, "Не удалось собрать описание инфографики по расшифровке.");
+                Fail(session, assistant, observer, clock, Loc.Get("S.Infographic.NoBrief"));
                 return;
             }
 
-            Progress("Рисую инфографику…");
+            Progress(Loc.Get("S.Infographic.Drawing"));
             var base64 = await _venice
                 .GenerateImageAsync(
                     imagePrompt,
@@ -124,12 +124,12 @@ internal sealed partial class ChatEngine
                     cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            var image = new ImageAttachment(base64, "image/png", "Инфографика");
+            var image = new ImageAttachment(base64, "image/png", Loc.Get("S.Infographic.Alt"));
             var handle = ChatImageRegistry.Register(image);
 
             // The body is nothing but the picture — the user asked for an infographic, not a
             // retelling, and the transcript is already available through the other button.
-            assistant.Text = $"![Инфографика]({handle})";
+            assistant.Text = $"![{Loc.Get("S.Infographic.Alt")}]({handle})";
             assistant.Images = [image with { Label = handle }];
             assistant.Duration = clock.Elapsed;
             assistant.Cost = turn.Total.HasData ? turn.Total : assistant.Cost;
@@ -138,7 +138,7 @@ internal sealed partial class ChatEngine
             session.ApiMessages.Add(new ChatMessage
             {
                 Role = "assistant",
-                Content = ChatContent.Text("(инфографика по видео отправлена пользователю)")
+                Content = ChatContent.Text("(the infographic of the video was sent to the user)")
             });
             session.UpdatedAt = DateTime.Now;
 
@@ -148,7 +148,7 @@ internal sealed partial class ChatEngine
         catch (OperationCanceledException)
         {
             clock.Stop();
-            assistant.Text = string.IsNullOrWhiteSpace(assistant.Text) ? "Отменено." : assistant.Text;
+            assistant.Text = string.IsNullOrWhiteSpace(assistant.Text) ? Loc.Get("S.Infographic.Cancelled") : assistant.Text;
             assistant.Duration = clock.Elapsed;
             assistant.Status = AssistantStatus.Cancelled;
             session.UpdatedAt = DateTime.Now;

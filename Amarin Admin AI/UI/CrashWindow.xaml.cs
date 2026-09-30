@@ -26,6 +26,7 @@ public partial class CrashWindow : Window
         EnsurePalette();
 
         _canContinue = canContinue;
+        Title = Loc.Get("S.Crash.WindowTitle");
         HeadlineText.Text = headline;
         MessageText.Text = message;
         DetailsText.Text = report;

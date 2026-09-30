@@ -80,7 +80,9 @@ public sealed class AgentPromptTests
         {
             Assert.Contains("Yandex", legacy, StringComparison.Ordinal);
 
-            var settings = new AppSettings { TechAgentPrompt = legacy.Replace("\n", "\r\n", StringComparison.Ordinal) + "\r\n" };
+            // Поле настроек отдаёт текст с CRLF, а исходник мог быть взят из git с любыми
+            // переводами строк — сравнение обязано их не различать.
+            var settings = new AppSettings { TechAgentPrompt = legacy.ReplaceLineEndings("\r\n") + "\r\n" };
             Assert.True(AppSettingsStore.MigrateLegacyChatPrompts(settings));
             Assert.Equal("", settings.TechAgentPrompt);
         }

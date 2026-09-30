@@ -119,8 +119,7 @@ internal static partial class DangerousActionGuard
 
         if (unlistedDownloadHost is not null)
         {
-            changeSummary =
-                $"Загрузка будет отклонена: домен {unlistedDownloadHost} не в белом списке";
+            changeSummary = L("S.Guard.DownloadRefused", unlistedDownloadHost);
             if (risk < DangerousRiskLevel.High)
             {
                 risk = DangerousRiskLevel.High;
@@ -128,11 +127,11 @@ internal static partial class DangerousActionGuard
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine($"Инструмент: {toolName}");
+        sb.AppendLine(L("S.Guard.Tool", toolName));
 
         if (!string.IsNullOrWhiteSpace(action))
         {
-            sb.AppendLine($"Действие: {action}");
+            sb.AppendLine(L("S.Guard.Action", action));
         }
 
         foreach (var field in new[]
@@ -172,22 +171,22 @@ internal static partial class DangerousActionGuard
         if (unlistedDownloadHost is not null)
         {
             sb.AppendLine();
-            sb.AppendLine($"⚠ Домен {unlistedDownloadHost} не в белом списке загрузок.");
-            sb.AppendLine("Загрузка будет отклонена даже при подтверждении.");
-            sb.AppendLine("Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.");
+            sb.AppendLine(L("S.Guard.DomainNotListed", unlistedDownloadHost));
+            sb.AppendLine(L("S.Guard.RefusedAnyway"));
+            sb.AppendLine(L("S.Guard.AddDomainHint"));
         }
 
         if (toolName.Equals("disk_management", StringComparison.OrdinalIgnoreCase) &&
             action.Equals("chkdsk_fix", StringComparison.OrdinalIgnoreCase))
         {
-            sb.AppendLine("Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.");
-            sb.AppendLine("Откат снимком сессии не применим.");
+            sb.AppendLine(L("S.Guard.ChkdskWarn"));
+            sb.AppendLine(L("S.Guard.NoSnapshotUndo"));
         }
 
         if (toolName.Equals("disk_space", StringComparison.OrdinalIgnoreCase) &&
             action.Equals("cleanup", StringComparison.OrdinalIgnoreCase))
         {
-            sb.AppendLine("Категории очистки (только фиксированные пути):");
+            sb.AppendLine(L("S.Guard.CleanupCategories"));
             if (arguments.TryGetProperty("categories", out var cats) && cats.ValueKind == JsonValueKind.Array)
             {
                 foreach (var c in cats.EnumerateArray())
@@ -200,53 +199,53 @@ internal static partial class DangerousActionGuard
             }
             else
             {
-                sb.AppendLine("  (categories не указаны)");
+                sb.AppendLine("  " + L("S.Guard.NoCategories"));
             }
 
-            sb.AppendLine("Параметр path на cleanup НЕ влияет - произвольные пути не удаляются.");
-            sb.AppendLine("Откат снимком сессии не применим.");
+            sb.AppendLine(L("S.Guard.CleanupPathIgnored"));
+            sb.AppendLine(L("S.Guard.NoSnapshotUndo"));
         }
 
         if (toolName.Equals("software_inventory", StringComparison.OrdinalIgnoreCase) &&
             action is "install" or "upgrade" or "upgrade_all" or "uninstall")
         {
-            sb.AppendLine("Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.");
-            sb.AppendLine("Откат снимком сессии не применим - winget install/uninstall снимком не откатывается.");
+            sb.AppendLine(L("S.Guard.WingetSource"));
+            sb.AppendLine(L("S.Guard.WingetNoUndo"));
         }
 
         if (toolName.Equals("firewall_rules", StringComparison.OrdinalIgnoreCase) &&
             action is "enable" or "disable" or "create" or "delete")
         {
-            sb.AppendLine("Изменение правил Windows Firewall.");
+            sb.AppendLine(L("S.Guard.FirewallChange"));
             if (arguments.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
             {
                 sb.AppendLine($"name: {Truncate(n.GetString() ?? "", 120)}");
             }
 
-            sb.AppendLine("Перед изменением создаётся снимок сессии (службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).");
+            sb.AppendLine(L("S.Guard.FirewallSnapshot"));
         }
 
         if (toolName.Equals("windows_features", StringComparison.OrdinalIgnoreCase) &&
             action is "enable" or "disable")
         {
-            sb.AppendLine("Изменение Windows Optional Feature (-Online -NoRestart).");
+            sb.AppendLine(L("S.Guard.FeatureChange"));
             if (arguments.TryGetProperty("feature_name", out var fn) && fn.ValueKind == JsonValueKind.String)
             {
                 sb.AppendLine($"feature_name: {Truncate(fn.GetString() ?? "", 120)}");
             }
 
-            sb.AppendLine("PreviousState будет в ответе тулы - для ручного отката (enable/disable обратно).");
-            sb.AppendLine("Снимок сессии восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.");
-            sb.AppendLine("Машина НЕ перезагружается автоматически; при RestartNeeded=True - reboot вручную.");
+            sb.AppendLine(L("S.Guard.FeaturePrevious"));
+            sb.AppendLine(L("S.Guard.FeatureSnapshot"));
+            sb.AppendLine(L("S.Guard.FeatureNoReboot"));
         }
 
         if (toolName.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
             action is "enable_user" or "disable_user" or "add_to_group" or "remove_from_group")
         {
-            sb.AppendLine("Изменение локальных учёток/членства в группах.");
-            sb.AppendLine("PreviousEnabled / previous members будут в ответе тулы - для ручного отката.");
-            sb.AppendLine("Снимок сессии - службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.");
-            sb.AppendLine("Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.");
+            sb.AppendLine(L("S.Guard.UsersChange"));
+            sb.AppendLine(L("S.Guard.UsersPrevious"));
+            sb.AppendLine(L("S.Guard.UsersSnapshot"));
+            sb.AppendLine(L("S.Guard.UsersProtection"));
         }
 
         return new DangerousActionInfo(
@@ -398,82 +397,90 @@ internal static partial class DangerousActionGuard
         };
     }
 
+    /// <remarks>
+    /// Слова — из словаря, а приставки полей (двоеточие, «по пути», стрелки) — в коде: пробелы
+    /// по краям значения словарь не хранит (XAML их срезает).
+    /// </remarks>
     private static string BuildChangeSummary(string toolName, string action, JsonElement arguments)
     {
         return toolName.ToLowerInvariant() switch
         {
-            "registry" => $"Изменение реестра ({action})" +
-                          FormatField(arguments, "path", prefix: " по пути "),
-            "windows_service" => $"Управление службой{FormatField(arguments, "service_name", prefix: ": ")}" +
+            "registry" => L("S.Guard.Sum.Registry", action) +
+                          FormatField(arguments, "path", prefix: " " + L("S.Guard.Sum.AtPath") + " "),
+            "windows_service" => L("S.Guard.Sum.Service") + FormatField(arguments, "service_name", prefix: ": ") +
                                  (string.IsNullOrWhiteSpace(action) ? "" : $" → {action}"),
-            "filesystem" or "write_file" => $"Запись в файл{FormatField(arguments, "path", prefix: ": ")}",
-            "run_powershell" => $"Выполнение PowerShell{FormatField(arguments, "command", prefix: ": ", max: 120)}",
-            "windows_process" => $"Завершение процесса{FormatField(arguments, "process_name", prefix: ": ")}" +
+            "filesystem" or "write_file" => L("S.Guard.Sum.WriteFile") + FormatField(arguments, "path", prefix: ": "),
+            "run_powershell" => L("S.Guard.Sum.PowerShell") + FormatField(arguments, "command", prefix: ": ", max: 120),
+            "windows_process" => L("S.Guard.Sum.KillProcess") + FormatField(arguments, "process_name", prefix: ": ") +
                                  FormatField(arguments, "pid", prefix: " PID "),
-            "scheduled_task" => $"Изменение задачи{FormatField(arguments, "task_name", prefix: ": ")}" +
+            "scheduled_task" => L("S.Guard.Sum.Task") + FormatField(arguments, "task_name", prefix: ": ") +
                                 (string.IsNullOrWhiteSpace(action) ? "" : $" → {action}"),
             "network" => action switch
             {
-                "flush_dns" => "Сброс кэша DNS",
-                "firewall_enable" => "Включение брандмауэра",
-                "firewall_disable" => "Отключение брандмауэра",
-                _ => $"Изменение сети ({action})"
+                "flush_dns" => L("S.Guard.Sum.FlushDns"),
+                "firewall_enable" => L("S.Guard.Sum.FirewallOn"),
+                "firewall_disable" => L("S.Guard.Sum.FirewallOff"),
+                _ => L("S.Guard.Sum.Network", action)
             },
-            "virtualization" => $"Виртуализация → {action}",
-            "download_file" => $"Загрузка файла{FormatField(arguments, "url", prefix: " с ")}",
-            "change_rollback" => "Восстановление системы из снимка",
+            "virtualization" => L("S.Guard.Sum.Virtualization") + $" → {action}",
+            "download_file" => L("S.Guard.Sum.Download") + FormatField(arguments, "url", prefix: ": "),
+            "change_rollback" => L("S.Guard.Sum.Rollback"),
             "system_repair" => action switch
             {
-                "run_sfc" => "Запуск проверки системных файлов (SFC)",
-                "run_dism" => "Восстановление образа Windows (DISM)",
-                _ => $"Системный ремонт ({action})"
+                "run_sfc" => L("S.Guard.Sum.Sfc"),
+                "run_dism" => L("S.Guard.Sum.Dism"),
+                _ => L("S.Guard.Sum.Repair", action)
             },
             "disk_management" => action switch
             {
-                "chkdsk_fix" => "chkdsk / исправление тома" +
-                                  FormatField(arguments, "drive_letter", prefix: " ", suffix: ":"),
-                _ => $"Диски ({action})"
+                "chkdsk_fix" => L("S.Guard.Sum.Chkdsk") +
+                                FormatField(arguments, "drive_letter", prefix: " ", suffix: ":"),
+                _ => L("S.Guard.Sum.Disks", action)
             },
             "disk_space" => action switch
             {
-                "cleanup" => "Очистка диска (фиксированные категории)",
-                _ => $"Место на диске ({action})"
+                "cleanup" => L("S.Guard.Sum.Cleanup"),
+                _ => L("S.Guard.Sum.DiskSpace", action)
             },
             "software_inventory" => action switch
             {
-                "install" => "Установка пакета" + FormatField(arguments, "package_id", prefix: ": "),
-                "upgrade" => "Обновление пакета" + FormatField(arguments, "package_id", prefix: ": "),
-                "upgrade_all" => "Обновление всех пакетов (winget upgrade --all)",
-                "uninstall" => "Удаление пакета" + FormatField(arguments, "package_id", prefix: ": "),
-                _ => $"ПО ({action})"
+                "install" => L("S.Guard.Sum.Install") + FormatField(arguments, "package_id", prefix: ": "),
+                "upgrade" => L("S.Guard.Sum.Upgrade") + FormatField(arguments, "package_id", prefix: ": "),
+                "upgrade_all" => L("S.Guard.Sum.UpgradeAll"),
+                "uninstall" => L("S.Guard.Sum.Uninstall") + FormatField(arguments, "package_id", prefix: ": "),
+                _ => L("S.Guard.Sum.Software", action)
             },
             "firewall_rules" => action switch
             {
-                "enable" => "Включение правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
-                "disable" => "Отключение правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
-                "create" => "Создание правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
-                "delete" => "Удаление правила брандмауэра" + FormatField(arguments, "name", prefix: ": "),
-                _ => $"Брандмауэр ({action})"
+                "enable" => L("S.Guard.Sum.RuleOn") + FormatField(arguments, "name", prefix: ": "),
+                "disable" => L("S.Guard.Sum.RuleOff") + FormatField(arguments, "name", prefix: ": "),
+                "create" => L("S.Guard.Sum.RuleCreate") + FormatField(arguments, "name", prefix: ": "),
+                "delete" => L("S.Guard.Sum.RuleDelete") + FormatField(arguments, "name", prefix: ": "),
+                _ => L("S.Guard.Sum.Firewall", action)
             },
             "windows_features" => action switch
             {
-                "enable" => "Включение optional feature" + FormatField(arguments, "feature_name", prefix: ": "),
-                "disable" => "Отключение optional feature" + FormatField(arguments, "feature_name", prefix: ": "),
+                "enable" => L("S.Guard.Sum.FeatureOn") + FormatField(arguments, "feature_name", prefix: ": "),
+                "disable" => L("S.Guard.Sum.FeatureOff") + FormatField(arguments, "feature_name", prefix: ": "),
                 _ => $"Windows features ({action})"
             },
             "local_users" => action switch
             {
-                "enable_user" => "Включение учётки" + FormatField(arguments, "user", prefix: ": "),
-                "disable_user" => "Отключение учётки" + FormatField(arguments, "user", prefix: ": "),
-                "add_to_group" => "Добавление в группу" + FormatField(arguments, "user", prefix: " ") +
+                "enable_user" => L("S.Guard.Sum.UserOn") + FormatField(arguments, "user", prefix: ": "),
+                "disable_user" => L("S.Guard.Sum.UserOff") + FormatField(arguments, "user", prefix: ": "),
+                "add_to_group" => L("S.Guard.Sum.GroupAdd") + FormatField(arguments, "user", prefix: " ") +
                                   FormatField(arguments, "group", prefix: " → "),
-                "remove_from_group" => "Удаление из группы" + FormatField(arguments, "user", prefix: " ") +
+                "remove_from_group" => L("S.Guard.Sum.GroupRemove") + FormatField(arguments, "user", prefix: " ") +
                                        FormatField(arguments, "group", prefix: " ← "),
-                _ => $"Локальные пользователи ({action})"
+                _ => L("S.Guard.Sum.Users", action)
             },
-            _ => $"Операция через {toolName}"
+            _ => L("S.Guard.Sum.Other", toolName)
         };
     }
+
+    private static string L(string key) => Amarin.Core.Loc.Get(key);
+
+    private static string L(string key, params object[] args) => Amarin.Core.Loc.Format(key, args);
 
     private static DangerousRiskLevel GetRiskLevel(string toolName, string action, JsonElement arguments)
     {

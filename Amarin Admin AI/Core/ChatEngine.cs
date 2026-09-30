@@ -1801,7 +1801,7 @@ internal sealed partial class ChatEngine
                 }
 
                 if (string.IsNullOrWhiteSpace(round.InfoLine) ||
-                    round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
+                    round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal))
                 {
                     round.InfoLine = EngineLines.ToolsStopped;
                 }
@@ -1815,14 +1815,13 @@ internal sealed partial class ChatEngine
     /// </summary>
     private static string EmptyCompletionMessage(StreamedChatCompletion streamed)
     {
-        var model = string.IsNullOrWhiteSpace(streamed.Model) ? "модель" : streamed.Model;
+        var model = string.IsNullOrWhiteSpace(streamed.Model) ? Loc.Get("S.Turn.SomeModel") : streamed.Model;
         var reason = string.IsNullOrWhiteSpace(streamed.FinishReason)
-            ? "поток завершился без причины"
+            ? Loc.Get("S.Turn.StreamEndedSilently")
             : $"finish_reason: {streamed.FinishReason}";
         return streamed.FinishReason?.Equals("length", StringComparison.OrdinalIgnoreCase) == true
-            ? $"Ответ обрезан лимитом токенов ({model}). Повторите запрос или упростите вопрос."
-            : $"Модель {model} не вернула текстовый ответ после двух попыток ({reason}). " +
-              "Повторите запрос или выберите другую модель.";
+            ? Loc.Format("S.Turn.CutByTokens", model)
+            : Loc.Format("S.Turn.NoTextTwice", model, reason);
     }
 
     private static VeniceCost SumCosts(VeniceCost chatCost, ChatDisplayMessage assistant)

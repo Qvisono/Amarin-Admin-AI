@@ -208,8 +208,12 @@ internal static class ChatShareCodec
 
     private static string MarkShared(string? title)
     {
-        var name = string.IsNullOrWhiteSpace(title) ? "Общий чат" : title.Trim();
-        return name.EndsWith("(общий)", StringComparison.Ordinal) ? name : name + " (общий)";
+        // Пометка уже на месте — прежней русской или нынешней, — второй раз не ставится.
+        var suffix = Loc.Get("S.Share.SharedSuffix");
+        var name = string.IsNullOrWhiteSpace(title) ? Loc.Get("S.Share.SharedChat") : title.Trim();
+        return name.EndsWith(suffix, StringComparison.Ordinal) || name.EndsWith("(общий)", StringComparison.Ordinal)
+            ? name
+            : name + " " + suffix;
     }
 
     /// <summary>

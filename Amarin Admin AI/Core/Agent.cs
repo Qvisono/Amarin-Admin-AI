@@ -751,7 +751,7 @@ Paths on this machine - use these exact values, never wildcards:
         catch (JsonException ex)
         {
             result = ToolResult.Fail(
-                $"Некорректные аргументы инструмента (ожидался JSON): {ex.Message}");
+                Loc.Format("S.AgentRun.BadArgs", ex.Message));
             _ui.ToolResult(toolName, result);
             messages.Add(BuildToolMessage(toolCall, result));
             Audit(toolCall, ToolEffect.Write, AuditOutcome.Refused, ApprovalSource.NotRequired, guardMark, result);

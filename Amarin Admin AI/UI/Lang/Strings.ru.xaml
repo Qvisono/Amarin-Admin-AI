@@ -62,6 +62,7 @@
     <system:String x:Key="S.Agent.Label" xml:space="preserve">Агент {0}</system:String>
     <system:String x:Key="S.Agent.LabelNamed" xml:space="preserve">Агент · {0}</system:String>
     <system:String x:Key="S.AgentRun.AnalyzingStep" xml:space="preserve">Анализ результатов инструментов (шаг {0})…</system:String>
+    <system:String x:Key="S.AgentRun.BadArgs" xml:space="preserve">Некорректные аргументы инструмента (ожидался JSON): {0}</system:String>
     <system:String x:Key="S.AgentRun.ChangesSaved" xml:space="preserve">Изменения применены. Состояние служб, задач и реестра сохранено в снимке сессии.</system:String>
     <system:String x:Key="S.AgentRun.EmptyReply" xml:space="preserve">Модель вернула пустой ответ - повторяю запрос…</system:String>
     <system:String x:Key="S.AgentRun.Finalizing" xml:space="preserve">Формирую итоговый ответ…</system:String>
@@ -359,6 +360,7 @@
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>
     <system:String x:Key="S.Crash.Source.Task" xml:space="preserve">несобранная задача</system:String>
     <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">поток интерфейса</system:String>
+    <system:String x:Key="S.Crash.WindowTitle" xml:space="preserve">Amarin Admin AI - сбой</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Журнал аудита</system:String>
     <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">Агент завершил работу - готовлю отчёт</system:String>
     <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">отменено</system:String>
@@ -370,12 +372,82 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
+    <system:String x:Key="S.Guard.Action" xml:space="preserve">Действие: {0}</system:String>
+    <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.</system:String>
+    <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.</system:String>
+    <system:String x:Key="S.Guard.CleanupCategories" xml:space="preserve">Категории очистки (только фиксированные пути):</system:String>
+    <system:String x:Key="S.Guard.CleanupPathIgnored" xml:space="preserve">Параметр path на cleanup НЕ влияет - произвольные пути не удаляются.</system:String>
+    <system:String x:Key="S.Guard.DomainNotListed" xml:space="preserve">⚠ Домен {0} не в белом списке загрузок.</system:String>
+    <system:String x:Key="S.Guard.DownloadRefused" xml:space="preserve">Загрузка будет отклонена: домен {0} не в белом списке</system:String>
+    <system:String x:Key="S.Guard.FeatureChange" xml:space="preserve">Изменение Windows Optional Feature (-Online -NoRestart).</system:String>
+    <system:String x:Key="S.Guard.FeatureNoReboot" xml:space="preserve">Машина НЕ перезагружается автоматически; при RestartNeeded=True - reboot вручную.</system:String>
+    <system:String x:Key="S.Guard.FeaturePrevious" xml:space="preserve">PreviousState будет в ответе тулы - для ручного отката (enable/disable обратно).</system:String>
+    <system:String x:Key="S.Guard.FeatureSnapshot" xml:space="preserve">Снимок сессии восстанавливает службы/задачи/реестр, но НЕ откатывает состояние optional feature.</system:String>
+    <system:String x:Key="S.Guard.FirewallChange" xml:space="preserve">Изменение правил Windows Firewall.</system:String>
+    <system:String x:Key="S.Guard.FirewallSnapshot" xml:space="preserve">Перед изменением создаётся снимок сессии (службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).</system:String>
+    <system:String x:Key="S.Guard.NoCategories" xml:space="preserve">(categories не указаны)</system:String>
+    <system:String x:Key="S.Guard.NoSnapshotUndo" xml:space="preserve">Откат снимком сессии не применим.</system:String>
+    <system:String x:Key="S.Guard.RefusedAnyway" xml:space="preserve">Загрузка будет отклонена даже при подтверждении.</system:String>
+    <system:String x:Key="S.Guard.Sum.AtPath" xml:space="preserve">по пути</system:String>
+    <system:String x:Key="S.Guard.Sum.Chkdsk" xml:space="preserve">chkdsk / исправление тома</system:String>
+    <system:String x:Key="S.Guard.Sum.Cleanup" xml:space="preserve">Очистка диска (фиксированные категории)</system:String>
+    <system:String x:Key="S.Guard.Sum.DiskSpace" xml:space="preserve">Место на диске ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Disks" xml:space="preserve">Диски ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Dism" xml:space="preserve">Восстановление образа Windows (DISM)</system:String>
+    <system:String x:Key="S.Guard.Sum.Download" xml:space="preserve">Загрузка файла</system:String>
+    <system:String x:Key="S.Guard.Sum.FeatureOff" xml:space="preserve">Отключение optional feature</system:String>
+    <system:String x:Key="S.Guard.Sum.FeatureOn" xml:space="preserve">Включение optional feature</system:String>
+    <system:String x:Key="S.Guard.Sum.Firewall" xml:space="preserve">Брандмауэр ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.FirewallOff" xml:space="preserve">Отключение брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.FirewallOn" xml:space="preserve">Включение брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.FlushDns" xml:space="preserve">Сброс кэша DNS</system:String>
+    <system:String x:Key="S.Guard.Sum.GroupAdd" xml:space="preserve">Добавление в группу</system:String>
+    <system:String x:Key="S.Guard.Sum.GroupRemove" xml:space="preserve">Удаление из группы</system:String>
+    <system:String x:Key="S.Guard.Sum.Install" xml:space="preserve">Установка пакета</system:String>
+    <system:String x:Key="S.Guard.Sum.KillProcess" xml:space="preserve">Завершение процесса</system:String>
+    <system:String x:Key="S.Guard.Sum.Network" xml:space="preserve">Изменение сети ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Операция через {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Выполнение PowerShell</system:String>
+    <system:String x:Key="S.Guard.Sum.Registry" xml:space="preserve">Изменение реестра ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Repair" xml:space="preserve">Системный ремонт ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Rollback" xml:space="preserve">Восстановление системы из снимка</system:String>
+    <system:String x:Key="S.Guard.Sum.RuleCreate" xml:space="preserve">Создание правила брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.RuleDelete" xml:space="preserve">Удаление правила брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.RuleOff" xml:space="preserve">Отключение правила брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.RuleOn" xml:space="preserve">Включение правила брандмауэра</system:String>
+    <system:String x:Key="S.Guard.Sum.Service" xml:space="preserve">Управление службой</system:String>
+    <system:String x:Key="S.Guard.Sum.Sfc" xml:space="preserve">Запуск проверки системных файлов (SFC)</system:String>
+    <system:String x:Key="S.Guard.Sum.Software" xml:space="preserve">ПО ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Task" xml:space="preserve">Изменение задачи</system:String>
+    <system:String x:Key="S.Guard.Sum.Uninstall" xml:space="preserve">Удаление пакета</system:String>
+    <system:String x:Key="S.Guard.Sum.Upgrade" xml:space="preserve">Обновление пакета</system:String>
+    <system:String x:Key="S.Guard.Sum.UpgradeAll" xml:space="preserve">Обновление всех пакетов (winget upgrade --all)</system:String>
+    <system:String x:Key="S.Guard.Sum.UserOff" xml:space="preserve">Отключение учётки</system:String>
+    <system:String x:Key="S.Guard.Sum.UserOn" xml:space="preserve">Включение учётки</system:String>
+    <system:String x:Key="S.Guard.Sum.Users" xml:space="preserve">Локальные пользователи ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.Virtualization" xml:space="preserve">Виртуализация</system:String>
+    <system:String x:Key="S.Guard.Sum.WriteFile" xml:space="preserve">Запись в файл</system:String>
+    <system:String x:Key="S.Guard.Tool" xml:space="preserve">Инструмент: {0}</system:String>
+    <system:String x:Key="S.Guard.UsersChange" xml:space="preserve">Изменение локальных учёток/членства в группах.</system:String>
+    <system:String x:Key="S.Guard.UsersPrevious" xml:space="preserve">PreviousEnabled / previous members будут в ответе тулы - для ручного отката.</system:String>
+    <system:String x:Key="S.Guard.UsersProtection" xml:space="preserve">Защита: нельзя отключить текущего пользователя сессии; нельзя убрать последнего Enabled из Администраторы.</system:String>
+    <system:String x:Key="S.Guard.UsersSnapshot" xml:space="preserve">Снимок сессии - службы/задачи/реестр; состояние Enabled и членство групп НЕ восстанавливает.</system:String>
+    <system:String x:Key="S.Guard.WingetNoUndo" xml:space="preserve">Откат снимком сессии не применим - winget install/uninstall снимком не откатывается.</system:String>
+    <system:String x:Key="S.Guard.WingetSource" xml:space="preserve">Источник: winget (App Installer). Флаги: --silent --accept-*-agreements --disable-interactivity.</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">Изображение больше недоступно.</system:String>
     <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (изображение больше недоступно)</system:String>
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Загрузка изображения…</system:String>
     <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Изображение недоступно: {0}</system:String>
     <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (изображение недоступно)</system:String>
+    <system:String x:Key="S.Infographic.Alt" xml:space="preserve">Инфографика</system:String>
+    <system:String x:Key="S.Infographic.Brief" xml:space="preserve">Выделяю главное…</system:String>
+    <system:String x:Key="S.Infographic.Cancelled" xml:space="preserve">Отменено.</system:String>
+    <system:String x:Key="S.Infographic.Drawing" xml:space="preserve">Рисую инфографику…</system:String>
+    <system:String x:Key="S.Infographic.NoBrief" xml:space="preserve">Не удалось собрать описание инфографики по расшифровке.</system:String>
+    <system:String x:Key="S.Infographic.NoTranscript" xml:space="preserve">Не удалось получить расшифровку.</system:String>
+    <system:String x:Key="S.Infographic.Request" xml:space="preserve">Инфографика по видео: {0}</system:String>
+    <system:String x:Key="S.Infographic.Subtitles" xml:space="preserve">Получаю субтитры…</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
@@ -901,6 +973,8 @@
     <system:String x:Key="S.Share.NotAChat" xml:space="preserve">Файл не распознан как чат Amarin.</system:String>
     <system:String x:Key="S.Share.Saved" xml:space="preserve">Диалог сохранён:&#10;{0}</system:String>
     <system:String x:Key="S.Share.SavedToFile" xml:space="preserve">Код длинный, поэтому также сохранён в файл:&#10;{0}</system:String>
+    <system:String x:Key="S.Share.SharedChat" xml:space="preserve">Общий чат</system:String>
+    <system:String x:Key="S.Share.SharedSuffix" xml:space="preserve">(общий)</system:String>
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Свернуть панель</system:String>
     <system:String x:Key="S.Sidebar.Expand" xml:space="preserve">Развернуть панель</system:String>
     <system:String x:Key="S.Sidebar.NewChat" xml:space="preserve">New Chat</system:String>
@@ -1016,12 +1090,16 @@
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">Команда /agent не принимает цитаты.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>
+    <system:String x:Key="S.Turn.CutByTokens" xml:space="preserve">Ответ обрезан лимитом токенов ({0}). Повторите запрос или упростите вопрос.</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
     <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Нет ключа API — добавьте ключ Venice или OpenRouter на странице Key &amp; Info</system:String>
 
     <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
     <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
+    <system:String x:Key="S.Turn.NoTextTwice" xml:space="preserve">Модель {0} не вернула текстовый ответ после двух попыток ({1}). Повторите запрос или выберите другую модель.</system:String>
     <system:String x:Key="S.Turn.Queued" xml:space="preserve">Отправлено. Модель учтёт это на следующем шаге.</system:String>
+    <system:String x:Key="S.Turn.SomeModel" xml:space="preserve">модель</system:String>
+    <system:String x:Key="S.Turn.StreamEndedSilently" xml:space="preserve">поток завершился без причины</system:String>
     <system:String x:Key="S.Update.Confirm" xml:space="preserve">Обновить и перезапустить</system:String>
     <system:String x:Key="S.Update.Desc" xml:space="preserve">Файл скачивается с GitHub, сверяется по контрольной сумме и заменяет программу в её папке. Прежняя версия остаётся рядом до следующего запуска. После замены программа перезапустится.</system:String>
     <system:String x:Key="S.Update.Title" xml:space="preserve">Обновить программу</system:String>
