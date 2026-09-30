@@ -84,6 +84,7 @@ namespace Amarin.UI
             WireShortcuts();
             WireCommands();
             WireDrafts();
+            WireCodeBlocks();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -475,6 +476,20 @@ namespace Amarin.UI
 
             _services.Settings.AutoScroll = AutoScrollToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
+        }
+
+        private void CodeLineNumbersToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.CodeLineNumbers = CodeLineNumbersToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+
+            // Блоки кода уже построены — перестраиваем ленту, не трогая лупы.
+            RebuildTranscript(resetZoom: false);
         }
 
         private void UiScaleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1653,6 +1668,7 @@ namespace Amarin.UI
                 _services.ReloadSettings();
                 var settings = _services.Settings;
                 AutoScrollToggle.IsChecked = settings.AutoScroll;
+                CodeLineNumbersToggle.IsChecked = settings.CodeLineNumbers;
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
                 RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;

@@ -63,18 +63,35 @@ internal static class CodeBlockView
         };
         label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
 
+        // Кнопки фокусируемы (D13): до них доходят Tab-ом, и дикторы читают их подписи.
         var copy = ChatMessageViews.IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
-        copy.Focusable = false;
-        copy.VerticalAlignment = VerticalAlignment.Center;
-        copy.Margin = new Thickness(0);
+        Accessible(copy, Loc.Get("S.Common.Copy"));
         AttachCopy(copy, label, code);
+
+        var save = ChatMessageViews.IconAction(host, "ExportJson", Loc.Get("S.Code.Save"));
+        Accessible(save, Loc.Get("S.Code.Save"));
+        save.Click += (_, _) => SaveToFile(save, code, language);
+
+        var wrap = GlyphButton(host, "M1,2 L13,2 M1,6 L11,6 A2.5,2.5 0 0 1 11,11 L7,11 M8.5,9 L6.5,11 L8.5,13 M1,10 L4,10", Loc.Get("S.Code.Wrap"));
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        if (CodeLanguages.IsRunnableScript(language))
+        {
+            var run = GlyphButton(host, "M3,1.5 L12,7 L3,12.5 Z", Loc.Get("S.Code.RunViaAgent"));
+            run.Click += (_, _) => run.RaiseEvent(new RunScriptEventArgs(RunScriptEvent, run, code, CodeLanguages.Normalize(language)));
+            buttons.Children.Add(run);
+        }
+
+        buttons.Children.Add(wrap);
+        buttons.Children.Add(save);
+        buttons.Children.Add(copy);
 
         var header = new Grid { Margin = new Thickness(10, 3, 4, 3) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.Children.Add(label);
-        Grid.SetColumn(copy, 1);
-        header.Children.Add(copy);
+        Grid.SetColumn(buttons, 1);
+        header.Children.Add(buttons);
 
         var text = BuildCodeText(host, code, language, cache);
         if (chatMenu)
@@ -92,11 +109,68 @@ internal static class CodeBlockView
             Padding = new Thickness(0, 0, 0, 2)
         };
 
+        // Номера строк (D13) — отдельной колонкой тем же шрифтом и интерлиньяжем: выделение
+        // и копирование берут только код. Включаются настройкой, а не кнопкой: это привычка
+        // читателя, а не свойство блока.
+        FrameworkElement content = scroller;
+        TextBlock? gutter = null;
+        if (ShowLineNumbers?.Invoke() == true)
+        {
+            var lines = code.Split('\n').Length;
+            gutter = new TextBlock
+            {
+                Text = string.Join("\n", Enumerable.Range(1, lines)),
+                FontFamily = Mono,
+                FontSize = CodeFontSize,
+                LineHeight = CodeLineHeight,
+                LineStackingStrategy = LineStackingStrategy.BlockLineHeight,
+                TextAlignment = TextAlignment.Right,
+                Margin = new Thickness(0, 0, 12, 0),
+                IsHitTestVisible = false
+            };
+            gutter.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(scroller, 1);
+            grid.Children.Add(gutter);
+            grid.Children.Add(scroller);
+            content = grid;
+        }
+
+        // Перенос строк (D13): ширина текста — по колонке, а не по самой длинной строке. Номера
+        // строк при переносе убираются — с ними перенесённое читалось бы новой строкой.
+        var fixedWidth = text.Width;
+        wrap.Click += (_, _) =>
+        {
+            var wrapped = double.IsNaN(text.Width);
+            if (wrapped)
+            {
+                text.Width = fixedWidth;
+                text.Document.PageWidth = fixedWidth;
+                scroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
+            }
+            else
+            {
+                text.Width = double.NaN;
+                text.Document.PageWidth = double.NaN;
+                scroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            }
+
+            if (gutter is not null)
+            {
+                gutter.Visibility = wrapped ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            wrap.Opacity = wrapped ? 1 : 0.65;
+            wrap.ToolTip = Loc.Get(wrapped ? "S.Code.Wrap" : "S.Code.NoWrap");
+        };
+
         var body = new Border
         {
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(12, 9, 10, 9),
-            Child = scroller
+            Child = content
         };
         body.SetResourceReference(Border.BorderBrushProperty, "Border.Subtle");
 
@@ -260,6 +334,90 @@ internal static class CodeBlockView
         }
 
         return width;
+    }
+
+    /// <summary>
+    /// Показывать ли номера строк (<see cref="AppSettings.CodeLineNumbers"/>). Ставит окно при
+    /// привязке служб; null — нет. Статическое состояние: тест, который его меняет, возвращает прежнее.
+    /// </summary>
+    internal static Func<bool>? ShowLineNumbers { get; set; }
+
+    /// <summary>
+    /// «Выполнить через агента» у скриптов PowerShell, cmd и bat (D13): всплывает до окна, а оно
+    /// кладёт задачу агенту в поле ввода. Сам скрипт проходит обычное подтверждение шлюза.
+    /// </summary>
+    internal static readonly RoutedEvent RunScriptEvent = EventManager.RegisterRoutedEvent(
+        "RunScript", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(CodeBlockView));
+
+    internal sealed class RunScriptEventArgs(RoutedEvent routedEvent, object source, string code, string language)
+        : RoutedEventArgs(routedEvent, source)
+    {
+        public string Code { get; } = code;
+
+        public string Language { get; } = language;
+    }
+
+    private static void Accessible(Button button, string name)
+    {
+        button.Focusable = true;
+        button.VerticalAlignment = VerticalAlignment.Center;
+        button.Margin = new Thickness(0);
+        System.Windows.Automation.AutomationProperties.SetName(button, name);
+    }
+
+    /// <summary>Кнопка со значком-контуром — для действий, у которых нет картинки в наборе значков.</summary>
+    private static Button GlyphButton(FrameworkElement host, string data, string tooltip)
+    {
+        var glyph = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse(data),
+            Width = 12,
+            Height = 12,
+            Stretch = Stretch.Uniform,
+            StrokeThickness = 1.3,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            Margin = new Thickness(6)
+        };
+        glyph.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Text.Dim");
+        var button = new Button
+        {
+            Style = (Style)host.FindResource("MsgActionButton"),
+            ToolTip = tooltip,
+            Content = glyph
+        };
+        Accessible(button, tooltip);
+        return button;
+    }
+
+    /// <summary>«Сохранить»: диалог с расширением по языку блока.</summary>
+    private static void SaveToFile(Button anchor, string code, string? language)
+    {
+        var extension = CodeLanguages.Extension(language);
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = Loc.Get("S.Code.Save"),
+            FileName = "code" + extension,
+            DefaultExt = extension,
+            Filter = $"{CodeLanguages.Normalize(language)}|*{extension}|{Loc.Get("S.Common.AllFiles")}|*.*"
+        };
+        if (dialog.ShowDialog(Window.GetWindow(anchor)) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            // Скрипты Windows PowerShell 5.1 без BOM читает в кодировке системы — кириллица
+            // в них ломается; остальное — без BOM, как принято.
+            var bom = extension is ".ps1" or ".psm1" or ".bat" or ".cmd";
+            File.WriteAllText(dialog.FileName, code.Replace("\n", Environment.NewLine), new System.Text.UTF8Encoding(bom));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            anchor.ToolTip = Loc.Format("S.Export.Failed", ex.Message);
+        }
     }
 
     private static void AttachCopy(Button copy, TextBlock label, string code)

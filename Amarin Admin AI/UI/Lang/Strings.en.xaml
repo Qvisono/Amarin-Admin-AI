@@ -229,6 +229,7 @@
     <system:String x:Key="S.Batch.RequestRefused" xml:space="preserve">OpenRouter batch queue: the request in the batch was refused - {0}</system:String>
     <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Could not read the OpenRouter batch queue's reply ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
+    <system:String x:Key="S.Behavior.CodeLineNumbers" xml:space="preserve">Line numbers in code blocks</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">A card in the bottom right corner when the model has finished and the window is not in focus</system:String>
@@ -355,6 +356,11 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
     <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Click to restart as administrator.</system:String>
+    <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Run this script on this PC unchanged and report the result:</system:String>
+    <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Do not wrap lines</system:String>
+    <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Run via the agent — the task goes into the input field</system:String>
+    <system:String x:Key="S.Code.Save" xml:space="preserve">Save to a file</system:String>
+    <system:String x:Key="S.Code.Wrap" xml:space="preserve">Wrap long lines</system:String>
     <system:String x:Key="S.ColorPicker.ByTheme" xml:space="preserve">from theme</system:String>
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Back to the theme colour</system:String>

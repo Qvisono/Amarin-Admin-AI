@@ -3092,6 +3092,14 @@
                                     <CheckBox x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
+                                <!-- Номера строк у блоков кода (D13). -->
+                                <Grid>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.CodeLineNumbers}" VerticalAlignment="Center"/>
+                                    <CheckBox x:Name="CodeLineNumbersToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                                              AutomationProperties.Name="{DynamicResource S.Behavior.CodeLineNumbers}"
+                                              Checked="CodeLineNumbersToggle_Changed" Unchecked="CodeLineNumbersToggle_Changed"/>
+                                </Grid>
+                                <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>

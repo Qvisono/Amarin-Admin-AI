@@ -229,6 +229,7 @@
     <system:String x:Key="S.Batch.RequestRefused" xml:space="preserve">Пакетная очередь OpenRouter: запрос в заявке отказал - {0}</system:String>
     <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Ответ пакетной очереди OpenRouter не разобрать ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
+    <system:String x:Key="S.Behavior.CodeLineNumbers" xml:space="preserve">Номера строк в блоках кода</system:String>
     <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">Всплывающее окно в правом нижнем углу, когда модель закончила генерацию, а окно не в фокусе</system:String>
@@ -355,6 +356,11 @@
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Программа запущена без прав администратора: многие действия недоступны</system:String>
 
     <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Щёлкните, чтобы перезапустить от имени администратора.</system:String>
+    <system:String x:Key="S.Code.AgentTask" xml:space="preserve">Выполни этот скрипт на этом ПК без изменений и сообщи результат:</system:String>
+    <system:String x:Key="S.Code.NoWrap" xml:space="preserve">Не переносить строки</system:String>
+    <system:String x:Key="S.Code.RunViaAgent" xml:space="preserve">Выполнить через агента — задача ляжет в поле ввода</system:String>
+    <system:String x:Key="S.Code.Save" xml:space="preserve">Сохранить в файл</system:String>
+    <system:String x:Key="S.Code.Wrap" xml:space="preserve">Переносить длинные строки</system:String>
     <system:String x:Key="S.ColorPicker.ByTheme" xml:space="preserve">по теме</system:String>
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Сброс</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>

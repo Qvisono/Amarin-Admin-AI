@@ -399,6 +399,9 @@ public sealed class AppSettings
     /// </summary>
     public double? SidebarWidth { get; set; }
 
+    /// <summary>Номера строк у блоков кода в ленте (D13). Заводское — без них, как было.</summary>
+    public bool CodeLineNumbers { get; set; }
+
     /// <summary>Выгрузка чата (D6) кладёт раунды инструментов: вызовы, аргументы и итоги.</summary>
     public bool ExportIncludeTools { get; set; }
 
