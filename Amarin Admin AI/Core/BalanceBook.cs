@@ -8,7 +8,8 @@ public sealed record KeyBalance(
     DateTime SeenUtc);
 
 /// <summary>Строка разбивки: чей остаток и сколько.</summary>
-public readonly record struct BalanceRow(string Label, LlmProvider Provider, decimal? Usd, decimal? Diem);
+/// <param name="Fingerprint">Отпечаток ключа — по нему ищется порог остатка этого ключа (E4).</param>
+public readonly record struct BalanceRow(string Label, LlmProvider Provider, decimal? Usd, decimal? Diem, string? Fingerprint = null);
 
 /// <summary>Сумма остатков и то, чего в ней не хватает.</summary>
 /// <param name="Unknown">Сколько ключей ещё не ответили: без них сумма занижена.</param>
@@ -81,7 +82,7 @@ internal sealed class BalanceBook
                 if (!key.IsBroken &&
                     _byFingerprint.TryGetValue(ApiKeyStore.Fingerprint(key.Secret), out var known))
                 {
-                    rows.Add(new BalanceRow(key.Label, key.Provider, known.Usd, known.Diem));
+                    rows.Add(new BalanceRow(key.Label, key.Provider, known.Usd, known.Diem, known.Fingerprint));
                 }
             }
         }

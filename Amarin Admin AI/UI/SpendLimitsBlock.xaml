@@ -57,5 +57,16 @@
                            Foreground="{DynamicResource Text.Dim}"/>
             </StackPanel>
         </Grid>
+
+        <!-- Пороги остатка (E4): когда плашка и уведомление говорят «мало» и «почти кончились». -->
+        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.BalanceLimit.Title}" Margin="0,18,0,4"/>
+        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.BalanceLimit.Desc}" Margin="0,0,0,10"/>
+        <Grid x:Name="BalanceGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+        </Grid>
     </StackPanel>
 </UserControl>

@@ -6,7 +6,7 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Блок «Лимиты трат» на странице «Key &amp; Info» (E1).
+/// Блок «Лимиты трат» (E1) и «Порог остатка» (E4) на странице «Key &amp; Info».
 /// </summary>
 /// <remarks>
 /// Как у страниц настроек: правда в <see cref="AppSettings.SpendLimits"/>, поля только отражают её.
@@ -26,8 +26,9 @@ public partial class SpendLimitsBlock : UserControl
 
         PeriodGrid.Children.Clear();
         PeriodGrid.RowDefinitions.Clear();
-        AddRow(null, "", Loc.Get("S.Limit.PerDay"), Loc.Get("S.Limit.PerMonth"), header: true);
+        AddRow(PeriodGrid, null, "", Loc.Get("S.Limit.PerDay"), Loc.Get("S.Limit.PerMonth"), header: true);
         AddRow(
+            PeriodGrid,
             null,
             Loc.Get("S.Limit.Profile"),
             MoneyField(limits.DayUsd, value => Change(copy => copy.DayUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.Limit.PerDay")),
@@ -46,6 +47,7 @@ public partial class SpendLimitsBlock : UserControl
             limits.Keys.TryGetValue(fingerprint, out var own);
             var name = Loc.Format("S.Limit.KeyRow", entry.Label, ProviderSpec.For(entry.Provider).Name);
             AddRow(
+                PeriodGrid,
                 fingerprint,
                 name,
                 MoneyField(own?.DayUsd, value => ChangeKey(fingerprint, key => key.DayUsd = value), name + " · " + Loc.Get("S.Limit.PerDay")),
@@ -54,13 +56,77 @@ public partial class SpendLimitsBlock : UserControl
 
         TurnSlot.Content = MoneyField(limits.TurnUsd, value => Change(copy => copy.TurnUsd = value), Loc.Get("S.Limit.TurnLabel"));
         WarnBox.Text = limits.WarnPercent.ToString(CultureInfo.InvariantCulture);
+        LoadBalance(services);
+    }
+
+    /// <summary>Пороги остатка (E4): сумма по всем ключам — «мало» и «почти кончились», у ключа — «мало».</summary>
+    private void LoadBalance(AppServices services)
+    {
+        var thresholds = services.Settings.BalanceThresholds ?? new BalanceThresholds();
+        BalanceGrid.Children.Clear();
+        BalanceGrid.RowDefinitions.Clear();
+        AddRow(BalanceGrid, null, "", Loc.Get("S.BalanceLimit.Low"), Loc.Get("S.BalanceLimit.Critical"), header: true);
+        AddRow(
+            BalanceGrid,
+            null,
+            Loc.Get("S.Limit.Profile"),
+            MoneyField(thresholds.LowUsd, value => ChangeBalance(copy => copy.LowUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Low")),
+            MoneyField(thresholds.CriticalUsd, value => ChangeBalance(copy => copy.CriticalUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Critical")));
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in services.KeyStore.List())
+        {
+            var fingerprint = ApiKeyStore.Fingerprint(entry.Secret);
+            if (entry.IsBroken || !seen.Add(fingerprint))
+            {
+                continue;
+            }
+
+            decimal? low = thresholds.Keys.TryGetValue(fingerprint, out var own) ? own : null;
+            var name = Loc.Format("S.Limit.KeyRow", entry.Label, ProviderSpec.For(entry.Provider).Name);
+            AddRow(
+                BalanceGrid,
+                fingerprint,
+                name,
+                MoneyField(low, value => ChangeBalance(copy =>
+                {
+                    if (value is { } set)
+                    {
+                        copy.Keys[fingerprint] = set;
+                    }
+                    else
+                    {
+                        copy.Keys.Remove(fingerprint);
+                    }
+                }), name + " · " + Loc.Get("S.BalanceLimit.Low")),
+                null);
+        }
+    }
+
+    private void ChangeBalance(Action<BalanceThresholds> change)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var source = _services.Settings.BalanceThresholds ?? new BalanceThresholds();
+        var copy = new BalanceThresholds
+        {
+            LowUsd = source.LowUsd,
+            CriticalUsd = source.CriticalUsd,
+            Keys = new Dictionary<string, decimal>(source.Keys, StringComparer.Ordinal)
+        };
+        change(copy);
+        _services.Settings.BalanceThresholds = copy;
+        _services.SettingsStore.Save(_services.Settings);
     }
 
     /// <summary>Строка таблицы: подпись и два поля (или две подписи колонок).</summary>
-    private void AddRow(string? tag, string label, object day, object month, bool header = false)
+    private void AddRow(Grid grid, string? tag, string label, object day, object? month, bool header = false)
     {
-        var row = PeriodGrid.RowDefinitions.Count;
-        PeriodGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var row = grid.RowDefinitions.Count;
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var caption = new TextBlock
         {
@@ -72,11 +138,16 @@ public partial class SpendLimitsBlock : UserControl
             Style = (Style)FindResource(header ? "FieldHint" : "SettingTitle")
         };
         Grid.SetRow(caption, row);
-        PeriodGrid.Children.Add(caption);
+        grid.Children.Add(caption);
 
         var column = 1;
         foreach (var cell in new[] { day, month })
         {
+            if (cell is null)
+            {
+                continue;
+            }
+
             var element = cell as FrameworkElement ?? new TextBlock
             {
                 Text = (string)cell,
@@ -87,7 +158,7 @@ public partial class SpendLimitsBlock : UserControl
             element.Margin = new Thickness(column == 1 ? 0 : 8, header ? 0 : 3, 0, 3);
             Grid.SetRow(element, row);
             Grid.SetColumn(element, column++);
-            PeriodGrid.Children.Add(element);
+            grid.Children.Add(element);
         }
     }
 

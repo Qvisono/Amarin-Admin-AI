@@ -227,6 +227,9 @@ public sealed class AppSettings
     /// <summary>Лимиты трат (E1). Заводское — всё выключено.</summary>
     public SpendLimits SpendLimits { get; set; } = new();
 
+    /// <summary>Пороги остатка (E4). Заводские — прежние константы плашки: $1 и $0.25.</summary>
+    public BalanceThresholds BalanceThresholds { get; set; } = new();
+
     /// <summary>
     /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
     /// </summary>

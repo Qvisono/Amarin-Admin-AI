@@ -36,11 +36,16 @@ namespace Amarin.UI;
 /// </remarks>
 internal sealed class BalanceBadge
 {
-    /// <summary>Ниже этого плашка предупреждает: пара нарисованных картинок — и денег нет.</summary>
-    private const decimal LowUsd = 1.00m;
+    /// <summary>
+    /// Пороги «мало» и «почти кончились» (E4) — из настроек. Функцией, как книга и ключи: службы
+    /// привязываются позже конструктора. Null — заводские пороги.
+    /// </summary>
+    private readonly Func<BalanceThresholds?> _thresholds;
 
-    /// <summary>Ниже этого — совсем скоро: следующая картинка может и не уйти.</summary>
-    private const decimal CriticalUsd = 0.25m;
+    private readonly BalanceWatch _watch = new();
+
+    /// <summary>Остаток перешёл порог вниз. Окно показывает уведомление.</summary>
+    public event Action<BalanceAlert>? Alerted;
 
     private readonly Border _plate;
     private readonly Shape.Path _coin;
@@ -71,8 +76,10 @@ internal sealed class BalanceBadge
         TextBlock amount,
         Func<BalanceBook?> book,
         Func<IReadOnlyList<ApiKeyEntry>> keys,
-        BalanceStore? store = null)
+        BalanceStore? store = null,
+        Func<BalanceThresholds?>? thresholds = null)
     {
+        _thresholds = thresholds ?? (() => null);
         _plate = plate;
         _coin = coin;
         _amount = amount;
@@ -191,9 +198,18 @@ internal sealed class BalanceBadge
             return;
         }
 
+        var rows = _forced is null && book is not null ? book.Breakdown(keys) : [];
+        var thresholds = _thresholds() ?? new BalanceThresholds();
         _amount.Text = FormatUsd(total.Usd);
-        _plate.ToolTip = BuildTooltip(
-            total, _forced is null && book is not null ? book.Breakdown(keys) : []);
+        _plate.ToolTip = BuildTooltip(total, rows, thresholds);
+
+        if (_forced is null)
+        {
+            foreach (var alert in _watch.Observe(thresholds, total, rows))
+            {
+                Alerted?.Invoke(alert);
+            }
+        }
     }
 
     private void Paint()
@@ -225,7 +241,7 @@ internal sealed class BalanceBadge
     /// Итог, а под ним — кто сколько. Разбивка нужна ровно потому, что сумма её прячет: увидев
     /// «$4.86», человек не знает, лежат ли они на том ключе, которым идёт разговор.
     /// </summary>
-    private static string BuildTooltip(BalanceTotal total, IReadOnlyList<BalanceRow> rows)
+    private static string BuildTooltip(BalanceTotal total, IReadOnlyList<BalanceRow> rows, BalanceThresholds thresholds)
     {
         // Переносы строк собираются здесь, а не внутри самих подписей: вёрстка подсказки —
         // не то, что переводчик обязан беречь, да и XAML обрезал бы ведущий перенос.
@@ -253,11 +269,14 @@ internal sealed class BalanceBadge
                 total.Unknown.ToString(CultureInfo.InvariantCulture)));
         }
 
-        if (total.Usd is { } usd && usd < LowUsd)
+        switch (BalanceWatch.Level(total.Usd, thresholds.LowUsd, thresholds.CriticalUsd))
         {
-            text.Append("\n").Append(usd < CriticalUsd
-                ? Loc.Get("S.Balance.AlmostOut")
-                : Loc.Get("S.Balance.Low"));
+            case BalanceLevel.Critical:
+                text.Append("\n").Append(Loc.Get("S.Balance.AlmostOut"));
+                break;
+            case BalanceLevel.Low:
+                text.Append("\n").Append(Loc.Get("S.Balance.Low"));
+                break;
         }
 
         return text.Append("\n").Append(Loc.Get("S.Balance.Refresh")).ToString();

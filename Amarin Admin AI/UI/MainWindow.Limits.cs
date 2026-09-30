@@ -26,6 +26,16 @@ namespace Amarin.UI
                 Loc.Format("S.Limit.Warn", SpendRules.KindName(breach.Kind), SpendRules.Money(breach.Spent), SpendRules.Money(breach.Limit))));
         }
 
+        /// <summary>Остаток перешёл порог вниз (E4).</summary>
+        private void OnBalanceAlert(BalanceAlert alert)
+        {
+            var text = alert.KeyLabel is { } key
+                ? Loc.Format("S.Balance.AlertKey", key, SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold))
+                : Loc.Format(alert.Level == BalanceLevel.Critical ? "S.Balance.AlertCritical" : "S.Balance.AlertLow",
+                    SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold));
+            ShowTransientNotice(_session.Id, text);
+        }
+
         /// <summary>Вопрос человеку. True — продолжать ход.</summary>
         private Task<bool> AskSpendAsync(SpendQuestion question, CancellationToken cancellationToken) =>
             Dispatcher.InvokeAsync(() => AskSpendOnUiAsync(question, cancellationToken)).Task.Unwrap();

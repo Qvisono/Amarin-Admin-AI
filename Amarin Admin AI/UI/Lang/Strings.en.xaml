@@ -213,6 +213,9 @@
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Drag the image with the mouse; the wheel or the slider sets the zoom.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Profile picture area</system:String>
 
+    <system:String x:Key="S.Balance.AlertCritical" xml:space="preserve">Funds are nearly gone: {0}, threshold {1}.</system:String>
+    <system:String x:Key="S.Balance.AlertKey" xml:space="preserve">Key “{0}” has {1} left, below {2}.</system:String>
+    <system:String x:Key="S.Balance.AlertLow" xml:space="preserve">Balance is {0}, below the {1} threshold.</system:String>
     <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Funds are nearly gone - image generation may fail.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Not much is left.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Refreshed after every answer from a model.</system:String>
@@ -220,6 +223,10 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">The Venice balance shows up after the first answer from a model.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">{0} more: no figure yet</system:String>
+    <system:String x:Key="S.BalanceLimit.Critical" xml:space="preserve">Nearly out</system:String>
+    <system:String x:Key="S.BalanceLimit.Desc" xml:space="preserve">When the balance drops below a threshold you get a warning, once per crossing, and the badge says so in its tooltip. An empty field means no warning.</system:String>
+    <system:String x:Key="S.BalanceLimit.Low" xml:space="preserve">Low</system:String>
+    <system:String x:Key="S.BalanceLimit.Title" xml:space="preserve">Balance thresholds</system:String>
     <system:String x:Key="S.Batch.EmptyReply" xml:space="preserve">The OpenRouter batch queue returned an empty reply.</system:String>
     <system:String x:Key="S.Batch.Kind.Documents" xml:space="preserve">documents</system:String>
     <system:String x:Key="S.Batch.Kind.Images" xml:space="preserve">images</system:String>

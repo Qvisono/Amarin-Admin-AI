@@ -118,7 +118,9 @@ namespace Amarin.UI
                 BalanceAmount,
                 () => _services?.Balances,
                 () => _services?.KeyStore.List() ?? [],
-                new BalanceStore());
+                new BalanceStore(),
+                () => _services?.Settings.BalanceThresholds);
+            _balance.Alerted += OnBalanceAlert;
             _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 
             _appearanceDebounce.Tick += (_, _) =>

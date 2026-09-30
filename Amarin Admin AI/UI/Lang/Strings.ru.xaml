@@ -213,6 +213,9 @@
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок - масштаб.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Область фото профиля</system:String>
 
+    <system:String x:Key="S.Balance.AlertCritical" xml:space="preserve">Средства почти закончились: {0}, порог {1}.</system:String>
+    <system:String x:Key="S.Balance.AlertKey" xml:space="preserve">На ключе «{0}» осталось {1} — меньше {2}.</system:String>
+    <system:String x:Key="S.Balance.AlertLow" xml:space="preserve">Остаток {0} — меньше порога {1}.</system:String>
     <system:String x:Key="S.Balance.AlmostOut" xml:space="preserve">Средства почти закончились - генерация картинок может не пройти.</system:String>
     <system:String x:Key="S.Balance.Low" xml:space="preserve">Средств осталось немного.</system:String>
     <system:String x:Key="S.Balance.Refresh" xml:space="preserve">Обновляется после каждого ответа модели.</system:String>
@@ -220,6 +223,10 @@
     <system:String x:Key="S.Balance.Unknown" xml:space="preserve">Остаток на счету Venice появится после первого ответа модели.</system:String>
 
     <system:String x:Key="S.Balance.Unknown.Some" xml:space="preserve">Ещё {0} — цифра пока не получена</system:String>
+    <system:String x:Key="S.BalanceLimit.Critical" xml:space="preserve">Почти нет</system:String>
+    <system:String x:Key="S.BalanceLimit.Desc" xml:space="preserve">Когда остаток опустится ниже порога, появится предупреждение — один раз на переход, а плашка скажет об этом в подсказке. Пустое поле — не предупреждать.</system:String>
+    <system:String x:Key="S.BalanceLimit.Low" xml:space="preserve">Мало</system:String>
+    <system:String x:Key="S.BalanceLimit.Title" xml:space="preserve">Порог остатка</system:String>
     <system:String x:Key="S.Batch.EmptyReply" xml:space="preserve">Пакетная очередь OpenRouter вернула пустой ответ.</system:String>
     <system:String x:Key="S.Batch.Kind.Documents" xml:space="preserve">документы</system:String>
     <system:String x:Key="S.Batch.Kind.Images" xml:space="preserve">картинки</system:String>
