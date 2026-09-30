@@ -85,6 +85,12 @@ public sealed class ChatStore
     /// </remarks>
     public Func<bool> Encrypt { get; init; } = static () => false;
 
+    /// <summary>Чат поставлен в очередь на запись — индекс поиска по тексту обновляет его.</summary>
+    public event Action<ChatSession>? Saved;
+
+    /// <summary>Чат удалён.</summary>
+    public event Action<string>? Deleted;
+
     public ChatStore(string? rootDirectory = null)
     {
         _root = string.IsNullOrWhiteSpace(rootDirectory)
@@ -135,6 +141,7 @@ public sealed class ChatStore
 
         UpsertIndex(session);
         StartDrain();
+        Saved?.Invoke(session);
     }
 
     /// <summary>Дожидается, пока всё отложенное ляжет на диск.</summary>
@@ -327,6 +334,7 @@ public sealed class ChatStore
         }
 
         StartDrain();
+        Deleted?.Invoke(id);
         return existed || removed;
     }
 

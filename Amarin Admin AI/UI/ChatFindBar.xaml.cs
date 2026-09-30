@@ -39,6 +39,17 @@ public partial class ChatFindBar : UserControl
 
     internal string Query => QueryBox.Text;
 
+    /// <summary>
+    /// Ставит запрос без паузы и без повторного поиска: так его подставляет переход из выдачи
+    /// «по тексту», который совпадения уже посчитал.
+    /// </summary>
+    internal void SetQuery(string query)
+    {
+        QueryBox.Text = query;
+        _debounce.Stop();
+        QueryBox.CaretIndex = query.Length;
+    }
+
     /// <summary>Фокус в поле с выделенным текстом — повторный Ctrl+F начинает новый поиск.</summary>
     internal void FocusQuery()
     {

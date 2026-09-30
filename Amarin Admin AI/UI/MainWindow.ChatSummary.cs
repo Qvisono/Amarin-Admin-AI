@@ -323,27 +323,34 @@ namespace Amarin.UI
             _ => Loc.Get("S.Common.NothingFound")
         };
 
-        private void SearchModeTitles_Click(object sender, RoutedEventArgs e) => SetSearchMode(byContent: false);
+        private void SearchModeTitles_Click(object sender, RoutedEventArgs e) => SetSearchMode(byContent: false, byText: false);
 
-        private void SearchModeContent_Click(object sender, RoutedEventArgs e) => SetSearchMode(byContent: true);
+        private void SearchModeText_Click(object sender, RoutedEventArgs e) => SetSearchMode(byContent: false, byText: true);
 
-        private void SetSearchMode(bool byContent)
+        private void SearchModeContent_Click(object sender, RoutedEventArgs e) => SetSearchMode(byContent: true, byText: false);
+
+        /// <summary>Поиск по тексту всех чатов (D1): бесплатно, по индексу на диске.</summary>
+        private bool _searchByText;
+
+        private void SetSearchMode(bool byContent, bool byText)
         {
             // Кнопки — ToggleButton, и нажатие уже переставило галку. Возвращаем её на место:
             // выбран ровно один режим, повторное нажатие по текущему ничего не выключает.
-            SearchModeTitles.IsChecked = !byContent;
+            SearchModeTitles.IsChecked = !byContent && !byText;
+            SearchModeText.IsChecked = byText;
             SearchModeContent.IsChecked = byContent;
 
-            if (_searchByContent == byContent)
+            if (_searchByContent == byContent && _searchByText == byText)
             {
                 return;
             }
 
             _searchByContent = byContent;
+            _searchByText = byText;
             ResetContentSearch();
             RefreshChatList();
 
-            if (byContent)
+            if (byContent || byText)
             {
                 SearchBox.Focus();
             }

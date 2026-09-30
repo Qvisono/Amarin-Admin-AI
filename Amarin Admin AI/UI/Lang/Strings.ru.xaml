@@ -1230,10 +1230,16 @@
     <system:String x:Key="S.Search.Engine.VeniceOnly" xml:space="preserve">У Venice поиск один, движок не выбирается</system:String>
     <system:String x:Key="S.Search.Failed" xml:space="preserve">Поиск не удался. Попробуйте ещё раз.</system:String>
     <system:String x:Key="S.Search.Found" xml:space="preserve">Найдено</system:String>
-    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">По чатам</system:String>
-    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">По заголовкам</system:String>
+    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">Смысл</system:String>
+    <system:String x:Key="S.Search.Mode.ContentTip" xml:space="preserve">Спросить модель по сводкам чатов — платно, по Enter</system:String>
+    <system:String x:Key="S.Search.Mode.Text" xml:space="preserve">Текст</system:String>
+    <system:String x:Key="S.Search.Mode.TextTip" xml:space="preserve">Искать слова в сообщениях всех чатов — бесплатно, на этом ПК</system:String>
+    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">Названия</system:String>
+    <system:String x:Key="S.Search.Mode.TitlesTip" xml:space="preserve">Искать в названиях чатов</system:String>
     <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Искать пока не по чему: сводки появятся после ответов модели.</system:String>
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - искать по содержимому чатов</system:String>
+    <system:String x:Key="S.Search.TextLimit" xml:space="preserve">Показаны первые {0} находок — уточните запрос.</system:String>
+    <system:String x:Key="S.Search.TextTooShort" xml:space="preserve">Наберите хотя бы две буквы.</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Ищу по сводкам…</system:String>
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Автоблокировка</system:String>

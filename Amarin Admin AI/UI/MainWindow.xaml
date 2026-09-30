@@ -414,15 +414,21 @@
                                 боковой панели дорого, а выбор осмыслен ровно тогда, когда есть
                                 что искать, — заодно так видно, что выбор вообще есть.
                             -->
-                            <StackPanel x:Name="SearchModeRow" Orientation="Horizontal"
-                                        Margin="6,0,6,6" Visibility="Collapsed">
+                            <!-- WrapPanel: три режима в узкой колонке переносятся, а не обрезаются. -->
+                            <WrapPanel x:Name="SearchModeRow" Margin="6,0,6,6" Visibility="Collapsed">
                                 <ToggleButton x:Name="SearchModeTitles" Style="{StaticResource SearchModeTab}"
                                               IsChecked="True" Content="{DynamicResource S.Search.Mode.Titles}"
+                                              ToolTip="{DynamicResource S.Search.Mode.TitlesTip}"
                                               Click="SearchModeTitles_Click"/>
+                                <ToggleButton x:Name="SearchModeText" Style="{StaticResource SearchModeTab}"
+                                              Margin="3,0,0,0" Content="{DynamicResource S.Search.Mode.Text}"
+                                              ToolTip="{DynamicResource S.Search.Mode.TextTip}"
+                                              Click="SearchModeText_Click"/>
                                 <ToggleButton x:Name="SearchModeContent" Style="{StaticResource SearchModeTab}"
-                                              Margin="4,0,0,0" Content="{DynamicResource S.Search.Mode.Content}"
+                                              Margin="3,0,0,0" Content="{DynamicResource S.Search.Mode.Content}"
+                                              ToolTip="{DynamicResource S.Search.Mode.ContentTip}"
                                               Click="SearchModeContent_Click"/>
-                            </StackPanel>
+                            </WrapPanel>
 
                             <!-- ===== СПИСОК ЧАТОВ ===== -->
                             <StackPanel x:Name="ChatListPanel"/>

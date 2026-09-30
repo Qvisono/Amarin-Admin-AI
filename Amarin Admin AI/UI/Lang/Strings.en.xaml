@@ -1230,10 +1230,16 @@
     <system:String x:Key="S.Search.Engine.VeniceOnly" xml:space="preserve">Venice has a single search; there is no engine to choose</system:String>
     <system:String x:Key="S.Search.Failed" xml:space="preserve">The search did not work out. Try again.</system:String>
     <system:String x:Key="S.Search.Found" xml:space="preserve">Found</system:String>
-    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">By content</system:String>
-    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">By title</system:String>
+    <system:String x:Key="S.Search.Mode.Content" xml:space="preserve">Meaning</system:String>
+    <system:String x:Key="S.Search.Mode.ContentTip" xml:space="preserve">Ask the model over chat summaries; paid, on Enter</system:String>
+    <system:String x:Key="S.Search.Mode.Text" xml:space="preserve">Text</system:String>
+    <system:String x:Key="S.Search.Mode.TextTip" xml:space="preserve">Search words in every chat's messages, free and on this PC</system:String>
+    <system:String x:Key="S.Search.Mode.Titles" xml:space="preserve">Titles</system:String>
+    <system:String x:Key="S.Search.Mode.TitlesTip" xml:space="preserve">Search chat titles</system:String>
     <system:String x:Key="S.Search.NoSummaries" xml:space="preserve">Nothing to search yet: summaries appear once the model has answered.</system:String>
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - search what the chats are about</system:String>
+    <system:String x:Key="S.Search.TextLimit" xml:space="preserve">Showing the first {0} matches; refine the query.</system:String>
+    <system:String x:Key="S.Search.TextTooShort" xml:space="preserve">Type at least two letters.</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Searching the summaries…</system:String>
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Agent</system:String>
     <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Auto-lock</system:String>

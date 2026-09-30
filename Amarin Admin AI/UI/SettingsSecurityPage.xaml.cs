@@ -117,6 +117,9 @@ public partial class SettingsSecurityPage : UserControl
 
         // Уже лежащие файлы переписываются в фоне; новые записи пойдут в новом формате сразу.
         _ = _services.ChatStore.EnsureFormat();
+        // Индекс поиска — тоже текст переписок: переписывается в новом формате сразу, а не при
+        // следующей правке, иначе открытая копия осталась бы лежать рядом с зашифрованными.
+        _services.TextIndex.SaveNow();
     }
 
     private void AutoLockChoice_Checked(object sender, RoutedEventArgs e)

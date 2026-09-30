@@ -620,6 +620,7 @@ namespace Amarin.UI
             registry.ActiveProfileId = target.Id;
             ProfileStore.Save(registry);
             _services.UseProfile(ProfileStore.DataRootFor(target.Id));
+            StartTextIndexBuild();
 
             ProfileOverlay.Visibility = Visibility.Collapsed;
             ClearPendingAttachments();

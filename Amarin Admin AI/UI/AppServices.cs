@@ -130,6 +130,29 @@ internal sealed class AppServices : IDisposable
 
     private MachineBook? _machines;
 
+    /// <summary>Текст всех чатов для поиска «по тексту» (D1). Переезжает с профилем вместе с хранилищем.</summary>
+    internal ChatTextIndex TextIndex
+    {
+        get
+        {
+            if (_textIndex is null)
+            {
+                _textIndex = new ChatTextIndex(Path.GetDirectoryName(SettingsStore.FilePath)!, () => Settings.EncryptChats);
+                WireTextIndex(ChatStore);
+            }
+
+            return _textIndex;
+        }
+    }
+
+    private ChatTextIndex? _textIndex;
+
+    private void WireTextIndex(ChatStore store)
+    {
+        store.Saved += session => _textIndex?.Update(session);
+        store.Deleted += id => _textIndex?.Remove(id);
+    }
+
     /// <summary>Серверы MCP (C11). Null — не заводились (тесты): инструментов MCP нет.</summary>
     internal McpHost? Mcp { get; init; }
 
@@ -258,6 +281,11 @@ internal sealed class AppServices : IDisposable
         // шифрования теперь читается из настроек другого профиля.
         ChatStore.StopReformat();
         ChatStore = new ChatStore(dataRoot) { Encrypt = () => Settings.EncryptChats };
+        if (_textIndex is not null)
+        {
+            _textIndex.UseRoot(dataRoot, () => Settings.EncryptChats);
+            WireTextIndex(ChatStore);
+        }
         Prompts = new PromptLibrary(dataRoot);
         Instructions.UseRoot(dataRoot);
         Recipes.UseRoot(dataRoot);

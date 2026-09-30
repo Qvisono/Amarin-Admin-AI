@@ -266,6 +266,12 @@ public static class DataBundle
 
         // Список удалённых машин и серверов MCP несёт пароли и токены под DPAPI — то же правило,
         // что у ключей.
+        // Индекс поиска по тексту — производное от чатов: на новом месте он соберётся сам.
+        if (name == ChatTextIndex.FileName)
+        {
+            return DataCategory.None;
+        }
+
         if (name == MachineBook.FileName || name == McpHost.FileName)
         {
             return DataCategory.None;

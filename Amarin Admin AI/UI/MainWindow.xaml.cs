@@ -322,6 +322,7 @@ namespace Amarin.UI
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
             StartSchedule();
+            StartTextIndexBuild();
 
             // Запрос из командной строки только ложится в поле, как и переданный уже открытому
             // окну; сам уходит лишь с явным --send (см. StartupArgs.Send).
@@ -2821,6 +2822,14 @@ namespace Amarin.UI
             }
 
             var query = SearchBox.Text;
+
+            // Поиск по тексту — своя выдача: находки в сообщениях, а не строки чатов.
+            if (_searchByText && query.Trim().Length > 0)
+            {
+                RenderTextSearch(query);
+                return;
+            }
+
             var items = ChatListItems(query);
 
             // Перерисовка стоит полной пересборки панели, а зовут её и фоновые ходы — по
