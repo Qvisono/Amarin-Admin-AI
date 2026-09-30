@@ -135,6 +135,54 @@ public sealed class SettingsInfoPageTests
         Assert.True(height > 0);
     }
 
+    [Fact]
+    public void The_provider_switch_shows_one_guide_at_a_time()
+    {
+        var (venice, openRouter) = _wpf.Ui.Invoke(() =>
+        {
+            var page = new SettingsInfoPage();
+            ((RadioButton)page.FindName("GuideOpenRouter")).IsChecked = true;
+            var shown = (((FrameworkElement)page.FindName("VeniceGuide")).Visibility,
+                ((FrameworkElement)page.FindName("OpenRouterGuide")).Visibility);
+            return shown;
+        });
+
+        Assert.Equal(Visibility.Collapsed, venice);
+        Assert.Equal(Visibility.Visible, openRouter);
+    }
+
+    [Fact]
+    public void Every_screenshot_of_the_guide_is_listed_for_whoever_takes_them()
+    {
+        // Список в Assets/Guide/README.md — задание тому, кто снимает экраны: имя, которого
+        // там нет, так и осталось бы заглушкой навсегда.
+        var xaml = File.ReadAllText(ProjectFile(Path.Combine("UI", "SettingsInfoPage.xaml")));
+        var readme = File.ReadAllText(ProjectFile(Path.Combine("Assets", "Guide", "README.md")));
+        var names = System.Text.RegularExpressions.Regex.Matches(xaml, "FileName=\"([^\"]+)\"")
+            .Select(match => match.Groups[1].Value)
+            .ToList();
+
+        Assert.Contains("openrouter-03-keys.png", names);
+        Assert.All(names, name => Assert.Contains("`" + name + "`", readme, StringComparison.Ordinal));
+    }
+
+    private static string ProjectFile(string relative)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(directory.FullName, "Amarin Admin AI", relative);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException(relative);
+    }
+
     private static T? Find<T>(DependencyObject root) where T : DependencyObject
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)

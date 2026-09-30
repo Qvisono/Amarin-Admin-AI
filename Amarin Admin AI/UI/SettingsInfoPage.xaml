@@ -68,6 +68,39 @@
 
         <!-- ===== Своё для гайда ===== -->
 
+        <!-- Чей путь показан: Venice или OpenRouter (E6). Радиокнопкой: выбран ровно один. -->
+        <Style x:Key="GuideTab" TargetType="RadioButton">
+            <Setter Property="GroupName" Value="GuideProvider"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                                BorderBrush="{DynamicResource Border.Default}"
+                                BorderThickness="1" CornerRadius="12" Padding="12,0">
+                            <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
+                                       Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
+                                <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
         <Style x:Key="StepCard" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
@@ -119,136 +152,262 @@
             <!-- ═══ Подключение Venice ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Info.Setup.Section}"/>
 
-            <!-- Шаг 1 -->
-            <Border Style="{StaticResource StepCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
-                        <Ellipse Fill="{DynamicResource Accent.Fill}"/>
-                        <TextBlock Text="1" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.OnAccent}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step1.Title}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step1.Text}"/>
-                        <local:GuideShot FileName="venice-01-signup.png"
-                                         Caption="{DynamicResource S.Info.Shot.Signup}"/>
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Content="{DynamicResource S.Info.Step1.Button}"
-                                Click="OpenVeniceButton_Click"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <WrapPanel Margin="0,0,0,10">
+                <RadioButton x:Name="GuideVenice" Style="{StaticResource GuideTab}" IsChecked="True"
+                             Content="Venice" Checked="GuideProvider_Checked"/>
+                <RadioButton x:Name="GuideOpenRouter" Style="{StaticResource GuideTab}"
+                             Content="OpenRouter" Checked="GuideProvider_Checked"/>
+            </WrapPanel>
 
-            <!-- Шаг 2 -->
-            <Border Style="{StaticResource StepCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
-                        <Ellipse Fill="{DynamicResource Accent.Fill}"/>
-                        <TextBlock Text="2" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.OnAccent}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <StackPanel x:Name="VeniceGuide">
+                <!-- Шаг 1 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="1" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step1.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step1.Text}"/>
+                            <local:GuideShot FileName="venice-01-signup.png"
+                                             Caption="{DynamicResource S.Info.Shot.Signup}"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Info.Step1.Button}"
+                                    Click="OpenVeniceButton_Click"/>
+                        </StackPanel>
                     </Grid>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step2.Title}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step2.Text}"/>
-                        <local:GuideShot FileName="venice-02-where-credits.png"
-                                         Caption="{DynamicResource S.Info.Shot.WhereCredits}"/>
-                        <local:GuideShot FileName="venice-02-credits.png"
-                                         Caption="{DynamicResource S.Info.Shot.Credits}"/>
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Content="{DynamicResource S.Info.Step2.Button}"
-                                Click="OpenPricingButton_Click"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
 
-            <!-- Шаг 3 -->
-            <Border Style="{StaticResource StepCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
-                        <Ellipse Fill="{DynamicResource Accent.Fill}"/>
-                        <TextBlock Text="3" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.OnAccent}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Шаг 2 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="2" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step2.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step2.Text}"/>
+                            <local:GuideShot FileName="venice-02-where-credits.png"
+                                             Caption="{DynamicResource S.Info.Shot.WhereCredits}"/>
+                            <local:GuideShot FileName="venice-02-credits.png"
+                                             Caption="{DynamicResource S.Info.Shot.Credits}"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Info.Step2.Button}"
+                                    Click="OpenPricingButton_Click"/>
+                        </StackPanel>
                     </Grid>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step3.Title}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Text}"/>
-                        <local:GuideShot FileName="venice-03-api-keys.png"
-                                         Caption="{DynamicResource S.Info.Shot.Keys}"/>
-                        <local:GuideShot FileName="venice-03-new-key.png"
-                                         Caption="{DynamicResource S.Info.Shot.NewKey}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Limit}" Margin="0,10,0,0"/>
-                        <local:GuideShot FileName="venice-04-key-created.png"
-                                         Caption="{DynamicResource S.Info.Shot.KeyCreated}"/>
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Content="{DynamicResource S.Info.Step3.Button}"
-                                Click="OpenApiKeysButton_Click"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
 
-            <!-- Шаг 4 -->
-            <Border Style="{StaticResource StepCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
-                        <Ellipse Fill="{DynamicResource Accent.Fill}"/>
-                        <TextBlock Text="4" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.OnAccent}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Шаг 3 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="3" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step3.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Text}"/>
+                            <local:GuideShot FileName="venice-03-api-keys.png"
+                                             Caption="{DynamicResource S.Info.Shot.Keys}"/>
+                            <local:GuideShot FileName="venice-03-new-key.png"
+                                             Caption="{DynamicResource S.Info.Shot.NewKey}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step3.Limit}" Margin="0,10,0,0"/>
+                            <local:GuideShot FileName="venice-04-key-created.png"
+                                             Caption="{DynamicResource S.Info.Shot.KeyCreated}"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Info.Step3.Button}"
+                                    Click="OpenApiKeysButton_Click"/>
+                        </StackPanel>
                     </Grid>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step4.Title}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.Text}"/>
-                        <local:GuideShot FileName="setup-05-env-var.png"
-                                         Caption="{DynamicResource S.Info.Shot.EnvVar}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.CmdHint}" Margin="0,10,0,0"/>
-                        <Border Style="{StaticResource CodeBox}">
-                            <TextBox Style="{StaticResource CodeLine}" Text="{DynamicResource S.Info.Step4.Cmd}"/>
-                        </Border>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.Restart}" Margin="0,10,0,0"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
 
-            <!-- Шаг 5 -->
-            <Border Style="{StaticResource StepCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
-                        <Ellipse Fill="{DynamicResource Accent.Fill}"/>
-                        <TextBlock Text="5" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.OnAccent}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Шаг 4 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="4" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step4.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.Text}"/>
+                            <local:GuideShot FileName="setup-05-env-var.png"
+                                             Caption="{DynamicResource S.Info.Shot.EnvVar}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.CmdHint}" Margin="0,10,0,0"/>
+                            <Border Style="{StaticResource CodeBox}">
+                                <TextBox Style="{StaticResource CodeLine}" Text="{DynamicResource S.Info.Step4.Cmd}"/>
+                            </Border>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step4.Restart}" Margin="0,10,0,0"/>
+                        </StackPanel>
                     </Grid>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step5.Title}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step5.Text}"/>
-                        <local:GuideShot FileName="app-01-chat.png"
-                                         Caption="{DynamicResource S.Info.Shot.Chat}"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                </Border>
+
+                <!-- Шаг 5 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="5" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Step5.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Step5.Text}"/>
+                            <local:GuideShot FileName="app-01-chat.png"
+                                             Caption="{DynamicResource S.Info.Shot.Chat}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- ═══ Подключение OpenRouter (E6) ═══ -->
+            <StackPanel x:Name="OpenRouterGuide" Visibility="Collapsed">
+                <!-- Шаг 1 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="1" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Or.Step1.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step1.Text}"/>
+                            <local:GuideShot FileName="openrouter-01-signup.png"
+                                             Caption="{DynamicResource S.Info.Or.Shot.Signup}"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Info.Or.Step1.Button}"
+                                    Click="OpenOpenRouterButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <!-- Шаг 2 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="2" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Or.Step2.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step2.Text}"/>
+                            <local:GuideShot FileName="openrouter-02-credits.png"
+                                             Caption="{DynamicResource S.Info.Or.Shot.Credits}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <!-- Шаг 3 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="3" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Or.Step3.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step3.Text}"/>
+                            <local:GuideShot FileName="openrouter-03-keys.png"
+                                             Caption="{DynamicResource S.Info.Or.Shot.Keys}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step3.Limit}" Margin="0,10,0,0"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Info.Or.Step3.Button}"
+                                    Click="OpenOpenRouterKeysButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <!-- Шаг 4 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="4" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Or.Step4.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step4.Text}"/>
+                            <local:GuideShot FileName="openrouter-04-add-key.png"
+                                             Caption="{DynamicResource S.Info.Or.Shot.AddKey}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <!-- Шаг 5 -->
+                <Border Style="{StaticResource StepCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Top" Margin="0,1,10,0">
+                            <Ellipse Fill="{DynamicResource Accent.Fill}"/>
+                            <TextBlock Text="5" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.OnAccent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Or.Step5.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step5.Text}"/>
+                            <local:GuideShot FileName="openrouter-05-models.png"
+                                             Caption="{DynamicResource S.Info.Or.Shot.Models}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Or.Step5.VeniceOnly}" Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
 
             <!-- ═══ Безопасность ключа ═══ -->
             <Border Background="{DynamicResource Status.WarningSurface}"

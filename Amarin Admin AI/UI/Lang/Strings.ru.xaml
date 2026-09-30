@@ -684,6 +684,25 @@
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Загрузка изображения…</system:String>
     <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Изображение недоступно: {0}</system:String>
     <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (изображение недоступно)</system:String>
+    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">«Key &amp; Info» → «Добавить ключ» с выбранным OpenRouter</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Credits" xml:space="preserve">Раздел Credits: пополнение баланса</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Keys" xml:space="preserve">Страница ключей OpenRouter</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Models" xml:space="preserve">Выбор модели со столбцом OpenRouter</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Signup" xml:space="preserve">openrouter.ai: вход и регистрация</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Button" xml:space="preserve">Открыть openrouter.ai</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Text" xml:space="preserve">OpenRouter — посредник к моделям многих производителей: один счёт и один ключ на всех.</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Title" xml:space="preserve">Зарегистрируйтесь на openrouter.ai</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Модели оплачиваются с баланса учётной записи — пополните его в разделе Credits. Оценку цены следующего ответа программа показывает рядом с кольцом контекста.</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Пополните баланс</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Открыть ключи OpenRouter</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">Ключу можно задать лимит трат на стороне OpenRouter — вторая страховка к лимитам программы на странице «Key &amp; Info».</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Text" xml:space="preserve">На странице ключей создайте новый ключ и сразу скопируйте его.</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Title" xml:space="preserve">Создайте ключ</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">На странице «Key &amp; Info» нажмите «Добавить ключ», выберите OpenRouter и вставьте ключ — он хранится зашифрованным средствами Windows. Можно и переменной окружения OPENROUTER_API_KEY: тогда программа ключ не хранит.</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Title" xml:space="preserve">Добавьте ключ в программу</system:String>
+    <system:String x:Key="S.Info.Or.Step5.Text" xml:space="preserve">В выборе модели появится столбец OpenRouter. У каждого слота моделей свой провайдер и свой ключ. Варианты с пометкой :batch вдвое дешевле, но отвечают через очередь — минутами.</system:String>
+    <system:String x:Key="S.Info.Or.Step5.Title" xml:space="preserve">Выберите модели</system:String>
+    <system:String x:Key="S.Info.Or.Step5.VeniceOnly" xml:space="preserve">Рисование картинок и чтение страниц есть только у Venice: без ключа Venice эти инструменты откажут.</system:String>
     <system:String x:Key="S.Infographic.Alt" xml:space="preserve">Инфографика</system:String>
     <system:String x:Key="S.Infographic.Brief" xml:space="preserve">Выделяю главное…</system:String>
     <system:String x:Key="S.Infographic.Cancelled" xml:space="preserve">Отменено.</system:String>
@@ -1014,7 +1033,7 @@
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк - отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Заводите переменную для текущего пользователя, а не для всей системы: системную видит любая учётная запись на компьютере.</system:String>
     <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Ключ - как пароль</system:String>
-    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Подключение Venice.ai</system:String>
+    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Подключение к провайдеру</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">Первый ответ: ключ принят, программа работает</system:String>
     <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">Подтверждение: что произойдёт простыми словами, а подробности - под стрелкой</system:String>
     <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">Окно пополнения: сумма и сколько за неё дадут кредитов</system:String>

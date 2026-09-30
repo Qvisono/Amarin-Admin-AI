@@ -684,6 +684,25 @@
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Loading image…</system:String>
     <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Image unavailable: {0}</system:String>
     <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (image unavailable)</system:String>
+    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">Key &amp; Info → Add key with OpenRouter selected</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Credits" xml:space="preserve">The Credits section: topping up</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Keys" xml:space="preserve">OpenRouter's keys page</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Models" xml:space="preserve">The model picker with the OpenRouter column</system:String>
+    <system:String x:Key="S.Info.Or.Shot.Signup" xml:space="preserve">openrouter.ai: sign in and sign up</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Button" xml:space="preserve">Open openrouter.ai</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Text" xml:space="preserve">OpenRouter is a gateway to models from many vendors: one account and one key for all of them.</system:String>
+    <system:String x:Key="S.Info.Or.Step1.Title" xml:space="preserve">Sign up at openrouter.ai</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Models are paid from your account balance; top it up in the Credits section. The app shows an estimate for the next answer next to the context ring.</system:String>
+    <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Add credits</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Open OpenRouter keys</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">You can give the key a spending limit on OpenRouter's side, a second safeguard next to the app's own limits on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Text" xml:space="preserve">On the keys page, create a new key and copy it right away.</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Title" xml:space="preserve">Create a key</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">On the Key &amp; Info page press Add key, choose OpenRouter and paste the key; it is stored encrypted by Windows. The OPENROUTER_API_KEY environment variable also works, and then the app keeps no copy.</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Title" xml:space="preserve">Add the key to the app</system:String>
+    <system:String x:Key="S.Info.Or.Step5.Text" xml:space="preserve">The model picker gets an OpenRouter column. Every model slot has its own provider and key. Variants marked :batch cost half as much but answer through a queue, which takes minutes.</system:String>
+    <system:String x:Key="S.Info.Or.Step5.Title" xml:space="preserve">Pick models</system:String>
+    <system:String x:Key="S.Info.Or.Step5.VeniceOnly" xml:space="preserve">Image generation and page reading exist only at Venice; without a Venice key those tools refuse.</system:String>
     <system:String x:Key="S.Infographic.Alt" xml:space="preserve">Infographic</system:String>
     <system:String x:Key="S.Infographic.Brief" xml:space="preserve">Picking out the key points…</system:String>
     <system:String x:Key="S.Infographic.Cancelled" xml:space="preserve">Cancelled.</system:String>
@@ -1014,7 +1033,7 @@
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one - that is a single button.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Create the variable for the current user, not for the whole system: a system variable is visible to every account on the computer.</system:String>
     <system:String x:Key="S.Info.Safety.Title" xml:space="preserve">Treat the key like a password</system:String>
-    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Connecting Venice.ai</system:String>
+    <system:String x:Key="S.Info.Setup.Section" xml:space="preserve">Connecting a provider</system:String>
     <system:String x:Key="S.Info.Shot.Chat" xml:space="preserve">The first answer: the key was accepted and the app works</system:String>
     <system:String x:Key="S.Info.Shot.Confirm" xml:space="preserve">The prompt: what happens, in plain words - details behind the arrow</system:String>
     <system:String x:Key="S.Info.Shot.Credits" xml:space="preserve">The top-up dialog: the amount and the credits it buys</system:String>

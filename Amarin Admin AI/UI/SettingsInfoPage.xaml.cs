@@ -5,7 +5,7 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Страница «Info» в настройках: как подключить Venice.ai и как устроена сама программа.
+/// Страница «Info» в настройках: как подключить Venice.ai или OpenRouter и как устроена сама программа.
 /// </summary>
 /// <remarks>
 /// Ключ задаётся на странице «Key &amp; Info» и хранится зашифрованным средствами Windows
@@ -29,6 +29,8 @@ public partial class SettingsInfoPage : UserControl
 
     private const string DocsUrl = "https://docs.venice.ai";
 
+    private const string OpenRouterUrl = "https://openrouter.ai";
+
     public SettingsInfoPage()
     {
         InitializeComponent();
@@ -46,6 +48,28 @@ public partial class SettingsInfoPage : UserControl
     private void OpenApiKeysButton_Click(object sender, RoutedEventArgs e) => Open(ApiKeysUrl);
 
     private void OpenDocsButton_Click(object sender, RoutedEventArgs e) => Open(DocsUrl);
+
+    private void OpenOpenRouterButton_Click(object sender, RoutedEventArgs e) => Open(OpenRouterUrl);
+
+    /// <summary>Тот же адрес, что у ссылки «Получить ключ» в окне добавления ключа.</summary>
+    private void OpenOpenRouterKeysButton_Click(object sender, RoutedEventArgs e) =>
+        Open(ProviderSpec.For(LlmProvider.OpenRouter).KeysUrl);
+
+    /// <summary>
+    /// Путь Venice или OpenRouter (E6). Выбор не запоминается: страницу открывают, чтобы
+    /// прочитать один раз, а не возвращаться к ней.
+    /// </summary>
+    private void GuideProvider_Checked(object sender, RoutedEventArgs e)
+    {
+        if (VeniceGuide is null || OpenRouterGuide is null)
+        {
+            return;
+        }
+
+        var openRouter = GuideOpenRouter.IsChecked == true;
+        VeniceGuide.Visibility = openRouter ? Visibility.Collapsed : Visibility.Visible;
+        OpenRouterGuide.Visibility = openRouter ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     private void OpenRepoButton_Click(object sender, RoutedEventArgs e) => Open(UpdateChecker.RepositoryUrl);
 
