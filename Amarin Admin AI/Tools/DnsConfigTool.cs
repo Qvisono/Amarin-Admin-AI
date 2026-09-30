@@ -9,7 +9,9 @@ public sealed class DnsConfigTool : ITool
 {
     public string Name => "dns_config";
     public string Description =>
-        "DNS resolvers, hosts file, system proxy settings, and hostname resolution tests.";
+        "DNS resolvers, hosts file, system proxy settings and hostname resolution tests; set an adapter's DNS " +
+        "servers or return them to DHCP, add or remove a hosts file entry. set_dns, reset_dns, hosts_add and " +
+        "hosts_remove require user confirmation and can be rolled back.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -17,12 +19,28 @@ public sealed class DnsConfigTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["resolvers", "hosts_file", "proxy", "test_resolve", "suffix_list"],
-              "description": "DNS/proxy diagnostic action"
+              "enum": [
+                "resolvers", "hosts_file", "proxy", "test_resolve", "suffix_list",
+                "set_dns", "reset_dns", "hosts_add", "hosts_remove"
+              ],
+              "description": "DNS/proxy action"
             },
             "hostname": {
               "type": "string",
-              "description": "Hostname for test_resolve"
+              "description": "Hostname for test_resolve, hosts_add, hosts_remove"
+            },
+            "address": {
+              "type": "string",
+              "description": "IP address for hosts_add"
+            },
+            "adapter": {
+              "type": "string",
+              "description": "Adapter name (as in resolvers) for set_dns/reset_dns"
+            },
+            "servers": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "set_dns: 1-6 DNS server IP addresses in priority order"
             }
           },
           "required": ["action"]
@@ -45,6 +63,10 @@ public sealed class DnsConfigTool : ITool
                 "hosts_file" => Task.FromResult(HostsFile()),
                 "proxy" => Proxy(cancellationToken),
                 "test_resolve" => TestResolve(arguments, cancellationToken),
+                "set_dns" => SetDns(arguments, cancellationToken),
+                "reset_dns" => ResetDns(arguments, cancellationToken),
+                "hosts_add" => Task.FromResult(EditHosts(arguments, add: true)),
+                "hosts_remove" => Task.FromResult(EditHosts(arguments, add: false)),
                 "suffix_list" => PowerShellHelper.RunAsync(
                     "Get-DnsClient | Select-Object InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress | Format-Table -Wrap",
                     cancellationToken: cancellationToken),
@@ -118,6 +140,103 @@ public sealed class DnsConfigTool : ITool
             Resolve-DnsName -Name '{{safe}}' -ErrorAction SilentlyContinue | Format-Table -AutoSize
             nslookup '{{safe}}'
             """, cancellationToken: cancellationToken);
+    }
+
+    private static Task<ToolResult> SetDns(JsonElement arguments, CancellationToken cancellationToken)
+    {
+        if (Adapter(arguments) is not { } adapter)
+        {
+            return Task.FromResult(AdapterRequired());
+        }
+
+        var values = arguments.TryGetProperty("servers", out var servers) && servers.ValueKind == JsonValueKind.Array
+            ? servers.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.String ? item.GetString() : null)
+            : [];
+        return NetworkCommands.TryDnsServers(values, out var list, out var error)
+            ? PowerShellHelper.RunAsync(NetworkCommands.SetDnsScript(adapter, list), 60, cancellationToken)
+            : Task.FromResult(ToolResult.Fail(error + " Do not retry with the same value."));
+    }
+
+    private static Task<ToolResult> ResetDns(JsonElement arguments, CancellationToken cancellationToken) =>
+        Adapter(arguments) is { } adapter
+            ? PowerShellHelper.RunAsync(NetworkCommands.ResetDnsScript(adapter), 60, cancellationToken)
+            : Task.FromResult(AdapterRequired());
+
+    private static string? Adapter(JsonElement arguments)
+    {
+        var adapter = arguments.TryGetProperty("adapter", out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()?.Trim()
+            : null;
+        return UndoCommands.IsInterfaceAlias(adapter) ? adapter : null;
+    }
+
+    private static ToolResult AdapterRequired() =>
+        ToolResult.Fail("adapter is missing or contains wildcards. Use the exact name from resolvers.");
+
+    /// <summary>
+    /// Правка hosts — в самой программе, не скриптом: файл маленький, а разбор строк проверяется
+    /// тестами (<see cref="NetworkCommands.HostsAdd"/>). Копию для отката снимает снимок.
+    /// </summary>
+    private static ToolResult EditHosts(JsonElement arguments, bool add)
+    {
+        var host = arguments.TryGetProperty("hostname", out var hostProp) && hostProp.ValueKind == JsonValueKind.String
+            ? hostProp.GetString()?.Trim()
+            : null;
+        // Только ASCII: hosts читается в кодировке системы, и имя с кириллицей там не сработает —
+        // для такого имени нужна его punycode-форма (xn--…).
+        if (host is null || !IsHostName(host) || System.Net.IPAddress.TryParse(host, out _) || !host.All(char.IsAscii))
+        {
+            return ToolResult.Fail(
+                "hostname must be an ASCII host name, not an IP address (use the xn-- form for non-Latin names). " +
+                "Do not retry with the same value.");
+        }
+
+        var address = arguments.TryGetProperty("address", out var addressProp) && addressProp.ValueKind == JsonValueKind.String
+            ? addressProp.GetString()?.Trim()
+            : null;
+        if (add && (address is null || !System.Net.IPAddress.TryParse(address, out _)))
+        {
+            return ToolResult.Fail("hosts_add needs address: an IP address. Do not retry with the same value.");
+        }
+
+        var path = NetworkCommands.HostsPath;
+        try
+        {
+            var lines = File.Exists(path) ? File.ReadAllLines(path) : [];
+            string text;
+            if (add)
+            {
+                var (updated, changed) = NetworkCommands.HostsAdd(lines, address!, host);
+                if (!changed)
+                {
+                    return ToolResult.Ok($"hosts already maps {host} to {address}.");
+                }
+
+                text = NetworkCommands.JoinHosts(updated);
+            }
+            else
+            {
+                var (updated, removed) = NetworkCommands.HostsRemove(lines, host);
+                if (removed == 0)
+                {
+                    return ToolResult.Ok($"hosts has no entry for {host}.");
+                }
+
+                text = NetworkCommands.JoinHosts(updated);
+            }
+
+            // Без BOM: часть программ читает hosts построчно и спотыкается о метку в начале.
+            File.WriteAllText(path, text, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            return ToolResult.Ok(add ? $"hosts: {address} {host} added." : $"hosts: {host} removed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return ToolResult.Fail(Amarin.Core.Loc.Get("S.Tool.NeedsAdmin"));
+        }
+        catch (IOException ex)
+        {
+            return ToolResult.Fail($"hosts file is busy or unreadable: {ex.Message}");
+        }
     }
 
     /// <summary>Имя узла или IP-адрес: ничего, кроме того, что бывает в имени.</summary>

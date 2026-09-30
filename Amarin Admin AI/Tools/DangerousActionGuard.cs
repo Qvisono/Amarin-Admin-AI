@@ -33,7 +33,9 @@ public sealed record DangerousActionInfo(
     /// between the machine and an attack, so a convenience switch must not answer it — the same
     /// reasoning that keeps the download allowlist asking.
     /// </summary>
-    bool AlwaysAsk = false);
+    bool AlwaysAsk = false,
+    /// <summary>Аргументы вызова — для пробного прогона (<see cref="WhatIfProbe"/>).</summary>
+    JsonElement? Arguments = null);
 
 internal static partial class DangerousActionGuard
 {
@@ -79,6 +81,14 @@ internal static partial class DangerousActionGuard
             "windows_features" => IsWindowsFeaturesWrite(arguments),
             // Hard-blocked local_users ops (current user / last admin) must NOT prompt confirm.
             "local_users" => IsLocalUsersWrite(arguments) && !LocalUsersSafety.TryGetHardBlockReason(arguments, out _),
+            "startup_programs" => IsStartupToggle(arguments),
+            "windows_update" => IsUpdateMutation(arguments),
+            "dns_config" => IsDnsMutation(arguments),
+            "devices" => IsDeviceMutation(arguments),
+            "security_status" => IsDefenderAction(arguments),
+            "remote_access" => IsRdpToggle(arguments),
+            // Буфер читает любое приложение на машине: что туда кладётся, решает человек.
+            "write_clipboard" => true,
             _ => false
         };
     }
@@ -100,7 +110,13 @@ internal static partial class DangerousActionGuard
             "firewall_rules" => IsFirewallRulesWrite(arguments),
             "windows_features" => IsWindowsFeaturesWrite(arguments),
             "local_users" => IsLocalUsersWrite(arguments) && !LocalUsersSafety.TryGetHardBlockReason(arguments, out _),
-            // chkdsk_fix / software_inventory / disk_space cleanup: confirm only
+            "startup_programs" => IsStartupToggle(arguments),
+            "windows_update" => ActionOf(arguments) is "pause" or "resume",
+            "dns_config" => IsDnsMutation(arguments),
+            "devices" => ActionOf(arguments) is "enable" or "disable",
+            "remote_access" => IsRdpToggle(arguments),
+            // chkdsk_fix / software_inventory / disk_space cleanup / установка обновлений / откат
+            // драйвера / проверка Защитника / буфер обмена: только вопрос — вернуть снимком нечего.
             _ => false
         };
 
@@ -138,7 +154,8 @@ internal static partial class DangerousActionGuard
                  {
                      "path", "service_name", "command", "process_name", "pid", "task_name",
                      "url", "destination", "query", "drive_letter", "package_id", "name",
-                     "feature_name", "user", "group"
+                     "feature_name", "user", "group", "adapter", "wifi_profile", "instance_id",
+                     "hostname", "address", "start_type", "location"
                  })
         {
             if (arguments.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String)
@@ -248,6 +265,11 @@ internal static partial class DangerousActionGuard
             sb.AppendLine(L("S.Guard.UsersProtection"));
         }
 
+        foreach (var note in ActionNotes(toolName, action))
+        {
+            sb.AppendLine(note);
+        }
+
         return new DangerousActionInfo(
             toolName,
             changeSummary,
@@ -255,7 +277,36 @@ internal static partial class DangerousActionGuard
             risk,
             explanation,
             codeText,
-            codeLanguage);
+            codeLanguage,
+            Arguments: arguments.ValueKind == JsonValueKind.Undefined ? null : arguments.Clone());
+    }
+
+    /// <summary>Что человеку важно знать про новые действия, кроме сводки: перезагрузка, отката нет.</summary>
+    private static IEnumerable<string> ActionNotes(string toolName, string action)
+    {
+        switch (toolName.ToLowerInvariant(), action)
+        {
+            case ("network", "reset_winsock" or "reset_ip"):
+                yield return L("S.Guard.Note.RebootNeeded");
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
+            case ("network", "adapter_disable"):
+                yield return L("S.Guard.Note.AdapterOff");
+                break;
+            case ("windows_update", "install"):
+                yield return L("S.Guard.Note.UpdateNoReboot");
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
+            case ("devices", "rollback_driver"):
+                yield return L("S.Guard.Note.DriverRollback");
+                break;
+            case ("devices", "disable"):
+                yield return L("S.Guard.Note.DeviceProtected");
+                break;
+            case ("remote_access", "rdp_enable"):
+                yield return L("S.Guard.Note.RdpOpen");
+                break;
+        }
     }
 
     /// <summary>Файл, который вызов перезапишет, если он уже есть. Иначе null.</summary>
@@ -420,8 +471,44 @@ internal static partial class DangerousActionGuard
                 "flush_dns" => L("S.Guard.Sum.FlushDns"),
                 "firewall_enable" => L("S.Guard.Sum.FirewallOn"),
                 "firewall_disable" => L("S.Guard.Sum.FirewallOff"),
+                "adapter_enable" => L("S.Guard.Sum.AdapterOn") + FormatField(arguments, "adapter", prefix: ": "),
+                "adapter_disable" => L("S.Guard.Sum.AdapterOff") + FormatField(arguments, "adapter", prefix: ": "),
+                "wifi_forget" => L("S.Guard.Sum.WifiForget") + FormatField(arguments, "wifi_profile", prefix: ": "),
+                "reset_winsock" => L("S.Guard.Sum.ResetWinsock"),
+                "reset_ip" => L("S.Guard.Sum.ResetIp"),
                 _ => L("S.Guard.Sum.Network", action)
             },
+            "dns_config" => action switch
+            {
+                "set_dns" => L("S.Guard.Sum.SetDns") + FormatField(arguments, "adapter", prefix: ": ") +
+                             FormatList(arguments, "servers", prefix: " → "),
+                "reset_dns" => L("S.Guard.Sum.ResetDns") + FormatField(arguments, "adapter", prefix: ": "),
+                "hosts_add" => L("S.Guard.Sum.HostsAdd") + FormatField(arguments, "address", prefix: ": ") +
+                               FormatField(arguments, "hostname", prefix: " "),
+                "hosts_remove" => L("S.Guard.Sum.HostsRemove") + FormatField(arguments, "hostname", prefix: ": "),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "startup_programs" => (action == "enable" ? L("S.Guard.Sum.StartupOn") : L("S.Guard.Sum.StartupOff")) +
+                                  FormatField(arguments, "name", prefix: ": "),
+            "windows_update" => action switch
+            {
+                "install" => L("S.Guard.Sum.UpdateInstall") + FormatList(arguments, "kb", prefix: ": ", empty: L("S.Guard.Sum.AllPending")),
+                "hide" => L("S.Guard.Sum.UpdateHide") + FormatList(arguments, "kb", prefix: ": "),
+                "unhide" => L("S.Guard.Sum.UpdateUnhide") + FormatList(arguments, "kb", prefix: ": "),
+                "pause" => L("S.Guard.Sum.UpdatePause", PauseDays(arguments)),
+                "resume" => L("S.Guard.Sum.UpdateResume"),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "devices" => action switch
+            {
+                "enable" => L("S.Guard.Sum.DeviceOn") + FormatField(arguments, "instance_id", prefix: ": "),
+                "disable" => L("S.Guard.Sum.DeviceOff") + FormatField(arguments, "instance_id", prefix: ": "),
+                "rollback_driver" => L("S.Guard.Sum.DriverRollback") + FormatField(arguments, "instance_id", prefix: ": "),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "security_status" => action == "quick_scan" ? L("S.Guard.Sum.QuickScan") : L("S.Guard.Sum.Signatures"),
+            "remote_access" => action == "rdp_enable" ? L("S.Guard.Sum.RdpOn") : L("S.Guard.Sum.RdpOff"),
+            "write_clipboard" => L("S.Guard.Sum.Clipboard") + FormatField(arguments, "text", prefix: ": ", max: 60),
             "virtualization" => L("S.Guard.Sum.Virtualization") + $" → {action}",
             "download_file" => L("S.Guard.Sum.Download") + FormatField(arguments, "url", prefix: ": "),
             "change_rollback" => L("S.Guard.Sum.Rollback"),
@@ -493,7 +580,8 @@ internal static partial class DangerousActionGuard
             "windows_process" => DangerousRiskLevel.Medium,
             "scheduled_task" when action is "delete" => DangerousRiskLevel.High,
             "scheduled_task" => DangerousRiskLevel.Medium,
-            "network" when action is "firewall_disable" => DangerousRiskLevel.High,
+            "network" when action is "firewall_disable" or "adapter_disable" or "reset_winsock" or "reset_ip"
+                => DangerousRiskLevel.High,
             "network" => DangerousRiskLevel.Medium,
             "virtualization" => DangerousRiskLevel.Medium,
             "download_file" => DangerousRiskLevel.Medium,
@@ -510,6 +598,15 @@ internal static partial class DangerousActionGuard
             "local_users" when action is "disable_user" or "remove_from_group" => DangerousRiskLevel.High,
             "local_users" when action is "enable_user" or "add_to_group" => DangerousRiskLevel.Medium,
             "run_powershell" => ClassifyPowerShellRisk(arguments),
+            "dns_config" => DangerousRiskLevel.Medium,
+            "startup_programs" => DangerousRiskLevel.Medium,
+            "windows_update" when action is "install" or "pause" => DangerousRiskLevel.Medium,
+            "windows_update" => DangerousRiskLevel.Low,
+            "devices" when action is "disable" or "rollback_driver" => DangerousRiskLevel.High,
+            "devices" => DangerousRiskLevel.Medium,
+            // Открыть RDP — открыть машину для входа по сети; закрыть — оборвать чужие сеансы.
+            "remote_access" => DangerousRiskLevel.High,
+            "write_clipboard" => DangerousRiskLevel.Low,
             _ => DangerousRiskLevel.Low
         };
     }
@@ -556,7 +653,7 @@ internal static partial class DangerousActionGuard
         ActionOf(arguments) is "write" or "delete_value" or "delete_key";
 
     private static bool IsServiceControl(JsonElement arguments) =>
-        ActionOf(arguments) is "start" or "stop" or "restart";
+        ActionOf(arguments) is "start" or "stop" or "restart" or "set_start_type";
 
     private static bool IsFileWrite(JsonElement arguments) =>
         ActionOf(arguments) == "write";
@@ -568,7 +665,47 @@ internal static partial class DangerousActionGuard
         ActionOf(arguments) is "create" or "delete" or "enable" or "disable" or "run";
 
     private static bool IsNetworkMutation(JsonElement arguments) =>
-        ActionOf(arguments) is "flush_dns" or "firewall_enable" or "firewall_disable";
+        ActionOf(arguments) is "flush_dns" or "firewall_enable" or "firewall_disable" or "adapter_enable"
+            or "adapter_disable" or "wifi_forget" or "reset_winsock" or "reset_ip";
+
+    private static bool IsStartupToggle(JsonElement arguments) =>
+        ActionOf(arguments) is "enable" or "disable";
+
+    private static bool IsUpdateMutation(JsonElement arguments) =>
+        ActionOf(arguments) is "install" or "hide" or "unhide" or "pause" or "resume";
+
+    private static bool IsDnsMutation(JsonElement arguments) =>
+        ActionOf(arguments) is "set_dns" or "reset_dns" or "hosts_add" or "hosts_remove";
+
+    private static bool IsDeviceMutation(JsonElement arguments) =>
+        ActionOf(arguments) is "enable" or "disable" or "rollback_driver";
+
+    private static bool IsDefenderAction(JsonElement arguments) =>
+        ActionOf(arguments) is "quick_scan" or "update_signatures";
+
+    private static bool IsRdpToggle(JsonElement arguments) =>
+        ActionOf(arguments) is "rdp_enable" or "rdp_disable";
+
+    private static int PauseDays(JsonElement arguments) =>
+        arguments.TryGetProperty("days", out var days) && days.TryGetInt32(out var value)
+            ? Math.Clamp(value, 1, UpdateCommands.MaxPauseDays)
+            : 7;
+
+    /// <summary>Список строк от модели одной строкой: «KB1, KB2».</summary>
+    private static string FormatList(JsonElement arguments, string field, string prefix = "", string empty = "")
+    {
+        if (!arguments.TryGetProperty(field, out var value))
+        {
+            return empty.Length == 0 ? "" : prefix + empty;
+        }
+
+        var items = value.ValueKind == JsonValueKind.Array
+            ? value.EnumerateArray().Select(item => item.ToString()).Where(item => item.Length > 0).ToList()
+            : [value.ToString()];
+        return items.Count == 0
+            ? (empty.Length == 0 ? "" : prefix + empty)
+            : prefix + Truncate(string.Join(", ", items), 160);
+    }
 
     private static bool IsVirtualizationMutation(JsonElement arguments) =>
         ActionOf(arguments) is "start_vm" or "stop_vm" or "docker_start" or "docker_stop";

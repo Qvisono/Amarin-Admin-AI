@@ -36,6 +36,12 @@ internal static class ToolEffects
         "youtube_transcript"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Инструменты без действий, которые всегда пишут, — чтобы таблица знала их по имени.</summary>
+    private static readonly FrozenSet<string> ActionlessWrites = new[]
+    {
+        "write_clipboard"
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
     private static readonly FrozenDictionary<string, FrozenSet<string>> ReadActions =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
@@ -46,10 +52,10 @@ internal static class ToolEffects
             ["disk_space"] = ["analyze", "largest_items"],
             ["dns_config"] = ["resolvers", "hosts_file", "proxy", "test_resolve", "suffix_list"],
             ["event_log"] = ["list_logs", "read"],
-            ["filesystem"] = ["read", "list", "exists"],
+            ["filesystem"] = ["read", "list", "exists", "search"],
             ["firewall_rules"] = ["list", "get"],
             ["local_users"] = ["list_users", "list_groups", "group_members", "user_details"],
-            ["network"] = ["adapters", "dns", "ping", "connections", "firewall_rules"],
+            ["network"] = ["adapters", "dns", "ping", "traceroute", "connections", "firewall_rules", "wifi_profiles"],
             ["performance"] = ["summary", "cpu", "memory", "disk", "top_processes"],
             ["port_listener"] = ["list_listeners", "find_port", "find_process"],
             ["windows_process"] = ["list", "top"],
@@ -63,7 +69,7 @@ internal static class ToolEffects
                 ["firewall_status", "firewall_rules", "defender_status", "defender_threats", "defender_preferences"],
             ["windows_service"] = ["list", "status", "dependencies"],
             ["software_inventory"] = ["list_installed", "search", "list_upgrades"],
-            ["startup_programs"] = ["list_all", "wmi", "registry", "folders"],
+            ["startup_programs"] = ["list_all", "wmi", "registry", "folders", "status"],
             ["system_repair"] = ["status_sfc", "status_dism"],
             ["virtualization"] = ["list_hyperv_vms", "hyperv_vm_status", "list_docker_containers", "docker_status"],
             ["windows_features"] = ["list", "get"],
@@ -94,5 +100,5 @@ internal static class ToolEffects
     }
 
     /// <summary>Все инструменты, о которых таблица знает, — для проверки её полноты тестом.</summary>
-    internal static IEnumerable<string> KnownTools => ActionlessReads.Concat(ReadActions.Keys);
+    internal static IEnumerable<string> KnownTools => ActionlessReads.Concat(ActionlessWrites).Concat(ReadActions.Keys);
 }

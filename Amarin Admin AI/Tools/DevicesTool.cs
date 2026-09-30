@@ -8,7 +8,9 @@ public sealed class DevicesTool : ITool
 {
     public string Name => "devices";
     public string Description =>
-        "Printers, USB devices, installed drivers, and driver problem reports. Read-only diagnostics.";
+        "Printers, USB devices, installed drivers, driver problem reports; enable or disable a device and roll " +
+        "back its driver by instance_id (from pnp_devices or driver_problems). enable, disable and rollback_driver " +
+        "require user confirmation. Disks, keyboards, mice and system devices are never disabled.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -16,8 +18,12 @@ public sealed class DevicesTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["printers", "usb", "drivers", "driver_problems", "pnp_devices"],
-              "description": "Device diagnostic action"
+              "enum": ["printers", "usb", "drivers", "driver_problems", "pnp_devices", "enable", "disable", "rollback_driver"],
+              "description": "Device action"
+            },
+            "instance_id": {
+              "type": "string",
+              "description": "Device instance ID for enable/disable/rollback_driver, exactly as pnp_devices shows it"
             },
             "filter": {
               "type": "string",
@@ -45,7 +51,24 @@ public sealed class DevicesTool : ITool
             ? filterProp.GetString() ?? ""
             : "";
 
-        var action = actionProp.GetString()?.ToLowerInvariant();
+        var action = actionProp.GetString()?.Trim().ToLowerInvariant();
+        if (action is "enable" or "disable" or "rollback_driver")
+        {
+            var instanceId = arguments.TryGetProperty("instance_id", out var idProp) && idProp.ValueKind == JsonValueKind.String
+                ? idProp.GetString()?.Trim()
+                : null;
+            if (!DeviceCommands.IsInstanceId(instanceId))
+            {
+                return Task.FromResult(ToolResult.Fail(
+                    "instance_id is missing or contains wildcards or quotes. Use the exact InstanceId from pnp_devices."));
+            }
+
+            return action == "rollback_driver"
+                ? Task.Run(() => DriverRollback.Run(instanceId!), cancellationToken)
+                : PowerShellHelper.RunAsync(DeviceCommands.SetEnabledScript(instanceId!, action == "enable"), 120,
+                    cancellationToken);
+        }
+
         var script = action switch
         {
             "printers" => PrintersScript(filter, max),

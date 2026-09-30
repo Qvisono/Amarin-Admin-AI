@@ -9,7 +9,16 @@ namespace Amarin.Tools;
 /// <param name="IsWrite">Скрипт что-нибудь меняет — или понять, что он делает, не вышло.</param>
 /// <param name="Reasons">Что именно сочтено записью — для окна подтверждения.</param>
 /// <param name="Refusal">Жёсткий отказ для модели; null — запрета нет.</param>
-internal sealed record PowerShellVerdict(bool IsWrite, IReadOnlyList<string> Reasons, string? Refusal);
+/// <param name="WriteCmdlets">
+/// Командлеты, из-за которых скрипт — запись, если <b>только</b> они делают его записью: ни
+/// внешних программ, ни методов .NET, ни перенаправления в файл. Иначе null. По нему решается,
+/// можно ли показать пробный прогон с <c>-WhatIf</c> (<see cref="WhatIfProbe"/>).
+/// </param>
+internal sealed record PowerShellVerdict(
+    bool IsWrite,
+    IReadOnlyList<string> Reasons,
+    string? Refusal,
+    IReadOnlyList<string>? WriteCmdlets = null);
 
 /// <summary>
 /// Читает скрипт PowerShell по дереву разбора и решает, только ли он читает.
@@ -178,7 +187,8 @@ internal static class PowerShellAnalysis
             return new PowerShellVerdict(true, [.. facts.Reasons, "проверка целей не удалась"], null);
         }
 
-        return new PowerShellVerdict(facts.IsWrite, facts.Reasons, refusal);
+        return new PowerShellVerdict(facts.IsWrite, facts.Reasons, refusal,
+            facts.IsWrite && !facts.OtherWrites && facts.WriteCmdlets.Count > 0 ? facts.WriteCmdlets : null);
     }
 
     /// <summary>Аргумент <c>command</c> из аргументов инструмента.</summary>
@@ -340,14 +350,14 @@ internal static class PowerShellAnalysis
         if (name is "stop-process" or "stop-service" or "restart-service" or "suspend-service" or "set-service")
         {
             Targets(name, command, facts);
-            facts.Write(raw);
+            facts.Write(raw, cmdlet: name);
             return;
         }
 
         if (name is "disable-localuser" or "remove-localgroupmember")
         {
             Accounts(name, command, facts);
-            facts.Write(raw);
+            facts.Write(raw, cmdlet: name);
             return;
         }
 
@@ -358,7 +368,7 @@ internal static class PowerShellAnalysis
 
         if (name.Contains('-', StringComparison.Ordinal))
         {
-            facts.Write(raw);
+            facts.Write(raw, cmdlet: name);
             return;
         }
 
@@ -527,7 +537,7 @@ internal static class PowerShellAnalysis
 
     private static void Web(string name, CommandAst command, IReadOnlyList<string> args, Facts facts)
     {
-        facts.Write(command.GetCommandName() ?? name);
+        facts.Write(command.GetCommandName() ?? name, cmdlet: name);
         var saves = name == "start-bitstransfer" || HasParameter(command, "outfile", prefix: 4);
         if (!saves)
         {
@@ -769,9 +779,23 @@ internal static class PowerShellAnalysis
         /// <summary>Операции с учётными записями аргументами <c>local_users</c>; null — имя не константа.</summary>
         public List<string?> AccountOps { get; } = [];
 
-        public void Write(string reason)
+        /// <summary>Командлеты, давшие запись, — в каноническом написании.</summary>
+        public List<string> WriteCmdlets { get; } = [];
+
+        /// <summary>Запись, которая не командлет: программа, метод, перенаправление, неразобранное.</summary>
+        public bool OtherWrites { get; private set; }
+
+        public void Write(string reason, string? cmdlet = null)
         {
             IsWrite = true;
+            if (cmdlet is null)
+            {
+                OtherWrites = true;
+            }
+            else if (!WriteCmdlets.Contains(cmdlet, StringComparer.OrdinalIgnoreCase))
+            {
+                WriteCmdlets.Add(cmdlet);
+            }
 
             // Причины идут в строку окна подтверждения: «команда» из четырёхсот символов
             // растянула бы её, а весь скрипт человек и так видит целиком ниже.

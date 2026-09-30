@@ -133,7 +133,14 @@ internal static class ProtectedSystemTargets
     {
         reason = "";
         var action = DangerousActionGuard.ActionOf(arguments);
-        if (action is not ("stop" or "restart"))
+        // Смена типа запуска — та же остановка, только отложенная до перезагрузки: «вручную» или
+        // «отключена» у Защитника или RPC выключает их на следующем старте. «Автоматически» не
+        // вредит никому и проходит.
+        var startTypeDowngrade = action == "set_start_type" &&
+            !(arguments.TryGetProperty("start_type", out var startType) &&
+              startType.ValueKind == JsonValueKind.String &&
+              (startType.GetString() ?? "").Trim().Equals("automatic", StringComparison.OrdinalIgnoreCase));
+        if (action is not ("stop" or "restart") && !startTypeDowngrade)
         {
             return false;
         }

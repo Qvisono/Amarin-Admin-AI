@@ -550,7 +550,7 @@ internal static partial class LocalUsersSafety
         return true;
     }
 
-    private static IReadOnlyList<string> ParseNetLocalGroupMembers(string stdout)
+    internal static IReadOnlyList<string> ParseNetLocalGroupMembers(string stdout)
     {
         var list = new List<string>();
         if (string.IsNullOrWhiteSpace(stdout))

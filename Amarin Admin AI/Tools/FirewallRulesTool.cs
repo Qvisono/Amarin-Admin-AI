@@ -223,7 +223,7 @@ public sealed class FirewallRulesTool : ITool
         return await PowerShellHelper.RunAsync(ListScript(filter, top), 120, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static string ListScript(string filter, int top)
+    internal static string ListScript(string filter, int top)
     {
         var safeFilter = PowerShellHelper.QuoteLiteral(filter);
 
@@ -293,7 +293,7 @@ public sealed class FirewallRulesTool : ITool
             """;
     }
 
-    private static string GetScript(string safeName) => $$"""
+    internal static string GetScript(string safeName) => $$"""
         $q = '{{safeName}}'
         Write-Output "=== firewall_rules get: $q ==="
         $rules = @(Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
@@ -327,7 +327,7 @@ public sealed class FirewallRulesTool : ITool
         exit 0
         """;
 
-    private static string SetEnabledScript(string safeName, bool enabled)
+    internal static string SetEnabledScript(string safeName, bool enabled)
     {
         var verb = enabled ? "enable" : "disable";
         var wantLiteral = enabled ? "$true" : "$false";
@@ -367,7 +367,7 @@ public sealed class FirewallRulesTool : ITool
             """;
     }
 
-    private static string DeleteScript(string safeName) => $$"""
+    internal static string DeleteScript(string safeName) => $$"""
         $q = '{{safeName}}'
         Write-Output "=== firewall_rules delete: $q ==="
         $rules = @(Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
@@ -405,7 +405,7 @@ public sealed class FirewallRulesTool : ITool
         exit 0
         """;
 
-    private static string CreateScript(
+    internal static string CreateScript(
         string safeName,
         string direction,
         string actionType,
@@ -468,7 +468,7 @@ public sealed class FirewallRulesTool : ITool
             """;
     }
 
-    private static bool TryGetSafeName(JsonElement arguments, out string safeName, out string? error)
+    internal static bool TryGetSafeName(JsonElement arguments, out string safeName, out string? error)
     {
         safeName = "";
         error = null;

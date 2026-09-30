@@ -82,7 +82,7 @@ public sealed class RestorePointTool : ITool
         return await PowerShellHelper.RunAsync(CreateScript(safeDescription), 180, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static string ListScript() => """
+    internal static string ListScript() => """
         $ErrorActionPreference = 'Continue'
         $Error.Clear()
         $points = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue)
@@ -122,7 +122,7 @@ public sealed class RestorePointTool : ITool
         exit 0
         """;
 
-    private static string StatusScript() => """
+    internal static string StatusScript() => """
         $ErrorActionPreference = 'Continue'
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object Security.Principal.WindowsPrincipal($identity)
@@ -205,7 +205,7 @@ public sealed class RestorePointTool : ITool
         exit 0
         """;
 
-    private static string CreateScript(string safeDescription) => $$$"""
+    internal static string CreateScript(string safeDescription) => $$$"""
         $ErrorActionPreference = 'Stop'
         $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
         $principal = New-Object Security.Principal.WindowsPrincipal($identity)

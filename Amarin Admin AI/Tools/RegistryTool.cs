@@ -233,7 +233,7 @@ public sealed class RegistryTool : ITool
         _ => null
     };
 
-    private static int ParseInteger(string? text)
+    internal static int ParseInteger(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return 0;
         return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
@@ -241,7 +241,7 @@ public sealed class RegistryTool : ITool
             : int.Parse(text);
     }
 
-    private static long ParseLong(string? text)
+    internal static long ParseLong(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return 0;
         return text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
@@ -249,7 +249,7 @@ public sealed class RegistryTool : ITool
             : long.Parse(text);
     }
 
-    private static string FormatValue(object? value, RegistryValueKind kind) => kind switch
+    internal static string FormatValue(object? value, RegistryValueKind kind) => kind switch
     {
         RegistryValueKind.Binary => value is byte[] bytes
             ? BitConverter.ToString(bytes)

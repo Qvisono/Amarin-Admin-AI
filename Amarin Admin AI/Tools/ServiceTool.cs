@@ -8,7 +8,8 @@ public sealed class ServiceTool : ITool
 {
     public string Name => "windows_service";
     public string Description =>
-        "Query and control Windows services: list, status, dependencies, start, stop, restart.";
+        "Query and control Windows services: list, status, dependencies, start, stop, restart, " +
+        "set_start_type (automatic, automatic_delayed, manual, disabled).";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -16,7 +17,7 @@ public sealed class ServiceTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["list", "status", "dependencies", "start", "stop", "restart"],
+              "enum": ["list", "status", "dependencies", "start", "stop", "restart", "set_start_type"],
               "description": "Service operation"
             },
             "service_name": {
@@ -26,13 +27,29 @@ public sealed class ServiceTool : ITool
             "filter": {
               "type": "string",
               "description": "Optional substring filter for list action"
+            },
+            "start_type": {
+              "type": "string",
+              "enum": ["automatic", "automatic_delayed", "manual", "disabled"],
+              "description": "New start type for set_start_type"
             }
           },
           "required": ["action"]
         }
         """);
 
-    public Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
+    public async Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
+    {
+        if (DangerousActionGuard.ActionOf(arguments) == "set_start_type")
+        {
+            // Отдельно от try ниже: там всё синхронно, а здесь sc.exe с отменой хода.
+            return await SetStartTypeAsync(arguments, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await ExecuteSyncAsync(arguments).ConfigureAwait(false);
+    }
+
+    private static Task<ToolResult> ExecuteSyncAsync(JsonElement arguments)
     {
         try
         {
@@ -68,6 +85,53 @@ public sealed class ServiceTool : ITool
         {
             return Task.FromResult(ToolResult.Fail($"Service error: {ex.Message}"));
         }
+    }
+
+    private static async Task<ToolResult> SetStartTypeAsync(JsonElement arguments, CancellationToken cancellationToken)
+    {
+        if (ProtectedSystemTargets.TryGetServiceBlock(arguments, out var blocked))
+        {
+            return ToolResult.Fail(blocked);
+        }
+
+        var serviceName = arguments.TryGetProperty("service_name", out var nameProp) &&
+                          nameProp.ValueKind == JsonValueKind.String
+            ? nameProp.GetString()?.Trim()
+            : null;
+        var startType = arguments.TryGetProperty("start_type", out var typeProp) &&
+                        typeProp.ValueKind == JsonValueKind.String
+            ? typeProp.GetString()
+            : null;
+
+        if (string.IsNullOrWhiteSpace(serviceName))
+        {
+            return ToolResult.Fail("service_name is required for set_start_type");
+        }
+
+        if (!ServiceCommands.TryStartType(startType, out var scValue))
+        {
+            return ToolResult.Fail(
+                "start_type must be one of: automatic, automatic_delayed, manual, disabled. Do not retry with the same value.");
+        }
+
+        // Имя — только существующей службы: sc.exe получает его списком аргументов, но и так
+        // незачем передавать ему то, чего в системе нет.
+        string name;
+        try
+        {
+            using var service = new ServiceController(serviceName);
+            name = service.ServiceName;
+        }
+        catch (InvalidOperationException)
+        {
+            return ToolResult.Fail($"Service '{serviceName}' was not found.");
+        }
+
+        var result = await NativeProcess.RunAsync("sc.exe", ServiceCommands.ConfigArguments(name, scValue), 60,
+            cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? ToolResult.Ok($"Service '{name}' start type set to {startType}.")
+            : ToolResult.Fail($"sc.exe config failed: {result.Output}");
     }
 
     private static ToolResult ListServices(string? filter)

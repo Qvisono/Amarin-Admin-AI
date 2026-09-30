@@ -12,7 +12,8 @@ internal static class AgentTools
         VeniceClient venice,
         HttpClient downloadHttp,
         DownloadOptions download,
-        Func<WebSearchPlan>? webSearch = null) =>
+        Func<WebSearchPlan>? webSearch = null,
+        Func<IEnumerable<string?>>? knownSecrets = null) =>
         new(
         [
             new PowerShellTool(),
@@ -23,6 +24,7 @@ internal static class AgentTools
             new WebDownloadTool(downloadHttp, download),
             new ScreenshotTool(),
             new ClipboardTool(),
+            new ClipboardWriteTool(knownSecrets ?? (() => [])),
             new FolderAnalysisTool(),
             new WebSearchTool((query, ct) =>
                 venice.SearchWebAsync(query, webSearch?.Invoke(), ct)),

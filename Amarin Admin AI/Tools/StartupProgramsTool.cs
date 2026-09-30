@@ -8,7 +8,9 @@ public sealed class StartupProgramsTool : ITool
 {
     public string Name => "startup_programs";
     public string Description =>
-        "List Windows autostart programs: WMI startup commands, Run registry keys, Startup folders. Read-only.";
+        "Windows autostart programs: list them (status shows each item's location, name and whether it is " +
+        "enabled) and disable or enable an item the way Task Manager does - the entry itself is kept. " +
+        "disable/enable require user confirmation.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -16,8 +18,17 @@ public sealed class StartupProgramsTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["list_all", "wmi", "registry", "folders"],
-              "description": "Startup listing action"
+              "enum": ["list_all", "wmi", "registry", "folders", "status", "disable", "enable"],
+              "description": "Startup action"
+            },
+            "name": {
+              "type": "string",
+              "description": "For disable/enable: the item name exactly as the status action shows it"
+            },
+            "location": {
+              "type": "string",
+              "enum": ["hkcu_run", "hklm_run", "hklm_run32", "user_folder", "common_folder"],
+              "description": "For disable/enable: the item location as the status action shows it"
             }
           },
           "required": ["action"]
@@ -31,7 +42,15 @@ public sealed class StartupProgramsTool : ITool
             return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
         }
 
-        var action = actionProp.GetString()?.ToLowerInvariant();
+        var action = actionProp.GetString()?.Trim().ToLowerInvariant();
+        switch (action)
+        {
+            case "status":
+                return Task.FromResult(ToolResult.Ok(StartupApproval.Format(StartupApproval.List())));
+            case "disable" or "enable":
+                return Task.FromResult(SetEnabled(arguments, enable: action == "enable"));
+        }
+
         var script = action switch
         {
             "list_all" => ListAllScript(),
@@ -44,6 +63,25 @@ public sealed class StartupProgramsTool : ITool
         return script is null
             ? Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             : PowerShellHelper.RunAsync(script, 120, cancellationToken);
+    }
+
+    private static ToolResult SetEnabled(JsonElement arguments, bool enable)
+    {
+        var name = arguments.TryGetProperty("name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String
+            ? nameProp.GetString()?.Trim()
+            : null;
+        var locationText = arguments.TryGetProperty("location", out var locationProp) &&
+                           locationProp.ValueKind == JsonValueKind.String
+            ? locationProp.GetString()
+            : null;
+
+        if (string.IsNullOrWhiteSpace(name) || !StartupApproval.TryLocation(locationText, out var location))
+        {
+            return ToolResult.Fail(
+                "disable/enable need name and location exactly as the status action shows them. Call status first.");
+        }
+
+        return StartupApproval.SetEnabled(location, name, enable, DateTime.UtcNow);
     }
 
     private static string ListAllScript() => """

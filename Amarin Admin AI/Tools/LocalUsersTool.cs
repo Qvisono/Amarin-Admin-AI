@@ -278,7 +278,7 @@ public sealed class LocalUsersTool : ITool
         exit 0
         """;
 
-    private static string GroupMembersScript(string safeGroup) => $$"""
+    internal static string GroupMembersScript(string safeGroup) => $$"""
         $ErrorActionPreference = 'SilentlyContinue'
         $group = '{{safeGroup}}'
         Write-Output "=== local_users group_members (PS fallback): $group ==="
@@ -295,7 +295,7 @@ public sealed class LocalUsersTool : ITool
         }
         """;
 
-    private static string UserDetailsScript(string safeUser) => $$"""
+    internal static string UserDetailsScript(string safeUser) => $$"""
         $ErrorActionPreference = 'SilentlyContinue'
         $name = '{{safeUser}}'
         Write-Output "=== local_users user_details: $name ==="
@@ -312,7 +312,7 @@ public sealed class LocalUsersTool : ITool
         exit 0
         """;
 
-    private static string SetUserEnabledScript(string safeUser, bool enabled)
+    internal static string SetUserEnabledScript(string safeUser, bool enabled)
     {
         var verb = enabled ? "enable_user" : "disable_user";
         var want = enabled ? "$true" : "$false";
@@ -354,7 +354,7 @@ public sealed class LocalUsersTool : ITool
             """;
     }
 
-    private static string ChangeGroupScript(string safeUser, string safeGroup, bool add)
+    internal static string ChangeGroupScript(string safeUser, string safeGroup, bool add)
     {
         var verb = add ? "add_to_group" : "remove_from_group";
         var addLiteral = add ? "$true" : "$false";

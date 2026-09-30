@@ -49,10 +49,16 @@ internal sealed class RollbackPlan
     /// <summary>Файлы <c>.reg</c> снимка старого формата: у него нет состояния для сравнения.</summary>
     public List<string> LegacyRegFiles { get; } = [];
 
+    /// <summary>Обратные шаги: то, что не вернуть сравнением (DNS, hosts, адаптеры, устройства, Wi-Fi).</summary>
+    public List<UndoStep> Undo { get; } = [];
+
+    /// <summary>Папка снимка — в ней файлы обратных шагов.</summary>
+    public string? SnapshotDirectory { get; set; }
+
     /// <summary>Что откат видит, но не трогает, — человеческими словами.</summary>
     public List<string> Notes { get; } = [];
 
-    public int Count => Registry.Count + Services.Count + Tasks.Count + LegacyRegFiles.Count;
+    public int Count => Registry.Count + Services.Count + Tasks.Count + LegacyRegFiles.Count + Undo.Count;
 
     public bool IsEmpty => Count == 0;
 
@@ -61,7 +67,8 @@ internal sealed class RollbackPlan
         Registry.Select(RollbackText.Describe)
             .Concat(LegacyRegFiles.Select(file => Loc.Format("S.Rollback.Legacy.Import", Path.GetFileName(file))))
             .Concat(Services.SelectMany(RollbackText.Describe))
-            .Concat(Tasks.Select(RollbackText.Describe));
+            .Concat(Tasks.Select(RollbackText.Describe))
+            .Concat(Undo.Select(UndoCommands.Describe));
 }
 
 /// <summary>Правила отката служб и задач. Без Windows — проверяются тестами напрямую.</summary>

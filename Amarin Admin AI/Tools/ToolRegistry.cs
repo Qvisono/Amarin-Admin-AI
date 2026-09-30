@@ -31,7 +31,14 @@ public sealed class ToolRegistry
         "software_inventory",
         "firewall_rules",
         "windows_features",
-        "local_users"
+        "local_users",
+        "startup_programs",
+        "windows_update",
+        "dns_config",
+        "devices",
+        "security_status",
+        "remote_access",
+        "write_clipboard"
     };
 
     private readonly Dictionary<string, ITool> _tools;

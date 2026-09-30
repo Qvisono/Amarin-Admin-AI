@@ -57,9 +57,8 @@ public sealed class SystemRepairTool : ITool
 
     private const int StatusDismSeconds = 300;
 
-    private static async Task<ToolResult> RunStatusSfc(CancellationToken cancellationToken)
-    {
-        var script = """
+    /// <summary>Чтение: хвост CBS.log и отложенные операции — ничего не запускает.</summary>
+    internal const string StatusSfcScript = """
             $log = "$env:windir\Logs\CBS\CBS.log"
             if (Test-Path $log) {
               $last = Get-Content $log -Tail 30 -ErrorAction SilentlyContinue
@@ -71,6 +70,6 @@ public sealed class SystemRepairTool : ITool
             "Pending.xml exists: $pending"
             """;
 
-        return await PowerShellHelper.RunAsync(script, 60, cancellationToken: cancellationToken);
-    }
+    private static Task<ToolResult> RunStatusSfc(CancellationToken cancellationToken) =>
+        PowerShellHelper.RunAsync(StatusSfcScript, 60, cancellationToken: cancellationToken);
 }

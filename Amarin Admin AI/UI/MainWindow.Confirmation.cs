@@ -117,6 +117,75 @@ namespace Amarin.UI
 
         private CancellationTokenSource? _confirmExplain;
         private ConfirmationRequest? _confirmExplainFor;
+        private CancellationTokenSource? _confirmWhatIf;
+
+        /// <summary>
+        /// Пробный прогон с -WhatIf и его итог над текстом команды.
+        /// </summary>
+        /// <remarks>
+        /// По образцу <see cref="ExplainConfirmationAsync"/>: свой токен, сверка «окно показывает
+        /// тот же вопрос», и кнопки не ждут. Прогона нет (внешняя программа в скрипте, у командлета
+        /// нет -WhatIf) — нет и блока: пустая рамка «здесь могло быть» только сбивает.
+        /// </remarks>
+        private async Task ProbeConfirmationAsync(ConfirmationRequest request)
+        {
+            CancelConfirmationWhatIf();
+            ConfirmationWhatIfHost.Content = null;
+            ConfirmationWhatIfHost.Visibility = Visibility.Collapsed;
+
+            var info = request.Info;
+            if (info.Arguments is not { } arguments || WhatIfProbe.ScriptFor(info.ToolName, arguments) is null)
+            {
+                return;
+            }
+
+            var cancellation = new CancellationTokenSource();
+            _confirmWhatIf = cancellation;
+            var body = new TextBlock { Text = Loc.Get("S.Confirm.WhatIfRunning"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
+            body.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
+            ConfirmationWhatIfHost.Content = BuildConfirmationExpander(Loc.Get("S.Confirm.WhatIf"), body, expanded: true);
+            ConfirmationWhatIfHost.Visibility = Visibility.Visible;
+
+            WhatIfOutcome? outcome;
+            try
+            {
+                outcome = await WhatIfProbe.RunAsync(info.ToolName, arguments, cancellation.Token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (cancellation.IsCancellationRequested || !ReferenceEquals(_confirmWhatIf, cancellation) ||
+                !ReferenceEquals(_shownConfirmation, request))
+            {
+                return;
+            }
+
+            if (outcome is not { Supported: true } shown)
+            {
+                ConfirmationWhatIfHost.Content = null;
+                ConfirmationWhatIfHost.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var code = CodeBlockView.Create(this, shown.Text, null);
+            ConfirmationWhatIfHost.Content = BuildConfirmationExpander(Loc.Get("S.Confirm.WhatIf"), code, expanded: true);
+        }
+
+        private void CancelConfirmationWhatIf()
+        {
+            try
+            {
+                _confirmWhatIf?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            _confirmWhatIf?.Dispose();
+            _confirmWhatIf = null;
+        }
 
         private void FillCodeHost(DangerousActionInfo info)
         {

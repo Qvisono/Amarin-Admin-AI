@@ -22,7 +22,7 @@ internal static class ToolCatalog
     public static IReadOnlyList<string> Agent { get; } =
     [
         "run_powershell", "registry", "windows_service", "filesystem", "system_info", "download_file",
-        "capture_screenshot", "read_clipboard", "analyze_folder", "scrape_url", "event_log", "network",
+        "capture_screenshot", "read_clipboard", "write_clipboard", "analyze_folder", "scrape_url", "event_log", "network",
         "scheduled_task", "wmi_query", "windows_process", "virtualization", "reliability", "windows_update",
         "security_status", "devices", "dns_config", "port_listener", "remote_access", "change_rollback",
         "performance", "startup_programs", "credentials", "system_repair", "restore_point", "disk_management",

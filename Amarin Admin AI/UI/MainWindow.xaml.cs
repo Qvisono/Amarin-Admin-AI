@@ -3463,6 +3463,7 @@ namespace Amarin.UI
                 _shownConfirmation = null;
                 ConfirmationAllowToggle.IsChecked = false;
                 CancelConfirmationExplain();
+                CancelConfirmationWhatIf();
                 ConfirmationOverlay.Visibility = Visibility.Collapsed;
                 Chat.IsHitTestVisible = true;
                 return;
@@ -3483,6 +3484,7 @@ namespace Amarin.UI
             ConfirmationBodyScroll.ScrollToTop();
 
             Detached.Run(ExplainConfirmationAsync(request), "confirmation_explain");
+            Detached.Run(ProbeConfirmationAsync(request), "confirmation_whatif");
             ConfirmationOverlay.Visibility = Visibility.Visible;
             Chat.IsHitTestVisible = false;
         }

@@ -17,8 +17,9 @@ public sealed class NetworkTool : ITool
 
     public string Name => "network";
     public string Description =>
-        "Network diagnostics: adapters, DNS, ping, connections, firewall rules. " +
-        "Mutating actions require user confirmation.";
+        "Network diagnostics and repair: adapters, DNS, ping, traceroute, connections, firewall rules, Wi-Fi " +
+        "profiles; flush DNS, turn the firewall or an adapter on/off, forget a Wi-Fi profile, reset Winsock or the " +
+        "IP stack (both need a reboot). Mutating actions require user confirmation.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -26,12 +27,28 @@ public sealed class NetworkTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["adapters", "dns", "ping", "connections", "firewall_rules", "flush_dns", "firewall_enable", "firewall_disable"],
+              "enum": [
+                "adapters", "dns", "ping", "traceroute", "connections", "firewall_rules", "wifi_profiles",
+                "flush_dns", "firewall_enable", "firewall_disable", "adapter_enable", "adapter_disable",
+                "wifi_forget", "reset_winsock", "reset_ip"
+              ],
               "description": "Network operation"
             },
             "host": {
               "type": "string",
-              "description": "Host for ping"
+              "description": "Host name or IP for ping/traceroute"
+            },
+            "max_hops": {
+              "type": "integer",
+              "description": "traceroute: max hops, 1-30 (default 20)"
+            },
+            "adapter": {
+              "type": "string",
+              "description": "Adapter name (as in adapters) for adapter_enable/adapter_disable"
+            },
+            "wifi_profile": {
+              "type": "string",
+              "description": "Wi-Fi profile name (as in wifi_profiles) for wifi_forget"
             },
             "profile": {
               "type": "string",
@@ -58,6 +75,14 @@ public sealed class NetworkTool : ITool
                 "adapters" => GetAdapters(),
                 "dns" => GetDns(),
                 "ping" => await PingHostAsync(arguments, cancellationToken),
+                "traceroute" => await TracerouteAsync(arguments, cancellationToken),
+                "wifi_profiles" => await NativeProcess.RunRawAsync(
+                    "netsh", NetworkCommands.WifiListArguments, CommandTimeoutSeconds, cancellationToken),
+                "wifi_forget" => await ForgetWifiAsync(arguments, cancellationToken),
+                "adapter_enable" => await SetAdapterAsync(arguments, enable: true, cancellationToken),
+                "adapter_disable" => await SetAdapterAsync(arguments, enable: false, cancellationToken),
+                "reset_winsock" => WithRebootNote(await RunAsync("netsh", NetworkCommands.WinsockReset, cancellationToken)),
+                "reset_ip" => WithRebootNote(await RunAsync("netsh", NetworkCommands.IpReset, cancellationToken)),
                 "connections" => GetConnections(),
                 "firewall_rules" => await RunAsync(
                     "netsh", ["advfirewall", "firewall", "show", "rule", "name=all"], cancellationToken),
@@ -236,6 +261,56 @@ public sealed class NetworkTool : ITool
 
         return RunAsync("netsh", NetworkCommands.FirewallState(netshProfile, enabled), cancellationToken);
     }
+
+    private static async Task<ToolResult> TracerouteAsync(JsonElement arguments, CancellationToken cancellationToken)
+    {
+        var host = StringArg(arguments, "host");
+        if (host is null || !DnsConfigTool.IsHostName(host))
+        {
+            return ToolResult.Fail("traceroute needs host: a host name or an IP address. Do not retry with the same value.");
+        }
+
+        var hops = arguments.TryGetProperty("max_hops", out var hopsProp) && hopsProp.TryGetInt32(out var value)
+            ? value
+            : 20;
+        return await NativeProcess.RunAsync("tracert.exe", NetworkCommands.TracertArguments(host, hops),
+            NetworkCommands.TracertTimeoutSeconds(hops), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<ToolResult> ForgetWifiAsync(JsonElement arguments, CancellationToken cancellationToken)
+    {
+        var profile = StringArg(arguments, "wifi_profile");
+        if (!NetworkCommands.IsWifiProfileName(profile))
+        {
+            return ToolResult.Fail(
+                "wifi_profile is missing or contains quotes. Use the exact name from wifi_profiles. Do not retry with the same value.");
+        }
+
+        return await NativeProcess.RunRawAsync("netsh", NetworkCommands.WifiDeleteArguments(profile!),
+            CommandTimeoutSeconds, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<ToolResult> SetAdapterAsync(JsonElement arguments, bool enable, CancellationToken cancellationToken)
+    {
+        var adapter = StringArg(arguments, "adapter");
+        if (!UndoCommands.IsInterfaceAlias(adapter))
+        {
+            return ToolResult.Fail(
+                "adapter is missing or contains wildcards. Use the exact adapter name from adapters. Do not retry with the same value.");
+        }
+
+        return await PowerShellHelper.RunAsync(NetworkCommands.AdapterScript(adapter!, enable), 120, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Сброс стека вступает в силу только после перезагрузки — модель должна это передать.</summary>
+    private static ToolResult WithRebootNote(ToolResult result) =>
+        result.Success ? ToolResult.Ok(result.Output + "\n" + Loc.Get("S.Tool.Network.RebootNeeded")) : result;
+
+    private static string? StringArg(JsonElement arguments, string name) =>
+        arguments.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()?.Trim()
+            : null;
 
     private static Task<ToolResult> RunAsync(
         string file,

@@ -33,7 +33,12 @@ internal static class ChangeRollbackOperations
         @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
         @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
         @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
-        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
+        // Отметки «Диспетчера задач» для 32-битных Run и папок автозагрузки: их правит
+        // startup_programs disable/enable, и без них откат не вернул бы выключенный ярлык.
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run32",
+        @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder",
+        @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder"
     ];
 
     private static readonly JsonSerializerOptions Json = new() { MaxDepth = AppJson.MaxDepth };
@@ -186,10 +191,95 @@ internal static class ChangeRollbackOperations
 
                     break;
 
-                case "windows_service" when action is "start" or "stop" or "restart":
-                    if (StringArg(arguments, "name") is { Length: > 0 } service)
+                // Имя службы у инструмента — service_name. До 1.28.0 здесь читалось «name», поля
+                // не находилось никогда, и откат не знал, какие службы трогал запрос.
+                case "windows_service" when action is "start" or "stop" or "restart" or "set_start_type":
+                    if ((StringArg(arguments, "service_name") ?? StringArg(arguments, "name")) is { Length: > 0 } service)
                     {
                         UpdateSession(dir, record => record.TouchedServices.Add(service.Trim()));
+                        if (action == "set_start_type")
+                        {
+                            // Start и DelayedAutostart — значения ключа службы; «с задержкой»
+                            // типом запуска службы не видно, и вернуть его можно только так.
+                            ExtendRegistry(dir, ServiceCommands.RegistryKey(service.Trim()));
+                        }
+                    }
+
+                    break;
+
+                case "windows_update" when action is "pause" or "resume":
+                    ExtendRegistry(dir, UpdateCommands.SettingsKey);
+                    break;
+
+                case "remote_access" when action is "rdp_enable" or "rdp_disable":
+                    ExtendRegistry(dir, SecurityCommands.TerminalServerKey);
+                    if (CaptureFirewallRules() is { } rules)
+                    {
+                        AddUndo(dir, rules);
+                    }
+
+                    break;
+
+                case "dns_config" when action is "set_dns" or "reset_dns":
+                    if (StringArg(arguments, "adapter") is { } alias && UndoCommands.IsInterfaceAlias(alias) &&
+                        CaptureDns(alias.Trim()) is { } dns)
+                    {
+                        AddUndo(dir, dns);
+                    }
+
+                    break;
+
+                case "dns_config" when action is "hosts_add" or "hosts_remove":
+                    if (!HasUndo(dir, UndoKind.HostsFile, "") && File.Exists(NetworkCommands.HostsPath))
+                    {
+                        var copy = "hosts." + Guid.NewGuid().ToString("N")[..8] + ".bak";
+                        File.Copy(NetworkCommands.HostsPath, Path.Combine(dir, copy));
+                        AddUndo(dir, new UndoStep { Kind = UndoKind.HostsFile, File = copy });
+                    }
+
+                    break;
+
+                case "network" when action is "adapter_enable" or "adapter_disable":
+                    if (StringArg(arguments, "adapter") is { } adapter && UndoCommands.IsInterfaceAlias(adapter))
+                    {
+                        var state = PowerShellHelper.Run(NetworkCommands.AdapterStateScript(adapter.Trim()), 60);
+                        if (state.Success)
+                        {
+                            AddUndo(dir, new UndoStep
+                            {
+                                Kind = UndoKind.Adapter,
+                                Target = adapter.Trim(),
+                                Enabled = PowerShellHelper.ExtractStdout(state.Output)
+                                    .Contains("Up", StringComparison.OrdinalIgnoreCase)
+                            });
+                        }
+                    }
+
+                    break;
+
+                case "network" when action == "wifi_forget":
+                    if (StringArg(arguments, "wifi_profile") is { } wifi && NetworkCommands.IsWifiProfileName(wifi) &&
+                        ExportWifi(dir, wifi.Trim()) is { } xml)
+                    {
+                        AddUndo(dir, new UndoStep { Kind = UndoKind.WifiProfile, Target = wifi.Trim(), File = xml });
+                    }
+
+                    break;
+
+                case "devices" when action is "enable" or "disable":
+                    if (StringArg(arguments, "instance_id") is { } device && DeviceCommands.IsInstanceId(device))
+                    {
+                        var state = PowerShellHelper.Run(DeviceCommands.StateScript(device.Trim()), 60);
+                        if (state.Success)
+                        {
+                            AddUndo(dir, new UndoStep
+                            {
+                                Kind = UndoKind.Device,
+                                Target = device.Trim(),
+                                Enabled = !PowerShellHelper.ExtractStdout(state.Output)
+                                    .Contains("disabled", StringComparison.OrdinalIgnoreCase)
+                            });
+                        }
                     }
 
                     break;
@@ -200,6 +290,137 @@ internal static class ChangeRollbackOperations
             // Снимок останется без этого раздела — хуже, но не повод не выполнять вызов:
             // человек его уже разрешил.
             PerfLog.Write($"undo_extend_failed {ex.Message}");
+        }
+    }
+
+    private static void ExtendRegistry(string dir, string key)
+    {
+        if (!RegistryPath.TryParse(key, out var path, requireSubKey: false) || path.SubKey.Length == 0)
+        {
+            return;
+        }
+
+        var capture = RegistryStateIo.CaptureForWrite(path);
+        lock (Gate)
+        {
+            var set = new RegistrySnapshotSet(LoadRegistry(dir));
+            if (set.Add(capture))
+            {
+                SaveRegistry(dir, set);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Дописывает обратный шаг. Второй шаг про ту же цель не пишется: прежнее состояние — у
+    /// первого, снятого до первой правки за запрос.
+    /// </summary>
+    private static void AddUndo(string dir, UndoStep step) =>
+        UpdateSession(dir, record =>
+        {
+            if (!record.UndoSteps.Any(existing => existing.SameTargetAs(step)))
+            {
+                record.UndoSteps.Add(step);
+            }
+        });
+
+    private static bool HasUndo(string dir, UndoKind kind, string target) =>
+        LoadSession(dir).UndoSteps.Any(step => step.Kind == kind &&
+                                               string.Equals(step.Target, target, StringComparison.OrdinalIgnoreCase));
+
+    private static UndoStep? CaptureDns(string alias)
+    {
+        var result = PowerShellHelper.Run(NetworkCommands.DnsStateScript(alias), 60);
+        if (!result.Success)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(PowerShellHelper.ExtractStdout(result.Output));
+            var servers = document.RootElement.TryGetProperty("Static", out var list) && list.ValueKind == JsonValueKind.Array
+                ? list.EnumerateArray().Select(item => item.GetString() ?? "").Where(UndoCommands.IsIpAddress).ToList()
+                : [];
+            return new UndoStep { Kind = UndoKind.Dns, Target = alias, Values = servers, Enabled = servers.Count == 0 };
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static UndoStep? CaptureFirewallRules()
+    {
+        var result = PowerShellHelper.Run(SecurityCommands.RdpFirewallStateScript, 60);
+        if (!result.Success)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(PowerShellHelper.ExtractStdout(result.Output));
+            if (!document.RootElement.TryGetProperty("Rules", out var rules) || rules.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            var step = new UndoStep { Kind = UndoKind.FirewallRules, Target = SecurityCommands.RdpFirewallGroup };
+            foreach (var rule in rules.EnumerateArray())
+            {
+                if (rule.TryGetProperty("Name", out var name) && name.GetString() is { Length: > 0 } text)
+                {
+                    step.Values.Add(text);
+                    step.States.Add(rule.TryGetProperty("Enabled", out var enabled) && enabled.ValueKind == JsonValueKind.True);
+                }
+            }
+
+            return step.Values.Count > 0 ? step : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Экспорт профиля Wi-Fi в папку снимка. Ключ остаётся зашифрованным.</summary>
+    /// <remarks>
+    /// Без <c>key=clear</c>: пароль сети в открытом виде на диске не нужен — экспорт с защищённым
+    /// ключом ставится обратно на этой же машине.
+    /// </remarks>
+    private static string? ExportWifi(string dir, string profile)
+    {
+        var temp = Path.Combine(dir, "wifi-" + Guid.NewGuid().ToString("N")[..8]);
+        if (!NetworkCommands.IsNetshPath(temp))
+        {
+            return null;
+        }
+
+        Directory.CreateDirectory(temp);
+        try
+        {
+            var result = NativeProcess.RunRawAsync("netsh", NetworkCommands.WifiExportArguments(profile, temp), 60)
+                .GetAwaiter().GetResult();
+            var xml = result.Success ? Directory.GetFiles(temp, "*.xml").FirstOrDefault() : null;
+            if (xml is null)
+            {
+                return null;
+            }
+
+            var name = Path.GetFileName(temp) + ".xml";
+            File.Move(xml, Path.Combine(dir, name));
+            return name;
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
         }
     }
 
@@ -385,6 +606,10 @@ internal static class ChangeRollbackOperations
         plan.Services.AddRange(services);
         plan.Tasks.AddRange(tasks);
 
+        // Обратные шаги — в обратном порядке: последняя правка отменяется первой.
+        plan.Undo.AddRange(Enumerable.Reverse(session.UndoSteps));
+        plan.SnapshotDirectory = dir;
+
         // Снимок старого формата: состояния реестра нет, есть только экспорт. Он вернётся
         // импортом, как раньше, — кроме дерева служб, которое затёрло бы обновлённые драйверы.
         var regDir = Path.Combine(dir, "registry");
@@ -432,6 +657,11 @@ internal static class ChangeRollbackOperations
         foreach (var change in plan.Tasks)
         {
             outcomes.Add(ApplyTask(change));
+        }
+
+        foreach (var step in plan.Undo)
+        {
+            outcomes.Add(ApplyUndo(step, plan.SnapshotDirectory));
         }
 
         return outcomes;
@@ -484,6 +714,56 @@ internal static class ChangeRollbackOperations
         }
 
         yield return new RollbackOutcome(runLine, failure is null, failure);
+    }
+
+    /// <summary>
+    /// Обратный шаг. Команда собирается из состояния, сохранённого в снимке, и проверяется здесь
+    /// же — снимок лежит в папке, куда пишет пользователь, и доверять ему как коду нельзя.
+    /// </summary>
+    private static RollbackOutcome ApplyUndo(UndoStep step, string? snapshotDir)
+    {
+        var line = UndoCommands.Describe(step);
+        if (string.IsNullOrEmpty(snapshotDir))
+        {
+            return new RollbackOutcome(line, false, Loc.Get("S.Rollback.Undo.Invalid"));
+        }
+
+        try
+        {
+            switch (step.Kind)
+            {
+                case UndoKind.HostsFile:
+                    if (UndoCommands.SnapshotFile(step, snapshotDir) is not { } copy)
+                    {
+                        return new RollbackOutcome(line, false, Loc.Get("S.Rollback.Undo.Invalid"));
+                    }
+
+                    File.Copy(copy, NetworkCommands.HostsPath, overwrite: true);
+                    return new RollbackOutcome(line, true, null);
+
+                case UndoKind.WifiProfile:
+                    if (UndoCommands.WifiRestoreArguments(step, snapshotDir) is not { } netsh)
+                    {
+                        return new RollbackOutcome(line, false, Loc.Get("S.Rollback.Undo.Invalid"));
+                    }
+
+                    var added = NativeProcess.RunRawAsync("netsh", netsh, 60).GetAwaiter().GetResult();
+                    return new RollbackOutcome(line, added.Success, added.Success ? null : Truncate(added.Output, 200));
+
+                default:
+                    if (UndoCommands.Script(step, snapshotDir) is not { } script)
+                    {
+                        return new RollbackOutcome(line, false, Loc.Get("S.Rollback.Undo.Invalid"));
+                    }
+
+                    var result = PowerShellHelper.Run(script, 120);
+                    return new RollbackOutcome(line, result.Success, result.Success ? null : Truncate(result.Output, 200));
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return new RollbackOutcome(line, false, ex.Message);
+        }
     }
 
     private static RollbackOutcome ApplyTask(TaskChange change)
@@ -731,6 +1011,9 @@ internal sealed class SnapshotSessionRecord
 
     /// <summary>Копии XML задач до удаления или перезаписи: полное имя → файл в папке снимка.</summary>
     public Dictionary<string, string> TaskCopies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Обратные шаги по порядку записи: DNS, hosts, адаптеры, устройства, правила, Wi-Fi.</summary>
+    public List<UndoStep> UndoSteps { get; set; } = [];
 }
 
 internal sealed record SnapshotResult(bool Success, string SnapshotId, string Message);

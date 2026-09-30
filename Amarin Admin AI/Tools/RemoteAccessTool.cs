@@ -8,7 +8,8 @@ public sealed class RemoteAccessTool : ITool
 {
     public string Name => "remote_access";
     public string Description =>
-        "RDP settings, VPN connections, Hyper-V virtual switches and VM network info. Read-only.";
+        "RDP settings, VPN connections, Hyper-V virtual switches and VM network info; turn Remote Desktop on " +
+        "or off together with its firewall rules (rdp_enable/rdp_disable require user confirmation).";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -18,9 +19,9 @@ public sealed class RemoteAccessTool : ITool
               "type": "string",
               "enum": [
                 "rdp_status", "rdp_sessions", "vpn_connections",
-                "hyperv_switches", "hyperv_nics", "listening_rdp"
+                "hyperv_switches", "hyperv_nics", "listening_rdp", "rdp_enable", "rdp_disable"
               ],
-              "description": "Remote access diagnostic action"
+              "description": "Remote access action"
             }
           },
           "required": ["action"]
@@ -34,9 +35,11 @@ public sealed class RemoteAccessTool : ITool
             return Task.FromResult(ToolResult.Fail("Missing required parameter: action"));
         }
 
-        var action = actionProp.GetString()?.ToLowerInvariant();
+        var action = actionProp.GetString()?.Trim().ToLowerInvariant();
         var script = action switch
         {
+            "rdp_enable" => SecurityCommands.RdpScript(enable: true),
+            "rdp_disable" => SecurityCommands.RdpScript(enable: false),
             "rdp_status" => RdpStatusScript(),
             "rdp_sessions" => RdpSessionsScript(),
             "vpn_connections" => VpnScript(),

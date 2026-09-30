@@ -26,6 +26,71 @@ internal static class ClipboardNative
     public static bool HasFiles() => IsFormatAvailable(CfHdrop);
     public static bool HasImage() => IsFormatAvailable(CfDib);
 
+    /// <summary>
+    /// Кладёт текст в буфер обмена. Буфер мог держать другой процесс — тогда несколько попыток.
+    /// </summary>
+    /// <remarks>
+    /// Через Win32, а не <c>System.Windows.Clipboard</c>: инструменты работают на рабочих потоках,
+    /// а WPF-буфер требует STA. Память после удачного <c>SetClipboardData</c> принадлежит системе
+    /// и освобождаться нами не должна.
+    /// </remarks>
+    public static bool TrySetText(string text)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            if (OpenClipboard(IntPtr.Zero))
+            {
+                try
+                {
+                    if (!EmptyClipboard())
+                    {
+                        return false;
+                    }
+
+                    var bytes = (text.Length + 1) * 2;
+                    var memory = GlobalAlloc(GmemMoveable, (nuint)bytes);
+                    if (memory == IntPtr.Zero)
+                    {
+                        return false;
+                    }
+
+                    var pointer = GlobalLock(memory);
+                    if (pointer == IntPtr.Zero)
+                    {
+                        GlobalFree(memory);
+                        return false;
+                    }
+
+                    try
+                    {
+                        Marshal.Copy(text.ToCharArray(), 0, pointer, text.Length);
+                        Marshal.WriteInt16(pointer, text.Length * 2, 0);
+                    }
+                    finally
+                    {
+                        GlobalUnlock(memory);
+                    }
+
+                    if (SetClipboardData(CfUnicodeText, memory) == IntPtr.Zero)
+                    {
+                        GlobalFree(memory);
+                        return false;
+                    }
+
+                    return true;
+                }
+                finally
+                {
+                    CloseClipboard();
+                }
+            }
+
+            Thread.Sleep(30 * (attempt + 1));
+        }
+
+        return false;
+    }
+
     public static string? TryGetText()
     {
         if (!OpenClipboard(IntPtr.Zero))
@@ -339,6 +404,20 @@ internal static class ClipboardNative
 
     [DllImport("user32.dll")]
     private static extern bool CloseClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern bool EmptyClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+
+    private const uint GmemMoveable = 0x0002;
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalAlloc(uint uFlags, nuint dwBytes);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GlobalFree(IntPtr hMem);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetClipboardData(uint uFormat);

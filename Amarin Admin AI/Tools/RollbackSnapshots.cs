@@ -88,7 +88,7 @@ internal static class RollbackSnapshots
         return new SnapshotEntry(id, created, label, machine, dir);
     }
 
-    private static DateTime ParseId(string id) =>
+    internal static DateTime ParseId(string id) =>
         DateTime.TryParseExact(id, "yyyyMMdd_HHmmss", CultureInfo.InvariantCulture,
             DateTimeStyles.None, out var parsed)
             ? parsed

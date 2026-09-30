@@ -121,7 +121,11 @@ internal sealed class AgentHost : IAgentHost
             using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
             var venice = new VeniceClient(http, options);
             var tools = AgentTools.Create(
-                venice, _downloadHttp, options.Download, () => ModelSlots.WebSearch(_settings()));
+                venice,
+                _downloadHttp,
+                options.Download,
+                () => ModelSlots.WebSearch(_settings()),
+                () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey));
 
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId);

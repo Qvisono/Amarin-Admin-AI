@@ -363,6 +363,9 @@
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Chat</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">The existing file {0} will be overwritten.</system:String>
     <system:String x:Key="S.Confirm.ScriptChanges" xml:space="preserve">Changes the system: {0}</system:String>
+    <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">What will change - a dry run</system:String>
+    <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">The dry run found nothing to change: nothing currently matches the command's conditions.</system:String>
+    <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Dry run with -WhatIf…</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">application domain</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">cancellation</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">startup</system:String>
@@ -400,14 +403,27 @@
     <system:String x:Key="S.Guard.FirewallSnapshot" xml:space="preserve">A session snapshot is taken first (services/tasks/registry; the rule itself is best undone by hand with enable/disable/delete).</system:String>
     <system:String x:Key="S.Guard.NoCategories" xml:space="preserve">(no categories given)</system:String>
     <system:String x:Key="S.Guard.NoSnapshotUndo" xml:space="preserve">A session snapshot cannot undo this.</system:String>
+    <system:String x:Key="S.Guard.Note.AdapterOff" xml:space="preserve">If this is the adapter the internet goes through, the connection drops - and the program cannot reach the model until it is turned back on.</system:String>
+    <system:String x:Key="S.Guard.Note.DeviceProtected" xml:space="preserve">Disks, keyboards, mice and system devices are never disabled.</system:String>
+    <system:String x:Key="S.Guard.Note.DriverRollback" xml:space="preserve">The driver that was installed before the last update comes back. A snapshot cannot undo this - create a restore point first.</system:String>
+    <system:String x:Key="S.Guard.Note.RdpOpen" xml:space="preserve">The computer will accept network sign-ins with an account that has a password.</system:String>
+    <system:String x:Key="S.Guard.Note.RebootNeeded" xml:space="preserve">Takes effect after a reboot - the program never reboots by itself.</system:String>
+    <system:String x:Key="S.Guard.Note.UpdateNoReboot" xml:space="preserve">The program does not reboot: if a reboot is needed, you will be told.</system:String>
     <system:String x:Key="S.Guard.RefusedAnyway" xml:space="preserve">The download will be refused even if you confirm.</system:String>
+    <system:String x:Key="S.Guard.Sum.AdapterOff" xml:space="preserve">Turn the network adapter off</system:String>
+    <system:String x:Key="S.Guard.Sum.AdapterOn" xml:space="preserve">Turn the network adapter on</system:String>
+    <system:String x:Key="S.Guard.Sum.AllPending" xml:space="preserve">all pending</system:String>
     <system:String x:Key="S.Guard.Sum.AtPath" xml:space="preserve">at</system:String>
     <system:String x:Key="S.Guard.Sum.Chkdsk" xml:space="preserve">chkdsk / volume repair</system:String>
     <system:String x:Key="S.Guard.Sum.Cleanup" xml:space="preserve">Disk cleanup (fixed categories)</system:String>
+    <system:String x:Key="S.Guard.Sum.Clipboard" xml:space="preserve">Put text on the clipboard</system:String>
+    <system:String x:Key="S.Guard.Sum.DeviceOff" xml:space="preserve">Disable the device</system:String>
+    <system:String x:Key="S.Guard.Sum.DeviceOn" xml:space="preserve">Enable the device</system:String>
     <system:String x:Key="S.Guard.Sum.DiskSpace" xml:space="preserve">Disk space ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Disks" xml:space="preserve">Disks ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Dism" xml:space="preserve">Repair the Windows image (DISM)</system:String>
     <system:String x:Key="S.Guard.Sum.Download" xml:space="preserve">Download a file</system:String>
+    <system:String x:Key="S.Guard.Sum.DriverRollback" xml:space="preserve">Roll back the driver</system:String>
     <system:String x:Key="S.Guard.Sum.FeatureOff" xml:space="preserve">Disable optional feature</system:String>
     <system:String x:Key="S.Guard.Sum.FeatureOn" xml:space="preserve">Enable optional feature</system:String>
     <system:String x:Key="S.Guard.Sum.Firewall" xml:space="preserve">Firewall ({0})</system:String>
@@ -416,29 +432,47 @@
     <system:String x:Key="S.Guard.Sum.FlushDns" xml:space="preserve">Flush the DNS cache</system:String>
     <system:String x:Key="S.Guard.Sum.GroupAdd" xml:space="preserve">Add to group</system:String>
     <system:String x:Key="S.Guard.Sum.GroupRemove" xml:space="preserve">Remove from group</system:String>
+    <system:String x:Key="S.Guard.Sum.HostsAdd" xml:space="preserve">Add to hosts</system:String>
+    <system:String x:Key="S.Guard.Sum.HostsRemove" xml:space="preserve">Remove from hosts</system:String>
     <system:String x:Key="S.Guard.Sum.Install" xml:space="preserve">Install package</system:String>
     <system:String x:Key="S.Guard.Sum.KillProcess" xml:space="preserve">End process</system:String>
     <system:String x:Key="S.Guard.Sum.Network" xml:space="preserve">Network change ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Operation via {0}</system:String>
     <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Run PowerShell</system:String>
+    <system:String x:Key="S.Guard.Sum.QuickScan" xml:space="preserve">Defender quick scan</system:String>
+    <system:String x:Key="S.Guard.Sum.RdpOff" xml:space="preserve">Turn Remote Desktop off</system:String>
+    <system:String x:Key="S.Guard.Sum.RdpOn" xml:space="preserve">Turn Remote Desktop on</system:String>
     <system:String x:Key="S.Guard.Sum.Registry" xml:space="preserve">Registry change ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Repair" xml:space="preserve">System repair ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetDns" xml:space="preserve">Return DNS to DHCP</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetIp" xml:space="preserve">Reset the TCP/IP stack</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetWinsock" xml:space="preserve">Reset Winsock</system:String>
     <system:String x:Key="S.Guard.Sum.Rollback" xml:space="preserve">Restore the system from a snapshot</system:String>
     <system:String x:Key="S.Guard.Sum.RuleCreate" xml:space="preserve">Create firewall rule</system:String>
     <system:String x:Key="S.Guard.Sum.RuleDelete" xml:space="preserve">Delete firewall rule</system:String>
     <system:String x:Key="S.Guard.Sum.RuleOff" xml:space="preserve">Disable firewall rule</system:String>
     <system:String x:Key="S.Guard.Sum.RuleOn" xml:space="preserve">Enable firewall rule</system:String>
     <system:String x:Key="S.Guard.Sum.Service" xml:space="preserve">Service control</system:String>
+    <system:String x:Key="S.Guard.Sum.SetDns" xml:space="preserve">Set DNS servers</system:String>
     <system:String x:Key="S.Guard.Sum.Sfc" xml:space="preserve">Run the system file checker (SFC)</system:String>
+    <system:String x:Key="S.Guard.Sum.Signatures" xml:space="preserve">Update Defender signatures</system:String>
     <system:String x:Key="S.Guard.Sum.Software" xml:space="preserve">Software ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.StartupOff" xml:space="preserve">Disable at startup</system:String>
+    <system:String x:Key="S.Guard.Sum.StartupOn" xml:space="preserve">Enable at startup</system:String>
     <system:String x:Key="S.Guard.Sum.Task" xml:space="preserve">Scheduled task change</system:String>
     <system:String x:Key="S.Guard.Sum.Uninstall" xml:space="preserve">Uninstall package</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateHide" xml:space="preserve">Hide updates</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateInstall" xml:space="preserve">Install Windows updates</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdatePause" xml:space="preserve">Pause updates for {0} days</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateResume" xml:space="preserve">Resume updates</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateUnhide" xml:space="preserve">Unhide updates</system:String>
     <system:String x:Key="S.Guard.Sum.Upgrade" xml:space="preserve">Upgrade package</system:String>
     <system:String x:Key="S.Guard.Sum.UpgradeAll" xml:space="preserve">Upgrade all packages (winget upgrade --all)</system:String>
     <system:String x:Key="S.Guard.Sum.UserOff" xml:space="preserve">Disable account</system:String>
     <system:String x:Key="S.Guard.Sum.UserOn" xml:space="preserve">Enable account</system:String>
     <system:String x:Key="S.Guard.Sum.Users" xml:space="preserve">Local users ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Virtualization" xml:space="preserve">Virtualization</system:String>
+    <system:String x:Key="S.Guard.Sum.WifiForget" xml:space="preserve">Forget the Wi-Fi network</system:String>
     <system:String x:Key="S.Guard.Sum.WriteFile" xml:space="preserve">Write to file</system:String>
     <system:String x:Key="S.Guard.Tool" xml:space="preserve">Tool: {0}</system:String>
     <system:String x:Key="S.Guard.UsersChange" xml:space="preserve">Local account / group membership change.</system:String>
@@ -929,6 +963,16 @@
     <system:String x:Key="S.Rollback.Task.Disable" xml:space="preserve">Task {0}: disable</system:String>
     <system:String x:Key="S.Rollback.Task.Enable" xml:space="preserve">Task {0}: enable</system:String>
     <system:String x:Key="S.Rollback.Task.Recreate" xml:space="preserve">Task {0}: restore from the saved copy</system:String>
+    <system:String x:Key="S.Rollback.Undo.AdapterOff" xml:space="preserve">Turn adapter "{0}" off</system:String>
+    <system:String x:Key="S.Rollback.Undo.AdapterOn" xml:space="preserve">Turn adapter "{0}" on</system:String>
+    <system:String x:Key="S.Rollback.Undo.DeviceOff" xml:space="preserve">Disable device {0}</system:String>
+    <system:String x:Key="S.Rollback.Undo.DeviceOn" xml:space="preserve">Enable device {0}</system:String>
+    <system:String x:Key="S.Rollback.Undo.Dns" xml:space="preserve">Restore DNS of "{0}": {1}</system:String>
+    <system:String x:Key="S.Rollback.Undo.DnsDhcp" xml:space="preserve">Return DNS of "{0}" to DHCP</system:String>
+    <system:String x:Key="S.Rollback.Undo.Firewall" xml:space="preserve">Restore the state of firewall rules ({0})</system:String>
+    <system:String x:Key="S.Rollback.Undo.Hosts" xml:space="preserve">Restore the hosts file</system:String>
+    <system:String x:Key="S.Rollback.Undo.Invalid" xml:space="preserve">the snapshot step is damaged or incomplete - skipped</system:String>
+    <system:String x:Key="S.Rollback.Undo.Wifi" xml:space="preserve">Restore Wi-Fi profile "{0}"</system:String>
     <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">OpenRouter picks the engine</system:String>
     <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">The model's own</system:String>
     <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} per request at OpenRouter's published price, which can change</system:String>
@@ -1041,8 +1085,24 @@
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Wait for the current reply to finish.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
+    <system:String x:Key="S.Tool.Clipboard.Busy" xml:space="preserve">The clipboard is held by another program. Try again a little later.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.Secret" xml:space="preserve">Refused: the text looks like a secret ({0}). Secrets are never put on the clipboard. Do not retry.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.TooLong" xml:space="preserve">The text is too long for the clipboard (more than {0} characters). Save it to a file instead.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.Written" xml:space="preserve">The text ({0} characters) is on the clipboard.</system:String>
+    <system:String x:Key="S.Tool.Devices.NotFound" xml:space="preserve">Device {0} was not found. Take the exact InstanceId from pnp_devices.</system:String>
+    <system:String x:Key="S.Tool.Devices.RollbackFailed" xml:space="preserve">Windows could not roll back the driver (code {0}): this device probably has no previous driver version. Do not retry.</system:String>
+    <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">The driver of {0} was rolled back to the previous version.</system:String>
+    <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">The driver of {0} was rolled back to the previous version. A reboot is needed for it to take effect - tell the user, do not reboot yourself.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Could not start {0}.</system:String>
+    <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Administrator rights are needed: restart the program as administrator and try again. Do not retry with the same rights.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Unknown firewall profile "{0}". Allowed: domain, private, public, all. Do not retry with the same value.</system:String>
+    <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">The change takes effect only after a reboot. Do not reboot yourself - tell the user.</system:String>
+    <system:String x:Key="S.Tool.Search.Nothing" xml:space="preserve">Nothing found.</system:String>
+    <system:String x:Key="S.Tool.Search.Truncated" xml:space="preserve">… only the first {0} are shown; narrow the mask, folder or dates.</system:String>
+    <system:String x:Key="S.Tool.Startup.Disabled" xml:space="preserve">Startup item "{0}" ({1}) disabled. The entry itself is kept - it can be enabled again with this tool or in Task Manager.</system:String>
+    <system:String x:Key="S.Tool.Startup.Empty" xml:space="preserve">No startup items were found.</system:String>
+    <system:String x:Key="S.Tool.Startup.Enabled" xml:space="preserve">Startup item "{0}" ({1}) enabled.</system:String>
+    <system:String x:Key="S.Tool.Startup.NotFound" xml:space="preserve">There is no item "{0}" in {1}. Take the name and location from the status action.</system:String>
     <system:String x:Key="S.Tool.Virt.BadContainerName" xml:space="preserve">The container name is missing or does not look like a docker name (letters, digits, _ . -). Use a name or ID from list_docker_containers.</system:String>
     <system:String x:Key="S.Tool.Virt.BadVmName" xml:space="preserve">The virtual machine name is missing or contains characters that are not allowed (* ? [ ] ` and control characters). Use the exact name from list_hyperv_vms.</system:String>
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Folder analysis</system:String>
@@ -1086,6 +1146,7 @@
     <system:String x:Key="S.Tool.windows_service" xml:space="preserve">Windows services</system:String>
     <system:String x:Key="S.Tool.windows_update" xml:space="preserve">Windows Update</system:String>
     <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">WMI queries</system:String>
+    <system:String x:Key="S.Tool.write_clipboard" xml:space="preserve">Write to clipboard</system:String>
     <system:String x:Key="S.Tool.write_file" xml:space="preserve">Writing files</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">YouTube transcripts</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>

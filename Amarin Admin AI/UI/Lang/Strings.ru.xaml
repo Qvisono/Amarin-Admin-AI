@@ -363,6 +363,9 @@
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">Будет перезаписан существующий файл {0}.</system:String>
     <system:String x:Key="S.Confirm.ScriptChanges" xml:space="preserve">Меняет систему: {0}</system:String>
+    <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">Что изменится — пробный прогон</system:String>
+    <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">Пробный прогон не нашёл, что менять: под условия команды сейчас ничего не подходит.</system:String>
+    <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Пробный прогон с -WhatIf…</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">домен приложения</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">отмена</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>
@@ -400,14 +403,27 @@
     <system:String x:Key="S.Guard.FirewallSnapshot" xml:space="preserve">Перед изменением создаётся снимок сессии (службы/задачи/реестр; правило лучше откатить вручную enable/disable/delete).</system:String>
     <system:String x:Key="S.Guard.NoCategories" xml:space="preserve">(categories не указаны)</system:String>
     <system:String x:Key="S.Guard.NoSnapshotUndo" xml:space="preserve">Откат снимком сессии не применим.</system:String>
+    <system:String x:Key="S.Guard.Note.AdapterOff" xml:space="preserve">Если это адаптер, через который идёт интернет, связь пропадёт — и ответить модели программа не сможет, пока адаптер не включат.</system:String>
+    <system:String x:Key="S.Guard.Note.DeviceProtected" xml:space="preserve">Диски, клавиатура, мышь и системные устройства не отключаются никогда.</system:String>
+    <system:String x:Key="S.Guard.Note.DriverRollback" xml:space="preserve">Возвращается драйвер, который стоял до последнего обновления. Отменить откат снимком нельзя — перед ним стоит создать точку восстановления.</system:String>
+    <system:String x:Key="S.Guard.Note.RdpOpen" xml:space="preserve">К компьютеру можно будет подключиться по сети под учётной записью с паролем.</system:String>
+    <system:String x:Key="S.Guard.Note.RebootNeeded" xml:space="preserve">Вступит в силу после перезагрузки — программа сама её не делает.</system:String>
+    <system:String x:Key="S.Guard.Note.UpdateNoReboot" xml:space="preserve">Перезагрузку программа не делает: если она понадобится, об этом будет сказано.</system:String>
     <system:String x:Key="S.Guard.RefusedAnyway" xml:space="preserve">Загрузка будет отклонена даже при подтверждении.</system:String>
+    <system:String x:Key="S.Guard.Sum.AdapterOff" xml:space="preserve">Выключить сетевой адаптер</system:String>
+    <system:String x:Key="S.Guard.Sum.AdapterOn" xml:space="preserve">Включить сетевой адаптер</system:String>
+    <system:String x:Key="S.Guard.Sum.AllPending" xml:space="preserve">все ожидающие</system:String>
     <system:String x:Key="S.Guard.Sum.AtPath" xml:space="preserve">по пути</system:String>
     <system:String x:Key="S.Guard.Sum.Chkdsk" xml:space="preserve">chkdsk / исправление тома</system:String>
     <system:String x:Key="S.Guard.Sum.Cleanup" xml:space="preserve">Очистка диска (фиксированные категории)</system:String>
+    <system:String x:Key="S.Guard.Sum.Clipboard" xml:space="preserve">Положить текст в буфер обмена</system:String>
+    <system:String x:Key="S.Guard.Sum.DeviceOff" xml:space="preserve">Отключить устройство</system:String>
+    <system:String x:Key="S.Guard.Sum.DeviceOn" xml:space="preserve">Включить устройство</system:String>
     <system:String x:Key="S.Guard.Sum.DiskSpace" xml:space="preserve">Место на диске ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Disks" xml:space="preserve">Диски ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Dism" xml:space="preserve">Восстановление образа Windows (DISM)</system:String>
     <system:String x:Key="S.Guard.Sum.Download" xml:space="preserve">Загрузка файла</system:String>
+    <system:String x:Key="S.Guard.Sum.DriverRollback" xml:space="preserve">Откатить драйвер</system:String>
     <system:String x:Key="S.Guard.Sum.FeatureOff" xml:space="preserve">Отключение optional feature</system:String>
     <system:String x:Key="S.Guard.Sum.FeatureOn" xml:space="preserve">Включение optional feature</system:String>
     <system:String x:Key="S.Guard.Sum.Firewall" xml:space="preserve">Брандмауэр ({0})</system:String>
@@ -416,29 +432,47 @@
     <system:String x:Key="S.Guard.Sum.FlushDns" xml:space="preserve">Сброс кэша DNS</system:String>
     <system:String x:Key="S.Guard.Sum.GroupAdd" xml:space="preserve">Добавление в группу</system:String>
     <system:String x:Key="S.Guard.Sum.GroupRemove" xml:space="preserve">Удаление из группы</system:String>
+    <system:String x:Key="S.Guard.Sum.HostsAdd" xml:space="preserve">Добавить в hosts</system:String>
+    <system:String x:Key="S.Guard.Sum.HostsRemove" xml:space="preserve">Убрать из hosts</system:String>
     <system:String x:Key="S.Guard.Sum.Install" xml:space="preserve">Установка пакета</system:String>
     <system:String x:Key="S.Guard.Sum.KillProcess" xml:space="preserve">Завершение процесса</system:String>
     <system:String x:Key="S.Guard.Sum.Network" xml:space="preserve">Изменение сети ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Операция через {0}</system:String>
     <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Выполнение PowerShell</system:String>
+    <system:String x:Key="S.Guard.Sum.QuickScan" xml:space="preserve">Быстрая проверка Защитника</system:String>
+    <system:String x:Key="S.Guard.Sum.RdpOff" xml:space="preserve">Выключить удалённый рабочий стол</system:String>
+    <system:String x:Key="S.Guard.Sum.RdpOn" xml:space="preserve">Включить удалённый рабочий стол</system:String>
     <system:String x:Key="S.Guard.Sum.Registry" xml:space="preserve">Изменение реестра ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Repair" xml:space="preserve">Системный ремонт ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetDns" xml:space="preserve">Вернуть DNS от DHCP</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetIp" xml:space="preserve">Сбросить стек TCP/IP</system:String>
+    <system:String x:Key="S.Guard.Sum.ResetWinsock" xml:space="preserve">Сбросить Winsock</system:String>
     <system:String x:Key="S.Guard.Sum.Rollback" xml:space="preserve">Восстановление системы из снимка</system:String>
     <system:String x:Key="S.Guard.Sum.RuleCreate" xml:space="preserve">Создание правила брандмауэра</system:String>
     <system:String x:Key="S.Guard.Sum.RuleDelete" xml:space="preserve">Удаление правила брандмауэра</system:String>
     <system:String x:Key="S.Guard.Sum.RuleOff" xml:space="preserve">Отключение правила брандмауэра</system:String>
     <system:String x:Key="S.Guard.Sum.RuleOn" xml:space="preserve">Включение правила брандмауэра</system:String>
     <system:String x:Key="S.Guard.Sum.Service" xml:space="preserve">Управление службой</system:String>
+    <system:String x:Key="S.Guard.Sum.SetDns" xml:space="preserve">Задать DNS-серверы</system:String>
     <system:String x:Key="S.Guard.Sum.Sfc" xml:space="preserve">Запуск проверки системных файлов (SFC)</system:String>
+    <system:String x:Key="S.Guard.Sum.Signatures" xml:space="preserve">Обновить сигнатуры Защитника</system:String>
     <system:String x:Key="S.Guard.Sum.Software" xml:space="preserve">ПО ({0})</system:String>
+    <system:String x:Key="S.Guard.Sum.StartupOff" xml:space="preserve">Выключить автозапуск</system:String>
+    <system:String x:Key="S.Guard.Sum.StartupOn" xml:space="preserve">Включить автозапуск</system:String>
     <system:String x:Key="S.Guard.Sum.Task" xml:space="preserve">Изменение задачи</system:String>
     <system:String x:Key="S.Guard.Sum.Uninstall" xml:space="preserve">Удаление пакета</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateHide" xml:space="preserve">Скрыть обновления</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateInstall" xml:space="preserve">Установить обновления Windows</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdatePause" xml:space="preserve">Приостановить обновления на {0} дн.</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateResume" xml:space="preserve">Возобновить обновления</system:String>
+    <system:String x:Key="S.Guard.Sum.UpdateUnhide" xml:space="preserve">Вернуть скрытые обновления</system:String>
     <system:String x:Key="S.Guard.Sum.Upgrade" xml:space="preserve">Обновление пакета</system:String>
     <system:String x:Key="S.Guard.Sum.UpgradeAll" xml:space="preserve">Обновление всех пакетов (winget upgrade --all)</system:String>
     <system:String x:Key="S.Guard.Sum.UserOff" xml:space="preserve">Отключение учётки</system:String>
     <system:String x:Key="S.Guard.Sum.UserOn" xml:space="preserve">Включение учётки</system:String>
     <system:String x:Key="S.Guard.Sum.Users" xml:space="preserve">Локальные пользователи ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Virtualization" xml:space="preserve">Виртуализация</system:String>
+    <system:String x:Key="S.Guard.Sum.WifiForget" xml:space="preserve">Забыть сеть Wi-Fi</system:String>
     <system:String x:Key="S.Guard.Sum.WriteFile" xml:space="preserve">Запись в файл</system:String>
     <system:String x:Key="S.Guard.Tool" xml:space="preserve">Инструмент: {0}</system:String>
     <system:String x:Key="S.Guard.UsersChange" xml:space="preserve">Изменение локальных учёток/членства в группах.</system:String>
@@ -929,6 +963,16 @@
     <system:String x:Key="S.Rollback.Task.Disable" xml:space="preserve">Задача {0}: выключить</system:String>
     <system:String x:Key="S.Rollback.Task.Enable" xml:space="preserve">Задача {0}: включить</system:String>
     <system:String x:Key="S.Rollback.Task.Recreate" xml:space="preserve">Задача {0}: вернуть из сохранённой копии</system:String>
+    <system:String x:Key="S.Rollback.Undo.AdapterOff" xml:space="preserve">Выключить адаптер «{0}»</system:String>
+    <system:String x:Key="S.Rollback.Undo.AdapterOn" xml:space="preserve">Включить адаптер «{0}»</system:String>
+    <system:String x:Key="S.Rollback.Undo.DeviceOff" xml:space="preserve">Отключить устройство {0}</system:String>
+    <system:String x:Key="S.Rollback.Undo.DeviceOn" xml:space="preserve">Включить устройство {0}</system:String>
+    <system:String x:Key="S.Rollback.Undo.Dns" xml:space="preserve">Вернуть DNS адаптера «{0}»: {1}</system:String>
+    <system:String x:Key="S.Rollback.Undo.DnsDhcp" xml:space="preserve">Вернуть DNS адаптера «{0}» к DHCP</system:String>
+    <system:String x:Key="S.Rollback.Undo.Firewall" xml:space="preserve">Вернуть состояние правил брандмауэра ({0})</system:String>
+    <system:String x:Key="S.Rollback.Undo.Hosts" xml:space="preserve">Вернуть файл hosts</system:String>
+    <system:String x:Key="S.Rollback.Undo.Invalid" xml:space="preserve">шаг снимка повреждён или неполон — пропущен</system:String>
+    <system:String x:Key="S.Rollback.Undo.Wifi" xml:space="preserve">Вернуть профиль Wi-Fi «{0}»</system:String>
     <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">Движок выберет OpenRouter</system:String>
     <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">Свой у модели</system:String>
     <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} за запрос по прайсу OpenRouter — он может измениться</system:String>
@@ -1041,8 +1085,24 @@
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Дождитесь окончания текущего ответа.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
+    <system:String x:Key="S.Tool.Clipboard.Busy" xml:space="preserve">Буфер обмена занят другой программой. Попробуй чуть позже.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.Secret" xml:space="preserve">Отказано: текст похож на секрет ({0}). Секреты в буфер обмена не кладутся. Не повторяй попытку.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.TooLong" xml:space="preserve">Слишком длинный текст для буфера обмена (больше {0} знаков). Сохрани его в файл.</system:String>
+    <system:String x:Key="S.Tool.Clipboard.Written" xml:space="preserve">Текст ({0} знаков) в буфере обмена.</system:String>
+    <system:String x:Key="S.Tool.Devices.NotFound" xml:space="preserve">Устройство {0} не найдено. Возьми точный InstanceId из pnp_devices.</system:String>
+    <system:String x:Key="S.Tool.Devices.RollbackFailed" xml:space="preserve">Windows не смогла откатить драйвер (код {0}): вероятно, прежней версии драйвера у этого устройства нет. Не повторяй попытку.</system:String>
+    <system:String x:Key="S.Tool.Devices.RolledBack" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии.</system:String>
+    <system:String x:Key="S.Tool.Devices.RolledBackReboot" xml:space="preserve">Драйвер устройства {0} откачен к прежней версии. Чтобы изменение вступило в силу, нужна перезагрузка — скажи пользователю, сам не перезагружай.</system:String>
     <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Не удалось запустить {0}.</system:String>
+    <system:String x:Key="S.Tool.NeedsAdmin" xml:space="preserve">Нужны права администратора: запустите программу от администратора и повторите. Не повторяй попытку, пока права те же.</system:String>
     <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Неизвестный профиль брандмауэра «{0}». Допустимы: domain, private, public, all. Не повторяй с тем же значением.</system:String>
+    <system:String x:Key="S.Tool.Network.RebootNeeded" xml:space="preserve">Изменение вступит в силу только после перезагрузки. Не перезагружай сам — скажи пользователю.</system:String>
+    <system:String x:Key="S.Tool.Search.Nothing" xml:space="preserve">Ничего не найдено.</system:String>
+    <system:String x:Key="S.Tool.Search.Truncated" xml:space="preserve">… показаны первые {0}; сузь маску, папку или даты.</system:String>
+    <system:String x:Key="S.Tool.Startup.Disabled" xml:space="preserve">Автозапуск «{0}» ({1}) выключен. Сама запись осталась — включить её можно тем же инструментом или в «Диспетчере задач».</system:String>
+    <system:String x:Key="S.Tool.Startup.Empty" xml:space="preserve">Элементов автозагрузки не найдено.</system:String>
+    <system:String x:Key="S.Tool.Startup.Enabled" xml:space="preserve">Автозапуск «{0}» ({1}) включён.</system:String>
+    <system:String x:Key="S.Tool.Startup.NotFound" xml:space="preserve">Элемента «{0}» в {1} нет. Возьми имя и место из действия status.</system:String>
     <system:String x:Key="S.Tool.Virt.BadContainerName" xml:space="preserve">Имя контейнера не указано или не похоже на имя docker (буквы, цифры, _ . -). Укажи имя или идентификатор из list_docker_containers.</system:String>
     <system:String x:Key="S.Tool.Virt.BadVmName" xml:space="preserve">Имя виртуальной машины не указано или содержит недопустимые знаки (* ? [ ] ` и управляющие). Укажи точное имя из list_hyperv_vms.</system:String>
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Разбор папок</system:String>
@@ -1086,6 +1146,7 @@
     <system:String x:Key="S.Tool.windows_service" xml:space="preserve">Службы Windows</system:String>
     <system:String x:Key="S.Tool.windows_update" xml:space="preserve">Обновления Windows</system:String>
     <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">Запросы WMI</system:String>
+    <system:String x:Key="S.Tool.write_clipboard" xml:space="preserve">Запись в буфер обмена</system:String>
     <system:String x:Key="S.Tool.write_file" xml:space="preserve">Запись файлов</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">Расшифровка видео YouTube</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>

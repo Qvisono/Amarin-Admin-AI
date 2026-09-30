@@ -4030,6 +4030,12 @@
                                 кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
                                 диалоге хуже, чем его отсутствие.
                             -->
+                            <!--
+                                Пробный прогон (-WhatIf): что именно изменится. Над текстом команды, потому
+                                что отвечает на тот же вопрос короче. Появляется, только когда прогон
+                                возможен, и кнопки его не ждут — как и разъяснение выше.
+                            -->
+                            <ContentControl x:Name="ConfirmationWhatIfHost" Visibility="Collapsed" Margin="0,0,0,8"/>
                             <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,0,0,8"/>
                             <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,0,0,8"/>
                         </StackPanel>

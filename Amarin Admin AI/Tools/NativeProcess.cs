@@ -29,6 +29,20 @@ internal static class NativeProcess
         RunAsync(fileName, arguments, timeoutSeconds, cancellationToken).GetAwaiter().GetResult();
 
     /// <summary>
+    /// Запуск со строкой аргументов как есть — для программ, которые читают кавычки по-своему
+    /// (<c>netsh name="…"</c>): экранирование <see cref="ProcessStartInfo.ArgumentList"/> им чужое.
+    /// </summary>
+    /// <remarks>Строку собирают только проверенные сборщики команд, никогда — текст модели.</remarks>
+    public static Task<ToolResult> RunRawAsync(
+        string fileName,
+        string arguments,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default,
+        int maxOutput = 16_000) =>
+        RunCoreAsync(new ProcessStartInfo { FileName = fileName, Arguments = arguments }, timeoutSeconds,
+            cancellationToken, maxOutput);
+
+    /// <summary>
     /// Запуск с ожиданием без занятого потока. Отмена хода гасит всё дерево процесса и уходит
     /// наверх <see cref="OperationCanceledException"/> — как у <see cref="PowerShellProcessRunner"/>.
     /// </summary>
@@ -40,19 +54,26 @@ internal static class NativeProcess
         int maxOutput = 16_000)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        var psi = new ProcessStartInfo
-        {
-            FileName = fileName,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
+        var psi = new ProcessStartInfo { FileName = fileName };
         foreach (var argument in arguments)
         {
             psi.ArgumentList.Add(argument);
         }
+
+        return await RunCoreAsync(psi, timeoutSeconds, cancellationToken, maxOutput).ConfigureAwait(false);
+    }
+
+    private static async Task<ToolResult> RunCoreAsync(
+        ProcessStartInfo psi,
+        int timeoutSeconds,
+        CancellationToken cancellationToken,
+        int maxOutput)
+    {
+        var fileName = psi.FileName;
+        psi.RedirectStandardOutput = true;
+        psi.RedirectStandardError = true;
+        psi.UseShellExecute = false;
+        psi.CreateNoWindow = true;
 
         Process? process;
         try

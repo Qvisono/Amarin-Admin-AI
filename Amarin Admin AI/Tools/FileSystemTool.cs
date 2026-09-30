@@ -7,7 +7,8 @@ public sealed class FileSystemTool : ITool
 {
     public string Name => "filesystem";
     public string Description =>
-        "Read, write, list, copy, move, or create files and directories. Deleting existing files is forbidden.";
+        "Read, write, list, copy, move, create files and directories, or search a folder tree for files by name " +
+        "mask, size and modification date (search). Deleting existing files is forbidden.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -15,7 +16,7 @@ public sealed class FileSystemTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["read", "write", "list", "exists", "copy", "move", "mkdir"],
+              "enum": ["read", "write", "list", "exists", "copy", "move", "mkdir", "search"],
               "description": "File system operation"
             },
             "path": {
@@ -33,7 +34,17 @@ public sealed class FileSystemTool : ITool
             "recursive": {
               "type": "boolean",
               "description": "Recursive delete for directories"
-            }
+            },
+            "pattern": {
+              "type": "string",
+              "description": "search: file name mask such as *.log or report*.docx (default *)"
+            },
+            "min_size": { "type": "integer", "description": "search: minimum size in bytes" },
+            "max_size": { "type": "integer", "description": "search: maximum size in bytes" },
+            "modified_after": { "type": "string", "description": "search: date, e.g. 2026-09-01" },
+            "modified_before": { "type": "string", "description": "search: date, e.g. 2026-09-30" },
+            "max_results": { "type": "integer", "description": "search: 1-2000 (default 200)" },
+            "max_depth": { "type": "integer", "description": "search: folder depth 0-32 (default 8)" }
           },
           "required": ["action", "path"]
         }
@@ -71,7 +82,7 @@ public sealed class FileSystemTool : ITool
             // Чтение, список и копирование секрета запрещены, куда бы ни вёл путь. Проверка
             // сидит здесь, а не только в шлюзе: read_file и анализ папок зовут этот инструмент
             // напрямую.
-            if (action is "read" or "list" or "copy" or "move" &&
+            if (action is "read" or "list" or "copy" or "move" or "search" &&
                 SensitivePaths.IsSensitive(path, out var secret))
             {
                 return Task.FromResult(ToolResult.Fail(secret));
@@ -95,6 +106,11 @@ public sealed class FileSystemTool : ITool
             // параллельных вызова иначе оба увидели бы «файла нет».
             var createNew = arguments.TryGetProperty(SafeZone.CreateNewFlag, out var createNewProp) &&
                             createNewProp.ValueKind == JsonValueKind.True;
+
+            if (action == "search")
+            {
+                return Task.Run(() => Search(path, arguments, cancellationToken), cancellationToken);
+            }
 
             return action switch
             {
@@ -121,6 +137,67 @@ public sealed class FileSystemTool : ITool
     /// </summary>
     private static ToolResult AlreadyExists(string path) =>
         ToolResult.Fail(Amarin.Core.Loc.Format("S.Gate.AlreadyExists", path));
+
+    private static ToolResult Search(string root, JsonElement arguments, CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(root))
+        {
+            return ToolResult.Fail($"Directory not found: {root}");
+        }
+
+        var pattern = arguments.TryGetProperty("pattern", out var patternProp) && patternProp.ValueKind == JsonValueKind.String &&
+                      !string.IsNullOrWhiteSpace(patternProp.GetString())
+            ? patternProp.GetString()!.Trim()
+            : "*";
+        if (pattern.IndexOfAny(Path.GetInvalidFileNameChars().Where(ch => ch is not ('*' or '?')).ToArray()) >= 0)
+        {
+            return ToolResult.Fail("pattern is a file name mask (* and ? allowed), not a path. Do not retry with the same value.");
+        }
+
+        DateTime? after = null;
+        DateTime? before = null;
+        if (StringOf(arguments, "modified_after") is { } afterText)
+        {
+            if (!FileSearch.TryDate(afterText, out var date))
+            {
+                return ToolResult.Fail("modified_after is not a date (use 2026-09-01).");
+            }
+
+            after = date;
+        }
+
+        if (StringOf(arguments, "modified_before") is { } beforeText)
+        {
+            if (!FileSearch.TryDate(beforeText, out var date))
+            {
+                return ToolResult.Fail("modified_before is not a date (use 2026-09-30).");
+            }
+
+            before = date;
+        }
+
+        var limit = (int)Math.Clamp(IntOf(arguments, "max_results") ?? FileSearch.DefaultResults, 1, FileSearch.MaxResults);
+        var query = new FileSearchQuery(
+            root,
+            pattern,
+            IntOf(arguments, "min_size"),
+            IntOf(arguments, "max_size"),
+            after,
+            before,
+            limit,
+            (int)Math.Clamp(IntOf(arguments, "max_depth") ?? FileSearch.DefaultDepth, 0, FileSearch.MaxDepthLimit));
+        var (found, truncated) = FileSearch.Run(query, cancellationToken);
+        return ToolResult.Ok(FileSearch.Format(found, truncated, limit));
+
+        static string? StringOf(JsonElement args, string name) =>
+            args.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String &&
+            !string.IsNullOrWhiteSpace(value.GetString())
+                ? value.GetString()
+                : null;
+
+        static long? IntOf(JsonElement args, string name) =>
+            args.TryGetProperty(name, out var value) && value.TryGetInt64(out var number) ? number : null;
+    }
 
     private static ToolResult ReadFile(string path)
     {

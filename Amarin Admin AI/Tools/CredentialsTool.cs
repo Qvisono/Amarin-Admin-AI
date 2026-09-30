@@ -21,7 +21,7 @@ public sealed class CredentialsTool : ITool
             },
             "store": {
               "type": "string",
-              "enum": ["My", "Root", "CA", "TrustedPublisher", "All"],
+              "enum": ["My", "Root", "CA", "TrustedPublisher", "TrustedPeople", "AuthRoot", "All"],
               "description": "Certificate store for list_certs (default My)"
             },
             "days": {
@@ -45,6 +45,14 @@ public sealed class CredentialsTool : ITool
             ? storeProp.GetString() ?? "My"
             : "My";
 
+        // Имя хранилища шло в скрипт как есть, внутри двойных кавычек: «My$(…)» исполнял
+        // подвыражение — и это чтение, о котором человека не спрашивают. Только из перечня.
+        if (!TryStore(store, out store))
+        {
+            return Task.FromResult(ToolResult.Fail(
+                "store must be one of: " + string.Join(", ", Stores) + ". Do not retry with another value."));
+        }
+
         var days = GetInt(arguments, "days", 30, 1, 365);
 
         var action = actionProp.GetString()?.ToLowerInvariant();
@@ -61,7 +69,16 @@ public sealed class CredentialsTool : ITool
             : PowerShellHelper.RunAsync(script, 120, cancellationToken);
     }
 
-    private static string ListCertsScript(string store) => store.Equals("All", StringComparison.OrdinalIgnoreCase)
+    internal static readonly string[] Stores = ["My", "Root", "CA", "TrustedPublisher", "TrustedPeople", "AuthRoot", "All"];
+
+    /// <summary>Имя хранилища сертификатов из перечня — в его собственном написании.</summary>
+    internal static bool TryStore(string? value, out string store)
+    {
+        store = Stores.FirstOrDefault(name => name.Equals(value?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? "";
+        return store.Length > 0;
+    }
+
+    internal static string ListCertsScript(string store) => store.Equals("All", StringComparison.OrdinalIgnoreCase)
         ? """
             $stores = 'My','Root','CA','TrustedPublisher','TrustedPeople','AuthRoot'
             foreach ($s in $stores) {
@@ -81,7 +98,7 @@ public sealed class CredentialsTool : ITool
           "Get-ChildItem \"Cert:\\CurrentUser\\" + store + "\" -ErrorAction SilentlyContinue |\n" +
           "  Select-Object Subject, Issuer, NotAfter, Thumbprint | Format-Table -Wrap -AutoSize";
 
-    private static string ExpiringCertsScript(int days) =>
+    internal static string ExpiringCertsScript(int days) =>
         "$deadline = (Get-Date).AddDays(" + days + ")\n" +
         "$paths = @('Cert:\\LocalMachine\\My','Cert:\\CurrentUser\\My','Cert:\\LocalMachine\\Root')\n" +
         "foreach ($p in $paths) {\n" +

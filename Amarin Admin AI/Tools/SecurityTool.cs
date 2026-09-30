@@ -8,7 +8,8 @@ public sealed class SecurityTool : ITool
 {
     public string Name => "security_status";
     public string Description =>
-        "Windows Firewall and Microsoft Defender status, rules summary, threats, scan state. Read-only.";
+        "Windows Firewall and Microsoft Defender status, rules summary, threats, scan state; run a Defender " +
+        "quick scan or update its signatures (both require user confirmation).";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -18,9 +19,9 @@ public sealed class SecurityTool : ITool
               "type": "string",
               "enum": [
                 "firewall_status", "firewall_rules", "defender_status",
-                "defender_threats", "defender_preferences"
+                "defender_threats", "defender_preferences", "quick_scan", "update_signatures"
               ],
-              "description": "Security diagnostic action"
+              "description": "Security action"
             },
             "profile": {
               "type": "string",
@@ -49,7 +50,16 @@ public sealed class SecurityTool : ITool
             ? profileProp.GetString() ?? "all"
             : "all";
 
-        var action = actionProp.GetString()?.ToLowerInvariant();
+        var action = actionProp.GetString()?.Trim().ToLowerInvariant();
+        switch (action)
+        {
+            // Быстрая проверка идёт минутами — долгая операция, с отменой хода.
+            case "quick_scan":
+                return PowerShellHelper.RunLongAsync(SecurityCommands.QuickScan, 3600, cancellationToken);
+            case "update_signatures":
+                return PowerShellHelper.RunAsync(SecurityCommands.UpdateSignatures, 600, cancellationToken);
+        }
+
         var script = action switch
         {
             "firewall_status" => FirewallStatusScript(),
