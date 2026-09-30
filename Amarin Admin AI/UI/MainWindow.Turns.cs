@@ -284,7 +284,7 @@ namespace Amarin.UI
 
             var usage = ContextGauge.Measure(
                 _session,
-                _services.Chat.CurrentSystemPrompt(),
+                _services.Chat.CurrentSystemPrompt(_session),
                 candidates);
             _context?.Show(usage);
             UpdateCompactHint(usage);

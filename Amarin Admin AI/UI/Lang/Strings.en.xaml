@@ -353,6 +353,17 @@
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Unpin</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Yesterday</system:String>
 
+    <system:String x:Key="S.ChatProfile.AllInstructions" xml:space="preserve">All enabled instructions</system:String>
+    <system:String x:Key="S.ChatProfile.Chip" xml:space="preserve">Own settings</system:String>
+    <system:String x:Key="S.ChatProfile.ChipTip" xml:space="preserve">This chat has its own prompt or instruction set. Click to change.</system:String>
+    <system:String x:Key="S.ChatProfile.Desc" xml:space="preserve">For this chat only. The model and thinking are chosen next to the input field, as usual.</system:String>
+    <system:String x:Key="S.ChatProfile.Instructions" xml:space="preserve">Instructions</system:String>
+    <system:String x:Key="S.ChatProfile.NoInstructions" xml:space="preserve">No enabled instructions — add them in Settings, on the Instructions page.</system:String>
+    <system:String x:Key="S.ChatProfile.Prompt" xml:space="preserve">Own prompt</system:String>
+    <system:String x:Key="S.ChatProfile.PromptEmpty" xml:space="preserve">Empty — the general main prompt from Settings.</system:String>
+    <system:String x:Key="S.ChatProfile.Reset" xml:space="preserve">Reset</system:String>
+    <system:String x:Key="S.ChatProfile.SaveTemplate" xml:space="preserve">Save as template…</system:String>
+    <system:String x:Key="S.ChatProfile.Title" xml:space="preserve">Chat settings</system:String>
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
     <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Click to restart as administrator.</system:String>
@@ -1491,6 +1502,14 @@
     <system:String x:Key="S.Summarize.NotYoutube" xml:space="preserve">That does not look like a YouTube link.</system:String>
     <system:String x:Key="S.Summarize.PasteLink" xml:space="preserve">Paste a link to the video.</system:String>
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Wait for the current reply to finish.</system:String>
+    <system:String x:Key="S.Templates.Applied" xml:space="preserve">New chat from template “{0}”.</system:String>
+    <system:String x:Key="S.Templates.Button" xml:space="preserve">New chat from a template</system:String>
+    <system:String x:Key="S.Templates.Delete" xml:space="preserve">Delete a template</system:String>
+    <system:String x:Key="S.Templates.Empty" xml:space="preserve">No templates yet</system:String>
+    <system:String x:Key="S.Templates.FromCurrent" xml:space="preserve">Save this chat as a template</system:String>
+    <system:String x:Key="S.Templates.NameDesc" xml:space="preserve">The template keeps the prompt, model, thinking and instructions.</system:String>
+    <system:String x:Key="S.Templates.NameTitle" xml:space="preserve">Template name</system:String>
+    <system:String x:Key="S.Templates.Saved" xml:space="preserve">Template “{0}” saved.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
     <system:String x:Key="S.Tool.Clipboard.Busy" xml:space="preserve">The clipboard is held by another program. Try again a little later.</system:String>

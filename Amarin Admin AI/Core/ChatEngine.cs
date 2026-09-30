@@ -284,8 +284,9 @@ internal sealed partial class ChatEngine
     /// промпта, и список инструментов: разойдись они, модель видела бы оглавление без способа
     /// его открыть или инструмент без оглавления.
     /// </summary>
-    private IReadOnlyList<Instruction> ActiveInstructions() =>
-        _instructions?.EnabledSnapshot() ?? [];
+    /// <remarks>Профиль чата (D11) сужает набор до выбранных в нём.</remarks>
+    private IReadOnlyList<Instruction> ActiveInstructions(ChatSession? session = null) =>
+        ChatProfile.Filter(_instructions?.EnabledSnapshot() ?? [], session?.Profile);
 
     /// <summary>
     /// Инструменты хода: без инструкций инструмент их чтения только сбивал бы модель, а
@@ -470,7 +471,7 @@ internal sealed partial class ChatEngine
                 turn.RouterCost = decision.Cost;
             }
 
-            var messages = BuildApiMessages(session, turn.ModelId, ActiveInstructions());
+            var messages = BuildApiMessages(session, turn.ModelId, ActiveInstructions(session));
 
             // Forge the tool call the chat model would normally have made. Everything
             // downstream — slot limiting, the nested-agent card, cost roll-up — is the
@@ -873,7 +874,7 @@ internal sealed partial class ChatEngine
         VeniceTurnContext turn,
         CancellationToken cancellationToken)
     {
-        var instructions = ActiveInstructions();
+        var instructions = ActiveInstructions(session);
         var messages = BuildApiMessages(session, turn.ModelId, instructions);
         var tools = ToolsFor(instructions);
 
@@ -2122,7 +2123,7 @@ internal sealed partial class ChatEngine
         IReadOnlyList<Instruction> instructions)
     {
         var messages = new List<ChatMessage>();
-        var system = BuildSystemPrompt(currentModelId, instructions);
+        var system = BuildSystemPrompt(currentModelId, instructions, session.Profile);
 
         // Сжатый чат (D10): старая часть уходит сводкой в системном промпте, а не отдельным
         // сообщением — два сообщения user подряд или выдуманный ответ ассистента принимают
@@ -2155,8 +2156,9 @@ internal sealed partial class ChatEngine
     /// The system prompt the next request would carry. Exposed so the context gauge can weigh it:
     /// it is a real slice of the window, and rebuilding it in the UI would fork the logic.
     /// </summary>
-    internal string CurrentSystemPrompt() =>
-        BuildSystemPrompt(currentModelId: null, ActiveInstructions());
+    /// <param name="session">Чат, чей промпт мерить: у него может быть свой профиль (D11).</param>
+    internal string CurrentSystemPrompt(ChatSession? session = null) =>
+        BuildSystemPrompt(currentModelId: null, ActiveInstructions(session), session?.Profile);
 
     /// <param name="currentModelId">
     /// Модель, на которой идёт ход, — она попадает в блок MODELS. Явным аргументом, а не через
@@ -2165,11 +2167,15 @@ internal sealed partial class ChatEngine
     /// собирает промпт вне хода.
     /// </param>
     /// <param name="instructions">Снимок инструкций хода — см. <see cref="ActiveInstructions"/>.</param>
-    private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions)
+    /// <param name="profile">
+    /// Профиль чата (D11): его промпт встаёт на место общего «основного». Технический промпт,
+    /// правила формул и блоки ниже остаются — без них чат перестал бы уметь то, что умеет.
+    /// </param>
+    private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions, ChatProfile? profile = null)
     {
         // Chat companion only: main + TechAiPrompt. Agent uses TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
-        var main = settings.MainPrompt?.Trim() ?? "";
+        var main = string.IsNullOrWhiteSpace(profile?.Prompt) ? settings.MainPrompt?.Trim() ?? "" : profile!.Prompt!.Trim();
         var tech = settings.TechAiPrompt?.Trim() ?? "";
         if (tech.Length == 0)
         {

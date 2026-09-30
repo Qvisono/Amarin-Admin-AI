@@ -33,7 +33,7 @@ public static class ProfileDataWiper
     /// <summary>Файлы профиля по умолчанию в корне данных.</summary>
     internal static readonly string[] DefaultProfileFiles =
         ["settings.json", "keys.json", "prompts.json", "avatar.png", "balance.json", ScheduleBook.FileName, ScheduleBook.LogName,
-         HealthCache.FileName, MachineBook.FileName, McpHost.FileName];
+         HealthCache.FileName, MachineBook.FileName, McpHost.FileName, ChatTemplateBook.FileName];
 
     /// <summary>
     /// Папки профиля по умолчанию. <c>shared</c> — сохранённые копии чатов из «Поделиться»:

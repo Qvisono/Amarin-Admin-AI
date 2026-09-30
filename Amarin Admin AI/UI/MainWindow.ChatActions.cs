@@ -90,6 +90,14 @@ namespace Amarin.UI
 
             // Раскладка (D5). Вложенных меню у AppMenuItem нет — выбор открывается вторым меню
             // на том же месте.
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatProfile.Title") + "…", () =>
+            {
+                OpenChat(id);
+                if (id == _session.Id)
+                {
+                    OpenChatSettings();
+                }
+            }));
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, [id])));
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, [id])));
             var archived = _services?.Organizer.PlacementOf(id).Archived == true;

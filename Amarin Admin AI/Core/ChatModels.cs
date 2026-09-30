@@ -75,6 +75,9 @@ public sealed class ChatSession
     /// <summary>Удалённая машина, на которой исполняются команды этого чата (C10); null — этот ПК.</summary>
     public string? TargetMachineId { get; set; }
 
+    /// <summary>Свой промпт и набор инструкций этого чата (D11); null — общие.</summary>
+    public ChatProfile? Profile { get; set; }
+
     /// <summary>Чат в режиме «только чтение» (команда /readonly, D9): его ходы ничего не меняют.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool ReadOnly { get; set; }

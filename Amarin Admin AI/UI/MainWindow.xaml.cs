@@ -86,6 +86,7 @@ namespace Amarin.UI
             WireDrafts();
             WireCodeBlocks();
             WireDropZone();
+            WireChatProfile();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -3079,6 +3080,7 @@ namespace Amarin.UI
             _sidebarCollapsed = collapsed;
             SidebarColumn.Width = new GridLength(collapsed ? 42 : SidebarWidths.Clamp(_services?.Settings.SidebarWidth));
             SidebarGrip.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+            TemplatesButton.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             TagFilterRow.Visibility = collapsed || TagFilterRow.Children.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
             if (collapsed)
             {

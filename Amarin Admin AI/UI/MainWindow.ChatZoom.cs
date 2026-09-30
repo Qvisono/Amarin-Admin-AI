@@ -45,6 +45,7 @@ namespace Amarin.UI
             PlanOverlay.Visibility == Visibility.Visible ||
             ReportOverlay.Visibility == Visibility.Visible ||
             HotkeySheet.Visibility == Visibility.Visible ||
+            ChatSettings.Visibility == Visibility.Visible ||
             HealthOverlay.Visibility == Visibility.Visible ||
             DomainOverlay.Visibility == Visibility.Visible ||
             IsLocked;

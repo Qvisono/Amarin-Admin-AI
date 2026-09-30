@@ -10,6 +10,7 @@ namespace Amarin.UI
         {
             // Та же точка «открыли другой чат» — и для отметки «только чтение» (D9).
             UpdateReadOnlyChip();
+            UpdateProfileChip();
             if (_services is null)
             {
                 return;

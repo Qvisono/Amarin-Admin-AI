@@ -353,6 +353,17 @@
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Открепить</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Вчера</system:String>
 
+    <system:String x:Key="S.ChatProfile.AllInstructions" xml:space="preserve">Все включённые инструкции</system:String>
+    <system:String x:Key="S.ChatProfile.Chip" xml:space="preserve">Свои настройки</system:String>
+    <system:String x:Key="S.ChatProfile.ChipTip" xml:space="preserve">У этого чата свой промпт или набор инструкций. Щелчок — изменить.</system:String>
+    <system:String x:Key="S.ChatProfile.Desc" xml:space="preserve">Только для этого чата. Модель и размышление выбираются у поля ввода, как обычно.</system:String>
+    <system:String x:Key="S.ChatProfile.Instructions" xml:space="preserve">Инструкции</system:String>
+    <system:String x:Key="S.ChatProfile.NoInstructions" xml:space="preserve">Включённых инструкций нет — их заводят в настройках, на странице Instructions.</system:String>
+    <system:String x:Key="S.ChatProfile.Prompt" xml:space="preserve">Свой промпт</system:String>
+    <system:String x:Key="S.ChatProfile.PromptEmpty" xml:space="preserve">Пусто — общий основной промпт из настроек.</system:String>
+    <system:String x:Key="S.ChatProfile.Reset" xml:space="preserve">Сбросить</system:String>
+    <system:String x:Key="S.ChatProfile.SaveTemplate" xml:space="preserve">Сохранить как шаблон…</system:String>
+    <system:String x:Key="S.ChatProfile.Title" xml:space="preserve">Настройки чата</system:String>
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Программа запущена без прав администратора: многие действия недоступны</system:String>
 
     <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Щёлкните, чтобы перезапустить от имени администратора.</system:String>
@@ -1491,6 +1502,14 @@
     <system:String x:Key="S.Summarize.NotYoutube" xml:space="preserve">Не похоже на ссылку YouTube.</system:String>
     <system:String x:Key="S.Summarize.PasteLink" xml:space="preserve">Вставьте ссылку на видео.</system:String>
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Дождитесь окончания текущего ответа.</system:String>
+    <system:String x:Key="S.Templates.Applied" xml:space="preserve">Новый чат по шаблону «{0}».</system:String>
+    <system:String x:Key="S.Templates.Button" xml:space="preserve">Новый чат по шаблону</system:String>
+    <system:String x:Key="S.Templates.Delete" xml:space="preserve">Удалить шаблон</system:String>
+    <system:String x:Key="S.Templates.Empty" xml:space="preserve">Шаблонов пока нет</system:String>
+    <system:String x:Key="S.Templates.FromCurrent" xml:space="preserve">Сохранить этот чат как шаблон</system:String>
+    <system:String x:Key="S.Templates.NameDesc" xml:space="preserve">Шаблон запомнит промпт, модель, размышление и инструкции.</system:String>
+    <system:String x:Key="S.Templates.NameTitle" xml:space="preserve">Название шаблона</system:String>
+    <system:String x:Key="S.Templates.Saved" xml:space="preserve">Шаблон «{0}» сохранён.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
     <system:String x:Key="S.Tool.Clipboard.Busy" xml:space="preserve">Буфер обмена занят другой программой. Попробуй чуть позже.</system:String>
