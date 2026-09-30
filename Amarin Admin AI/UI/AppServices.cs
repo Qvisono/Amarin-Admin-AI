@@ -100,6 +100,18 @@ internal sealed class AppServices : IDisposable
 
     private RecipeRunner? _recipeRunner;
 
+    /// <summary>Запуск агента в обход чата — для задач по расписанию. Null — расписание не работает.</summary>
+    internal IAgentHost? AgentHost { get; init; }
+
+    /// <summary>Задачи по расписанию (C3). По умолчанию — рядом с настройками, как и рецепты.</summary>
+    internal ScheduleBook Schedule
+    {
+        get => _schedule ??= new ScheduleBook(Path.GetDirectoryName(SettingsStore.FilePath)!);
+        init => _schedule = value;
+    }
+
+    private ScheduleBook? _schedule;
+
     public string? StartupPrompt { get; init; }
 
     /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>
@@ -228,6 +240,7 @@ internal sealed class AppServices : IDisposable
         Prompts = new PromptLibrary(dataRoot);
         Instructions.UseRoot(dataRoot);
         Recipes.UseRoot(dataRoot);
+        Schedule.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе

@@ -120,7 +120,8 @@ public static class DataUsage
         // и для человека это такая же настройка. Без неё в этом списке заготовки не уезжали
         // в архив данных вовсе — незнакомый файл классификатор отдаёт в «прочее», а прочее
         // экспорт не берёт.
-        if (name is "settings.json" or "profiles.json" or "balance.json" or "prompts.json")
+        if (name is "settings.json" or "profiles.json" or "balance.json" or "prompts.json" or
+            ScheduleBook.FileName or ScheduleBook.LogName)
         {
             return SettingsKey;
         }

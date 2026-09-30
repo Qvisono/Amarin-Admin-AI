@@ -279,6 +279,39 @@
         </Setter>
     </Style>
 
+    <!-- Та же пилюля, что ChipRadio, для выбора нескольких (дни недели). -->
+    <Style x:Key="ChipCheck" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+        <Setter Property="FontSize" Value="11.5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Chip" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="12" Height="24" Padding="11,0">
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
+                                   Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Карточка списка: вся карточка — кнопка, как у инструкций. -->
     <Style x:Key="CardButton" TargetType="Button">
         <Setter Property="Cursor" Value="Hand"/>

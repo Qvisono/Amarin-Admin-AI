@@ -40,3 +40,37 @@ internal interface IChatTurnObserver
         return false;
     }
 }
+
+/// <summary>Наблюдатель, которому ничего не нужно: прогон без открытого окна чата.</summary>
+internal sealed class SilentTurnObserver : IChatTurnObserver
+{
+    public static SilentTurnObserver Instance { get; } = new();
+
+    public void OnUserAppended(ChatDisplayMessage user)
+    {
+    }
+
+    public void OnAssistantStarted(ChatDisplayMessage assistant)
+    {
+    }
+
+    public void OnAssistantText(ChatDisplayMessage assistant)
+    {
+    }
+
+    public void OnToolsChanged(ChatDisplayMessage assistant)
+    {
+    }
+
+    public void OnAssistantCompleted(ChatDisplayMessage assistant)
+    {
+    }
+
+    public void OnAssistantCancelled(ChatDisplayMessage assistant)
+    {
+    }
+
+    public void OnError(string message)
+    {
+    }
+}

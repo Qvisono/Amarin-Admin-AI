@@ -394,6 +394,7 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
+    <system:String x:Key="S.Gate.ReadOnlyRun" xml:space="preserve">Этот прогон идёт только на чтение (задача по расписанию): вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом; опиши в отчёте, что нужно сделать и почему.</system:String>
     <system:String x:Key="S.Guard.Action" xml:space="preserve">Действие: {0}</system:String>
     <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.</system:String>
     <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.</system:String>
@@ -998,6 +999,7 @@
     <system:String x:Key="S.Recipe.SaveFromJournal" xml:space="preserve">Сохранить как рецепт</system:String>
     <system:String x:Key="S.Recipe.SaveFromJournalTip" xml:space="preserve">Повторять это действие без модели — со страницы «Автоматизация».</system:String>
     <system:String x:Key="S.Recipe.SearchPlaceholder" xml:space="preserve">Поиск по рецептам</system:String>
+    <system:String x:Key="S.Recipe.Tab" xml:space="preserve">Рецепты</system:String>
     <system:String x:Key="S.Recipe.ToolLabel" xml:space="preserve">Инструмент</system:String>
     <system:String x:Key="S.Recipe.UnknownTool" xml:space="preserve">Инструмента «{0}» нет.</system:String>
     <system:String x:Key="S.Recipe.ViaAgent" xml:space="preserve">Через агента</system:String>
@@ -1039,6 +1041,63 @@
     <system:String x:Key="S.Rollback.Undo.Hosts" xml:space="preserve">Вернуть файл hosts</system:String>
     <system:String x:Key="S.Rollback.Undo.Invalid" xml:space="preserve">шаг снимка повреждён или неполон — пропущен</system:String>
     <system:String x:Key="S.Rollback.Undo.Wifi" xml:space="preserve">Вернуть профиль Wi-Fi «{0}»</system:String>
+    <system:String x:Key="S.Schedule.AddHealth" xml:space="preserve">Проверка здоровья ПК</system:String>
+    <system:String x:Key="S.Schedule.BadHours" xml:space="preserve">Интервал — от 1 до 168 часов.</system:String>
+    <system:String x:Key="S.Schedule.BadTime" xml:space="preserve">Время — в виде ЧЧ:мм, например 09:30.</system:String>
+    <system:String x:Key="S.Schedule.ChatTitle" xml:space="preserve">{0} · {1}</system:String>
+    <system:String x:Key="S.Schedule.Create" xml:space="preserve">Новая задача</system:String>
+    <system:String x:Key="S.Schedule.Day.Friday" xml:space="preserve">Пт</system:String>
+    <system:String x:Key="S.Schedule.Day.Monday" xml:space="preserve">Пн</system:String>
+    <system:String x:Key="S.Schedule.Day.Saturday" xml:space="preserve">Сб</system:String>
+    <system:String x:Key="S.Schedule.Day.Sunday" xml:space="preserve">Вс</system:String>
+    <system:String x:Key="S.Schedule.Day.Thursday" xml:space="preserve">Чт</system:String>
+    <system:String x:Key="S.Schedule.Day.Tuesday" xml:space="preserve">Вт</system:String>
+    <system:String x:Key="S.Schedule.Day.Wednesday" xml:space="preserve">Ср</system:String>
+    <system:String x:Key="S.Schedule.DeleteText" xml:space="preserve">Задача «{0}» больше не будет выполняться. Чаты прошлых прогонов останутся.</system:String>
+    <system:String x:Key="S.Schedule.DeleteTitle" xml:space="preserve">Удалить задачу?</system:String>
+    <system:String x:Key="S.Schedule.Desc" xml:space="preserve">Задания агенту, которые выполняются сами — только на чтение. Итог ложится чатом; о находках программа сообщит.</system:String>
+    <system:String x:Key="S.Schedule.EditTitle" xml:space="preserve">Задача</system:String>
+    <system:String x:Key="S.Schedule.EmptyDesc" xml:space="preserve">Начните с готовой «Проверки здоровья ПК» или опишите свою задачу.</system:String>
+    <system:String x:Key="S.Schedule.EmptyTitle" xml:space="preserve">Задач пока нет</system:String>
+    <system:String x:Key="S.Schedule.EnabledLabel" xml:space="preserve">Включена</system:String>
+    <system:String x:Key="S.Schedule.EveryLabel" xml:space="preserve">Каждые</system:String>
+    <system:String x:Key="S.Schedule.HealthName" xml:space="preserve">Проверка здоровья ПК</system:String>
+    <system:String x:Key="S.Schedule.HealthPrompt" xml:space="preserve">Проверь состояние этого компьютера: свободное место на дисках и их исправность (SMART), сбои и критические ошибки в журналах за последние сутки, состояние Защитника и брандмауэра, ожидающие обновления и нужна ли перезагрузка. Коротко перечисли, что в порядке, а что требует внимания, и что с этим сделать.</system:String>
+    <system:String x:Key="S.Schedule.HoursUnit" xml:space="preserve">ч</system:String>
+    <system:String x:Key="S.Schedule.Kind.AtStartup" xml:space="preserve">При запуске</system:String>
+    <system:String x:Key="S.Schedule.Kind.Daily" xml:space="preserve">Ежедневно</system:String>
+    <system:String x:Key="S.Schedule.Kind.EveryHours" xml:space="preserve">Каждые N часов</system:String>
+    <system:String x:Key="S.Schedule.Kind.Weekly" xml:space="preserve">По дням недели</system:String>
+    <system:String x:Key="S.Schedule.Last" xml:space="preserve">Последний прогон: {0} — {1}</system:String>
+    <system:String x:Key="S.Schedule.NameLabel" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Schedule.NeedDays" xml:space="preserve">Отметьте хотя бы один день.</system:String>
+    <system:String x:Key="S.Schedule.NeedName" xml:space="preserve">Назовите задачу.</system:String>
+    <system:String x:Key="S.Schedule.NeedPrompt" xml:space="preserve">Опишите, что должен сделать агент.</system:String>
+    <system:String x:Key="S.Schedule.NeverRun" xml:space="preserve">Ещё не выполнялась</system:String>
+    <system:String x:Key="S.Schedule.NewTitle" xml:space="preserve">Новая задача</system:String>
+    <system:String x:Key="S.Schedule.Next" xml:space="preserve">следующий: {0}</system:String>
+    <system:String x:Key="S.Schedule.Off" xml:space="preserve">выключена</system:String>
+    <system:String x:Key="S.Schedule.OpenChat" xml:space="preserve">Открыть чат последнего прогона</system:String>
+    <system:String x:Key="S.Schedule.PromptLabel" xml:space="preserve">Задание агенту</system:String>
+    <system:String x:Key="S.Schedule.ReadOnlyHint" xml:space="preserve">Прогон идёт без вас и только на чтение: изменения агент не вносит, а описывает. Пропущенный срок (компьютер был выключен) выполняется один раз при запуске.</system:String>
+    <system:String x:Key="S.Schedule.Recent" xml:space="preserve">Последние прогоны</system:String>
+    <system:String x:Key="S.Schedule.RunNow" xml:space="preserve">Запустить сейчас</system:String>
+    <system:String x:Key="S.Schedule.Running" xml:space="preserve">Выполняется…</system:String>
+    <system:String x:Key="S.Schedule.SaveFailed" xml:space="preserve">Не удалось сохранить расписание: папка профиля недоступна для записи.</system:String>
+    <system:String x:Key="S.Schedule.Status.Attention" xml:space="preserve">есть на что взглянуть</system:String>
+    <system:String x:Key="S.Schedule.Status.Failed" xml:space="preserve">прогон не удался</system:String>
+    <system:String x:Key="S.Schedule.Status.Ok" xml:space="preserve">всё в порядке</system:String>
+    <system:String x:Key="S.Schedule.Status.Problem" xml:space="preserve">найдена проблема</system:String>
+    <system:String x:Key="S.Schedule.Status.Unknown" xml:space="preserve">без отметки</system:String>
+    <system:String x:Key="S.Schedule.Tab" xml:space="preserve">Расписание</system:String>
+    <system:String x:Key="S.Schedule.TimeLabel" xml:space="preserve">Время</system:String>
+    <system:String x:Key="S.Schedule.Toast" xml:space="preserve">Задача «{0}»: итог в чате</system:String>
+    <system:String x:Key="S.Schedule.ToastLocked" xml:space="preserve">Задача по расписанию выполнена</system:String>
+    <system:String x:Key="S.Schedule.When.AtStartup" xml:space="preserve">При запуске программы</system:String>
+    <system:String x:Key="S.Schedule.When.Daily" xml:space="preserve">Ежедневно в {0}</system:String>
+    <system:String x:Key="S.Schedule.When.EveryHours" xml:space="preserve">Каждые {0} ч</system:String>
+    <system:String x:Key="S.Schedule.When.Weekly" xml:space="preserve">{0} в {1}</system:String>
+    <system:String x:Key="S.Schedule.WhenLabel" xml:space="preserve">Когда</system:String>
     <system:String x:Key="S.Search.Engine.AutoTip" xml:space="preserve">Движок выберет OpenRouter</system:String>
     <system:String x:Key="S.Search.Engine.Native" xml:space="preserve">Свой у модели</system:String>
     <system:String x:Key="S.Search.Engine.PriceTip" xml:space="preserve">{0} за запрос по прайсу OpenRouter — он может измениться</system:String>

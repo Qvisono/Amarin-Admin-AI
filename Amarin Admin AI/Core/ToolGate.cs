@@ -54,6 +54,29 @@ internal static class ToolGate
     /// <summary>Отказ человека. Тот же текст, что был у агента, — на нём стоят тесты и модели.</summary>
     public const string DeniedReply = "Действие отменено пользователем.";
 
+    private static readonly AsyncLocal<bool> ReadOnlyForced = new();
+
+    /// <summary>
+    /// Режим «только чтение» для всего, что выполнится в этом асинхронном потоке, — какой бы
+    /// режим ни стоял в настройках. Так идут прогоны по расписанию: человека рядом нет, и
+    /// спросить его о записи некому.
+    /// </summary>
+    public static IDisposable ForceReadOnly()
+    {
+        var previous = ReadOnlyForced.Value;
+        ReadOnlyForced.Value = true;
+        return new ReadOnlyRestore(previous);
+    }
+
+    /// <summary>Действует ли сейчас «только чтение» — из настроек или из <see cref="ForceReadOnly"/>.</summary>
+    public static bool IsReadOnly(AppSettings settings) =>
+        settings.ApprovalMode == ApprovalMode.ReadOnly || ReadOnlyForced.Value;
+
+    private sealed class ReadOnlyRestore(bool previous) : IDisposable
+    {
+        public void Dispose() => ReadOnlyForced.Value = previous;
+    }
+
     public static GateCheck Check(string? toolName, JsonElement arguments, AppSettings? settings)
     {
         settings ??= new AppSettings();
@@ -74,9 +97,9 @@ internal static class ToolGate
             return Refused(scriptRefusal);
         }
 
-        if (effect == ToolEffect.Write && settings.ApprovalMode == ApprovalMode.ReadOnly)
+        if (effect == ToolEffect.Write && IsReadOnly(settings))
         {
-            return Refused(ReadOnlyRefusal(tool, args));
+            return Refused(ReadOnlyRefusal(tool, args, byScope: settings.ApprovalMode != ApprovalMode.ReadOnly));
         }
 
         if (tool.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
@@ -167,10 +190,11 @@ internal static class ToolGate
         settings.DisabledTools is { Count: > 0 } disabled &&
         disabled.Contains(toolName.Trim(), StringComparer.OrdinalIgnoreCase);
 
-    private static string ReadOnlyRefusal(string tool, JsonElement args)
+    private static string ReadOnlyRefusal(string tool, JsonElement args, bool byScope)
     {
         var action = DangerousActionGuard.ActionOf(args);
-        return Loc.Format("S.Gate.ReadOnly", action.Length == 0 ? tool : $"{tool} ({action})");
+        // Режим этого прогона, а не настройка: совет «смените режим в настройках» тут неверен.
+        return Loc.Format(byScope ? "S.Gate.ReadOnlyRun" : "S.Gate.ReadOnly", action.Length == 0 ? tool : $"{tool} ({action})");
     }
 
     /// <summary>

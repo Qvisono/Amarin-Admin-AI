@@ -38,7 +38,42 @@ public partial class SettingsAutomationPage : UserControl
     /// </summary>
     internal event Action<string>? AgentRequested;
 
-    internal void Attach(AppServices services) => _services = services;
+    internal void Attach(AppServices services)
+    {
+        _services = services;
+        SchedulePane.Attach(services);
+    }
+
+    /// <summary>Вкладка «Расписание» — для хозяина: «Запустить сейчас», переход в чат прогона.</summary>
+    internal SchedulePanel Schedule => SchedulePane;
+
+    /// <summary>Прогон закончился — перечитать список, если он на экране.</summary>
+    internal void RefreshSchedule()
+    {
+        if (SchedulePane.IsVisible)
+        {
+            SchedulePane.Refresh();
+        }
+    }
+
+    private void Tab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (SchedulePane is null || RecipesContent is null)
+        {
+            // Checked у заранее отмеченной вкладки приходит из InitializeComponent, до полей.
+            return;
+        }
+
+        var schedule = ScheduleTab.IsChecked == true;
+        CancelRun();
+        RecipesContent.Visibility = schedule ? Visibility.Collapsed : Visibility.Visible;
+        RecipesDesc.Visibility = RecipesContent.Visibility;
+        SchedulePane.Visibility = schedule ? Visibility.Visible : Visibility.Collapsed;
+        if (schedule)
+        {
+            SchedulePane.Load();
+        }
+    }
 
     /// <summary>Перечитывает рецепты и показывает список. Зовётся при входе на страницу.</summary>
     internal void Load()
@@ -46,11 +81,19 @@ public partial class SettingsAutomationPage : UserControl
         CancelRun();
         ShowList();
         Detached.Run(ReloadAsync(), "recipes_load");
+        if (SchedulePane.Visibility == Visibility.Visible)
+        {
+            SchedulePane.Load();
+        }
     }
+
+    /// <summary>Открывает вкладку «Расписание».</summary>
+    internal void ShowScheduleTab() => ScheduleTab.IsChecked = true;
 
     /// <summary>Открывает редактор рецепта — после «Сохранить как рецепт» в журнале.</summary>
     internal void Edit(string id)
     {
+        RecipesTab.IsChecked = true;
         if (_services?.Recipes.Find(id) is { } recipe)
         {
             OpenEditor(recipe);

@@ -78,6 +78,12 @@ namespace Amarin.UI
 
             PlanOverlay.Decided += OnPlanDecided;
             AutomationPage.AgentRequested += OnRecipeAgentRequested;
+            AutomationPage.Schedule.RunNow = RunScheduledJobNowAsync;
+            AutomationPage.Schedule.OpenChatRequested += chatId =>
+            {
+                SettingsOverlay.Visibility = Visibility.Collapsed;
+                OpenChat(chatId);
+            };
 
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
@@ -309,6 +315,7 @@ namespace Amarin.UI
             UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
+            StartSchedule();
 
             // Запрос из командной строки только ложится в поле, как и переданный уже открытому
             // окну; сам уходит лишь с явным --send (см. StartupArgs.Send).
