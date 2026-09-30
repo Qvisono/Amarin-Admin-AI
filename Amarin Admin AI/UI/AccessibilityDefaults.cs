@@ -39,6 +39,23 @@ internal static class AccessibilityDefaults
         EventManager.RegisterClassHandler(typeof(Control), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnControlLoaded));
     }
 
+    /// <summary>
+    /// То же, что делает <c>Loaded</c>, — обходом уже собранного дерева. Для окна, которое
+    /// собрано, но не показано (так живёт окно в оконных тестах): <c>Loaded</c> у него не приходит.
+    /// </summary>
+    internal static void ApplyTree(DependencyObject root)
+    {
+        if (root is ButtonBase button)
+        {
+            NameFromToolTip(button);
+        }
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            ApplyTree(System.Windows.Media.VisualTreeHelper.GetChild(root, i));
+        }
+    }
+
     private static void OnButtonLoaded(object sender, RoutedEventArgs e)
     {
         if (sender is ButtonBase button)

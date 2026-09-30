@@ -17,6 +17,11 @@ internal static class StringsRu
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["S.A11y.Attach"] = "Прикрепить",
+            ["S.A11y.ChooseColor"] = "Выбрать цвет",
+            ["S.A11y.ChooseKey"] = "Выбрать ключ",
+            ["S.A11y.ChooseLanguage"] = "Выбрать язык",
+            ["S.A11y.ChooseModel"] = "Выбрать модель",
+            ["S.A11y.ChooseReasoning"] = "Выбрать размышление",
             ["S.A11y.CloseApp"] = "Закрыть программу",
             ["S.A11y.Maximize"] = "Развернуть",
             ["S.A11y.Minimize"] = "Свернуть",

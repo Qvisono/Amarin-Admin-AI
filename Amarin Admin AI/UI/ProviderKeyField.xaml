@@ -66,7 +66,7 @@
     </UserControl.Resources>
 
     <Grid>
-        <ToggleButton x:Name="OpenButton" Cursor="Hand" Focusable="False" ClickMode="Press">
+        <ToggleButton x:Name="OpenButton" AutomationProperties.Name="{DynamicResource S.A11y.ChooseKey}" Cursor="Hand" Focusable="False" ClickMode="Press">
             <ToggleButton.Template>
                 <ControlTemplate TargetType="ToggleButton">
                     <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"

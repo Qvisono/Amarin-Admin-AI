@@ -264,7 +264,7 @@
                             <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
                             <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
                         </StackPanel>
-                        <CheckBox x:Name="EncryptChatsToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
                                   Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
                     </Grid>
 

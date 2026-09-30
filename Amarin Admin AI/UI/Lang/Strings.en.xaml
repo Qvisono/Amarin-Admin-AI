@@ -14,6 +14,11 @@
     -->
 
     <system:String x:Key="S.A11y.Attach" xml:space="preserve">Attach</system:String>
+    <system:String x:Key="S.A11y.ChooseColor" xml:space="preserve">Choose a color</system:String>
+    <system:String x:Key="S.A11y.ChooseKey" xml:space="preserve">Choose a key</system:String>
+    <system:String x:Key="S.A11y.ChooseLanguage" xml:space="preserve">Choose a language</system:String>
+    <system:String x:Key="S.A11y.ChooseModel" xml:space="preserve">Choose a model</system:String>
+    <system:String x:Key="S.A11y.ChooseReasoning" xml:space="preserve">Choose reasoning</system:String>
     <system:String x:Key="S.A11y.CloseApp" xml:space="preserve">Close the app</system:String>
     <system:String x:Key="S.A11y.Maximize" xml:space="preserve">Maximize</system:String>
     <system:String x:Key="S.A11y.Minimize" xml:space="preserve">Minimize</system:String>

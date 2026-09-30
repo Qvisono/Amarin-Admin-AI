@@ -14,6 +14,11 @@
     -->
 
     <system:String x:Key="S.A11y.Attach" xml:space="preserve">Прикрепить</system:String>
+    <system:String x:Key="S.A11y.ChooseColor" xml:space="preserve">Выбрать цвет</system:String>
+    <system:String x:Key="S.A11y.ChooseKey" xml:space="preserve">Выбрать ключ</system:String>
+    <system:String x:Key="S.A11y.ChooseLanguage" xml:space="preserve">Выбрать язык</system:String>
+    <system:String x:Key="S.A11y.ChooseModel" xml:space="preserve">Выбрать модель</system:String>
+    <system:String x:Key="S.A11y.ChooseReasoning" xml:space="preserve">Выбрать размышление</system:String>
     <system:String x:Key="S.A11y.CloseApp" xml:space="preserve">Закрыть программу</system:String>
     <system:String x:Key="S.A11y.Maximize" xml:space="preserve">Развернуть</system:String>
     <system:String x:Key="S.A11y.Minimize" xml:space="preserve">Свернуть</system:String>

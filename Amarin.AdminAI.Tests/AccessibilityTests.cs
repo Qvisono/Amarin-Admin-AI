@@ -27,12 +27,16 @@ public sealed class AccessibilityTests
             var found = new List<string>();
             try
             {
+                // Общее окно тестов собрано, но не показано, и Loaded у его кнопок не приходит —
+                // имя из подсказки ставим тем же кодом явным обходом.
+                AccessibilityDefaults.ApplyTree(window);
                 Collect(window, found);
                 overlay.Visibility = Visibility.Visible;
                 foreach (var nav in new[] { "NavBehavior", "NavAppearance", "NavData", "NavKey", "NavInfo" })
                 {
                     ((RadioButton)window.FindName(nav)!).IsChecked = true;
                     window.UpdateLayout();
+                    AccessibilityDefaults.ApplyTree(overlay);
                     Collect(overlay, found);
                 }
             }
@@ -76,8 +80,8 @@ public sealed class AccessibilityTests
                 continue;
             }
 
-            // Внутренности полос прокрутки и выпадашек: их называет сам элемент, диктор внутрь не ходит.
-            if (child is ScrollBar or ComboBox or TextBoxBase)
+            // Внутренности полос прокрутки, ползунков и выпадашек: их называет сам элемент, диктор внутрь не ходит.
+            if (child is ScrollBar or Slider or ComboBox or TextBoxBase)
             {
                 continue;
             }

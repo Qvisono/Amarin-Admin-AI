@@ -2625,7 +2625,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Account.PasswordAtStartupDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Account.PasswordAtStartup}" x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
                                               Checked="LockOnStartupToggle_Changed" Unchecked="LockOnStartupToggle_Changed"/>
                                 </Grid>
                             </StackPanel>
@@ -2733,7 +2733,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                                    Text="{DynamicResource S.Appearance.FollowSystemDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="ThemeFollowSystemToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.FollowSystem}" x:Name="ThemeFollowSystemToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="ThemeFollowSystemToggle_Changed"
                                               Unchecked="ThemeFollowSystemToggle_Changed"/>
@@ -2751,7 +2751,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                                    Text="{DynamicResource S.Appearance.CustomisationDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="AppearanceEnabledToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Customisation}" x:Name="AppearanceEnabledToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="AppearanceEnabledToggle_Changed"
                                               Unchecked="AppearanceEnabledToggle_Changed"/>
@@ -2980,7 +2980,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Sheen}"
                                                        VerticalAlignment="Center"/>
-                                            <CheckBox x:Name="GlassSheenToggle" Grid.Column="1"
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Sheen}" x:Name="GlassSheenToggle" Grid.Column="1"
                                                       Style="{StaticResource SettingsToggle}"
                                                       Checked="GlassSheenToggle_Changed" Unchecked="GlassSheenToggle_Changed"/>
                                         </Grid>
@@ -2995,7 +2995,7 @@
                                                 <TextBlock Style="{StaticResource SettingDesc}"
                                                            Text="{DynamicResource S.Appearance.VignetteDesc}"/>
                                             </StackPanel>
-                                            <CheckBox x:Name="VignetteToggle" Grid.Column="1"
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Vignette}" x:Name="VignetteToggle" Grid.Column="1"
                                                       Style="{StaticResource SettingsToggle}"
                                                       Checked="VignetteToggle_Changed" Unchecked="VignetteToggle_Changed"/>
                                         </Grid>
@@ -3095,7 +3095,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                                    Text="{DynamicResource S.Appearance.AnimationsDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="AnimationsToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Animations}" x:Name="AnimationsToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="AnimationsToggle_Changed" Unchecked="AnimationsToggle_Changed"/>
                                 </Grid>
@@ -3113,7 +3113,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                                    Text="{DynamicResource S.Appearance.CompactComposerDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="CompactComposerToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.CompactComposer}" x:Name="CompactComposerToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="CompactComposerToggle_Changed"
                                               Unchecked="CompactComposerToggle_Changed"/>
@@ -3131,7 +3131,7 @@
                                             <TextBlock Style="{StaticResource SettingDesc}"
                                                        Text="{DynamicResource S.Appearance.MouseReactionDesc}"/>
                                         </StackPanel>
-                                        <CheckBox x:Name="CompactHoverToggle" Grid.Column="1"
+                                        <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.MouseReaction}" x:Name="CompactHoverToggle" Grid.Column="1"
                                                   Style="{StaticResource SettingsToggle}"
                                                   Checked="CompactHoverToggle_Changed"
                                                   Unchecked="CompactHoverToggle_Changed"/>
@@ -3207,7 +3207,7 @@
 
                                 <Grid>
                                     <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.AutoScroll}" VerticalAlignment="Center"/>
-                                    <CheckBox x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Behavior.AutoScroll}" x:Name="AutoScrollToggle" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right" IsChecked="True" Checked="AutoScrollToggle_Changed" Unchecked="AutoScrollToggle_Changed"/>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <!-- Номера строк у блоков кода (D13). -->
@@ -3232,7 +3232,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Behavior.RememberWindowDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="RememberWindowSizeToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Behavior.RememberWindow}" x:Name="RememberWindowSizeToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
                                               Checked="RememberWindowSizeToggle_Changed"
                                               Unchecked="RememberWindowSizeToggle_Changed"/>
@@ -3248,7 +3248,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Behavior.NotifyOnCompleteDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="NotifyOnCompleteToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Behavior.NotifyOnComplete}" x:Name="NotifyOnCompleteToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
                                               Checked="NotifyOnCompleteToggle_Changed"
                                               Unchecked="NotifyOnCompleteToggle_Changed"/>
@@ -3264,7 +3264,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Behavior.NotifySoundDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="NotifySoundToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Behavior.NotifySound}" x:Name="NotifySoundToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
                                               Checked="NotifySoundToggle_Changed"
                                               Unchecked="NotifySoundToggle_Changed"/>
@@ -3484,7 +3484,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                                    Text="{DynamicResource S.Customize.GuardDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="SynGuardToggle" Grid.Column="1"
+                                    <CheckBox x:Name="SynGuardToggle" AutomationProperties.Name="SynGuard" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="SynGuardToggle_Changed" Unchecked="SynGuardToggle_Changed"/>
                                 </Grid>
@@ -3708,7 +3708,7 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Data.SharingDesc}"/>
                                     </StackPanel>
-                                    <CheckBox x:Name="ChatSharingToggle" Grid.Column="1"
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Data.Sharing}" x:Name="ChatSharingToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="ChatSharingToggle_Changed"
                                               Unchecked="ChatSharingToggle_Changed"/>
@@ -3865,7 +3865,7 @@
                                                 <TextBlock Style="{StaticResource SettingDesc}"
                                                            Text="{DynamicResource S.Updates.AutoDesc}"/>
                                             </StackPanel>
-                                            <CheckBox x:Name="AutoUpdateToggle" Grid.Column="1"
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Updates.Auto}" x:Name="AutoUpdateToggle" Grid.Column="1"
                                                       Style="{StaticResource SettingsToggle}"
                                                       Checked="AutoUpdateToggle_Changed"
                                                       Unchecked="AutoUpdateToggle_Changed"/>

@@ -686,6 +686,9 @@ public partial class SettingsKeyPage : UserControl
         };
         choose.Checked += (_, _) => MakeActive(entry);
 
+        // Диктору — какой это ключ, а не только «активный»: подсказка у всех строк одинаковая (I1).
+        System.Windows.Automation.AutomationProperties.SetName(choose, entry.Label);
+
         var label = new TextBlock
         {
             Text = entry.Label,
