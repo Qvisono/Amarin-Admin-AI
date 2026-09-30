@@ -26,7 +26,7 @@ internal static class Program
 
         if (route == StartupRoute.SmokeTools)
         {
-            return RunSmokeTools();
+            return RunSmokeTools(startup.SmokeReportPath);
         }
 
         if (route == StartupRoute.ApplyUpdate)
@@ -442,20 +442,31 @@ internal static class Program
         };
     }
 
-    private static int RunSmokeTools()
+    /// <param name="reportPath">
+    /// Файл для итога (<c>--smoke-report</c>): тогда консоль не открывается вовсе — её окно
+    /// некому читать, а итог Markdown-таблицей уходит туда, откуда его возьмёт CI.
+    /// </param>
+    private static int RunSmokeTools(string? reportPath)
     {
-        AllocConsole();
-        ConsoleEncoding.Configure();
-        return RunToolSmokeTestAsync().GetAwaiter().GetResult();
+        if (reportPath is null)
+        {
+            AllocConsole();
+            ConsoleEncoding.Configure();
+        }
+
+        return RunToolSmokeTestAsync(reportPath).GetAwaiter().GetResult();
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool AllocConsole();
 
-    private static async Task<int> RunToolSmokeTestAsync()
+    private static async Task<int> RunToolSmokeTestAsync(string? reportPath)
     {
-        Console.WriteLine("Amarin - smoke-test локальных инструментов (без Venice API)…");
-        Console.WriteLine();
+        if (reportPath is null)
+        {
+            Console.WriteLine("Amarin - smoke-test локальных инструментов (без Venice API)…");
+            Console.WriteLine();
+        }
 
         var registry = new ToolRegistry(
         [
@@ -497,27 +508,37 @@ internal static class Program
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         var results = await ToolSmokeRunner.RunAsync(registry, cts.Token);
 
-        var passed = 0;
-        var failed = 0;
+        var exitCode = ToolSmokeRunner.ExitCode(results);
+        PerfLog.Write($"smoke_complete {ToolSmokeRunner.Totals(results)} memory={GC.GetTotalMemory(false)}");
+
+        if (reportPath is not null)
+        {
+            try
+            {
+                var full = Path.GetFullPath(reportPath);
+                if (Path.GetDirectoryName(full) is { Length: > 0 } folder)
+                {
+                    Directory.CreateDirectory(folder);
+                }
+
+                await File.WriteAllTextAsync(full, ToolSmokeRunner.FormatReport(results), new System.Text.UTF8Encoding(false));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                // Некуда записать итог — прогон не удался, как бы ни прошли инструменты.
+                return 2;
+            }
+
+            return exitCode;
+        }
 
         foreach (var result in results)
         {
-            var status = result.Success ? "OK" : "FAIL";
-            if (result.Success)
-            {
-                passed++;
-            }
-            else
-            {
-                failed++;
-            }
-
-            Console.WriteLine($"[{status,-4}] {result.ToolName,-22} {result.ElapsedMs,5} ms  {result.Summary}");
+            Console.WriteLine($"[{result.Status,-4}] {result.ToolName,-22} {result.ElapsedMs,5} ms  {result.Summary}");
         }
 
         Console.WriteLine();
-        Console.WriteLine($"Итого: {passed} OK, {failed} FAIL из {results.Count}.");
-        PerfLog.Write($"smoke_complete ok={passed} fail={failed} memory={GC.GetTotalMemory(false)}");
-        return failed > 0 ? 1 : 0;
+        Console.WriteLine(ToolSmokeRunner.Totals(results));
+        return exitCode;
     }
 }

@@ -4,7 +4,7 @@ namespace Amarin.UI;
 
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
-/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>,
+/// <c>--send</c>, <c>--smoke-tools</c>, <c>--smoke-report</c>, <c>--await-exit</c>, <c>--apply-update</c>,
 /// <c>--rollback-update</c>, <c>--wipe</c>,
 /// <c>--open-chat</c> и действия интеграции с Windows (G): <c>--new-chat</c>, <c>--health</c>,
 /// <c>--tray</c>, <c>--ask-path</c>.
@@ -34,6 +34,13 @@ internal sealed class StartupArgs
     public bool ShouldSend => Send && !string.IsNullOrWhiteSpace(Prompt);
 
     public bool SmokeTools { get; private set; }
+
+    /// <summary>
+    /// Куда записать итог прогона инструментов (<c>--smoke-report &lt;файл&gt;</c>, H6). Включает
+    /// <see cref="SmokeTools"/> сам. Нужен CI: программа собрана как оконная, и <c>AllocConsole</c>
+    /// открывает новое окно консоли, которое раннер не читает, — вывод обязан уйти в файл.
+    /// </summary>
+    public string? SmokeReportPath { get; private set; }
 
     /// <summary>
     /// Дождаться выхода этого процесса перед всем остальным; <c>null</c> — ждать некого.
@@ -110,6 +117,17 @@ internal sealed class StartupArgs
             if (a.Equals("--smoke-tools", StringComparison.OrdinalIgnoreCase))
             {
                 result.SmokeTools = true;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--smoke-report", out var report))
+            {
+                if (!string.IsNullOrWhiteSpace(report))
+                {
+                    result.SmokeReportPath = report;
+                    result.SmokeTools = true;
+                }
+
                 continue;
             }
 
