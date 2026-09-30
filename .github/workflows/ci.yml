@@ -33,6 +33,23 @@ jobs:
         timeout-minutes: 25
         run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj -c Release --no-build --filter "Category!=Wpf" --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=minimal" --results-directory test-results
 
+      # Сколько тестов прошло — чтобы «зелёно» не значило «ничего не запустилось».
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem test-results -Recurse -Filter *.trx -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $trx) { 'No test results were written.' >> $env:GITHUB_STEP_SUMMARY; exit 0 }
+          [xml]$doc = Get-Content -Raw $trx.FullName
+          $c = $doc.TestRun.ResultSummary.Counters
+          $line = "Tests: $($c.total) total, $($c.passed) passed, $($c.failed) failed, $($c.notExecuted) skipped"
+          $line
+          "### $line" >> $env:GITHUB_STEP_SUMMARY
+          $ns = @{ t = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010' }
+          Select-Xml -Xml $doc -XPath "//t:UnitTestResult[@outcome='Failed']" -Namespace $ns | ForEach-Object Node | ForEach-Object {
+            "- $($_.testName): $((("$($_.Output.ErrorInfo.Message)" -split "`n") | Select-Object -First 1))" >> $env:GITHUB_STEP_SUMMARY
+          }
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
