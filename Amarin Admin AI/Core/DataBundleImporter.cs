@@ -725,6 +725,12 @@ public sealed class DataBundleImporter
         incoming.EncryptChats = mine.EncryptChats;
         incoming.AutoLockMinutes = mine.AutoLockMinutes;
 
+        // Лимиты трат (E1) — тоже защита, и по тому же правилу. Резервные копии (F1) и хранение
+        // чатов (F3) — настройки этой машины: папка с чужого ПК здесь бессмысленна, а
+        // автоудаление старых чатов, приехавшее в архиве, стёрло бы переписки без спроса.
+        incoming.SpendLimits = mine.SpendLimits;
+        incoming.Backup = mine.Backup;
+
         store.Save(incoming);
         state.SettingsChanged = true;
     }

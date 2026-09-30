@@ -230,6 +230,9 @@ public sealed class AppSettings
     /// <summary>Пороги остатка (E4). Заводские — прежние константы плашки: $1 и $0.25.</summary>
     public BalanceThresholds BalanceThresholds { get; set; } = new();
 
+    /// <summary>Автоматические резервные копии (F1). Заводское — выключены.</summary>
+    public BackupSettings Backup { get; set; } = new();
+
     /// <summary>
     /// Ключ, назначенный слоту: имя слота — идентификатор ключа из <c>keys.json</c>.
     /// </summary>

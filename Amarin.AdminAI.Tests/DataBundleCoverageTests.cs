@@ -30,7 +30,11 @@ public sealed class DataBundleCoverageTests
         nameof(AppSettings.ApprovalMode),
         nameof(AppSettings.DisabledTools),
         nameof(AppSettings.EncryptChats),
-        nameof(AppSettings.AutoLockMinutes)
+        nameof(AppSettings.AutoLockMinutes),
+
+        // Лимиты трат — защита по тому же правилу; резервные копии — настройки этой машины.
+        nameof(AppSettings.SpendLimits),
+        nameof(AppSettings.Backup)
     ];
 
     [Fact]

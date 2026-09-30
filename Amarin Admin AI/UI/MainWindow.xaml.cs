@@ -336,6 +336,7 @@ namespace Amarin.UI
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
             StartSchedule();
+            StartBackups();
             StartTextIndexBuild();
 
             // Запрос из командной строки только ложится в поле, как и переданный уже открытому

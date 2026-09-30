@@ -3743,6 +3743,8 @@
                                     </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource SettingsDivider}"/>
+                                <local:BackupBlock x:Name="BackupPanel"/>
+                                <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>

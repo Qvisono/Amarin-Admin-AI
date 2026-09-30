@@ -213,6 +213,24 @@
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Drag the image with the mouse; the wheel or the slider sets the zoom.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Profile picture area</system:String>
 
+    <system:String x:Key="S.Backup.Choose" xml:space="preserve">Choose…</system:String>
+    <system:String x:Key="S.Backup.Daily" xml:space="preserve">Every day</system:String>
+    <system:String x:Key="S.Backup.Desc" xml:space="preserve">A scheduled archive of all app data, the same as the export.</system:String>
+    <system:String x:Key="S.Backup.Failed" xml:space="preserve">The backup at {0} failed: {1}. The next try is in an hour.</system:String>
+    <system:String x:Key="S.Backup.FailedNotice" xml:space="preserve">The backup failed: {0}</system:String>
+    <system:String x:Key="S.Backup.Folder" xml:space="preserve">Backup folder</system:String>
+    <system:String x:Key="S.Backup.FolderFailed" xml:space="preserve">Could not open the folder: {0}</system:String>
+    <system:String x:Key="S.Backup.InsideData" xml:space="preserve">Backups cannot go into the app's data folder: they must survive Delete all data.</system:String>
+    <system:String x:Key="S.Backup.KeepLabel" xml:space="preserve">Keep the last</system:String>
+    <system:String x:Key="S.Backup.KeepUnit" xml:space="preserve">copies</system:String>
+    <system:String x:Key="S.Backup.Last" xml:space="preserve">Last backup: {0} · {1}</system:String>
+    <system:String x:Key="S.Backup.Never" xml:space="preserve">No backups yet.</system:String>
+    <system:String x:Key="S.Backup.NoKeys" xml:space="preserve">API keys, the spending log, drafts and machine passwords are not included, just as in the export.</system:String>
+    <system:String x:Key="S.Backup.Plain" xml:space="preserve">Chats are encrypted on disk but backups are not: keep the backup folder somewhere safe.</system:String>
+    <system:String x:Key="S.Backup.RunNow" xml:space="preserve">Back up now</system:String>
+    <system:String x:Key="S.Backup.Running" xml:space="preserve">Backing up…</system:String>
+    <system:String x:Key="S.Backup.Title" xml:space="preserve">Backups</system:String>
+    <system:String x:Key="S.Backup.Weekly" xml:space="preserve">Once a week</system:String>
     <system:String x:Key="S.Balance.AlertCritical" xml:space="preserve">Funds are nearly gone: {0}, threshold {1}.</system:String>
     <system:String x:Key="S.Balance.AlertKey" xml:space="preserve">Key “{0}” has {1} left, below {2}.</system:String>
     <system:String x:Key="S.Balance.AlertLow" xml:space="preserve">Balance is {0}, below the {1} threshold.</system:String>

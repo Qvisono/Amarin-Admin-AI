@@ -213,6 +213,24 @@
     <system:String x:Key="S.Avatar.Desc" xml:space="preserve">Перетащите изображение мышью, колесо или ползунок - масштаб.</system:String>
     <system:String x:Key="S.Avatar.Title" xml:space="preserve">Область фото профиля</system:String>
 
+    <system:String x:Key="S.Backup.Choose" xml:space="preserve">Выбрать…</system:String>
+    <system:String x:Key="S.Backup.Daily" xml:space="preserve">Каждый день</system:String>
+    <system:String x:Key="S.Backup.Desc" xml:space="preserve">Архив всех данных программы по расписанию — тот же, что у экспорта.</system:String>
+    <system:String x:Key="S.Backup.Failed" xml:space="preserve">Копия {0} не удалась: {1}. Следующая попытка — через час.</system:String>
+    <system:String x:Key="S.Backup.FailedNotice" xml:space="preserve">Резервная копия не удалась: {0}</system:String>
+    <system:String x:Key="S.Backup.Folder" xml:space="preserve">Папка для копий</system:String>
+    <system:String x:Key="S.Backup.FolderFailed" xml:space="preserve">Не удалось открыть папку: {0}</system:String>
+    <system:String x:Key="S.Backup.InsideData" xml:space="preserve">Копии нельзя класть в папку данных программы: они должны пережить «Удалить все данные».</system:String>
+    <system:String x:Key="S.Backup.KeepLabel" xml:space="preserve">Хранить последние</system:String>
+    <system:String x:Key="S.Backup.KeepUnit" xml:space="preserve">копий</system:String>
+    <system:String x:Key="S.Backup.Last" xml:space="preserve">Последняя копия: {0} · {1}</system:String>
+    <system:String x:Key="S.Backup.Never" xml:space="preserve">Копий ещё не было.</system:String>
+    <system:String x:Key="S.Backup.NoKeys" xml:space="preserve">Ключи API, журнал трат, черновики и пароли машин в копию не входят — как и в экспорт.</system:String>
+    <system:String x:Key="S.Backup.Plain" xml:space="preserve">Чаты на диске зашифрованы, а копии — нет: храните папку копий в защищённом месте.</system:String>
+    <system:String x:Key="S.Backup.RunNow" xml:space="preserve">Сделать копию сейчас</system:String>
+    <system:String x:Key="S.Backup.Running" xml:space="preserve">Копия делается…</system:String>
+    <system:String x:Key="S.Backup.Title" xml:space="preserve">Резервные копии</system:String>
+    <system:String x:Key="S.Backup.Weekly" xml:space="preserve">Раз в неделю</system:String>
     <system:String x:Key="S.Balance.AlertCritical" xml:space="preserve">Средства почти закончились: {0}, порог {1}.</system:String>
     <system:String x:Key="S.Balance.AlertKey" xml:space="preserve">На ключе «{0}» осталось {1} — меньше {2}.</system:String>
     <system:String x:Key="S.Balance.AlertLow" xml:space="preserve">Остаток {0} — меньше порога {1}.</system:String>

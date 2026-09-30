@@ -148,7 +148,16 @@ namespace Amarin.UI
         /// настроек: страница запоминается между открытиями, так что вернувшийся на неё увидит
         /// свежий счёт, а остальные за него не платят.
         /// </summary>
-        private void NavData_Checked(object sender, RoutedEventArgs e) =>
+        private void NavData_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_services is not null)
+            {
+                BackupPanel.RunNow ??= () => RunBackupAsync(manual: true);
+                BackupPanel.Load(_services);
+                BackupPanel.ShowStatus(_services.Settings.Backup ?? new BackupSettings(), _backupRunning);
+            }
+
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
+        }
     }
 }
