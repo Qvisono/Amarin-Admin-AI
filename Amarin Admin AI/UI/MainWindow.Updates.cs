@@ -940,10 +940,10 @@ namespace Amarin.UI
             _updateHeartbeat?.Stop();
 
             // После ручной установки файл уже новый — доводить нечего.
-            // Выход ради стирания данных обновление не доводит: преемник ждёт этот процесс не
+            // Выход ради стирания данных (и перезапуска от администратора) обновление не доводит: преемник ждёт этот процесс не
             // дольше полуминуты, а загрузка без окна длилась бы до ExitLimit — преемник отдал бы
             // запрос живому владельцу и вышел, и человек остался бы без окна и без стирания.
-            var finishUpdate = !_swapStarted && !_wipeRestart && (_staged is not null || UpdatePendingForExit);
+            var finishUpdate = !_swapStarted && !_wipeRestart && !_elevationRestart && (_staged is not null || UpdatePendingForExit);
             if (finishUpdate)
             {
                 HideForBackgroundExit();

@@ -1233,15 +1233,29 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="TitleText" Style="{StaticResource TitleUrbanist}" Text="Amarin Admin AI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Column="1">
-                        <Border Width="32" Height="32" x:Name="Warn"
-        Background="Transparent"
-        CornerRadius="4"
+                        <!-- Кнопка, а не значок: щелчок перезапускает программу от администратора (C9). -->
+                        <Button Width="32" Height="32" x:Name="Warn"
+        Cursor="Hand"
+        Click="Warn_Click"
+        AutomationProperties.Name="{DynamicResource S.Elevation.Restart}"
         ToolTipService.Placement="Custom"
         ToolTipService.HorizontalOffset="0"
         ToolTipService.VerticalOffset="6"
         ToolTipService.InitialShowDelay="150"
         ToolTipService.ShowDuration="20000">
-                            <Border.ToolTip>
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="4">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Status.WarningSurface}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <Button.ToolTip>
                                 <ToolTip Background="Transparent"
                  BorderThickness="0"
                  Padding="0"
@@ -1277,24 +1291,31 @@
                                            Foreground="{DynamicResource Status.Warning}"
                                            VerticalAlignment="Top"
                                            Margin="0,1,8,0"/>
-                                                        <TextBlock Text="{DynamicResource S.Chrome.NotAdmin}"
+                                                        <StackPanel MaxWidth="196">
+                                                            <TextBlock Text="{DynamicResource S.Chrome.NotAdmin}"
                                            FontSize="11.5"
                                            Foreground="{DynamicResource Text.Secondary}"
                                            TextWrapping="Wrap"
-                                           LineHeight="15"
-                                           MaxWidth="196"/>
+                                           LineHeight="15"/>
+                                                            <TextBlock Text="{DynamicResource S.Chrome.NotAdminAction}"
+                                           FontSize="11"
+                                           Margin="0,5,0,0"
+                                           Foreground="{DynamicResource Text.Muted}"
+                                           TextWrapping="Wrap"
+                                           LineHeight="14"/>
+                                                        </StackPanel>
                                                     </StackPanel>
                                                 </Border>
                                             </Grid>
                                         </ControlTemplate>
                                     </ToolTip.Template>
                                 </ToolTip>
-                            </Border.ToolTip>
+                            </Button.ToolTip>
 
                             <Image Source="{DynamicResource Alert}"
            Stretch="Uniform"
            Margin="6" />
-                        </Border>
+                        </Button>
                         <Button Style="{StaticResource LockChromeButton}"
                                 Tag="{DynamicResource Minimize}"
                                 Click="MinimizeButton_Click"/>

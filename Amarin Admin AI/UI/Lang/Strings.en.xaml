@@ -325,6 +325,7 @@
 
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
+    <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Click to restart as administrator.</system:String>
     <system:String x:Key="S.ColorPicker.ByTheme" xml:space="preserve">from theme</system:String>
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Back to the theme colour</system:String>
@@ -378,6 +379,11 @@
     <system:String x:Key="S.DataSafety.Restored" xml:space="preserve">{0} was damaged and has been restored from the backup made at the last successful save.</system:String>
     <system:String x:Key="S.DataSafety.Show" xml:space="preserve">Show the file</system:String>
     <system:String x:Key="S.DataSafety.Title" xml:space="preserve">A data file was damaged</system:String>
+    <system:String x:Key="S.Elevation.Failed" xml:space="preserve">Couldn't start the app as administrator. Try it by hand: right-click the icon and choose "Run as administrator".</system:String>
+    <system:String x:Key="S.Elevation.Restart" xml:space="preserve">Restart as administrator</system:String>
+    <system:String x:Key="S.Elevation.StopsTurns" xml:space="preserve">Replies in progress will be stopped: {0}.</system:String>
+    <system:String x:Key="S.Elevation.Text" xml:space="preserve">The app will close and reopen with administrator rights, in the same chat and with the text you've typed. Windows will ask for permission.&#10;&#10;If you sign in with a different Windows account, that account's data opens: each account has its own chats, settings and keys.</system:String>
+    <system:String x:Key="S.Elevation.Title" xml:space="preserve">Restart as administrator?</system:String>
     <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">The agent has finished - preparing the report</system:String>
     <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">cancelled</system:String>
     <system:String x:Key="S.Engine.StartingAgent" xml:space="preserve">Starting the agent</system:String>

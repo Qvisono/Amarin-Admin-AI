@@ -108,6 +108,9 @@ internal sealed class AppServices : IDisposable
     /// <summary>Этот запуск стёр данные профиля по просьбе прежнего; null — не стирал.</summary>
     public WipeResult? StartupWipe { get; init; }
 
+    /// <summary>Чат из <c>--open-chat</c>: открыть его при запуске.</summary>
+    public string? StartupChatId { get; init; }
+
     /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
     public required string EnvironmentKey { get; init; }
 

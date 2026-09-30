@@ -323,8 +323,9 @@
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Открепить</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Вчера</system:String>
 
-    <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
+    <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Программа запущена без прав администратора: многие действия недоступны</system:String>
 
+    <system:String x:Key="S.Chrome.NotAdminAction" xml:space="preserve">Щёлкните, чтобы перезапустить от имени администратора.</system:String>
     <system:String x:Key="S.ColorPicker.ByTheme" xml:space="preserve">по теме</system:String>
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Сброс</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>
@@ -378,6 +379,11 @@
     <system:String x:Key="S.DataSafety.Restored" xml:space="preserve">Файл {0} оказался повреждён — восстановлен из запасной копии, сделанной при последнем удачном сохранении.</system:String>
     <system:String x:Key="S.DataSafety.Show" xml:space="preserve">Показать файл</system:String>
     <system:String x:Key="S.DataSafety.Title" xml:space="preserve">Файл данных был повреждён</system:String>
+    <system:String x:Key="S.Elevation.Failed" xml:space="preserve">Не удалось запустить программу от имени администратора. Попробуйте запустить её так вручную: правой кнопкой по значку — «Запуск от имени администратора».</system:String>
+    <system:String x:Key="S.Elevation.Restart" xml:space="preserve">Перезапустить от имени администратора</system:String>
+    <system:String x:Key="S.Elevation.StopsTurns" xml:space="preserve">Идущие ответы будут остановлены: {0}.</system:String>
+    <system:String x:Key="S.Elevation.Text" xml:space="preserve">Программа закроется и откроется снова с правами администратора — в том же чате и с набранным текстом. Windows спросит разрешение.&#10;&#10;Если войти под другой учётной записью Windows, откроются её данные: переписки, настройки и ключи у каждой учётной записи свои.</system:String>
+    <system:String x:Key="S.Elevation.Title" xml:space="preserve">Перезапустить от имени администратора?</system:String>
     <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">Агент завершил работу - готовлю отчёт</system:String>
     <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">отменено</system:String>
     <system:String x:Key="S.Engine.StartingAgent" xml:space="preserve">Запускаю агента</system:String>

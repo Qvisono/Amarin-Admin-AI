@@ -4,7 +4,8 @@ namespace Amarin.UI;
 
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
-/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c> и <c>--wipe</c>.
+/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>, <c>--wipe</c> и
+/// <c>--open-chat</c>.
 /// </summary>
 /// <remarks>
 /// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
@@ -67,6 +68,17 @@ internal sealed class StartupArgs
     /// </summary>
     public string? WipeToken { get; private set; }
 
+    /// <summary>
+    /// Чат, который открыть при запуске, — так перезапуск от администратора возвращает человека
+    /// туда, где он был. Только идентификатор вида, который пишет <see cref="ChatStore"/>: он
+    /// становится именем файла, и путь из командной строки сюда не пройдёт.
+    /// </summary>
+    public string? OpenChatId { get; private set; }
+
+    internal static bool IsChatId(string? value) =>
+        !string.IsNullOrEmpty(value) && value.Length <= 64 &&
+        value.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
+
     public static StartupArgs Parse(string[] args)
     {
         var result = new StartupArgs();
@@ -119,6 +131,12 @@ internal sealed class StartupArgs
             if (TryTakeValue(args, ref i, "--wipe", out var wipe))
             {
                 result.WipeToken = string.IsNullOrWhiteSpace(wipe) ? null : wipe;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--open-chat", out var chat))
+            {
+                result.OpenChatId = IsChatId(chat) ? chat : null;
                 continue;
             }
 

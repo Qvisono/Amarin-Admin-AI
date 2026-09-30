@@ -312,6 +312,12 @@ namespace Amarin.UI
 
             // Запрос из командной строки только ложится в поле, как и переданный уже открытому
             // окну; сам уходит лишь с явным --send (см. StartupArgs.Send).
+            // Перезапуск от администратора (--open-chat) возвращает в тот чат, где человек был.
+            if (_services.StartupChatId is { } startupChat)
+            {
+                OpenChat(startupChat);
+            }
+
             PlaceIncomingPrompt(_services.StartupPrompt, _services.StartupSend);
 
             // Этот запуск стёр данные по просьбе прежнего — сказать об этом, а о неудаче тем более.

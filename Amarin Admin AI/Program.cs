@@ -344,7 +344,8 @@ internal static class Program
                 () => options.Audit),
             StartupPrompt = startup.Prompt,
             StartupSend = startup.ShouldSend,
-            StartupWipe = wiped
+            StartupWipe = wiped,
+            StartupChatId = startup.OpenChatId
         };
 
         var disposable = services;
