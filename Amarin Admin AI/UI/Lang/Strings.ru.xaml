@@ -1736,6 +1736,16 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
 
     <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Вывод длинный: модель видела только его начало. Целиком — в журнале.</system:String>
+    <system:String x:Key="S.TranslationEditor.Desc" xml:space="preserve">Поправленные строки помечаются: новый перевод этого языка моделью их не тронет. Плейсхолдеры вида {0} должны остаться на месте.</system:String>
+    <system:String x:Key="S.TranslationEditor.Edited" xml:space="preserve">правлено</system:String>
+    <system:String x:Key="S.TranslationEditor.Open" xml:space="preserve">Править перевод</system:String>
+    <system:String x:Key="S.TranslationEditor.Placeholders" xml:space="preserve">Плейсхолдеры не совпадают с оригиналом.</system:String>
+    <system:String x:Key="S.TranslationEditor.Problems" xml:space="preserve">Не сохранено: строк с неверными плейсхолдерами — {0}.</system:String>
+    <system:String x:Key="S.TranslationEditor.Retranslate" xml:space="preserve">Перевести заново</system:String>
+    <system:String x:Key="S.TranslationEditor.Search" xml:space="preserve">Поиск по ключу, оригиналу и переводу</system:String>
+    <system:String x:Key="S.TranslationEditor.Title" xml:space="preserve">Перевод: {0}</system:String>
+    <system:String x:Key="S.TranslationEditor.TranslateFailed" xml:space="preserve">Модель не перевела строку — проверьте ключ и сеть.</system:String>
+    <system:String x:Key="S.TranslationEditor.Translating" xml:space="preserve">Перевожу строку…</system:String>
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">Команда /agent не принимает вложения.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">Команда /agent не принимает цитаты.&#10;Уберите их или отправьте обычным сообщением.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Чат «{0}» - ответ не получен</system:String>

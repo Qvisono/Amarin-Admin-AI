@@ -1725,6 +1725,7 @@ namespace Amarin.UI
                 LoadHotkeysUi(settings);
                 ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
             LanguagePicker.SetSelected(settings.LanguageCode);
+            UpdateTranslationEditButton();
                 LoadAccountUi();
                 LoadUpdatesUi();
                 RefreshAllowedDomainsUi();

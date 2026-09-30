@@ -29,6 +29,64 @@ namespace Amarin.UI
             _services.Settings.LanguageCode = code;
             _services.SettingsStore.Save(_services.Settings);
             LanguageManager.Apply(code);
+            UpdateTranslationEditButton();
+        }
+
+        /// <summary>«Править перевод» — только у языка, переведённого моделью: встроенные правят в коде.</summary>
+        private void UpdateTranslationEditButton() =>
+            EditTranslationButton.Visibility = LanguageManager.IsBuiltIn(LanguageManager.Current) ||
+                                               !UserLanguageStore.Exists(LanguageManager.Current)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+        private void EditTranslationButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var code = LanguageManager.Current;
+            var name = UserLanguageStore.NameOf(code) ?? code;
+            TranslationEditor.Retranslate ??= RetranslateOneAsync;
+            if (!_translationEditorWired)
+            {
+                _translationEditorWired = true;
+                TranslationEditor.Saved += saved =>
+                {
+                    // force: код тот же, а строки в словаре уже новые.
+                    LanguageManager.Apply(saved, force: true);
+                };
+            }
+
+            TranslationEditor.Show(code, name);
+        }
+
+        private bool _translationEditorWired;
+
+        /// <summary>Перевести заново одну строку — тем же переводчиком, что и весь язык.</summary>
+        private async Task<string?> RetranslateOneAsync(string key, string original)
+        {
+            if (_services is null || string.IsNullOrWhiteSpace(_services.Options.ApiKey))
+            {
+                return null;
+            }
+
+            var code = LanguageManager.Current;
+            var translator = new LanguageTranslator(_services.Venice, () => _services.Models.Cached);
+            try
+            {
+                var result = await translator.TranslateAsync(
+                    new Dictionary<string, string> { [key] = original },
+                    UserLanguageStore.NameOf(code) ?? code,
+                    null,
+                    CancellationToken.None);
+                return result.Success ? result.Strings.GetValueOrDefault(key) : null;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                return null;
+            }
         }
 
         private void LanguagePicker_LanguageDeleteRequested(object? sender, UiLanguage language)
@@ -106,10 +164,13 @@ namespace Amarin.UI
             var translator = new LanguageTranslator(_services.Venice, () => _services.Models.Cached);
             LanguagePicker.ShowProgress(Loc.Format("S.Language.Progress", 0, 1));
 
+            // Язык уже переводили: поправленное руками (I4) модели не отправляется и остаётся как есть.
+            var existing = UserLanguageStore.ReadMap(LanguageTranslator.CodeFor(languageName));
+
             try
             {
                 var result = await translator.TranslateAsync(
-                    StringsRu.Values,
+                    TranslationEdits.ToTranslate(StringsRu.Values, existing),
                     languageName.Trim(),
                     step => Ui(() => LanguagePicker.ShowProgress(
                         Loc.Format("S.Language.Progress", step.Done, step.Total))),
@@ -122,11 +183,10 @@ namespace Amarin.UI
                 }
 
                 var code = LanguageTranslator.CodeFor(languageName);
-                var strings = new Dictionary<string, string>(result.Strings, StringComparer.Ordinal)
-                {
-                    // Имя языка на нём самом — по нему его и выбирают в списке.
-                    [UserLanguageStore.NameKey] = languageName.Trim()
-                };
+                var strings = TranslationEdits.Merge(existing, result.Strings);
+
+                // Имя языка на нём самом — по нему его и выбирают в списке.
+                strings[UserLanguageStore.NameKey] = languageName.Trim();
 
                 UserLanguageStore.Save(code, strings);
                 _services.Settings.LanguageCode = code;
@@ -136,6 +196,7 @@ namespace Amarin.UI
                 // выглядел бы прежним — а строки в нём уже новые.
                 LanguageManager.Apply(code, force: true);
                 LanguagePicker.Rebuild();
+                UpdateTranslationEditButton();
                 LanguagePicker.ShowProgress(Loc.Get("S.Language.Done"));
             }
             catch (OperationCanceledException)
@@ -159,6 +220,7 @@ namespace Amarin.UI
             }
 
             LanguagePicker.SetSelected(LanguageManager.Current);
+            UpdateTranslationEditButton();
             UpdateModelButton();
             UpdateReasoningPicker();
 

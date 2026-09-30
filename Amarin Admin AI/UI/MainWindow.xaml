@@ -3281,11 +3281,18 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
        Text="{DynamicResource S.Language.Desc}"/>
                                     </StackPanel>
-                                    <local:LanguagePickerField x:Name="LanguagePicker" Grid.Column="1"
-                                                               MinWidth="170" VerticalAlignment="Center"
-                                                               LanguagePicked="LanguagePicker_LanguagePicked"
-                                                               NewLanguageRequested="LanguagePicker_NewLanguageRequested"
-                               LanguageDeleteRequested="LanguagePicker_LanguageDeleteRequested"/>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <local:LanguagePickerField x:Name="LanguagePicker"
+                                                                   MinWidth="170"
+                                                                   LanguagePicked="LanguagePicker_LanguagePicked"
+                                                                   NewLanguageRequested="LanguagePicker_NewLanguageRequested"
+                                   LanguageDeleteRequested="LanguagePicker_LanguageDeleteRequested"/>
+                                        <!-- Правка машинного перевода (I4): только у переведённого моделью языка. -->
+                                        <Button x:Name="EditTranslationButton" Style="{StaticResource InlineLinkButton}"
+                                                HorizontalAlignment="Right" Margin="0,4,0,0" Visibility="Collapsed"
+                                                Content="{DynamicResource S.TranslationEditor.Open}"
+                                                Click="EditTranslationButton_Click"/>
+                                    </StackPanel>
                                 </Grid>
 
                                 <!--
@@ -4494,6 +4501,7 @@
         <local:WorkReportOverlay x:Name="ReportOverlay" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:HotkeySheetOverlay x:Name="HotkeySheet" Visibility="Collapsed" Panel.ZIndex="29"/>
         <local:ChatSettingsOverlay x:Name="ChatSettings" Visibility="Collapsed" Panel.ZIndex="29"/>
+        <local:TranslationEditorOverlay x:Name="TranslationEditor" Visibility="Collapsed" Panel.ZIndex="29"/>
         <!--
             Перетаскивание на всё окно (D15). Появляется, когда файл внесли в окно, и накрывает его
             целиком: дальше события получает только он, и уход курсора с него — это уход из окна.

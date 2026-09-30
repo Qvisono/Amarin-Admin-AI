@@ -1736,6 +1736,16 @@
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
 
     <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Long output: the model saw only its beginning. The full text is in the journal.</system:String>
+    <system:String x:Key="S.TranslationEditor.Desc" xml:space="preserve">Edited lines are marked, and a new model translation of this language leaves them alone. Placeholders like {0} must stay.</system:String>
+    <system:String x:Key="S.TranslationEditor.Edited" xml:space="preserve">edited</system:String>
+    <system:String x:Key="S.TranslationEditor.Open" xml:space="preserve">Edit translation</system:String>
+    <system:String x:Key="S.TranslationEditor.Placeholders" xml:space="preserve">The placeholders do not match the original.</system:String>
+    <system:String x:Key="S.TranslationEditor.Problems" xml:space="preserve">Not saved: lines with wrong placeholders — {0}.</system:String>
+    <system:String x:Key="S.TranslationEditor.Retranslate" xml:space="preserve">Translate again</system:String>
+    <system:String x:Key="S.TranslationEditor.Search" xml:space="preserve">Search keys, originals and translations</system:String>
+    <system:String x:Key="S.TranslationEditor.Title" xml:space="preserve">Translation: {0}</system:String>
+    <system:String x:Key="S.TranslationEditor.TranslateFailed" xml:space="preserve">The model did not translate the line; check the key and the network.</system:String>
+    <system:String x:Key="S.TranslationEditor.Translating" xml:space="preserve">Translating the line…</system:String>
     <system:String x:Key="S.Turn.AgentNoAttachments" xml:space="preserve">The /agent command takes no attachments.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.AgentNoQuotes" xml:space="preserve">The /agent command takes no quotes.&#10;Remove them or send them as an ordinary message.</system:String>
     <system:String x:Key="S.Turn.BackgroundFailed" xml:space="preserve">Chat "{0}" - no answer</system:String>

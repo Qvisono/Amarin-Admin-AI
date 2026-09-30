@@ -299,6 +299,9 @@ internal static class UserLanguageStore
         }
     }
 
+    /// <summary>Весь файл языка, со служебными ключами, — для редактора перевода (I4).</summary>
+    public static Dictionary<string, string>? ReadMap(string code) => Read(code);
+
     private static Dictionary<string, string>? Read(string code)
     {
         try
