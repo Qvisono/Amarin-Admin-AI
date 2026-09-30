@@ -577,6 +577,38 @@
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">The reply is ready. The program is locked.</system:String>
     <system:String x:Key="S.Lock.Unlock" xml:space="preserve">Unlock</system:String>
     <system:String x:Key="S.Lock.WrongPassword" xml:space="preserve">Wrong password.</system:String>
+    <system:String x:Key="S.Machines.Add" xml:space="preserve">Add a machine</system:String>
+    <system:String x:Key="S.Machines.AddressLabel" xml:space="preserve">Network name or address</system:String>
+    <system:String x:Key="S.Machines.BadAddress" xml:space="preserve">The address is a computer name or IP, without spaces or quotes.</system:String>
+    <system:String x:Key="S.Machines.BadKey" xml:space="preserve">The key path must not contain quotes or the characters $ `.</system:String>
+    <system:String x:Key="S.Machines.BadUser" xml:space="preserve">Enter an account without quotes or the characters $ ; `.</system:String>
+    <system:String x:Key="S.Machines.Browse" xml:space="preserve">Browse…</system:String>
+    <system:String x:Key="S.Machines.DeleteText" xml:space="preserve">"{0}" is removed along with its saved password. Chats that targeted it stop sending commands until you pick another target.</system:String>
+    <system:String x:Key="S.Machines.DeleteTitle" xml:space="preserve">Delete the machine?</system:String>
+    <system:String x:Key="S.Machines.Desc" xml:space="preserve">Computers you can manage from a chat through PowerShell Remoting. Pick the target in a chat with the button next to Send.</system:String>
+    <system:String x:Key="S.Machines.EditTitle" xml:space="preserve">Machine</system:String>
+    <system:String x:Key="S.Machines.EmptyDesc" xml:space="preserve">The remote computer needs WinRM enabled (Enable-PSRemoting) or an SSH server with PowerShell 7.</system:String>
+    <system:String x:Key="S.Machines.EmptyTitle" xml:space="preserve">No machines yet</system:String>
+    <system:String x:Key="S.Machines.KeyLabel" xml:space="preserve">Private key</system:String>
+    <system:String x:Key="S.Machines.MethodLabel" xml:space="preserve">Connection method</system:String>
+    <system:String x:Key="S.Machines.NameLabel" xml:space="preserve">Name</system:String>
+    <system:String x:Key="S.Machines.NeedName" xml:space="preserve">Give the machine a name.</system:String>
+    <system:String x:Key="S.Machines.NeedPassword" xml:space="preserve">Enter the password.</system:String>
+    <system:String x:Key="S.Machines.NewTitle" xml:space="preserve">New machine</system:String>
+    <system:String x:Key="S.Machines.PasswordHint" xml:space="preserve">Stored encrypted (DPAPI) for your Windows account and never included in the data archive.</system:String>
+    <system:String x:Key="S.Machines.PasswordKept" xml:space="preserve">A password is saved. Leave the field empty to keep it.</system:String>
+    <system:String x:Key="S.Machines.PasswordLabel" xml:space="preserve">Password</system:String>
+    <system:String x:Key="S.Machines.ProtectFailed" xml:space="preserve">Windows couldn't encrypt the password.</system:String>
+    <system:String x:Key="S.Machines.SaveFailed" xml:space="preserve">Couldn't save the machine list: the profile folder isn't writable.</system:String>
+    <system:String x:Key="S.Machines.SshHint" xml:space="preserve">Key sign-in only: remote commands over SSH don't take a password. PowerShell 7 is needed on both sides.</system:String>
+    <system:String x:Key="S.Machines.SshNoPwsh" xml:space="preserve">PowerShell 7 (pwsh) isn't installed on this PC; SSH won't work until it is.</system:String>
+    <system:String x:Key="S.Machines.Tab" xml:space="preserve">Machines</system:String>
+    <system:String x:Key="S.Machines.Test" xml:space="preserve">Test connection</system:String>
+    <system:String x:Key="S.Machines.TestFailed" xml:space="preserve">No connection: {0}</system:String>
+    <system:String x:Key="S.Machines.TestOk" xml:space="preserve">Connected: {0}</system:String>
+    <system:String x:Key="S.Machines.Testing" xml:space="preserve">Testing the connection…</system:String>
+    <system:String x:Key="S.Machines.UserLabel" xml:space="preserve">Account</system:String>
+    <system:String x:Key="S.Machines.WinRmHint" xml:space="preserve">An account on that machine. For a computer outside a domain, its name must be in this PC's TrustedHosts.</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Version {0} of {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Next version</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
@@ -1042,6 +1074,18 @@
     <system:String x:Key="S.Recipe.UnknownTool" xml:space="preserve">There is no tool "{0}".</system:String>
     <system:String x:Key="S.Recipe.ViaAgent" xml:space="preserve">Via the agent</system:String>
     <system:String x:Key="S.Recipe.ViaAgentTip" xml:space="preserve">A new chat with the task in the input: the agent runs the recipe and sorts things out if something goes wrong.</system:String>
+    <system:String x:Key="S.Remote.BusyText" xml:space="preserve">You can change the target once the reply finishes; otherwise some commands would go to one machine and some to another.</system:String>
+    <system:String x:Key="S.Remote.BusyTitle" xml:space="preserve">The chat is replying</system:String>
+    <system:String x:Key="S.Remote.GoneText" xml:space="preserve">This chat ran commands on a machine that was removed from Connections. Pick a target with the button next to Send; your text is still in the input.</system:String>
+    <system:String x:Key="S.Remote.GoneTitle" xml:space="preserve">The machine is no longer listed</system:String>
+    <system:String x:Key="S.Remote.Manage" xml:space="preserve">Manage machines…</system:String>
+    <system:String x:Key="S.Remote.Missing" xml:space="preserve">Machine removed</system:String>
+    <system:String x:Key="S.Remote.NoPwsh" xml:space="preserve">SSH needs PowerShell 7 (pwsh.exe), which isn't installed on this PC. Don't repeat the call; tell the user to install PowerShell 7 or connect the machine over WinRM.</system:String>
+    <system:String x:Key="S.Remote.OnMachine" xml:space="preserve">on {0}</system:String>
+    <system:String x:Key="S.Remote.PickerTip" xml:space="preserve">Where this chat's commands run</system:String>
+    <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Run commands on</system:String>
+    <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">This computer</system:String>
+    <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">The tool {0} works only on this PC, but this chat's commands run on "{1}". Don't repeat the call; do the same through run_powershell, which runs there.</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">the key path was not recognised</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Rollback done: {0} of {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Snapshot {0}. Changes to undo: {1}</system:String>
@@ -1171,6 +1215,7 @@
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Connections.Title" xml:space="preserve">Connections</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
@@ -1181,6 +1226,7 @@
     <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
     <system:String x:Key="S.Settings.Nav.AutomationGroup" xml:space="preserve">AUTOMATION</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Nav.Connections" xml:space="preserve">Connections</system:String>
     <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>

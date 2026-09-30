@@ -577,6 +577,38 @@
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">Ответ готов. Программа заблокирована.</system:String>
     <system:String x:Key="S.Lock.Unlock" xml:space="preserve">Разблокировать</system:String>
     <system:String x:Key="S.Lock.WrongPassword" xml:space="preserve">Неверный пароль.</system:String>
+    <system:String x:Key="S.Machines.Add" xml:space="preserve">Добавить машину</system:String>
+    <system:String x:Key="S.Machines.AddressLabel" xml:space="preserve">Имя или адрес в сети</system:String>
+    <system:String x:Key="S.Machines.BadAddress" xml:space="preserve">Адрес — имя компьютера или IP, без пробелов и кавычек.</system:String>
+    <system:String x:Key="S.Machines.BadKey" xml:space="preserve">Путь к ключу — без кавычек и знаков $ `.</system:String>
+    <system:String x:Key="S.Machines.BadUser" xml:space="preserve">Укажите учётную запись без кавычек и знаков $ ; `.</system:String>
+    <system:String x:Key="S.Machines.Browse" xml:space="preserve">Выбрать…</system:String>
+    <system:String x:Key="S.Machines.DeleteText" xml:space="preserve">«{0}» пропадёт из списка вместе с сохранённым паролем. Чаты, смотревшие на неё, перестанут отправлять команды, пока им не выбрать другую цель.</system:String>
+    <system:String x:Key="S.Machines.DeleteTitle" xml:space="preserve">Удалить машину?</system:String>
+    <system:String x:Key="S.Machines.Desc" xml:space="preserve">Компьютеры, которыми можно управлять из чата через PowerShell Remoting. Цель выбирается в чате — кнопкой рядом с отправкой.</system:String>
+    <system:String x:Key="S.Machines.EditTitle" xml:space="preserve">Машина</system:String>
+    <system:String x:Key="S.Machines.EmptyDesc" xml:space="preserve">На удалённом компьютере должен быть включён WinRM (Enable-PSRemoting) или SSH-сервер с PowerShell 7.</system:String>
+    <system:String x:Key="S.Machines.EmptyTitle" xml:space="preserve">Машин пока нет</system:String>
+    <system:String x:Key="S.Machines.KeyLabel" xml:space="preserve">Закрытый ключ</system:String>
+    <system:String x:Key="S.Machines.MethodLabel" xml:space="preserve">Способ подключения</system:String>
+    <system:String x:Key="S.Machines.NameLabel" xml:space="preserve">Название</system:String>
+    <system:String x:Key="S.Machines.NeedName" xml:space="preserve">Назовите машину.</system:String>
+    <system:String x:Key="S.Machines.NeedPassword" xml:space="preserve">Введите пароль.</system:String>
+    <system:String x:Key="S.Machines.NewTitle" xml:space="preserve">Новая машина</system:String>
+    <system:String x:Key="S.Machines.PasswordHint" xml:space="preserve">Хранится зашифрованным (DPAPI) для вашей учётной записи Windows и в архив данных не попадает.</system:String>
+    <system:String x:Key="S.Machines.PasswordKept" xml:space="preserve">Пароль сохранён. Оставьте поле пустым, чтобы не менять его.</system:String>
+    <system:String x:Key="S.Machines.PasswordLabel" xml:space="preserve">Пароль</system:String>
+    <system:String x:Key="S.Machines.ProtectFailed" xml:space="preserve">Не удалось зашифровать пароль средствами Windows.</system:String>
+    <system:String x:Key="S.Machines.SaveFailed" xml:space="preserve">Не удалось сохранить список машин: папка профиля недоступна для записи.</system:String>
+    <system:String x:Key="S.Machines.SshHint" xml:space="preserve">Только вход по ключу: удалённые команды через SSH пароль не принимают. Нужен PowerShell 7 на обеих сторонах.</system:String>
+    <system:String x:Key="S.Machines.SshNoPwsh" xml:space="preserve">На этом ПК нет PowerShell 7 (pwsh) — SSH работать не будет, пока его не установить.</system:String>
+    <system:String x:Key="S.Machines.Tab" xml:space="preserve">Машины</system:String>
+    <system:String x:Key="S.Machines.Test" xml:space="preserve">Проверить связь</system:String>
+    <system:String x:Key="S.Machines.TestFailed" xml:space="preserve">Нет связи: {0}</system:String>
+    <system:String x:Key="S.Machines.TestOk" xml:space="preserve">Связь есть: {0}</system:String>
+    <system:String x:Key="S.Machines.Testing" xml:space="preserve">Проверяю связь…</system:String>
+    <system:String x:Key="S.Machines.UserLabel" xml:space="preserve">Учётная запись</system:String>
+    <system:String x:Key="S.Machines.WinRmHint" xml:space="preserve">Логин и пароль учётной записи на той машине. Для компьютера вне домена его имя должно быть в TrustedHosts этого ПК.</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
@@ -1042,6 +1074,18 @@
     <system:String x:Key="S.Recipe.UnknownTool" xml:space="preserve">Инструмента «{0}» нет.</system:String>
     <system:String x:Key="S.Recipe.ViaAgent" xml:space="preserve">Через агента</system:String>
     <system:String x:Key="S.Recipe.ViaAgentTip" xml:space="preserve">Новый чат с постановкой в поле: агент выполнит рецепт и разберётся, если что-то пойдёт не так.</system:String>
+    <system:String x:Key="S.Remote.BusyText" xml:space="preserve">Цель можно сменить, когда ответ закончится: иначе часть команд ушла бы на одну машину, а часть — на другую.</system:String>
+    <system:String x:Key="S.Remote.BusyTitle" xml:space="preserve">Чат сейчас отвечает</system:String>
+    <system:String x:Key="S.Remote.GoneText" xml:space="preserve">Этот чат выполнял команды на машине, которую удалили из «Подключений». Выберите цель кнопкой рядом с отправкой — текст остался в поле.</system:String>
+    <system:String x:Key="S.Remote.GoneTitle" xml:space="preserve">Машины больше нет в списке</system:String>
+    <system:String x:Key="S.Remote.Manage" xml:space="preserve">Настроить машины…</system:String>
+    <system:String x:Key="S.Remote.Missing" xml:space="preserve">Машина удалена</system:String>
+    <system:String x:Key="S.Remote.NoPwsh" xml:space="preserve">Для SSH нужен PowerShell 7 (pwsh.exe), а на этом ПК его нет. Не повторяй вызов; скажи пользователю установить PowerShell 7 или подключить машину через WinRM.</system:String>
+    <system:String x:Key="S.Remote.OnMachine" xml:space="preserve">на машине {0}</system:String>
+    <system:String x:Key="S.Remote.PickerTip" xml:space="preserve">Где выполняются команды этого чата</system:String>
+    <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Выполнять команды на</system:String>
+    <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">Этот компьютер</system:String>
+    <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">Инструмент {0} работает только на этом ПК, а команды этого чата выполняются на машине «{1}». Не повторяй вызов; сделай то же через run_powershell — он выполняется там.</system:String>
     <system:String x:Key="S.Rollback.BadPath" xml:space="preserve">путь раздела не распознан</system:String>
     <system:String x:Key="S.Rollback.Done" xml:space="preserve">Откат выполнен: {0} из {1}</system:String>
     <system:String x:Key="S.Rollback.Header" xml:space="preserve">Снимок {0}. Будет возвращено изменений: {1}</system:String>
@@ -1171,6 +1215,7 @@
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Автоматизация</system:String>
     <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Connections.Title" xml:space="preserve">Подключения</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
@@ -1181,6 +1226,7 @@
     <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
     <system:String x:Key="S.Settings.Nav.AutomationGroup" xml:space="preserve">AUTOMATION</system:String>
     <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
+    <system:String x:Key="S.Settings.Nav.Connections" xml:space="preserve">Connections</system:String>
     <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
     <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>

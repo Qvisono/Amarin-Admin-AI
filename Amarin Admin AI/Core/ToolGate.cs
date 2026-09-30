@@ -89,6 +89,14 @@ internal static class ToolGate
             return Refused(Loc.Format("S.Gate.Disabled", tool));
         }
 
+        // Удалённая цель — только то, что само уходит туда через PowerShell. Остальное выполнилось
+        // бы на этом ПК, и модель не отличила бы ответ отсюда от ответа оттуда.
+        var remote = ExecutionTarget.Current;
+        if (remote is not null && !RemoteSupport.Allows(tool))
+        {
+            return Refused(Loc.Format("S.Remote.Unsupported", tool, remote.Name));
+        }
+
         // Секреты, ядро Windows, загрузки мимо белого списка, последний администратор — запрет
         // до всякого вопроса, в том числе в скрипте, который только читает.
         if (tool.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
@@ -113,7 +121,8 @@ internal static class ToolGate
             return Refused(SensitivePaths.ProgramDataRefusal(target));
         }
 
-        var needsSnapshot = DangerousActionGuard.RequiresUndoSnapshot(tool, args);
+        // Снимок читает реестр и службы этого ПК — для удалённой машины он снял бы не то.
+        var needsSnapshot = remote is null && DangerousActionGuard.RequiresUndoSnapshot(tool, args);
         if (effect == ToolEffect.Read)
         {
             return new GateCheck(tool, args, effect, null, null, needsSnapshot);
@@ -133,7 +142,7 @@ internal static class ToolGate
             args,
             effect,
             null,
-            ask ? DangerousActionGuard.DescribeDetailed(tool, args) : null,
+            ask ? DangerousActionGuard.DescribeDetailed(tool, args) with { Target = remote?.Name } : null,
             needsSnapshot);
 
         GateCheck Refused(string reason) => new(tool, args, effect, reason, null, false);

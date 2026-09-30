@@ -27,12 +27,47 @@ internal static partial class PowerShellHelper
         int timeoutSeconds = 120,
         CancellationToken cancellationToken = default,
         int maxOutput = 48_000) =>
-        PowerShellProcessRunner.RunAsync(
-            WrapScript(script),
+        RunOnTargetAsync(script, timeoutSeconds, cancellationToken, maxOutput, longOperation: false);
+
+    /// <summary>
+    /// Исполняет скрипт там, где идёт ход: здесь или на удалённой машине из
+    /// <see cref="Core.ExecutionTarget"/>. Решается в одном месте, чтобы ни один инструмент на
+    /// PowerShell не прошёл мимо цели.
+    /// </summary>
+    private static Task<ToolResult> RunOnTargetAsync(
+        string script,
+        int timeoutSeconds,
+        CancellationToken cancellationToken,
+        int maxOutput,
+        bool longOperation)
+    {
+        if (Core.ExecutionTarget.Current is not { } machine)
+        {
+            return PowerShellProcessRunner.RunAsync(WrapScript(script), timeoutSeconds, cancellationToken, maxOutput,
+                maxOutput / 2, longOperation);
+        }
+
+        var executable = "powershell.exe";
+        if (machine.Method == Core.RemoteMethod.Ssh)
+        {
+            if (Core.RemoteScript.FindPwsh() is not { } pwsh)
+            {
+                return Task.FromResult(ToolResult.Fail(Core.Loc.Get("S.Remote.NoPwsh")));
+            }
+
+            executable = pwsh;
+        }
+
+        return PowerShellProcessRunner.RunAsync(
+            WrapScript(Core.RemoteScript.Wrap(script, machine)),
             timeoutSeconds,
             cancellationToken,
             maxOutput,
-            maxOutput / 2);
+            maxOutput / 2,
+            longOperation,
+            Core.RemoteScript.Input(machine),
+            executable);
+    }
 
     /// <summary>
     /// Долгая системная операция (DISM, SFC, chkdsk): свой потолок времени и отмена вместе с ходом.
@@ -46,13 +81,7 @@ internal static partial class PowerShellHelper
         int timeoutSeconds,
         CancellationToken cancellationToken,
         int maxOutput = 48_000) =>
-        PowerShellProcessRunner.RunAsync(
-            WrapScript(script),
-            timeoutSeconds,
-            cancellationToken,
-            maxOutput,
-            maxOutput / 2,
-            longOperation: true);
+        RunOnTargetAsync(script, timeoutSeconds, cancellationToken, maxOutput, longOperation: true);
 
     /// <summary>
     /// Синхронный запуск для путей, которые сами синхронны: снимки отката и их применение.

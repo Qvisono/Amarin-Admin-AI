@@ -134,7 +134,9 @@ namespace Amarin.UI
             ConfirmationWhatIfHost.Visibility = Visibility.Collapsed;
 
             var info = request.Info;
-            if (info.Arguments is not { } arguments || WhatIfProbe.ScriptFor(info.ToolName, arguments) is null)
+            // Пробный прогон идёт на этом ПК — для удалённой машины он показал бы чужое.
+            if (info.Target is not null || info.Arguments is not { } arguments ||
+                WhatIfProbe.ScriptFor(info.ToolName, arguments) is null)
             {
                 return;
             }

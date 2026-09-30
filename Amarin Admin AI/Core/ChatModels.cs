@@ -72,6 +72,9 @@ public sealed class ChatSession
     /// <summary>Чат записан прогоном задачи по расписанию — её идентификатор; null — обычный чат.</summary>
     public string? ScheduleJobId { get; set; }
 
+    /// <summary>Удалённая машина, на которой исполняются команды этого чата (C10); null — этот ПК.</summary>
+    public string? TargetMachineId { get; set; }
+
     /// <summary>
     /// Context the model read on the last request, as Venice counted it. Kept with
     /// <see cref="LastPromptTokensApiIndex"/> so the gauge can add an estimate for whatever was

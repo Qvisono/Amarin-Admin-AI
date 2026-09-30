@@ -56,6 +56,9 @@ public sealed class AuditEntry
     /// <summary>Кто вызвал: подпись агента или null — сам чат.</summary>
     public string? Agent { get; set; }
 
+    /// <summary>Удалённая машина, на которой выполнялся вызов; null — этот ПК.</summary>
+    public string? Target { get; set; }
+
     public string? CallId { get; set; }
 
     public string Tool { get; set; } = "";
@@ -180,6 +183,7 @@ internal sealed class AuditLog
             ChatId = origin?.ChatId,
             ChatTitle = origin?.ChatTitle,
             Agent = origin?.Agent,
+            Target = ExecutionTarget.Current is { } machine ? $"{machine.Name} ({machine.Address})" : null,
             CallId = callId,
             Tool = toolName,
             Args = args,

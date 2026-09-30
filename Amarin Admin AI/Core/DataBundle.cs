@@ -264,6 +264,12 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Список удалённых машин несёт их пароли под DPAPI — то же правило, что у ключей.
+        if (name == MachineBook.FileName)
+        {
+            return DataCategory.None;
+        }
+
         if (name == "keys.json" ||
             relative == "usage" ||
             relative.StartsWith("usage/", StringComparison.Ordinal) ||

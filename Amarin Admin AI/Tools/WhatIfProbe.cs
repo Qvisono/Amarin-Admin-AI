@@ -128,6 +128,12 @@ internal static class WhatIfProbe
     /// <summary>Запускает пробный прогон. null — пробовать нельзя или прогон не удался.</summary>
     public static async Task<WhatIfOutcome?> RunAsync(string toolName, JsonElement arguments, CancellationToken cancellationToken)
     {
+        // Пробный прогон исполняется здесь; для удалённой машины он показал бы чужое.
+        if (Core.ExecutionTarget.Current is not null)
+        {
+            return null;
+        }
+
         if (ScriptFor(toolName, arguments) is not { } script)
         {
             return null;

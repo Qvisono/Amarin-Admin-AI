@@ -79,6 +79,9 @@ namespace Amarin.UI
             PlanOverlay.Decided += OnPlanDecided;
             AutomationPage.AgentRequested += OnRecipeAgentRequested;
             HealthOverlay.AskRequested += OnHealthAskRequested;
+            ChatTargetPicker.Picked += OnTargetPicked;
+            ConnectionsPage.MachinesChanged += OnMachinesChanged;
+            ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
             HealthOverlay.CloseRequested += CloseHealth;
             AutomationPage.Schedule.RunNow = RunScheduledJobNowAsync;
             AutomationPage.Schedule.OpenChatRequested += chatId =>
@@ -2130,6 +2133,14 @@ namespace Amarin.UI
                 return;
             }
 
+            // Машину, на которую смотрит чат, удалили из списка: молча выполнить на этом ПК нельзя —
+            // человек думает, что команды уходят туда. Текст остаётся в поле.
+            if (_session.TargetMachineId is { } targetId && _services.Machines.Find(targetId) is null)
+            {
+                await ShowNoticeAsync(Loc.Get("S.Remote.GoneTitle"), Loc.Get("S.Remote.GoneText"), Loc.Get("S.Common.Close"), null);
+                return;
+            }
+
             MessageTextBox.Clear();
             var images = _pendingImages.Count == 0 ? null : _pendingImages.ToArray();
             var files = _pendingFiles.Count == 0 ? null : _pendingFiles.ToArray();
@@ -2159,6 +2170,7 @@ namespace Amarin.UI
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
+            RefreshTargetPicker();
             ApplyChatReasoningDefaults();
             if (persist)
             {
@@ -2181,6 +2193,7 @@ namespace Amarin.UI
         {
             _stickToBottom = true;
             _session = session;
+            RefreshTargetPicker();
             // Image handles written into earlier answers only resolve while the pictures they
             // name are registered, and the registry does not survive a restart.
             ChatImageRegistry.RestoreAll(session);
@@ -3493,7 +3506,10 @@ namespace Amarin.UI
             _shownConfirmation = request;
             ShowConfirmationAllow(request);
             ShowConfirmationChat(request.SessionId);
-            ConfirmationAgentText.Text = request.AgentLabel;
+            // Удалённая машина — прямо в строке, кто спрашивает: решать «да» надо, зная, где это выполнится.
+            ConfirmationAgentText.Text = request.Info.Target is { } target
+                ? request.AgentLabel + " · " + Loc.Format("S.Remote.OnMachine", target)
+                : request.AgentLabel;
             ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
                 ? request.Info.ToolName
                 : request.Info.ChangeSummary;

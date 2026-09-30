@@ -1256,6 +1256,18 @@ Paths on this machine - use these exact values, never wildcards:
     /// </remarks>
     private static string BuildMachinePathsPrompt()
     {
+        // Пути этого ПК на удалённой машине неверны — вместо них правило про цель.
+        if (RemoteBriefing.For(ExecutionTarget.Current) is { Length: > 0 } remote)
+        {
+            return $"""
+
+
+                {remote}
+
+                Interface language: {ChatTitle.LanguageName()}
+                """;
+        }
+
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var desktop = DownloadPaths.DesktopDirectory;
         var downloads = DownloadPaths.DownloadsDirectory;

@@ -1152,9 +1152,14 @@
                                                             ProviderShown="ModelPicker_ProviderShown"/>
                                 </Popup>
 
-                                <local:ReasoningPicker x:Name="ChatReasoningPicker" Grid.Column="2" Height="32"
-                                                       VerticalAlignment="Center" ShowGaugeIcon="True"
-                                                       ChoiceChanged="ChatReasoningPicker_ChoiceChanged"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <local:ReasoningPicker x:Name="ChatReasoningPicker" Height="32"
+                                                           VerticalAlignment="Center" ShowGaugeIcon="True"
+                                                           ChoiceChanged="ChatReasoningPicker_ChoiceChanged"/>
+                                    <!-- Где исполняются команды чата (C10). Без машин в списке не показывается. -->
+                                    <local:TargetPicker x:Name="ChatTargetPicker" VerticalAlignment="Center"
+                                                        Visibility="Collapsed"/>
+                                </StackPanel>
 
                                     <!--
                                         Остаток на счету. Высота задана явно, а не растянута по
@@ -2024,13 +2029,13 @@
 
             <!-- Окно -->
             <!--
-                Высота 580: с «Автоматизацией» в навигации десять страниц. Колонка навигации ещё и
+                Высота 620: с «Автоматизацией» и «Подключениями» в навигации одиннадцать страниц. Колонка навигации ещё и
                 прокручивается, а плашка версии стоит своей строкой под ней — прежде она лежала
                 поверх колонки, и каждый новый пункт наезжал на неё. На маленьком экране Viewbox
                 ужимает окно целиком.
             -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="690" Height="580" Background="{DynamicResource Bg.Panel}"
+            <Border Width="690" Height="620" Background="{DynamicResource Bg.Panel}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -2059,6 +2064,7 @@
                                 <RadioButton x:Name="NavInstructions" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Instructions}" Checked="NavInstructions_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.AutomationGroup}"/>
                                 <RadioButton x:Name="NavAutomation" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Automation}" Checked="NavAutomation_Checked"/>
+                                <RadioButton x:Name="NavConnections" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Connections}" Checked="NavConnections_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Key}"/>
                     <RadioButton x:Name="NavKey" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.KeyInfo}" Checked="NavKey_Checked"/>
                     <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
@@ -3581,6 +3587,21 @@
                                 </Style>
                             </local:SettingsAutomationPage.Style>
                         </local:SettingsAutomationPage>
+
+                        <!-- ═══════════ CONNECTIONS ═══════════ -->
+                        <!-- Удалённые машины (C10), дальше — серверы MCP (C11). -->
+                        <local:SettingsConnectionsPage x:Name="ConnectionsPage">
+                            <local:SettingsConnectionsPage.Style>
+                                <Style TargetType="local:SettingsConnectionsPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavConnections}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsConnectionsPage.Style>
+                        </local:SettingsConnectionsPage>
 
                         <!-- ═══════════ INFO ═══════════ -->
                         <!--

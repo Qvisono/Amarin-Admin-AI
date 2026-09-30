@@ -2189,6 +2189,11 @@ internal sealed partial class ChatEngine
             parts.Add(models);
         }
 
+        if (RemoteBriefing.For(ExecutionTarget.Current) is { Length: > 0 } remote)
+        {
+            parts.Add(remote);
+        }
+
         return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
 

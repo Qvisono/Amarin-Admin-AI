@@ -121,6 +121,15 @@ internal sealed class AppServices : IDisposable
 
     private HealthCache? _health;
 
+    /// <summary>Удалённые машины профиля (C10).</summary>
+    internal MachineBook Machines
+    {
+        get => _machines ??= new MachineBook(Path.GetDirectoryName(SettingsStore.FilePath)!);
+        init => _machines = value;
+    }
+
+    private MachineBook? _machines;
+
     public string? StartupPrompt { get; init; }
 
     /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>
@@ -251,6 +260,7 @@ internal sealed class AppServices : IDisposable
         Recipes.UseRoot(dataRoot);
         Schedule.UseRoot(dataRoot);
         Health.UseRoot(dataRoot);
+        Machines.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
 
         // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе

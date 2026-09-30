@@ -35,7 +35,12 @@ public sealed record DangerousActionInfo(
     /// </summary>
     bool AlwaysAsk = false,
     /// <summary>Аргументы вызова — для пробного прогона (<see cref="WhatIfProbe"/>).</summary>
-    JsonElement? Arguments = null);
+    JsonElement? Arguments = null,
+    /// <summary>
+    /// Удалённая машина, на которой исполнится вызов; null — этот ПК. Окно подтверждения
+    /// называет её, а пробный прогон не запускается: он прошёл бы здесь, а не там.
+    /// </summary>
+    string? Target = null);
 
 internal static partial class DangerousActionGuard
 {

@@ -27,7 +27,9 @@ internal static class PowerShellProcessRunner
         CancellationToken cancellationToken,
         int maxStdout = 32_000,
         int maxStderr = 16_000,
-        bool longOperation = false)
+        bool longOperation = false,
+        string? input = null,
+        string executable = "powershell.exe")
     {
         timeoutSeconds = EffectiveTimeout(timeoutSeconds, longOperation);
         // Caller may already wrap; PowerShellHelper.RunAsync wraps before calling here.
@@ -35,7 +37,10 @@ internal static class PowerShellProcessRunner
 
         var psi = new ProcessStartInfo
         {
-            FileName = "powershell.exe",
+            FileName = executable,
+            // stdin открыт только тем, кому есть что сказать (пароль удалённой машины): иначе
+            // процесс, случайно спросивший ввод, ждал бы его до тайм-аута.
+            RedirectStandardInput = input is not null,
             Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -52,6 +57,11 @@ internal static class PowerShellProcessRunner
         try
         {
             process.Start();
+            if (input is not null)
+            {
+                await process.StandardInput.WriteLineAsync(input).ConfigureAwait(false);
+                process.StandardInput.Close();
+            }
 
             var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd(), CancellationToken.None);
             var stderrTask = Task.Run(() => process.StandardError.ReadToEnd(), CancellationToken.None);

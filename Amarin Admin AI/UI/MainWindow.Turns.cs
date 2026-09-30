@@ -134,7 +134,11 @@ namespace Amarin.UI
 
             try
             {
-                await work(session, router, turn.Cancellation.Token);
+                // Цель чата (C10) — на весь ход: её видят шлюз, агент, исполнитель PowerShell и аудит.
+                using (ExecutionTarget.Push(_services?.Machines.Find(session.TargetMachineId)))
+                {
+                    await work(session, router, turn.Cancellation.Token);
+                }
             }
             catch (OperationCanceledException)
             {
