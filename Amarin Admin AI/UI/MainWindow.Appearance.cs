@@ -405,7 +405,7 @@ namespace Amarin.UI
             Bind(GlassFrostSlider, GlassFrostValue, v => $"{v * 100:0}%", (a, v) => a.GlassFrost = v);
             Bind(CornerRadiusSlider, CornerRadiusValue, v => $"{v:0}", (a, v) => a.CornerRadius = v);
             Bind(GrainSlider, GrainValue, v => $"{v * 100:0}%", (a, v) => a.Grain = v);
-            Bind(CompactDelaySlider, CompactDelayValue, v => $"{v / 1000:0.0}с", (a, v) => a.CompactDelayMs = (int)v);
+            Bind(CompactDelaySlider, CompactDelayValue, v => $"{v / 1000:0.0}{Loc.Get("S.Appearance.SecondsUnit")}", (a, v) => a.CompactDelayMs = (int)v);
             Bind(CompactWidthSlider, CompactWidthValue, v => $"{v:0}%", (a, v) => a.CompactWidthPercent = v);
             Bind(CompactHoverSlider, CompactHoverValue, v => $"{v:0}", (a, v) => a.CompactHoverRadius = v);
         }
@@ -562,9 +562,9 @@ namespace Amarin.UI
 
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Фоновое изображение",
+                Title = Loc.Get("S.Appearance.BackgroundDialog"),
                 // Same codec caveat as the avatar picker: .webp is not decodable on every install.
-                Filter = "Изображения|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|Все файлы|*.*"
+                Filter = $"{Loc.Get("S.Attach.FilterImages")}|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|{Loc.Get("S.Common.AllFiles")}|*.*"
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -661,7 +661,7 @@ namespace Amarin.UI
 
             var confirmed = MessageBox.Show(
                 this,
-                "Вернуть оформление к исходному виду? Тема и масштаб интерфейса не изменятся.",
+                Loc.Get("S.Appearance.ResetConfirm"),
                 Title,
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Question);
@@ -704,7 +704,7 @@ namespace Amarin.UI
             MotionSpeedSlider.Value = appearance.MotionSpeed;
 
             BackgroundImageName.Text = string.IsNullOrWhiteSpace(appearance.BackgroundImagePath)
-                ? "Не выбрано"
+                ? Loc.Get("S.Common.NotChosen")
                 : appearance.BackgroundImagePath;
             SelectByTag(ImageFitCombo, appearance.ImageFit.ToString());
             ImageBrightnessSlider.Value = appearance.ImageBrightness;

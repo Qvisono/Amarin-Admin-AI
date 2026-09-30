@@ -215,14 +215,19 @@ public sealed class AppSettingsStore
             changed = true;
         }
 
-        if (string.IsNullOrWhiteSpace(settings.TechAiPrompt))
-        {
-            return changed;
-        }
-
-        if (LegacyTechPrompts.All.Any(legacy => SamePrompt(settings.TechAiPrompt, legacy)))
+        if (!string.IsNullOrWhiteSpace(settings.TechAiPrompt) &&
+            LegacyTechPrompts.All.Any(legacy => SamePrompt(settings.TechAiPrompt, legacy)))
         {
             settings.TechAiPrompt = "";
+            changed = true;
+        }
+
+        // Нетронутая копия прежнего промпта агента: без сброса у человека навсегда остались бы
+        // убранная «Yandex policy» и «отвечать только по-русски» (см. LegacyAgentPrompts).
+        if (!string.IsNullOrWhiteSpace(settings.TechAgentPrompt) &&
+            LegacyAgentPrompts.All.Any(legacy => SamePrompt(settings.TechAgentPrompt, legacy)))
+        {
+            settings.TechAgentPrompt = "";
             changed = true;
         }
 

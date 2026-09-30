@@ -92,8 +92,8 @@ internal static class CostBreakdownTooltip
                 if (call.NestedAgent is { Cost.HasData: true } agent)
                 {
                     var name = string.IsNullOrWhiteSpace(agent.DisplayName)
-                        ? "Агент " + agent.ModelId
-                        : "Агент · " + agent.DisplayName;
+                        ? Loc.Format("S.Agent.Label", agent.ModelId)
+                        : Loc.Format("S.Agent.LabelNamed", agent.DisplayName);
                     AddRow(rows, ref line, name, agent.Cost, bold: false);
                     continue;
                 }

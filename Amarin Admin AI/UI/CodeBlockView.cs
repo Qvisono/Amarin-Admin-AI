@@ -6,6 +6,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Amarin.Core;
 
 namespace Amarin.UI;
 
@@ -62,7 +63,7 @@ internal static class CodeBlockView
         };
         label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
 
-        var copy = ChatMessageViews.IconAction(host, "Copy", "Копировать");
+        var copy = ChatMessageViews.IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Focusable = false;
         copy.VerticalAlignment = VerticalAlignment.Center;
         copy.Margin = new Thickness(0);
@@ -278,7 +279,7 @@ internal static class CodeBlockView
                 return;
             }
 
-            label.Text = "Скопировано";
+            label.Text = Loc.Get("S.Common.Copied");
             restore?.Stop();
             restore = new DispatcherTimer { Interval = CopiedFor };
             restore.Tick += (s, _) =>

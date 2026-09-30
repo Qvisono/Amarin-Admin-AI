@@ -555,9 +555,9 @@ internal sealed class AssistantMessageView
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
-                !round.InfoLine.Equals(Loc.Get("S.Tools.Running"), StringComparison.Ordinal))
+                !round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal))
             {
-                body.Children.Add(BuildInfoRow(round.InfoLine));
+                body.Children.Add(BuildInfoRow(EngineLines.Display(round.InfoLine)));
             }
         }
 
@@ -634,7 +634,7 @@ internal sealed class AssistantMessageView
             Style = (Style)Host.FindResource("ToolResult"),
             Text = string.IsNullOrWhiteSpace(call.ResultPreview)
                 ? Loc.Get("S.Tools.CallDone")
-                : call.ResultPreview
+                : EngineLines.Display(call.ResultPreview)
         };
         Grid.SetColumn(name, 1);
         Grid.SetColumn(preview, 2);
@@ -799,7 +799,7 @@ internal sealed class AssistantMessageView
             // Пока уровень не выбран, у записи нет ни имени, ни модели, и «Агент » с хвостовым
             // пробелом выглядел бы обрывком строки.
             Text = string.IsNullOrWhiteSpace(agent.DisplayName)
-                ? ("Агент " + agent.ModelId).TrimEnd()
+                ? Loc.Format("S.Agent.Label", agent.ModelId).TrimEnd()
                 : agent.DisplayName
         });
 
@@ -861,9 +861,9 @@ internal sealed class AssistantMessageView
             }
 
             if (!string.IsNullOrWhiteSpace(round.InfoLine) &&
-                !round.InfoLine.Equals(Loc.Get("S.Tools.Running"), StringComparison.Ordinal))
+                !round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal))
             {
-                inner.Children.Add(BuildInfoRow(round.InfoLine));
+                inner.Children.Add(BuildInfoRow(EngineLines.Display(round.InfoLine)));
             }
         }
 

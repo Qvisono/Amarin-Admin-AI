@@ -21,20 +21,20 @@ namespace Amarin.UI
 
             if (IsBusy(_session.Id))
             {
-                ShowSummarizeError("Дождитесь окончания текущего ответа.");
+                ShowSummarizeError(Loc.Get("S.Summarize.WaitTurn"));
                 return;
             }
 
             var url = YoutubeUrlBox.Text.Trim();
             if (url.Length == 0)
             {
-                ShowSummarizeError("Вставьте ссылку на видео.");
+                ShowSummarizeError(Loc.Get("S.Summarize.PasteLink"));
                 return;
             }
 
             if (YouTubeTranscriptTool.TryReadVideoId(url) is not { } videoId)
             {
-                ShowSummarizeError("Не похоже на ссылку YouTube.");
+                ShowSummarizeError(Loc.Get("S.Summarize.NotYoutube"));
                 return;
             }
 

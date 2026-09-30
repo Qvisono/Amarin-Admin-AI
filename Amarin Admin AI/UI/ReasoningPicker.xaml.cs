@@ -23,7 +23,7 @@ public partial class ReasoningPicker : UserControl
             nameof(LabelText),
             typeof(string),
             typeof(ReasoningPicker),
-            new PropertyMetadata("Без размышления"));
+            new PropertyMetadata(Loc.Get("S.Reasoning.Off")));
 
     public static readonly DependencyProperty ShowGaugeIconProperty =
         DependencyProperty.Register(

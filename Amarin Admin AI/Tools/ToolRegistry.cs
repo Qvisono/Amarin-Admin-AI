@@ -9,7 +9,8 @@ public sealed class ToolRegistry
 {
     /// <summary>
     /// Tools that can trigger the confirmation dialog — inject optional <c>explanation</c>
-    /// into their JSON schema so the model can describe the action in plain Russian.
+    /// into their JSON schema so the model can describe the action in plain words, in the
+    /// interface language the system message names.
     /// </summary>
     private static readonly HashSet<string> ConfirmableTools = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -98,7 +99,8 @@ public sealed class ToolRegistry
                 ["type"] = "string",
                 ["description"] =
                     "When this call may change the system (user confirmation dialog), " +
-                    "pass 1–2 short sentences in Russian: what the action does and what changes on the PC. " +
+                    "pass 1–2 short sentences in the interface language named in the system message: " +
+                    "what the action does and what changes on the PC. " +
                     "Do not paste the raw command."
             };
             root["properties"] = properties;

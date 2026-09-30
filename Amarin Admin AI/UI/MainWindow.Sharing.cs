@@ -42,7 +42,7 @@ namespace Amarin.UI
             {
                 MessageBox.Show(
                     this,
-                    "Не удалось записать код в буфер обмена - его удерживает другое приложение.",
+                    Loc.Get("S.Share.ClipboardBusy"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -52,14 +52,13 @@ namespace Amarin.UI
             var upTo = upToMessageId is null
                 ? session.Messages.Count
                 : session.Messages.FindIndex(m => m.Id == upToMessageId) + 1;
-            var note = $"Код скопирован в буфер обмена ({code.Length} символов, сообщений: {upTo}).\n" +
-                       "Вставьте его в поиск в боковой панели другого экземпляра, чтобы открыть чат.";
+            var note = Loc.Format("S.Share.CodeCopied", code.Length, upTo);
 
             // A multi-thousand character clipboard payload does not survive every chat app,
             // so hand over a file as well once it gets long.
             if (code.Length > ShareCodeFileThreshold && TrySaveShareFile(code, session.Title) is { } path)
             {
-                note += $"\n\nКод длинный, поэтому также сохранён в файл:\n{path}";
+                note += "\n\n" + Loc.Format("S.Share.SavedToFile", path);
             }
 
             MessageBox.Show(this, note, Title, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -77,8 +76,8 @@ namespace Amarin.UI
 
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Экспорт диалога",
-                Filter = "JSON|*.json|Все файлы|*.*",
+                Title = Loc.Get("S.Share.ExportTitle"),
+                Filter = $"JSON|*.json|{Loc.Get("S.Common.AllFiles")}|*.*",
                 DefaultExt = ".json",
                 FileName = SafeFileName(session.Title) + ".json"
             };
@@ -93,7 +92,7 @@ namespace Amarin.UI
                 File.WriteAllText(dialog.FileName, ChatShareCodec.ExportJson(session, upToMessageId));
                 MessageBox.Show(
                     this,
-                    "Диалог сохранён:\n" + dialog.FileName,
+                    Loc.Format("S.Share.Saved", dialog.FileName),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -140,8 +139,8 @@ namespace Amarin.UI
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Импорт чата",
-                Filter = $"Чаты Amarin|*.json;*{ChatShareCodec.FileExtension}|JSON|*.json|Все файлы|*.*"
+                Title = Loc.Get("S.Data.Import"),
+                Filter = $"{Loc.Get("S.Share.FileKind")}|*.json;*{ChatShareCodec.FileExtension}|JSON|*.json|{Loc.Get("S.Common.AllFiles")}|*.*"
             };
 
             if (dialog.ShowDialog(this) != true)
@@ -169,7 +168,7 @@ namespace Amarin.UI
             {
                 MessageBox.Show(
                     this,
-                    "Файл не распознан как чат Amarin.",
+                    Loc.Get("S.Share.NotAChat"),
                     Title,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);

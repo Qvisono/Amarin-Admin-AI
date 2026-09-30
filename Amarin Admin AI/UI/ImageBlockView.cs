@@ -68,8 +68,8 @@ internal static class ImageBlockView
                 DecodeBase64(attachment.Base64) is not { } generated)
             {
                 frame.Child = BuildNotice(string.IsNullOrWhiteSpace(alt)
-                    ? "Изображение больше недоступно."
-                    : $"{alt} (изображение больше недоступно)");
+                    ? Loc.Get("S.Image.Gone")
+                    : Loc.Format("S.Image.GoneAlt", alt));
                 return frame;
             }
 
@@ -93,7 +93,7 @@ internal static class ImageBlockView
             return frame;
         }
 
-        var placeholder = BuildNotice("Загрузка изображения…");
+        var placeholder = BuildNotice(Loc.Get("S.Image.Loading"));
         frame.Child = placeholder;
         BeginFetch(host, frame, target, url, alt);
         return frame;
@@ -188,8 +188,8 @@ internal static class ImageBlockView
                 else
                 {
                     pending.Child = BuildNotice(string.IsNullOrWhiteSpace(alt)
-                        ? "Изображение недоступно: " + url
-                        : $"{alt} (изображение недоступно)");
+                        ? Loc.Format("S.Image.Unavailable", url)
+                        : Loc.Format("S.Image.UnavailableAlt", alt));
                 }
             }
         });

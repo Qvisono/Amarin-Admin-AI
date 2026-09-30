@@ -1778,7 +1778,7 @@ namespace Amarin.UI
                 {
                     MessageBox.Show(
                         this,
-                        "Код чата повреждён или не распознан.",
+                        Loc.Get("S.Share.CodeBroken"),
                         Title,
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);

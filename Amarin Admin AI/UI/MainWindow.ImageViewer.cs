@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using Amarin.Core;
 using Amarin.Tools;
 
 namespace Amarin.UI
@@ -277,8 +278,8 @@ namespace Amarin.UI
             var suggested = _viewerLabels.ElementAtOrDefault(_viewerIndex);
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Сохранить изображение",
-                Filter = "PNG|*.png|Все файлы|*.*",
+                Title = Loc.Get("S.Viewer.SaveTitle"),
+                Filter = $"PNG|*.png|{Loc.Get("S.Common.AllFiles")}|*.*",
                 DefaultExt = ".png",
                 FileName = SafeFileName(string.IsNullOrWhiteSpace(suggested) ? "image" : suggested) + ".png"
             };
@@ -317,7 +318,7 @@ namespace Amarin.UI
 
             MessageBox.Show(
                 this,
-                "Не удалось записать изображение в буфер обмена - его удерживает другое приложение.",
+                Loc.Get("S.Viewer.ClipboardBusy"),
                 Title,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);

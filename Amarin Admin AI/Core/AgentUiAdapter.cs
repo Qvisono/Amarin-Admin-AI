@@ -35,8 +35,7 @@ internal sealed class AgentUiAdapter : IAgentUi
             return;
         }
 
-        if (message.Contains("Инструменты завершены", StringComparison.Ordinal) ||
-            message.Contains("запрашиваю ответ модели", StringComparison.OrdinalIgnoreCase))
+        if (message.StartsWith(EngineLines.ToolsDone, StringComparison.Ordinal))
         {
             var round = CurrentRound();
             if (round is not null)
@@ -100,7 +99,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         var round = CurrentRound();
         if (round is null || RoundIsSettled(round))
         {
-            round = new ToolRound { InfoLine = "Запускаю инструменты" };
+            round = new ToolRound { InfoLine = EngineLines.RunningTools };
             _record.ToolRounds.Add(round);
         }
 
@@ -113,7 +112,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         var round = CurrentRound();
         if (round is null || RoundIsSettled(round))
         {
-            round = new ToolRound { InfoLine = "Запускаю инструменты" };
+            round = new ToolRound { InfoLine = EngineLines.RunningTools };
             _record.ToolRounds.Add(round);
         }
 
@@ -191,7 +190,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         }
 
         if (string.IsNullOrWhiteSpace(round.InfoLine) ||
-            round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
+            round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal))
         {
             round.InfoLine = message;
         }
@@ -205,7 +204,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         round.Calls.Count > 0 &&
         round.Calls.All(call => call.Status is ToolCallStatus.Done or ToolCallStatus.Failed) &&
         !string.IsNullOrWhiteSpace(round.InfoLine) &&
-        !round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal);
+        !round.InfoLine.Equals(EngineLines.RunningTools, StringComparison.Ordinal);
 
     private void Notify() => _changed();
 }

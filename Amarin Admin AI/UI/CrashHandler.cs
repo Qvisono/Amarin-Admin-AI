@@ -57,14 +57,14 @@ internal static class CrashHandler
             }
 
             // Продолжать здесь некуда: среда уже сворачивает процесс.
-            Report(exception, "домен приложения", canContinue: false);
+            Report(exception, Loc.Get("S.Crash.Source.AppDomain"), canContinue: false);
         };
 
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
             // Окно тут было бы шумом: это обычно хвосты брошенных fire-and-forget задач,
             // на которые никто не смотрел. Но в журнале им место.
-            CrashLog.Write(CrashReport.Build(e.Exception, "несобранная задача", Secrets));
+            CrashLog.Write(CrashReport.Build(e.Exception, Loc.Get("S.Crash.Source.Task"), Secrets));
             e.SetObserved();
         };
     }
@@ -79,12 +79,12 @@ internal static class CrashHandler
         {
             if (IsSilent(e.Exception))
             {
-                CrashLog.Write(CrashReport.Build(e.Exception, "отмена", Secrets));
+                CrashLog.Write(CrashReport.Build(e.Exception, Loc.Get("S.Crash.Source.Cancel"), Secrets));
                 e.Handled = true;
                 return;
             }
 
-            var keepRunning = Report(e.Exception, "поток интерфейса", canContinue: true);
+            var keepRunning = Report(e.Exception, Loc.Get("S.Crash.Source.UiThread"), canContinue: true);
             if (keepRunning)
             {
                 e.Handled = true;
@@ -107,7 +107,7 @@ internal static class CrashHandler
     /// Сбой на пути от запуска до первого окна. Продолжать нечего — показываем и выходим.
     /// </summary>
     public static void ReportStartupFailure(Exception exception) =>
-        Report(exception, "запуск", canContinue: false);
+        Report(exception, Loc.Get("S.Crash.Source.Startup"), canContinue: false);
 
     /// <summary>
     /// Отмена хода — обычный ответ, а не авария: пользователь нажал «Стоп», и показывать ему

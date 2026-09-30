@@ -143,7 +143,7 @@ public partial class ColorPickerField : UserControl
 
             if (label is not null)
             {
-                label.Text = color is null ? "по теме" : _hex;
+                label.Text = color is null ? Loc.Get("S.ColorPicker.ByTheme") : _hex;
             }
 
             PreviewFill.Fill = color is null ? Brushes.Transparent : Freeze(color.Value);

@@ -495,7 +495,7 @@ internal sealed partial class ChatEngine
             session.ApiMessages.Add(ChatMessageCloner.CloneForStorage(apiAssistant));
 
             var toolRound = CreateRound([toolCall]);
-            toolRound.InfoLine = "Запускаю агента";
+            toolRound.InfoLine = EngineLines.StartingAgent;
             assistant.ToolRounds.Add(toolRound);
             observer.OnToolsChanged(assistant);
 
@@ -503,7 +503,7 @@ internal sealed partial class ChatEngine
                     toolRound, messages, session, assistant, observer, cancellationToken, complexity)
                 .ConfigureAwait(false);
 
-            toolRound.InfoLine = "Агент завершил работу - готовлю отчёт";
+            toolRound.InfoLine = EngineLines.AgentDone;
             observer.OnToolsChanged(assistant);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -936,7 +936,7 @@ internal sealed partial class ChatEngine
                 await watcher.ConfigureAwait(false);
             }
 
-            toolRound.InfoLine = "Инструменты завершены - запрашиваю ответ модели";
+            toolRound.InfoLine = EngineLines.ToolsDone;
             observer.OnToolsChanged(assistant);
             if (cancellationToken.IsCancellationRequested)
             {
@@ -1711,7 +1711,7 @@ internal sealed partial class ChatEngine
     {
         var round = new ToolRound
         {
-            InfoLine = "Запускаю инструменты"
+            InfoLine = EngineLines.RunningTools
         };
 
         foreach (var toolCall in toolCalls)
@@ -1795,7 +1795,7 @@ internal sealed partial class ChatEngine
                         call.Success = false;
                         if (string.IsNullOrWhiteSpace(call.ResultPreview))
                         {
-                            call.ResultPreview = "отменено";
+                            call.ResultPreview = EngineLines.Cancelled;
                         }
                     }
                 }
@@ -1803,7 +1803,7 @@ internal sealed partial class ChatEngine
                 if (string.IsNullOrWhiteSpace(round.InfoLine) ||
                     round.InfoLine.Equals("Запускаю инструменты", StringComparison.Ordinal))
                 {
-                    round.InfoLine = "Инструменты прерваны";
+                    round.InfoLine = EngineLines.ToolsStopped;
                 }
             }
         }

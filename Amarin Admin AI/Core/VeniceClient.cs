@@ -1740,7 +1740,7 @@ public sealed class VeniceClient
                         // old wording asked for "a summary with practical fixes" and got prose like
                         // "on DeviantArt, search the furrywallpaper tag" — advice no tool can act on.
                         Content = ChatContent.Text(
-                            "You are a web research assistant. Search the web and answer concisely in Russian.\n" +
+                            "You are a web research assistant. Search the web and answer concisely in the language of the question.\n" +
                             "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +
                             "one per line, bare (no markdown, no shortening). Never write a link as a " +
                             "description like 'ищи по тегу X on site Y' - give the address itself.\n" +

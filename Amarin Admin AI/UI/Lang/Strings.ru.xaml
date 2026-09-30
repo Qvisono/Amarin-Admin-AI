@@ -59,6 +59,43 @@
     <system:String x:Key="S.Actions.SummarizeTitle" xml:space="preserve">Summarize video</system:String>
     <system:String x:Key="S.Actions.Title" xml:space="preserve">Actions</system:String>
 
+    <system:String x:Key="S.Agent.Label" xml:space="preserve">Агент {0}</system:String>
+    <system:String x:Key="S.Agent.LabelNamed" xml:space="preserve">Агент · {0}</system:String>
+    <system:String x:Key="S.AgentRun.AnalyzingStep" xml:space="preserve">Анализ результатов инструментов (шаг {0})…</system:String>
+    <system:String x:Key="S.AgentRun.ChangesSaved" xml:space="preserve">Изменения применены. Состояние служб, задач и реестра сохранено в снимке сессии.</system:String>
+    <system:String x:Key="S.AgentRun.EmptyReply" xml:space="preserve">Модель вернула пустой ответ - повторяю запрос…</system:String>
+    <system:String x:Key="S.AgentRun.Finalizing" xml:space="preserve">Формирую итоговый ответ…</system:String>
+    <system:String x:Key="S.AgentRun.GuardCheck" xml:space="preserve">Проверяю безопасность…</system:String>
+    <system:String x:Key="S.AgentRun.GuardFlagged" xml:space="preserve">SynGuard считает {0} атакой - спрашиваю разрешения.</system:String>
+    <system:String x:Key="S.AgentRun.ModelOverloaded" xml:space="preserve">Модель {0} перегружена - переключился на {1}.</system:String>
+    <system:String x:Key="S.AgentRun.NoText" xml:space="preserve">Модель не вернула текстовый ответ. Повторите запрос.</system:String>
+    <system:String x:Key="S.AgentRun.PrepareFailed" xml:space="preserve">Не удалось подготовить запрос: {0}</system:String>
+    <system:String x:Key="S.AgentRun.RequestFailed" xml:space="preserve">Сбой обработки запроса: {0}</system:String>
+    <system:String x:Key="S.AgentRun.Retrying" xml:space="preserve">Повтор запроса…</system:String>
+    <system:String x:Key="S.AgentRun.RetryingAnswer" xml:space="preserve">Повторяю ответ…</system:String>
+    <system:String x:Key="S.AgentRun.RoundLimit" xml:space="preserve">Достигнут лимит раундов инструментов ({0}). Завершаю работу.</system:String>
+    <system:String x:Key="S.AgentRun.RoundLimitNoText" xml:space="preserve">Достигнут лимит раундов инструментов ({0}). Итоговый текстовый ответ не получен - повторите запрос.</system:String>
+    <system:String x:Key="S.AgentRun.RunningToolsCount" xml:space="preserve">Запускаю инструменты ({0})…</system:String>
+    <system:String x:Key="S.AgentRun.SendFailed" xml:space="preserve">Не удалось отправить запрос: {0}</system:String>
+    <system:String x:Key="S.AgentRun.SessionReset" xml:space="preserve">История сессии была повреждена и сброшена. Повторите запрос.</system:String>
+    <system:String x:Key="S.AgentRun.SnapshotFailed" xml:space="preserve">Не удалось создать снимок системы: {0}</system:String>
+    <system:String x:Key="S.AgentRun.SnapshotSpin" xml:space="preserve">Снимок системы для отката…</system:String>
+    <system:String x:Key="S.AgentRun.SnapshotTaken" xml:space="preserve">Снимок системы перед изменениями (службы, задачи, реестр): {0}</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Devices" xml:space="preserve">Сканирую устройства…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Download" xml:space="preserve">Скачиваю файл…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.EventLog" xml:space="preserve">Читаю журнал событий…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Performance" xml:space="preserve">Собираю метрики производительности…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.PowerShell" xml:space="preserve">Выполняю PowerShell (до {0} сек)…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Reliability" xml:space="preserve">Читаю журнал надёжности…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Repair" xml:space="preserve">Системный ремонт Windows…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Rollback" xml:space="preserve">Работаю со снимками системы…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Security" xml:space="preserve">Проверяю защиту системы…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Tool" xml:space="preserve">Выполняю {0}…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.Updates" xml:space="preserve">Проверяю обновления Windows…</system:String>
+    <system:String x:Key="S.AgentRun.StepError" xml:space="preserve">Ошибка на шаге {0}: {1}</system:String>
+    <system:String x:Key="S.AgentRun.Thinking" xml:space="preserve">Думаю…</system:String>
+    <system:String x:Key="S.AgentRun.Timeout" xml:space="preserve">Модель не ответила за 3 минуты. Повторите запрос.</system:String>
+    <system:String x:Key="S.AgentRun.TruncatedByTokens" xml:space="preserve">[Ответ обрезан лимитом токенов модели]</system:String>
     <system:String x:Key="S.Appearance.Accent" xml:space="preserve">Акцентный цвет</system:String>
     <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Заливка основных кнопок. «По теме» - цвет из палитры</system:String>
     <system:String x:Key="S.Appearance.Angle" xml:space="preserve">Наклон</system:String>
@@ -66,6 +103,7 @@
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Движение фона и сворачивание поля ввода</system:String>
     <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Фон</system:String>
     <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">Такой формат картинки программа не переносит в архив данных. Подойдут: {0}</system:String>
+    <system:String x:Key="S.Appearance.BackgroundDialog" xml:space="preserve">Фоновое изображение</system:String>
     <system:String x:Key="S.Appearance.Brightness" xml:space="preserve">Яркость фото</system:String>
     <system:String x:Key="S.Appearance.ChatWidth" xml:space="preserve">Ширина колонки чата</system:String>
     <system:String x:Key="S.Appearance.ChatWidthDesc" xml:space="preserve">Длинные строки труднее читать - узкая колонка помогает</system:String>
@@ -113,7 +151,9 @@
     <system:String x:Key="S.Appearance.ReactionRadius" xml:space="preserve">Радиус реакции</system:String>
     <system:String x:Key="S.Appearance.ReactionRadiusDesc" xml:space="preserve">На каком расстоянии мышь разворачивает</system:String>
     <system:String x:Key="S.Appearance.Reset" xml:space="preserve">Сбросить оформление</system:String>
+    <system:String x:Key="S.Appearance.ResetConfirm" xml:space="preserve">Вернуть оформление к исходному виду? Тема и масштаб интерфейса не изменятся.</system:String>
     <system:String x:Key="S.Appearance.Saturation" xml:space="preserve">Насыщенность</system:String>
+    <system:String x:Key="S.Appearance.SecondsUnit" xml:space="preserve">с</system:String>
     <system:String x:Key="S.Appearance.Sheen" xml:space="preserve">Блик по диагонали</system:String>
     <system:String x:Key="S.Appearance.Speed" xml:space="preserve">Скорость</system:String>
     <system:String x:Key="S.Appearance.StripWidth" xml:space="preserve">Ширина полоски</system:String>
@@ -276,6 +316,7 @@
 
     <system:String x:Key="S.Chrome.NotAdmin" xml:space="preserve">Not running as administrator: many features are unavailable</system:String>
 
+    <system:String x:Key="S.ColorPicker.ByTheme" xml:space="preserve">по теме</system:String>
     <system:String x:Key="S.Colour.Reset" xml:space="preserve">Сброс</system:String>
     <system:String x:Key="S.Colour.ResetTip" xml:space="preserve">Вернуть цвет темы</system:String>
 
@@ -287,6 +328,7 @@
     <system:String x:Key="S.Common.Choose" xml:space="preserve">Выбрать</system:String>
     <system:String x:Key="S.Common.Close" xml:space="preserve">Закрыть</system:String>
     <system:String x:Key="S.Common.Continue" xml:space="preserve">Продолжить</system:String>
+    <system:String x:Key="S.Common.Copied" xml:space="preserve">Скопировано</system:String>
     <system:String x:Key="S.Common.Copy" xml:space="preserve">Копировать</system:String>
     <system:String x:Key="S.Common.Delete" xml:space="preserve">Удалить</system:String>
     <system:String x:Key="S.Common.Edit" xml:space="preserve">Изменить</system:String>
@@ -312,12 +354,28 @@
     <system:String x:Key="S.Confirm.ChatLabel" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Confirm.Overwrite" xml:space="preserve">Будет перезаписан существующий файл {0}.</system:String>
     <system:String x:Key="S.Confirm.ScriptChanges" xml:space="preserve">Меняет систему: {0}</system:String>
+    <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">домен приложения</system:String>
+    <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">отмена</system:String>
+    <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>
+    <system:String x:Key="S.Crash.Source.Task" xml:space="preserve">несобранная задача</system:String>
+    <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">поток интерфейса</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Журнал аудита</system:String>
+    <system:String x:Key="S.Engine.AgentDone" xml:space="preserve">Агент завершил работу - готовлю отчёт</system:String>
+    <system:String x:Key="S.Engine.Cancelled" xml:space="preserve">отменено</system:String>
+    <system:String x:Key="S.Engine.StartingAgent" xml:space="preserve">Запускаю агента</system:String>
+    <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели</system:String>
+    <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Инструменты завершены - запрашиваю ответ модели (шаг {0})…</system:String>
+    <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Инструменты прерваны</system:String>
     <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} уже существует. Без вопроса можно создать только новый файл, а перезапись подтверждает пользователь. Если перезапись действительно нужна, повтори вызов — пользователя спросят; иначе выбери другое имя.</system:String>
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
+    <system:String x:Key="S.Image.Gone" xml:space="preserve">Изображение больше недоступно.</system:String>
+    <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (изображение больше недоступно)</system:String>
+    <system:String x:Key="S.Image.Loading" xml:space="preserve">Загрузка изображения…</system:String>
+    <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Изображение недоступно: {0}</system:String>
+    <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (изображение недоступно)</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
@@ -835,6 +893,14 @@
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
+    <system:String x:Key="S.Share.ClipboardBusy" xml:space="preserve">Не удалось записать код в буфер обмена - его удерживает другое приложение.</system:String>
+    <system:String x:Key="S.Share.CodeBroken" xml:space="preserve">Код чата повреждён или не распознан.</system:String>
+    <system:String x:Key="S.Share.CodeCopied" xml:space="preserve">Код скопирован в буфер обмена ({0} символов, сообщений: {1}).&#10;Вставьте его в поиск в боковой панели другого экземпляра, чтобы открыть чат.</system:String>
+    <system:String x:Key="S.Share.ExportTitle" xml:space="preserve">Экспорт диалога</system:String>
+    <system:String x:Key="S.Share.FileKind" xml:space="preserve">Чаты Amarin</system:String>
+    <system:String x:Key="S.Share.NotAChat" xml:space="preserve">Файл не распознан как чат Amarin.</system:String>
+    <system:String x:Key="S.Share.Saved" xml:space="preserve">Диалог сохранён:&#10;{0}</system:String>
+    <system:String x:Key="S.Share.SavedToFile" xml:space="preserve">Код длинный, поэтому также сохранён в файл:&#10;{0}</system:String>
     <system:String x:Key="S.Sidebar.Collapse" xml:space="preserve">Свернуть панель</system:String>
     <system:String x:Key="S.Sidebar.Expand" xml:space="preserve">Развернуть панель</system:String>
     <system:String x:Key="S.Sidebar.NewChat" xml:space="preserve">New Chat</system:String>
@@ -879,6 +945,9 @@
     <system:String x:Key="S.Spend.Stale" xml:space="preserve">Показаны сохранённые данные: Venice сейчас не отвечает</system:String>
     <system:String x:Key="S.Spend.Title" xml:space="preserve">Траты</system:String>
     <system:String x:Key="S.Spend.TotalCredits" xml:space="preserve">{0} кредитов</system:String>
+    <system:String x:Key="S.Summarize.NotYoutube" xml:space="preserve">Не похоже на ссылку YouTube.</system:String>
+    <system:String x:Key="S.Summarize.PasteLink" xml:space="preserve">Вставьте ссылку на видео.</system:String>
+    <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Дождитесь окончания текущего ответа.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Разбор папок</system:String>
@@ -1034,8 +1103,10 @@
     <system:String x:Key="S.Variant.DeleteText" xml:space="preserve">Вместе с ним удалится и вся переписка, которая его продолжала. Остальные варианты останутся — на экране окажется соседний.</system:String>
     <system:String x:Key="S.Variant.DeleteTitle" xml:space="preserve">Удалить этот вариант?</system:String>
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель - эта убрана из списка до перезапуска.</system:String>
+    <system:String x:Key="S.Viewer.ClipboardBusy" xml:space="preserve">Не удалось записать изображение в буфер обмена - его удерживает другое приложение.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
+    <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Сохранить изображение</system:String>
     <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Введите «{0}», чтобы удалить данные. Отменить это будет нельзя.</system:String>
     <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Подтвердите удаление</system:String>
     <system:String x:Key="S.Wipe.Done" xml:space="preserve">Данные профиля удалены, программа начинает с чистого листа.</system:String>
