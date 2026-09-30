@@ -3040,11 +3040,10 @@ namespace Amarin.UI
                     .Append(item.Id).Append('~')
                     .Append(item.Title).Append('~')
                     .Append(item.UpdatedAt.Ticks).Append('~')
-                    .Append(item.IsPinned ? '1' : '0');
-                if (sort == ChatSort.Cost)
-                {
-                    builder.Append('~').Append(item.TotalCost);
-                }
+                    .Append(item.IsPinned ? '1' : '0')
+
+                    // Цена — всегда, а не только при сортировке по ней: она стоит в подсказке строки (E3).
+                    .Append('~').Append(item.TotalCost);
 
                 if (organize.Chats.TryGetValue(item.Id, out var placement))
                 {

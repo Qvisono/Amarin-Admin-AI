@@ -298,6 +298,7 @@ namespace Amarin.UI
         {
             var busy = IsBusy(_session.Id);
             RefreshContextRing();
+            UpdateChatCostChip();
             _compact?.SetBusy(busy);
             _variantGate.IsOpen = !busy;
 

@@ -308,6 +308,7 @@
 
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Actions</system:String>
 
+    <system:String x:Key="S.ChatCost.Name" xml:space="preserve">Cost of the whole chat</system:String>
     <system:String x:Key="S.ChatList.All" xml:space="preserve">All chats</system:String>
     <system:String x:Key="S.ChatList.AllTags" xml:space="preserve">All</system:String>
     <system:String x:Key="S.ChatList.Archive" xml:space="preserve">Archive</system:String>
@@ -448,7 +449,10 @@
     <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">What will change - a dry run</system:String>
     <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">The dry run found nothing to change: nothing currently matches the command's conditions.</system:String>
     <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Dry run with -WhatIf…</system:String>
+    <system:String x:Key="S.Cost.Agents" xml:space="preserve">Agents</system:String>
     <system:String x:Key="S.Cost.Compact" xml:space="preserve">Context compaction</system:String>
+    <system:String x:Key="S.Cost.Other" xml:space="preserve">Other</system:String>
+    <system:String x:Key="S.Cost.Tools" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">application domain</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">cancellation</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">startup</system:String>

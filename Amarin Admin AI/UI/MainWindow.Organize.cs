@@ -86,6 +86,15 @@ namespace Amarin.UI
             // Закрепление живёт только в описи, а меню действий читает его со строки.
             ChatRowState.SetIsPinned(button, chat.Entry.IsPinned);
 
+            // Подсказка: полное название (в строке оно обрезано) и цена чата целиком (E3).
+            var tip = DisplayTitle(chat.Entry.Title) + "\n" + ChatFormat.DateTimeShort(chat.Entry.UpdatedAt, ActiveDateFormat);
+            if (chat.Entry.TotalCost > 0m)
+            {
+                tip += " · " + ChatFormat.Cost(new VeniceCost { Usd = chat.Entry.TotalCost, HasData = true });
+            }
+
+            button.ToolTip = tip;
+
             // Ссылкой на ресурс, а не кистью: точки обязаны перекраситься вместе с темой.
             DependencyProperty[] slots = [ChatRowState.Tag1Property, ChatRowState.Tag2Property, ChatRowState.Tag3Property];
             for (var i = 0; i < Math.Min(slots.Length, chat.Tags.Count); i++)

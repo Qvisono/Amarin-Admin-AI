@@ -1475,6 +1475,19 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
+                                    <!-- Во что обошёлся чат целиком, со всеми вариантами (E3). Разбивка — в подсказке. -->
+                                    <Border x:Name="ChatCostChip" Visibility="Collapsed" Height="26" Margin="6,0,0,0"
+                                            Padding="8,0,10,0" CornerRadius="7" BorderThickness="1" VerticalAlignment="Center"
+                                            Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
+                                            AutomationProperties.Name="{DynamicResource S.ChatCost.Name}"
+                                            ToolTipService.InitialShowDelay="250" ToolTipOpening="ChatCostChip_ToolTipOpening">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Σ" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Text.Faint}"/>
+                                            <TextBlock x:Name="ChatCostText" FontSize="11.5" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource Text.Secondary}"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
 
                                     <!--

@@ -308,6 +308,7 @@
 
     <system:String x:Key="S.Chat.RowActions" xml:space="preserve">Действия</system:String>
 
+    <system:String x:Key="S.ChatCost.Name" xml:space="preserve">Цена всего чата</system:String>
     <system:String x:Key="S.ChatList.All" xml:space="preserve">Все чаты</system:String>
     <system:String x:Key="S.ChatList.AllTags" xml:space="preserve">Все</system:String>
     <system:String x:Key="S.ChatList.Archive" xml:space="preserve">В архив</system:String>
@@ -448,7 +449,10 @@
     <system:String x:Key="S.Confirm.WhatIf" xml:space="preserve">Что изменится — пробный прогон</system:String>
     <system:String x:Key="S.Confirm.WhatIfNothing" xml:space="preserve">Пробный прогон не нашёл, что менять: под условия команды сейчас ничего не подходит.</system:String>
     <system:String x:Key="S.Confirm.WhatIfRunning" xml:space="preserve">Пробный прогон с -WhatIf…</system:String>
+    <system:String x:Key="S.Cost.Agents" xml:space="preserve">Агенты</system:String>
     <system:String x:Key="S.Cost.Compact" xml:space="preserve">Сжатие контекста</system:String>
+    <system:String x:Key="S.Cost.Other" xml:space="preserve">Прочее</system:String>
+    <system:String x:Key="S.Cost.Tools" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">домен приложения</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">отмена</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>

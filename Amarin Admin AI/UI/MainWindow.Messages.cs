@@ -189,6 +189,8 @@ namespace Amarin.UI
         /// </remarks>
         private void RefreshMessageView(string? messageId)
         {
+            // Сюда приезжают поздние цены (заголовок, сводка, сжатие) — цена чата (E3) следом.
+            UpdateChatCostChip();
             if (string.IsNullOrEmpty(messageId) ||
                 !_messageViews.TryGetValue(messageId, out var host) ||
                 !host.IsMaterialized)

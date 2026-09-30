@@ -65,6 +65,56 @@ internal static class CostBreakdownTooltip
         }
     }
 
+    /// <summary>
+    /// Готовые строки — у цены чата целиком (E3). Последняя строка — итог: жирным и под чертой,
+    /// если над ней есть что складывать.
+    /// </summary>
+    public static void Fill(ToolTip tip, IReadOnlyList<(string Label, VeniceCost Cost)> lines)
+    {
+        ArgumentNullException.ThrowIfNull(tip);
+        if (tip is not CostTip card || lines.Count == 0)
+        {
+            return;
+        }
+
+        var rows = new Grid();
+        rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var line = 0;
+        for (var i = 0; i < lines.Count - 1; i++)
+        {
+            AddRow(rows, ref line, lines[i].Label, lines[i].Cost, bold: false);
+        }
+
+        if (line > 1)
+        {
+            AddRule(rows, ref line);
+        }
+
+        if (line != 1)
+        {
+            AddRow(rows, ref line, lines[^1].Label, lines[^1].Cost, bold: true);
+        }
+
+        card.Card.Child = rows;
+    }
+
+    private static void AddRule(Grid rows, ref int line)
+    {
+        var rule = new Border
+        {
+            Height = 1,
+            Margin = new Thickness(0, 5, 0, 5),
+            SnapsToDevicePixels = true
+        };
+        rule.SetResourceReference(Border.BackgroundProperty, "Border.Default");
+        rows.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(rule, line);
+        Grid.SetColumnSpan(rule, 2);
+        rows.Children.Add(rule);
+        line++;
+    }
+
     private static UIElement BuildRows(FrameworkElement host, ChatDisplayMessage message)
     {
         var rows = new Grid { Margin = new Thickness(0) };
@@ -138,18 +188,7 @@ internal static class CostBreakdownTooltip
         // the row above.
         if (line > 1)
         {
-            var rule = new Border
-            {
-                Height = 1,
-                Margin = new Thickness(0, 5, 0, 5),
-                SnapsToDevicePixels = true
-            };
-            rule.SetResourceReference(Border.BackgroundProperty, "Border.Default");
-            rows.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Grid.SetRow(rule, line);
-            Grid.SetColumnSpan(rule, 2);
-            rows.Children.Add(rule);
-            line++;
+            AddRule(rows, ref line);
 
             AddRow(rows, ref line, Loc.Get("S.Cost.Total"), message.Cost, bold: true);
         }

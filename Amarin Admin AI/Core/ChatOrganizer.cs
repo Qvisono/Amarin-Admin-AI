@@ -431,4 +431,94 @@ internal static class ChatCost
             return ChatBranches.AllMessages(session).Sum(message => message.Cost?.Usd ?? 0m);
         }
     }
+
+    /// <summary>
+    /// Из чего сложилась цена чата: модели по именам, агенты, инструменты и служебная работа —
+    /// по всем вариантам ответов сразу. Последняя строка — итог.
+    /// </summary>
+    /// <remarks>
+    /// У старых переписок разбивки на сообщении нет (<see cref="ChatDisplayMessage.ModelCost"/>
+    /// появился позже цены), и строки не складываются в итог. Разница идёт строкой «Прочее» —
+    /// иначе сумма под чертой не сошлась бы со строками над ней.
+    /// </remarks>
+    public static IReadOnlyList<(string Label, VeniceCost Cost)> Breakdown(ChatSession session)
+    {
+        var models = new Dictionary<string, VeniceCost>(StringComparer.Ordinal);
+        var agents = VeniceCost.Zero;
+        var tools = VeniceCost.Zero;
+        var router = VeniceCost.Zero;
+        var guard = VeniceCost.Zero;
+        var title = VeniceCost.Zero;
+        var summary = VeniceCost.Zero;
+        var compact = VeniceCost.Zero;
+        var total = VeniceCost.Zero;
+
+        lock (session.Gate)
+        {
+            foreach (var message in ChatBranches.AllMessages(session))
+            {
+                if (message.Cost is not { HasData: true } cost)
+                {
+                    continue;
+                }
+
+                total = total.Add(cost);
+                if (message.ModelCost is { HasData: true } model)
+                {
+                    var name = VeniceModelCatalog.GetDisplayName(message.ResolvedModelId ?? message.RequestedModelId ?? "");
+                    name = string.IsNullOrWhiteSpace(name) ? Loc.Get("S.Cost.Model") : name;
+                    models[name] = models.TryGetValue(name, out var sum) ? sum.Add(model) : model;
+                }
+
+                foreach (var call in message.ToolRounds.SelectMany(round => round.Calls))
+                {
+                    if (call.NestedAgent is { Cost.HasData: true } agent)
+                    {
+                        agents = agents.Add(agent.Cost);
+                    }
+                    else if (call.Cost is { HasData: true } paid)
+                    {
+                        tools = tools.Add(paid);
+                    }
+                }
+
+                router = Plus(router, message.RouterCost);
+                guard = Plus(guard, message.GuardCost);
+                title = Plus(title, message.TitleCost);
+                summary = Plus(summary, message.SummaryCost);
+                compact = Plus(compact, message.CompactCost);
+            }
+        }
+
+        var lines = new List<(string, VeniceCost)>();
+        lines.AddRange(models.OrderByDescending(pair => pair.Value.Usd).Select(pair => (pair.Key, pair.Value)));
+        Line(lines, "S.Cost.Agents", agents);
+        Line(lines, "S.Cost.Tools", tools);
+        Line(lines, "S.Cost.Router", router);
+        Line(lines, "S.Cost.Guard", guard);
+        Line(lines, "S.Cost.ChatTitle", title);
+        Line(lines, "S.Cost.Summary", summary);
+        Line(lines, "S.Cost.Compact", compact);
+
+        var listed = lines.Aggregate(VeniceCost.Zero, (sum, line) => sum.Add(line.Item2));
+        var rest = total.Usd - listed.Usd;
+        if (rest > 0.0001m)
+        {
+            lines.Add((Loc.Get("S.Cost.Other"), new VeniceCost { Usd = rest, HasData = true }));
+        }
+
+        lines.Add((Loc.Get("S.Cost.Total"), total));
+        return lines;
+    }
+
+    private static VeniceCost Plus(VeniceCost sum, VeniceCost? cost) =>
+        cost is { HasData: true } ? sum.Add(cost) : sum;
+
+    private static void Line(List<(string, VeniceCost)> lines, string key, VeniceCost cost)
+    {
+        if (cost.HasData && cost.Usd > 0m)
+        {
+            lines.Add((Loc.Get(key), cost));
+        }
+    }
 }
