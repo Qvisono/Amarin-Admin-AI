@@ -363,21 +363,38 @@ namespace Amarin.UI
             TakeHandoffPrompt();
         });
 
-        /// <summary>Кладёт переданный текст в композер, но не отправляет: решает человек.</summary>
+        /// <summary>
+        /// Забирает переданное вторым запуском: текст — в поле ввода, отправка — только если
+        /// тот запуск был с <c>--send</c>.
+        /// </summary>
         private void TakeHandoffPrompt()
         {
-            var requests = SingleInstanceHandoff.TryTakeAll(AppPaths.Root);
-            var prompt = requests
-                .Select(item => item.Prompt)
-                .LastOrDefault(text => !string.IsNullOrWhiteSpace(text));
-
-            if (prompt is null)
+            if (HandoffRequest.Latest(SingleInstanceHandoff.TryTakeAll(AppPaths.Root)) is { } request)
             {
+                PlaceIncomingPrompt(request.Prompt, request.Send);
+            }
+        }
+
+        /// <summary>
+        /// Запрос извне — из командной строки или от второго запуска. Один путь на оба случая,
+        /// чтобы одна и та же команда вела себя одинаково, открыто окно или нет.
+        /// </summary>
+        private void PlaceIncomingPrompt(string? prompt, bool send)
+        {
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                FocusMessageInput();
                 return;
             }
 
             MessageTextBox.Text = prompt;
             MessageTextBox.CaretIndex = MessageTextBox.Text.Length;
+            if (send)
+            {
+                Detached.Run(SendAsync(), "send");
+                return;
+            }
+
             FocusMessageInput();
         }
 

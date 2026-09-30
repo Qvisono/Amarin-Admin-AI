@@ -298,14 +298,14 @@ namespace Amarin.UI
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
 
-            if (!string.IsNullOrWhiteSpace(_services.StartupPrompt))
+            // Запрос из командной строки только ложится в поле, как и переданный уже открытому
+            // окну; сам уходит лишь с явным --send (см. StartupArgs.Send).
+            PlaceIncomingPrompt(_services.StartupPrompt, _services.StartupSend);
+
+            // Этот запуск стёр данные по просьбе прежнего — сказать об этом, а о неудаче тем более.
+            if (_services.StartupWipe is { } wiped)
             {
-                MessageTextBox.Text = _services.StartupPrompt;
-                Detached.Run(SendAsync(), "send");
-            }
-            else
-            {
-                FocusMessageInput();
+                ShowWipeReport(wiped);
             }
         }
 

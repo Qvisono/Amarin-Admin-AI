@@ -76,8 +76,8 @@ public sealed class HotkeyMapTests
     {
         // Отсутствующий ключ значит «как с завода»: ровно поэтому settings.json прежних
         // версий читается без миграции.
-        Assert.Equal("Ctrl+F", HotkeyMap.Gesture(null, HotkeyMap.NewChat));
-        Assert.Equal("Ctrl+F", HotkeyMap.Gesture(new Dictionary<string, string>(), HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+N", HotkeyMap.Gesture(null, HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+N", HotkeyMap.Gesture(new Dictionary<string, string>(), HotkeyMap.NewChat));
         Assert.True(HotkeyMap.IsDefault(null, HotkeyMap.NewChat));
     }
 
@@ -88,7 +88,7 @@ public sealed class HotkeyMapTests
         // вовсе без сочетания из-за опечатки — хуже, чем вернуть заводское.
         var assignments = new Dictionary<string, string> { [HotkeyMap.NewChat] = "Ctrl" };
 
-        Assert.Equal("Ctrl+F", HotkeyMap.Gesture(assignments, HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+N", HotkeyMap.Gesture(assignments, HotkeyMap.NewChat));
     }
 
     [Fact]
@@ -118,6 +118,52 @@ public sealed class HotkeyMapTests
 
         // Одинаковые имена действий развели бы назначения по одному ключу настроек.
         Assert.Equal(HotkeyMap.All.Count, HotkeyMap.All.Select(a => a.Id).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void A_new_chat_is_ctrl_n_and_ctrl_f_is_left_free()
+    {
+        // Ctrl+F везде значит «найти», и заводить им новый чат было неожиданно.
+        Assert.Equal("Ctrl+N", HotkeyMap.Find(HotkeyMap.NewChat)!.DefaultGesture);
+        Assert.DoesNotContain(HotkeyMap.All, action => action.DefaultGesture == "Ctrl+F");
+    }
+
+    [Fact]
+    public void A_factory_shortcut_taken_by_an_explicit_assignment_does_not_fire()
+    {
+        // Кто до смены заводского сам отдал Ctrl+N «Ответить», не должен потерять эту клавишу:
+        // «Новый чат» стоит в списке первым и никогда не отказывается, так что без правила он
+        // забирал бы сочетание себе.
+        var assignments = new Dictionary<string, string> { [HotkeyMap.ReplyToSelection] = "Ctrl+N" };
+
+        Assert.Null(HotkeyMap.Effective(assignments, HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+N", HotkeyMap.Effective(assignments, HotkeyMap.ReplyToSelection));
+    }
+
+    [Fact]
+    public void Two_explicit_assignments_to_one_shortcut_both_stay_in_effect()
+    {
+        // Одинаковые явные назначения — выбор человека: отказавшееся действие отдаёт сочетание
+        // следующему, и правило о заводских дублях их не касается.
+        var assignments = new Dictionary<string, string>
+        {
+            [HotkeyMap.NewChat] = "Ctrl+Q",
+            [HotkeyMap.ReplyToSelection] = "Ctrl+Q"
+        };
+
+        Assert.Equal("Ctrl+Q", HotkeyMap.Effective(assignments, HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+Q", HotkeyMap.Effective(assignments, HotkeyMap.ReplyToSelection));
+    }
+
+    [Fact]
+    public void Without_a_conflict_the_effective_shortcut_is_the_assigned_one()
+    {
+        Assert.Equal("Ctrl+N", HotkeyMap.Effective(null, HotkeyMap.NewChat));
+        Assert.Equal("Ctrl+R", HotkeyMap.Effective(null, HotkeyMap.ReplyToSelection));
+
+        // Мусор в настройках назначением не считается и ничего не занимает.
+        var broken = new Dictionary<string, string> { [HotkeyMap.ReplyToSelection] = "Ctrl" };
+        Assert.Equal("Ctrl+N", HotkeyMap.Effective(broken, HotkeyMap.NewChat));
     }
 
     [Fact]

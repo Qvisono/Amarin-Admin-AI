@@ -305,6 +305,7 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Read-only mode is on: the app does nothing that changes the system, so the {0} call was not run. Do not repeat it and do not try to do the same with another tool, PowerShell included; tell the user that this needs a different access mode in Settings (Security).</system:String>
+    <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Not in effect: you assigned this shortcut to another action. Record a different one here</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (chat deleted)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Export CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Could not save the file. Check that the folder is writable.</system:String>
@@ -432,7 +433,7 @@
     <system:String x:Key="S.Data.AppFiles" xml:space="preserve">Application files</system:String>
     <system:String x:Key="S.Data.AppFilesDesc" xml:space="preserve">Folder with settings, chats and logs</system:String>
     <system:String x:Key="S.Data.DeleteAll" xml:space="preserve">Delete all data</system:String>
-    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Settings, chats, accounts - irreversibly</system:String>
+    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">This profile's chats, settings, keys and appearance - irreversibly</system:String>
     <system:String x:Key="S.Data.DeleteChats" xml:space="preserve">Delete all chats</system:String>
     <system:String x:Key="S.Data.DeleteChatsDesc" xml:space="preserve">Removes every saved conversation</system:String>
     <system:String x:Key="S.Data.Import" xml:space="preserve">Import a chat</system:String>
@@ -1009,5 +1010,19 @@
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">The model “{0}” will not take tools: Venice cannot build the tool-call grammar for it. This is a fault on the Venice side, not in the app, and retrying will not help. Pick another model - this one is out of the list until the app restarts.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Next</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
+    <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Type "{0}" to delete the data. This cannot be undone.</system:String>
+    <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Confirm deletion</system:String>
+    <system:String x:Key="S.Wipe.Done" xml:space="preserve">The profile's data has been deleted; the program starts from a clean slate.</system:String>
+    <system:String x:Key="S.Wipe.DoneTitle" xml:space="preserve">Data deleted</system:String>
+    <system:String x:Key="S.Wipe.FailedTitle" xml:space="preserve">Data not deleted</system:String>
+    <system:String x:Key="S.Wipe.Go" xml:space="preserve">Delete and restart</system:String>
+    <system:String x:Key="S.Wipe.IncludeAudit" xml:space="preserve">Delete the audit log too</system:String>
+    <system:String x:Key="S.Wipe.Next" xml:space="preserve">Next</system:String>
+    <system:String x:Key="S.Wipe.Partial" xml:space="preserve">These files and folders could not be deleted - another program may be holding them:&#10;{0}&#10;&#10;You can delete them by hand from the data folder.</system:String>
+    <system:String x:Key="S.Wipe.PartialTitle" xml:space="preserve">Not everything was deleted</system:String>
+    <system:String x:Key="S.Wipe.RestartFailed" xml:space="preserve">The program could not restart, so the data was left as it was. Please try again.</system:String>
+    <system:String x:Key="S.Wipe.Text" xml:space="preserve">This profile's conversations, settings, saved API keys, spending log, instructions, prompt presets, avatar and background will be deleted.&#10;&#10;Other profiles, interface translations, snapshots for undoing system changes, and the profile's name and password stay. Keys from environment variables are left alone.&#10;&#10;The program will restart and delete the data as soon as this window closes.</system:String>
+    <system:String x:Key="S.Wipe.Title" xml:space="preserve">Delete all data of the profile "{0}"?</system:String>
+    <system:String x:Key="S.Wipe.Word" xml:space="preserve">DELETE</system:String>
 
 </ResourceDictionary>

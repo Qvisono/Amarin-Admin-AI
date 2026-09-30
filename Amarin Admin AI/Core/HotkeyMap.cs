@@ -41,9 +41,14 @@ public static class HotkeyMap
     /// <summary>
     /// Все действия, в порядке показа в настройках.
     /// </summary>
+    /// <remarks>
+    /// «Новый чат» до 1.28.0 стоял на Ctrl+F — сочетании, которое везде значит «найти»; с него
+    /// ушли на привычный Ctrl+N. Тем, кто успел занять Ctrl+N другим действием, смена заводского
+    /// ничего не ломает — см. <see cref="Effective"/>.
+    /// </remarks>
     public static readonly IReadOnlyList<HotkeyAction> All =
     [
-        new(NewChat, "Ctrl+F", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc"),
+        new(NewChat, "Ctrl+N", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc"),
         new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc")
     ];
 
@@ -83,6 +88,38 @@ public static class HotkeyMap
 
         return action.DefaultGesture;
     }
+
+    /// <summary>
+    /// Сочетание, на которое действие откликается на самом деле; null — его заводское
+    /// сочетание занято другим действием, которому его назначили явно.
+    /// </summary>
+    /// <remarks>
+    /// Явное назначение побеждает заводское. Иначе смена заводского сочетания отняла бы клавишу
+    /// у того, кто сам назначил её другому действию: разбор нажатия идёт по <see cref="All"/>
+    /// по порядку, и «Новый чат», стоящий первым и никогда не отказывающийся, забирал бы
+    /// сочетание себе. Два явных назначения на одно сочетание — осознанный выбор человека,
+    /// их это правило не трогает.
+    /// </remarks>
+    public static string? Effective(IReadOnlyDictionary<string, string>? assignments, string id)
+    {
+        var gesture = Gesture(assignments, id);
+        if (IsAssigned(assignments, id))
+        {
+            return gesture;
+        }
+
+        var taken = All.Any(other =>
+            !string.Equals(other.Id, id, StringComparison.Ordinal) &&
+            IsAssigned(assignments, other.Id) &&
+            string.Equals(Gesture(assignments, other.Id), gesture, StringComparison.Ordinal));
+        return taken ? null : gesture;
+    }
+
+    /// <summary>В настройках лежит читаемое назначение этого действия.</summary>
+    private static bool IsAssigned(IReadOnlyDictionary<string, string>? assignments, string id) =>
+        assignments is not null &&
+        assignments.TryGetValue(id, out var stored) &&
+        TryParse(stored, out _);
 
     /// <summary>Сочетание записано так же, как заводское для этого действия.</summary>
     public static bool IsDefault(IReadOnlyDictionary<string, string>? assignments, string id) =>

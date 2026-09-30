@@ -3449,7 +3449,8 @@
                                         <TextBlock Style="{StaticResource SettingDesc}"
                                            Text="{DynamicResource S.Data.DeleteAllDesc}"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Style="{StaticResource DangerButton}" Content="{DynamicResource S.Common.Delete}"/>
+                                    <Button x:Name="DeleteAllDataButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                            Content="{DynamicResource S.Common.Delete}" Click="DeleteAllDataButton_Click"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>

@@ -148,8 +148,9 @@ namespace Amarin.UI
 
         private string ReplyGestureText()
         {
-            var gesture = HotkeyMap.Gesture(_services?.Settings.Hotkeys, HotkeyMap.ReplyToSelection);
-            return HotkeyMap.Display(gesture);
+            // Действующее, а не записанное: сочетание, занятое другим действием, не подсказываем.
+            var gesture = HotkeyMap.Effective(_services?.Settings.Hotkeys, HotkeyMap.ReplyToSelection);
+            return gesture is null ? "" : HotkeyMap.Display(gesture);
         }
 
         /// <summary>Горячая клавиша «Ответить»: работает, только если выделено в ответе модели.</summary>

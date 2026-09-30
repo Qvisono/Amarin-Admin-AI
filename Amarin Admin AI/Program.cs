@@ -44,7 +44,7 @@ internal static class Program
         {
             // --model намеренно не передаём: он пишет модель в настройки всей программы, и
             // менять её у работающего окна из ярлыка за спиной пользователя хуже, чем не менять.
-            SingleInstanceHandoff.Write(AppPaths.Root, startup.Prompt);
+            SingleInstanceHandoff.Write(AppPaths.Root, startup.Prompt, startup.Send);
             SingleInstance.Activate();
             return 0;
         }
@@ -99,6 +99,10 @@ internal static class Program
         // До первого окна: OverrideMetadata внутри нельзя звать после того, как свойство
         // впервые прочитали.
         ToolTipDefaults.Apply();
+
+        // «Удалить все данные» из прошлого запуска — раньше, чем прочитан хоть один файл
+        // профиля. Без метки просто убирает залежавшуюся просьбу (см. PendingWipe).
+        var wiped = PendingWipe.Run(AppPaths.Root, startup.WipeToken, DateTime.UtcNow);
 
         var configuration = BuildConfiguration();
         var downloadOptions = LoadDownloadOptions(configuration);
@@ -310,7 +314,9 @@ internal static class Program
             Titles = titles,
             Summaries = summaries,
             Confirmations = confirmations,
-            StartupPrompt = startup.Prompt
+            StartupPrompt = startup.Prompt,
+            StartupSend = startup.ShouldSend,
+            StartupWipe = wiped
         };
 
         var disposable = services;

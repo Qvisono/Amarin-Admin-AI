@@ -145,6 +145,30 @@ public sealed class HotkeyFieldTests
         Assert.Equal("Ctrl+F", announced);
     }
 
+    [Fact]
+    public void A_shortcut_that_does_not_fire_is_not_shown_as_a_working_one()
+    {
+        // Заводское сочетание, которое человек сам отдал другому действию, не срабатывает, и
+        // поле обязано это показать, а не обещать клавишу.
+        var (struck, tip, restored) = _wpf.Ui.Invoke(() =>
+        {
+            var field = new HotkeyField();
+            field.SetGesture("Ctrl+N", "Ctrl+N");
+            field.Shadowed = true;
+            var text = (TextBlock)field.FindName("GestureText")!;
+            var frame = (Border)field.FindName("Frame")!;
+            var wasStruck = text.TextDecorations == TextDecorations.Strikethrough;
+            var hadTip = frame.ToolTip is string { Length: > 0 };
+
+            field.Shadowed = false;
+            return (wasStruck, hadTip, text.TextDecorations is null && frame.ToolTip is null);
+        });
+
+        Assert.True(struck);
+        Assert.True(tip);
+        Assert.True(restored);
+    }
+
     private static Button Reset(HotkeyField field) => (Button)field.FindName("ResetButton")!;
 
     private static void StartRecording(HotkeyField field) => field.BeginRecording();

@@ -71,6 +71,12 @@ internal sealed class AppServices : IDisposable
 
     public string? StartupPrompt { get; init; }
 
+    /// <summary>Запуск был с <c>--send</c>: <see cref="StartupPrompt"/> отправляется сразу.</summary>
+    public bool StartupSend { get; init; }
+
+    /// <summary>Этот запуск стёр данные профиля по просьбе прежнего; null — не стирал.</summary>
+    public WipeResult? StartupWipe { get; init; }
+
     /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
     public required string EnvironmentKey { get; init; }
 

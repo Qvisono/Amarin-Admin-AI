@@ -162,6 +162,72 @@ public sealed class SingleInstanceTests
     }
 
     [Fact]
+    public void A_prompt_from_the_command_line_is_only_sent_with_the_send_flag()
+    {
+        // До 1.28.0 первый запуск отправлял запрос сам, а переданный открытому окну — нет;
+        // теперь в обоих случаях решает явный --send.
+        Assert.False(StartupArgs.Parse(["--prompt", "проверь диск"]).ShouldSend);
+        Assert.True(StartupArgs.Parse(["--prompt", "проверь диск", "--send"]).ShouldSend);
+        Assert.True(StartupArgs.Parse(["--SEND", "-p=проверь диск"]).ShouldSend);
+
+        // Флаг без запроса отправлять нечего.
+        Assert.False(StartupArgs.Parse(["--send"]).ShouldSend);
+    }
+
+    [Fact]
+    public void The_send_flag_travels_with_its_own_prompt_through_the_handoff()
+    {
+        var root = TempRoot();
+        try
+        {
+            SingleInstanceHandoff.Write(root, "первый", send: true);
+            Thread.Sleep(5);
+            SingleInstanceHandoff.Write(root, "второй");
+
+            var taken = SingleInstanceHandoff.TryTakeAll(root);
+
+            // Берётся последний запрос вместе со своим флагом: --send первого запуска не должен
+            // отправить текст, который второй велел лишь положить в поле. Порядок файлов —
+            // по имени, поэтому сверяем по содержимому, а не по положению.
+            Assert.Equal(2, taken.Count);
+            Assert.True(taken.Single(item => item.Prompt == "первый").Send);
+            Assert.False(taken.Single(item => item.Prompt == "второй").Send);
+            var latest = HandoffRequest.Latest([
+                new HandoffRequest { Prompt = "первый", Send = true },
+                new HandoffRequest { Prompt = "второй" },
+                new HandoffRequest { Prompt = "  ", Send = true }
+            ]);
+            Assert.Equal("второй", latest!.Prompt);
+            Assert.False(latest.Send);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_handoff_file_from_an_older_version_is_only_placed_in_the_field()
+    {
+        var root = TempRoot();
+        try
+        {
+            var directory = SingleInstanceHandoff.DirectoryFor(root);
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "old.json"), """{ "prompt": "старый запрос" }""");
+
+            var request = Assert.Single(SingleInstanceHandoff.TryTakeAll(root));
+
+            Assert.Equal("старый запрос", request.Prompt);
+            Assert.False(request.Send);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Reading_an_absent_folder_is_quiet()
     {
         Assert.Empty(SingleInstanceHandoff.TryTakeAll(

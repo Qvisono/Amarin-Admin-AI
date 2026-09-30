@@ -7,6 +7,20 @@ namespace Amarin.UI;
 internal sealed class HandoffRequest
 {
     public string? Prompt { get; init; }
+
+    /// <summary>Второй запуск был с <c>--send</c>: запрос отправляется, а не только ложится в поле.</summary>
+    /// <remarks>Файлы прежних версий этого поля не несут и читаются как «только в поле» — как и было.</remarks>
+    public bool Send { get; init; }
+
+    /// <summary>
+    /// Что делать с накопившимися запросами: берётся последний непустой, вместе с его флагом.
+    /// </summary>
+    /// <remarks>
+    /// Флаг от того же запроса, что и текст: иначе <c>--send</c> одного запуска отправил бы текст,
+    /// который другой запуск велел лишь положить в поле.
+    /// </remarks>
+    public static HandoffRequest? Latest(IEnumerable<HandoffRequest> requests) =>
+        requests.LastOrDefault(item => !string.IsNullOrWhiteSpace(item.Prompt));
 }
 
 /// <summary>
@@ -25,7 +39,7 @@ internal static class SingleInstanceHandoff
     public static string DirectoryFor(string root) => Path.Combine(root, FolderName);
 
     /// <summary>Кладёт запрос. Ничего не бросает: несостоявшаяся передача не повод падать.</summary>
-    public static void Write(string root, string? prompt)
+    public static void Write(string root, string? prompt, bool send = false)
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
@@ -38,7 +52,7 @@ internal static class SingleInstanceHandoff
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, Guid.NewGuid().ToString("N") + ".json");
             AppDataFile.WriteAtomic(path, JsonSerializer.Serialize(
-                new HandoffRequest { Prompt = prompt }, AppJson.Options));
+                new HandoffRequest { Prompt = prompt, Send = send }, AppJson.Options));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {

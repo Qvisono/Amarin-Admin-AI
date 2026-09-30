@@ -46,6 +46,25 @@ public partial class HotkeyField : UserControl
         StopRecording();
     }
 
+    /// <summary>
+    /// Сочетание показано, но не действует: заводское, а человек сам назначил его другому
+    /// действию (<see cref="HotkeyMap.Effective"/>).
+    /// </summary>
+    /// <remarks>
+    /// Показывать его как обычное значило бы обещать клавишу, которая не сработает.
+    /// </remarks>
+    public bool Shadowed
+    {
+        get => _shadowed;
+        set
+        {
+            _shadowed = value;
+            Render();
+        }
+    }
+
+    private bool _shadowed;
+
     private void Frame_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
@@ -144,9 +163,20 @@ public partial class HotkeyField : UserControl
 
     private void Render()
     {
+        var shadowed = _shadowed && !_recording;
         GestureText.Text = _recording ? Loc.Get("S.Hotkeys.Press") : HotkeyMap.Display(_gesture);
+        GestureText.TextDecorations = shadowed ? TextDecorations.Strikethrough : null;
         GestureText.SetResourceReference(
-            TextBlock.ForegroundProperty, _recording ? "Text.Dim" : "Text.Body");
+            TextBlock.ForegroundProperty, _recording || shadowed ? "Text.Dim" : "Text.Body");
+        if (shadowed)
+        {
+            Frame.SetResourceReference(ToolTipProperty, "S.Hotkeys.Taken");
+        }
+        else
+        {
+            Frame.ClearValue(ToolTipProperty);
+        }
+
         Frame.SetResourceReference(
             Border.BorderBrushProperty, _recording ? "Accent.Fill" : "Border.Default");
         ResetButton.Visibility = !_recording && !string.Equals(_gesture, _default, StringComparison.Ordinal)

@@ -1,8 +1,10 @@
+using Amarin.Core;
+
 namespace Amarin.UI;
 
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
-/// <c>--smoke-tools</c>, <c>--await-exit</c> и <c>--apply-update</c>.
+/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c> и <c>--wipe</c>.
 /// </summary>
 /// <remarks>
 /// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
@@ -12,6 +14,22 @@ internal sealed class StartupArgs
 {
     public string? Model { get; private set; }
     public string? Prompt { get; private set; }
+
+    /// <summary>
+    /// Отправить <see cref="Prompt"/> сразу, а не только положить его в поле ввода.
+    /// </summary>
+    /// <remarks>
+    /// До 1.28.0 запрос из командной строки при первом запуске уходил сам, а переданный уже
+    /// открытой программе — только ложился в поле. Одна и та же команда вела себя по-разному
+    /// в зависимости от того, открыто ли окно, а отправка без взгляда человека запускала агента
+    /// с инструментами по строке из ярлыка. Теперь по умолчанию — только поле, в обоих случаях;
+    /// сразу отправить — отдельный явный флаг.
+    /// </remarks>
+    public bool Send { get; private set; }
+
+    /// <summary>Запрос есть и его велено отправить.</summary>
+    public bool ShouldSend => Send && !string.IsNullOrWhiteSpace(Prompt);
+
     public bool SmokeTools { get; private set; }
 
     /// <summary>
@@ -43,6 +61,12 @@ internal sealed class StartupArgs
     /// </summary>
     public string? ApplyUpdateSha256 { get; private set; }
 
+    /// <summary>
+    /// Метка просьбы стереть профиль, оставленной прежним запуском (<see cref="PendingWipe"/>).
+    /// Сама по себе ничего не стирает: без файла просьбы с той же меткой это пустой звук.
+    /// </summary>
+    public string? WipeToken { get; private set; }
+
     public static StartupArgs Parse(string[] args)
     {
         var result = new StartupArgs();
@@ -53,6 +77,12 @@ internal sealed class StartupArgs
             if (a.Equals("--smoke-tools", StringComparison.OrdinalIgnoreCase))
             {
                 result.SmokeTools = true;
+                continue;
+            }
+
+            if (a.Equals("--send", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Send = true;
                 continue;
             }
 
@@ -83,6 +113,12 @@ internal sealed class StartupArgs
             if (TryTakeValue(args, ref i, "--sha256", out var sha))
             {
                 result.ApplyUpdateSha256 = sha.Length == 64 && sha.All(Uri.IsHexDigit) ? sha : null;
+                continue;
+            }
+
+            if (TryTakeValue(args, ref i, "--wipe", out var wipe))
+            {
+                result.WipeToken = string.IsNullOrWhiteSpace(wipe) ? null : wipe;
                 continue;
             }
 

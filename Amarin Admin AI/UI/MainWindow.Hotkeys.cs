@@ -28,11 +28,30 @@ namespace Amarin.UI
                 }
             }
 
-            foreach (var field in HotkeyList.Children.OfType<Grid>()
-                         .Select(row => row.Children.OfType<HotkeyField>().First()))
+            foreach (var field in HotkeyFields())
             {
                 var action = (HotkeyAction)field.Tag;
                 field.SetGesture(HotkeyMap.Gesture(settings.Hotkeys, action.Id), action.DefaultGesture);
+            }
+
+            RefreshShadowedHotkeys(settings);
+        }
+
+        private IEnumerable<HotkeyField> HotkeyFields() =>
+            HotkeyList.Children.OfType<Grid>().Select(row => row.Children.OfType<HotkeyField>().First());
+
+        /// <summary>
+        /// Помечает поля, чьё заводское сочетание занято явным назначением другого действия.
+        /// </summary>
+        /// <remarks>
+        /// Перепроверяются все поля, а не только изменённое: назначение одного действия
+        /// освобождает или занимает заводское сочетание соседа.
+        /// </remarks>
+        private void RefreshShadowedHotkeys(AppSettings settings)
+        {
+            foreach (var field in HotkeyFields())
+            {
+                field.Shadowed = HotkeyMap.Effective(settings.Hotkeys, ((HotkeyAction)field.Tag).Id) is null;
             }
         }
 
@@ -100,6 +119,7 @@ namespace Amarin.UI
             }
 
             _services.SettingsStore.Save(settings);
+            RefreshShadowedHotkeys(settings);
         }
 
         /// <summary>
@@ -135,7 +155,10 @@ namespace Amarin.UI
 
             foreach (var action in HotkeyMap.All)
             {
-                if (!Hotkeys.Matches(HotkeyMap.Gesture(assignments, action.Id), key, modifiers))
+                // Effective, а не Gesture: заводское сочетание, которое человек сам отдал другому
+                // действию, у этого не срабатывает.
+                if (HotkeyMap.Effective(assignments, action.Id) is not { } gesture ||
+                    !Hotkeys.Matches(gesture, key, modifiers))
                 {
                     continue;
                 }

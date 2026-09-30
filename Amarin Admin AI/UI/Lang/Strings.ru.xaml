@@ -305,6 +305,7 @@
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">Инструмент {0} выключен пользователем в настройках («Безопасность»). Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи об этом пользователю.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
+    <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
@@ -432,7 +433,7 @@
     <system:String x:Key="S.Data.AppFiles" xml:space="preserve">Файлы приложения</system:String>
     <system:String x:Key="S.Data.AppFilesDesc" xml:space="preserve">Папка с настройками, чатами и логами</system:String>
     <system:String x:Key="S.Data.DeleteAll" xml:space="preserve">Удалить все данные</system:String>
-    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Настройки, чаты, аккаунты - безвозвратно</system:String>
+    <system:String x:Key="S.Data.DeleteAllDesc" xml:space="preserve">Чаты, настройки, ключи и оформление этого профиля - безвозвратно</system:String>
     <system:String x:Key="S.Data.DeleteChats" xml:space="preserve">Удалить все чаты</system:String>
     <system:String x:Key="S.Data.DeleteChatsDesc" xml:space="preserve">Удаляет все сохранённые переписки</system:String>
     <system:String x:Key="S.Data.Import" xml:space="preserve">Импорт чата</system:String>
@@ -1009,5 +1010,19 @@
     <system:String x:Key="S.Venice.ToolsBroken" xml:space="preserve">Модель «{0}» не принимает инструменты: Venice не может собрать для неё грамматику вызовов. Это сбой на стороне Venice, а не в программе, и повторять попытку бесполезно. Выберите другую модель - эта убрана из списка до перезапуска.</system:String>
     <system:String x:Key="S.Viewer.Next" xml:space="preserve">Следующая</system:String>
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
+    <system:String x:Key="S.Wipe.ConfirmText" xml:space="preserve">Введите «{0}», чтобы удалить данные. Отменить это будет нельзя.</system:String>
+    <system:String x:Key="S.Wipe.ConfirmTitle" xml:space="preserve">Подтвердите удаление</system:String>
+    <system:String x:Key="S.Wipe.Done" xml:space="preserve">Данные профиля удалены, программа начинает с чистого листа.</system:String>
+    <system:String x:Key="S.Wipe.DoneTitle" xml:space="preserve">Данные удалены</system:String>
+    <system:String x:Key="S.Wipe.FailedTitle" xml:space="preserve">Данные не удалены</system:String>
+    <system:String x:Key="S.Wipe.Go" xml:space="preserve">Удалить и перезапустить</system:String>
+    <system:String x:Key="S.Wipe.IncludeAudit" xml:space="preserve">Удалить и журнал аудита</system:String>
+    <system:String x:Key="S.Wipe.Next" xml:space="preserve">Далее</system:String>
+    <system:String x:Key="S.Wipe.Partial" xml:space="preserve">Эти файлы и папки удалить не удалось - возможно, их держит другая программа:&#10;{0}&#10;&#10;Их можно удалить вручную из папки данных.</system:String>
+    <system:String x:Key="S.Wipe.PartialTitle" xml:space="preserve">Удалено не всё</system:String>
+    <system:String x:Key="S.Wipe.RestartFailed" xml:space="preserve">Не удалось перезапустить программу, поэтому данные остались как были. Попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.Wipe.Text" xml:space="preserve">Удалятся переписки, настройки, сохранённые ключи API, журнал трат, инструкции, заготовки промптов, аватар и фон этого профиля.&#10;&#10;Останутся другие профили, переводы интерфейса, снимки для отката изменений системы, имя и пароль профиля. Ключи из переменных окружения программа не трогает.&#10;&#10;Программа перезапустится и удалит данные сразу после закрытия этого окна.</system:String>
+    <system:String x:Key="S.Wipe.Title" xml:space="preserve">Удалить все данные профиля «{0}»?</system:String>
+    <system:String x:Key="S.Wipe.Word" xml:space="preserve">УДАЛИТЬ</system:String>
 
 </ResourceDictionary>
