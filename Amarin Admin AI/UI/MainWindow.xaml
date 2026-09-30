@@ -563,6 +563,10 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
+                    <!-- Поиск по чату (D1, Ctrl+F): над лентой по центру, под рядом кнопок. -->
+                    <local:ChatFindBar x:Name="FindBar" Grid.Row="0" Panel.ZIndex="5" Visibility="Collapsed"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"/>
+
                     <!-- «Состояние ПК» (C4): рядом с журналом и в той же подложке. -->
                     <Button x:Name="HealthButton" Grid.Row="0" Width="30" Height="30"
                             HorizontalAlignment="Right" VerticalAlignment="Top"

@@ -183,6 +183,8 @@ namespace Amarin.UI
                     return true;
                 case HotkeyMap.ReplyToSelection:
                     return TryReplyToSelection();
+                case HotkeyMap.FindInChat:
+                    return OpenFind();
                 default:
                     return false;
             }

@@ -38,6 +38,9 @@ public static class HotkeyMap
     /// </remarks>
     public const string ReplyToSelection = "ReplyToSelection";
 
+    /// <summary>Поиск по открытому чату (D1).</summary>
+    public const string FindInChat = "FindInChat";
+
     /// <summary>
     /// Все действия, в порядке показа в настройках.
     /// </summary>
@@ -49,7 +52,8 @@ public static class HotkeyMap
     public static readonly IReadOnlyList<HotkeyAction> All =
     [
         new(NewChat, "Ctrl+N", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc"),
-        new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc")
+        new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc"),
+        new(FindInChat, "Ctrl+F", "S.Hotkeys.FindInChat", "S.Hotkeys.FindInChatDesc")
     ];
 
     /// <summary>Порядок модификаторов в записи. Он же порядок показа человеку.</summary>

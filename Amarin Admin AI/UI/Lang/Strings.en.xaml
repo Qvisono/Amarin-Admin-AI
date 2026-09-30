@@ -390,6 +390,10 @@
     <system:String x:Key="S.Engine.ToolsDone" xml:space="preserve">Tools finished - asking the model for a reply</system:String>
     <system:String x:Key="S.Engine.ToolsDoneStep" xml:space="preserve">Tools finished - asking the model for a reply (step {0})…</system:String>
     <system:String x:Key="S.Engine.ToolsStopped" xml:space="preserve">Tools stopped</system:String>
+    <system:String x:Key="S.Find.Newer" xml:space="preserve">Later (Shift+Enter)</system:String>
+    <system:String x:Key="S.Find.None" xml:space="preserve">no matches</system:String>
+    <system:String x:Key="S.Find.Older" xml:space="preserve">Earlier (Enter)</system:String>
+    <system:String x:Key="S.Find.Placeholder" xml:space="preserve">Find in chat</system:String>
     <system:String x:Key="S.Gate.AlreadyExists" xml:space="preserve">{0} already exists. Only a new file can be created without asking; overwriting needs the user's confirmation. If overwriting is really intended, repeat the call and the user will be asked; otherwise pick another name.</system:String>
     <system:String x:Key="S.Gate.Disabled" xml:space="preserve">The {0} tool is turned off by the user in Settings (Security). Do not call it and do not try to do the same with another tool; if the task cannot be done without it, tell the user.</system:String>
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
@@ -526,6 +530,8 @@
     <system:String x:Key="S.Health.UpdatesUnknown" xml:space="preserve">Couldn't get the update list</system:String>
     <system:String x:Key="S.Health.Uptime" xml:space="preserve">Up for {0} days</system:String>
     <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Hasn't restarted in a while; some updates and fixes wait for it</system:String>
+    <system:String x:Key="S.Hotkeys.FindInChat" xml:space="preserve">Find in chat</system:String>
+    <system:String x:Key="S.Hotkeys.FindInChatDesc" xml:space="preserve">Search the open chat's text and its tool blocks.</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Not in effect: you assigned this shortcut to another action. Record a different one here</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">The image is no longer available.</system:String>
     <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (the image is no longer available)</system:String>

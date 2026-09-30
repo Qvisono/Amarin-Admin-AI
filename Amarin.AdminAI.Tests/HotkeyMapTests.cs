@@ -121,11 +121,12 @@ public sealed class HotkeyMapTests
     }
 
     [Fact]
-    public void A_new_chat_is_ctrl_n_and_ctrl_f_is_left_free()
+    public void A_new_chat_is_ctrl_n_and_ctrl_f_means_find()
     {
-        // Ctrl+F везде значит «найти», и заводить им новый чат было неожиданно.
+        // Ctrl+F везде значит «найти», и заводить им новый чат было неожиданно. С поиском по чату
+        // (D1) сочетание наконец занято тем, что от него ждут, — и только им.
         Assert.Equal("Ctrl+N", HotkeyMap.Find(HotkeyMap.NewChat)!.DefaultGesture);
-        Assert.DoesNotContain(HotkeyMap.All, action => action.DefaultGesture == "Ctrl+F");
+        Assert.Equal(HotkeyMap.FindInChat, Assert.Single(HotkeyMap.All, action => action.DefaultGesture == "Ctrl+F").Id);
     }
 
     [Fact]

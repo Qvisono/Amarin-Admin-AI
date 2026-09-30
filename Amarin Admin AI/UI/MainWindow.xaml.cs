@@ -79,6 +79,7 @@ namespace Amarin.UI
             PlanOverlay.Decided += OnPlanDecided;
             AutomationPage.AgentRequested += OnRecipeAgentRequested;
             HealthOverlay.AskRequested += OnHealthAskRequested;
+            WireFind();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -2192,6 +2193,7 @@ namespace Amarin.UI
         private void LoadSession(ChatSession session)
         {
             _stickToBottom = true;
+            ResetFindForChat();
             _session = session;
             RefreshTargetPicker();
             // Image handles written into earlier answers only resolve while the pictures they
