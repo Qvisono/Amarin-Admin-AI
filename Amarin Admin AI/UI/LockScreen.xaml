@@ -3,6 +3,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              KeyboardNavigation.TabNavigation="Cycle">
     <!--
+        Общие стили (кнопки заголовка, основная кнопка диалога) лежат в Resources.xaml, а тот
+        подключён словарём главного окна, не приложения. StaticResource из UserControl ищет
+        при разборе разметки, когда экран ещё не вставлен в окно, и до ресурсов окна не
+        дотягивается — поэтому словарь подключён здесь же, как у экрана входа.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <!--
         Фон прозрачный, но попадаемый: сквозь него видна заливка корневого Grid окна, а
         переписку под ним окно на время блокировки прячет само (см. MainWindow.Lock). Нажатие
         на пустое место всплывает до корня и тянет окно, как на обычном заголовке.
