@@ -250,6 +250,22 @@ public static class UpdateChecker
         return Normalize(parsed);
     }
 
+    /// <summary>
+    /// Версия сборки, как её выпустили: три числа и пометка беты (<c>1.29.0-beta.1</c>), без хеша
+    /// коммита. Из <c>AssemblyInformationalVersion</c> — SDK выбрасывает пометку из версии сборки.
+    /// Разошлись числа (информационную версию задали руками) — верим версии сборки.
+    /// </summary>
+    internal static string VersionOf(System.Reflection.Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        var numbers = assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+        var informational = System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion;
+        return ReleaseVersion.Parse(informational) is { } parsed && parsed.Core.ToString(3) == numbers
+            ? parsed.ToString()
+            : numbers;
+    }
+
     /// <summary>Обрезает версию до трёх разрядов и заменяет −1 на 0 — иначе сравнение врёт.</summary>
     public static Version Normalize(Version version)
     {

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -108,6 +110,77 @@ public partial class CrashWindow : Window
         {
             // Буфер держит другой процесс — текст всё равно виден и выделяется вручную.
             CopyButton.Content = Loc.Get("S.Crash.ClipboardBusy");
+        }
+    }
+
+    /// <summary>
+    /// Открывает форму issue с вычищенным отчётом. Отправляет человек сам — всё видно до кнопки.
+    /// </summary>
+    private void ReportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var report = BugReport.SanitizeHere(DetailsText.Text);
+        var link = BugReport.Link(BugReport.TitleFrom(report), BugReport.Body(CrashReport.Version, report));
+        if (link.ClipboardBody is { } body && !TryCopy(body))
+        {
+            ShowReportHint(Loc.Get("S.Crash.ReportNoClipboard"));
+            return;
+        }
+
+        if (!TryStart(new ProcessStartInfo { FileName = link.Url, UseShellExecute = true }))
+        {
+            ShowReportHint(Loc.Get("S.Crash.BrowserFailed"));
+            return;
+        }
+
+        ShowReportHint(Loc.Get(link.ClipboardBody is null ? "S.Crash.ReportOpened" : "S.Crash.ReportPaste"));
+    }
+
+    private void LogsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = CrashLog.DefaultDirectory();
+        try
+        {
+            Directory.CreateDirectory(folder);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+
+        if (!TryStart(new ProcessStartInfo { FileName = folder, UseShellExecute = true }))
+        {
+            ShowReportHint(Loc.Format("S.Crash.LogPath", folder));
+        }
+    }
+
+    private void ShowReportHint(string text)
+    {
+        ReportHintText.Text = text;
+        ReportHintText.Visibility = Visibility.Visible;
+    }
+
+    private static bool TryCopy(string text)
+    {
+        try
+        {
+            Clipboard.SetText(text);
+            return true;
+        }
+        catch (Exception ex) when (ex is ExternalException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryStart(ProcessStartInfo start)
+    {
+        try
+        {
+            using var process = Process.Start(start);
+            return true;
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            return false;
         }
     }
 

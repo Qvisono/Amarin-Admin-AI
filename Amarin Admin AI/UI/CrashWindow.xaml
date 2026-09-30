@@ -118,6 +118,22 @@
                 </Border>
 
                 <!-- ===== КНОПКИ ===== -->
+                <!--
+                    Сообщить и открыть папку журналов (H5). Отдельной строкой над выбором «продолжить
+                    или закрыть»: это не ответ на вопрос окна, а то, что можно сделать до него.
+                -->
+                <WrapPanel Margin="0,12,0,0">
+                    <Button x:Name="ReportButton" Content="{DynamicResource S.Crash.Report}"
+                            Style="{StaticResource DialogSecondaryButton}"
+                            Margin="0,0,8,0" Click="ReportButton_Click"/>
+                    <Button x:Name="LogsButton" Content="{DynamicResource S.Crash.OpenLogs}"
+                            Style="{StaticResource DialogSecondaryButton}"
+                            Click="LogsButton_Click"/>
+                </WrapPanel>
+                <TextBlock x:Name="ReportHintText" FontSize="11.5" Margin="0,8,0,0" Visibility="Collapsed"
+                           Foreground="{DynamicResource Text.Dim}" TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite"/>
+
                 <Grid Margin="0,18,0,0">
                     <Button x:Name="CopyButton" Content="{DynamicResource S.Crash.Copy}"
                             Style="{StaticResource DialogSecondaryButton}"

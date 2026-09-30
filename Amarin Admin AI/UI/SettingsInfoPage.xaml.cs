@@ -73,6 +73,17 @@ public partial class SettingsInfoPage : UserControl
 
     private void OpenRepoButton_Click(object sender, RoutedEventArgs e) => Open(UpdateChecker.RepositoryUrl);
 
+    private void ReportBugButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this) is MainWindow owner)
+        {
+            Detached.Run(owner.ReportBugAsync(), "report_bug");
+        }
+    }
+
+    private void OpenLogsButton_Click(object sender, RoutedEventArgs e) =>
+        (Window.GetWindow(this) as MainWindow)?.OpenLogsFolder();
+
     /// <remarks>
     /// Через главное окно, а не своим Process.Start: там уже есть перехват отказа оболочки и
     /// понятное сообщение вместо текста исключения. В конструкторе XAML окна нет — молча выходим.

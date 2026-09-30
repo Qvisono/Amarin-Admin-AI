@@ -30,12 +30,11 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Format("S.Updates.BrowserFailed", ex.Message),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                // Своим окном, а не MessageBox: системное рисуется чужим стилем и в системном
+                // масштабе (UiScale подменяет DPI только нашему окну).
+                Detached.Run(
+                    ShowNoticeAsync(Loc.Get("S.Links.OpenFailed"), Loc.Format("S.Updates.BrowserFailed", ex.Message), Loc.Get("S.Common.Close"), null),
+                    "open_link_failed");
             }
         }
     }

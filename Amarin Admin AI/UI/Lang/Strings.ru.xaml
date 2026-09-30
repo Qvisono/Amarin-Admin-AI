@@ -285,6 +285,8 @@
 
     <system:String x:Key="S.Behavior.RememberWindow" xml:space="preserve">Запоминать размер окна</system:String>
     <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">При следующем запуске окно откроется того же размера, каким его закрыли</system:String>
+    <system:String x:Key="S.BugReport.Desc" xml:space="preserve">Откроется форма на GitHub с версией программы и последним отчётом о сбое. Путь к профилю, имя пользователя и компьютера из него убраны; отправляете вы сами, прочитав текст.</system:String>
+    <system:String x:Key="S.BugReport.Title" xml:space="preserve">Сообщить об ошибке</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Изображение профиля и фон окна</system:String>
     <system:String x:Key="S.Bundle.Cat.Audit" xml:space="preserve">Журнал аудита</system:String>
@@ -533,6 +535,12 @@
     <system:String x:Key="S.Cost.Compact" xml:space="preserve">Сжатие контекста</system:String>
     <system:String x:Key="S.Cost.Other" xml:space="preserve">Прочее</system:String>
     <system:String x:Key="S.Cost.Tools" xml:space="preserve">Инструменты</system:String>
+    <system:String x:Key="S.Crash.BrowserFailed" xml:space="preserve">Не удалось открыть браузер. Скопируйте подробности и создайте issue вручную на странице проекта на GitHub.</system:String>
+    <system:String x:Key="S.Crash.OpenLogs" xml:space="preserve">Открыть папку журналов</system:String>
+    <system:String x:Key="S.Crash.Report" xml:space="preserve">Сообщить об ошибке</system:String>
+    <system:String x:Key="S.Crash.ReportNoClipboard" xml:space="preserve">Отчёт не поместился в ссылку, а буфер обмена занят другой программой. Попробуйте ещё раз через несколько секунд.</system:String>
+    <system:String x:Key="S.Crash.ReportOpened" xml:space="preserve">Форма на GitHub открыта, отчёт уже в ней — без пути к профилю, имени пользователя и компьютера. Прочитайте его перед отправкой.</system:String>
+    <system:String x:Key="S.Crash.ReportPaste" xml:space="preserve">Отчёт не поместился в ссылку и скопирован в буфер обмена — вставьте его в форму на GitHub (Ctrl+V).</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">домен приложения</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">отмена</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">запуск</system:String>
@@ -843,6 +851,7 @@
     <system:String x:Key="S.Limit.Warn" xml:space="preserve">Потрачено {1} из {2}: близок {0}.</system:String>
     <system:String x:Key="S.Limit.WarnHint" xml:space="preserve">Доля дневного или месячного лимита, после которой появится предупреждение — раз за период.</system:String>
     <system:String x:Key="S.Limit.WarnLabel" xml:space="preserve">Предупреждать с</system:String>
+    <system:String x:Key="S.Links.OpenFailed" xml:space="preserve">Не удалось открыть</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Профиль «{0}». Введите пароль, чтобы продолжить.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">Программа заблокирована</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">Ответ готов. Программа заблокирована.</system:String>

@@ -285,6 +285,8 @@
 
     <system:String x:Key="S.Behavior.RememberWindow" xml:space="preserve">Remember the window size</system:String>
     <system:String x:Key="S.Behavior.RememberWindowDesc" xml:space="preserve">Next launch opens the window at the size it was closed at</system:String>
+    <system:String x:Key="S.BugReport.Desc" xml:space="preserve">Opens a GitHub form with the program version and the latest crash report. Your profile path, user name and computer name are removed from it; you submit it yourself after reading it.</system:String>
+    <system:String x:Key="S.BugReport.Title" xml:space="preserve">Report a problem</system:String>
     <system:String x:Key="S.Bundle.Cat.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Bundle.Cat.AppearanceDesc" xml:space="preserve">Profile picture and window backdrop</system:String>
     <system:String x:Key="S.Bundle.Cat.Audit" xml:space="preserve">Audit log</system:String>
@@ -533,6 +535,12 @@
     <system:String x:Key="S.Cost.Compact" xml:space="preserve">Context compaction</system:String>
     <system:String x:Key="S.Cost.Other" xml:space="preserve">Other</system:String>
     <system:String x:Key="S.Cost.Tools" xml:space="preserve">Tools</system:String>
+    <system:String x:Key="S.Crash.BrowserFailed" xml:space="preserve">Could not open a browser. Copy the details and open an issue by hand on the project's GitHub page.</system:String>
+    <system:String x:Key="S.Crash.OpenLogs" xml:space="preserve">Open the log folder</system:String>
+    <system:String x:Key="S.Crash.Report" xml:space="preserve">Report the problem</system:String>
+    <system:String x:Key="S.Crash.ReportNoClipboard" xml:space="preserve">The report did not fit into the link and the clipboard is busy with another program. Try again in a few seconds.</system:String>
+    <system:String x:Key="S.Crash.ReportOpened" xml:space="preserve">The GitHub form is open with the report already in it — without your profile path, user name or computer name. Read it before you submit.</system:String>
+    <system:String x:Key="S.Crash.ReportPaste" xml:space="preserve">The report did not fit into the link and has been copied to the clipboard — paste it into the GitHub form (Ctrl+V).</system:String>
     <system:String x:Key="S.Crash.Source.AppDomain" xml:space="preserve">application domain</system:String>
     <system:String x:Key="S.Crash.Source.Cancel" xml:space="preserve">cancellation</system:String>
     <system:String x:Key="S.Crash.Source.Startup" xml:space="preserve">startup</system:String>
@@ -843,6 +851,7 @@
     <system:String x:Key="S.Limit.Warn" xml:space="preserve">Spent {1} of {2}: approaching {0}.</system:String>
     <system:String x:Key="S.Limit.WarnHint" xml:space="preserve">Share of a daily or monthly limit after which a warning appears, once per period.</system:String>
     <system:String x:Key="S.Limit.WarnLabel" xml:space="preserve">Warn at</system:String>
+    <system:String x:Key="S.Links.OpenFailed" xml:space="preserve">Could not open it</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Profile "{0}". Enter the password to continue.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">The program is locked</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">The reply is ready. The program is locked.</system:String>

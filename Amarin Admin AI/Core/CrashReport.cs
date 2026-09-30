@@ -88,8 +88,7 @@ internal static partial class CrashReport
         return BearerToken().Replace(text, "Bearer ***");
     }
 
-    internal static string Version =>
-        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
+    internal static string Version => UpdateChecker.VersionOf(Assembly.GetExecutingAssembly());
 
     [GeneratedRegex(@"Bearer\s+[A-Za-z0-9\-._~+/]{8,}=*", RegexOptions.IgnoreCase)]
     private static partial Regex BearerToken();

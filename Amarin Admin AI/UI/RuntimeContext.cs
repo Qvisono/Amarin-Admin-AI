@@ -15,20 +15,10 @@ internal static class RuntimeContext
     /// второй, и бета выглядела бы финальной — ни человек, ни проверка обновлений их бы не
     /// различили. Хвост после «+» (хеш коммита, который SDK приписывает сам) отрезается.
     /// </remarks>
-    public static string AppVersion { get; } = ReadVersion();
+    public static string AppVersion { get; } = UpdateChecker.VersionOf(Assembly.GetExecutingAssembly());
 
     /// <summary>То же для сравнения с выпусками на GitHub.</summary>
     public static ReleaseVersion AppRelease => ReleaseVersion.Parse(AppVersion) ?? new Version(1, 0, 0);
-
-    private static string ReadVersion()
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var numbers = assembly.GetName().Version?.ToString(3) ?? "1.0.0";
-        var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        return ReleaseVersion.Parse(informational) is { } parsed && parsed.Core.ToString(3) == numbers
-            ? parsed.ToString()
-            : numbers;
-    }
 
     public static bool IsAdministrator()
     {

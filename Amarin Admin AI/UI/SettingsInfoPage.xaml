@@ -478,14 +478,22 @@
 
             <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Links.Title}"/>
             <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Links.Text}"/>
-            <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource SecondaryButton}"
+            <WrapPanel Orientation="Horizontal">
+                <Button Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
                         Content="{DynamicResource S.Info.Links.Docs}"
                         Click="OpenDocsButton_Click"/>
-                <Button Style="{StaticResource SecondaryButton}" Margin="8,9,0,0"
+                <Button Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
                         Content="{DynamicResource S.Info.Links.Repo}"
                         Click="OpenRepoButton_Click"/>
-            </StackPanel>
+                <Button x:Name="ReportBugButton" Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
+                        Content="{DynamicResource S.BugReport.Title}"
+                        Click="ReportBugButton_Click"/>
+                <Button x:Name="OpenLogsButton" Style="{StaticResource SecondaryButton}" Margin="0,9,0,0"
+                        Content="{DynamicResource S.Crash.OpenLogs}"
+                        Click="OpenLogsButton_Click"/>
+            </WrapPanel>
+            <TextBlock Style="{StaticResource SettingDesc}" Margin="0,8,0,0"
+                       Text="{DynamicResource S.BugReport.Desc}"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
