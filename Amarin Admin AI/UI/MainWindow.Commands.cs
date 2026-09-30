@@ -21,7 +21,10 @@ namespace Amarin.UI
         private void WireCommands()
         {
             PopupManager.Register(CommandSuggestPopup);
+            // И на смену выделения — как у подсказки «@»: подсказка нужна, только пока каретка
+            // стоит в конце набираемого имени.
             MessageTextBox.TextChanged += (_, _) => UpdateCommandSuggest();
+            MessageTextBox.SelectionChanged += (_, _) => UpdateCommandSuggest();
         }
 
         /// <summary>Выполняет команду окна. Поле уже очищено.</summary>
