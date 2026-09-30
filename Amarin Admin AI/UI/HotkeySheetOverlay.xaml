@@ -1,0 +1,75 @@
+<UserControl x:Class="Amarin.UI.HotkeySheetOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             KeyboardNavigation.TabNavigation="Cycle"
+             PreviewKeyDown="Overlay_PreviewKeyDown">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Щелчок мимо карточки закрывает шпаргалку: в ней нечего терять. -->
+        <Border Background="{DynamicResource Overlay.Scrim}" MouseLeftButtonDown="Scrim_MouseLeftButtonDown"/>
+        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border x:Name="Card" Width="460" MaxHeight="620"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource S.Hotkeys.SheetTitle}" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Primary}"/>
+                        <TextBlock Text="{DynamicResource S.Hotkeys.SheetHint}" FontSize="11.5" Margin="0,4,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource Text.Muted}"/>
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,-8,0" Padding="0,0,8,0">
+                        <ItemsControl x:Name="Rows" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Title}" FontSize="12.5" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" Margin="0,0,12,0"
+                                                   Foreground="{DynamicResource Text.Body}"/>
+                                        <Border Grid.Column="1" Background="{DynamicResource Bg.Card}"
+                                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                                CornerRadius="5" Padding="7,2">
+                                            <TextBlock Text="{Binding Gesture}" FontSize="11.5" FontFamily="Consolas"
+                                                       Foreground="{DynamicResource Text.Primary}"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="EditButton" Content="{DynamicResource S.Hotkeys.SheetEdit}"
+                                Style="{StaticResource DialogSecondaryButton}" HorizontalAlignment="Left"
+                                Click="EditButton_Click"/>
+                        <Button x:Name="CloseButton" Grid.Column="1" Content="{DynamicResource S.Common.Close}"
+                                Style="{StaticResource DialogPrimaryButton}" Click="CloseButton_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Viewbox>
+    </Grid>
+</UserControl>

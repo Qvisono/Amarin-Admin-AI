@@ -185,6 +185,29 @@ namespace Amarin.UI
                     return TryReplyToSelection();
                 case HotkeyMap.FindInChat:
                     return OpenFind();
+                case HotkeyMap.SearchChats:
+                    return FocusChatSearch();
+                case HotkeyMap.Regenerate:
+                    return RegenerateLast();
+                case HotkeyMap.NextChat:
+                    return StepChat(+1);
+                case HotkeyMap.PreviousChat:
+                    return StepChat(-1);
+                case HotkeyMap.CopyLastAnswer:
+                    return CopyLastAnswer();
+                case HotkeyMap.ToggleSidebar:
+                    SetSidebarCollapsed(!_sidebarCollapsed);
+                    return true;
+                case HotkeyMap.OpenSettings:
+                    SettingsOverlay.Visibility = Visibility.Visible;
+                    LoadSettingsUi();
+                    return true;
+                case HotkeyMap.Health:
+                    OpenHealth();
+                    return true;
+                case HotkeyMap.Cheatsheet:
+                    HotkeySheet.Show(_services?.Settings.Hotkeys);
+                    return true;
                 default:
                     return false;
             }

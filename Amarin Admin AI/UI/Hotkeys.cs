@@ -21,7 +21,9 @@ internal static class Hotkeys
     /// <remarks>
     /// Сами модификаторы — потому что нажаты вместе с любым сочетанием. Esc — потому что им
     /// отменяют запись и закрывают приближённую ленту. Tab и системные клавиши — потому что
-    /// ими ходят по интерфейсу, и отнимать их у клавиатуры нельзя.
+    /// ими ходят по интерфейсу, и отнимать их у клавиатуры нельзя. Исключение — Tab вместе с
+    /// Ctrl (<see cref="IsUnusable"/>): по интерфейсу им не ходят, а «следующая вкладка» — привычка
+    /// из браузеров, и на неё встало переключение чатов.
     /// </remarks>
     private static readonly Key[] Unusable =
     [
@@ -39,7 +41,7 @@ internal static class Hotkeys
         // Alt приходит в Key.System, а настоящая клавиша — в SystemKey; разбирать её должен
         // вызывающий, здесь это уже развёрнутое значение. Требование Ctrl или Alt проверяет
         // сам HotkeyMap — там же оно и объяснено.
-        if (Unusable.Contains(key))
+        if (IsUnusable(key, modifiers))
         {
             return false;
         }
@@ -50,7 +52,7 @@ internal static class Hotkeys
     /// <summary>Нажатие — это записанное сочетание.</summary>
     public static bool Matches(string gesture, Key key, ModifierKeys modifiers)
     {
-        if (Unusable.Contains(key) || !HotkeyMap.TryParse(gesture, out var expected))
+        if (IsUnusable(key, modifiers) || !HotkeyMap.TryParse(gesture, out var expected))
         {
             return false;
         }
@@ -60,6 +62,9 @@ internal static class Hotkeys
         return HotkeyMap.TryParse(Write(key, modifiers), out var pressed) &&
                string.Equals(expected, pressed, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool IsUnusable(Key key, ModifierKeys modifiers) =>
+        Unusable.Contains(key) && !(key == Key.Tab && modifiers.HasFlag(ModifierKeys.Control));
 
     private static string Write(Key key, ModifierKeys modifiers)
     {

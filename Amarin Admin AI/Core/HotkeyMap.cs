@@ -41,6 +41,33 @@ public static class HotkeyMap
     /// <summary>Поиск по открытому чату (D1).</summary>
     public const string FindInChat = "FindInChat";
 
+    /// <summary>Поиск по всем чатам: фокус в поле поиска боковой панели (D8).</summary>
+    public const string SearchChats = "SearchChats";
+
+    /// <summary>Повторить последний ответ открытого чата (D8).</summary>
+    public const string Regenerate = "Regenerate";
+
+    /// <summary>Следующий чат в порядке списка (D8).</summary>
+    public const string NextChat = "NextChat";
+
+    /// <summary>Предыдущий чат в порядке списка (D8).</summary>
+    public const string PreviousChat = "PreviousChat";
+
+    /// <summary>Скопировать последний ответ открытого чата (D8).</summary>
+    public const string CopyLastAnswer = "CopyLastAnswer";
+
+    /// <summary>Свернуть или развернуть боковую панель (D8).</summary>
+    public const string ToggleSidebar = "ToggleSidebar";
+
+    /// <summary>Открыть настройки (D8).</summary>
+    public const string OpenSettings = "OpenSettings";
+
+    /// <summary>Панель «Состояние ПК» (D8).</summary>
+    public const string Health = "Health";
+
+    /// <summary>Шпаргалка по сочетаниям (D8).</summary>
+    public const string Cheatsheet = "Cheatsheet";
+
     /// <summary>
     /// Все действия, в порядке показа в настройках.
     /// </summary>
@@ -53,7 +80,16 @@ public static class HotkeyMap
     [
         new(NewChat, "Ctrl+N", "S.Hotkeys.NewChat", "S.Hotkeys.NewChatDesc"),
         new(ReplyToSelection, "Ctrl+R", "S.Hotkeys.Reply", "S.Hotkeys.ReplyDesc"),
-        new(FindInChat, "Ctrl+F", "S.Hotkeys.FindInChat", "S.Hotkeys.FindInChatDesc")
+        new(FindInChat, "Ctrl+F", "S.Hotkeys.FindInChat", "S.Hotkeys.FindInChatDesc"),
+        new(SearchChats, "Ctrl+K", "S.Hotkeys.SearchChats", "S.Hotkeys.SearchChatsDesc"),
+        new(Regenerate, "Ctrl+Shift+R", "S.Hotkeys.Regenerate", "S.Hotkeys.RegenerateDesc"),
+        new(NextChat, "Ctrl+Tab", "S.Hotkeys.NextChat", "S.Hotkeys.NextChatDesc"),
+        new(PreviousChat, "Ctrl+Shift+Tab", "S.Hotkeys.PreviousChat", "S.Hotkeys.PreviousChatDesc"),
+        new(CopyLastAnswer, "Ctrl+Shift+C", "S.Hotkeys.CopyLastAnswer", "S.Hotkeys.CopyLastAnswerDesc"),
+        new(ToggleSidebar, "Ctrl+B", "S.Hotkeys.ToggleSidebar", "S.Hotkeys.ToggleSidebarDesc"),
+        new(OpenSettings, "Ctrl+OemComma", "S.Hotkeys.OpenSettings", "S.Hotkeys.OpenSettingsDesc"),
+        new(Health, "Ctrl+Shift+H", "S.Hotkeys.Health", "S.Hotkeys.HealthDesc"),
+        new(Cheatsheet, "Ctrl+OemQuestion", "S.Hotkeys.Cheatsheet", "S.Hotkeys.CheatsheetDesc")
     ];
 
     /// <summary>Порядок модификаторов в записи. Он же порядок показа человеку.</summary>
@@ -194,9 +230,32 @@ public static class HotkeyMap
         return true;
     }
 
-    /// <summary>Как сочетание показывают человеку: те же части, но с пробелами вокруг плюсов.</summary>
+    /// <summary>
+    /// Как сочетание показывают человеку: те же части с пробелами вокруг плюсов, а служебные
+    /// имена клавиш — знаками (<c>OemComma</c> → «,»): запись в файле остаётся именем клавиши.
+    /// </summary>
     public static string Display(string gesture) =>
-        string.IsNullOrWhiteSpace(gesture) ? "" : gesture.Replace("+", " + ", StringComparison.Ordinal);
+        string.IsNullOrWhiteSpace(gesture)
+            ? ""
+            : string.Join(" + ", gesture.Split('+').Select(part => KeyGlyphs.TryGetValue(part, out var glyph) ? glyph : part));
+
+    private static readonly Dictionary<string, string> KeyGlyphs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["OemComma"] = ",",
+        ["OemPeriod"] = ".",
+        ["OemQuestion"] = "/",
+        ["OemMinus"] = "-",
+        ["OemPlus"] = "=",
+        ["OemSemicolon"] = ";",
+        ["OemQuotes"] = "'",
+        ["OemOpenBrackets"] = "[",
+        ["OemCloseBrackets"] = "]",
+        ["OemPipe"] = "\\",
+        ["OemTilde"] = "`",
+        ["PageUp"] = "PgUp",
+        ["Next"] = "PgDn",
+        ["PageDown"] = "PgDn"
+    };
 
     private static string[] Aliases(string modifier) => modifier switch
     {

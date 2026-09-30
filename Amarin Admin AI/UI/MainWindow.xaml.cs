@@ -81,6 +81,7 @@ namespace Amarin.UI
             HealthOverlay.AskRequested += OnHealthAskRequested;
             WireFind();
             WireWorkReport();
+            WireShortcuts();
             ChatTargetPicker.Picked += OnTargetPicked;
             ConnectionsPage.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
@@ -2000,6 +2001,13 @@ namespace Amarin.UI
                 return;
             }
 
+            // Esc останавливает ответ (D8) — после лупы: пока лента приближена, Esc снимает её.
+            if (TryStopByEscape(e))
+            {
+                e.Handled = true;
+                return;
+            }
+
             // Тоже раньше проверки фокуса, и по той же причине: ShouldKeepKeyboardFocus
             // уступает событие полю ввода при любом Ctrl или Alt, а сочетание без модификатора
             // назначить нельзя — ниже этой строки ни одно из них не дожило бы.
@@ -2054,6 +2062,12 @@ namespace Amarin.UI
             // Раньше отправки: пока открыта подсказка «@», Enter выбирает цитату, а не шлёт
             // недописанное сообщение.
             if (TryHandleQuoteSuggestKey(e))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (TryRecallLastSent(e))
             {
                 e.Handled = true;
                 return;

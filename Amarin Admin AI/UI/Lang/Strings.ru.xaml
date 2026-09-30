@@ -578,9 +578,34 @@
     <system:String x:Key="S.Health.UpdatesUnknown" xml:space="preserve">Список обновлений получить не удалось</system:String>
     <system:String x:Key="S.Health.Uptime" xml:space="preserve">Без перезагрузки: {0} дн.</system:String>
     <system:String x:Key="S.Health.UptimeLong" xml:space="preserve">Давно без перезагрузки — часть обновлений и исправлений ждёт её</system:String>
+    <system:String x:Key="S.Hotkeys.Cheatsheet" xml:space="preserve">Шпаргалка</system:String>
+    <system:String x:Key="S.Hotkeys.CheatsheetDesc" xml:space="preserve">Все сочетания одним списком.</system:String>
+    <system:String x:Key="S.Hotkeys.CopyLastAnswer" xml:space="preserve">Копировать последний ответ</system:String>
+    <system:String x:Key="S.Hotkeys.CopyLastAnswerDesc" xml:space="preserve">Текст последнего ответа открытого чата — в буфер обмена.</system:String>
     <system:String x:Key="S.Hotkeys.FindInChat" xml:space="preserve">Найти в чате</system:String>
     <system:String x:Key="S.Hotkeys.FindInChatDesc" xml:space="preserve">Поиск по тексту открытого чата и его блокам инструментов.</system:String>
+    <system:String x:Key="S.Hotkeys.Health" xml:space="preserve">Состояние ПК</system:String>
+    <system:String x:Key="S.Hotkeys.HealthDesc" xml:space="preserve">Панель с диском, памятью, обновлениями и защитой.</system:String>
+    <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Вернуть последнее отправленное (поле пустое)</system:String>
+    <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">Новая строка в сообщении</system:String>
+    <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Следующий чат</system:String>
+    <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">Чат ниже в списке — в том порядке, что на экране.</system:String>
+    <system:String x:Key="S.Hotkeys.OpenSettings" xml:space="preserve">Настройки</system:String>
+    <system:String x:Key="S.Hotkeys.OpenSettingsDesc" xml:space="preserve">Открыть настройки.</system:String>
+    <system:String x:Key="S.Hotkeys.PreviousChat" xml:space="preserve">Предыдущий чат</system:String>
+    <system:String x:Key="S.Hotkeys.PreviousChatDesc" xml:space="preserve">Чат выше в списке.</system:String>
+    <system:String x:Key="S.Hotkeys.Regenerate" xml:space="preserve">Повторить ответ</system:String>
+    <system:String x:Key="S.Hotkeys.RegenerateDesc" xml:space="preserve">Заново получить последний ответ открытого чата; прежний останется вариантом.</system:String>
+    <system:String x:Key="S.Hotkeys.SearchChats" xml:space="preserve">Поиск по чатам</system:String>
+    <system:String x:Key="S.Hotkeys.SearchChatsDesc" xml:space="preserve">Поле поиска в списке чатов; свёрнутая панель раскрывается.</system:String>
+    <system:String x:Key="S.Hotkeys.Send" xml:space="preserve">Отправить сообщение</system:String>
+    <system:String x:Key="S.Hotkeys.SheetEdit" xml:space="preserve">Изменить…</system:String>
+    <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Назначения меняются в настройках, на странице Behavior.</system:String>
+    <system:String x:Key="S.Hotkeys.SheetTitle" xml:space="preserve">Горячие клавиши</system:String>
+    <system:String x:Key="S.Hotkeys.Stop" xml:space="preserve">Остановить ответ (поле пустое)</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
+    <system:String x:Key="S.Hotkeys.ToggleSidebar" xml:space="preserve">Свернуть панель чатов</system:String>
+    <system:String x:Key="S.Hotkeys.ToggleSidebarDesc" xml:space="preserve">Свернуть боковую панель в полоску или развернуть обратно.</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">Изображение больше недоступно.</system:String>
     <system:String x:Key="S.Image.GoneAlt" xml:space="preserve">{0} (изображение больше недоступно)</system:String>
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Загрузка изображения…</system:String>
