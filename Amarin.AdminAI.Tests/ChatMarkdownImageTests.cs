@@ -13,6 +13,7 @@ namespace Amarin.AdminAI.Tests;
 /// which is what lets the model choose where an illustration goes.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatMarkdownImageTests
 {
     private readonly WpfFixture _wpf;

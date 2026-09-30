@@ -14,6 +14,7 @@ namespace Amarin.AdminAI.Tests;
 /// целиком считает результат на UI-потоке и наружу отдаёт уже обычные значения.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatMarkdownRenderTests
 {
     private const string Everything = """

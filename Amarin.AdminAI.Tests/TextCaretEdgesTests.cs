@@ -9,6 +9,7 @@ namespace Amarin.AdminAI.Tests;
 /// в конец. Как в Discord.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class TextCaretEdgesTests
 {
     private const string Text = "длыоуфкрпадлыфуоркп\nывакпдлывокапщдшыувп\nшлрваыпдлырвкпадло";

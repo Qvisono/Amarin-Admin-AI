@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// keyboard — without which the window's typing sink swallows Escape and the search box.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class JournalAndRingUiTests
 {
     private readonly WpfFixture _wpf;

@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// «Продолжить» появляется только там, где продолжать действительно можно.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class CrashWindowTests
 {
     private readonly WpfFixture _wpf;

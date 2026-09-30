@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// перерисовка ленты — то есть каждое открытие чата и каждое изменение состояния вызова.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LazyMessagePartsTests
 {
     private readonly WpfFixture _wpf;

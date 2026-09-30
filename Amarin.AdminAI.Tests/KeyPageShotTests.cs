@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// и углы окна. Ловит то, что числами не поймать: карточку, которая читается как стена.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class KeyPageShotTests
 {
     private readonly WpfFixture _wpf;

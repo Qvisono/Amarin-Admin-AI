@@ -1,0 +1,41 @@
+# Проверка на каждый пуш и pull request: сборка без единого предупреждения и тесты без окон.
+#
+# Оконные тесты (метка Category=Wpf) здесь не идут: на раннере GitHub общий поток интерфейса
+# то не стартует, то умирает, и красная отметка на каждом пуше была бы шумом. Их гоняет ручной
+# workflow «Tests», а «зелёно» для них по-прежнему значит зелёный dotnet test на настоящей машине.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Новый пуш в ту же ветку делает прежний прогон ненужным.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Любое новое предупреждение — баг (CLAUDE.md), поэтому здесь оно ошибка сборки.
+      - name: Build
+        run: dotnet build Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj -c Release -warnaserror
+
+      - name: Test (without windows)
+        timeout-minutes: 25
+        run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj -c Release --no-build --filter "Category!=Wpf" --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=minimal" --results-directory test-results
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-test-results
+          path: test-results
+          if-no-files-found: ignore

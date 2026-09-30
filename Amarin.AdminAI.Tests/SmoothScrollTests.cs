@@ -18,6 +18,7 @@ namespace Amarin.AdminAI.Tests;
 /// поднимает мышь: колесо, отправленное сразу во внутренний список, этой ошибки не поймало бы.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SmoothScrollTests
 {
     private readonly WpfFixture _wpf;

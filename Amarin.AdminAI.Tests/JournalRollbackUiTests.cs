@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// восстановления Windows и у вызова, её создавшего, — мастер «Восстановление системы».
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class JournalRollbackUiTests
 {
     private readonly WpfFixture _wpf;

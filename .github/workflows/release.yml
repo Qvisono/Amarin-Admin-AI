@@ -50,12 +50,18 @@ jobs:
           "notes=$notes" >> $env:GITHUB_OUTPUT
           "title=$title" >> $env:GITHUB_OUTPUT
 
-      # Тесты не останавливают выпуск, но их итог лежит в артефакте test-results: смотреть его
-      # обязательно, прежде чем объявлять релиз готовым.
-      - name: Test
+      # Тесты без окон останавливают выпуск: они на раннере надёжны, и красный среди них —
+      # настоящая поломка.
+      - name: Test (without windows)
+        timeout-minutes: 25
+        run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj --filter "Category!=Wpf" --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=minimal" --results-directory test-results/core
+
+      # Оконные тесты выпуск не останавливают (на раннере они ненадёжны), но их итог лежит
+      # в артефакте test-results: смотреть его обязательно, прежде чем объявлять релиз готовым.
+      - name: Test (windows)
         continue-on-error: true
         timeout-minutes: 30
-        run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=normal" --results-directory test-results
+        run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj --filter "Category=Wpf" --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=normal" --results-directory test-results/wpf
 
       - uses: actions/upload-artifact@v4
         if: always()

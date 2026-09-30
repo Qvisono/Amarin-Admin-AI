@@ -13,6 +13,7 @@ namespace Amarin.AdminAI.Tests;
 /// предлагает PowerShell на весь чат.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ConfirmationAllowUiTests
 {
     private readonly WpfFixture _wpf;

@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// показано на экране и когда.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatSearchUiTests
 {
     private readonly WpfFixture _wpf;

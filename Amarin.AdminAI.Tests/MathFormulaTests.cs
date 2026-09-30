@@ -210,6 +210,7 @@ public sealed class MathDelimiterNormalizerTests
 }
 
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class MathRendererTests
 {
     private readonly WpfFixture _wpf;
@@ -388,6 +389,7 @@ public sealed class MathRendererTests
 }
 
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatMarkdownMathTests
 {
     private readonly WpfFixture _wpf;

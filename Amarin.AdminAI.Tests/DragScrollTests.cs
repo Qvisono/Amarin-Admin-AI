@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// <c>RaiseEvent</c> событии берётся у настоящего курсора, и подставить его нельзя.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class DragScrollTests
 {
     private readonly WpfFixture _wpf;

@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// out, would make the rows disagree with the total the user is being asked to trust.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class CostBreakdownTests
 {
     private readonly WpfFixture _wpf;

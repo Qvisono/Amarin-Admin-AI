@@ -247,6 +247,7 @@ public sealed class SingleInstanceTests
 /// широковещательно, чтобы тест не тревожил чужие окна в системе.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SingleInstanceWindowTests
 {
     private readonly WpfFixture _wpf;

@@ -13,6 +13,7 @@ namespace Amarin.AdminAI.Tests;
 /// the path that actually broke.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ToastActivationTests
 {
     private readonly WpfFixture _wpf;

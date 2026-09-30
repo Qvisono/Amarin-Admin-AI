@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// до первого открытия диалога, то есть до человека. Отсюда проверки на живом окне.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ProviderKeyDialogTests
 {
     private readonly WpfFixture _wpf;
@@ -137,6 +138,7 @@ public sealed class ProviderKeyDialogTests
 /// вовсе: человек читал это как сброшенную настройку, хотя его выбор цел.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SettingsModelFieldTests
 {
     private readonly WpfFixture _wpf;
@@ -197,6 +199,7 @@ public sealed class SettingsModelFieldTests
 /// видна только глазами на открытой странице.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ProviderKeyRowTests
 {
     private readonly WpfFixture _wpf;

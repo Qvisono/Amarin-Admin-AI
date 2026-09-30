@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// тот же ответ, а у ответа из середины переписки ниже уже стоят другие реплики.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ResumeButtonTests
 {
     private readonly WpfFixture _wpf;

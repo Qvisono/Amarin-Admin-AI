@@ -55,6 +55,7 @@ public sealed class TooltipPlacementMathTests
 /// Живое окно: карточка и растёт вместе с масштабом, и остаётся под значком.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class TooltipPlacementWindowTests
 {
     private readonly WpfFixture _wpf;

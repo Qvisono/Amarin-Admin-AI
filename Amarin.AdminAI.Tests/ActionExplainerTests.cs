@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// пустое: человек жал «Да» под текстом PowerShell, который никто ему не объяснил.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ActionExplainerTests
 {
     private static DangerousActionInfo PowerShell(string command) => new(

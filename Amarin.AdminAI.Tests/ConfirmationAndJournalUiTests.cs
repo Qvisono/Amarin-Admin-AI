@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// Viewbox with a fixed width — the place where this kind of thing breaks silently.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ConfirmationAndJournalUiTests
 {
     private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;

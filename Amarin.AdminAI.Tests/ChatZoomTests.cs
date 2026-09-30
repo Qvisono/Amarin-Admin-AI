@@ -18,6 +18,7 @@ namespace Amarin.AdminAI.Tests;
 /// и перетаскиванием окна.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatZoomTests
 {
     private readonly WpfFixture _wpf;

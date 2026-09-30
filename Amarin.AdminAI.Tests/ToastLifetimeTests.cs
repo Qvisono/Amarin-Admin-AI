@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// actually survives, so "it flashes and vanishes" becomes a number instead of a guess.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ToastLifetimeTests
 {
     private readonly WpfFixture _wpf;

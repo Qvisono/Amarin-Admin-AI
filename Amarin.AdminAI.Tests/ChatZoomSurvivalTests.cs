@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// само по себе через секунду после каждого ответа.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatZoomSurvivalTests
 {
     private static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;

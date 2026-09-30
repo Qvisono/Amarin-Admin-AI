@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// место. Отсюда и проверки снимком.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SettingsKeyPageTests
 {
     private readonly WpfFixture _wpf;
@@ -310,6 +311,7 @@ public sealed class SettingsKeyPageTests
 
 /// <summary>Геометрия графика: вырожденные наборы точек не должны его ронять.</summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SpendChartTests
 {
     private readonly WpfFixture _wpf;

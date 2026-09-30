@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// именно уйдёт модели.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class AttachmentCardTests
 {
     private readonly WpfFixture _wpf;

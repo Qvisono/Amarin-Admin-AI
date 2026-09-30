@@ -17,6 +17,7 @@ namespace Amarin.AdminAI.Tests;
 /// под это правило всегда.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatListRefreshTests
 {
     private readonly WpfFixture _wpf;

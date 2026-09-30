@@ -204,6 +204,7 @@ public sealed class ProfileWipeTests : IDisposable
 
 /// <summary>Два вопроса перед стиранием — на живом окне со своими службами.</summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ProfileWipeUiTests : IDisposable
 {
     private readonly WpfFixture _wpf;

@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// Страница Customize: порядок разделов и потолок у полей системных промптов.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class CustomizePageTests
 {
     private readonly WpfFixture _wpf;

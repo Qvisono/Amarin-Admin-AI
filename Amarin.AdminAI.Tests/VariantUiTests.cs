@@ -20,6 +20,7 @@ namespace Amarin.AdminAI.Tests;
 /// <see cref="ParallelChatUiTests"/>. Оно не показывается и закрывается в finally.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class VariantUiTests : IDisposable
 {
     private readonly WpfFixture _wpf;

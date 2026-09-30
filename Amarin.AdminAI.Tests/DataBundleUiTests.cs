@@ -20,6 +20,7 @@ namespace Amarin.AdminAI.Tests;
 /// общей фикстуры, а внешний вид галочки снимается в картинку.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class DataBundleUiTests
 {
     private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;

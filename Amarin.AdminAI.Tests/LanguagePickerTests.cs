@@ -9,6 +9,7 @@ namespace Amarin.AdminAI.Tests;
 /// Выпадашка языка в настройках: список готовых языков, галка у выбранного и кнопка перевода.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LanguagePickerTests
 {
     private readonly WpfFixture _wpf;

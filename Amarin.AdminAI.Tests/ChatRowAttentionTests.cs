@@ -18,6 +18,7 @@ namespace Amarin.AdminAI.Tests;
 /// только в тёмном: цвет у неё один на все темы и берётся из палитры.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatRowAttentionTests
 {
     private readonly WpfFixture _wpf;

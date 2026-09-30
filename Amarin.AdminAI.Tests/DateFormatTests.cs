@@ -69,6 +69,7 @@ public sealed class DateFormatTests
 /// мыши только по глифам, и на просветах между цифрами подсказка мигала бы.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ClockTooltipTests
 {
     private readonly WpfFixture _wpf;

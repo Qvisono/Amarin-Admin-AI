@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// shears the rounded corner off one side of the hover plate and looks like a rendering glitch.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SidebarCollapseTests
 {
     private readonly WpfFixture _wpf;

@@ -14,6 +14,7 @@ namespace Amarin.AdminAI.Tests;
 /// окно вылезет поверх работы человека.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SettingsInfoPageTests
 {
     private readonly WpfFixture _wpf;

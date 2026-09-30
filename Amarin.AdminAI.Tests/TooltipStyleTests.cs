@@ -19,6 +19,7 @@ namespace Amarin.AdminAI.Tests;
 /// заметили бы только глазами и только случайно.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class TooltipStyleTests
 {
     private readonly WpfFixture _wpf;

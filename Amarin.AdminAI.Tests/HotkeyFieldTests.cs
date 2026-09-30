@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// Раздел «Hotkeys» на странице Behavior и поле записи сочетания.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class HotkeyFieldTests
 {
     private readonly WpfFixture _wpf;

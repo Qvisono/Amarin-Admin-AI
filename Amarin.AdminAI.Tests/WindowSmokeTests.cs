@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// app can open gets built once here.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class WindowSmokeTests
 {
     private readonly WpfFixture _wpf;

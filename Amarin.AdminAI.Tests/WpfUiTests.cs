@@ -3,6 +3,7 @@ using Amarin.UI;
 namespace Amarin.AdminAI.Tests;
 
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class WpfUiTests
 {
     private readonly WpfFixture _wpf;

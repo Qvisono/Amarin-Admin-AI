@@ -19,6 +19,7 @@ namespace Amarin.AdminAI.Tests;
 /// в прежнее состояние в <c>finally</c>.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class QuoteUiTests
 {
     private readonly WpfFixture _wpf;

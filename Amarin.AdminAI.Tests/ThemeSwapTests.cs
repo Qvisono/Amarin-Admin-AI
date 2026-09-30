@@ -17,6 +17,7 @@ namespace Amarin.AdminAI.Tests;
 /// лента переживает переключение, и то, что картинки всё-таки обновляются.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ThemeSwapTests
 {
     private readonly WpfFixture _wpf;

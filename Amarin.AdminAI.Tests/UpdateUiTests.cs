@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// воспользоваться: найденный релиз должен переживать открытие страницы.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class UpdateUiTests
 {
     private readonly WpfFixture _wpf;

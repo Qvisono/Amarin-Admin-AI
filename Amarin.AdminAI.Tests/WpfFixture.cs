@@ -32,4 +32,17 @@ public sealed class WpfFixture : IDisposable
 public sealed class WpfCollection : ICollectionFixture<WpfFixture>
 {
     public const string Name = "wpf";
+
+    /// <summary>
+    /// Метка оконных тестов: CI на каждый пуш гоняет всё, кроме них (<c>Category!=Wpf</c>).
+    /// </summary>
+    /// <remarks>
+    /// На раннере GitHub общий поток интерфейса то не стартует, то умирает, и красная отметка
+    /// на каждом пуше была бы шумом; оконные тесты гоняет ручной workflow «Tests». Коллекцию
+    /// фильтр dotnet test не видит — нужна метка, а её наличие сторожит
+    /// <c>TestCategoryTests</c>.
+    /// </remarks>
+    public const string Category = "Category";
+
+    public const string Trait = "Wpf";
 }

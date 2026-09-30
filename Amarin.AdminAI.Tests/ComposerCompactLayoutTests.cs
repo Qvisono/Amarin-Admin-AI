@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// permanent afterwards — the strip keeps the wrong size for the rest of the session.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ComposerCompactLayoutTests
 {
     private readonly WpfFixture _wpf;

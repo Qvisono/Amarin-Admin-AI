@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// Эти тесты держат геометрию: развёртку, попадание стрелки в бокс и то, что уровень видно.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ReasoningGaugeTests
 {
     private readonly WpfFixture _wpf;

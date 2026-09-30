@@ -45,6 +45,7 @@ public sealed class AutoLockTests
 /// Экран блокировки и пароль на архив — на живом окне со своими службами.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LockScreenUiTests : IDisposable
 {
     private const string Password = "верный пароль";

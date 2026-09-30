@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// именно это — числами, потому что заметить пропажу можно только по чужому графику.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SpendSurvivesChatDeletionTests : IDisposable
 {
     private readonly WpfFixture _wpf;

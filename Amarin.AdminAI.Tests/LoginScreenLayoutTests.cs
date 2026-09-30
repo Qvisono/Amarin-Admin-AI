@@ -18,6 +18,7 @@ namespace Amarin.AdminAI.Tests;
 /// геометрией: на глаз такое ловится только на том языке, где уже сломалось.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LoginScreenLayoutTests
 {
     private readonly WpfFixture _wpf;

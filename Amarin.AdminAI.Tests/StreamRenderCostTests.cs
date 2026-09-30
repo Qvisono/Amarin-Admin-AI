@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// вытеснение кэша подсветки промежуточными состояниями растущего блока кода.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class StreamRenderCostTests
 {
     private readonly WpfFixture _wpf;

@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// правки в том, что они не зависят от масштаба интерфейса.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class WindowGeometryTests
 {
     private readonly WpfFixture _wpf;

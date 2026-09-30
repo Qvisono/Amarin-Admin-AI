@@ -130,6 +130,7 @@ public sealed class PromptLibraryTests : IDisposable
 
 /// <summary>Плитки, модалка и подтверждение подмены — на живом окне.</summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class PromptLibraryUiTests
 {
     private readonly WpfFixture _wpf;

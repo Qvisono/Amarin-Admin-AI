@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// было нечем.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ComposerHeightTests
 {
     private readonly WpfFixture _wpf;

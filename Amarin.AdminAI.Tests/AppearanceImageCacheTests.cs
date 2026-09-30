@@ -15,6 +15,7 @@ namespace Amarin.AdminAI.Tests;
 /// трогающие общее состояние, — и каждый тест работает со своим файлом во временной папке.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class AppearanceImageCacheTests
 {
     [Fact]

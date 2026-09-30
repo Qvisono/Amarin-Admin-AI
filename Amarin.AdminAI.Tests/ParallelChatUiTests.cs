@@ -21,6 +21,7 @@ namespace Amarin.AdminAI.Tests;
 /// иначе <c>Windows.OfType&lt;MainWindow&gt;().Single()</c> в соседних тестах увидел бы два.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ParallelChatUiTests : IDisposable
 {
     private readonly WpfFixture _wpf;

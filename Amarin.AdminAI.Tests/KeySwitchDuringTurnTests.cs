@@ -20,6 +20,7 @@ namespace Amarin.AdminAI.Tests;
 /// </para>
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class KeySwitchDuringTurnTests
 {
     private readonly WpfFixture _wpf;

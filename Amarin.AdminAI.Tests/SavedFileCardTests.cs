@@ -19,6 +19,7 @@ namespace Amarin.AdminAI.Tests;
 /// вернули дважды.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SavedFileCardTests
 {
     private readonly WpfFixture _wpf;

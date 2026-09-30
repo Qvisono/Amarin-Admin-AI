@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// оказывается пустой оттого, что ключ забыли.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LocalizationTests
 {
     private readonly WpfFixture _wpf;

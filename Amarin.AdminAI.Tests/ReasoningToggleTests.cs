@@ -14,6 +14,7 @@ namespace Amarin.AdminAI.Tests;
 /// попап и вспоминая, в какую сторону считать. Теперь тумблер положительный: включён — думает.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ReasoningToggleTests
 {
     private readonly WpfFixture _wpf;

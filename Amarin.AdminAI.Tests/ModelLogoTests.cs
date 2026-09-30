@@ -9,6 +9,7 @@ namespace Amarin.AdminAI.Tests;
 /// — so the mapping and the two theme dictionaries have to be checked against each other.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ModelLogoTests
 {
     private readonly WpfFixture _wpf;

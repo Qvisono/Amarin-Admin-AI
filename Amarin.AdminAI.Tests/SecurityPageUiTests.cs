@@ -11,6 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// что на них видно, и страница, открытая заново, показывает то, что лежит в файле.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class SecurityPageUiTests : IDisposable
 {
     private readonly WpfFixture _wpf;

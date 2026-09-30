@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// Image paints square corners straight over the rounded background. These pin the replacement.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class RoundedClipTests
 {
     private readonly WpfFixture _wpf;

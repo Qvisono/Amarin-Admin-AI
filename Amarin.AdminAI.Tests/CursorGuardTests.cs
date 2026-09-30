@@ -14,6 +14,7 @@ namespace Amarin.AdminAI.Tests;
 /// вместе со счётчиком показа оставался взведённым — курсор пропадал над всей программой.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class CursorGuardTests
 {
     private readonly WpfFixture _wpf;

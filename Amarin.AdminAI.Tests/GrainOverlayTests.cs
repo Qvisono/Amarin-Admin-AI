@@ -17,6 +17,7 @@ namespace Amarin.AdminAI.Tests;
 /// перекошенный в светлое шум, слой, оставшийся в композиции при нулевом ползунке.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class GrainOverlayTests
 {
     private readonly WpfFixture _wpf;

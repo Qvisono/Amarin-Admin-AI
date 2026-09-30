@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// пока утверждать нечего, стоит обычная шестерёнка.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class AgentGlyphTests
 {
     private readonly WpfFixture _wpf;

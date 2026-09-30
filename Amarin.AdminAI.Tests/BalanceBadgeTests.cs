@@ -13,6 +13,7 @@ namespace Amarin.AdminAI.Tests;
 /// grey on that theme alone and nobody would notice until they switched to it.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class BalanceBadgeTests
 {
     private readonly WpfFixture _wpf;

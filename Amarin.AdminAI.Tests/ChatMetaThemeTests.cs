@@ -12,6 +12,7 @@ namespace Amarin.AdminAI.Tests;
 /// the views are rebuilt on every render, nothing ever throws to point at it.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatMetaThemeTests
 {
     private readonly WpfFixture _wpf;

@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// the user picks that theme, so the dictionaries are checked against each other up front.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class AppearanceThemeTests
 {
     private readonly WpfFixture _wpf;

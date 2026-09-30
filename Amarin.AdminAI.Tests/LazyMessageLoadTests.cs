@@ -19,6 +19,7 @@ namespace Amarin.AdminAI.Tests;
 /// именно здесь.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class LazyMessageLoadTests
 {
     private readonly WpfFixture _wpf;

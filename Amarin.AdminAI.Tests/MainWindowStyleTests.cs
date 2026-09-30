@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// проверяются сами флаги окна.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class MainWindowStyleTests
 {
     private readonly WpfFixture _wpf;

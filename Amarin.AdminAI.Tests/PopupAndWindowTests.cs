@@ -10,6 +10,7 @@ namespace Amarin.AdminAI.Tests;
 /// <c>StaysOpen="False"</c>, который не видит клика в чужом окне попапа — они копились.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class PopupManagerTests
 {
     private readonly WpfFixture _wpf;
@@ -185,6 +186,7 @@ public sealed class PopupManagerTests
 /// оформлением Windows отдаёт ему монитор плюс невидимую рамку.
 /// </summary>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class MaximizedWindowTests
 {
     private readonly WpfFixture _wpf;

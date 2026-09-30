@@ -16,6 +16,7 @@ namespace Amarin.AdminAI.Tests;
 /// уходили туда же, куда и разговор.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ModelPickerPanelTests
 {
     private readonly WpfFixture _wpf;

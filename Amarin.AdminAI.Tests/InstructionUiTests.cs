@@ -19,6 +19,7 @@ namespace Amarin.AdminAI.Tests;
 /// Своё окно не показывается и закрывается в finally — иначе соседние тесты увидели бы два.
 /// </remarks>
 [Collection(WpfCollection.Name)]
+[Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class InstructionUiTests : IDisposable
 {
     private readonly WpfFixture _wpf;
