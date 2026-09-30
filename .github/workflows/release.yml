@@ -162,12 +162,16 @@ jobs:
         run: |
           # «Релиза нет» — это ответ, а не авария: ненулевой код gh здесь не должен ронять шаг.
           $PSNativeCommandUseErrorActionPreference = $false
+          # Версия с пометкой (1.29.0-beta.1) выходит предварительной: /releases/latest её не
+          # отдаёт, и программа предлагает её только тем, кто включил бета-канал.
+          $pre = @()
+          if ($env:TAG.Contains('-')) { $pre = @('--prerelease') }
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload $env:TAG $env:ASSET $env:SUMS --clobber
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            gh release edit $env:TAG --title $env:TITLE --notes-file $env:NOTES
+            gh release edit $env:TAG --title $env:TITLE --notes-file $env:NOTES @pre
           } else {
-            gh release create $env:TAG $env:ASSET $env:SUMS --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES
+            gh release create $env:TAG $env:ASSET $env:SUMS --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES @pre
           }
           exit $LASTEXITCODE

@@ -5,7 +5,7 @@ internal enum StartupRoute
     /// <summary>Консольный прогон инструментов — идёт всегда, даже при запущенной программе.</summary>
     SmokeTools,
 
-    /// <summary>Подмена exe от имени администратора: сделать и выйти, окна не поднимая.</summary>
+    /// <summary>Подмена exe от имени администратора (обновление или откат): сделать и выйти, окна не поднимая.</summary>
     ApplyUpdate,
 
     /// <summary>Программа уже работает: запрос отдан ей, этот процесс больше не нужен.</summary>
@@ -39,7 +39,7 @@ internal static class StartupRouter
             return StartupRoute.SmokeTools;
         }
 
-        if (startup.ApplyUpdateFrom is not null)
+        if (startup.ApplyUpdateFrom is not null || startup.RollbackUpdate)
         {
             return StartupRoute.ApplyUpdate;
         }

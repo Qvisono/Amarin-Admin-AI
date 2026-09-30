@@ -9,7 +9,7 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>Скачанная сборка, которая ждёт закрытия программы, чтобы встать на её место.</summary>
-    internal sealed record StagedUpdate(UpdatePlan Plan, string File, Version Version);
+    internal sealed record StagedUpdate(UpdatePlan Plan, string File, ReleaseVersion Version);
 
     /// <summary>
     /// Плашка обновлений на странице Data Controls и автообновление целиком: проверка при каждом
@@ -124,8 +124,17 @@ namespace Amarin.UI
         /// </summary>
         private int _exitGeneration;
 
-        private static Version CurrentVersion =>
-            Version.TryParse(RuntimeContext.AppVersion, out var version) ? version : new Version(1, 0, 0);
+        private static ReleaseVersion CurrentRelease => RuntimeContext.AppRelease;
+
+        /// <summary>Версия, от которой человек откатился (см. <see cref="AppSettings.DeclinedUpdate"/>).</summary>
+        private ReleaseVersion? DeclinedRelease => ReleaseVersion.Parse(_services?.Settings.DeclinedUpdate);
+
+        /// <summary>
+        /// Стоит ли этот выпуск доводить самим, без кнопки: новее установленной и не та версия,
+        /// от которой человек вернулся к прошлой.
+        /// </summary>
+        private bool WantedAutomatically(ReleaseInfo release) =>
+            release.Release > CurrentRelease && (DeclinedRelease is not { } declined || release.Release > declined);
 
         /// <summary>
         /// Приводит плашку обновлений в порядок при каждом открытии настроек.
@@ -145,6 +154,7 @@ namespace Amarin.UI
 
             UpdateVersionText.Text = "v" + RuntimeContext.AppVersion;
             ShowLastCheck();
+            LoadReleaseExtrasUi();
 
             if (_staged is not null)
             {
@@ -152,7 +162,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_latestRelease is { } found && found.Version > UpdateChecker.Normalize(CurrentVersion))
+            if (_latestRelease is { } found && found.Release > CurrentRelease)
             {
                 ShowFoundRelease(found);
                 return;
@@ -251,12 +261,13 @@ namespace Amarin.UI
             }
 
             _pendingUpdate = plan;
-            UpdateConfirmTitle.Text = Loc.Format("S.Updates.ConfirmTitle", _latestRelease.Version);
+            UpdateConfirmTitle.Text = Loc.Format("S.Updates.ConfirmTitle", _latestRelease.Release);
             UpdateConfirmText.Text = Loc.Format(
                 "S.Updates.ConfirmText",
                 RuntimeContext.AppVersion,
-                _latestRelease.Version,
+                _latestRelease.Release,
                 DownloadSize(plan.Asset.Size));
+            ShowConfirmNotes(_latestRelease.Notes);
             UpdateConfirmFile.Text = Path.GetFileName(plan.ExePath);
             UpdateConfirmFolder.Text = plan.Folder;
             UpdateConfirmNote.Text = plan.NeedsElevation
@@ -334,10 +345,10 @@ namespace Amarin.UI
 
             // Автообновление могло принести этот самый файл в фоне. Качать его второй раз —
             // семьдесят восемь мегабайт впустую и лишняя минута ожидания.
-            var ready = _staged is { } staged && staged.Version == _latestRelease?.Version
+            var ready = _staged is { } staged && staged.Version == _latestRelease?.Release
                 ? staged.File
                 : null;
-            var version = _latestRelease?.Version;
+            var version = _latestRelease?.Release;
 
             using var cancellation = new CancellationTokenSource();
             _updateDownload = cancellation;
@@ -381,9 +392,9 @@ namespace Amarin.UI
                 // он просил закрыть. Скачанное откладывается, и его поставит сам выход.
                 if (_exiting)
                 {
-                    if (version is not null)
+                    if (version is { } known)
                     {
-                        _staged = new StagedUpdate(plan, file, version);
+                        _staged = new StagedUpdate(plan, file, known);
                     }
 
                     return;
@@ -587,7 +598,7 @@ namespace Amarin.UI
                 UpdateCheckResult result;
                 try
                 {
-                    result = await UpdateChecker.CheckAsync(CurrentVersion, timeout.Token);
+                    result = await UpdateChecker.CheckAsync(CurrentRelease, _services.Settings.BetaChannel, timeout.Token);
                 }
                 catch (OperationCanceledException) when (timeout.IsCancellationRequested)
                 {
@@ -657,7 +668,8 @@ namespace Amarin.UI
             if (UpdateSchedule.ShouldAutoDownload(
                     _services.Settings.AutoCheckUpdates,
                     result.Latest,
-                    _staged?.Version))
+                    _staged?.Version,
+                    DeclinedRelease))
             {
                 _autoDownloadTask = AutoDownloadAsync(result.Latest);
                 Detached.Run(_autoDownloadTask, "auto_download_update");
@@ -714,7 +726,7 @@ namespace Amarin.UI
                     return;
                 }
 
-                _staged = new StagedUpdate(plan, file, release.Version);
+                _staged = new StagedUpdate(plan, file, release.Release);
                 ShowStagedUpdate();
             }
             catch (OperationCanceledException)
@@ -739,7 +751,7 @@ namespace Amarin.UI
                 : Visibility.Visible;
             ShowUpdatePhase(UpdatePhase.Available);
             ShowUpdateStatus(
-                Loc.Format("S.Updates.Available", release.Version, RuntimeContext.AppVersion),
+                Loc.Format("S.Updates.Available", release.Release, RuntimeContext.AppVersion),
                 accent: true);
 
             ShowSidebarVersionBadge("S.Updates.SidebarBadge");
@@ -898,8 +910,7 @@ namespace Amarin.UI
              UpdateSchedule.CheckDueOnExit(DateTime.UtcNow, _lastSuccessfulCheckUtc) ||
              _autoDownload is not null ||
              _updateDownload is not null ||
-             (_latestRelease is { WindowsBuild: not null } found &&
-              found.Version > UpdateChecker.Normalize(CurrentVersion)));
+             (_latestRelease is { WindowsBuild: not null } found && WantedAutomatically(found)));
 
         /// <summary>
         /// Откладывает закрытие окна, если есть что поставить.
@@ -1027,8 +1038,8 @@ namespace Amarin.UI
                 if (_staged is null &&
                     _autoDownload is null &&
                     _latestRelease is { } release &&
-                    release.Version > UpdateChecker.Normalize(CurrentVersion) &&
-                    UpdateSchedule.ShouldAutoDownload(autoUpdate: true, release, staged: null))
+                    WantedAutomatically(release) &&
+                    UpdateSchedule.ShouldAutoDownload(autoUpdate: true, release, staged: null, DeclinedRelease))
                 {
                     _autoDownloadTask = AutoDownloadAsync(release);
                     await _autoDownloadTask.WaitAsync(limit.Token);

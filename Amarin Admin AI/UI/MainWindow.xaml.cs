@@ -349,6 +349,7 @@ namespace Amarin.UI
 
             // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
             UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
+            ScheduleWhatsNew();
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
             StartSchedule();

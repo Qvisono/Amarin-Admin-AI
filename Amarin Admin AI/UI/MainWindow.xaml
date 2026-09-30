@@ -3838,7 +3838,7 @@
                                             </Grid>
                                         </Grid>
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,11,0,0">
+                                        <WrapPanel Orientation="Horizontal" Margin="0,11,0,0">
                                             <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
                                                     Margin="0,0,6,0"
                                                     Content="{DynamicResource S.Updates.Check}"
@@ -3848,10 +3848,15 @@
                                                     Content="{DynamicResource S.Updates.Update}"
                                                     Click="UpdateNowButton_Click"/>
                                             <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
-                                                    Margin="0" Visibility="Collapsed"
+                                                    Margin="0,0,6,0" Visibility="Collapsed"
                                                     Content="{DynamicResource S.Updates.OpenRelease}"
                                                     Click="OpenReleaseButton_Click"/>
-                                        </StackPanel>
+                                            <!-- Прошлая версия лежит рядом (.previous) — вернуться к ней (H4). -->
+                                            <Button x:Name="RollbackButton" Style="{StaticResource SecondaryButton}"
+                                                    Margin="0" Visibility="Collapsed"
+                                                    Content="{DynamicResource S.Updates.RollbackUnknown}"
+                                                    Click="RollbackButton_Click"/>
+                                        </WrapPanel>
 
                                         <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -3869,6 +3874,22 @@
                                                       Style="{StaticResource SettingsToggle}"
                                                       Checked="AutoUpdateToggle_Changed"
                                                       Unchecked="AutoUpdateToggle_Changed"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,12,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Beta}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Updates.BetaDesc}"/>
+                                            </StackPanel>
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Updates.Beta}" x:Name="BetaChannelToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="BetaChannelToggle_Changed"
+                                                      Unchecked="BetaChannelToggle_Changed"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -4915,6 +4936,23 @@
                         <TextBlock x:Name="UpdateConfirmText" FontSize="12.5"
                                    Foreground="{DynamicResource Text.Muted}"
                                    TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <!--
+                            Заметки к релизу (H4). Высота ограничена, текст листается внутри: карточка
+                            лежит в Viewbox, и длинные заметки иначе сжали бы её целиком до мелкого
+                            шрифта, а не уехали бы под прокрутку.
+                        -->
+                        <StackPanel x:Name="UpdateConfirmNotesPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                            <TextBlock Text="{DynamicResource S.Updates.NotesTitle}" FontSize="11.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Secondary}" Margin="0,0,0,6"/>
+                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10,8,2,8">
+                                <RichTextBox x:Name="UpdateConfirmNotes" IsReadOnly="True" IsDocumentEnabled="True"
+                                             MaxHeight="220" Background="Transparent" BorderThickness="0"
+                                             Padding="0,0,8,0" VerticalScrollBarVisibility="Auto"
+                                             Foreground="{DynamicResource Text.Secondary}"
+                                             AutomationProperties.Name="{DynamicResource S.Updates.NotesTitle}"/>
+                            </Border>
+                        </StackPanel>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="6" Padding="10,7">
                             <StackPanel>

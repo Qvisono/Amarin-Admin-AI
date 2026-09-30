@@ -75,6 +75,12 @@ public static class UpdateInstaller
 
     private const string BackupSuffix = ".old";
 
+    /// <summary>
+    /// Прошлая версия, сбережённая ради «Вернуть прошлую версию». <c>.old</c> становится ею после
+    /// удачного запуска новой — до этого он только страховка самой подмены.
+    /// </summary>
+    public const string PreviousSuffix = ".previous";
+
     /// <summary>Больше этого не скачиваем: страховка от подменённого заголовка длины.</summary>
     private const long MaxBytes = 512L * 1024 * 1024;
 
@@ -369,7 +375,18 @@ public static class UpdateInstaller
         return exeFolder is not null && SamePath(folder, Path.Combine(exeFolder, WorkFolderName));
     }
 
-    /// <summary>Убирает следы прошлого обновления. Зовётся при запуске, ошибки проглатывает.</summary>
+    /// <summary>
+    /// Убирает следы прошлого обновления, а прежний exe сберегает как прошлую версию. Зовётся при
+    /// запуске, ошибки проглатывает.
+    /// </summary>
+    /// <remarks>
+    /// Раз новая версия дошла до окна, подмена удалась, и <c>.old</c> больше не страховка — но это
+    /// единственная копия того, что работало вчера. До 1.28.0 он удалялся, и вернуться к прошлой
+    /// версии после неудачного обновления можно было только скачав её руками. Хранится одна: на
+    /// диске лежит ровно одна лишняя копия программы, а не по копии на каждое обновление.
+    /// В защищённой папке переименовать нечем (прав нет) — там <c>.old</c> просто остаётся лежать,
+    /// и <see cref="PreviousVersionPath"/> находит его сам.
+    /// </remarks>
     public static void CleanupLeftovers(string? exePath)
     {
         if (string.IsNullOrWhiteSpace(exePath) || Path.GetDirectoryName(exePath) is not { } folder)
@@ -377,10 +394,125 @@ public static class UpdateInstaller
             return;
         }
 
-        TryDelete(exePath + BackupSuffix);
+        var backup = exePath + BackupSuffix;
+        if (File.Exists(backup))
+        {
+            try
+            {
+                File.Move(backup, exePath + PreviousSuffix, overwrite: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+
         TryDeleteFolder(Path.Combine(folder, WorkFolderName));
         TryDeleteFolder(TempWorkDirectory);
     }
+
+    /// <summary>Сбережённая прошлая версия рядом с программой; <c>null</c> — её нет.</summary>
+    public static string? PreviousVersionPath(string? exePath)
+    {
+        if (string.IsNullOrWhiteSpace(exePath))
+        {
+            return null;
+        }
+
+        foreach (var candidate in new[] { exePath + PreviousSuffix, exePath + BackupSuffix })
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Версия файла программы по его ресурсу версии; <c>null</c>, если её не прочесть.
+    /// </summary>
+    /// <remarks>
+    /// <c>ProductVersion</c> у сборки .NET — это <c>AssemblyInformationalVersion</c>, с пометкой
+    /// беты и хешем коммита после «+»; разбор отрезает хеш сам.
+    /// </remarks>
+    public static ReleaseVersion? FileVersionOf(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(path);
+            return ReleaseVersion.Parse(info.ProductVersion) ?? ReleaseVersion.Parse(info.FileVersion);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Ставит сбережённую прошлую версию на место работающей.
+    /// </summary>
+    /// <remarks>
+    /// Тот же <see cref="Swap"/>, что и у обновления: работающий exe уезжает в <c>.old</c> (и после
+    /// запуска прошлой версии станет уже её «прошлой» — вернуться обратно можно тем же путём), а
+    /// подпись проверяется по тому же правилу. Суммы нет и быть не может — этот файл не
+    /// скачивался, а уже работал на этой машине. Источник вычисляется из пути программы, а не
+    /// берётся аргументом: повышенный процесс не должен уметь «переложить любой файл».
+    /// </remarks>
+    public static UpdateStepResult RollBack(string? exePath)
+    {
+        if (string.IsNullOrWhiteSpace(exePath) ||
+            !exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(exePath))
+        {
+            return UpdateStepResult.Failed(Loc.Get("S.Updates.NoExePath"));
+        }
+
+        if (PreviousVersionPath(exePath) is not { } previous)
+        {
+            return UpdateStepResult.Failed(Loc.Get("S.Updates.NoPrevious"));
+        }
+
+        // Swap первым делом освобождает место под .old — прошлую версию, лежащую там же, он бы
+        // стёр. Поэтому она сначала переезжает на своё постоянное имя.
+        if (previous.EndsWith(BackupSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            var kept = exePath + PreviousSuffix;
+            try
+            {
+                File.Move(previous, kept, overwrite: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return UpdateStepResult.Failed(Loc.Format("S.Updates.InstallFailed", ex.Message));
+            }
+
+            previous = kept;
+        }
+
+        return Swap(previous, exePath);
+    }
+
+    /// <summary>
+    /// Может ли этот процесс сам переставлять файлы в папке программы. Нет — откат, как и
+    /// обновление, просит права через UAC. Проба — та же, что у <see cref="TryPlan"/>: папка
+    /// загрузки рядом с программой (её убирает следующий запуск).
+    /// </summary>
+    public static bool CanSwapWithoutElevation(string exePath) =>
+        Path.GetDirectoryName(exePath) is { Length: > 0 } folder &&
+        TryEnsureWritable(Path.Combine(folder, WorkFolderName), out _);
+
+    /// <summary>
+    /// Понимает ли версия <see cref="AppSettings.DeclinedUpdate"/>. Более ранние о ней не знают и
+    /// автообновлением поставили бы только что отвергнутую версию обратно при первом закрытии.
+    /// </summary>
+    public static bool KnowsDeclinedUpdate(ReleaseVersion? version) =>
+        version is { } known && known >= new Version(1, 28, 0);
 
     /// <summary>Адрес обязан быть https и вести на домен, с которого GitHub отдаёт релизы.</summary>
     public static bool IsTrustedUrl(string? url) =>

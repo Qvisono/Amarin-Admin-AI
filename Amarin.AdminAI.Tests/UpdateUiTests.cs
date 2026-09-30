@@ -344,6 +344,49 @@ public sealed class UpdateUiTests
         Assert.False(shuttingDown);
     }
 
+    [Fact]
+    public void Release_notes_show_in_the_update_question_only_when_there_are_some()
+    {
+        // H4: что именно ставится, человек читает до установки, а не на странице релиза потом.
+        var (shown, text, hidden) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var panel = (FrameworkElement)window.FindName("UpdateConfirmNotesPanel")!;
+            var box = (RichTextBox)window.FindName("UpdateConfirmNotes")!;
+
+            window.ShowConfirmNotes("## Fixes\n\n- The tray menu closes on click");
+            var visible = panel.Visibility;
+            var content = new System.Windows.Documents.TextRange(box.Document.ContentStart, box.Document.ContentEnd).Text;
+
+            window.ShowConfirmNotes(null);
+            return (visible, content, panel.Visibility);
+        });
+
+        Assert.Equal(Visibility.Visible, shown);
+        Assert.Contains("The tray menu closes on click", text, StringComparison.Ordinal);
+        Assert.Equal(Visibility.Collapsed, hidden);
+    }
+
+    [Fact]
+    public void The_beta_toggle_reflects_the_setting_and_no_previous_version_means_no_rollback_button()
+    {
+        var (beta, rollback) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            window.LatestRelease = null;
+            window.LoadUpdatesUi();
+            return (((CheckBox)window.FindName("BetaChannelToggle")!).IsChecked,
+                    ((Button)window.FindName("RollbackButton")!).Visibility);
+        });
+
+        Assert.False(beta);
+
+        // Рядом с testhost прошлой версии программы нет — кнопке отката там нечего вернуть.
+        Assert.Equal(
+            UpdateInstaller.PreviousVersionPath(Environment.ProcessPath) is null ? Visibility.Collapsed : Visibility.Visible,
+            rollback);
+    }
+
     private static StagedUpdate StagedBuild()
     {
         var release = NewerRelease();

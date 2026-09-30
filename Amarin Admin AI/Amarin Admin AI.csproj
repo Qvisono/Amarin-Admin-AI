@@ -26,6 +26,14 @@
       GuideShot ищет файл в коде, поэтому отсутствие любого из них — не ошибка сборки.
     -->
     <Resource Include="Assets\Guide\*.png" />
+    <!--
+      Заметки этой версии для окна «Что нового» (WhatsNew): тот же файл, из которого release.yml
+      делает страницу релиза, поэтому текст один. Condition — чтобы сборка версии, заметки к
+      которой ещё не написаны, не падала: окно тогда просто не показывается.
+    -->
+    <EmbeddedResource Include="..\.github\release-notes\v$(Version).md"
+                      LogicalName="Amarin.ReleaseNotes.md"
+                      Condition="Exists('..\.github\release-notes\v$(Version).md')" />
   </ItemGroup>
 
   <!--

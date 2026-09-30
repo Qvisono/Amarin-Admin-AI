@@ -108,9 +108,13 @@ public static class UpdateSchedule
     /// редирект страницы релизов, у которого списка файлов нет вовсе, — качать оттуда нечего.
     /// Сборка без контрольной суммы — тоже: сама, без человека, программа ставит только то,
     /// что может сверить. Такую сборку человек ставит кнопкой, отдельно согласившись.
+    /// Версия, от которой человек вернулся к прошлой (<paramref name="declined"/>), тоже: иначе
+    /// автообновление поставило бы её обратно при первом же закрытии окна.
     /// </remarks>
-    public static bool ShouldAutoDownload(bool autoUpdate, ReleaseInfo? latest, Version? staged) =>
+    /// <param name="declined">Версия, от которой человек откатился; более новые качаются как обычно.</param>
+    public static bool ShouldAutoDownload(bool autoUpdate, ReleaseInfo? latest, ReleaseVersion? staged, ReleaseVersion? declined = null) =>
         autoUpdate &&
         latest?.WindowsBuild is { Sha256.Length: 64 } &&
-        (staged is null || latest.Version > staged);
+        (staged is null || latest.Release > staged.Value) &&
+        (declined is null || latest.Release > declined.Value);
 }

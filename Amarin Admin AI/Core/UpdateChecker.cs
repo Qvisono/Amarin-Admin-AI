@@ -11,15 +11,119 @@ namespace Amarin.Core;
 /// </param>
 public sealed record ReleaseAsset(string Name, string Url, long Size, string? Sha256);
 
+/// <summary>
+/// Версия выпуска целиком: три числа и необязательная пометка предварительной сборки
+/// (<c>1.29.0-beta.1</c>).
+/// </summary>
+/// <remarks>
+/// <see cref="Version"/> пометку не держит, а SDK её из версии сборки выбрасывает: у
+/// <c>&lt;Version&gt;1.29.0-beta.1&lt;/Version&gt;</c> версия сборки — <c>1.29.0.0</c>, и только
+/// <c>AssemblyInformationalVersion</c> сохраняет суффикс. Сравнивай программа одни числа, человек
+/// на бете никогда не получил бы финальную 1.29.0 — она «та же самая», — а скачанная бета
+/// сошла бы за готовую финальную. Сравнение — по правилам semver: без пометки старше, чем с ней;
+/// пометки — по частям через точку, числа численно и младше слов.
+/// </remarks>
+public readonly record struct ReleaseVersion(Version Core, string Label) : IComparable<ReleaseVersion>
+{
+    public bool IsPrerelease => Label.Length > 0;
+
+    /// <summary>
+    /// Разбирает тег или версию: <c>v1.29.0-beta.1</c>, <c>1.28.0+abc</c> (сборочные метаданные
+    /// после плюса отбрасываются), <c>1.28</c>. Нет чисел — <c>null</c>.
+    /// </summary>
+    public static ReleaseVersion? Parse(string? text)
+    {
+        if (UpdateChecker.ParseTag(text) is not { } core)
+        {
+            return null;
+        }
+
+        var raw = (text ?? "").Trim();
+        var plus = raw.IndexOf('+');
+        if (plus >= 0)
+        {
+            raw = raw[..plus];
+        }
+
+        var dash = raw.IndexOf('-');
+        var label = dash >= 0 ? raw[(dash + 1)..].Trim() : "";
+        return new ReleaseVersion(core, label);
+    }
+
+    public static implicit operator ReleaseVersion(Version version) => new(UpdateChecker.Normalize(version), "");
+
+    public int CompareTo(ReleaseVersion other)
+    {
+        var core = UpdateChecker.Normalize(Core ?? new Version(0, 0, 0)).CompareTo(UpdateChecker.Normalize(other.Core ?? new Version(0, 0, 0)));
+        if (core != 0)
+        {
+            return core;
+        }
+
+        var mine = Label ?? "";
+        var theirs = other.Label ?? "";
+        if (mine.Length == 0 || theirs.Length == 0)
+        {
+            return (mine.Length == 0 ? 1 : 0) - (theirs.Length == 0 ? 1 : 0);
+        }
+
+        var left = mine.Split('.');
+        var right = theirs.Split('.');
+        for (var i = 0; i < Math.Min(left.Length, right.Length); i++)
+        {
+            var leftNumber = long.TryParse(left[i], NumberStyles.None, CultureInfo.InvariantCulture, out var a);
+            var rightNumber = long.TryParse(right[i], NumberStyles.None, CultureInfo.InvariantCulture, out var b);
+            var step = (leftNumber, rightNumber) switch
+            {
+                (true, true) => a.CompareTo(b),
+                (true, false) => -1,
+                (false, true) => 1,
+                _ => string.CompareOrdinal(left[i], right[i])
+            };
+
+            if (step != 0)
+            {
+                return Math.Sign(step);
+            }
+        }
+
+        return left.Length.CompareTo(right.Length);
+    }
+
+    public static bool operator >(ReleaseVersion left, ReleaseVersion right) => left.CompareTo(right) > 0;
+
+    public static bool operator <(ReleaseVersion left, ReleaseVersion right) => left.CompareTo(right) < 0;
+
+    public static bool operator >=(ReleaseVersion left, ReleaseVersion right) => left.CompareTo(right) >= 0;
+
+    public static bool operator <=(ReleaseVersion left, ReleaseVersion right) => left.CompareTo(right) <= 0;
+
+    public bool Equals(ReleaseVersion other) => CompareTo(other) == 0;
+
+    public override int GetHashCode() => HashCode.Combine(UpdateChecker.Normalize(Core ?? new Version(0, 0, 0)), Label ?? "");
+
+    public override string ToString() =>
+        UpdateChecker.Normalize(Core ?? new Version(0, 0, 0)).ToString(3) + (IsPrerelease ? "-" + Label : "");
+}
+
 /// <summary>Релиз на GitHub: то немногое из ответа API, что нужно приложению.</summary>
+/// <param name="Notes">Заметки к релизу (Markdown из поля <c>body</c>); показываются до установки.</param>
+/// <param name="Prerelease">Помечен на GitHub как предварительный — такие видит только бета-канал.</param>
 public sealed record ReleaseInfo(
     string Tag,
     Version Version,
     string PageUrl,
     string? Title,
     DateTimeOffset? Published,
-    IReadOnlyList<ReleaseAsset> Assets)
+    IReadOnlyList<ReleaseAsset> Assets,
+    string? Notes = null,
+    bool Prerelease = false)
 {
+    /// <summary>Версия вместе с пометкой из тега — по ней и сравниваются выпуски.</summary>
+    public ReleaseVersion Release => ReleaseVersion.Parse(Tag) is { } parsed && parsed.Core == Version
+        ? parsed
+        : Version;
+
     /// <summary>
     /// Готовая сборка для Windows. Релиз этой программы — один самодостаточный exe, поэтому
     /// берётся первый подходящий: сначала помеченный архитектурой, потом любой .exe.
@@ -61,6 +165,19 @@ public static class UpdateChecker
 {
     public const string LatestReleaseApiUrl =
         "https://api.github.com/repos/Qvisono/Amarin-Admin-AI/releases/latest";
+
+    /// <summary>
+    /// Список выпусков для бета-канала. <c>/releases/latest</c> предварительные выпуски не
+    /// отдаёт никогда, поэтому бета читает первую страницу списка и выбирает сама.
+    /// </summary>
+    public const string ReleasesApiUrl =
+        "https://api.github.com/repos/Qvisono/Amarin-Admin-AI/releases?per_page=20";
+
+    /// <summary>
+    /// Больше этого заметки к релизу не показываются: окно подтверждения — не место для книги,
+    /// а полный текст открывается ссылкой на страницу релиза.
+    /// </summary>
+    public const int NotesLimit = 20_000;
 
     public const string ReleasesPageUrl =
         "https://github.com/Qvisono/Amarin-Admin-AI/releases/latest";
@@ -147,7 +264,12 @@ public static class UpdateChecker
     public static UpdateCheckResult ReadRelease(string json, Version current)
     {
         ArgumentNullException.ThrowIfNull(current);
+        return ReadRelease(json, (ReleaseVersion)current);
+    }
 
+    /// <inheritdoc cref="ReadRelease(string, Version)"/>
+    public static UpdateCheckResult ReadRelease(string json, ReleaseVersion current)
+    {
         try
         {
             using var document = JsonDocument.Parse(json);
@@ -157,40 +279,113 @@ public static class UpdateChecker
                 return UpdateCheckResult.Failed(Loc.Get("S.Updates.BadAnswer"));
             }
 
-            var tag = root.TryGetProperty("tag_name", out var tagProp) && tagProp.ValueKind == JsonValueKind.String
-                ? tagProp.GetString() ?? ""
-                : "";
-
-            var version = ParseTag(tag);
-            if (version is null)
-            {
-                return UpdateCheckResult.Failed(Loc.Get("S.Updates.NoVersionInRelease"));
-            }
-
-            var page = root.TryGetProperty("html_url", out var urlProp) && urlProp.ValueKind == JsonValueKind.String
-                ? urlProp.GetString() ?? ReleasesPageUrl
-                : ReleasesPageUrl;
-
-            var title = root.TryGetProperty("name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String
-                ? nameProp.GetString()
-                : null;
-
-            DateTimeOffset? published = root.TryGetProperty("published_at", out var dateProp) &&
-                                        dateProp.ValueKind == JsonValueKind.String &&
-                                        DateTimeOffset.TryParse(dateProp.GetString(), out var parsedDate)
-                ? parsedDate
-                : null;
-
-            return new UpdateCheckResult
-            {
-                Latest = new ReleaseInfo(tag, version, page, title, published, ReadAssets(root)),
-                UpdateAvailable = version > Normalize(current)
-            };
+            return ReadReleaseElement(root) is { } release
+                ? new UpdateCheckResult { Latest = release, UpdateAvailable = release.Release > current }
+                : UpdateCheckResult.Failed(Loc.Get("S.Updates.NoVersionInRelease"));
         }
         catch (JsonException)
         {
             return UpdateCheckResult.Failed(Loc.Get("S.Updates.ParseFailed"));
         }
+    }
+
+    /// <summary>
+    /// Разбор списка выпусков для бета-канала: самый новый из не-черновиков, предварительные —
+    /// только если <paramref name="includePrerelease"/>.
+    /// </summary>
+    /// <remarks>
+    /// Выбирается по версии, а не по порядку в списке: GitHub сортирует по дате создания, и
+    /// заплатка к прошлой ветке, выпущенная позже, стояла бы первой.
+    /// </remarks>
+    public static UpdateCheckResult ReadReleases(string json, ReleaseVersion current, bool includePrerelease)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Array)
+            {
+                return UpdateCheckResult.Failed(Loc.Get("S.Updates.BadAnswer"));
+            }
+
+            ReleaseInfo? best = null;
+            foreach (var item in root.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object ||
+                    (item.TryGetProperty("draft", out var draft) && draft.ValueKind == JsonValueKind.True) ||
+                    ReadReleaseElement(item) is not { } release ||
+                    (release.Prerelease && !includePrerelease))
+                {
+                    continue;
+                }
+
+                if (best is null || release.Release > best.Release)
+                {
+                    best = release;
+                }
+            }
+
+            return best is null
+                ? UpdateCheckResult.Failed(Loc.Get("S.Updates.NoVersionInRelease"))
+                : new UpdateCheckResult { Latest = best, UpdateAvailable = best.Release > current };
+        }
+        catch (JsonException)
+        {
+            return UpdateCheckResult.Failed(Loc.Get("S.Updates.ParseFailed"));
+        }
+    }
+
+    private static ReleaseInfo? ReadReleaseElement(JsonElement root)
+    {
+        var tag = root.TryGetProperty("tag_name", out var tagProp) && tagProp.ValueKind == JsonValueKind.String
+            ? tagProp.GetString() ?? ""
+            : "";
+
+        var version = ParseTag(tag);
+        if (version is null)
+        {
+            return null;
+        }
+
+        var page = root.TryGetProperty("html_url", out var urlProp) && urlProp.ValueKind == JsonValueKind.String
+            ? urlProp.GetString() ?? ReleasesPageUrl
+            : ReleasesPageUrl;
+
+        var title = root.TryGetProperty("name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String
+            ? nameProp.GetString()
+            : null;
+
+        DateTimeOffset? published = root.TryGetProperty("published_at", out var dateProp) &&
+                                    dateProp.ValueKind == JsonValueKind.String &&
+                                    DateTimeOffset.TryParse(dateProp.GetString(), out var parsedDate)
+            ? parsedDate
+            : null;
+
+        var notes = root.TryGetProperty("body", out var bodyProp) && bodyProp.ValueKind == JsonValueKind.String
+            ? TrimNotes(bodyProp.GetString())
+            : null;
+
+        var prerelease = root.TryGetProperty("prerelease", out var preProp) && preProp.ValueKind == JsonValueKind.True;
+
+        return new ReleaseInfo(tag, version, page, title, published, ReadAssets(root), notes, prerelease);
+    }
+
+    /// <summary>Пустые заметки — <c>null</c>; длинные обрезаются по границе строки.</summary>
+    internal static string? TrimNotes(string? body)
+    {
+        var text = (body ?? "").Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        if (text.Length <= NotesLimit)
+        {
+            return text;
+        }
+
+        var cut = text.LastIndexOf('\n', NotesLimit);
+        return text[..(cut > NotesLimit / 2 ? cut : NotesLimit)].TrimEnd() + "\n\n…";
     }
 
     private static IReadOnlyList<ReleaseAsset> ReadAssets(JsonElement root)
@@ -325,17 +520,33 @@ public static class UpdateChecker
         CancellationToken cancellationToken = default) =>
         CheckAsync(Client.Value, current, cancellationToken);
 
+    /// <param name="beta">Бета-канал: смотреть и предварительные выпуски.</param>
+    public static Task<UpdateCheckResult> CheckAsync(
+        ReleaseVersion current,
+        bool beta,
+        CancellationToken cancellationToken = default) =>
+        CheckAsync(Client.Value, current, beta, cancellationToken);
+
+    internal static Task<UpdateCheckResult> CheckAsync(
+        HttpClient http,
+        Version current,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        return CheckAsync(http, (ReleaseVersion)current, beta: false, cancellationToken);
+    }
+
     /// <param name="http">
     /// Клиент без заголовков авторизации. Общий клиент Venice сюда передавать нельзя —
     /// см. <see cref="Client"/>.
     /// </param>
     internal static async Task<UpdateCheckResult> CheckAsync(
         HttpClient http,
-        Version current,
+        ReleaseVersion current,
+        bool beta,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(http);
-        ArgumentNullException.ThrowIfNull(current);
 
         if (http.DefaultRequestHeaders.Authorization is not null)
         {
@@ -344,9 +555,9 @@ public static class UpdateChecker
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUrl);
+            using var request = new HttpRequestMessage(HttpMethod.Get, beta ? ReleasesApiUrl : LatestReleaseApiUrl);
             // GitHub отвечает 403 на запрос без User-Agent — заголовок обязателен, а не вежлив.
-            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current.Core));
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             request.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
@@ -354,9 +565,9 @@ public static class UpdateChecker
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                var result = ReadRelease(json, current);
+                var result = beta ? ReadReleases(json, current, includePrerelease: true) : ReadRelease(json, current);
                 return result.Latest is { } latest
-                    ? result with { Latest = await WithSumsFileAsync(http, latest, current, cancellationToken).ConfigureAwait(false) }
+                    ? result with { Latest = await WithSumsFileAsync(http, latest, current.Core, cancellationToken).ConfigureAwait(false) }
                     : result;
             }
 
@@ -366,6 +577,8 @@ public static class UpdateChecker
             }
 
             var refusal = DescribeRefusal(response.Headers);
+            // Запасной путь знает только последний финальный выпуск — для беты это лучше, чем
+            // ничего: о предварительных она узнает на следующей удачной проверке.
             return await FallBackToReleasePageAsync(http, current, cancellationToken).ConfigureAwait(false)
                    ?? UpdateCheckResult.Failed(refusal);
         }
@@ -439,13 +652,13 @@ public static class UpdateChecker
     /// </remarks>
     private static async Task<UpdateCheckResult?> FallBackToReleasePageAsync(
         HttpClient http,
-        Version current,
+        ReleaseVersion current,
         CancellationToken cancellationToken)
     {
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesPageUrl);
-            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current.Core));
 
             // Тело страницы не нужно — нужен только адрес, на котором осел редирект.
             using var response = await http
@@ -468,6 +681,11 @@ public static class UpdateChecker
     internal static UpdateCheckResult? ReadTaggedUrl(string? url, Version current)
     {
         ArgumentNullException.ThrowIfNull(current);
+        return ReadTaggedUrl(url, (ReleaseVersion)current);
+    }
+
+    internal static UpdateCheckResult? ReadTaggedUrl(string? url, ReleaseVersion current)
+    {
 
         const string marker = "/releases/tag/";
         var text = url ?? "";
@@ -484,10 +702,11 @@ public static class UpdateChecker
             return null;
         }
 
+        var latest = new ReleaseInfo(tag, version, text, null, null, []);
         return new UpdateCheckResult
         {
-            Latest = new ReleaseInfo(tag, version, text, null, null, []),
-            UpdateAvailable = version > Normalize(current)
+            Latest = latest,
+            UpdateAvailable = latest.Release > current
         };
     }
 }

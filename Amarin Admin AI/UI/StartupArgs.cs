@@ -4,7 +4,8 @@ namespace Amarin.UI;
 
 /// <summary>
 /// Разбор аргументов командной строки: <c>--model</c>, <c>--prompt</c>, <c>--prompt-file</c>,
-/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>, <c>--wipe</c>,
+/// <c>--send</c>, <c>--smoke-tools</c>, <c>--await-exit</c>, <c>--apply-update</c>,
+/// <c>--rollback-update</c>, <c>--wipe</c>,
 /// <c>--open-chat</c> и действия интеграции с Windows (G): <c>--new-chat</c>, <c>--health</c>,
 /// <c>--tray</c>, <c>--ask-path</c>.
 /// </summary>
@@ -64,6 +65,12 @@ internal sealed class StartupArgs
     public string? ApplyUpdateSha256 { get; private set; }
 
     /// <summary>
+    /// Вернуть сбережённую прошлую версию от имени администратора (H4). Значения нет намеренно:
+    /// что ставить, повышенный процесс вычисляет из своего же пути, а не берёт из командной строки.
+    /// </summary>
+    public bool RollbackUpdate { get; private set; }
+
+    /// <summary>
     /// Метка просьбы стереть профиль, оставленной прежним запуском (<see cref="PendingWipe"/>).
     /// Сама по себе ничего не стирает: без файла просьбы с той же меткой это пустой звук.
     /// </summary>
@@ -103,6 +110,12 @@ internal sealed class StartupArgs
             if (a.Equals("--smoke-tools", StringComparison.OrdinalIgnoreCase))
             {
                 result.SmokeTools = true;
+                continue;
+            }
+
+            if (a.Equals("--rollback-update", StringComparison.OrdinalIgnoreCase))
+            {
+                result.RollbackUpdate = true;
                 continue;
             }
 
