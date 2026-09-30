@@ -119,6 +119,16 @@ internal sealed class AuditLog
         _secrets = secrets ?? (() => []);
     }
 
+    /// <summary>
+    /// Шифровать ли новые строки (<see cref="AppSettings.EncryptChats"/>).
+    /// </summary>
+    /// <remarks>
+    /// Свойство, а не параметр конструктора: журнал заводится до того, как прочитаны настройки
+    /// профиля. Уже записанные строки не переписываются — журнал только дописывается, — а
+    /// читаются оба формата.
+    /// </remarks>
+    public Func<bool> Encrypt { get; set; } = static () => false;
+
     /// <summary>Папка журнала — в папке профиля, рядом с чатами.</summary>
     public string Directory
     {
@@ -185,8 +195,22 @@ internal sealed class AuditLog
     public void Append(AuditEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var line = JsonSerializer.Serialize(entry, LineOptions) + "\n";
-        var bytes = Encoding.UTF8.GetBytes(line);
+        var line = JsonSerializer.Serialize(entry, LineOptions);
+        if (SafeEncrypt())
+        {
+            // Отказ Windows шифровать не повод терять строку: журнал и нужен затем, чтобы след
+            // остался, поэтому она ляжет открытой, а в журнал сбоев — пометка.
+            if (AtRestCipher.EncryptLine(line) is { } sealedLine)
+            {
+                line = sealedLine;
+            }
+            else
+            {
+                CrashLog.Write("audit: encryption failed, line written in plain text");
+            }
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(line + "\n");
 
         try
         {
@@ -299,14 +323,14 @@ internal sealed class AuditLog
     /// <summary>Строка журнала из JSON; null — строка битая.</summary>
     public static AuditEntry? Parse(string line)
     {
-        if (string.IsNullOrWhiteSpace(line))
+        if (string.IsNullOrWhiteSpace(line) || AtRestCipher.DecryptLine(line.Trim()) is not { } plain)
         {
             return null;
         }
 
         try
         {
-            var entry = JsonSerializer.Deserialize<AuditEntry>(line, LineOptions);
+            var entry = JsonSerializer.Deserialize<AuditEntry>(plain, LineOptions);
             return entry is { Tool.Length: > 0 } ? entry : null;
         }
         catch (JsonException)
@@ -419,6 +443,18 @@ internal sealed class AuditLog
                 }
 
                 break;
+        }
+    }
+
+    private bool SafeEncrypt()
+    {
+        try
+        {
+            return Encrypt();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return false;
         }
     }
 

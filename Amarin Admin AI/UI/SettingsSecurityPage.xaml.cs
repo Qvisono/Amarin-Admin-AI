@@ -36,6 +36,9 @@ public partial class SettingsSecurityPage : UserControl
     /// <summary>Ставится главным окном, когда службы уже собраны.</summary>
     internal void Attach(AppServices services) => _services = services;
 
+    /// <summary>«Заблокировать сейчас»: закрывает окно сам хозяин — экран блокировки его.</summary>
+    internal event EventHandler? LockRequested;
+
     /// <summary>Наполняет страницу из настроек. Зовётся из <c>LoadSettingsUi</c>.</summary>
     internal void Load(AppSettings settings)
     {
@@ -57,12 +60,72 @@ public partial class SettingsSecurityPage : UserControl
             }
 
             EnableAllToolsButton.IsEnabled = settings.DisabledTools is { Count: > 0 };
+
+            EncryptChatsToggle.IsChecked = settings.EncryptChats;
+            LoadAutoLock(settings);
         }
         finally
         {
             _loading = false;
         }
     }
+
+    /// <summary>
+    /// Автоблокировка: выбор минут и кнопка «Заблокировать сейчас» — только у профиля с паролем.
+    /// </summary>
+    /// <remarks>
+    /// Без пароля снимать блокировку нечем. Сохранённый выбор при этом не стирается: заведёт
+    /// человек пароль — блокировка заработает так, как он её уже настроил.
+    /// </remarks>
+    private void LoadAutoLock(AppSettings settings)
+    {
+        var hasPassword = HasPassword;
+        var minutes = AutoLock.Normalize(settings.AutoLockMinutes);
+        foreach (var chip in AutoLockChoices.Children.OfType<RadioButton>())
+        {
+            var value = int.Parse((string)chip.Tag, System.Globalization.CultureInfo.InvariantCulture);
+            if (value > 0)
+            {
+                chip.Content = Loc.Format("S.Security.Minutes", value);
+            }
+
+            chip.IsChecked = value == minutes;
+            chip.IsEnabled = hasPassword;
+        }
+
+        AutoLockNeedsPassword.Visibility = hasPassword ? Visibility.Collapsed : Visibility.Visible;
+        LockNowButton.IsEnabled = hasPassword;
+    }
+
+    private bool HasPassword =>
+        _services is not null && _services.Profiles.Active(_services.ProfileRegistry).HasPassword;
+
+    private void EncryptChatsToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        _services.Settings.EncryptChats = EncryptChatsToggle.IsChecked == true;
+        _services.SettingsStore.Save(_services.Settings);
+
+        // Уже лежащие файлы переписываются в фоне; новые записи пойдут в новом формате сразу.
+        _ = _services.ChatStore.EnsureFormat();
+    }
+
+    private void AutoLockChoice_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null || sender is not RadioButton { Tag: string tag })
+        {
+            return;
+        }
+
+        _services.Settings.AutoLockMinutes = int.Parse(tag, System.Globalization.CultureInfo.InvariantCulture);
+        _services.SettingsStore.Save(_services.Settings);
+    }
+
+    private void LockNowButton_Click(object sender, RoutedEventArgs e) => LockRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Карточки режимов — для тестов: сколько их и какие режимы они ставят.</summary>
     internal IEnumerable<string> ModeTags => ModeCards.Children.OfType<RadioButton>().Select(card => (string)card.Tag);

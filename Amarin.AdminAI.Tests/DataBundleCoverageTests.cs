@@ -21,14 +21,16 @@ public sealed class DataBundleCoverageTests
 {
     /// <summary>
     /// Эти поля импорт намеренно оставляет свои — см. <c>DataBundleImporter.ApplySettings</c>.
-    /// Белый список загрузок, режим доступа и выключенные инструменты — настройки безопасности,
-    /// и приезжать из чужого файла они не должны.
+    /// Белый список загрузок, режим доступа, выключенные инструменты, шифрование на диске и
+    /// автоблокировка — настройки безопасности, и приезжать из чужого файла они не должны.
     /// </summary>
     private static readonly string[] NeverImported =
     [
         nameof(AppSettings.DownloadAllowedDomains),
         nameof(AppSettings.ApprovalMode),
-        nameof(AppSettings.DisabledTools)
+        nameof(AppSettings.DisabledTools),
+        nameof(AppSettings.EncryptChats),
+        nameof(AppSettings.AutoLockMinutes)
     ];
 
     [Fact]

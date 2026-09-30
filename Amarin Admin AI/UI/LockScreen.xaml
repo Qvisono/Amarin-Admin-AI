@@ -1,0 +1,52 @@
+<UserControl x:Class="Amarin.UI.LockScreen"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             KeyboardNavigation.TabNavigation="Cycle">
+    <!--
+        Фон прозрачный, но попадаемый: сквозь него видна заливка корневого Grid окна, а
+        переписку под ним окно на время блокировки прячет само (см. MainWindow.Lock). Нажатие
+        на пустое место всплывает до корня и тянет окно, как на обычном заголовке.
+    -->
+    <Grid Background="Transparent">
+        <!-- Те же три кнопки, что у экрана входа: заголовок окна на время блокировки спрятан. -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,6,8,0">
+            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Minimize}"
+                    Focusable="False" Click="MinimizeButton_Click"/>
+            <Button Style="{StaticResource LockChromeButton}" Tag="{DynamicResource Maximize}"
+                    Focusable="False" Click="MaximizeButton_Click"/>
+            <Button Style="{StaticResource LockChromeCloseButton}" Tag="{DynamicResource Close}"
+                    Focusable="False" Click="CloseButton_Click"/>
+        </StackPanel>
+
+        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border Width="340" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="22,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource S.Lock.Title}" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Text.Primary}"/>
+                    <TextBlock x:Name="SubtitleText" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Text.Muted}"/>
+
+                    <Border Margin="0,16,0,0" CornerRadius="6" Height="32"
+                            Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
+                        <PasswordBox x:Name="PasswordInput" Background="Transparent" BorderThickness="0"
+                                     Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
+                                     Foreground="{DynamicResource Text.Bright}"
+                                     CaretBrush="{DynamicResource Text.Bright}"
+                                     KeyDown="PasswordInput_KeyDown"/>
+                    </Border>
+
+                    <TextBlock x:Name="ErrorText" FontSize="11.5" Margin="2,8,0,0" TextWrapping="Wrap"
+                               Visibility="Collapsed" Foreground="{DynamicResource Status.Danger}"/>
+
+                    <Button x:Name="UnlockButton" Style="{StaticResource DialogPrimaryButton}"
+                            HorizontalAlignment="Right" Margin="0,16,0,0"
+                            Content="{DynamicResource S.Lock.Unlock}" Click="UnlockButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Viewbox>
+    </Grid>
+</UserControl>

@@ -252,7 +252,17 @@ public static class DataUsage
 
             // Файл мог укоротиться между Walk и чтением — считаем то, что дочитали.
             var read = stream.ReadAtLeast(buffer.AsSpan(0, size), size, throwOnEndOfStream: false);
-            return CountAttachmentBytes(buffer.AsSpan(0, read));
+            var content = buffer.AsSpan(0, read);
+            if (!AtRestCipher.IsEncrypted(content))
+            {
+                return CountAttachmentBytes(content);
+            }
+
+            // Зашифрованный чат (AppSettings.EncryptChats): вложения видны только в открытом
+            // тексте. Чужой блоб, который здесь не расшифровать, считается чатом без вложений.
+            return AtRestCipher.DecryptFile(content.ToArray()) is { } text
+                ? CountAttachmentBytes(System.Text.Encoding.UTF8.GetBytes(text))
+                : 0;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OutOfMemoryException)
         {

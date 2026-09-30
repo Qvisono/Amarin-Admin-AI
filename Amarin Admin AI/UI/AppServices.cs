@@ -187,7 +187,10 @@ internal sealed class AppServices : IDisposable
 
         Directory.CreateDirectory(Path.Combine(dataRoot, "chats"));
         SettingsStore = new AppSettingsStore(dataRoot);
-        ChatStore = new ChatStore(dataRoot);
+        // Перешифровка прежней папки теряет смысл: хранилище её больше не ведёт, а галочка
+        // шифрования теперь читается из настроек другого профиля.
+        ChatStore.StopReformat();
+        ChatStore = new ChatStore(dataRoot) { Encrypt = () => Settings.EncryptChats };
         Prompts = new PromptLibrary(dataRoot);
         Instructions.UseRoot(dataRoot);
         Settings = SettingsStore.Load();
@@ -199,6 +202,10 @@ internal sealed class AppServices : IDisposable
         Ledger.UseRoot(dataRoot);
         Audit?.UseRoot(dataRoot);
         ApplyActiveKey();
+
+        // Прерванная перешифровка или файлы, разложенные импортом, — привести к настройке
+        // этого профиля. В фоне и по первым байтам: обычно делать нечего.
+        Detached.Run(ChatStore.EnsureFormat(), "chat_reformat");
     }
 
     public void Dispose()

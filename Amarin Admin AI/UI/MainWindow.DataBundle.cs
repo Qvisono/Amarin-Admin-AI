@@ -33,6 +33,12 @@ namespace Amarin.UI
         /// <summary>Идёт сборка или раскладка. Второе нажатие в это время сломало бы обе.</summary>
         private bool _bundleBusy;
 
+        /// <summary>
+        /// Расшифрованная копия архива под паролем — во временной папке, пока открыто окно
+        /// импорта. Открытый текст на диске держится ровно столько, сколько нужен.
+        /// </summary>
+        private string? _importPlainCopy;
+
         private string ActiveProfileId => _services?.ProfileRegistry.ActiveProfileId ?? "";
 
         // ───────────────────────── экспорт ─────────────────────────
@@ -49,6 +55,8 @@ namespace Amarin.UI
             ExportErrorText.Visibility = Visibility.Collapsed;
             ExportCategoryList.Children.Clear();
             _exportRows.Clear();
+            ExportProtectToggle.IsChecked = false;
+            ClearExportPasswords();
             ExportSummaryText.Text = Loc.Get("S.Data.Usage.Counting");
             DataExportSaveButton.IsEnabled = false;
             ShowOverlay(DataExportOverlay);
@@ -112,6 +120,54 @@ namespace Amarin.UI
 
         private void DataExportSaveButton_Click(object sender, RoutedEventArgs e) => Detached.Run(SaveExportAsync(), "save_export");
 
+        private void ExportProtect_Changed(object sender, RoutedEventArgs e)
+        {
+            var on = ExportProtectToggle.IsChecked == true;
+            ExportPasswordPanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            ExportErrorText.Visibility = Visibility.Collapsed;
+            if (on)
+            {
+                Dispatcher.BeginInvoke(new Action(() => ExportPasswordBox.Focus()), DispatcherPriority.Input);
+            }
+            else
+            {
+                ClearExportPasswords();
+            }
+        }
+
+        private void ClearExportPasswords()
+        {
+            ExportPasswordBox.Clear();
+            ExportPasswordRepeatBox.Clear();
+        }
+
+        /// <summary>
+        /// Пароль на архив, если его просили: null — архив без пароля; пустая строка — просили,
+        /// но ввели не так (ошибка уже на экране).
+        /// </summary>
+        private string? ExportPassword()
+        {
+            if (ExportProtectToggle.IsChecked != true)
+            {
+                return null;
+            }
+
+            var password = ExportPasswordBox.Password;
+            var error = password.Length == 0
+                ? "S.Bundle.Export.PasswordEmpty"
+                : password != ExportPasswordRepeatBox.Password
+                    ? "S.Bundle.Export.PasswordMismatch"
+                    : null;
+            if (error is null)
+            {
+                return password;
+            }
+
+            ExportErrorText.Text = Loc.Get(error);
+            ExportErrorText.Visibility = Visibility.Visible;
+            return "";
+        }
+
         private async Task SaveExportAsync()
         {
             if (_services is null || _bundleBusy)
@@ -121,6 +177,14 @@ namespace Amarin.UI
 
             var chosen = Chosen(_exportRows);
             if (chosen == DataCategory.None)
+            {
+                return;
+            }
+
+            // Пароль проверяется до выбора файла: сначала спросить, куда сохранить, а потом
+            // сказать «пароли не совпадают» — лишний круг через системное окно.
+            var password = ExportPassword();
+            if (password is { Length: 0 })
             {
                 return;
             }
@@ -155,9 +219,10 @@ namespace Amarin.UI
                 // Экспорт читает чаты прямо с диска, а хранилище пишет их в фоне: без этого
                 // в архив попала бы переписка без последнего ответа.
                 _services.ChatStore.Flush();
-                await Task.Run(() => new DataBundleExporter(root, profileId).Write(path, chosen));
+                await Task.Run(() => WriteExport(root, profileId, path, chosen, password));
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                                           System.Security.Cryptography.CryptographicException)
             {
                 // Человеку — что делать дальше, а не текст исключения.
                 ExportErrorText.Text = Loc.Get("S.Bundle.Export.Failed");
@@ -170,6 +235,7 @@ namespace Amarin.UI
                 _bundleBusy = false;
             }
 
+            ClearExportPasswords();
             CloseOverlay(DataExportOverlay);
             MessageBox.Show(
                 this,
@@ -179,10 +245,56 @@ namespace Amarin.UI
                 MessageBoxImage.Information);
         }
 
+        /// <summary>
+        /// Пишет архив; с паролем — сначала обычный во временную папку, затем конверт на место.
+        /// </summary>
+        /// <remarks>
+        /// Открытая копия ложится во временную папку, а не рядом с целью: цель бывает папкой
+        /// облачного диска, и синхронизация успела бы унести открытый архив раньше, чем он
+        /// будет удалён.
+        /// </remarks>
+        private static void WriteExport(string root, string profileId, string path, DataCategory chosen, string? password)
+        {
+            if (password is null)
+            {
+                new DataBundleExporter(root, profileId).Write(path, chosen);
+                return;
+            }
+
+            var plain = Path.Combine(Path.GetTempPath(), "amarin-export-" + Guid.NewGuid().ToString("N") + ".zip");
+            try
+            {
+                new DataBundleExporter(root, profileId).Write(plain, chosen);
+                PasswordEnvelope.SealFile(plain, path, password);
+            }
+            finally
+            {
+                TryDeleteFile(plain);
+            }
+        }
+
+        private static void TryDeleteFile(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Временный файл во временной папке — Windows уберёт его сама.
+            }
+        }
+
         private void DataExportCancelButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_bundleBusy)
             {
+                ClearExportPasswords();
                 CloseOverlay(DataExportOverlay);
             }
         }
@@ -240,7 +352,23 @@ namespace Amarin.UI
                 return;
             }
 
+            ForgetImportPlainCopy();
             _importArchive = dialog.FileName;
+
+            // Архив под паролем открывается во временную копию раньше всего остального: опись
+            // лежит внутри шифра.
+            if (PasswordEnvelope.IsSealed(_importArchive))
+            {
+                if (await OpenSealedArchiveAsync(_importArchive) is not { } plain)
+                {
+                    _importArchive = null;
+                    return;
+                }
+
+                _importPlainCopy = plain;
+                _importArchive = plain;
+            }
+
             ResetImportDialog();
             ShowOverlay(DataImportOverlay);
 
@@ -383,6 +511,9 @@ namespace Amarin.UI
 
             ReloadAfterImport();
             ShowImportDone(Describe(result));
+
+            // Раскладка кончилась, кнопка «Импорт» спрятана — расшифрованная копия больше не нужна.
+            ForgetImportPlainCopy();
         }
 
         /// <summary>Итог одной строкой: «Готово. Перенесено: чатов 42, профилей 2».</summary>
@@ -473,6 +604,87 @@ namespace Amarin.UI
             CloseOverlay(DataImportOverlay);
             _importArchive = null;
             _importReport = null;
+            ForgetImportPlainCopy();
+        }
+
+        /// <summary>Удаляет расшифрованную копию архива, если она есть.</summary>
+        private void ForgetImportPlainCopy()
+        {
+            TryDeleteFile(_importPlainCopy);
+            _importPlainCopy = null;
+        }
+
+        /// <summary>
+        /// Спрашивает пароль и расшифровывает архив во временную копию. Неверный пароль —
+        /// спросить снова; испорченный файл — сказать об этом и не продолжать.
+        /// </summary>
+        /// <returns>Путь к открытой копии; null — человек передумал или файл не открыть.</returns>
+        private async Task<string?> OpenSealedArchiveAsync(string sealedPath)
+        {
+            string? problem = null;
+            while (true)
+            {
+                var input = new PasswordBox
+                {
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    FontSize = 13
+                };
+                input.SetResourceReference(ForegroundProperty, "Text.Bright");
+                input.SetResourceReference(PasswordBox.CaretBrushProperty, "Text.Bright");
+                var frame = new Border
+                {
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(10, 7, 10, 7),
+                    Child = input
+                };
+                frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+                frame.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+
+                var answer = ShowNoticeAsync(
+                    Loc.Get("S.Bundle.Import.PasswordTitle"),
+                    problem ?? Loc.Get("S.Bundle.Import.PasswordText"),
+                    Loc.Get("S.Bundle.Import.Open"),
+                    Loc.Get("S.Common.Cancel"),
+                    problem is null ? NoticeTone.Info : NoticeTone.Warning,
+                    frame);
+                input.KeyDown += (_, e) =>
+                {
+                    if (e.Key == Key.Enter)
+                    {
+                        e.Handled = true;
+                        CloseNotice(true);
+                    }
+                };
+                _ = Dispatcher.BeginInvoke(new Action(() => input.Focus()), DispatcherPriority.Input);
+
+                if (!await answer)
+                {
+                    return null;
+                }
+
+                var password = input.Password;
+                var plain = Path.Combine(Path.GetTempPath(), "amarin-import-" + Guid.NewGuid().ToString("N") + ".zip");
+                try
+                {
+                    await Task.Run(() => PasswordEnvelope.OpenFile(sealedPath, plain, password));
+                    return plain;
+                }
+                catch (EnvelopeException ex) when (ex.Failure == EnvelopeFailure.WrongPassword)
+                {
+                    problem = Loc.Get("S.Bundle.Import.PasswordWrong");
+                }
+                catch (Exception ex) when (ex is EnvelopeException or IOException or UnauthorizedAccessException)
+                {
+                    await ShowNoticeAsync(
+                        Loc.Get("S.Bundle.Import.DamagedTitle"),
+                        Loc.Get(ex is EnvelopeException ? "S.Bundle.Import.Damaged" : "S.Bundle.Import.Unreadable"),
+                        Loc.Get("S.Common.Close"),
+                        secondary: null);
+                    return null;
+                }
+            }
         }
 
         private void DataImport_PreviewKeyDown(object sender, KeyEventArgs e)

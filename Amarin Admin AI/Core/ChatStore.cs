@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -62,6 +63,27 @@ public sealed class ChatStore
 
     /// <summary>Через сколько повторить запись чата, который не удалось сериализовать.</summary>
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(300);
+
+    /// <summary>
+    /// Замок на файл: фоновая запись и перешифровка одного файла идут по очереди.
+    /// </summary>
+    /// <remarks>
+    /// Перешифровка читает файл и пишет его обратно. Без замка между этими шагами успевала бы
+    /// лечь свежая запись из очереди, и перешифровка затёрла бы её старой копией.
+    /// </remarks>
+    private readonly ConcurrentDictionary<string, object> _fileLocks = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Идущая перешифровка; отменяется новой и сменой профиля.</summary>
+    private CancellationTokenSource? _reformat;
+
+    /// <summary>
+    /// Шифровать ли файлы при записи (<see cref="AppSettings.EncryptChats"/>).
+    /// </summary>
+    /// <remarks>
+    /// Функцией, а не значением: галочку меняют на ходу, а хранилище живёт весь сеанс. Читаются
+    /// оба формата всегда, так что смена значения ничего не делает нечитаемым.
+    /// </remarks>
+    public Func<bool> Encrypt { get; init; } = static () => false;
 
     public ChatStore(string? rootDirectory = null)
     {
@@ -187,8 +209,9 @@ public sealed class ChatStore
 
         try
         {
-            var text = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<ChatSession>(text, AppJson.Options);
+            return ReadText(path) is { } text
+                ? JsonSerializer.Deserialize<ChatSession>(text, AppJson.Options)
+                : null;
         }
         catch
         {
@@ -282,10 +305,14 @@ public sealed class ChatStore
         Flush();
 
         var path = ChatPath(id);
-        var existed = File.Exists(path);
-        if (existed)
+        bool existed;
+        lock (FileLock(path))
         {
-            File.Delete(path);
+            existed = File.Exists(path);
+            if (existed)
+            {
+                File.Delete(path);
+            }
         }
 
         bool removed;
@@ -320,7 +347,10 @@ public sealed class ChatStore
             {
                 try
                 {
-                    File.Delete(file);
+                    lock (FileLock(file))
+                    {
+                        File.Delete(file);
+                    }
                 }
                 catch
                 {
@@ -380,8 +410,10 @@ public sealed class ChatStore
 
         try
         {
-            var text = File.ReadAllText(_indexFile);
-            _index = JsonSerializer.Deserialize<ChatIndex>(text, AppJson.Options) ?? new ChatIndex();
+            var text = ReadText(_indexFile);
+            _index = text is null
+                ? new ChatIndex()
+                : JsonSerializer.Deserialize<ChatIndex>(text, AppJson.Options) ?? new ChatIndex();
         }
         catch
         {
@@ -469,7 +501,7 @@ public sealed class ChatStore
 
             if (indexJson is not null)
             {
-                WriteQuietly(_indexFile, indexJson);
+                WriteQuietly(_indexFile, indexJson, Encrypt());
                 continue;
             }
 
@@ -522,7 +554,9 @@ public sealed class ChatStore
             return false;
         }
 
-        var stamp = Fingerprint(json);
+        // Формат — часть отпечатка: включённое шифрование обязано переписать и нетронутый чат.
+        var encrypt = Encrypt();
+        var stamp = Fingerprint((encrypt ? "E" : "P") + json);
         lock (_gate)
         {
             if (_written.TryGetValue(id, out var previous) && previous == stamp)
@@ -535,7 +569,7 @@ public sealed class ChatStore
         }
 
         WritingChat?.Invoke(id);
-        if (!WriteQuietly(ChatPath(id), json))
+        if (!WriteQuietly(ChatPath(id), json, encrypt))
         {
             return true;
         }
@@ -548,12 +582,29 @@ public sealed class ChatStore
         return true;
     }
 
-    private static bool WriteQuietly(string path, string json)
+    private bool WriteQuietly(string path, string json, bool encrypt)
     {
         try
         {
-            AppDataFile.WriteAtomic(path, json);
-            return true;
+            lock (FileLock(path))
+            {
+                if (!encrypt)
+                {
+                    AppDataFile.WriteAtomic(path, json);
+                    return true;
+                }
+
+                // Отказ Windows шифровать — не повод писать переписку открытым текстом вопреки
+                // галочке: чат есть в памяти, и следующее сохранение попробует снова.
+                if (AtRestCipher.EncryptFile(json) is not { } sealedBytes)
+                {
+                    PerfLog.Write("chat_store encrypt_failed");
+                    return false;
+                }
+
+                AppDataFile.WriteAtomicBytes(path, sealedBytes);
+                return true;
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -562,6 +613,102 @@ public sealed class ChatStore
             // придёт через полсекунды.
             return false;
         }
+    }
+
+    /// <summary>Текст файла в любом из двух форматов; null — не расшифровывается здесь.</summary>
+    private static string? ReadText(string path) => AtRestCipher.DecryptFile(File.ReadAllBytes(path));
+
+    private object FileLock(string path) => _fileLocks.GetOrAdd(Path.GetFullPath(path), _ => new object());
+
+    /// <summary>
+    /// Приводит файлы чатов и описи к текущему значению <see cref="Encrypt"/> — в фоне, по
+    /// одному файлу.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Файлы перекладываются байтами, а не через разбор в <see cref="ChatSession"/> и обратное
+    /// сохранение: копия, прочитанная с диска, могла бы лечь поверх свежей записи идущего хода.
+    /// Здесь же читается и пишется то, что на диске сейчас, под замком файла.
+    /// </para>
+    /// <para>
+    /// Цель запоминается при вызове: после смены профиля <see cref="Encrypt"/> смотрит уже на
+    /// настройки другого профиля. Новый вызов отменяет прежний проход. Файл, который здесь не
+    /// расшифровать (перенесён с другой машины), остаётся как есть.
+    /// </para>
+    /// </remarks>
+    /// <returns>Проход — ради тестов; программа его не ждёт.</returns>
+    public Task EnsureFormat()
+    {
+        var target = Encrypt();
+        var cancel = new CancellationTokenSource();
+        Interlocked.Exchange(ref _reformat, cancel)?.Cancel();
+        return Task.Run(() => Reformat(target, cancel.Token));
+    }
+
+    /// <summary>Останавливает перешифровку: хранилище больше не ведёт эту папку.</summary>
+    public void StopReformat() => Interlocked.Exchange(ref _reformat, null)?.Cancel();
+
+    private void Reformat(bool encrypt, CancellationToken cancellationToken)
+    {
+        string[] files;
+        try
+        {
+            files = Directory.Exists(_chatsDirectory) ? Directory.GetFiles(_chatsDirectory, "*.json") : [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return;
+        }
+
+        foreach (var file in files)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            try
+            {
+                lock (FileLock(file))
+                {
+                    // Файл удалили, пока до него шла очередь: воскрешать его нельзя.
+                    if (!File.Exists(file) || HasFormat(file, encrypt))
+                    {
+                        continue;
+                    }
+
+                    if (AtRestCipher.DecryptFile(File.ReadAllBytes(file)) is not { } text)
+                    {
+                        continue;
+                    }
+
+                    if (encrypt)
+                    {
+                        if (AtRestCipher.EncryptFile(text) is { } sealedBytes)
+                        {
+                            AppDataFile.WriteAtomicBytes(file, sealedBytes);
+                        }
+                    }
+                    else
+                    {
+                        AppDataFile.WriteAtomic(file, text);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Файл занят — останется в прежнем формате, читается он и так.
+            }
+        }
+    }
+
+    /// <summary>Формат файла уже тот: смотрим только на первые байты, не читая чат целиком.</summary>
+    private static bool HasFormat(string file, bool encrypted)
+    {
+        Span<byte> head = stackalloc byte[AtRestCipher.FileMagic.Length];
+        using var stream = File.OpenRead(file);
+        var read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+        return AtRestCipher.IsEncrypted(head[..read]) == encrypted;
     }
 
     private static string Fingerprint(string json) =>

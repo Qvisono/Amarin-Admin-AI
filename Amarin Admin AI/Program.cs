@@ -254,12 +254,17 @@ internal static class Program
         var venice = new VeniceClient(http, options);
         var models = new VeniceModelListCache(venice, keys);
         venice.ResolveModelInfo = models.Find;
-        var chatStore = new ChatStore(dataRoot);
 
         // Assigned just below. Everything that reads settings goes through the services bag so
         // that switching profiles re-roots the store for the engine, agent and title generator
         // too — capturing `settingsStore` directly would pin them to the profile seen at launch.
         AppServices? services = null;
+
+        // Шифрование — тоже через сумку служб, а не через локальную переменную настроек: после
+        // смены профиля это уже другой объект.
+        var chatStore = new ChatStore(dataRoot) { Encrypt = () => services?.Settings.EncryptChats == true };
+        audit.Encrypt = () => services?.Settings.EncryptChats == true;
+
         AppSettings ReadSettings() => services?.SettingsStore.Load() ?? settingsStore.Load();
 
         var confirmations = new ConfirmationQueue(ReadSettings);

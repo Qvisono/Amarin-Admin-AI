@@ -42,7 +42,8 @@ namespace Amarin.UI
             ImageViewerOverlay.Visibility == Visibility.Visible ||
             JournalOverlay.Visibility == Visibility.Visible ||
             ConfirmationOverlay.Visibility == Visibility.Visible ||
-            DomainOverlay.Visibility == Visibility.Visible;
+            DomainOverlay.Visibility == Visibility.Visible ||
+            IsLocked;
 
         /// <summary>Возвращает ленте обычный вид.</summary>
         private void ResetChatZoom() => _chatZoom?.Reset();

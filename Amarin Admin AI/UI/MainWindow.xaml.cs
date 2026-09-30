@@ -158,6 +158,9 @@ namespace Amarin.UI
                     SaveWindowGeometry();
                 }
 
+                // Расшифрованная копия архива под паролем не должна пережить программу.
+                ForgetImportPlainCopy();
+
                 // Хранилище пишет в фоне, и без этого последний ответ мог не доехать до диска.
                 FlushPendingPersists();
                 _services?.ChatStore.Flush();
@@ -206,6 +209,7 @@ namespace Amarin.UI
 
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
+            WireAutoLock();
 
             DownloadAccessBroker.SetHandler(RequestDownloadDomainAsync);
             StartSpendBackfill();
@@ -292,6 +296,9 @@ namespace Amarin.UI
             // Повторный вызов из SettingsButton_Click был здесь и раньше, так что открыть
             // настройки раньше, чем фон догонит, безопасно.
             Dispatcher.BeginInvoke(new Action(LoadSettingsUi), DispatcherPriority.Background);
+
+            // Прошлый сеанс мог не дописать перешифровку чатов (закрыли посреди) — доводим в фоне.
+            Detached.Run(_services.ChatStore.EnsureFormat(), "chat_reformat");
 
             // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
             UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
@@ -639,7 +646,7 @@ namespace Amarin.UI
             var id = assistant.Id;
             var toast = NotificationToast.Show(
                 modelId,
-                FirstLine(assistant.Text),
+                ToastText(FirstLine(assistant.Text)),
                 BuildToastMeta(modelId, assistant.Duration),
                 _services?.Settings.UiScalePercent ?? 100,
                 OwnHandle(),
@@ -666,8 +673,8 @@ namespace Amarin.UI
             var sessionId = turn.SessionId;
             var toast = NotificationToast.Show(
                 turn.Assistant?.ResolvedModelId ?? turn.Assistant?.RequestedModelId ?? "",
-                FirstLine(message),
-                Loc.Format("S.Turn.BackgroundFailed", DisplayTitle(turn.Session.Title)),
+                ToastText(FirstLine(message)),
+                IsLocked ? "" : Loc.Format("S.Turn.BackgroundFailed", DisplayTitle(turn.Session.Title)),
                 _services?.Settings.UiScalePercent ?? 100,
                 OwnHandle(),
                 () => OpenChat(sessionId));
@@ -1841,12 +1848,7 @@ namespace Amarin.UI
                 return true;
             }
 
-            if (focused is TextBox { IsReadOnly: false })
-            {
-                return true;
-            }
-
-            if (focused is System.Windows.Controls.RichTextBox { IsReadOnly: false })
+            if (TakesTypedText(focused))
             {
                 return true;
             }
@@ -1871,6 +1873,20 @@ namespace Amarin.UI
 
             return false;
         }
+
+        /// <summary>Элемент сам принимает набранный текст — забирать его в поле сообщения нельзя.</summary>
+        /// <remarks>
+        /// Поле пароля — не <see cref="TextBox"/>, и до 1.28.0 его здесь не было: набранный в нём
+        /// пароль (архив данных, экран блокировки) окно перекладывало бы в поле сообщения, то
+        /// есть в чат с моделью.
+        /// </remarks>
+        internal static bool TakesTypedText(DependencyObject focused) => focused switch
+        {
+            TextBox { IsReadOnly: false } => true,
+            System.Windows.Controls.RichTextBox { IsReadOnly: false } => true,
+            PasswordBox => true,
+            _ => false
+        };
 
         private static bool IsInside(DependencyObject root, DependencyObject node)
         {
@@ -1905,6 +1921,12 @@ namespace Amarin.UI
 
         private void Window_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
+            NoteInput();
+            if (KeepKeyboardOnLock(e))
+            {
+                return;
+            }
+
             if (ShouldKeepKeyboardFocus() || string.IsNullOrEmpty(e.Text) || e.Text == "\b")
             {
                 return;
@@ -1917,6 +1939,12 @@ namespace Amarin.UI
 
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            NoteInput();
+            if (KeepKeyboardOnLock(e))
+            {
+                return;
+            }
+
             // Уведомление модально: Escape отвечает «нет», а горячие клавиши и лупа ждут —
             // «новый чат» под открытым вопросом увёл бы из-под него тот чат, о котором спрашивают.
             if (IsNoticeOpen)

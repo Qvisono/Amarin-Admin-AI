@@ -165,6 +165,19 @@ public sealed class AppSettings
     /// </summary>
     public List<string>? DisabledTools { get; set; }
 
+    /// <summary>
+    /// Хранить переписки, их опись и новые строки журнала аудита зашифрованными DPAPI на
+    /// текущего пользователя Windows (<see cref="AtRestCipher"/>). Выключено по умолчанию:
+    /// так читаются и пишутся файлы прежних версий.
+    /// </summary>
+    public bool EncryptChats { get; set; }
+
+    /// <summary>
+    /// Через сколько минут без ввода в окне закрывать его экраном блокировки; 0 — никогда.
+    /// Действует только у профиля с паролем: без пароля снимать блокировку нечем.
+    /// </summary>
+    public int AutoLockMinutes { get; set; }
+
     /// <summary>Show the bottom-right toast when a turn finishes and the window is not focused.</summary>
     public bool NotifyOnResponseComplete { get; set; } = true;
 

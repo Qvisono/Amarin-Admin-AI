@@ -96,6 +96,39 @@
             </Setter>
         </Style>
 
+        <!-- Выбор из короткого ряда значений — пилюлями: пять вариантов по слову не стоят карточек. -->
+        <Style x:Key="ChipRadio" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Chip" Background="{DynamicResource Bg.Raised}"
+                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                                CornerRadius="12" Height="24" Padding="11,0">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
+                                       Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="SecondaryButton" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
@@ -172,6 +205,44 @@
                     </StackPanel>
                 </RadioButton>
             </StackPanel>
+
+            <!-- ═══════════ ЗАЩИТА ДАННЫХ ═══════════ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
+            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,6,0,0">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
+                        </StackPanel>
+                        <CheckBox x:Name="EncryptChatsToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                                  Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
+                    </Grid>
+
+                    <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,10"/>
+
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
+                    <WrapPanel x:Name="AutoLockChoices" Margin="0,8,0,0">
+                        <RadioButton Tag="0" GroupName="AutoLock" Style="{StaticResource ChipRadio}"
+                                     Content="{DynamicResource S.Security.AutoLockOff}" Checked="AutoLockChoice_Checked"/>
+                        <RadioButton Tag="5" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
+                        <RadioButton Tag="15" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
+                        <RadioButton Tag="30" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
+                        <RadioButton Tag="60" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
+                    </WrapPanel>
+                    <TextBlock x:Name="AutoLockNeedsPassword" Style="{StaticResource SettingDesc}" Margin="0,8,0,0"
+                               Foreground="{DynamicResource Status.Warning}" Visibility="Collapsed"
+                               Text="{DynamicResource S.Security.AutoLockNeedsPassword}"/>
+                    <Button x:Name="LockNowButton" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                            Margin="0,10,0,0" Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
+                </StackPanel>
+            </Border>
 
             <!-- ═══════════ ИНСТРУМЕНТЫ ═══════════ -->
             <Grid Margin="0,18,0,0">

@@ -426,7 +426,14 @@ namespace Amarin.UI
         private void SwitchAccountButton_Click(object sender, RoutedEventArgs e)
         {
             RefreshProfileList();
+            ProfileLockNowButton.Visibility = ActiveProfileHasPassword ? Visibility.Visible : Visibility.Collapsed;
             ProfileOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void ProfileLockNowButton_Click(object sender, RoutedEventArgs e)
+        {
+            ProfileOverlay.Visibility = Visibility.Collapsed;
+            LockNow();
         }
 
         private void ProfileCloseButton_Click(object sender, RoutedEventArgs e) =>

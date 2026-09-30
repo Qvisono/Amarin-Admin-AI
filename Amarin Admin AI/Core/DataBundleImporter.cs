@@ -605,8 +605,13 @@ public sealed class DataBundleImporter
             }
         }
 
-        new AuditLog(targetRoot).Merge(incoming);
+        var encrypt = EncryptsAtRest(targetRoot);
+        new AuditLog(targetRoot) { Encrypt = () => encrypt }.Merge(incoming);
     }
+
+    /// <summary>Хранит ли профиль в этой папке переписку зашифрованной.</summary>
+    private static bool EncryptsAtRest(string targetRoot) =>
+        new AppSettingsStore(targetRoot).Load().EncryptChats;
 
     private void ApplyChats(
         string source,
@@ -620,7 +625,10 @@ public sealed class DataBundleImporter
             return;
         }
 
-        var store = new ChatStore(targetRoot);
+        // Писать по правилу того профиля, куда ложатся чаты: зашифрованный профиль не должен
+        // получить из архива переписку открытым текстом.
+        var encrypt = EncryptsAtRest(targetRoot);
+        var store = new ChatStore(targetRoot) { Encrypt = () => encrypt };
         if (mode == DataImportMode.Replace)
         {
             store.DeleteAll();
@@ -711,6 +719,11 @@ public sealed class DataBundleImporter
         // Выключенные инструменты — та же защита: архив с чужой машины не должен молча включить
         // то, что здесь выключили.
         incoming.DisabledTools = mine.DisabledTools;
+
+        // Шифрование на диске и автоблокировка — тоже защита этой машины: чужой архив не должен
+        // молча выключить ни то, ни другое.
+        incoming.EncryptChats = mine.EncryptChats;
+        incoming.AutoLockMinutes = mine.AutoLockMinutes;
 
         store.Save(incoming);
         state.SettingsChanged = true;

@@ -343,9 +343,10 @@ public sealed class DataBundleExporter
             return source.Payload;
         }
 
+        byte[] bytes;
         try
         {
-            return File.ReadAllBytes(source.SourcePath);
+            bytes = File.ReadAllBytes(source.SourcePath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -353,6 +354,45 @@ public sealed class DataBundleExporter
             // Пропустить один файл лучше, чем уронить весь экспорт.
             return null;
         }
+
+        return source.Category switch
+        {
+            DataCategory.Chats => OpenChat(bytes),
+            DataCategory.Audit => OpenAudit(bytes),
+            _ => bytes
+        };
+    }
+
+    /// <summary>
+    /// Чат в архив — открытым текстом, даже если на диске он зашифрован.
+    /// </summary>
+    /// <remarks>
+    /// Шифр DPAPI привязан к учётной записи Windows, и на другой машине такой файл не прочтёт
+    /// никто, включая владельца: архив ради переноса стал бы бесполезен. Не расшифровавшийся
+    /// здесь файл (сам перенесён с другой машины) пропускается — его и так никто не прочтёт.
+    /// Защитить сам архив можно паролем (<see cref="PasswordEnvelope"/>).
+    /// </remarks>
+    private static byte[]? OpenChat(byte[] bytes) =>
+        !AtRestCipher.IsEncrypted(bytes)
+            ? bytes
+            : AtRestCipher.DecryptFile(bytes) is { } text
+                ? Encoding.UTF8.GetBytes(text)
+                : null;
+
+    /// <summary>Журнал аудита — построчно: зашифрованные строки раскрываются, чужие отбрасываются.</summary>
+    private static byte[] OpenAudit(byte[] bytes)
+    {
+        var text = AtRestCipher.DecodeText(bytes);
+        if (!text.Contains(AtRestCipher.LinePrefix, StringComparison.Ordinal))
+        {
+            return bytes;
+        }
+
+        var lines = text
+            .Split('\n')
+            .Select(line => AtRestCipher.DecryptLine(line.TrimEnd('\r')))
+            .Where(line => !string.IsNullOrEmpty(line));
+        return Encoding.UTF8.GetBytes(string.Join('\n', lines) + "\n");
     }
 
     private static string AppVersion()

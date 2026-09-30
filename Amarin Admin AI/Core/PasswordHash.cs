@@ -4,11 +4,12 @@ using System.Text;
 namespace Amarin.Core;
 
 /// <summary>
-/// PBKDF2-SHA256 hashing for the local startup lock.
+/// PBKDF2-SHA256 hashing for the local startup lock and the auto-lock screen.
 ///
-/// This gates access to the app window only — it is NOT encryption. The chats and settings on
-/// disk stay plain JSON that anyone with file access can read. Do not present it as protection
-/// of the data itself.
+/// This gates access to the app window only — it is NOT encryption, and the password is never
+/// used as a key. Chats on disk are encrypted only when <see cref="AppSettings.EncryptChats"/>
+/// is on, and then by DPAPI (<see cref="AtRestCipher"/>), not by this password; settings stay
+/// plain JSON. Do not present the password as protection of the data itself.
 /// </summary>
 internal static class PasswordHash
 {

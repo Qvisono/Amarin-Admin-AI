@@ -37,9 +37,9 @@
     <system:String x:Key="S.Account.NewProfileDesc" xml:space="preserve">У нового профиля будет свой пустой список чатов и свои настройки.</system:String>
     <system:String x:Key="S.Account.Password" xml:space="preserve">Пароль</system:String>
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Пароль при запуске</system:String>
-    <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Чаты на диске не шифруются</system:String>
+    <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Шифрование чатов на диске включается на странице «Безопасность»</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Не задан</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Пароль сохранён.&#10;&#10;Он блокирует вход в приложение, но не шифрует чаты - файлы в папке приложения остаются доступными для чтения.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Пароль сохранён.&#10;&#10;Он блокирует вход в приложение, но сам чаты не шифрует. Шифрование переписки на диске и автоблокировка включаются на странице «Безопасность».</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Задан</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">текущий</system:String>
     <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">с паролем</system:String>
@@ -213,6 +213,11 @@
     <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Архив сохранён:&#10;{0}</system:String>
     <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">В этих категориях пока нечего сохранять</system:String>
     <system:String x:Key="S.Bundle.Export.Failed" xml:space="preserve">Не удалось записать архив. Проверьте, есть ли на диске место и не открыт ли файл другой программой.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordEmpty" xml:space="preserve">Введите пароль для архива.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordMismatch" xml:space="preserve">Пароли не совпадают.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordRepeat" xml:space="preserve">Пароль ещё раз</system:String>
+    <system:String x:Key="S.Bundle.Export.Protect" xml:space="preserve">Защитить паролем</system:String>
+    <system:String x:Key="S.Bundle.Export.ProtectHint" xml:space="preserve">Архив зашифруется AES-256. Без пароля его не открыть ни вам, ни тому, к кому он попадёт, - а забытый пароль восстановить нельзя.</system:String>
     <system:String x:Key="S.Bundle.Export.Save" xml:space="preserve">Сохранить архив</system:String>
     <system:String x:Key="S.Bundle.Export.Summary" xml:space="preserve">Всего {0} в {1} файлах</system:String>
     <system:String x:Key="S.Bundle.Export.Title" xml:space="preserve">Экспорт данных</system:String>
@@ -222,6 +227,8 @@
     <system:String x:Key="S.Bundle.Import.Apply" xml:space="preserve">Импортировать</system:String>
     <system:String x:Key="S.Bundle.Import.Busy" xml:space="preserve">Сейчас идёт ответ модели. Дождитесь его окончания и повторите импорт.</system:String>
     <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">чатов: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Damaged" xml:space="preserve">Архив повреждён или обрезан: расшифровать его целиком нельзя, и ничего из него не импортировано.</system:String>
+    <system:String x:Key="S.Bundle.Import.DamagedTitle" xml:space="preserve">Архив не открыть</system:String>
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Выберите архив с данными</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Готово. Перенесено: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">В архиве не нашлось ничего нового - данные не изменились.</system:String>
@@ -230,6 +237,10 @@
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Ваши данные останутся. Добавится только то, чего у вас нет: чаты под новыми именами, отсутствующие профили и языки. Настройки и оформление не изменятся.</system:String>
     <system:String x:Key="S.Bundle.Import.Meta" xml:space="preserve">Создан {0} · версия {1} · {2}</system:String>
     <system:String x:Key="S.Bundle.Import.Mode" xml:space="preserve">Что сделать с содержимым архива</system:String>
+    <system:String x:Key="S.Bundle.Import.Open" xml:space="preserve">Открыть</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordText" xml:space="preserve">Введите пароль, с которым архив сохраняли.</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordTitle" xml:space="preserve">Архив защищён паролем</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordWrong" xml:space="preserve">Пароль не подошёл. Попробуйте ещё раз.</system:String>
     <system:String x:Key="S.Bundle.Import.ProfilesCount" xml:space="preserve">профилей: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.ProfilesNote" xml:space="preserve">Новые профили появятся в списке аккаунтов; текущий профиль не менялся.</system:String>
     <system:String x:Key="S.Bundle.Import.Replace" xml:space="preserve">Заменить мои</system:String>
@@ -238,6 +249,7 @@
     <system:String x:Key="S.Bundle.Import.SettingsKeptHint" xml:space="preserve">Ваши настройки не изменятся</system:String>
     <system:String x:Key="S.Bundle.Import.Skipped" xml:space="preserve">Пропущено повреждённых файлов: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Title" xml:space="preserve">Импорт данных</system:String>
+    <system:String x:Key="S.Bundle.Import.Unreadable" xml:space="preserve">Файл архива не прочитать: он занят другой программой или недоступен.</system:String>
     <system:String x:Key="S.Bundle.Import.Working" xml:space="preserve">Переносим данные…</system:String>
     <system:String x:Key="S.Bundle.ImportedSuffix" xml:space="preserve">(из архива)</system:String>
     <system:String x:Key="S.Bundle.NothingChosen" xml:space="preserve">Отметьте хотя бы одну категорию</system:String>
@@ -333,6 +345,11 @@
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Откатить…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Аудит</system:String>
+    <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Профиль «{0}». Введите пароль, чтобы продолжить.</system:String>
+    <system:String x:Key="S.Lock.Title" xml:space="preserve">Программа заблокирована</system:String>
+    <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">Ответ готов. Программа заблокирована.</system:String>
+    <system:String x:Key="S.Lock.Unlock" xml:space="preserve">Разблокировать</system:String>
+    <system:String x:Key="S.Lock.WrongPassword" xml:space="preserve">Неверный пароль.</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
@@ -777,8 +794,17 @@
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - искать по содержимому чатов</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Ищу по сводкам…</system:String>
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Агент</system:String>
+    <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Автоблокировка</system:String>
+    <system:String x:Key="S.Security.AutoLockDesc" xml:space="preserve">Закрывать окно экраном блокировки, если в нём столько времени ничего не делали. Ответы и работа агента под ним продолжаются.</system:String>
+    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">Нужен пароль профиля: без него блокировку нечем снять. Задайте его в разделе «Аккаунт».</system:String>
+    <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Выкл</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Чат</system:String>
+    <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Защита данных</system:String>
     <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Включить все</system:String>
+    <system:String x:Key="S.Security.Encrypt" xml:space="preserve">Шифровать переписку на диске</system:String>
+    <system:String x:Key="S.Security.EncryptDesc" xml:space="preserve">Чаты, их список и новые записи журнала аудита хранятся зашифрованными средствами Windows (DPAPI) и читаются только под вашей учётной записью Windows. От того, кто уже вошёл под ней, это не защищает. Уже сохранённые чаты перепишутся в фоне; архив данных уносит их расшифрованными - защитите его паролем.</system:String>
+    <system:String x:Key="S.Security.LockNow" xml:space="preserve">Заблокировать сейчас</system:String>
+    <system:String x:Key="S.Security.Minutes" xml:space="preserve">{0} мин</system:String>
     <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Режим доступа</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">и у чата, и у агента</system:String>
     <system:String x:Key="S.Security.Subtitle" xml:space="preserve">Что модель может делать на этом компьютере и о чём сначала спрашивает вас.</system:String>

@@ -37,9 +37,9 @@
     <system:String x:Key="S.Account.NewProfileDesc" xml:space="preserve">A new profile gets its own empty chat list and its own settings.</system:String>
     <system:String x:Key="S.Account.Password" xml:space="preserve">Password</system:String>
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Password at startup</system:String>
-    <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Locks entry to the app. Chats on disk are not encrypted</system:String>
+    <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Locks access to the app. Encrypting chats on disk is turned on in the Security page</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Not set</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Password saved.&#10;&#10;It locks access to the app but does not encrypt chats - the files in the app folder stay readable.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Password saved.&#10;&#10;It locks access to the app but does not encrypt chats by itself. Encryption on disk and auto-lock are turned on in the Security page.</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Set</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">current</system:String>
     <system:String x:Key="S.Account.ProfileHasPassword" xml:space="preserve">password set</system:String>
@@ -213,6 +213,11 @@
     <system:String x:Key="S.Bundle.Export.Done" xml:space="preserve">Archive saved:&#10;{0}</system:String>
     <system:String x:Key="S.Bundle.Export.Empty" xml:space="preserve">Nothing to save in these categories yet</system:String>
     <system:String x:Key="S.Bundle.Export.Failed" xml:space="preserve">Could not write the archive. Check for free space and that the file is not open elsewhere.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordEmpty" xml:space="preserve">Enter a password for the archive.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordMismatch" xml:space="preserve">The passwords do not match.</system:String>
+    <system:String x:Key="S.Bundle.Export.PasswordRepeat" xml:space="preserve">Password again</system:String>
+    <system:String x:Key="S.Bundle.Export.Protect" xml:space="preserve">Protect with a password</system:String>
+    <system:String x:Key="S.Bundle.Export.ProtectHint" xml:space="preserve">The archive is encrypted with AES-256. Without the password neither you nor anyone who gets hold of it can open it - and a forgotten password cannot be recovered.</system:String>
     <system:String x:Key="S.Bundle.Export.Save" xml:space="preserve">Save archive</system:String>
     <system:String x:Key="S.Bundle.Export.Summary" xml:space="preserve">{0} across {1} files</system:String>
     <system:String x:Key="S.Bundle.Export.Title" xml:space="preserve">Export data</system:String>
@@ -222,6 +227,8 @@
     <system:String x:Key="S.Bundle.Import.Apply" xml:space="preserve">Import</system:String>
     <system:String x:Key="S.Bundle.Import.Busy" xml:space="preserve">A model turn is running. Wait for it to finish, then import again.</system:String>
     <system:String x:Key="S.Bundle.Import.ChatsCount" xml:space="preserve">chats: {0}</system:String>
+    <system:String x:Key="S.Bundle.Import.Damaged" xml:space="preserve">The archive is damaged or cut short: it cannot be decrypted in full, and nothing was imported from it.</system:String>
+    <system:String x:Key="S.Bundle.Import.DamagedTitle" xml:space="preserve">The archive cannot be opened</system:String>
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Choose a data archive</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Done. Imported: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">Nothing new in the archive - your data is unchanged.</system:String>
@@ -230,6 +237,10 @@
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Your data stays. Only what you do not have is added: chats under new names, missing profiles and languages. Settings and appearance are left alone.</system:String>
     <system:String x:Key="S.Bundle.Import.Meta" xml:space="preserve">Created {0} · version {1} · {2}</system:String>
     <system:String x:Key="S.Bundle.Import.Mode" xml:space="preserve">What to do with the archive contents</system:String>
+    <system:String x:Key="S.Bundle.Import.Open" xml:space="preserve">Open</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordText" xml:space="preserve">Enter the password the archive was saved with.</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordTitle" xml:space="preserve">The archive is password-protected</system:String>
+    <system:String x:Key="S.Bundle.Import.PasswordWrong" xml:space="preserve">That password did not work. Try again.</system:String>
     <system:String x:Key="S.Bundle.Import.ProfilesCount" xml:space="preserve">profiles: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.ProfilesNote" xml:space="preserve">The new profiles appear in the account list; your current profile is unchanged.</system:String>
     <system:String x:Key="S.Bundle.Import.Replace" xml:space="preserve">Replace mine</system:String>
@@ -238,6 +249,7 @@
     <system:String x:Key="S.Bundle.Import.SettingsKeptHint" xml:space="preserve">Your settings stay as they are</system:String>
     <system:String x:Key="S.Bundle.Import.Skipped" xml:space="preserve">Damaged files skipped: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Title" xml:space="preserve">Import data</system:String>
+    <system:String x:Key="S.Bundle.Import.Unreadable" xml:space="preserve">The archive file cannot be read: another program is holding it or it is unavailable.</system:String>
     <system:String x:Key="S.Bundle.Import.Working" xml:space="preserve">Moving the data in…</system:String>
     <system:String x:Key="S.Bundle.ImportedSuffix" xml:space="preserve">(from archive)</system:String>
     <system:String x:Key="S.Bundle.NothingChosen" xml:space="preserve">Tick at least one category</system:String>
@@ -333,6 +345,11 @@
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Roll back…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Audit</system:String>
+    <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Profile "{0}". Enter the password to continue.</system:String>
+    <system:String x:Key="S.Lock.Title" xml:space="preserve">The program is locked</system:String>
+    <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">The reply is ready. The program is locked.</system:String>
+    <system:String x:Key="S.Lock.Unlock" xml:space="preserve">Unlock</system:String>
+    <system:String x:Key="S.Lock.WrongPassword" xml:space="preserve">Wrong password.</system:String>
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Version {0} of {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Next version</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
@@ -777,8 +794,17 @@
     <system:String x:Key="S.Search.PressEnter" xml:space="preserve">Enter - search what the chats are about</system:String>
     <system:String x:Key="S.Search.Working" xml:space="preserve">Searching the summaries…</system:String>
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Agent</system:String>
+    <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Auto-lock</system:String>
+    <system:String x:Key="S.Security.AutoLockDesc" xml:space="preserve">Cover the window with a lock screen after this long without input. Replies and agent work carry on underneath.</system:String>
+    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">The profile needs a password - without one there is nothing to unlock with. Set it in the Account section.</system:String>
+    <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Off</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Chat</system:String>
+    <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Data protection</system:String>
     <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Switch all on</system:String>
+    <system:String x:Key="S.Security.Encrypt" xml:space="preserve">Encrypt conversations on disk</system:String>
+    <system:String x:Key="S.Security.EncryptDesc" xml:space="preserve">Chats, their list and new audit log entries are stored encrypted by Windows (DPAPI) and can only be read under your Windows account. This does not protect against someone already signed in to it. Chats already saved are rewritten in the background; a data archive carries them decrypted - protect it with a password.</system:String>
+    <system:String x:Key="S.Security.LockNow" xml:space="preserve">Lock now</system:String>
+    <system:String x:Key="S.Security.Minutes" xml:space="preserve">{0} min</system:String>
     <system:String x:Key="S.Security.ModeLabel" xml:space="preserve">Access mode</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">chat and agent</system:String>
     <system:String x:Key="S.Security.Subtitle" xml:space="preserve">What the model may do on this computer and what it asks you first.</system:String>
