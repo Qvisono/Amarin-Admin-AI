@@ -201,7 +201,7 @@ public sealed class DataBundleUiTests
                 Show(window, "DataExportOverlay");
                 Show(window, "DataImportOverlay");
 
-                // Все пять категорий сразу — больше их не бывает.
+                // Все категории сразу (с журналом аудита их шесть) — больше их не бывает.
                 var list = Named<StackPanel>(window, "ExportCategoryList");
                 var importList = Named<StackPanel>(window, "ImportCategoryList");
                 list.Children.Clear();

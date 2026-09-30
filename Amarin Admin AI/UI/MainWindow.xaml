@@ -1975,8 +1975,13 @@
             </Border>
 
             <!-- Окно -->
+            <!--
+                Высота 500, а не прежние 460: с пунктом «Безопасность» в навигации девять
+                страниц, и последняя наезжала на плашку версии внизу колонки. На маленьком экране
+                Viewbox ужимает окно целиком, так что лишние точки там ничего не выталкивают.
+            -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="690" Height="460" Background="{DynamicResource Bg.Panel}"
+            <Border Width="690" Height="500" Background="{DynamicResource Bg.Panel}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -4187,14 +4192,29 @@
                 <Button Opacity="0" Click="DataImportCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border x:Name="DataImportCard" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <!--
+                    Потолок высоты и Grid вместо StackPanel: с журналом аудита категорий стало
+                    шесть, и карточка выросла за экран раннера. Список, выбор режима и итог лежат
+                    в строке «*» с прокруткой, заголовок и кнопки — в строках Auto, и вытолкнуть
+                    кнопки за кромку нечем.
+                -->
+                <Border x:Name="DataImportCard" Width="460" MaxHeight="660"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
                         Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                         BorderThickness="1" CornerRadius="10" Padding="20,18">
-                    <StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <TextBlock Text="{DynamicResource S.Bundle.Import.Title}" FontSize="15"
                                    FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
                                    Margin="0,0,0,10"/>
 
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      Margin="0,0,-8,0" Padding="0,0,8,0">
+                        <StackPanel>
                         <!-- Что в архиве: сводка читается из описи, без распаковки. -->
                         <StackPanel x:Name="ImportChoicePanel">
                             <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
@@ -4247,8 +4267,10 @@
                         <TextBlock x:Name="ImportErrorText" FontSize="12" Margin="0,8,0,0"
                                    Foreground="{DynamicResource Status.Danger}" TextWrapping="Wrap"
                                    Visibility="Collapsed"/>
+                        </StackPanel>
+                        </ScrollViewer>
 
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                             <Button x:Name="DataImportCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
                                     Click="DataImportCancelButton_Click"/>
@@ -4256,7 +4278,7 @@
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="DataImportApplyButton_Click"/>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
             </Viewbox>
         </Grid>
