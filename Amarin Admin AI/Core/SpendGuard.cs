@@ -312,9 +312,13 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
 
         if (breaches.FirstOrDefault(breach => breach.Reached) is { } reached && meter?.LimitsWaived != true)
         {
-            await AskOrRefuseAsync(meter, reached, cancellationToken, answered: () => meter!.LimitsWaived)
+            await AskOrRefuseAsync(
+                    meter,
+                    reached,
+                    cancellationToken,
+                    answered: () => meter!.LimitsWaived,
+                    approve: () => meter!.LimitsWaived = true)
                 .ConfigureAwait(false);
-            meter!.LimitsWaived = true;
         }
 
         foreach (var breach in breaches)
@@ -343,14 +347,15 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
             if (meter.Usd >= (meter.NextAskAt ?? ceiling))
             {
                 var breach = new SpendBreach(SpendLimitKind.Turn, ceiling, meter.Usd);
-                await AskOrRefuseAsync(meter, breach, cancellationToken, answered: () => meter.Usd < (meter.NextAskAt ?? ceiling))
-                    .ConfigureAwait(false);
 
                 // Следующий вопрос — ещё через один потолок: иначе ход спрашивал бы на каждом запросе.
-                if (meter.Usd >= (meter.NextAskAt ?? ceiling))
-                {
-                    meter.NextAskAt = meter.Usd + ceiling;
-                }
+                await AskOrRefuseAsync(
+                        meter,
+                        breach,
+                        cancellationToken,
+                        answered: () => meter.Usd < (meter.NextAskAt ?? ceiling),
+                        approve: () => meter.NextAskAt = meter.Usd + ceiling)
+                    .ConfigureAwait(false);
             }
         }
     }
@@ -359,11 +364,16 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
     /// Решено ли уже, пока ждали очереди: параллельный запрос того же хода мог спросить раньше,
     /// и спрашивать второй раз о том же незачем.
     /// </param>
+    /// <param name="approve">
+    /// Записать «да» — внутри очереди, до того как её отпустить: запиши его вызывающий уже после,
+    /// ждавший следом запрос успел бы увидеть «не решено» и спросить снова.
+    /// </param>
     private async Task AskOrRefuseAsync(
         SpendMeter? meter,
         SpendBreach breach,
         CancellationToken cancellationToken,
-        Func<bool> answered)
+        Func<bool> answered,
+        Action approve)
     {
         if (meter is null || meter.Unattended || meter.Stopped || Ask is not { } ask)
         {
@@ -388,6 +398,8 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
                 meter.Stopped = true;
                 throw new SpendLimitException(breach);
             }
+
+            approve();
         }
         finally
         {
