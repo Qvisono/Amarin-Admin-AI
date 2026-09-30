@@ -48,7 +48,7 @@ public sealed class RemoteAccessTool : ITool
 
         return script is null
             ? Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
-            : Task.FromResult(PowerShellHelper.Run(script, 120));
+            : PowerShellHelper.RunAsync(script, 120, cancellationToken);
     }
 
     private static string RdpStatusScript() => """

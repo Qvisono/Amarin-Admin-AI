@@ -46,9 +46,9 @@ public sealed class RestorePointTool : ITool
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "list" => Task.FromResult(PowerShellHelper.Run(ListScript(), 90, maxOutput: 4000)),
-                "status" => Task.FromResult(PowerShellHelper.Run(StatusScript(), 90, maxOutput: 4000)),
-                "create" => Task.FromResult(Create(arguments)),
+                "list" => PowerShellHelper.RunAsync(ListScript(), 90, cancellationToken, maxOutput: 4000),
+                "status" => PowerShellHelper.RunAsync(StatusScript(), 90, cancellationToken, maxOutput: 4000),
+                "create" => Create(arguments, cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail(
                     $"Unknown action: {action}. Supported: list, create, status. " +
                     "Откат к точке не реализован - запустите rstrui.exe (Панель управления → Восстановление)."))
@@ -60,7 +60,7 @@ public sealed class RestorePointTool : ITool
         }
     }
 
-    private static ToolResult Create(JsonElement arguments)
+    private static async Task<ToolResult> Create(JsonElement arguments, CancellationToken cancellationToken)
     {
         var description = "Amarin checkpoint";
         if (arguments.TryGetProperty("description", out var descProp) &&
@@ -79,7 +79,7 @@ public sealed class RestorePointTool : ITool
 
         // Only validated/escaped description enters the script — never free model command text.
         var safeDescription = PowerShellHelper.QuoteLiteral(description);
-        return PowerShellHelper.Run(CreateScript(safeDescription), 180, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(CreateScript(safeDescription), 180, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
     private static string ListScript() => """

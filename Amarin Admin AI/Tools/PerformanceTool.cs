@@ -62,6 +62,10 @@ public sealed class PerformanceTool : ITool
                 _ => ToolResult.Fail($"Unknown action: {action}")
             };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return ToolResult.Fail($"Performance error: {ex.Message}");

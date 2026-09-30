@@ -456,6 +456,7 @@
     <system:String x:Key="S.Infographic.NoTranscript" xml:space="preserve">Не удалось получить расшифровку.</system:String>
     <system:String x:Key="S.Infographic.Request" xml:space="preserve">Инфографика по видео: {0}</system:String>
     <system:String x:Key="S.Infographic.Subtitles" xml:space="preserve">Получаю субтитры…</system:String>
+    <system:String x:Key="S.Journal.AskFailed" xml:space="preserve">Не удалось спросить модель. Проверьте ключ и сеть и попробуйте ещё раз.</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (чат удалён)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
@@ -483,6 +484,7 @@
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Откатить…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Аудит</system:String>
+    <system:String x:Key="S.Key.Active" xml:space="preserve">Активный ключ</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Профиль «{0}». Введите пароль, чтобы продолжить.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">Программа заблокирована</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">Ответ готов. Программа заблокирована.</system:String>
@@ -1034,6 +1036,10 @@
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Дождитесь окончания текущего ответа.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">Ответ готов</system:String>
 
+    <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Не удалось запустить {0}.</system:String>
+    <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Неизвестный профиль брандмауэра «{0}». Допустимы: domain, private, public, all. Не повторяй с тем же значением.</system:String>
+    <system:String x:Key="S.Tool.Virt.BadContainerName" xml:space="preserve">Имя контейнера не указано или не похоже на имя docker (буквы, цифры, _ . -). Укажи имя или идентификатор из list_docker_containers.</system:String>
+    <system:String x:Key="S.Tool.Virt.BadVmName" xml:space="preserve">Имя виртуальной машины не указано или содержит недопустимые знаки (* ? [ ] ` и управляющие). Укажи точное имя из list_hyperv_vms.</system:String>
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Разбор папок</system:String>
     <system:String x:Key="S.Tool.capture_screenshot" xml:space="preserve">Снимок экрана</system:String>
     <system:String x:Key="S.Tool.change_rollback" xml:space="preserve">Снимки и откат</system:String>

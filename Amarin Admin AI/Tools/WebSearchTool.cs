@@ -41,6 +41,10 @@ public sealed class WebSearchTool : ITool
             var result = await _search(queryProp.GetString()!, cancellationToken);
             return ToolResult.Ok(result);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return ToolResult.Fail($"Web search error: {ex.Message}");

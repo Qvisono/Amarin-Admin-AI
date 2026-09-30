@@ -70,12 +70,12 @@ public sealed partial class SoftwareInventoryTool : ITool
             return action switch
             {
                 "list_installed" => Task.FromResult(ListInstalled(arguments)),
-                "search" => Task.FromResult(WingetSearch(arguments)),
-                "list_upgrades" => Task.FromResult(WingetListUpgrades()),
-                "install" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("install", arguments))),
-                "upgrade" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("upgrade", arguments))),
-                "upgrade_all" => Task.FromResult(MutateAndInvalidate(WingetUpgradeAll)),
-                "uninstall" => Task.FromResult(MutateAndInvalidate(() => WingetMutate("uninstall", arguments))),
+                "search" => WingetSearch(arguments, cancellationToken),
+                "list_upgrades" => WingetListUpgrades(cancellationToken),
+                "install" => MutateAndInvalidate(() => WingetMutate("install", arguments, cancellationToken)),
+                "upgrade" => MutateAndInvalidate(() => WingetMutate("upgrade", arguments, cancellationToken)),
+                "upgrade_all" => MutateAndInvalidate(() => WingetUpgradeAll(cancellationToken)),
+                "uninstall" => MutateAndInvalidate(() => WingetMutate("uninstall", arguments, cancellationToken)),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -106,7 +106,7 @@ public sealed partial class SoftwareInventoryTool : ITool
         return ToolResult.Ok(Truncate(InstalledProgramsCatalog.FormatTable(list, 400), 4000));
     }
 
-    private static ToolResult WingetSearch(JsonElement arguments)
+    private static async Task<ToolResult> WingetSearch(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!arguments.TryGetProperty("query", out var q) ||
             q.ValueKind != JsonValueKind.String ||
@@ -128,27 +128,27 @@ public sealed partial class SoftwareInventoryTool : ITool
         }
 
         // query is validated; pass as single argument — no shell string concat of free text into powershell.
-        return RunWinget(wingetPath, ["search", query, "--disable-interactivity"], 120);
+        return await RunWinget(wingetPath, ["search", query, "--disable-interactivity"], 120, cancellationToken);
     }
 
-    private static ToolResult WingetListUpgrades()
+    private static async Task<ToolResult> WingetListUpgrades(CancellationToken cancellationToken)
     {
         if (!TryFindWinget(out var wingetPath, out var hint))
         {
             return ToolResult.Fail(hint);
         }
 
-        return RunWinget(wingetPath, ["upgrade", "--disable-interactivity"], 180);
+        return await RunWinget(wingetPath, ["upgrade", "--disable-interactivity"], 180, cancellationToken);
     }
 
-    private static ToolResult WingetUpgradeAll()
+    private static async Task<ToolResult> WingetUpgradeAll(CancellationToken cancellationToken)
     {
         if (!TryFindWinget(out var wingetPath, out var hint))
         {
             return ToolResult.Fail(hint);
         }
 
-        return RunWinget(
+        return await RunWinget(
             wingetPath,
             [
                 "upgrade", "--all",
@@ -157,10 +157,14 @@ public sealed partial class SoftwareInventoryTool : ITool
                 "--accept-source-agreements",
                 "--disable-interactivity"
             ],
-            600);
+            600,
+            cancellationToken);
     }
 
-    private static ToolResult WingetMutate(string verb, JsonElement arguments)
+    private static async Task<ToolResult> WingetMutate(
+        string verb,
+        JsonElement arguments,
+        CancellationToken cancellationToken)
     {
         if (!arguments.TryGetProperty("package_id", out var idProp) ||
             idProp.ValueKind != JsonValueKind.String ||
@@ -193,12 +197,12 @@ public sealed partial class SoftwareInventoryTool : ITool
             "--disable-interactivity"
         };
 
-        return RunWinget(wingetPath, args, 600);
+        return await RunWinget(wingetPath, args, 600, cancellationToken);
     }
 
-    private static ToolResult MutateAndInvalidate(Func<ToolResult> action)
+    private static async Task<ToolResult> MutateAndInvalidate(Func<Task<ToolResult>> action)
     {
-        var result = action();
+        var result = await action().ConfigureAwait(false);
         if (result.Success)
         {
             InstalledProgramsCatalog.Invalidate();
@@ -320,7 +324,11 @@ public sealed partial class SoftwareInventoryTool : ITool
         return false;
     }
 
-    private static ToolResult RunWinget(string wingetPath, IReadOnlyList<string> args, int timeoutSeconds)
+    private static async Task<ToolResult> RunWinget(
+        string wingetPath,
+        IReadOnlyList<string> args,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
     {
         timeoutSeconds = Math.Clamp(timeoutSeconds, 5, 600);
 
@@ -351,18 +359,25 @@ public sealed partial class SoftwareInventoryTool : ITool
                 return ToolResult.Fail("Не удалось запустить winget.");
             }
 
-            var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
-            var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
-            if (!process.WaitForExit(TimeSpan.FromSeconds(timeoutSeconds)))
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+            try
             {
-                try { process.Kill(entireProcessTree: true); } catch { /* ignore */ }
+                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Стоп хода гасит и установщик, который winget успел запустить, — всё дерево.
+                try { process.Kill(entireProcessTree: true); } catch { /* уже завершился */ }
+                cancellationToken.ThrowIfCancellationRequested();
                 return ToolResult.Fail($"winget timed out after {timeoutSeconds} seconds.");
             }
 
-            Task.WaitAll([stdoutTask, stderrTask], TimeSpan.FromSeconds(10));
-            var stdout = stdoutTask.IsCompletedSuccessfully ? stdoutTask.Result : string.Empty;
-            var stderr = stderrTask.IsCompletedSuccessfully ? stderrTask.Result : string.Empty;
+            var stdout = await ReadOrEmpty(stdoutTask).ConfigureAwait(false);
+            var stderr = await ReadOrEmpty(stderrTask).ConfigureAwait(false);
 
             // Strip ANSI / progress noise
             stdout = StripAnsi(stdout);
@@ -402,9 +417,25 @@ public sealed partial class SoftwareInventoryTool : ITool
 
             return ToolResult.Fail(text);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return ToolResult.Fail($"winget error: {ex.Message}");
+        }
+    }
+
+    private static async Task<string> ReadOrEmpty(Task<string> read)
+    {
+        try
+        {
+            return await read.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return string.Empty;
         }
     }
 

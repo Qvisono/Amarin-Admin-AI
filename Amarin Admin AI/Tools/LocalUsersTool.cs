@@ -60,14 +60,14 @@ public sealed class LocalUsersTool : ITool
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "list_users" => Task.FromResult(PowerShellHelper.Run(ListUsersScript(), 90, maxOutput: 4000)),
-                "list_groups" => Task.FromResult(PowerShellHelper.Run(ListGroupsScript(), 90, maxOutput: 4000)),
-                "group_members" => Task.FromResult(GroupMembers(arguments)),
-                "user_details" => Task.FromResult(UserDetails(arguments)),
-                "enable_user" => Task.FromResult(SetUserEnabled(arguments, enabled: true)),
-                "disable_user" => Task.FromResult(SetUserEnabled(arguments, enabled: false)),
-                "add_to_group" => Task.FromResult(ChangeGroupMembership(arguments, add: true)),
-                "remove_from_group" => Task.FromResult(ChangeGroupMembership(arguments, add: false)),
+                "list_users" => PowerShellHelper.RunAsync(ListUsersScript(), 90, cancellationToken, maxOutput: 4000),
+                "list_groups" => PowerShellHelper.RunAsync(ListGroupsScript(), 90, cancellationToken, maxOutput: 4000),
+                "group_members" => GroupMembers(arguments, cancellationToken),
+                "user_details" => UserDetails(arguments, cancellationToken),
+                "enable_user" => SetUserEnabled(arguments, enabled: true, cancellationToken),
+                "disable_user" => SetUserEnabled(arguments, enabled: false, cancellationToken),
+                "add_to_group" => ChangeGroupMembership(arguments, add: true, cancellationToken),
+                "remove_from_group" => ChangeGroupMembership(arguments, add: false, cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -77,7 +77,7 @@ public sealed class LocalUsersTool : ITool
         }
     }
 
-    private static ToolResult GroupMembers(JsonElement arguments)
+    private static async Task<ToolResult> GroupMembers(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetName(arguments, "group", out var group, out var err))
         {
@@ -114,7 +114,7 @@ public sealed class LocalUsersTool : ITool
 
         // Fallback PowerShell (may need rights on some systems)
         var safe = LocalUsersSafety.EscapeForPowerShell(group);
-        var ps = PowerShellHelper.Run(GroupMembersScript(safe), 90, maxOutput: 4000);
+        var ps = await PowerShellHelper.RunAsync(GroupMembersScript(safe), 90, maxOutput: 4000, cancellationToken: cancellationToken);
         if (ps.Success)
         {
             return ps;
@@ -124,20 +124,20 @@ public sealed class LocalUsersTool : ITool
             $"group_members failed. net: {netError ?? "—"}; powershell: {Truncate(ps.Output, 400)}");
     }
 
-    private static ToolResult UserDetails(JsonElement arguments)
+    private static async Task<ToolResult> UserDetails(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetName(arguments, "user", out var user, out var err))
         {
             return ToolResult.Fail(err ?? "user is required for user_details");
         }
 
-        return PowerShellHelper.Run(
+        return await PowerShellHelper.RunAsync(
             UserDetailsScript(LocalUsersSafety.EscapeForPowerShell(user)),
             90,
-            maxOutput: 4000);
+            maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult SetUserEnabled(JsonElement arguments, bool enabled)
+    private static async Task<ToolResult> SetUserEnabled(JsonElement arguments, bool enabled, CancellationToken cancellationToken)
     {
         if (!TryGetName(arguments, "user", out var user, out var err))
         {
@@ -145,13 +145,13 @@ public sealed class LocalUsersTool : ITool
         }
 
         // Hard block already handled above; keep SID check in script as last resort.
-        return PowerShellHelper.Run(
+        return await PowerShellHelper.RunAsync(
             SetUserEnabledScript(LocalUsersSafety.EscapeForPowerShell(user), enabled),
             90,
-            maxOutput: 4000);
+            maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult ChangeGroupMembership(JsonElement arguments, bool add)
+    private static async Task<ToolResult> ChangeGroupMembership(JsonElement arguments, bool add, CancellationToken cancellationToken)
     {
         if (!TryGetName(arguments, "user", out var user, out var errUser))
         {
@@ -163,13 +163,13 @@ public sealed class LocalUsersTool : ITool
             return ToolResult.Fail(errGroup ?? "group is required");
         }
 
-        return PowerShellHelper.Run(
+        return await PowerShellHelper.RunAsync(
             ChangeGroupScript(
                 LocalUsersSafety.EscapeForPowerShell(user),
                 LocalUsersSafety.EscapeForPowerShell(group),
                 add),
             90,
-            maxOutput: 4000);
+            maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
     private static bool TryGetName(JsonElement arguments, string field, out string name, out string? error)

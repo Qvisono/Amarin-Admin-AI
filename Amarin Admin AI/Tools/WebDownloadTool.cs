@@ -123,6 +123,9 @@ public sealed class WebDownloadTool : ITool
             : null;
         var verifyHash = !string.IsNullOrWhiteSpace(expectedHash);
 
+        // Файл, начатый этим вызовом и не докачанный до конца. Оборванная «Стопом» или сетью
+        // загрузка оставляла на диске обрубок под настоящим именем — его потом запускали.
+        var partial = false;
         try
         {
             var directory = Path.GetDirectoryName(destination);
@@ -144,6 +147,7 @@ public sealed class WebDownloadTool : ITool
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             await using var file = File.Create(destination);
+            partial = true;
             using var hasher = verifyHash ? SHA256.Create() : null;
 
             var buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
@@ -170,6 +174,8 @@ public sealed class WebDownloadTool : ITool
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
+            await file.FlushAsync(cancellationToken);
+            partial = false;
             hasher?.TransformFinalBlock([], 0, 0);
             var actualHash = hasher is null
                 ? null
@@ -188,9 +194,35 @@ public sealed class WebDownloadTool : ITool
                 : ToolResult.WithFile(
                     $"Downloaded {total} bytes to {destination}\nSHA-256: {actualHash}", saved);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            DeletePartial(destination, partial);
+            throw;
+        }
         catch (Exception ex)
         {
+            DeletePartial(destination, partial);
             return ToolResult.Fail($"Download error: {ex.Message}");
+        }
+    }
+
+    private static void DeletePartial(string destination, bool partial)
+    {
+        if (!partial)
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(destination);
+        }
+        catch (IOException)
+        {
+            // Файл держит антивирус или проводник — удалить не вышло, но и ход не роняем.
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
     }
 }

@@ -456,6 +456,7 @@
     <system:String x:Key="S.Infographic.NoTranscript" xml:space="preserve">Could not get the transcript.</system:String>
     <system:String x:Key="S.Infographic.Request" xml:space="preserve">Infographic of the video: {0}</system:String>
     <system:String x:Key="S.Infographic.Subtitles" xml:space="preserve">Fetching subtitles…</system:String>
+    <system:String x:Key="S.Journal.AskFailed" xml:space="preserve">Could not ask the model. Check the key and the network, then try again.</system:String>
     <system:String x:Key="S.Journal.Audit.ChatGone" xml:space="preserve">{0} (chat deleted)</system:String>
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Export CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Could not save the file. Check that the folder is writable.</system:String>
@@ -483,6 +484,7 @@
     <system:String x:Key="S.Journal.Rollback.Preview" xml:space="preserve">Roll back…</system:String>
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Audit</system:String>
+    <system:String x:Key="S.Key.Active" xml:space="preserve">Active key</system:String>
     <system:String x:Key="S.Lock.Subtitle" xml:space="preserve">Profile "{0}". Enter the password to continue.</system:String>
     <system:String x:Key="S.Lock.Title" xml:space="preserve">The program is locked</system:String>
     <system:String x:Key="S.Lock.ToastHidden" xml:space="preserve">The reply is ready. The program is locked.</system:String>
@@ -1034,6 +1036,10 @@
     <system:String x:Key="S.Summarize.WaitTurn" xml:space="preserve">Wait for the current reply to finish.</system:String>
     <system:String x:Key="S.Toast.Ready" xml:space="preserve">The answer is ready</system:String>
 
+    <system:String x:Key="S.Tool.Native.StartFailed" xml:space="preserve">Could not start {0}.</system:String>
+    <system:String x:Key="S.Tool.Network.BadProfile" xml:space="preserve">Unknown firewall profile "{0}". Allowed: domain, private, public, all. Do not retry with the same value.</system:String>
+    <system:String x:Key="S.Tool.Virt.BadContainerName" xml:space="preserve">The container name is missing or does not look like a docker name (letters, digits, _ . -). Use a name or ID from list_docker_containers.</system:String>
+    <system:String x:Key="S.Tool.Virt.BadVmName" xml:space="preserve">The virtual machine name is missing or contains characters that are not allowed (* ? [ ] ` and control characters). Use the exact name from list_hyperv_vms.</system:String>
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Folder analysis</system:String>
     <system:String x:Key="S.Tool.capture_screenshot" xml:space="preserve">Screenshots</system:String>
     <system:String x:Key="S.Tool.change_rollback" xml:space="preserve">Snapshots and rollback</system:String>

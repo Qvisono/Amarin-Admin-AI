@@ -56,10 +56,10 @@ internal static class PowerShellProcessRunner
             var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd(), CancellationToken.None);
             var stderrTask = Task.Run(() => process.StandardError.ReadToEnd(), CancellationToken.None);
 
-            await process.WaitForExitAsync(timeoutCts.Token);
+            await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
 
-            var stdout = await AwaitOutputAsync(stdoutTask);
-            var stderr = await AwaitOutputAsync(stderrTask);
+            var stdout = await AwaitOutputAsync(stdoutTask).ConfigureAwait(false);
+            var stderr = await AwaitOutputAsync(stderrTask).ConfigureAwait(false);
 
             return PowerShellHelper.BuildResult(process.ExitCode, stdout, stderr, maxStdout, maxStderr);
         }
@@ -68,9 +68,18 @@ internal static class PowerShellProcessRunner
             KillProcess(process);
             return ToolResult.Fail($"PowerShell command timed out after {timeoutSeconds} seconds.");
         }
+        catch (OperationCanceledException)
+        {
+            // Стоп хода. Дерево процессов гасится здесь же, а отмена уходит наверх исключением:
+            // прежний Fail читался агентом как обычная ошибка инструмента, и остановленный ход
+            // шёл на следующий раунд с моделью.
+            KillProcess(process);
+            throw;
+        }
         catch (Exception ex)
         {
             KillProcess(process);
+            cancellationToken.ThrowIfCancellationRequested();
             return ToolResult.Fail($"Failed to execute PowerShell: {ex.Message}");
         }
     }
@@ -79,7 +88,7 @@ internal static class PowerShellProcessRunner
     {
         try
         {
-            return await readTask.WaitAsync(TimeSpan.FromSeconds(10));
+            return await readTask.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
         }
         catch
         {

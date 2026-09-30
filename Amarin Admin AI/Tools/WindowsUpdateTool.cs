@@ -49,7 +49,7 @@ public sealed class WindowsUpdateTool : ITool
 
         return script is null
             ? Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
-            : Task.FromResult(PowerShellHelper.Run(script, 240));
+            : PowerShellHelper.RunAsync(script, 240, cancellationToken);
     }
 
     private static string StatusScript() => """

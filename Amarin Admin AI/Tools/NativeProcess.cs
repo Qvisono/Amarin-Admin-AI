@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
@@ -19,11 +20,24 @@ namespace Amarin.Tools;
 /// </remarks>
 internal static class NativeProcess
 {
+    /// <summary>Синхронный запуск — для синхронных путей (снимки отката); та же реализация.</summary>
     public static ToolResult Run(
         string fileName,
         IReadOnlyList<string> arguments,
         int timeoutSeconds,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RunAsync(fileName, arguments, timeoutSeconds, cancellationToken).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// Запуск с ожиданием без занятого потока. Отмена хода гасит всё дерево процесса и уходит
+    /// наверх <see cref="OperationCanceledException"/> — как у <see cref="PowerShellProcessRunner"/>.
+    /// </summary>
+    public static async Task<ToolResult> RunAsync(
+        string fileName,
+        IReadOnlyList<string> arguments,
+        int timeoutSeconds,
+        CancellationToken cancellationToken = default,
+        int maxOutput = 16_000)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         var psi = new ProcessStartInfo
@@ -40,44 +54,49 @@ internal static class NativeProcess
             psi.ArgumentList.Add(argument);
         }
 
+        Process? process;
         try
         {
-            using var process = Process.Start(psi);
-            if (process is null)
-            {
-                return ToolResult.Fail($"Не удалось запустить {fileName}.");
-            }
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
-            var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
-
-            using var registration = cancellationToken.Register(() => Kill(process));
-            if (!process.WaitForExit(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds))))
-            {
-                Kill(process);
-                return ToolResult.Fail($"{fileName} timed out after {timeoutSeconds} seconds.");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var stdout = stdoutTask.GetAwaiter().GetResult();
-            var stderr = stderrTask.GetAwaiter().GetResult();
-            var output = string.IsNullOrWhiteSpace(stdout) ? stderr : stdout;
-            return process.ExitCode == 0
-                ? ToolResult.Ok(output.Trim())
-                : ToolResult.Fail(string.IsNullOrWhiteSpace(output)
-                    ? $"{fileName} exit {process.ExitCode}"
-                    : output.Trim());
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
+            process = Process.Start(psi);
         }
         catch (Exception ex)
         {
             return ToolResult.Fail($"{fileName}: {ex.Message}");
         }
+
+        if (process is null)
+        {
+            return ToolResult.Fail(Loc.Format("S.Tool.Native.StartFailed", fileName));
+        }
+
+        using (process)
+        using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+        {
+            timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)));
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            var stderrTask = process.StandardError.ReadToEndAsync(CancellationToken.None);
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Kill(process);
+                cancellationToken.ThrowIfCancellationRequested();
+                return ToolResult.Fail($"{fileName} timed out after {timeoutSeconds} seconds.");
+            }
+
+            var stdout = await stdoutTask.ConfigureAwait(false);
+            var stderr = await stderrTask.ConfigureAwait(false);
+            var output = Truncate((string.IsNullOrWhiteSpace(stdout) ? stderr : stdout).Trim(), maxOutput);
+            return process.ExitCode == 0
+                ? ToolResult.Ok(output)
+                : ToolResult.Fail(string.IsNullOrWhiteSpace(output) ? $"{fileName} exit {process.ExitCode}" : output);
+        }
     }
+
+    private static string Truncate(string text, int max) =>
+        text.Length <= max ? text : text[..max] + "\n… [truncated]";
 
     private static void Kill(Process process)
     {

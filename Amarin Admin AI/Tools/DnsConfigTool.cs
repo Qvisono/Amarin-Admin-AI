@@ -41,12 +41,13 @@ public sealed class DnsConfigTool : ITool
         {
             return action switch
             {
-                "resolvers" => Task.FromResult(Resolvers()),
+                "resolvers" => Resolvers(cancellationToken),
                 "hosts_file" => Task.FromResult(HostsFile()),
-                "proxy" => Task.FromResult(Proxy()),
-                "test_resolve" => Task.FromResult(TestResolve(arguments)),
-                "suffix_list" => Task.FromResult(PowerShellHelper.Run(
-                    "Get-DnsClient | Select-Object InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress | Format-Table -Wrap")),
+                "proxy" => Proxy(cancellationToken),
+                "test_resolve" => TestResolve(arguments, cancellationToken),
+                "suffix_list" => PowerShellHelper.RunAsync(
+                    "Get-DnsClient | Select-Object InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress | Format-Table -Wrap",
+                    cancellationToken: cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -56,12 +57,12 @@ public sealed class DnsConfigTool : ITool
         }
     }
 
-    private static ToolResult Resolvers() =>
-        PowerShellHelper.Run("""
+    private static Task<ToolResult> Resolvers(CancellationToken cancellationToken) =>
+        PowerShellHelper.RunAsync("""
             Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
               Select-Object InterfaceAlias, ServerAddresses | Format-Table -Wrap
             ipconfig /all
-            """);
+            """, cancellationToken: cancellationToken);
 
     private static ToolResult HostsFile()
     {
@@ -78,18 +79,18 @@ public sealed class DnsConfigTool : ITool
         return ToolResult.Ok(string.Join(Environment.NewLine, lines));
     }
 
-    private static ToolResult Proxy()
+    private static async Task<ToolResult> Proxy(CancellationToken cancellationToken)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(PowerShellHelper.Run("""
+        sb.AppendLine((await PowerShellHelper.RunAsync("""
             Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' |
               Select-Object ProxyEnable, ProxyServer, ProxyOverride, AutoConfigURL | Format-List
             netsh winhttp show proxy
-            """).Output);
+            """, cancellationToken: cancellationToken)).Output);
         return ToolResult.Ok(sb.ToString().TrimEnd());
     }
 
-    private static ToolResult TestResolve(JsonElement arguments)
+    private static async Task<ToolResult> TestResolve(JsonElement arguments, CancellationToken cancellationToken)
     {
         var hostname = arguments.TryGetProperty("hostname", out var hostProp) &&
                        hostProp.ValueKind == JsonValueKind.String
@@ -113,10 +114,10 @@ public sealed class DnsConfigTool : ITool
         // кавычек, и «example.com; Remove-Item …» выполнялось вторым оператором — а это чтение,
         // о котором человека не спрашивают.
         var safe = PowerShellHelper.QuoteLiteral(hostname);
-        return PowerShellHelper.Run($$"""
+        return await PowerShellHelper.RunAsync($$"""
             Resolve-DnsName -Name '{{safe}}' -ErrorAction SilentlyContinue | Format-Table -AutoSize
             nslookup '{{safe}}'
-            """);
+            """, cancellationToken: cancellationToken);
     }
 
     /// <summary>Имя узла или IP-адрес: ничего, кроме того, что бывает в имени.</summary>

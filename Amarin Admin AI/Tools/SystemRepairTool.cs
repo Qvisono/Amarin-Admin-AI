@@ -35,7 +35,7 @@ public sealed class SystemRepairTool : ITool
         var action = actionProp.GetString()?.Trim().ToLowerInvariant();
         return action switch
         {
-            "status_sfc" => Task.FromResult(RunStatusSfc()),
+            "status_sfc" => RunStatusSfc(cancellationToken),
             "status_dism" => PowerShellHelper.RunLongAsync(
                 "DISM /Online /Cleanup-Image /CheckHealth 2>&1", StatusDismSeconds, cancellationToken),
             "run_sfc" => PowerShellHelper.RunLongAsync("sfc /scannow 2>&1", SfcSeconds, cancellationToken),
@@ -57,7 +57,7 @@ public sealed class SystemRepairTool : ITool
 
     private const int StatusDismSeconds = 300;
 
-    private static ToolResult RunStatusSfc()
+    private static async Task<ToolResult> RunStatusSfc(CancellationToken cancellationToken)
     {
         var script = """
             $log = "$env:windir\Logs\CBS\CBS.log"
@@ -71,6 +71,6 @@ public sealed class SystemRepairTool : ITool
             "Pending.xml exists: $pending"
             """;
 
-        return PowerShellHelper.Run(script, 60);
+        return await PowerShellHelper.RunAsync(script, 60, cancellationToken: cancellationToken);
     }
 }

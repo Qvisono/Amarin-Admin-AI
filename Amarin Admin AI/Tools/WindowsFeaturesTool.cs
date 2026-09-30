@@ -67,10 +67,10 @@ public sealed class WindowsFeaturesTool : ITool
             var action = actionProp.GetString()?.ToLowerInvariant();
             return action switch
             {
-                "list" => Task.FromResult(List(arguments)),
-                "get" => Task.FromResult(Get(arguments)),
-                "enable" => Task.FromResult(SetFeature(arguments, enable: true)),
-                "disable" => Task.FromResult(SetFeature(arguments, enable: false)),
+                "list" => List(arguments, cancellationToken),
+                "get" => Get(arguments, cancellationToken),
+                "enable" => SetFeature(arguments, enable: true, cancellationToken),
+                "disable" => SetFeature(arguments, enable: false, cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -80,7 +80,7 @@ public sealed class WindowsFeaturesTool : ITool
         }
     }
 
-    private static ToolResult List(JsonElement arguments)
+    private static async Task<ToolResult> List(JsonElement arguments, CancellationToken cancellationToken)
     {
         var top = GetInt(arguments, "top", DefaultTop, 1, MaxTop);
         var filter = "";
@@ -96,27 +96,27 @@ public sealed class WindowsFeaturesTool : ITool
         }
 
         var safeFilter = PowerShellHelper.QuoteLiteral(filter);
-        return PowerShellHelper.Run(ListScript(safeFilter, top), 180, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(ListScript(safeFilter, top), 180, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult Get(JsonElement arguments)
+    private static async Task<ToolResult> Get(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetFeatureName(arguments, out var name, out var err))
         {
             return ToolResult.Fail(err ?? "feature_name is required for get");
         }
 
-        return PowerShellHelper.Run(GetScript(name), 120, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(GetScript(name), 120, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult SetFeature(JsonElement arguments, bool enable)
+    private static async Task<ToolResult> SetFeature(JsonElement arguments, bool enable, CancellationToken cancellationToken)
     {
         if (!TryGetFeatureName(arguments, out var name, out var err))
         {
             return ToolResult.Fail(err ?? "feature_name is required");
         }
 
-        return PowerShellHelper.Run(SetFeatureScript(name, enable), 600, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(SetFeatureScript(name, enable), 600, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
     private static string ListScript(string safeFilter, int top) => $$"""

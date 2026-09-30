@@ -77,7 +77,7 @@ public sealed partial class DiskSpaceTool : ITool
             {
                 "analyze" => Task.FromResult(Analyze()),
                 "largest_items" => Task.FromResult(LargestItems(arguments)),
-                "cleanup" => Task.FromResult(Cleanup(arguments)),
+                "cleanup" => Cleanup(arguments, cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -389,7 +389,7 @@ public sealed partial class DiskSpaceTool : ITool
     private static string Truncate(string text, int max) =>
         text.Length <= max ? text : text[..max] + "\n... [truncated]";
 
-    private static ToolResult Cleanup(JsonElement arguments)
+    private static async Task<ToolResult> Cleanup(JsonElement arguments, CancellationToken cancellationToken)
     {
         // path must not affect cleanup — refuse if model tries free-form path cleanup.
         if (arguments.TryGetProperty("path", out var pathProp) &&
@@ -409,7 +409,7 @@ public sealed partial class DiskSpaceTool : ITool
 
         // Only whitelist enum values reach the script.
         var catsLiteral = string.Join(",", categories.Select(c => "'" + c + "'"));
-        return PowerShellHelper.Run(CleanupScript(catsLiteral), 300, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(CleanupScript(catsLiteral), 300, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
     private static List<string> ParseCategories(JsonElement arguments)

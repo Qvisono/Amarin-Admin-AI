@@ -62,7 +62,7 @@ public sealed class SecurityTool : ITool
 
         return script is null
             ? Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
-            : Task.FromResult(PowerShellHelper.Run(script, 180));
+            : PowerShellHelper.RunAsync(script, 180, cancellationToken);
     }
 
     private static string FirewallStatusScript() => """

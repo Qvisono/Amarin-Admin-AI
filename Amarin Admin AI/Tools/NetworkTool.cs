@@ -1,14 +1,20 @@
-using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
 [SupportedOSPlatform("windows")]
 public sealed class NetworkTool : ITool
 {
+    /// <summary>
+    /// Потолок внешней команды. Прежде ожидание было бесконечным: зависший netsh держал ход,
+    /// и «Стоп» его не прерывал.
+    /// </summary>
+    private const int CommandTimeoutSeconds = 120;
+
     public string Name => "network";
     public string Description =>
         "Network diagnostics: adapters, DNS, ping, connections, firewall rules. " +
@@ -29,7 +35,7 @@ public sealed class NetworkTool : ITool
             },
             "profile": {
               "type": "string",
-              "enum": ["domain", "private", "public"],
+              "enum": ["domain", "private", "public", "all"],
               "description": "Firewall profile for enable/disable"
             }
           },
@@ -53,12 +59,17 @@ public sealed class NetworkTool : ITool
                 "dns" => GetDns(),
                 "ping" => await PingHostAsync(arguments, cancellationToken),
                 "connections" => GetConnections(),
-                "firewall_rules" => RunNetsh("advfirewall firewall show rule name=all"),
-                "flush_dns" => RunCommand("ipconfig", "/flushdns"),
-                "firewall_enable" => SetFirewall(arguments, enabled: true),
-                "firewall_disable" => SetFirewall(arguments, enabled: false),
+                "firewall_rules" => await RunAsync(
+                    "netsh", ["advfirewall", "firewall", "show", "rule", "name=all"], cancellationToken),
+                "flush_dns" => await RunAsync("ipconfig", ["/flushdns"], cancellationToken),
+                "firewall_enable" => await SetFirewallAsync(arguments, enabled: true, cancellationToken),
+                "firewall_disable" => await SetFirewallAsync(arguments, enabled: false, cancellationToken),
                 _ => ToolResult.Fail($"Unknown action: {action}")
             };
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -206,42 +217,31 @@ public sealed class NetworkTool : ITool
         return ToolResult.Ok(written == 0 ? "Нет соединений." : Truncate(sb.ToString().TrimEnd(), 16_000));
     }
 
-    private static ToolResult SetFirewall(JsonElement arguments, bool enabled)
+    private static Task<ToolResult> SetFirewallAsync(
+        JsonElement arguments,
+        bool enabled,
+        CancellationToken cancellationToken)
     {
         var profile = arguments.TryGetProperty("profile", out var profileProp) &&
                       profileProp.ValueKind == JsonValueKind.String
             ? profileProp.GetString() ?? "private"
             : "private";
 
-        var state = enabled ? "on" : "off";
-        return RunNetsh($"advfirewall set {profile}profile state {state}");
-    }
-
-    private static ToolResult RunNetsh(string args) =>
-        RunCommand("netsh", args);
-
-    private static ToolResult RunCommand(string file, string args)
-    {
-        var psi = new ProcessStartInfo
+        // Профиль от модели шёл в строку netsh как есть: «private state off & …» дописывал
+        // команде свои ключи. Теперь — только значение из перечня схемы.
+        if (!NetworkCommands.TryFirewallProfile(profile, out var netshProfile))
         {
-            FileName = file,
-            Arguments = args,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+            return Task.FromResult(ToolResult.Fail(Loc.Format("S.Tool.Network.BadProfile", profile)));
+        }
 
-        using var process = Process.Start(psi)!;
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        var output = string.IsNullOrWhiteSpace(stdout) ? stderr : stdout;
-        return process.ExitCode == 0
-            ? ToolResult.Ok(Truncate(output, 16_000))
-            : ToolResult.Fail(Truncate(output, 16_000));
+        return RunAsync("netsh", NetworkCommands.FirewallState(netshProfile, enabled), cancellationToken);
     }
+
+    private static Task<ToolResult> RunAsync(
+        string file,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken) =>
+        NativeProcess.RunAsync(file, arguments, CommandTimeoutSeconds, cancellationToken, maxOutput: 16_000);
 
     private static string Truncate(string text, int max) =>
         text.Length <= max ? text : text[..max] + "\n… [обрезано]";

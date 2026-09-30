@@ -93,17 +93,16 @@ public sealed class FirewallRulesTool : ITool
             var action = actionProp.GetString()?.ToLowerInvariant();
             if (action == "list")
             {
-                var listResult = List(arguments);
-                return Task.FromResult(listResult);
+                return List(arguments, cancellationToken);
             }
 
             return action switch
             {
-                "get" => Task.FromResult(Get(arguments)),
-                "enable" => Task.FromResult(SetEnabled(arguments, enabled: true)),
-                "disable" => Task.FromResult(SetEnabled(arguments, enabled: false)),
-                "create" => Task.FromResult(Create(arguments)),
-                "delete" => Task.FromResult(Delete(arguments)),
+                "get" => Get(arguments, cancellationToken),
+                "enable" => SetEnabled(arguments, enabled: true, cancellationToken),
+                "disable" => SetEnabled(arguments, enabled: false, cancellationToken),
+                "create" => Create(arguments, cancellationToken),
+                "delete" => Delete(arguments, cancellationToken),
                 _ => Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             };
         }
@@ -113,37 +112,37 @@ public sealed class FirewallRulesTool : ITool
         }
     }
 
-    private static ToolResult Get(JsonElement arguments)
+    private static async Task<ToolResult> Get(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetSafeName(arguments, out var name, out var err))
         {
             return ToolResult.Fail(err ?? "name is required for get");
         }
 
-        return PowerShellHelper.Run(GetScript(name), 90, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(GetScript(name), 90, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult SetEnabled(JsonElement arguments, bool enabled)
+    private static async Task<ToolResult> SetEnabled(JsonElement arguments, bool enabled, CancellationToken cancellationToken)
     {
         if (!TryGetSafeName(arguments, out var name, out var err))
         {
             return ToolResult.Fail(err ?? "name is required");
         }
 
-        return PowerShellHelper.Run(SetEnabledScript(name, enabled), 90, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(SetEnabledScript(name, enabled), 90, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult Delete(JsonElement arguments)
+    private static async Task<ToolResult> Delete(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetSafeName(arguments, out var name, out var err))
         {
             return ToolResult.Fail(err ?? "name is required for delete");
         }
 
-        return PowerShellHelper.Run(DeleteScript(name), 90, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(DeleteScript(name), 90, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult Create(JsonElement arguments)
+    private static async Task<ToolResult> Create(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (!TryGetSafeName(arguments, out var name, out var err))
         {
@@ -199,13 +198,13 @@ public sealed class FirewallRulesTool : ITool
             }
         }
 
-        return PowerShellHelper.Run(
+        return await PowerShellHelper.RunAsync(
             CreateScript(name, direction!, actionType!, protocol, localPort, program),
             90,
-            maxOutput: 4000);
+            maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
-    private static ToolResult List(JsonElement arguments)
+    private static async Task<ToolResult> List(JsonElement arguments, CancellationToken cancellationToken)
     {
         var top = GetInt(arguments, "top", DefaultTop, 1, MaxTop);
         string filter = "";
@@ -221,7 +220,7 @@ public sealed class FirewallRulesTool : ITool
         }
 
         // Always cap with top (default 40) — rules can number in the thousands.
-        return PowerShellHelper.Run(ListScript(filter, top), 120, maxOutput: 4000);
+        return await PowerShellHelper.RunAsync(ListScript(filter, top), 120, maxOutput: 4000, cancellationToken: cancellationToken);
     }
 
     private static string ListScript(string filter, int top)

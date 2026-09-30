@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -55,59 +54,22 @@ internal static partial class PowerShellHelper
             maxOutput / 2,
             longOperation: true);
 
-    public static ToolResult Run(string script, int timeoutSeconds = 120, int maxOutput = 48_000)
-    {
-        timeoutSeconds = PowerShellProcessRunner.EffectiveTimeout(timeoutSeconds, longOperation: false);
-        var encoded = EncodeUtf16Base64(WrapScript(script));
-
-        var psi = new ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            Arguments = $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {encoded}",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
-        };
-
-        using var process = new Process { StartInfo = psi };
-
-        try
-        {
-            process.Start();
-
-            // Read stdout/stderr on thread-pool threads to avoid pipe buffer deadlocks.
-            var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
-            var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
-
-            if (!process.WaitForExit(TimeSpan.FromSeconds(timeoutSeconds)))
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    // Процесс мог завершиться сам между проверкой таймаута и Kill.
-                }
-
-                return ToolResult.Fail($"PowerShell timed out after {timeoutSeconds} seconds.");
-            }
-
-            Task.WaitAll([stdoutTask, stderrTask], TimeSpan.FromSeconds(10));
-
-            var stdout = stdoutTask.IsCompletedSuccessfully ? stdoutTask.Result : string.Empty;
-            var stderr = stderrTask.IsCompletedSuccessfully ? stderrTask.Result : string.Empty;
-
-            return BuildResult(process.ExitCode, stdout, stderr, maxOutput, maxOutput / 2);
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Fail($"PowerShell error: {ex.Message}");
-        }
-    }
+    /// <summary>
+    /// Синхронный запуск для путей, которые сами синхронны: снимки отката и их применение.
+    /// </summary>
+    /// <remarks>
+    /// Раньше здесь жила вторая, своя копия запуска процесса — без токена, и остановленный
+    /// человеком ход продолжал ждать скрипт до таймаута. Теперь это тот же
+    /// <see cref="PowerShellProcessRunner"/>: инструменты зовут <see cref="RunAsync"/> с токеном
+    /// хода, а здесь ждут его результата. Раннер не возвращается в контекст синхронизации, так
+    /// что ожидание с потока интерфейса не встаёт в самоблокировку.
+    /// </remarks>
+    public static ToolResult Run(
+        string script,
+        int timeoutSeconds = 120,
+        int maxOutput = 48_000,
+        CancellationToken cancellationToken = default) =>
+        RunAsync(script, timeoutSeconds, cancellationToken, maxOutput).GetAwaiter().GetResult();
 
     public static string ExtractStdout(string output)
     {

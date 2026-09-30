@@ -47,6 +47,10 @@ public sealed class ScrapeUrlTool : ITool
             var content = await _scrape(url, cancellationToken);
             return ToolResult.Ok(content);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return ToolResult.Fail($"Scrape error: {ex.Message}");
