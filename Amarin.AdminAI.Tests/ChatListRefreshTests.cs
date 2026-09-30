@@ -147,14 +147,15 @@ public sealed class ChatListRefreshTests
                 new() { Id = "два", Title = "Второй", UpdatedAt = new DateTime(2026, 1, 2) }
             };
 
+            var organize = new Amarin.Core.ChatOrganizer.State();
             var original = session.GetValue(window);
             try
             {
                 session.SetValue(window, new Amarin.Core.ChatSession { Id = "один" });
-                var first = (string)build.Invoke(window, ["", items])!;
+                var first = (string)build.Invoke(window, ["", items, organize, Amarin.Core.ChatSort.Updated])!;
 
                 session.SetValue(window, new Amarin.Core.ChatSession { Id = "два" });
-                return first == (string)build.Invoke(window, ["", items])!;
+                return first == (string)build.Invoke(window, ["", items, organize, Amarin.Core.ChatSort.Updated])!;
             }
             finally
             {

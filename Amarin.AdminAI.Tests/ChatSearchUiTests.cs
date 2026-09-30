@@ -51,7 +51,7 @@ public sealed class ChatSearchUiTests
         {
             var window = Window();
             Reset(window);
-            var row = Named<StackPanel>(window, "SearchModeRow");
+            var row = Named<Panel>(window, "SearchModeRow");
 
             var atRest = row.Visibility;
             Named<TextBox>(window, "SearchBox").Text = "принтер";
