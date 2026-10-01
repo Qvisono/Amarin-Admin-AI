@@ -51,6 +51,19 @@ names and trigger words, and when a message touches one of those topics it opens
 and follows it before answering; the reply is marked with the instruction it used. Instructions are
 plain Markdown files — they can be switched off, exported and imported.
 
+It also works when you are not asking. **Scheduled tasks** let the agent check the machine daily,
+weekly or at startup — strictly read-only — and leave a report as a chat, with a notification when
+something needs attention. The **PC health** panel shows disks, memory, protection, recent errors
+and pending updates at a glance. An action you liked can be saved as a **recipe** and run again
+without a model. For bigger jobs the agent can first send a **plan** for you to approve, a chat can
+work on **another computer** over PowerShell Remoting, and tools of **MCP servers** can be plugged
+in next to the built-in ones.
+
+Chats stay manageable when there are hundreds of them: folders, tags and an archive, free search
+through the text of every chat, export to Markdown, HTML or PDF, per-chat settings and templates,
+a draft kept per chat, voice input, and the cost of the whole chat next to an estimate for the
+next answer.
+
 ---
 
 ## What it looks like
@@ -99,7 +112,9 @@ pasted on the Key & Info page works right away.
 > Where to get the key itself, what it costs and how to cap your spending — the program has its
 > own guide with screenshots: **Settings → Info**, five steps from sign-up to the first answer.
 > The program finds new versions on GitHub by itself and installs them — only after checking the
-> SHA-256 checksum, and, if your copy is signed, the publisher's signature.
+> SHA-256 checksum, and, if your copy is signed, the publisher's signature. The update question
+> shows the release notes first; the previous version is kept, and one button in
+> **Settings → Updates** brings it back. Pre-releases come only if you turn on the beta channel.
 
 ---
 
@@ -118,6 +133,11 @@ folder.
 about everything, read only, and approve everything automatically — and switches individual tools
 off; a switched-off tool is not even shown to the model. A confirmation can allow a tool until the
 end of the reply or for the whole chat.
+
+**You can see it coming.** For the agent tiers you choose, the agent first explores read-only and
+sends a plan to approve; only the approved steps run without another question. Where a script's
+commands support it, the confirmation shows a `-WhatIf` dry run of what will change. **Stop** ends
+running scripts and programs at once.
 
 **PowerShell is read, not guessed.** A script is analysed by its syntax tree, and only reading runs
 without a question; the confirmation lists what the script is going to change.
@@ -142,6 +162,9 @@ administrator can't be removed. Critical Windows processes and services can't be
 password stores, SSH keys, password vaults and the Windows credential stores are never read.
 BitLocker keys and passwords are never handed out.
 
+**Money has limits too.** Spending limits per day and month — for the profile or a single key — and
+a cap per reply: reaching one asks before going on. Scheduled runs have their own cap and never ask.
+
 **The key goes nowhere.** On disk it is encrypted with Windows' own means — or it stays in an
 environment variable altogether, if that's what you chose. It is not in `appsettings.json`, it
 never lands in a conversation, it is cut out of crash reports, and it is sent only to the
@@ -151,8 +174,9 @@ provider it belongs to.
 
 ## Where your data lives
 
-Everything is in `%APPDATA%\Amarin Admin AI`: conversations, settings, attachments, interface
-translations, and your instructions (`instructions\*.md`, one file each). The program has neither a cloud nor accounts. Several people can share one
+Everything is in `%APPDATA%\Amarin Admin AI`: conversations (attachments sit in a folder next to
+each chat), settings, drafts, recipes and scheduled tasks, interface translations, and your
+instructions (`instructions\*.md`, one file each). The program has neither a cloud nor accounts. Several people can share one
 computer: each profile has its own chats and settings, and a profile can be locked with a password.
 
 Conversations can be stored encrypted with Windows' own means (**Settings → Security**): then only
@@ -162,6 +186,23 @@ minutes, or on request.
 Data is exported as a single archive and imported back, optionally protected with a password; a
 single chat — as JSON or as a string you can forward. **Delete all data** wipes the current profile
 and starts it from a clean slate.
+
+Backups can be made automatically, daily or weekly, into a folder of your choice (keys are not
+included, and the backups are not encrypted). Old chats can be archived or deleted after a number
+of days, and the data page shows what takes space and cleans up logs, old snapshots and exports.
+Settings, profiles and keys keep a spare copy: a damaged file is set aside and the last good copy
+takes its place.
+
+---
+
+## Working with Windows
+
+A tray icon shows whether the program is answering or waiting for you, and the window can close or
+minimise into it. A global shortcut (Win+Shift+A by default) shows or hides the window from
+anywhere; two more start a chat with the clipboard text or a screenshot. The program can start with
+Windows straight into the tray, adds **Ask Amarin** to Explorer's menu for files and folders, and
+keeps the latest chats in its jump list. Notifications come as the program's own card or as
+Windows notifications — your choice.
 
 ---
 
@@ -173,7 +214,12 @@ picture, over which the panels turn translucent. Interface scale from 80 to 250 
 chat column width, grain over the window.
 
 The interface comes in Russian and English; the program translates itself into any other language
-— with one button, by a model, and from then on it lives next to the others.
+— with one button, by a model, and from then on it lives next to the others. A machine translation
+can be corrected line by line, and your corrections survive the next translation.
+
+Screen readers get a name for every button and switch, the keyboard focus is drawn in the accent
+colour, Windows high contrast is followed automatically, and the chat text size and code font are
+adjustable.
 
 ---
 
@@ -189,7 +235,7 @@ dotnet build "Amarin Admin AI/Amarin Admin AI.csproj"
 dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj
 ```
 
-There are more than two thousand four hundred tests — including those that bring up real WPF and
+There are more than three thousand tests — including those that bring up real WPF and
 check the window, the chat markup and the order in which popups close, without showing anything on
 screen.
 
@@ -204,6 +250,12 @@ Check the tools without a single API call (no key needed):
 ```powershell
 & ".\Amarin Admin AI.exe" --smoke-tools
 ```
+
+`--smoke-report <file>` writes the same run as a Markdown table into a file instead of a console
+window — that is how CI runs it; tools whose Windows component is missing are marked `SKIP`.
+
+Found a problem? **Report a problem** on the Info page (or in the crash window) opens a GitHub
+issue with the report filled in and your profile path and user name removed.
 
 ---
 
