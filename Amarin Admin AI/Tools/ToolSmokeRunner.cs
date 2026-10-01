@@ -74,6 +74,11 @@ public static class ToolSmokeRunner
                 continue;
             }
 
+            if (name == "read_clipboard")
+            {
+                SeedEmptyClipboard();
+            }
+
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(TimeSpan.FromMinutes(3));
 
@@ -103,6 +108,35 @@ public static class ToolSmokeRunner
         }
 
         return results;
+    }
+
+    /// <summary>Метка, которую прогон кладёт в пустой буфер обмена.</summary>
+    internal const string ClipboardSeed = "Amarin smoke test";
+
+    /// <summary>
+    /// Пустой буфер обмена — не поломка, а состояние машины: на свежем раннере CI в нём нет
+    /// ничего, и чтение отказывало бы всегда. Поэтому в совсем пустой буфер (ни текста, ни
+    /// файлов, ни картинки) кладётся метка — тогда чтение проверяется по-настоящему. Непустой
+    /// не трогается: прогон запускают и люди на своих машинах, и чужое содержимое буфера
+    /// затирать нельзя.
+    /// </summary>
+    private static void SeedEmptyClipboard()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            StaThread.Run(() =>
+                !ClipboardNative.HasText() && !ClipboardNative.HasFiles() && !ClipboardNative.HasImage() &&
+                ClipboardNative.TrySetText(ClipboardSeed));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or TimeoutException or System.Runtime.InteropServices.ExternalException)
+        {
+            // Не вышло — чтение просто покажет, что буфер пуст.
+        }
     }
 
     /// <summary>
