@@ -30,6 +30,7 @@ public sealed class SmokeReportTests
     [InlineData("Get-VM : The term 'Get-VM' is not recognized as the name of a cmdlet", true)]
     [InlineData("The Wireless AutoConfig Service (wlansvc) is not running.", true)]
     [InlineData("Компонент не установлен.", true)]
+    [InlineData("failed to connect to the docker API at npipe:////./pipe/docker_engine; check if the path is correct", true)]
     [InlineData("Access is denied.", false)]
     [InlineData("", false)]
     public void Only_a_missing_component_counts_as_a_skip(string output, bool skipped) =>

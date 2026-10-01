@@ -159,7 +159,11 @@ public static class ToolSmokeRunner
         "hyper-v",
         "feature is not available",
         "not supported on this",
-        "не поддерживается"
+        "не поддерживается",
+
+        // Docker установлен, но его движок не запущен: на раннерах CI так бывает через раз.
+        "docker_engine",
+        "is the docker daemon running"
     ];
 
     internal static bool IsUnavailable(string? output) =>
