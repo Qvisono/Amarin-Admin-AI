@@ -212,7 +212,14 @@ internal static class CodeBlockView
         foreach (var span in CodeHighlighter.Highlight(code, language, cache))
         {
             var run = new Run(span.Text);
-            run.SetResourceReference(TextElement.ForegroundProperty, BrushKey(span.Kind));
+
+            // Обычный текст берёт цвет у самого поля — своя ссылка на ресурс у каждого такого
+            // куска только утяжеляла документ.
+            if (span.Kind != CodeTokenKind.Plain)
+            {
+                run.SetResourceReference(TextElement.ForegroundProperty, BrushKey(span.Kind));
+            }
+
             paragraph.Inlines.Add(run);
         }
 
@@ -369,7 +376,7 @@ internal static class CodeBlockView
     {
         var glyph = new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse(data),
+            Data = Glyphs.Get(data),
             Width = 12,
             Height = 12,
             Stretch = Stretch.Uniform,

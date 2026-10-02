@@ -560,8 +560,12 @@
                         <ContentPresenter/>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -606,12 +610,21 @@
                         <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
                                           Margin="10,0,26,0" VerticalAlignment="Center"
                                           IsHitTestVisible="False"/>
+                        <!-- Фон — Bg.Panel, как у всех попапов: у попапа своё окно, и «стекло»
+                             (полупрозрачный Bg.Card) показывало бы сквозь список страницу и рабочий
+                             стол. Поля — место под тень; сдвиг влево их возвращает, и список встаёт
+                             ровно под полем. -->
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
-                               VerticalOffset="4" AllowsTransparency="True" StaysOpen="False"
+                               VerticalOffset="2" HorizontalOffset="-10"
+                               AllowsTransparency="True" StaysOpen="False"
                                PopupAnimation="Fade">
-                            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
+                            <Border Margin="10,2,10,14"
+                                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="8" Padding="0,3"
                                     MinWidth="{TemplateBinding ActualWidth}" MaxHeight="220">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="4" Opacity="0.45"/>
+                                </Border.Effect>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                                               local:SmoothScroll.IsEnabled="True">
                                     <ItemsPresenter/>

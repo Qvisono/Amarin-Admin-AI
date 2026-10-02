@@ -104,6 +104,26 @@ internal static class GlobalHotkeys
 
         return virtualKey != 0;
     }
+
+    /// <summary>
+    /// Сочетания, которыми Windows снимает и записывает экран: «Ножницы» (Win+Shift+S,
+    /// Win+Shift+R) и игровая панель (Win+G, Win+Alt+R, Win+Alt+G).
+    /// </summary>
+    /// <remarks>
+    /// Зарегистрированное программой такое сочетание перехватило бы клавиши у Windows: при
+    /// открытой программе снимок экрана переставал бы делаться. Поэтому их не отдают никому.
+    /// </remarks>
+    private static readonly (uint Modifiers, char Key)[] Reserved =
+    [
+        (ModWin | ModShift, 'S'),
+        (ModWin | ModShift, 'R'),
+        (ModWin, 'G'),
+        (ModWin | ModAlt, 'R'),
+        (ModWin | ModAlt, 'G')
+    ];
+
+    public static bool IsReservedBySystem(uint modifiers, uint virtualKey) =>
+        Reserved.Any(reserved => reserved.Modifiers == (modifiers & ~ModNoRepeat) && reserved.Key == virtualKey);
 }
 
 /// <summary>Автозапуск (G3): запись в <c>HKCU\…\Run</c>.</summary>

@@ -132,8 +132,11 @@ public sealed class ChatZoomTests
             zoom.ZoomBy(120, new Point(400, 300));
             Assert.True(zoom.IsBusy, "жест начался, но лупа не считает себя занятой");
 
+            // Прокрутка вверх сама сбрасывает «у низа» — признак ставится заново: проверяется,
+            // уступает ли автопрокрутка жесту, а не то, как она узнаёт о прокрутке человека.
             viewer.ScrollToVerticalOffset(0);
             window.UpdateLayout();
+            StickToBottom(window);
             Autoscroll(window);
             window.UpdateLayout();
             var during = viewer.VerticalOffset;
@@ -141,6 +144,7 @@ public sealed class ChatZoomTests
             zoom.Reset();
             viewer.ScrollToVerticalOffset(0);
             window.UpdateLayout();
+            StickToBottom(window);
             Autoscroll(window);
             window.UpdateLayout();
             return (during, viewer.VerticalOffset);

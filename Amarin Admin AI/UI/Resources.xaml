@@ -1,6 +1,10 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:local="clr-namespace:Amarin.UI"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime"
+                    mc:Ignorable="po">
     <Geometry x:Key="Close">F1 M24,24z M0,0z M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z</Geometry>
     <Geometry x:Key="Maximize">F0 M24,24z M0,0z M5,9.2 A4.2,4.2 0 0 1 9.2,5 L14.8,5 A4.2,4.2 0 0 1 19,9.2 L19,14.8 A4.2,4.2 0 0 1 14.8,19 L9.2,19 A4.2,4.2 0 0 1 5,14.8 L5,9.2 z M6.4,9.2 A2.8,2.8 0 0 0 9.2,6.4 L14.8,6.4 A2.8,2.8 0 0 0 17.6,9.2 L17.6,14.8 A2.8,2.8 0 0 0 14.8,17.6 L9.2,17.6 A2.8,2.8 0 0 0 6.4,14.8 L6.4,9.2 z</Geometry>
     <Geometry x:Key="Minimize">F1 M24,24z M0,0z M6.7,12 A0.84,0.84 0 0 1 7.54,11.16 L16.46,11.16 A0.84,0.84 0 0 1 17.3,12 A0.84,0.84 0 0 1 16.46,12.84 L7.54,12.84 A0.84,0.84 0 0 1 6.7,12 z</Geometry>
@@ -38,6 +42,22 @@
         перекрашивается сам и светлеет под курсором. Бокс 16x16.
     -->
     <Geometry x:Key="Icon.SwitchProfile">M6.2,2.6 A2.4,2.4 0 1 1 6.2,7.4 A2.4,2.4 0 1 1 6.2,2.6 M1.9,13.6 C1.9,10.7 3.8,9.4 6.2,9.4 C8.6,9.4 10.5,10.7 10.5,13.6 M11.1,3.05 A2,2 0 0 1 11.1,6.95 M12.4,9.7 C13.7,10.2 14.5,11.4 14.5,13.6</Geometry>
+
+    <!--
+        Значки пунктов меню (MenuIcon.Data). Обводкой в боксе 16x16 и без растяжения: так все
+        значки одного размера и стоят на одной линии, а цвет берут у текста пункта.
+    -->
+    <Geometry x:Key="Icon.Menu.Rename" po:Freeze="True">M10.6,2.4 L13.6,5.4 L5.6,13.4 L2.2,13.8 L2.6,10.4 Z M9.1,3.9 L12.1,6.9</Geometry>
+    <Geometry x:Key="Icon.Menu.Pin" po:Freeze="True">M5.5,1.8 H10.5 M6.6,1.8 V6.2 L4.2,9.4 H11.8 L9.4,6.2 V1.8 M8,9.4 V14.2</Geometry>
+    <Geometry x:Key="Icon.Menu.Unpin" po:Freeze="True">M5.5,1.8 H10.5 M6.6,1.8 V6.2 L4.2,9.4 H11.8 L9.4,6.2 V1.8 M8,9.4 V14.2 M2.2,2.2 L13.8,13.8</Geometry>
+    <Geometry x:Key="Icon.Menu.ChatSettings" po:Freeze="True">M2,5 H6.3 M10.7,5 H14 M6.3,5 A2.2,2.2 0 1 1 10.7,5 A2.2,2.2 0 1 1 6.3,5 M2,11 H3.3 M7.7,11 H14 M3.3,11 A2.2,2.2 0 1 1 7.7,11 A2.2,2.2 0 1 1 3.3,11</Geometry>
+    <Geometry x:Key="Icon.Menu.MoveToFolder" po:Freeze="True">M1.8,4.3 A1,1 0 0 1 2.8,3.3 H6.1 L7.6,4.8 H13.2 A1,1 0 0 1 14.2,5.8 V12.2 A1,1 0 0 1 13.2,13.2 H2.8 A1,1 0 0 1 1.8,12.2 Z M5.6,9 H10.4 M8.5,7.1 L10.4,9 L8.5,10.9</Geometry>
+    <Geometry x:Key="Icon.Menu.Tags" po:Freeze="True">M2.2,3.2 A1,1 0 0 1 3.2,2.2 H7.4 L13.9,8.7 A1,1 0 0 1 13.9,10.1 L10.1,13.9 A1,1 0 0 1 8.7,13.9 L2.2,7.4 Z M5.2,4.3 A0.9,0.9 0 1 1 5.2,6.1 A0.9,0.9 0 1 1 5.2,4.3</Geometry>
+    <Geometry x:Key="Icon.Menu.Archive" po:Freeze="True">M1.8,3 H14.2 V6 H1.8 Z M2.8,6 V12.4 A1,1 0 0 0 3.8,13.4 H12.2 A1,1 0 0 0 13.2,12.4 V6 M6.5,8.7 H9.5</Geometry>
+    <Geometry x:Key="Icon.Menu.Unarchive" po:Freeze="True">M1.8,3 H14.2 V6 H1.8 Z M2.8,6 V12.4 A1,1 0 0 0 3.8,13.4 H12.2 A1,1 0 0 0 13.2,12.4 V6 M8,11.6 V8 M6.4,9.6 L8,8 L9.6,9.6</Geometry>
+    <Geometry x:Key="Icon.Menu.Share" po:Freeze="True">M5.6,6.2 H4.4 A1,1 0 0 0 3.4,7.2 V13 A1,1 0 0 0 4.4,14 H11.6 A1,1 0 0 0 12.6,13 V7.2 A1,1 0 0 0 11.6,6.2 H10.4 M8,1.8 V9.6 M5.8,4 L8,1.8 L10.2,4</Geometry>
+    <Geometry x:Key="Icon.Menu.Export" po:Freeze="True">M8,1.8 V9.8 M5.2,7 L8,9.8 L10.8,7 M2.4,10.6 V12.6 A1,1 0 0 0 3.4,13.6 H12.6 A1,1 0 0 0 13.6,12.6 V10.6</Geometry>
+    <Geometry x:Key="Icon.Menu.Delete" po:Freeze="True">M2.2,4.2 H13.8 M6.2,4.2 V2.9 A0.8,0.8 0 0 1 7,2.1 H9 A0.8,0.8 0 0 1 9.8,2.9 V4.2 M3.6,4.2 L4.4,13 A1,1 0 0 0 5.4,13.9 H10.6 A1,1 0 0 0 11.6,13 L12.4,4.2 M6.6,7 V11 M9.4,7 V11</Geometry>
 
     <Style TargetType="ScrollBar">
         <Setter Property="Width" Value="7"/>
@@ -897,16 +917,18 @@
                              (UiScale.PlaceUnderTarget), и только из середины она показывает
                              на то, на что навели. Минус пиксель снизу прячет стык её обводки
                              с рамкой карточки: иначе на склейке видна лишняя черта. -->
+                        <!-- Bg.Panel, а не Bg.Card: подсказка — своё окно, и полупрозрачный в
+                             «стекле» Bg.Card показывал бы сквозь неё рабочий стол. -->
                         <Path Grid.Row="0"
                               Data="M0,6 L6,0 L12,6 Z"
-                              Fill="{DynamicResource Bg.Card}"
+                              Fill="{DynamicResource Bg.Panel}"
                               Stroke="{DynamicResource Border.Default}"
                               StrokeThickness="1"
                               HorizontalAlignment="Center"
                               Margin="0,0,0,-1"/>
 
                         <Border Grid.Row="1"
-                                Background="{DynamicResource Bg.Card}"
+                                Background="{DynamicResource Bg.Panel}"
                                 BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="8" Padding="10,8">
                             <ContentPresenter>
@@ -969,17 +991,32 @@
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="Template">
             <Setter.Value>
-                <!-- Свой шаблон целиком: штатный рисует слева колонку под галочки и иконки,
-                     из-за которой текст уезжает вправо от края панели. -->
+                <!-- Свой шаблон целиком: штатный держит слева колонку под галочки и иконки
+                     даже пустой, и текст уезжает вправо от края панели. Здесь колонка значка
+                     есть только у пункта со значком (MenuIcon.Data). -->
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="9,0">
-                        <ContentPresenter x:Name="Label"
-                                          ContentSource="Header"
-                                          VerticalAlignment="Center"
-                                          TextBlock.Foreground="{TemplateBinding Foreground}"
-                                          TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <Path x:Name="Icon" Width="16" Height="16" Margin="0,0,9,0" Stretch="None"
+                                  VerticalAlignment="Center" Opacity="0.85"
+                                  Data="{Binding Path=(local:MenuIcon.Data), RelativeSource={RelativeSource TemplatedParent}}"
+                                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.35"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            <ContentPresenter x:Name="Label" Grid.Column="1"
+                                              ContentSource="Header"
+                                              VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"
+                                              TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="local:MenuIcon.Data" Value="{x:Null}">
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                         </Trigger>
@@ -1003,13 +1040,27 @@
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="9,0">
-                        <ContentPresenter x:Name="Label"
-                                          ContentSource="Header"
-                                          VerticalAlignment="Center"
-                                          TextBlock.Foreground="{TemplateBinding Foreground}"
-                                          TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <Path x:Name="Icon" Width="16" Height="16" Margin="0,0,9,0" Stretch="None"
+                                  VerticalAlignment="Center"
+                                  Data="{Binding Path=(local:MenuIcon.Data), RelativeSource={RelativeSource TemplatedParent}}"
+                                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.35"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            <ContentPresenter x:Name="Label" Grid.Column="1"
+                                              ContentSource="Header"
+                                              VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"
+                                              TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="local:MenuIcon.Data" Value="{x:Null}">
+                            <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Status.DangerStrong}"/>
                             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>

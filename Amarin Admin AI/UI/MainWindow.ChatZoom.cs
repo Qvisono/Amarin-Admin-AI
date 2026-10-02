@@ -26,7 +26,24 @@ namespace Amarin.UI
                 ChatZoomBadge,
                 ChatZoomBadgeText,
                 ChatCoveredByOverlay,
-                MaterializeAroundViewport);
+                OnChatZoomSettled);
+
+        /// <summary>
+        /// Жест лупы кончился: прокрутка снова наша.
+        /// </summary>
+        /// <remarks>
+        /// Во время жеста высота ленты меняется каждый кадр, и признак «лента у низа» не
+        /// пересчитывался. Остался он поднятым — и следующая же порция дорисовки уводила
+        /// приближенную ленту в самый конец. Поэтому сперва — где лента стоит на самом деле,
+        /// потом достройка видимого и продолжение фоновой.
+        /// </remarks>
+        private void OnChatZoomSettled()
+        {
+            ChatScrollViewer.UpdateLayout();
+            _stickToBottom = IsChatScrolledToBottom();
+            MaterializeAroundViewport();
+            ScheduleBackgroundFill();
+        }
 
         /// <summary>
         /// Поверх чата открыт оверлей — жест не наш.

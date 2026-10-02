@@ -192,6 +192,12 @@ public static class UpdateChecker
     /// <summary>Чем программа представляется GitHub. Без этого заголовка он отвечает 403.</summary>
     private const string ProductToken = "Amarin-Admin-AI";
 
+    /// <summary>
+    /// Сколько ждать API, прежде чем спросить страницу релизов. Меньше общего срока проверки:
+    /// иначе зависший API съедал бы всё время, и до запасного пути дело не доходило бы.
+    /// </summary>
+    internal static readonly TimeSpan ApiTimeout = TimeSpan.FromSeconds(10);
+
     /// <summary>Как часто автопроверка ходит в сеть.</summary>
     /// <remarks>
     /// Значение живёт в <see cref="UpdateSchedule"/> вместе с остальным расписанием: два
@@ -509,7 +515,14 @@ public static class UpdateChecker
     /// Сумма файла из текста в формате <c>sha256sum</c>: «сумма, пробел(ы), необязательная
     /// звёздочка, имя». Строки с чужими именами и мусор пропускаются.
     /// </summary>
-    internal static string? ReadSha256Sums(string? text, string fileName)
+    internal static string? ReadSha256Sums(string? text, string fileName) =>
+        ReadSha256SumsEntries(text)
+            .Where(entry => entry.Name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Sha256)
+            .FirstOrDefault();
+
+    /// <summary>Все строки файла сумм: сумма в нижнем регистре и имя файла.</summary>
+    private static IEnumerable<(string Sha256, string Name)> ReadSha256SumsEntries(string? text)
     {
         foreach (var raw in (text ?? "").Split('\n'))
         {
@@ -522,13 +535,69 @@ public static class UpdateChecker
 
             var hex = line[..64];
             var name = line[64..].TrimStart(' ', '\t').TrimStart('*').Trim();
-            if (hex.All(Uri.IsHexDigit) && name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+            if (hex.All(Uri.IsHexDigit) && name.Length > 0)
             {
-                return hex.ToLowerInvariant();
+                yield return (hex.ToLowerInvariant(), name);
             }
         }
+    }
 
-        return null;
+    /// <summary>
+    /// Сборка для Windows по одному файлу сумм — для запасного пути, у которого нет списка файлов.
+    /// </summary>
+    /// <remarks>
+    /// Имя берётся из самого файла сумм, а не угадывается по шаблону: <c>release.yml</c> пишет в
+    /// него ровно то имя, под которым выкладывает exe. Размера здесь нет — его скажет сама загрузка,
+    /// а целость файла всё равно решает сумма. Выбор тот же, что у <see cref="ReleaseInfo.WindowsBuild"/>.
+    /// </remarks>
+    internal static ReleaseAsset? ReadBuildFromSums(string? text, string tag)
+    {
+        var builds = ReadSha256SumsEntries(text)
+            .Where(entry => entry.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                            entry.Name.IndexOfAny(['/', '\\']) < 0)
+            .ToList();
+        if (builds.Count == 0)
+        {
+            return null;
+        }
+
+        var index = builds.FindIndex(entry => entry.Name.Contains("win-x64", StringComparison.OrdinalIgnoreCase));
+        var (sha256, name) = builds[Math.Max(index, 0)];
+        return new ReleaseAsset(name, DownloadUrl(tag, name), 0, sha256);
+    }
+
+    /// <summary>
+    /// Прямая ссылка на файл релиза по тегу. Её отдаёт сам github.com, а не API, поэтому лимит
+    /// анонимных запросов к API её не касается.
+    /// </summary>
+    internal static string DownloadUrl(string tag, string name) =>
+        RepositoryUrl + "/releases/download/" + Uri.EscapeDataString(tag) + "/" + Uri.EscapeDataString(name);
+
+    /// <summary>
+    /// Что запомнить из двух ответов об одной и той же версии.
+    /// </summary>
+    /// <remarks>
+    /// Запасной путь знает о выпуске меньше, чем API. Когда он отвечал на повторную проверку, его
+    /// бедный ответ затирал уже найденный полный — и кнопка «Обновить», а с ней и автообновление,
+    /// пропадали посреди сеанса. Тот же выпуск со сборкой (лучше — со сверенной) не меняется на
+    /// выпуск без неё; другая версия — всегда новость.
+    /// </remarks>
+    public static ReleaseInfo Richer(ReleaseInfo? known, ReleaseInfo fresh)
+    {
+        ArgumentNullException.ThrowIfNull(fresh);
+        if (known is null || known.Release != fresh.Release)
+        {
+            return fresh;
+        }
+
+        static int Worth(ReleaseInfo release) => release.WindowsBuild switch
+        {
+            { Sha256.Length: 64 } => 2,
+            not null => 1,
+            null => 0
+        };
+
+        return Worth(known) > Worth(fresh) ? known : fresh;
     }
 
     public static Task<UpdateCheckResult> CheckAsync(
@@ -569,6 +638,9 @@ public static class UpdateChecker
             return UpdateCheckResult.Failed(Loc.Get("S.Updates.ForeignKey"));
         }
 
+        string failure;
+        using var apiLimit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        apiLimit.CancelAfter(ApiTimeout);
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, beta ? ReleasesApiUrl : LatestReleaseApiUrl);
@@ -577,34 +649,48 @@ public static class UpdateChecker
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             request.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            using var response = await http.SendAsync(request, apiLimit.Token).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                var json = await response.Content.ReadAsStringAsync(apiLimit.Token).ConfigureAwait(false);
                 var result = beta ? ReadReleases(json, current, includePrerelease: true) : ReadRelease(json, current);
-                return result.Latest is { } latest
-                    ? result with { Latest = await WithSumsFileAsync(http, latest, current.Core, cancellationToken).ConfigureAwait(false) }
-                    : result;
-            }
+                if (result.Latest is { } latest)
+                {
+                    return result with { Latest = await WithSumsFileAsync(http, latest, current.Core, cancellationToken).ConfigureAwait(false) };
+                }
 
-            if (response.StatusCode is not (HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests))
+                failure = result.Error ?? Loc.Get("S.Updates.BadAnswer");
+            }
+            else
             {
-                return UpdateCheckResult.Failed(Loc.Format("S.Updates.Status", (int)response.StatusCode));
+                failure = response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests
+                    ? DescribeRefusal(response.Headers)
+                    : Loc.Format("S.Updates.Status", (int)response.StatusCode);
             }
-
-            var refusal = DescribeRefusal(response.Headers);
-            // Запасной путь знает только последний финальный выпуск — для беты это лучше, чем
-            // ничего: о предварительных она узнает на следующей удачной проверке.
-            return await FallBackToReleasePageAsync(http, current, cancellationToken).ConfigureAwait(false)
-                   ?? UpdateCheckResult.Failed(refusal);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return UpdateCheckResult.Failed(Loc.Get("S.Updates.Timeout"));
+            failure = Loc.Get("S.Updates.Timeout");
         }
         catch (HttpRequestException ex)
         {
-            return UpdateCheckResult.Failed(Loc.Format("S.Updates.NoConnection", ex.Message));
+            failure = Loc.Format("S.Updates.NoConnection", ex.Message);
+        }
+
+        // API отказал — спрашиваем сам github.com. До 1.28.5 это делалось только на 403 и 429, а
+        // ответ был без файлов: найденная так версия показывалась без кнопки «Обновить» и не
+        // качалась сама. Это и был главный отказ обновления: лимит API — шестьдесят анонимных
+        // запросов в час на адрес, и за VPN или мобильным NAT его выбирают чужие запросы.
+        // Запасной путь знает только последний финальный выпуск — для беты это лучше, чем
+        // ничего: о предварительных она узнает на следующей удачной проверке.
+        try
+        {
+            return await FallBackToReleasePageAsync(http, current, cancellationToken).ConfigureAwait(false)
+                   ?? UpdateCheckResult.Failed(failure);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return UpdateCheckResult.Failed(failure);
         }
     }
 
@@ -662,15 +748,17 @@ public static class UpdateChecker
     /// </summary>
     /// <remarks>
     /// Эта страница не считается лимитом API, поэтому для человека, упёршегося в лимит, она и
-    /// есть починка, а не сообщение о поломке. Ссылок на файлы сборки оттуда нет, так что
-    /// <see cref="ReleaseInfo.Assets"/> остаётся пустым: обновиться одной кнопкой не выйдет,
-    /// но «доступна версия такая-то» и «открыть релиз» работают.
+    /// есть починка, а не сообщение о поломке. Списка файлов на ней нет, поэтому сборка берётся
+    /// из <c>SHA256SUMS</c> того же релиза (<see cref="WithBuildFromSumsAsync"/>): имя exe и его
+    /// сумма лежат там, а ссылка на файл по тегу строится без API. Так найденная этим путём
+    /// версия и ставится кнопкой, и качается сама — как найденная через API.
     /// </remarks>
     private static async Task<UpdateCheckResult?> FallBackToReleasePageAsync(
         HttpClient http,
         ReleaseVersion current,
         CancellationToken cancellationToken)
     {
+        UpdateCheckResult? found;
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesPageUrl);
@@ -681,13 +769,52 @@ public static class UpdateChecker
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
 
-            return response.IsSuccessStatusCode
+            found = response.IsSuccessStatusCode
                 ? ReadTaggedUrl(response.RequestMessage?.RequestUri?.ToString(), current)
                 : null;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
         {
             return null;
+        }
+
+        // Тот же выпуск, что стоит, — качать нечего, и лишний запрос за суммами не нужен.
+        return found is { UpdateAvailable: true, Latest: { } latest }
+            ? found with { Latest = await WithBuildFromSumsAsync(http, latest, current.Core, cancellationToken).ConfigureAwait(false) }
+            : found;
+    }
+
+    /// <summary>
+    /// Добавляет к выпуску, найденному без API, сборку из его <c>SHA256SUMS</c>. Файла сумм нет или
+    /// он не читается — выпуск остаётся без сборки, и обновиться можно со страницы релиза.
+    /// </summary>
+    private static async Task<ReleaseInfo> WithBuildFromSumsAsync(
+        HttpClient http,
+        ReleaseInfo release,
+        Version current,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, DownloadUrl(release.Tag, SumsAssetName));
+            request.Headers.UserAgent.ParseAdd(ProductToken + "/" + Normalize(current));
+            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode ||
+                response.Content.Headers.ContentLength is > 64 * 1024)
+            {
+                return release;
+            }
+
+            var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            return ReadBuildFromSums(text, release.Tag) is { } build
+                ? release with { Assets = [build] }
+                : release;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException ||
+                                   ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            // Номер версии уже известен — терять его из-за файла сумм незачем.
+            return release;
         }
     }
 

@@ -155,6 +155,28 @@ public sealed class UiShotTests : IDisposable
                     sortMenu.IsOpen = false;
                 }
 
+                // Меню «⋯» строки чата — со значками у каждого пункта.
+                var row = ((Panel)window.FindName("ChatListPanel")).Children.OfType<Button>()
+                    .FirstOrDefault(button => button.Tag is string);
+                if (row is not null)
+                {
+                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, false);
+                    await Settle(300);
+                    if (OpenMenu() is { } chatMenu)
+                    {
+                        Save(chatMenu, Path.Combine(folder, "00-menu-chat.png"), null);
+                        chatMenu.IsOpen = false;
+                    }
+
+                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, true);
+                    await Settle(300);
+                    if (OpenMenu() is { } pinnedMenu)
+                    {
+                        Save(pinnedMenu, Path.Combine(folder, "00-menu-chat-pinned.png"), null);
+                        pinnedMenu.IsOpen = false;
+                    }
+                }
+
                 // Боковая панель с включённым фильтром по тегу.
                 var tag = services.Organizer.Snapshot().Tags.First();
                 Call(window, "SetTagFilter", tag.Id);
@@ -200,6 +222,22 @@ public sealed class UiShotTests : IDisposable
                 }
 
                 Save(card, Path.Combine(folder, prefix + ".png"), null);
+
+                // Раскрытая выпадашка: у неё своё окно, снимок страницы её не видит.
+                if (name == "NavBehavior" &&
+                    Descendants<ComboBox>(card).FirstOrDefault(combo => combo.IsVisible) is { } dropdown)
+                {
+                    dropdown.IsDropDownOpen = true;
+                    await Settle(350);
+                    if (Descendants<Popup>(dropdown).FirstOrDefault() is { Child: FrameworkElement list })
+                    {
+                        Save(list, Path.Combine(folder, prefix + "-dropdown.png"), null);
+                    }
+
+                    dropdown.IsDropDownOpen = false;
+                    await Settle(200);
+                }
+
                 if (name == "NavInstructions" && window.FindName("InstructionsPage") is SettingsInstructionsPage instructions)
                 {
                     Call(instructions, "OpenEditor", [null]);

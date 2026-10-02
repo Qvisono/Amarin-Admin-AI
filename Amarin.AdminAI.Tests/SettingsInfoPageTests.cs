@@ -72,7 +72,7 @@ public sealed class SettingsInfoPageTests
             var card = (FrameworkElement)window.FindName("SettingsAboutCard")!;
             var restore = version.Text;
 
-            version.Text = Loc.Format("S.Updates.SidebarBadge", "1.19.5");
+            version.Text = Loc.Format("S.Updates.SidebarNewer", "1.19.5", "1.20.0");
             window.UpdateLayout();
             var measured = card.ActualWidth;
 

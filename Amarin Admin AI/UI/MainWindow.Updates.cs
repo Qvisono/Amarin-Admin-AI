@@ -56,6 +56,21 @@ namespace Amarin.UI
             set => _latestRelease = value;
         }
 
+        /// <summary>
+        /// Почему не удалась последняя проверка; <c>null</c> — удалась или ещё не шла.
+        /// </summary>
+        /// <remarks>
+        /// Без этого страница, открытая после неудачной проверки, говорила «Последняя версия» —
+        /// ровно то, чего программа как раз не знает.
+        /// </remarks>
+        private string? _lastCheckError;
+
+        /// <summary>Какая версия сейчас качается — для плашки, открытой посреди загрузки.</summary>
+        private ReleaseVersion? _downloadingVersion;
+
+        /// <summary>Доля уже скачанного у <see cref="_downloadingVersion"/>.</summary>
+        private double _downloadShare;
+
         private UpdatePlan? _pendingUpdate;
         private CancellationTokenSource? _updateDownload;
 
@@ -155,6 +170,26 @@ namespace Amarin.UI
             UpdateVersionText.Text = "v" + RuntimeContext.AppVersion;
             ShowLastCheck();
             LoadReleaseExtrasUi();
+            ShowUpdateCard();
+        }
+
+        /// <summary>
+        /// Рисует плашку по тому, что сейчас известно: качается, скачано, найдено, проверяется,
+        /// проверить не вышло или новее нет.
+        /// </summary>
+        /// <remarks>
+        /// Одно место на все случаи. Пока каждое событие красило плашку само, повторная проверка
+        /// поверх скачанной версии возвращала «Есть обновление» вместо «Готово к установке»,
+        /// страница, открытая посреди загрузки, писала «Доступна версия» над кнопкой «Отменить»,
+        /// а после неудачной проверки — «Последняя версия».
+        /// </remarks>
+        private void ShowUpdateCard()
+        {
+            if (_downloadingVersion is { } downloading && (_autoDownload is not null || _updateDownload is not null))
+            {
+                ShowDownloading(downloading, _downloadShare);
+                return;
+            }
 
             if (_staged is not null)
             {
@@ -168,10 +203,32 @@ namespace Amarin.UI
                 return;
             }
 
-            ShowUpdateStatus(Loc.Format("S.Updates.Installed", RuntimeContext.AppVersion), accent: false);
-            ShowUpdatePhase(UpdatePhase.UpToDate);
-            OpenReleaseButton.Visibility = Visibility.Collapsed;
             UpdateNowButton.Visibility = Visibility.Collapsed;
+            SettingsVersionText.Text = "v" + RuntimeContext.AppVersion;
+            SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
+
+            if (_updateCheckRunning)
+            {
+                OpenReleaseButton.Visibility = Visibility.Collapsed;
+                ShowUpdateStatus(Loc.Get("S.Updates.Checking"), accent: false);
+                ShowUpdatePhase(UpdatePhase.Checking);
+                return;
+            }
+
+            if (_lastCheckError is { } error)
+            {
+                // Проверить не вышло — посмотреть руками человек может всегда.
+                OpenReleaseButton.Visibility = Visibility.Visible;
+                ShowUpdateStatus(error, accent: false);
+                ShowUpdatePhase(UpdatePhase.Failed);
+                return;
+            }
+
+            OpenReleaseButton.Visibility = Visibility.Collapsed;
+            ShowUpdateStatus(
+                Loc.Format(_lastSuccessfulCheckUtc is null ? "S.Updates.Installed" : "S.Updates.UpToDate", RuntimeContext.AppVersion),
+                accent: false);
+            ShowUpdatePhase(UpdatePhase.UpToDate);
         }
 
         private void AutoUpdateToggle_Changed(object sender, RoutedEventArgs e)
@@ -196,6 +253,9 @@ namespace Amarin.UI
             _autoDownload?.Cancel();
             _staged = null;
             _updateHeartbeat?.Stop();
+
+            // «Встанет при закрытии» больше не правда — плашка возвращается к найденной версии.
+            ShowUpdateCard();
         }
 
         private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => StartUpdateCheck(manual: true);
@@ -254,9 +314,7 @@ namespace Amarin.UI
 
             if (!UpdateInstaller.TryPlan(_latestRelease, Environment.ProcessPath, out var plan, out var error))
             {
-                ShowUpdateStatus(error, accent: false);
-                ShowUpdatePhase(UpdatePhase.Failed);
-                OpenReleaseButton.Visibility = Visibility.Visible;
+                ShowUpdateFailed(_latestRelease.Release, error);
                 return;
             }
 
@@ -338,36 +396,38 @@ namespace Amarin.UI
         /// <param name="allowUnverified">Человек дважды согласился поставить сборку без контрольной суммы.</param>
         private async Task InstallUpdateAsync(UpdatePlan plan, bool allowUnverified = false)
         {
-            if (_services is null || _updateDownload is not null || _autoDownload is not null)
+            if (_services is null || _updateDownload is not null || _autoDownload is not null ||
+                _latestRelease?.Release is not { } version)
             {
                 return;
             }
 
             // Автообновление могло принести этот самый файл в фоне. Качать его второй раз —
             // семьдесят восемь мегабайт впустую и лишняя минута ожидания.
-            var ready = _staged is { } staged && staged.Version == _latestRelease?.Release
+            var ready = _staged is { } staged && staged.Version == version
                 ? staged.File
                 : null;
-            var version = _latestRelease?.Release;
 
             using var cancellation = new CancellationTokenSource();
             _updateDownload = cancellation;
             UpdateNowButton.Content = Loc.Get("S.Common.Cancel");
             CheckUpdatesButton.IsEnabled = false;
+            var cancelled = false;
 
             try
             {
                 var file = ready;
                 if (file is null)
                 {
-                    ShowUpdatePhase(UpdatePhase.Downloading);
-                    ShowProgress(0);
-                    ShowUpdateStatus(Loc.Format("S.Updates.Downloading", 0), accent: false);
+                    ShowDownloading(version, 0);
 
                     var progress = new Progress<double>(share =>
                     {
-                        ShowProgress(share);
-                        ShowUpdateStatus(Loc.Format("S.Updates.Downloading", $"{share * 100:0}"), accent: false);
+                        // Отчёт о доле приходит очередью и может опоздать к концу загрузки.
+                        if (ReferenceEquals(_updateDownload, cancellation))
+                        {
+                            ShowDownloading(version, share);
+                        }
                     });
 
                     var (result, downloaded) = await UpdateInstaller.DownloadAsync(
@@ -379,9 +439,7 @@ namespace Amarin.UI
 
                     if (!result.Ok || downloaded is null)
                     {
-                        ShowUpdateStatus(Loc.Format("S.Updates.Failed", result.Error), accent: false);
-                        ShowUpdatePhase(UpdatePhase.Failed);
-                        OpenReleaseButton.Visibility = Visibility.Visible;
+                        ShowUpdateFailed(version, result.Error);
                         return;
                     }
 
@@ -392,15 +450,11 @@ namespace Amarin.UI
                 // он просил закрыть. Скачанное откладывается, и его поставит сам выход.
                 if (_exiting)
                 {
-                    if (version is { } known)
-                    {
-                        _staged = new StagedUpdate(plan, file, known);
-                    }
-
+                    _staged = new StagedUpdate(plan, file, version);
                     return;
                 }
 
-                ShowUpdateStatus(Loc.Get("S.Updates.Installing"), accent: false);
+                ShowUpdateStatus(Loc.Format("S.Updates.InstallingVersion", version), accent: false);
 
                 // Чат сохраняем до подмены: дальше процесс уже завершается.
                 PersistCurrent();
@@ -411,9 +465,7 @@ namespace Amarin.UI
 
                 if (!swap.Ok)
                 {
-                    ShowUpdateStatus(Loc.Format("S.Updates.Failed", swap.Error), accent: false);
-                    ShowUpdatePhase(UpdatePhase.Failed);
-                    OpenReleaseButton.Visibility = Visibility.Visible;
+                    ShowUpdateFailed(version, swap.Error);
                     return;
                 }
 
@@ -423,11 +475,12 @@ namespace Amarin.UI
             }
             catch (OperationCanceledException)
             {
-                ShowUpdateStatus(Loc.Get("S.Updates.DownloadCancelled"), accent: false);
+                cancelled = true;
             }
             finally
             {
                 _updateDownload = null;
+                _downloadingVersion = null;
 
                 // Через словарь, а не обратно в DynamicResource: локальное значение уже перекрыло
                 // ссылку из разметки, и вернуть её нечем — иначе после первой же загрузки кнопка
@@ -435,6 +488,14 @@ namespace Amarin.UI
                 UpdateNowButton.Content = Loc.Get(_staged is null ? "S.Updates.Update" : "S.Updates.Install");
                 CheckUpdatesButton.IsEnabled = true;
                 UpdateProgress.Visibility = Visibility.Collapsed;
+            }
+
+            // Отменённая загрузка возвращает плашку к найденной версии: кнопка «Обновить» снова
+            // на месте, а не пропадает до следующей проверки.
+            if (cancelled && !_exiting)
+            {
+                ShowUpdateCard();
+                ShowUpdateStatus(Loc.Get("S.Updates.DownloadCancelled"), accent: false);
             }
         }
 
@@ -594,7 +655,9 @@ namespace Amarin.UI
 
             try
             {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                // Тридцать секунд, а не двадцать: из них API достаётся только десять
+                // (UpdateChecker.ApiTimeout), остальное — запасному пути через github.com.
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 UpdateCheckResult result;
                 try
                 {
@@ -602,8 +665,8 @@ namespace Amarin.UI
                 }
                 catch (OperationCanceledException) when (timeout.IsCancellationRequested)
                 {
-                    // Свой срок в двадцать секунд — обычный отказ, а не авария: без этого
-                    // повтор через полчаса не назначался, а выход не узнавал, что проверка кончилась.
+                    // Свой срок — обычный отказ, а не авария: без этого повтор через полчаса не
+                    // назначался, а выход не узнавал, что проверка кончилась.
                     result = UpdateCheckResult.Failed(Loc.Get("S.Updates.Timeout"));
                 }
 
@@ -621,7 +684,10 @@ namespace Amarin.UI
                 _nextAutoCheckUtc = UpdateSchedule.NextAfter(now, result.Ok);
                 ShowLastCheck();
 
-                ApplyUpdateResult(result, manual);
+                // Проверка кончилась до того, как плашка о ней рассказывает, — иначе та так и
+                // осталась бы на «Проверяем».
+                _updateCheckRunning = false;
+                ApplyUpdateResult(result);
             }
             finally
             {
@@ -630,48 +696,40 @@ namespace Amarin.UI
             }
         }
 
-        private void ApplyUpdateResult(UpdateCheckResult result, bool manual)
+        private void ApplyUpdateResult(UpdateCheckResult result)
         {
-            if (_services is null)
-            {
-                return;
-            }
-
+            // Неудачная повторная проверка уже найденную версию не стирает: её файл и сумма
+            // известны, и ставить её можно по-прежнему. Плашка про отказ говорит, только когда
+            // больше сказать нечего, — и говорит всегда, а не только после кнопки «Проверить».
             if (!result.Ok || result.Latest is null)
             {
-                ShowUpdatePhase(UpdatePhase.Failed);
-                if (manual)
-                {
-                    ShowUpdateStatus(result.Error ?? Loc.Get("S.Updates.CheckFailed"), accent: false);
-                }
-
+                _lastCheckError = result.Error ?? Loc.Get("S.Updates.CheckFailed");
+                ShowUpdateCard();
                 return;
             }
 
+            _lastCheckError = null;
             if (!result.UpdateAvailable)
             {
-                ShowUpdatePhase(UpdatePhase.UpToDate);
-                if (manual)
-                {
-                    ShowUpdateStatus(
-                        Loc.Format("S.Updates.UpToDate", RuntimeContext.AppVersion),
-                        accent: false);
-                }
-
+                ShowUpdateCard();
                 return;
             }
 
-            _latestRelease = result.Latest;
-            _releasePageUrl = result.Latest.PageUrl;
-            ShowFoundRelease(result.Latest);
+            // Тот же выпуск, найденный беднее (запасной путь без файла сумм), не затирает
+            // найденный через API: иначе кнопка «Обновить» пропадала посреди сеанса.
+            var latest = UpdateChecker.Richer(_latestRelease, result.Latest);
+            _latestRelease = latest;
+            _releasePageUrl = latest.PageUrl;
+            ShowUpdateCard();
 
-            if (UpdateSchedule.ShouldAutoDownload(
-                    _services.Settings.AutoCheckUpdates,
-                    result.Latest,
+            if (_services is { } services &&
+                UpdateSchedule.ShouldAutoDownload(
+                    services.Settings.AutoCheckUpdates,
+                    latest,
                     _staged?.Version,
                     DeclinedRelease))
             {
-                _autoDownloadTask = AutoDownloadAsync(result.Latest);
+                _autoDownloadTask = AutoDownloadAsync(latest);
                 Detached.Run(_autoDownloadTask, "auto_download_update");
             }
         }
@@ -693,23 +751,24 @@ namespace Amarin.UI
 
             if (!UpdateInstaller.TryPlan(release, Environment.ProcessPath, out var plan, out var error))
             {
-                ShowUpdateStatus(error, accent: false);
-                ShowUpdatePhase(UpdatePhase.Failed);
-                OpenReleaseButton.Visibility = Visibility.Visible;
+                ShowUpdateFailed(release.Release, error);
                 return;
             }
 
             using var cancellation = new CancellationTokenSource();
             _autoDownload = cancellation;
-            ShowUpdatePhase(UpdatePhase.Downloading);
-            ShowProgress(0);
+            ShowDownloading(release.Release, 0);
+            var cancelled = false;
 
             try
             {
                 var progress = new Progress<double>(share =>
                 {
-                    ShowProgress(share);
-                    ShowUpdateStatus(Loc.Format("S.Updates.Downloading", $"{share * 100:0}"), accent: false);
+                    // Отчёт о доле приходит очередью и может опоздать к концу загрузки.
+                    if (ReferenceEquals(_autoDownload, cancellation))
+                    {
+                        ShowDownloading(release.Release, share);
+                    }
                 });
 
                 var (result, file) = await UpdateInstaller.DownloadAsync(
@@ -720,25 +779,72 @@ namespace Amarin.UI
 
                 if (!result.Ok || file is null)
                 {
-                    ShowUpdateStatus(Loc.Format("S.Updates.Failed", result.Error), accent: false);
-                    ShowUpdatePhase(UpdatePhase.Failed);
-                    OpenReleaseButton.Visibility = Visibility.Visible;
+                    ShowUpdateFailed(release.Release, result.Error);
                     return;
                 }
 
                 _staged = new StagedUpdate(plan, file, release.Release);
-                ShowStagedUpdate();
             }
             catch (OperationCanceledException)
             {
-                // Отменяют эту загрузку только выходом из программы или снятой галкой —
-                // в обоих случаях сообщать уже некому.
+                cancelled = true;
             }
             finally
             {
                 _autoDownload = null;
+                _downloadingVersion = null;
                 UpdateProgress.Visibility = Visibility.Collapsed;
+                UpdateNowButton.Content = Loc.Get(_staged is null ? "S.Updates.Update" : "S.Updates.Install");
             }
+
+            // Отменяют эту загрузку выход, снятая галка, смена канала или кнопка «Отменить». При
+            // выходе сообщать некому, в остальных случаях плашка возвращается к тому, что известно,
+            // — с кнопкой «Обновить», а не застывшим «Скачиваю … %».
+            if (!cancelled)
+            {
+                ShowStagedUpdate();
+            }
+            else if (!_exiting)
+            {
+                ShowUpdateCard();
+            }
+        }
+
+        /// <summary>
+        /// Идёт загрузка — какой версии и сколько. Кнопка под ней отменяет загрузку и так и
+        /// подписана.
+        /// </summary>
+        /// <remarks>
+        /// До 1.28.5 фоновая загрузка оставляла на кнопке «Обновить», а нажатие на неё молча
+        /// отменяло скачивание: плашка застывала на «Скачивание 37 %», и обновление выглядело
+        /// сломанным. Номера версии в строке не было вовсе — «Есть обновление», а какое, не видно.
+        /// </remarks>
+        private void ShowDownloading(ReleaseVersion version, double share)
+        {
+            _downloadingVersion = version;
+            _downloadShare = share;
+            ShowUpdatePhase(UpdatePhase.Downloading);
+            ShowProgress(share);
+            ShowUpdateStatus(
+                Loc.Format("S.Updates.DownloadingVersion", version, (share * 100).ToString("0", CultureInfo.CurrentCulture)),
+                accent: false);
+            UpdateNowButton.Content = Loc.Get("S.Common.Cancel");
+            UpdateNowButton.Visibility = Visibility.Visible;
+            OpenReleaseButton.Visibility = Visibility.Visible;
+            ShowSidebarVersionBadge("S.Updates.SidebarNewer", version);
+        }
+
+        /// <summary>
+        /// Загрузка или подмена не удалась. Кнопка «Обновить» остаётся: попробовать ещё раз можно
+        /// сразу, а не после следующей проверки.
+        /// </summary>
+        private void ShowUpdateFailed(ReleaseVersion version, string? error)
+        {
+            ShowUpdateStatus(Loc.Format("S.Updates.FailedVersion", version, error), accent: false);
+            ShowUpdatePhase(UpdatePhase.Failed);
+            UpdateNowButton.Content = Loc.Get("S.Updates.Update");
+            UpdateNowButton.Visibility = Visibility.Visible;
+            OpenReleaseButton.Visibility = Visibility.Visible;
         }
 
         /// <summary>Показывает найденный релиз. Общее для проверки и для открытия настроек.</summary>
@@ -746,15 +852,18 @@ namespace Amarin.UI
         {
             _releasePageUrl ??= release.PageUrl;
             OpenReleaseButton.Visibility = Visibility.Visible;
-            UpdateNowButton.Visibility = release.WindowsBuild is null
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            var build = release.WindowsBuild is not null;
+            UpdateNowButton.Content = Loc.Get("S.Updates.Update");
+            UpdateNowButton.Visibility = build ? Visibility.Visible : Visibility.Collapsed;
             ShowUpdatePhase(UpdatePhase.Available);
+
+            // Без файла сборки кнопке нечего ставить — тогда строка прямо говорит, где взять версию,
+            // а не оставляет человека гадать, куда делась кнопка.
             ShowUpdateStatus(
-                Loc.Format("S.Updates.Available", release.Release, RuntimeContext.AppVersion),
+                Loc.Format(build ? "S.Updates.Available" : "S.Updates.AvailableNoBuild", release.Release, RuntimeContext.AppVersion),
                 accent: true);
 
-            ShowSidebarVersionBadge("S.Updates.SidebarBadge");
+            ShowSidebarVersionBadge("S.Updates.SidebarNewer", release.Release);
         }
 
         /// <summary>Показывает уже скачанную сборку, которая ждёт закрытия программы.</summary>
@@ -772,19 +881,20 @@ namespace Amarin.UI
                     staged.Version),
                 accent: true);
 
+            UpdateProgress.Visibility = Visibility.Collapsed;
             UpdateNowButton.Content = Loc.Get("S.Updates.Install");
             UpdateNowButton.Visibility = Visibility.Visible;
             OpenReleaseButton.Visibility = Visibility.Visible;
-            ShowSidebarVersionBadge("S.Updates.SidebarReady");
+            ShowSidebarVersionBadge("S.Updates.SidebarStaged", staged.Version);
         }
 
         /// <summary>
         /// Метка у номера версии в боковой колонке настроек: единственное место, где о новой
-        /// версии видно, не открывая эту страницу.
+        /// версии видно, не открывая эту страницу. Называет и установленную, и новую версию.
         /// </summary>
-        private void ShowSidebarVersionBadge(string key)
+        private void ShowSidebarVersionBadge(string key, ReleaseVersion version)
         {
-            SettingsVersionText.Text = Loc.Format(key, RuntimeContext.AppVersion);
+            SettingsVersionText.Text = Loc.Format(key, RuntimeContext.AppVersion, version);
             SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
         }
 

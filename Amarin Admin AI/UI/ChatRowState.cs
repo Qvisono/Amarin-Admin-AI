@@ -149,6 +149,19 @@ public static class ChatRowState
 
     public static void SetTag3(DependencyObject element, System.Windows.Media.Brush? value) => element.SetValue(Tag3Property, value);
 
+    /// <summary>
+    /// Раздел, в который попадёт чат, брошенный на эту строку или заголовок (<see cref="Core.ChatDropTarget"/>).
+    /// Пусто — сюда не бросают (заголовок «Папки», выдача поиска).
+    /// </summary>
+    public static readonly DependencyProperty DropTargetProperty =
+        DependencyProperty.RegisterAttached("DropTarget", typeof(object), typeof(ChatRowState), new PropertyMetadata(null));
+
+    internal static Core.ChatDropTarget? GetDropTarget(DependencyObject element) =>
+        element.GetValue(DropTargetProperty) as Core.ChatDropTarget?;
+
+    internal static void SetDropTarget(DependencyObject element, Core.ChatDropTarget? value) =>
+        element.SetValue(DropTargetProperty, value);
+
     private static void Set(DependencyObject element, DependencyProperty property, bool value)
     {
         ArgumentNullException.ThrowIfNull(element);

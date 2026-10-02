@@ -249,7 +249,7 @@ internal static class CostBreakdownTooltip
             Padding = new Thickness(10, 8, 10, 8),
             Child = content
         };
-        card.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
+        card.SetResourceReference(Border.BackgroundProperty, "Bg.Panel");
         card.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
 
         // По центру, как и у подсказок из неявного стиля: карточка встаёт по центру под своей
@@ -257,12 +257,12 @@ internal static class CostBreakdownTooltip
         // а не куда-то левее неё.
         var arrow = new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse("M0,6 L6,0 L12,6 Z"),
+            Data = Glyphs.Get("M0,6 L6,0 L12,6 Z"),
             StrokeThickness = 1,
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 0, 0, -1)
         };
-        arrow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Bg.Card");
+        arrow.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Bg.Panel");
         arrow.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Border.Default");
 
         var stack = new Grid();
