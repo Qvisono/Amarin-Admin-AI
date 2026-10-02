@@ -107,7 +107,7 @@ public partial class LanguagePickerField : UserControl
         {
             var check = new Path
             {
-                Data = Geometry.Parse("M0,3.5 L3,6.5 L8,0"),
+                Data = Glyphs.Get("M0,3.5 L3,6.5 L8,0"),
                 Width = 9,
                 Height = 7,
                 Stretch = Stretch.Uniform,

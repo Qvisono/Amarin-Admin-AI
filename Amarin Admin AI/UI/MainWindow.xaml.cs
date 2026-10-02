@@ -131,8 +131,9 @@ namespace Amarin.UI
                 System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
                 new RoutedEventHandler(ChatListPanel_Click));
 
+            // Зажатая кнопка в колонке чатов перетаскивает чат, а не листает список.
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
-            SmoothScroll.SetDragScroll(SideBarScrollViewer, true);
+            InitializeChatDrag();
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
@@ -149,8 +150,9 @@ namespace Amarin.UI
             // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
             // за это отвечает сам SmoothScroll.
             //
-            // И перетаскиванием — колонку и страницы настроек листают ещё и зажатой кнопкой, той
-            // же инерцией. В ленте чата левая кнопка занята выделением текста и лупой.
+            // И перетаскиванием — страницы настроек листают ещё и зажатой кнопкой, той же инерцией.
+            // В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
+            // перетаскиванием чатов по папкам.
             foreach (var page in (ScrollViewer[])
                      [AppearancePageScroll, BehaviorPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
             {
@@ -2027,6 +2029,12 @@ namespace Amarin.UI
                 return;
             }
 
+            if (e.Key == Key.Escape && _chatDrag?.Cancel() == true)
+            {
+                e.Handled = true;
+                return;
+            }
+
             // Уведомление модально: Escape отвечает «нет», а горячие клавиши и лупа ждут —
             // «новый чат» под открытым вопросом увёл бы из-под него тот чат, о котором спрашивают.
             if (IsNoticeOpen)
@@ -2942,11 +2950,19 @@ namespace Amarin.UI
                 return;
             }
 
+            // Пересборка из-под перетаскиваемой строки сорвала бы жест — она подождёт его конца.
+            if (_chatDrag is { IsDragging: true } drag)
+            {
+                drag.RefreshPending = true;
+                return;
+            }
+
             _chatListSignature = signature;
             ChatListPanel.Children.Clear();
 
             IReadOnlyList<ChatListNode> nodes;
-            if ((IsContentSearchResult && items.Count > 0) || query.Trim().Length > 0)
+            var searching = (IsContentSearchResult && items.Count > 0) || query.Trim().Length > 0;
+            if (searching)
             {
                 // Выдача поиска — одним списком. У ответа модели порядок — это близость к запросу,
                 // и разложить его по «Сегодня» и «Вчера» значило бы перемешать ответ; у поиска по
@@ -2959,7 +2975,7 @@ namespace Amarin.UI
                 nodes = ChatListLayout.Build(items, organize, sort, _tagFilter, _archiveExpanded, DateTime.Today);
             }
 
-            RenderChatListNodes(nodes);
+            RenderChatListNodes(nodes, droppable: !searching);
             UpdateBatchBar();
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
@@ -3104,10 +3120,16 @@ namespace Amarin.UI
 
             // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
             // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.
-            var loaded = FindTurn(id)?.Session ?? _services.ChatStore.TryLoad(id);
+            var live = FindTurn(id)?.Session;
+            var loaded = live ?? _services.ChatStore.TryLoad(id);
             if (loaded is null)
             {
                 return;
+            }
+
+            if (live is null)
+            {
+                ChatEngine.CloseInterruptedReplies(loaded);
             }
 
             LoadSession(loaded);
@@ -3292,14 +3314,9 @@ namespace Amarin.UI
                 HideReplyPill();
             }
 
-            if (_autoScrolling)
-            {
-                return;
-            }
-
             if (e.ExtentHeightChange != 0)
             {
-                if (_stickToBottom)
+                if (_stickToBottom && !_autoScrolling)
                 {
                     MaybeAutoscroll();
                 }
@@ -3309,7 +3326,16 @@ namespace Amarin.UI
 
             if (e.VerticalChange != 0)
             {
+                // Где лента стоит — пересчитывается при любом сдвиге, и нашем тоже. Пока
+                // `_autoScrolling` глушил весь обработчик, прокрутка человека в эти мгновения
+                // терялась: признак «у низа» оставался поднятым, и следующая порция
+                // дорисовки уводила ленту обратно в конец. Наша же прокрутка признак не портит:
+                // ScrollToEnd ведёт к низу, а сдвиг под якорь бывает, только когда лента не у низа.
                 _stickToBottom = IsChatScrolledToBottom();
+                if (_autoScrolling)
+                {
+                    return;
+                }
 
                 // Пока идёт жест лупы, достройку пропускаем: смещение меняется каждый кадр, и
                 // проход по всей ленте с пересчётом координат шёл бы по шестьдесят раз в секунду.

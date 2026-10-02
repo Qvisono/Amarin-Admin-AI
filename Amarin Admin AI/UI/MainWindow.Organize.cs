@@ -16,8 +16,8 @@ namespace Amarin.UI
     /// Раскладку считает чистая <see cref="ChatListLayout"/>, здесь — только её отрисовка и меню.
     /// Заголовки папок и архива — кнопки, но их <c>Tag</c> не строка: по строке
     /// <see cref="FindChatRow"/> узнаёт строку чата, и щелчок по папке открывал бы «чат».
-    /// Перетаскивания в папку нет намеренно: в колонке чатов зажатая кнопка уже листает список
-    /// (<see cref="SmoothScroll.DragScroll"/>), и два жеста на одном нажатии спорили бы.
+    /// Чаты перетаскиваются по разделам мышью (<see cref="ChatListDrag"/>), поэтому колонка не
+    /// листается зажатой кнопкой: два жеста на одном нажатии спорили бы.
     /// </remarks>
     public partial class MainWindow
     {
@@ -25,6 +25,86 @@ namespace Amarin.UI
         private string? _selectionAnchor;
         private bool _archiveExpanded;
         private string? _tagFilter;
+        private ChatListDrag? _chatDrag;
+
+        /// <summary>У строк списка есть разделы, куда бросать: в выдаче поиска их нет.</summary>
+        private bool _chatListDroppable;
+
+        private void InitializeChatDrag()
+        {
+            _chatDrag = new ChatListDrag(
+                ChatListPanel,
+                SideBarScrollViewer,
+                ChatDragLayer,
+                () => _chatListDroppable && !_sidebarCollapsed,
+                id => _selectedChats.Count > 1 && _selectedChats.Contains(id) ? SelectedChats() : [id],
+                DropChats);
+            _chatDrag.Ended += () =>
+            {
+                if (_chatDrag.RefreshPending)
+                {
+                    _chatDrag.RefreshPending = false;
+                    RefreshChatList();
+                }
+            };
+        }
+
+        /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop"/>.</summary>
+        private void DropChats(IReadOnlyList<string> ids, ChatDropTarget target)
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var pinned = _services.ChatStore.List()
+                .Where(entry => entry.IsPinned)
+                .Select(entry => entry.Id)
+                .ToHashSet(StringComparer.Ordinal);
+            var plan = ChatDrop.Plan(
+                ids.Select(id => new ChatDropSource(id, pinned.Contains(id), _services.Organizer.PlacementOf(id))),
+                target);
+            if (plan.IsEmpty)
+            {
+                return;
+            }
+
+            foreach (var id in plan.Unpin)
+            {
+                _services.ChatStore.SetPinned(id, false);
+            }
+
+            foreach (var id in plan.Pin)
+            {
+                _services.ChatStore.SetPinned(id, true);
+            }
+
+            if (plan.Unarchive.Count > 0)
+            {
+                _services.Organizer.SetArchived(plan.Unarchive, false);
+            }
+
+            if (plan.Archive.Count > 0)
+            {
+                _services.Organizer.SetArchived(plan.Archive, true);
+            }
+
+            if (plan.Move.Count > 0)
+            {
+                _services.Organizer.MoveToFolder(plan.Move, plan.FolderId);
+            }
+
+            // Брошенное в свёрнутую папку пропало бы из вида — папка раскрывается и показывает его.
+            if (plan.FolderId is { } folder)
+            {
+                _services.Organizer.SetCollapsed(folder, false);
+            }
+
+            _selectedChats.Clear();
+            _selectionAnchor = null;
+            RefreshChatList();
+            UpdateBatchBar();
+        }
 
         /// <summary>Смена профиля: выбор, фильтр и раскрытый архив относились к прежнему.</summary>
         private void ResetChatListView()
@@ -38,13 +118,23 @@ namespace Amarin.UI
 
         // ───────────────────────── Отрисовка ─────────────────────────
 
-        private void RenderChatListNodes(IReadOnlyList<ChatListNode> nodes)
+        /// <param name="droppable">
+        /// Раскладка по разделам, а не выдача поиска: каждому элементу проставляется раздел, куда
+        /// упадёт брошенный на него чат.
+        /// </param>
+        private void RenderChatListNodes(IReadOnlyList<ChatListNode> nodes, bool droppable)
         {
+            _chatListDroppable = droppable;
+
+            // Раздел текущей группы и раздел раскрытой папки или архива — для вложенных строк.
+            ChatDropTarget? section = null;
+            ChatDropTarget? nested = null;
             for (var i = 0; i < nodes.Count; i++)
             {
                 // Чаты раскрытой папки идут сразу за её заголовком, и карточку папки замыкает
                 // последний из них — чей сосед снизу уже не вложенный чат.
                 var nextNested = i + 1 < nodes.Count && nodes[i + 1] is ChatListChat { Nested: true };
+                FrameworkElement element;
                 switch (nodes[i])
                 {
                     case ChatListGroup group:
@@ -59,13 +149,19 @@ namespace Amarin.UI
                             header.Margin = new Thickness(14, 6, 6, 4);
                         }
 
-                        ChatListPanel.Children.Add(header);
+                        section = droppable ? SectionOf(group.TitleKey) : null;
+                        ChatRowState.SetDropTarget(header, section);
+                        element = header;
                         break;
                     case ChatListFolder folder:
-                        ChatListPanel.Children.Add(Banded(BuildFolderHeader(folder), folder.Folder.Collapsed, nextNested));
+                        nested = droppable ? ChatDropTarget.Folder(folder.Folder.Id) : null;
+                        element = Banded(BuildFolderHeader(folder), folder.Folder.Collapsed, nextNested);
+                        ChatRowState.SetDropTarget(element, nested);
                         break;
                     case ChatListArchive archive:
-                        ChatListPanel.Children.Add(Banded(BuildArchiveHeader(archive), !archive.Expanded, nextNested));
+                        nested = droppable ? ChatDropTarget.Archive : null;
+                        element = Banded(BuildArchiveHeader(archive), !archive.Expanded, nextNested);
+                        ChatRowState.SetDropTarget(element, nested);
                         break;
                     case ChatListChat chat:
                         var row = BuildChatRow(chat);
@@ -74,11 +170,24 @@ namespace Amarin.UI
                             ChatRowState.SetBand(row, nextNested ? FolderBand.Middle : FolderBand.Bottom);
                         }
 
-                        ChatListPanel.Children.Add(row);
+                        ChatRowState.SetDropTarget(row, chat.Nested ? nested : section);
+                        element = row;
                         break;
+                    default:
+                        continue;
                 }
+
+                ChatListPanel.Children.Add(element);
             }
         }
+
+        /// <summary>Раздел группы по её заголовку. Над папками заголовок общий — бросать туда некуда.</summary>
+        private static ChatDropTarget? SectionOf(string titleKey) => titleKey switch
+        {
+            "S.ChatList.Pinned" => ChatDropTarget.Pinned,
+            "S.ChatList.Folders" => null,
+            _ => ChatDropTarget.Loose
+        };
 
         /// <summary>
         /// Раскрытая папка с чатами — верх карточки; свёрнутая и пустая — карточка из одной
@@ -136,8 +245,12 @@ namespace Amarin.UI
             };
 
             var menu = new ContextMenu { Style = (Style)FindResource("AppContextMenu") };
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.RenameFolder"), () => RenameFolder(folder)));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.DeleteFolder"), () => Detached.Run(DeleteFolderAsync(folder), "delete_folder"), danger: true));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.RenameFolder"), () => RenameFolder(folder), icon: "Icon.Menu.Rename"));
+            menu.Items.Add(MenuItemFor(
+                Loc.Get("S.ChatList.DeleteFolder"),
+                () => Detached.Run(DeleteFolderAsync(folder), "delete_folder"),
+                danger: true,
+                icon: "Icon.Menu.Delete"));
             button.ContextMenu = menu;
             return button;
         }
@@ -170,7 +283,7 @@ namespace Amarin.UI
         {
             var icon = new Path
             {
-                Data = Geometry.Parse(glyph),
+                Data = Glyphs.Get(glyph),
                 Width = 15,
                 Height = 13,
                 Stretch = Stretch.None,
@@ -206,7 +319,7 @@ namespace Amarin.UI
 
             var chevron = new Path
             {
-                Data = Geometry.Parse("M1,1 L5,5 L9,1"),
+                Data = Glyphs.Get("M1,1 L5,5 L9,1"),
                 Width = 10,
                 Height = 6,
                 Stretch = Stretch.Uniform,

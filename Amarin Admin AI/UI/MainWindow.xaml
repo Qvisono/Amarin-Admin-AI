@@ -675,6 +675,9 @@
 
                         </StackPanel>
                     </ScrollViewer>
+                    <!-- Слой перетаскивания чатов (ChatListDrag): карточка под курсором, подсветка
+                         раздела и зона «Закрепить». Поверх списка и сквозной для мыши. -->
+                    <Canvas x:Name="ChatDragLayer" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True"/>
                     <Border Grid.Row="1" x:Name="SidebarFooter">
                         <Grid Height="40" Margin="8,0">
                             <Grid.ColumnDefinitions>
@@ -1725,7 +1728,7 @@
                                                 <!-- Стрелка, указывающая на иконку -->
                                                 <Path Grid.Row="0"
                               Data="M0,6 L6,0 L12,6 Z"
-                              Fill="{DynamicResource Bg.Card}"
+                              Fill="{DynamicResource Bg.Panel}"
                               Stroke="{DynamicResource Status.WarningBorder}"
                               StrokeThickness="1"
                               HorizontalAlignment="Center"
@@ -1734,7 +1737,7 @@
                                                 <!-- Тело подсказки -->
                                                 <Border Grid.Row="1"
                                 Width="230"
-                                Background="{DynamicResource Bg.Card}"
+                                Background="{DynamicResource Bg.Panel}"
                                 BorderBrush="{DynamicResource Status.WarningBorder}"
                                 BorderThickness="1"
                                 CornerRadius="8"
@@ -2342,7 +2345,7 @@
 
                                 Растягивается по ширине колонки, а не по содержимому: при найденном
                                 обновлении MainWindow.Updates.cs переписывает SettingsVersionText
-                                длинной строкой S.Updates.SidebarBadge. Сжатая по содержимому
+                                длинной строкой S.Updates.SidebarNewer. Сжатая по содержимому
                                 карточка на ней раздувалась бы за пределы колонки в 170 пикселей
                                 прямо под страницу настроек; здесь ширина задана полями, а лишнее
                                 уходит в перенос.
@@ -2359,7 +2362,7 @@
                                     </Grid.RowDefinitions>
                                     <!-- Text.Secondary, а не Text.Faint: блёклый серый на тёмной карточке не читался. -->
                                     <TextBlock x:Name="SettingsVersionText"
-                                               Text="v1.28.0"
+                                               Text="v1.29.0"
                                                FontSize="10"
                                                Foreground="{DynamicResource Text.Secondary}"
                                                TextWrapping="Wrap"

@@ -84,9 +84,9 @@ public partial class GlobalHotkeysBlock : UserControl
         box.LostFocus += (_, _) =>
         {
             var text = box.Text.Trim();
-            if (text.Length > 0 && !GlobalHotkeys.TryParse(text, out _, out _))
+            if (text.Length > 0 && Problem(text) is { } problem)
             {
-                status.Text = Loc.Get("S.Windows.HotkeyInvalid");
+                status.Text = problem;
                 status.Visibility = Visibility.Visible;
                 return;
             }
@@ -114,6 +114,17 @@ public partial class GlobalHotkeysBlock : UserControl
         Grid.SetColumn(frame, 1);
         row.Children.Add(frame);
         return row;
+    }
+
+    /// <summary>Почему сочетание нельзя назначить; null — можно.</summary>
+    private static string? Problem(string gesture)
+    {
+        if (!GlobalHotkeys.TryParse(gesture, out var modifiers, out var key))
+        {
+            return Loc.Get("S.Windows.HotkeyInvalid");
+        }
+
+        return GlobalHotkeys.IsReservedBySystem(modifiers, key) ? Loc.Get("S.Windows.HotkeyReserved") : null;
     }
 
     private void Save(string action, string gesture)

@@ -8,7 +8,7 @@ using Amarin.UI;
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Колонку чатов и страницы настроек листают ещё и зажатой кнопкой — той же физикой, что колесо.
+/// Страницы настроек листают ещё и зажатой кнопкой — той же физикой, что колесо.
 /// </summary>
 /// <remarks>
 /// Жест ведётся через <c>SmoothScroll.ArmDrag</c>/<c>DragTo</c>: положение мыши в поднятом
@@ -23,14 +23,13 @@ public sealed class DragScrollTests
     public DragScrollTests(WpfFixture wpf) => _wpf = wpf;
 
     [Fact]
-    public void The_sidebar_and_every_settings_page_scroll_by_dragging()
+    public void Every_settings_page_scrolls_by_dragging()
     {
         var (window, keyPage, infoPage) = _wpf.Ui.Invoke(() =>
         {
             var main = Application.Current.Windows.OfType<MainWindow>().Single();
             string[] names =
             [
-                "SideBarScrollViewer",
                 "AppearancePageScroll",
                 "BehaviorPageScroll",
                 "CustomizePageScroll",
@@ -60,6 +59,21 @@ public sealed class DragScrollTests
         });
 
         Assert.False(dragging);
+    }
+
+    [Fact]
+    public void The_chat_list_does_not_scroll_by_dragging()
+    {
+        // В колонке чатов зажатая кнопка перетаскивает чат в папку или в закреплённые.
+        var (dragging, wheel) = _wpf.Ui.Invoke(() =>
+        {
+            var main = Application.Current.Windows.OfType<MainWindow>().Single();
+            var sidebar = (ScrollViewer)main.FindName("SideBarScrollViewer")!;
+            return (SmoothScroll.GetDragScroll(sidebar), SmoothScroll.GetIsEnabled(sidebar));
+        });
+
+        Assert.False(dragging);
+        Assert.True(wheel);
     }
 
     [Fact]

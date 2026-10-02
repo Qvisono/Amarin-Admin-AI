@@ -105,6 +105,9 @@ namespace Amarin.UI
             }
 
             PersistCurrent();
+
+            // Поделиться могли посреди ответа — у нас этот ход не идёт и не дойдёт до конца.
+            ChatEngine.CloseInterruptedReplies(shared);
             _services.ChatStore.Save(shared);
             LoadSession(shared);
             RefreshChatList();

@@ -437,6 +437,14 @@ namespace Amarin.UI
                     continue;
                 }
 
+                // Сохранённое прежней версией сочетание «Ножниц» не регистрируется: иначе при открытой
+                // программе Windows не делала бы снимков экрана.
+                if (GlobalHotkeys.IsReservedBySystem(modifiers, key))
+                {
+                    _hotkeyProblems[action] = Loc.Get("S.Windows.HotkeyReserved");
+                    continue;
+                }
+
                 if (RegisterHotKey(handle, id, modifiers | GlobalHotkeys.ModNoRepeat, key))
                 {
                     _hotkeyIds[id] = action;

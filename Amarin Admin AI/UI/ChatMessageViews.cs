@@ -75,32 +75,62 @@ internal sealed class MessageActions
 
 internal sealed class UserMessageView
 {
+    private TextBox? _editor;
+
     public FrameworkElement Root { get; }
     public required Border Bubble { get; init; }
     public required RichTextBox Display { get; init; }
-    public required TextBox Editor { get; init; }
+
+    /// <summary>Ячейка пузыря, в которой текст сообщения меняется на поле правки.</summary>
+    public required Grid EditHost { get; init; }
+
+    /// <summary>Собирает поле правки. Зовётся при первой правке, а не при постройке ленты.</summary>
+    public required Func<UserMessageView, TextBox> CreateEditor { get; init; }
+
+    /// <summary>
+    /// Поле правки. Создаётся по требованию: правят единицы сообщений, а скрытый
+    /// <see cref="TextBox"/> под каждым вопросом стоил ленте памяти и времени постройки.
+    /// </summary>
+    public TextBox Editor
+    {
+        get
+        {
+            if (_editor is null)
+            {
+                _editor = CreateEditor(this);
+                EditHost.Children.Add(_editor);
+            }
+
+            return _editor;
+        }
+    }
 
     public UserMessageView(FrameworkElement root) => Root = root;
 
     public void BeginEdit(string text)
     {
-        Editor.Text = text;
+        var editor = Editor;
+        editor.Text = text;
         var width = Display.Width > 1 ? Display.Width : Display.ActualWidth;
         if (width > 1)
         {
-            Editor.MinWidth = width;
-            Editor.Width = width;
+            editor.MinWidth = width;
+            editor.Width = width;
         }
 
         Display.Visibility = Visibility.Collapsed;
-        Editor.Visibility = Visibility.Visible;
-        Editor.Focus();
-        Editor.CaretIndex = Editor.Text.Length;
+        editor.Visibility = Visibility.Visible;
+        editor.Focus();
+        editor.CaretIndex = editor.Text.Length;
     }
 
     public void CancelEdit()
     {
-        Editor.Visibility = Visibility.Collapsed;
+        if (_editor is not null)
+        {
+            _editor.Visibility = Visibility.Collapsed;
+        }
+
         Display.Visibility = Visibility.Visible;
     }
 }
@@ -1146,30 +1176,11 @@ internal static class ChatMessageViews
             FitUserBubble(display, parsed.FlatInline, host);
         }
 
-        var editor = new TextBox
-        {
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            FontSize = ChatFonts.BodySize,
-            TextWrapping = TextWrapping.Wrap,
-            AcceptsReturn = true,
-            Visibility = Visibility.Collapsed,
-            Padding = new Thickness(0),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            MaxWidth = UserBubbleInnerMax
-        };
-        editor.SetResourceReference(Control.ForegroundProperty, UserForeground);
-        editor.SetResourceReference(TextBoxBase.CaretBrushProperty, UserForeground);
-
-        // Правка своего сообщения — то же поле ввода, и стрелки в нём ведут себя так же.
-        TextCaretEdges.Attach(editor);
-
         var hostGrid = new Grid
         {
             HorizontalAlignment = wide ? HorizontalAlignment.Stretch : HorizontalAlignment.Left
         };
         hostGrid.Children.Add(display);
-        hostGrid.Children.Add(editor);
 
         var bubble = new Border { Style = (Style)host.FindResource("UserBubble"), Child = hostGrid };
 
@@ -1234,13 +1245,38 @@ internal static class ChatMessageViews
         {
             Bubble = bubble,
             Display = display,
-            Editor = editor
+            EditHost = hostGrid,
+            CreateEditor = self => CreateUserEditor(message, actions, self)
         };
         edit.Click += (_, _) =>
         {
             actions?.Edit?.Invoke(message);
             view.BeginEdit(message.Text);
         };
+        return view;
+    }
+
+    /// <summary>Поле правки вопроса: Enter отправляет правку, Esc и пустой текст — отменяют.</summary>
+    private static TextBox CreateUserEditor(ChatDisplayMessage message, MessageActions? actions, UserMessageView view)
+    {
+        var editor = new TextBox
+        {
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            FontSize = ChatFonts.BodySize,
+            TextWrapping = TextWrapping.Wrap,
+            AcceptsReturn = true,
+            Visibility = Visibility.Collapsed,
+            Padding = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MaxWidth = UserBubbleInnerMax
+        };
+        editor.SetResourceReference(Control.ForegroundProperty, UserForeground);
+        editor.SetResourceReference(TextBoxBase.CaretBrushProperty, UserForeground);
+
+        // Правка своего сообщения — то же поле ввода, и стрелки в нём ведут себя так же.
+        TextCaretEdges.Attach(editor);
+
         editor.PreviewKeyDown += (_, e) =>
         {
             if (e.Key == Key.Escape)
@@ -1254,17 +1290,14 @@ internal static class ChatMessageViews
             {
                 e.Handled = true;
                 var text = editor.Text.Trim();
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    view.CancelEdit();
-                    return;
-                }
-
                 view.CancelEdit();
-                actions?.CommitEdit?.Invoke(message, text);
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    actions?.CommitEdit?.Invoke(message, text);
+                }
             }
         };
-        return view;
+        return editor;
     }
 
     /// <summary>Плашка логотипа модели: картинка, а под ней буква и молния на случай, если её нет.</summary>
@@ -1287,7 +1320,7 @@ internal static class ChatMessageViews
         };
         var logoLightning = new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse("M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"),
+            Data = Glyphs.Get("M6,0 L1,8 L5,8 L4,14 L10,5 L6,5 Z"),
             Width = 9,
             Height = 12,
             Stretch = Stretch.Uniform,
@@ -1867,7 +1900,7 @@ internal static class ChatMessageViews
     {
         var book = new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse(
+            Data = Glyphs.Get(
                 "M1,2 C3,1 6,1 8,2.5 C10,1 13,1 15,2 L15,13 C13,12 10,12 8,13.5 C6,12 3,12 1,13 Z M8,2.5 L8,13.5"),
             Width = 13,
             Height = 11,
@@ -2100,7 +2133,7 @@ internal static class ChatMessageViews
     {
         var sheet = new System.Windows.Shapes.Path
         {
-            Data = Geometry.Parse("M5.5,3 L13.5,3 L18.5,8 L18.5,21 L5.5,21 Z M13.5,3 L13.5,8 L18.5,8"),
+            Data = Glyphs.Get("M5.5,3 L13.5,3 L18.5,8 L18.5,21 L5.5,21 Z M13.5,3 L13.5,8 L18.5,8"),
             StrokeThickness = 1.7,
             StrokeLineJoin = PenLineJoin.Round,
             StrokeStartLineCap = PenLineCap.Round,

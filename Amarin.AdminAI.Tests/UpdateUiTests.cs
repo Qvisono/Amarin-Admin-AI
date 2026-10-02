@@ -222,7 +222,183 @@ public sealed class UpdateUiTests
         });
 
         Assert.Equal(Loc.Get("S.Updates.Pill.Ready"), pill);
-        Assert.Equal(Loc.Format("S.Updates.SidebarReady", RuntimeContext.AppVersion), badge);
+        Assert.Equal(Loc.Format("S.Updates.SidebarStaged", RuntimeContext.AppVersion, "99.0.0"), badge);
+    }
+
+    [Fact]
+    public void A_found_release_names_the_new_version_on_the_card_and_in_the_sidebar()
+    {
+        // «Есть обновление» без номера: какая версия вышла, видно не было — в боковой колонке
+        // стоял только номер установленной.
+        var (status, badge) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
+            var version = (TextBlock)window.FindName("SettingsVersionText")!;
+            try
+            {
+                window.LatestRelease = NewerRelease();
+                window.LoadUpdatesUi();
+                return (statusText.Text, version.Text);
+            }
+            finally
+            {
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Contains("99.0.0", status, StringComparison.Ordinal);
+        Assert.Equal(Loc.Format("S.Updates.SidebarNewer", RuntimeContext.AppVersion, "99.0.0"), badge);
+    }
+
+    [Fact]
+    public void A_download_in_progress_names_the_version_and_its_button_says_cancel()
+    {
+        // Фоновая загрузка оставляла на кнопке «Обновить», и нажатие молча отменяло скачивание:
+        // плашка застывала на «Скачивание 37 %».
+        var (pill, status, button, visible) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
+            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
+            var updateNow = (Button)window.FindName("UpdateNowButton")!;
+            using var download = new CancellationTokenSource();
+            try
+            {
+                window.LatestRelease = NewerRelease();
+                Set(window, "_autoDownload", download);
+                Set(window, "_downloadingVersion", (ReleaseVersion?)new ReleaseVersion(new Version(99, 0, 0), ""));
+                Set(window, "_downloadShare", 0.37);
+                window.LoadUpdatesUi();
+                return (pillText.Text, statusText.Text, updateNow.Content as string, updateNow.Visibility);
+            }
+            finally
+            {
+                Set(window, "_autoDownload", null);
+                Set(window, "_downloadingVersion", null);
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Equal(Loc.Get("S.Updates.Pill.Downloading"), pill);
+        Assert.Equal(Loc.Format("S.Updates.DownloadingVersion", "99.0.0", "37"), status);
+        Assert.Equal(Loc.Get("S.Common.Cancel"), button);
+        Assert.Equal(Visibility.Visible, visible);
+    }
+
+    [Fact]
+    public void A_poorer_answer_about_the_same_release_does_not_take_the_button_away()
+    {
+        // Главная поломка обновления: повторная проверка упиралась в лимит API, запасной путь
+        // находил ту же версию без файлов — и затирал ею полную. Кнопка «Обновить» пропадала, а
+        // с ней и автообновление.
+        var (visible, kept) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var button = (Button)window.FindName("UpdateNowButton")!;
+            try
+            {
+                window.LatestRelease = NewerRelease();
+                window.LoadUpdatesUi();
+                Call(window, "ApplyUpdateResult", new UpdateCheckResult
+                {
+                    Latest = NewerRelease() with { Assets = [] },
+                    UpdateAvailable = true
+                });
+                return (button.Visibility, window.LatestRelease?.WindowsBuild is not null);
+            }
+            finally
+            {
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Equal(Visibility.Visible, visible);
+        Assert.True(kept);
+    }
+
+    [Fact]
+    public void A_failed_recheck_keeps_the_found_release_on_the_card()
+    {
+        var (pill, visible) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
+            var button = (Button)window.FindName("UpdateNowButton")!;
+            try
+            {
+                window.LatestRelease = NewerRelease();
+                Call(window, "ApplyUpdateResult", UpdateCheckResult.Failed("GitHub answered 503."));
+                return (pillText.Text, button.Visibility);
+            }
+            finally
+            {
+                Set(window, "_lastCheckError", null);
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Equal(Loc.Get("S.Updates.Pill.Available"), pill);
+        Assert.Equal(Visibility.Visible, visible);
+    }
+
+    [Fact]
+    public void A_failed_check_with_nothing_found_says_why_instead_of_up_to_date()
+    {
+        // Неудачная автопроверка красила пилюлю в «Не удалось», а строка оставалась «Установлена
+        // версия …»; открытая позже страница и вовсе говорила «Последняя версия».
+        var (pill, status, openRelease) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
+            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
+            var open = (Button)window.FindName("OpenReleaseButton")!;
+            try
+            {
+                window.LatestRelease = null;
+                Call(window, "ApplyUpdateResult", UpdateCheckResult.Failed("GitHub answered 503."));
+                window.LoadUpdatesUi();
+                return (pillText.Text, statusText.Text, open.Visibility);
+            }
+            finally
+            {
+                Set(window, "_lastCheckError", null);
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Equal(Loc.Get("S.Updates.Pill.Failed"), pill);
+        Assert.Equal("GitHub answered 503.", status);
+        Assert.Equal(Visibility.Visible, openRelease);
+    }
+
+    [Fact]
+    public void A_release_without_a_build_says_where_to_get_it()
+    {
+        var (status, visible) = _wpf.Ui.Invoke(() =>
+        {
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
+            var button = (Button)window.FindName("UpdateNowButton")!;
+            try
+            {
+                window.LatestRelease = NewerRelease() with { Assets = [] };
+                window.LoadUpdatesUi();
+                return (statusText.Text, button.Visibility);
+            }
+            finally
+            {
+                window.LatestRelease = null;
+                window.LoadUpdatesUi();
+            }
+        });
+
+        Assert.Equal(Loc.Format("S.Updates.AvailableNoBuild", "99.0.0", RuntimeContext.AppVersion), status);
+        Assert.Equal(Visibility.Collapsed, visible);
     }
 
     [Fact]
@@ -319,6 +495,9 @@ public sealed class UpdateUiTests
 
     private static T Call<T>(object target, string method) =>
         (T)target.GetType().GetMethod(method, Hidden)!.Invoke(target, null)!;
+
+    private static void Call(object target, string method, params object?[] arguments) =>
+        target.GetType().GetMethod(method, Hidden)!.Invoke(target, arguments);
 
     /// <summary>Сборка, будто бы уже скачанная и ждущая выхода. На диск ничего не кладётся.</summary>
     [Fact]

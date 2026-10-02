@@ -455,6 +455,8 @@
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Today</system:String>
     <system:String x:Key="S.ChatList.Unarchive" xml:space="preserve">Restore from archive</system:String>
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Unpin</system:String>
+    <system:String x:Key="S.ChatList.DragMany" xml:space="preserve">{0} chats</system:String>
+    <system:String x:Key="S.ChatList.DropToPin" xml:space="preserve">Pin</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Yesterday</system:String>
 
     <system:String x:Key="S.ChatProfile.AllInstructions" xml:space="preserve">All enabled instructions</system:String>
@@ -1847,6 +1849,7 @@
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Auto-update</system:String>
     <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Checks for a new version at every startup and then every 5 hours. A found one is downloaded in the background and installed after you close the app - the window disappears at once and the update finishes without it. The file keeps its place and its name</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Version {0} is available - {1} is installed</system:String>
+    <system:String x:Key="S.Updates.AvailableNoBuild" xml:space="preserve">Version {0} is available - {1} is installed. Download it from the release page</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Unexpected answer from GitHub.</system:String>
     <system:String x:Key="S.Updates.Beta" xml:space="preserve">Beta versions</system:String>
     <system:String x:Key="S.Updates.BetaDesc" xml:space="preserve">Offer pre-releases too. They come out earlier and may contain bugs.</system:String>
@@ -1859,10 +1862,11 @@
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Update to version {0}</system:String>
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Current version</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
-    <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Downloading {0} %</system:String>
+    <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Downloading version {0} - {1} %</system:String>
     <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Replacing the file as administrator did not work.</system:String>
     <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Without administrator rights the program file cannot be replaced.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">The update did not happen: {0}</system:String>
+    <system:String x:Key="S.Updates.FailedVersion" xml:space="preserve">Version {0} was not installed: {1}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub turned the check down. Open the release page by hand.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">The update check must not carry somebody else's key.</system:String>
     <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">The checksum did not match - the file was deleted.</system:String>
@@ -1870,7 +1874,7 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Could not put the new file in place: {0}</system:String>
     <system:String x:Key="S.Updates.InstallUnverified" xml:space="preserve">Update without checking</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Version {0} is installed</system:String>
-    <system:String x:Key="S.Updates.Installing" xml:space="preserve">Installing…</system:String>
+    <system:String x:Key="S.Updates.InstallingVersion" xml:space="preserve">Installing version {0}…</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">The file stays in place and keeps its name - shortcuts and the run-as-administrator flag survive.</system:String>
     <system:String x:Key="S.Updates.LastCheck" xml:space="preserve">Last check: {0}</system:String>
     <system:String x:Key="S.Updates.LastCheck.HoursAgo" xml:space="preserve">{0} h ago</system:String>
@@ -1915,8 +1919,8 @@
     <system:String x:Key="S.Updates.RollbackTitle" xml:space="preserve">Go back to the previous version?</system:String>
     <system:String x:Key="S.Updates.RollbackUnknown" xml:space="preserve">Go back to the previous version</system:String>
     <system:String x:Key="S.Updates.RollingBack" xml:space="preserve">Restoring the previous version…</system:String>
-    <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · update available</system:String>
-    <system:String x:Key="S.Updates.SidebarReady" xml:space="preserve">v{0} · update ready</system:String>
+    <system:String x:Key="S.Updates.SidebarNewer" xml:space="preserve">v{0} · v{1} available</system:String>
+    <system:String x:Key="S.Updates.SidebarStaged" xml:space="preserve">v{0} · v{1} ready to install</system:String>
     <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">The size did not match: expected {0} bytes, got {1}.</system:String>
     <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub answered {0}.</system:String>
     <system:String x:Key="S.Updates.Timeout" xml:space="preserve">The check took too long.</system:String>
@@ -1985,6 +1989,7 @@
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Not a shortcut: it needs Ctrl, Alt or Win plus a key.</system:String>
     <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">none</system:String>
     <system:String x:Key="S.Windows.HotkeyTaken" xml:space="preserve">This shortcut is taken by another app or by Windows.</system:String>
+    <system:String x:Key="S.Windows.HotkeyReserved" xml:space="preserve">Windows uses this shortcut to capture or record the screen.</system:String>
     <system:String x:Key="S.Windows.Hotkeys" xml:space="preserve">From any app</system:String>
     <system:String x:Key="S.Windows.HotkeysHint" xml:space="preserve">For example Ctrl+Alt+Space or Win+Shift+A. Empty means no shortcut.</system:String>
     <system:String x:Key="S.Windows.JumpHealth" xml:space="preserve">PC health</system:String>

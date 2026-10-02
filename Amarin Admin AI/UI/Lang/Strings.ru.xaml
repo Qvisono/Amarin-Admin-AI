@@ -455,6 +455,8 @@
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Сегодня</system:String>
     <system:String x:Key="S.ChatList.Unarchive" xml:space="preserve">Вернуть из архива</system:String>
     <system:String x:Key="S.ChatList.Unpin" xml:space="preserve">Открепить</system:String>
+    <system:String x:Key="S.ChatList.DragMany" xml:space="preserve">Чатов: {0}</system:String>
+    <system:String x:Key="S.ChatList.DropToPin" xml:space="preserve">Закрепить</system:String>
     <system:String x:Key="S.ChatList.Yesterday" xml:space="preserve">Вчера</system:String>
 
     <system:String x:Key="S.ChatProfile.AllInstructions" xml:space="preserve">Все включённые инструкции</system:String>
@@ -1847,6 +1849,7 @@
     <system:String x:Key="S.Updates.Auto" xml:space="preserve">Автообновление</system:String>
     <system:String x:Key="S.Updates.AutoDesc" xml:space="preserve">Проверяет новую версию при каждом запуске и дальше каждые 5 часов. Найденную скачивает в фоне и ставит после закрытия программы - окно исчезает сразу, обновление доводится без него. Файл остаётся на прежнем месте и под прежним именем</system:String>
     <system:String x:Key="S.Updates.Available" xml:space="preserve">Доступна версия {0} - установлена {1}</system:String>
+    <system:String x:Key="S.Updates.AvailableNoBuild" xml:space="preserve">Доступна версия {0} - установлена {1}. Скачайте её со страницы релиза</system:String>
     <system:String x:Key="S.Updates.BadAnswer" xml:space="preserve">Неожиданный ответ GitHub.</system:String>
     <system:String x:Key="S.Updates.Beta" xml:space="preserve">Бета-версии</system:String>
     <system:String x:Key="S.Updates.BetaDesc" xml:space="preserve">Предлагать и предварительные выпуски. Они выходят раньше и могут содержать ошибки.</system:String>
@@ -1859,10 +1862,11 @@
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Обновить до версии {0}</system:String>
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Текущая версия</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Загрузка отменена.</system:String>
-    <system:String x:Key="S.Updates.Downloading" xml:space="preserve">Скачивание {0} %</system:String>
+    <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Скачиваем версию {0} - {1} %</system:String>
     <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Подмена файла от имени администратора не удалась.</system:String>
     <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Без прав администратора файл программы не заменить.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">Обновление не состоялось: {0}</system:String>
+    <system:String x:Key="S.Updates.FailedVersion" xml:space="preserve">Версия {0} не установилась: {1}</system:String>
     <system:String x:Key="S.Updates.Forbidden" xml:space="preserve">GitHub отклонил проверку. Откройте страницу релиза вручную.</system:String>
     <system:String x:Key="S.Updates.ForeignKey" xml:space="preserve">Проверка обновлений не должна ходить с чужим ключом.</system:String>
     <system:String x:Key="S.Updates.HashMismatch" xml:space="preserve">Контрольная сумма не совпала - файл удалён.</system:String>
@@ -1870,7 +1874,7 @@
     <system:String x:Key="S.Updates.InstallFailed" xml:space="preserve">Не удалось поставить новый файл: {0}</system:String>
     <system:String x:Key="S.Updates.InstallUnverified" xml:space="preserve">Обновить без проверки</system:String>
     <system:String x:Key="S.Updates.Installed" xml:space="preserve">Установлена версия {0}</system:String>
-    <system:String x:Key="S.Updates.Installing" xml:space="preserve">Устанавливаем…</system:String>
+    <system:String x:Key="S.Updates.InstallingVersion" xml:space="preserve">Устанавливаем версию {0}…</system:String>
     <system:String x:Key="S.Updates.KeepsFileName" xml:space="preserve">Файл останется на прежнем месте и под прежним именем - ярлыки и запуск от имени администратора не потеряются.</system:String>
     <system:String x:Key="S.Updates.LastCheck" xml:space="preserve">Последняя проверка: {0}</system:String>
     <system:String x:Key="S.Updates.LastCheck.HoursAgo" xml:space="preserve">{0} ч назад</system:String>
@@ -1915,8 +1919,8 @@
     <system:String x:Key="S.Updates.RollbackTitle" xml:space="preserve">Вернуть прошлую версию?</system:String>
     <system:String x:Key="S.Updates.RollbackUnknown" xml:space="preserve">Вернуть прошлую версию</system:String>
     <system:String x:Key="S.Updates.RollingBack" xml:space="preserve">Возвращаю прошлую версию…</system:String>
-    <system:String x:Key="S.Updates.SidebarBadge" xml:space="preserve">v{0} · есть обновление</system:String>
-    <system:String x:Key="S.Updates.SidebarReady" xml:space="preserve">v{0} · обновление готово</system:String>
+    <system:String x:Key="S.Updates.SidebarNewer" xml:space="preserve">v{0} · доступна v{1}</system:String>
+    <system:String x:Key="S.Updates.SidebarStaged" xml:space="preserve">v{0} · v{1} готова к установке</system:String>
     <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">Размер не совпал: ждали {0} байт, получили {1}.</system:String>
     <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub ответил {0}.</system:String>
     <system:String x:Key="S.Updates.Timeout" xml:space="preserve">Проверка заняла слишком много времени.</system:String>
@@ -1985,6 +1989,7 @@
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Не сочетание: нужен Ctrl, Alt или Win и клавиша.</system:String>
     <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">нет</system:String>
     <system:String x:Key="S.Windows.HotkeyTaken" xml:space="preserve">Сочетание занято другой программой или Windows.</system:String>
+    <system:String x:Key="S.Windows.HotkeyReserved" xml:space="preserve">Этим сочетанием Windows снимает или записывает экран.</system:String>
     <system:String x:Key="S.Windows.Hotkeys" xml:space="preserve">Из любой программы</system:String>
     <system:String x:Key="S.Windows.HotkeysHint" xml:space="preserve">Например, Ctrl+Alt+Space или Win+Shift+A. Пусто — без сочетания.</system:String>
     <system:String x:Key="S.Windows.JumpHealth" xml:space="preserve">Состояние ПК</system:String>

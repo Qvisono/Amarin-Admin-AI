@@ -42,3 +42,4 @@ secrets.json
 
 # Visual Studio project backup artifacts
 *.csproj.Backup.tmp
+.claude/settings.local.json

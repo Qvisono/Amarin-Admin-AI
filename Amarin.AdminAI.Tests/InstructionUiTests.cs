@@ -210,7 +210,7 @@ public sealed class InstructionUiTests : IDisposable
             var restore = version.Text;
 
             overlay.Visibility = Visibility.Visible;
-            version.Text = Loc.Format("S.Updates.SidebarBadge", "1.27.10");
+            version.Text = Loc.Format("S.Updates.SidebarNewer", "1.27.10", "1.28.10");
             window.UpdateLayout();
             try
             {

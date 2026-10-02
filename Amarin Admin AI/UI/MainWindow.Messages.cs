@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Threading;
@@ -38,13 +39,27 @@ namespace Amarin.UI
         /// <summary>Запас вокруг видимой области, в пикселях. Примерно два-три сообщения.</summary>
         private const double MaterializeLead = 700;
 
-        /// <summary>Сколько сообщений достраивать за один заход фоновой дорисовки.</summary>
-        private const int BackgroundFillChunk = 3;
+        /// <summary>
+        /// Сколько времени отдаётся одной порции фоновой дорисовки. По времени, а не по числу
+        /// сообщений: ответ с кодом строится вдесятеро дольше простого, и порция «три сообщения»
+        /// то пролетала незаметно, то держала поток интерфейса по сотне миллисекунд.
+        /// </summary>
+        private static readonly long BackgroundFillBudget = Stopwatch.Frequency * 6 / 1000;
+
+        /// <summary>Как часто проверять, кончились ли жест лупы или инерция, пока дорисовка стоит.</summary>
+        private static readonly TimeSpan BackgroundFillRetry = TimeSpan.FromMilliseconds(120);
 
         /// <summary>Высота видимой области, пока настоящая неизвестна (окно ещё не разложено).</summary>
         private const double AssumedViewport = 800;
 
         private bool _fillScheduled;
+        private DispatcherTimer? _fillRetry;
+
+        /// <summary>Откуда фоновая дорисовка продолжит поиск недостроенного (идёт к началу ленты).</summary>
+        private int _fillCursor = -1;
+
+        /// <summary>Построенные в текущем заходе — им после раскладки запоминается высота.</summary>
+        private readonly List<ChatMessageHost> _justBuilt = [];
 
         /// <summary>Идёт материализация: прокрутка, которую она вызовет, — наша, а не человека.</summary>
         private bool _materializing;
@@ -55,10 +70,23 @@ namespace Amarin.UI
         /// </summary>
         private int _unbuiltMessages;
 
+        /// <summary>
+        /// Прокрутка ленты сейчас чужая: едет масштаб лупы, ленту тащат или доезжает бросок. Любая
+        /// постройка выше видимой области сдвинула бы текст под жестом — отсюда дрожь и прыжки
+        /// лупы в первые секунды после открытия большого чата.
+        /// </summary>
+        private bool TranscriptInMotion => ChatZoomBusy || SmoothScroll.IsAnimating(ChatScrollViewer);
+
         /// <summary>Ставит в ленту хосты под все сообщения чата и строит только видимую часть.</summary>
         private void BuildMessageHosts()
         {
             HideReplyPill();
+
+            // Высоты уходящей ленты — на случай возврата: тогда резерв встанет ровно, и
+            // достройка ничего не сдвинет.
+            RememberHeights(_messageHosts);
+            _justBuilt.Clear();
+            _fillCursor = -1;
             MessagesPanel.Children.Clear();
             _messageViews.Clear();
             _messageHosts.Clear();
@@ -114,6 +142,7 @@ namespace Amarin.UI
             }
 
             host.Fill(view);
+            _justBuilt.Add(host);
         }
 
         /// <summary>
@@ -368,38 +397,81 @@ namespace Amarin.UI
         /// </summary>
         /// <remarks>
         /// Именно снизу вверх: человек смотрит на конец чата, и всё достраиваемое растёт выше
-        /// видимой области. Порциями и фоновым приоритетом — чтобы между ними успевали пройти
-        /// кадры, ввод и прокрутка.
+        /// видимой области. Порциями по времени и фоновым приоритетом — чтобы между ними
+        /// успевали пройти кадры, ввод и прокрутка. Пока лента в движении (лупа, инерция),
+        /// дорисовка ждёт: постройка выше видимого сдвинула бы текст из-под жеста.
         /// </remarks>
         private void FillNextChunk()
         {
             _fillScheduled = false;
+            if (_unbuiltMessages == 0)
+            {
+                return;
+            }
+
+            if (TranscriptInMotion)
+            {
+                RetryBackgroundFillLater();
+                return;
+            }
 
             var built = 0;
             MaterializeAnchored(() =>
             {
-                for (var i = _messageHosts.Count - 1; i >= 0 && built < BackgroundFillChunk; i--)
+                var deadline = Stopwatch.GetTimestamp() + BackgroundFillBudget;
+                if (_fillCursor < 0 || _fillCursor >= _messageHosts.Count)
                 {
-                    if (_messageHosts[i].IsMaterialized)
+                    _fillCursor = _messageHosts.Count - 1;
+                }
+
+                for (; _fillCursor >= 0; _fillCursor--)
+                {
+                    if (built > 0 && Stopwatch.GetTimestamp() > deadline)
                     {
-                        continue;
+                        break;
                     }
 
-                    MaterializeHost(_messageHosts[i]);
-                    built++;
+                    var host = _messageHosts[_fillCursor];
+                    if (!host.IsMaterialized)
+                    {
+                        MaterializeHost(host);
+                        built++;
+                    }
                 }
 
                 return built;
             });
 
-            // Страховка от расхождения счётчика с лентой: строить было нечего, а счётчик говорит
-            // обратное, — сверяемся с лентой, а не заводим пустой заход снова.
+            // Курсор дошёл до начала, а недостроенное осталось — его добавили позже позади
+            // курсора (хвост после варианта ответа). Следующий заход начнёт с конца ленты.
             if (built == 0)
             {
+                _fillCursor = -1;
                 _unbuiltMessages = _messageHosts.Count(host => !host.IsMaterialized);
             }
 
             ScheduleBackgroundFill();
+        }
+
+        /// <summary>
+        /// Дорисовка встала из-за движения ленты. У инерции прокрутки нет события «доехала», поэтому
+        /// проверяем снова через короткую паузу; конец жеста лупы будит дорисовку сам
+        /// (<see cref="OnChatZoomSettled"/>).
+        /// </summary>
+        private void RetryBackgroundFillLater()
+        {
+            if (_fillRetry is null)
+            {
+                _fillRetry = new DispatcherTimer(DispatcherPriority.Background) { Interval = BackgroundFillRetry };
+                _fillRetry.Tick += (_, _) =>
+                {
+                    _fillRetry.Stop();
+                    ScheduleBackgroundFill();
+                };
+            }
+
+            _fillRetry.Stop();
+            _fillRetry.Start();
         }
 
         /// <summary>
@@ -408,15 +480,15 @@ namespace Amarin.UI
         /// <remarks>
         /// Якорь — первое сообщение на границе видимой области. Насколько оно уехало после
         /// постройки, настолько же двигается прокрутка. Пока лента пришпилена к низу, за это
-        /// отвечает автопрокрутка, и вмешиваться нельзя; во время инерции прокрутка принадлежит
-        /// <see cref="SmoothScroll"/> — тоже нельзя.
+        /// отвечает автопрокрутка, и вмешиваться нельзя; пока лента в движении, прокрутка
+        /// принадлежит лупе или <see cref="SmoothScroll"/> — тоже нельзя: два хозяина смещения
+        /// перетягивали бы его кадр за кадром.
         /// </remarks>
         private void MaterializeAnchored(Func<int> build)
         {
-            // Пока лента пришпилена к низу, место держит автопрокрутка, а во время инерции
-            // прокрутка принадлежит SmoothScroll — в обоих случаях якорь не нужен, и искать
-            // его (проход по ленте с пересчётом координат) незачем.
-            var anchor = !_stickToBottom && !SmoothScroll.IsAnimating(ChatScrollViewer)
+            // В обоих случаях якорь не нужен, и искать его (проход по ленте с пересчётом
+            // координат) незачем.
+            var anchor = !_stickToBottom && !TranscriptInMotion
                 ? AnchorHost()
                 : null;
             var before = anchor is null ? 0 : OffsetOf(anchor);
@@ -430,7 +502,8 @@ namespace Amarin.UI
                 }
 
                 MessagesPanel.UpdateLayout();
-                RememberHeights();
+                RememberHeights(_justBuilt);
+                _justBuilt.Clear();
 
                 if (anchor is null)
                 {
@@ -480,14 +553,19 @@ namespace Amarin.UI
             }
         }
 
-        private void RememberHeights()
+        /// <summary>
+        /// Запоминает высоты построенных хостов из списка. Зовут её с только что построенными —
+        /// проход по всей ленте на каждую порцию дорисовки делал её квадратичной — и со всей
+        /// лентой перед сменой чата.
+        /// </summary>
+        private void RememberHeights(IReadOnlyList<ChatMessageHost> hosts)
         {
             if (_messageHeights.Count > MessageHeightsLimit)
             {
                 _messageHeights.Clear();
             }
 
-            foreach (var host in _messageHosts)
+            foreach (var host in hosts)
             {
                 if (host.IsMaterialized && host.ActualHeight > 1 && !string.IsNullOrEmpty(host.Id))
                 {
@@ -498,7 +576,7 @@ namespace Amarin.UI
 
         /// <summary>
         /// Сколько места занять под ещё не построенное сообщение: измеренная высота, если она
-        /// известна, иначе прикидка по длине текста.
+        /// известна, иначе прикидка по разметке (<see cref="MessageHeightEstimate"/>).
         /// </summary>
         private double ReservedHeight(ChatDisplayMessage message)
         {
@@ -508,20 +586,9 @@ namespace Amarin.UI
                 return measured;
             }
 
-            var text = message.Text ?? "";
-            var user = message.Role == "user";
-
-            // Символов в строке и высота служебной обвязки — прикидка, а не расчёт: полоса
-            // прокрутки должна быть примерно верной, а точные высоты приедут с постройкой.
-            var perLine = user ? 70 : 95;
-            var lines = (text.Length / perLine) + text.AsSpan().Count('\n') + 1;
-            var chrome = user ? 34 : 96;
-            var images = message.Images.Count > 0 ? 120 : 0;
-
-            // Карточка цитаты — строка подписи и до трёх строк фрагмента.
-            var quotes = message.Quotes.Count * QuoteViews.CardHeightEstimate;
-
-            return Math.Clamp((lines * 21.0) + chrome + images + quotes, 40, 4000);
+            // Ширина ленты в её собственных координатах: лупа её не меняет.
+            var width = MessagesPanel.ActualWidth > 1 ? MessagesPanel.ActualWidth : ChatScrollViewer.ViewportWidth / ChatScale;
+            return MessageHeightEstimate.For(message, width);
         }
     }
 }

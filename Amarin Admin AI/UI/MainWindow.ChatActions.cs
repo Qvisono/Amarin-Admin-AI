@@ -85,11 +85,13 @@ namespace Amarin.UI
                 Style = (Style)FindResource("AppContextMenu")
             };
 
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChat(id)));
-            menu.Items.Add(MenuItemFor(pinned ? Loc.Get("S.ChatList.Unpin") : Loc.Get("S.ChatList.Pin"), () => PinChat(id, !pinned)));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChat(id), icon: "Icon.Menu.Rename"));
+            menu.Items.Add(MenuItemFor(
+                Loc.Get(pinned ? "S.ChatList.Unpin" : "S.ChatList.Pin"),
+                () => PinChat(id, !pinned),
+                icon: pinned ? "Icon.Menu.Unpin" : "Icon.Menu.Pin"));
 
-            // Раскладка (D5). Вложенных меню у AppMenuItem нет — выбор открывается вторым меню
-            // на том же месте.
+            // Вложенных меню у AppMenuItem нет — выбор открывается вторым меню на том же месте.
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatProfile.Title") + "…", () =>
             {
                 OpenChat(id);
@@ -97,34 +99,45 @@ namespace Amarin.UI
                 {
                     OpenChatSettings();
                 }
-            }));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, [id])));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, [id])));
+            }, icon: "Icon.Menu.ChatSettings"));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, [id]), icon: "Icon.Menu.MoveToFolder"));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, [id]), icon: "Icon.Menu.Tags"));
             var archived = _services?.Organizer.PlacementOf(id).Archived == true;
             menu.Items.Add(MenuItemFor(
                 Loc.Get(archived ? "S.ChatList.Unarchive" : "S.ChatList.Archive"),
-                () => ArchiveChats([id], !archived)));
+                () => ArchiveChats([id], !archived),
+                icon: archived ? "Icon.Menu.Unarchive" : "Icon.Menu.Archive"));
 
             if (SharingEnabled())
             {
                 menu.Items.Add(Divider());
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => WithChat(id, s => ShareSession(s, null))));
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Export") + "…", () => WithChat(id, s => OpenExportMenu(anchor, s, null))));
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => WithChat(id, s => ShareSession(s, null)), icon: "Icon.Menu.Share"));
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Export") + "…", () => WithChat(id, s => OpenExportMenu(anchor, s, null)), icon: "Icon.Menu.Export"));
             }
 
             menu.Items.Add(Divider());
-            menu.Items.Add(MenuItemFor(Loc.Get("S.Common.Delete"), () => Detached.Run(DeleteChatsAsync([id]), "delete_chat"), danger: true));
+            menu.Items.Add(MenuItemFor(
+                Loc.Get("S.Common.Delete"),
+                () => Detached.Run(DeleteChatsAsync([id]), "delete_chat"),
+                danger: true,
+                icon: "Icon.Menu.Delete"));
 
             menu.IsOpen = true;
         }
 
-        private MenuItem MenuItemFor(string header, Action invoke, bool danger = false)
+        /// <param name="icon">Ключ геометрии значка из <c>Resources.xaml</c> (<c>Icon.Menu.*</c>).</param>
+        private MenuItem MenuItemFor(string header, Action invoke, bool danger = false, string? icon = null)
         {
             var entry = new MenuItem
             {
                 Header = header,
                 Style = (Style)FindResource(danger ? "DangerMenuItem" : "AppMenuItem")
             };
+            if (icon is not null)
+            {
+                MenuIcon.SetData(entry, (Geometry)FindResource(icon));
+            }
+
             entry.Click += (_, _) => invoke();
             return entry;
         }

@@ -104,6 +104,38 @@ public sealed class WindowsIntegrationTests
     public void A_bare_key_or_unknown_part_is_not_a_global_shortcut(string gesture) =>
         Assert.False(GlobalHotkeys.TryParse(gesture, out _, out _));
 
+    [Theory]
+    [InlineData("Win+Shift+S", true)]
+    [InlineData("shift+win+s", true)]
+    [InlineData("Win+Shift+R", true)]
+    [InlineData("Win+G", true)]
+    [InlineData("Win+Alt+R", true)]
+    [InlineData("Win+Alt+G", true)]
+    [InlineData("Win+Shift+A", false)]
+    [InlineData("Ctrl+Shift+S", false)]
+    [InlineData("Win+Ctrl+Shift+S", false)]
+    public void Shortcuts_windows_captures_the_screen_with_are_never_taken(string gesture, bool reserved)
+    {
+        // Перехваченное программой Win+Shift+S значило бы, что при открытой программе нельзя
+        // сделать снимок экрана.
+        Assert.True(GlobalHotkeys.TryParse(gesture, out var modifiers, out var key));
+        Assert.Equal(reserved, GlobalHotkeys.IsReservedBySystem(modifiers, key));
+        Assert.Equal(reserved, GlobalHotkeys.IsReservedBySystem(modifiers | GlobalHotkeys.ModNoRepeat, key));
+    }
+
+    [Fact]
+    public void No_factory_shortcut_is_one_windows_captures_the_screen_with()
+    {
+        foreach (var action in GlobalHotkeys.All)
+        {
+            if (GlobalHotkeys.Default(action) is { } gesture)
+            {
+                Assert.True(GlobalHotkeys.TryParse(gesture, out var modifiers, out var key));
+                Assert.False(GlobalHotkeys.IsReservedBySystem(modifiers, key));
+            }
+        }
+    }
+
     [Fact]
     public void Only_show_hide_has_a_factory_shortcut_and_an_empty_field_turns_it_off()
     {

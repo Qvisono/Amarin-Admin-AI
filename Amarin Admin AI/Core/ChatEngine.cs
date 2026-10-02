@@ -1812,6 +1812,38 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
+    /// Закрывает ответы, застывшие на «пишется»: процесс закрыли или он упал посреди хода, и
+    /// записанный чат так и остался со статусом <see cref="AssistantStatus.Streaming"/>.
+    /// </summary>
+    /// <remarks>
+    /// Зовут только для чата без живого хода. Иначе такой ответ при каждом открытии показывал
+    /// бы вечную анимацию «думаю» и одну кнопку «Стоп», которой нечего останавливать, а у его
+    /// инструментов крутились бы значки «выполняется». Прерванный ответ получает то же, что и
+    /// отменённый человеком, — в том числе «Продолжить».
+    /// </remarks>
+    /// <returns>Было ли что закрывать.</returns>
+    internal static bool CloseInterruptedReplies(ChatSession session)
+    {
+        var closed = false;
+        lock (session.Gate)
+        {
+            foreach (var message in ChatBranches.AllMessages(session))
+            {
+                if (message.Role != "assistant" || message.Status != AssistantStatus.Streaming)
+                {
+                    continue;
+                }
+
+                message.Status = AssistantStatus.Cancelled;
+                MarkRunningToolsCancelled(message);
+                closed = true;
+            }
+        }
+
+        return closed;
+    }
+
+    /// <summary>
     /// Last resort text: two attempts produced neither content nor reasoning. Name the model
     /// and the finish reason so the cause is visible instead of a bare "no text" line.
     /// </summary>
