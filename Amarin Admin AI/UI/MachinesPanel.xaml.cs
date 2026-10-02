@@ -7,19 +7,20 @@ using Microsoft.Win32;
 namespace Amarin.UI;
 
 /// <summary>
-/// Страница «Подключения»: удалённые машины (C10). Список, редактор и «Проверить связь».
+/// Вкладка «Компьютеры» страницы Automation: удалённые машины (C10). Список, редактор и
+/// «Проверить связь».
 /// </summary>
 /// <remarks>
 /// Пароль в редактор не возвращается никогда: поле пустое, а пустое при сохранении значит
 /// «оставить прежний». Так расшифрованный пароль не лежит в контроле дольше, чем его набирают.
 /// </remarks>
-public partial class SettingsConnectionsPage : UserControl
+public partial class MachinesPanel : UserControl
 {
     private AppServices? _services;
     private RemoteMachine? _editing;
     private readonly Dictionary<string, string> _probes = [];
 
-    public SettingsConnectionsPage()
+    public MachinesPanel()
     {
         InitializeComponent();
     }
@@ -27,21 +28,17 @@ public partial class SettingsConnectionsPage : UserControl
     /// <summary>Список машин изменился — выбор цели в чате перечитывает его.</summary>
     internal event Action? MachinesChanged;
 
-    internal void Attach(AppServices services)
-    {
-        _services = services;
-        McpPane.Attach(services);
-    }
+    /// <summary>Открыт или закрыт редактор — страница прячет над ним свой заголовок и вкладки.</summary>
+    internal event Action<bool>? EditingChanged;
+
+    internal void Attach(AppServices services) => _services = services;
 
     internal void Load()
     {
         EditorPane.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(false);
         Refresh();
-        if (McpPane.Visibility == Visibility.Visible)
-        {
-            McpPane.Load();
-        }
     }
 
     private void Refresh()
@@ -54,23 +51,6 @@ public partial class SettingsConnectionsPage : UserControl
         var machines = _services.Machines.Load();
         MachineItems.ItemsSource = machines.Select(machine => new MachineRow(machine, _probes.GetValueOrDefault(machine.Id))).ToList();
         EmptyState.Visibility = machines.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void Tab_Checked(object sender, RoutedEventArgs e)
-    {
-        if (McpPane is null || MachinesContent is null)
-        {
-            // Checked у заранее отмеченной вкладки приходит из InitializeComponent, до полей.
-            return;
-        }
-
-        var mcp = McpTab.IsChecked == true;
-        MachinesContent.Visibility = mcp ? Visibility.Collapsed : Visibility.Visible;
-        McpPane.Visibility = mcp ? Visibility.Visible : Visibility.Collapsed;
-        if (mcp)
-        {
-            McpPane.Load();
-        }
     }
 
     private RemoteMachine? MachineOf(object sender) =>
@@ -148,6 +128,7 @@ public partial class SettingsConnectionsPage : UserControl
         ErrorText.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Collapsed;
         EditorPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(true);
         NameBox.Focus();
     }
 

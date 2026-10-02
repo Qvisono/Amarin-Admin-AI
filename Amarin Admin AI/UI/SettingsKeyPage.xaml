@@ -3,12 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Amarin.UI">
     <!--
-        Стили настроек (PageTitle, SettingTitle и прочие) объявлены локально в
-        SettingsOverlay.Resources главного окна, и StaticResource из этого файла их не достанет:
-        поиск идёт по словарям разметки, а не по дереву. Поэтому общие ключи повторены здесь
-        один в один — тем же приёмом, что и на странице Info.
+        Общие стили настроек — из SettingsPageStyles.xaml (строка-ссылка, шапка подстраницы).
+        Свои копии заголовков, плиток и разделителя страница держит поверх них: так она
+        выглядит ровно как в 1.27.1.
     -->
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -71,9 +74,14 @@
                         <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
                                 BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="12" Padding="10,0">
-                            <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
-                                       Foreground="{DynamicResource Text.Muted}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                     соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                <TextBlock Text="{TemplateBinding Content}" FontSize="11" FontWeight="SemiBold" Visibility="Hidden"/>
+                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
+                                           Foreground="{DynamicResource Text.Muted}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -190,9 +198,11 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="KeyPageScroll" VerticalScrollBarVisibility="Auto">
+        <Grid local:SettingsDrill.IsHost="True">
         <StackPanel Margin="20,14,20,16">
             <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Key.Title}"/>
 
@@ -216,7 +226,18 @@
                     </StackPanel>
                 </Border>
             </Grid>
-            <TextBlock x:Name="BalanceNote" Style="{StaticResource SettingDesc}" Margin="0,6,0,0"/>
+            <!-- Пустая заметка не занимает места: иначе под плитками оставался зазор без текста. -->
+            <TextBlock x:Name="BalanceNote" Margin="0,6,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SettingDesc}">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -290,11 +311,6 @@
 
             <Border Style="{StaticResource SettingsDivider}"/>
 
-            <!-- ═══ Лимиты трат (E1) ═══ -->
-            <local:SpendLimitsBlock x:Name="LimitsBlock"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
             <!-- ═══ Разбивка по моделям ═══ -->
             <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Spend.Models.Title}"/>
             <TextBlock x:Name="ModelsEmpty" Style="{StaticResource SettingDesc}"
@@ -330,6 +346,26 @@
             <ItemsControl x:Name="HiddenKeyRows"/>
             <TextBlock x:Name="KeysBusyNote" Style="{StaticResource SettingDesc}"
                        Text="{DynamicResource S.Key.BusyTurns}" Visibility="Collapsed" Margin="0,8,0,0"/>
+
+            <!--
+                Лимиты трат и пороги остатка (E1, E4) — подстраницей в конце: в 1.28.0 они
+                стояли между графиком и разбивкой по моделям и рвали рассказ «сколько и на что».
+            -->
+            <Border Style="{StaticResource SettingsDivider}"/>
+            <Button x:Name="LimitsLinkRow" Style="{StaticResource SettingsLinkRow}"
+                    local:SettingsDrill.Opens="{Binding ElementName=LimitsSub}"
+                    AutomationProperties.Name="{DynamicResource S.Limit.Section}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.Section}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.SectionDesc}"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
+
+        <StackPanel x:Name="LimitsSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Limit.Section}"/>
+            <local:SpendLimitsBlock x:Name="LimitsBlock"/>
+        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

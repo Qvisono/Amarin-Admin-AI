@@ -9,45 +9,44 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Специальные возможности (I2, I3): высокая контрастность Windows, размер текста ленты, шрифт кода. -->
+    <!--
+        Размер текста ленты и шрифт кода (I3) — строками той же группы, что масштаб и формат даты,
+        а не отдельным разделом «Специальные возможности»: человек ищет их рядом с размером
+        интерфейса. Высокая контрастность (I2) живёт у темы, рядом с «Как в Windows».
+    -->
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Access.Title}"/>
-
-        <Grid Margin="0,4,0,8">
+        <Grid Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Access.Contrast}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.ContrastDesc}"/>
-            </StackPanel>
-            <CheckBox x:Name="ContrastToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" VerticalAlignment="Center"
-                      Checked="ContrastToggle_Changed" Unchecked="ContrastToggle_Changed"
-                      AutomationProperties.Name="{DynamicResource S.Access.Contrast}"/>
+            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                       Text="{DynamicResource S.Access.FontSize}"/>
+            <ComboBox x:Name="SizeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="110"
+                      AutomationProperties.Name="{DynamicResource S.Access.FontSize}"
+                      SelectionChanged="SizeCombo_SelectionChanged">
+                <ComboBoxItem Tag="12" Content="{DynamicResource S.Access.SizeSmall}"/>
+                <ComboBoxItem Tag="13.5" Content="{DynamicResource S.Access.SizeNormal}"/>
+                <ComboBoxItem Tag="15" Content="{DynamicResource S.Access.SizeLarge}"/>
+                <ComboBoxItem Tag="17" Content="{DynamicResource S.Access.SizeHuge}"/>
+            </ComboBox>
         </Grid>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Access.FontSize}" Margin="0,6,0,4"/>
-        <WrapPanel x:Name="SizeChips">
-            <RadioButton Tag="12" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Access.SizeSmall}" Checked="Size_Checked"/>
-            <RadioButton Tag="13.5" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Access.SizeNormal}" Checked="Size_Checked"/>
-            <RadioButton Tag="15" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Access.SizeLarge}" Checked="Size_Checked"/>
-            <RadioButton Tag="17" GroupName="ChatFontSize" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Access.SizeHuge}" Checked="Size_Checked"/>
-        </WrapPanel>
-
-        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Access.CodeFont}" Margin="0,10,0,4"/>
-        <WrapPanel x:Name="MonoChips">
-            <RadioButton Tag="consolas" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
-                         Content="Consolas" FontFamily="Consolas" Checked="Mono_Checked"/>
-            <RadioButton Tag="cascadia" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
-                         Content="Cascadia Mono" FontFamily="Cascadia Mono, Consolas" Checked="Mono_Checked"/>
-            <RadioButton Tag="courier" GroupName="CodeFont" Style="{StaticResource ChipRadio}"
-                         Content="Courier New" FontFamily="Courier New" Checked="Mono_Checked"/>
-        </WrapPanel>
-        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Access.CodeFontHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                       Text="{DynamicResource S.Access.CodeFont}"/>
+            <ComboBox x:Name="MonoCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="110"
+                      AutomationProperties.Name="{DynamicResource S.Access.CodeFont}"
+                      ToolTip="{DynamicResource S.Access.CodeFontHint}"
+                      SelectionChanged="MonoCombo_SelectionChanged">
+                <ComboBoxItem Tag="consolas" Content="Consolas" FontFamily="Consolas"/>
+                <ComboBoxItem Tag="cascadia" Content="Cascadia Mono" FontFamily="Cascadia Mono, Consolas"/>
+                <ComboBoxItem Tag="courier" Content="Courier New" FontFamily="Courier New"/>
+            </ComboBox>
+        </Grid>
     </StackPanel>
 </UserControl>

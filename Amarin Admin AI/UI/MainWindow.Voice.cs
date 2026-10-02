@@ -33,6 +33,15 @@ namespace Amarin.UI
                 }
             };
             ShowMicIdle();
+
+            // Движок, модель, язык и ключи меняются в настройках — по их закрытию и пересчёт.
+            SettingsOverlay.IsVisibleChanged += (_, e) =>
+            {
+                if (!(bool)e.NewValue)
+                {
+                    UpdateMicAvailability();
+                }
+            };
         }
 
         private void MicButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -80,10 +89,32 @@ namespace Amarin.UI
             return StartRecording();
         }
 
+        /// <summary>
+        /// Показывает микрофон, только если есть чем распознать. Зовётся при подключении служб и
+        /// при закрытии настроек: там меняются движок, модель, язык и ключи.
+        /// </summary>
+        private void UpdateMicAvailability() =>
+            MicHost.Visibility = IsVoiceAvailable() || IsRecording ? Visibility.Visible : Visibility.Collapsed;
+
+        private bool IsVoiceAvailable() =>
+            _services is { } services && OperatingSystem.IsWindows() &&
+            VoiceAvailability.IsAvailable(
+                services.Settings,
+                VoiceAvailability.SpeechCulture(services.Settings, LanguageManager.Current),
+                culture => LocalSpeech.Find(culture) is not null,
+                model => !string.IsNullOrWhiteSpace(services.Keys.CredentialFor(model, null).Secret));
+
         private bool StartRecording()
         {
             if (_services is null || !OperatingSystem.IsWindows())
             {
+                return false;
+            }
+
+            // Кнопки нет, но сочетание клавиш осталось: вместо записи впустую — куда идти настраивать.
+            if (MicHost.Visibility != Visibility.Visible)
+            {
+                Detached.Run(OfferVoiceSetupAsync(), "voice_setup");
                 return false;
             }
 
@@ -210,6 +241,21 @@ namespace Amarin.UI
 
         private sealed class VoiceUnavailableException(string message) : Exception(message);
 
+        private async Task OfferVoiceSetupAsync()
+        {
+            var open = await ShowNoticeAsync(
+                Loc.Get("S.Voice.UnavailableTitle"),
+                Loc.Get("S.Voice.SetupText"),
+                Loc.Get("S.Voice.SetupOpen"),
+                Loc.Get("S.Common.Close"),
+                NoticeTone.Info);
+            if (open)
+            {
+                OpenSettingsPage(NavBehavior);
+                SettingsDrill.Open(BehaviorVoiceSub);
+            }
+        }
+
         /// <summary>
         /// Где распознавать — по настройке: «Авто» берёт распознаватель Windows, если он есть для
         /// языка, иначе облако. Ни того, ни другого — понятный отказ с тем, что поправить.
@@ -217,16 +263,7 @@ namespace Amarin.UI
         private async Task<string> RecognizeAsync(byte[] wav, CancellationToken cancellationToken)
         {
             var settings = _services!.Settings;
-            var language = string.IsNullOrWhiteSpace(settings.VoiceLanguage) ? LanguageManager.Current : settings.VoiceLanguage!.Trim();
-            CultureInfo culture;
-            try
-            {
-                culture = CultureInfo.GetCultureInfo(language);
-            }
-            catch (CultureNotFoundException)
-            {
-                culture = CultureInfo.CurrentUICulture;
-            }
+            var culture = VoiceAvailability.SpeechCulture(settings, LanguageManager.Current);
 
             if (settings.VoiceEngine != VoiceEngine.Cloud && OperatingSystem.IsWindows() && LocalSpeech.Find(culture) is { } recognizer)
             {

@@ -41,19 +41,17 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Grid Margin="0,0,0,10">
+            <!-- Высота и одна строка — общие с остальными вкладками Automation, иначе список прыгает. -->
+            <Grid Height="28" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,12,0" VerticalAlignment="Center"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                            Text="{DynamicResource S.Schedule.Desc}"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                    <Button x:Name="HealthPresetButton" Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"
-                            Content="{DynamicResource S.Schedule.AddHealth}" Click="AddHealth_Click"/>
-                    <Button Style="{StaticResource AddButton}" Content="{DynamicResource S.Schedule.Create}"
-                            Click="Create_Click"/>
-                </StackPanel>
+                <Button Grid.Column="1" Style="{StaticResource AddButton}" VerticalAlignment="Center"
+                        Content="{DynamicResource S.Schedule.Create}" Click="Create_Click"/>
             </Grid>
 
             <ScrollViewer x:Name="ListScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -104,16 +102,13 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Border x:Name="EmptyState" Margin="0,4,0,0" Padding="24,22" CornerRadius="10"
-                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                            Background="{DynamicResource Bg.Card}" Visibility="Collapsed">
-                        <StackPanel HorizontalAlignment="Center" MaxWidth="340">
-                            <TextBlock Text="{DynamicResource S.Schedule.EmptyTitle}" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Body}" HorizontalAlignment="Center"/>
-                            <TextBlock Style="{StaticResource SettingDesc}" TextAlignment="Center" Margin="0,5,0,0"
-                                       Text="{DynamicResource S.Schedule.EmptyDesc}"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Пусто — строка и готовое задание одной кнопкой: с него проще всего начать. -->
+                    <StackPanel x:Name="EmptyState" Visibility="Collapsed">
+                        <TextBlock Style="{StaticResource SettingDesc}" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource Text.Faint}" Text="{DynamicResource S.Schedule.EmptyDesc}"/>
+                        <Button x:Name="HealthPresetButton" Style="{StaticResource AddButton}" HorizontalAlignment="Left"
+                                Margin="0,10,0,0" Content="{DynamicResource S.Schedule.AddHealth}" Click="AddHealth_Click"/>
+                    </StackPanel>
 
                     <TextBlock x:Name="RecentTitle" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"
                                Text="{DynamicResource S.Schedule.Recent}" Visibility="Collapsed"/>
@@ -143,7 +138,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid>
+            <Grid Margin="0,0,30,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -153,7 +148,7 @@
                         ToolTip="{DynamicResource S.Schedule.Tab}" AutomationProperties.Name="{DynamicResource S.Schedule.Tab}">
                     <Path Style="{StaticResource IconGlyph}" Width="7" Data="M6,1 L1,6 L6,11"/>
                 </Button>
-                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" VerticalAlignment="Center"
+                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" Margin="0" VerticalAlignment="Center"
                            Text="{DynamicResource S.Schedule.NewTitle}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{DynamicResource S.Schedule.EnabledLabel}" FontSize="11.5"
@@ -188,13 +183,13 @@
             <StackPanel Grid.Row="3">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Schedule.WhenLabel}"/>
                 <WrapPanel x:Name="KindChoices">
-                    <RadioButton x:Name="KindDaily" Tag="Daily" GroupName="ScheduleKind" Style="{StaticResource ChipRadio}"
+                    <RadioButton x:Name="KindDaily" Tag="Daily" GroupName="ScheduleKind" Style="{StaticResource PageTab}"
                                  Content="{DynamicResource S.Schedule.Kind.Daily}" Checked="Kind_Checked"/>
-                    <RadioButton x:Name="KindWeekly" Tag="Weekly" GroupName="ScheduleKind" Style="{StaticResource ChipRadio}"
+                    <RadioButton x:Name="KindWeekly" Tag="Weekly" GroupName="ScheduleKind" Style="{StaticResource PageTab}"
                                  Content="{DynamicResource S.Schedule.Kind.Weekly}" Checked="Kind_Checked"/>
-                    <RadioButton x:Name="KindEveryHours" Tag="EveryHours" GroupName="ScheduleKind" Style="{StaticResource ChipRadio}"
+                    <RadioButton x:Name="KindEveryHours" Tag="EveryHours" GroupName="ScheduleKind" Style="{StaticResource PageTab}"
                                  Content="{DynamicResource S.Schedule.Kind.EveryHours}" Checked="Kind_Checked"/>
-                    <RadioButton x:Name="KindAtStartup" Tag="AtStartup" GroupName="ScheduleKind" Style="{StaticResource ChipRadio}"
+                    <RadioButton x:Name="KindAtStartup" Tag="AtStartup" GroupName="ScheduleKind" Style="{StaticResource PageTab}"
                                  Content="{DynamicResource S.Schedule.Kind.AtStartup}" Checked="Kind_Checked"/>
                 </WrapPanel>
 

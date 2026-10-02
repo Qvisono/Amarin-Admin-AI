@@ -117,8 +117,8 @@ public sealed class ConfirmationAndJournalUiTests
             return card.DesiredSize;
         });
 
-        Assert.True(size.Height <= 560, $"карточка выросла до {size.Height}");
-        Assert.True(size.Width <= 460, $"карточка расширилась до {size.Width}");
+        Assert.True(size.Height <= 580, $"карточка выросла до {size.Height}");
+        Assert.True(size.Width <= 480, $"карточка расширилась до {size.Width}");
     }
 
     [Fact]

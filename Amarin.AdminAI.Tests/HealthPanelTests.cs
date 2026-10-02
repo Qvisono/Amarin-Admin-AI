@@ -111,6 +111,122 @@ public sealed class HealthRulesTests
         Assert.Contains("- C: свободно 2 из 500 ГБ (0%)", context, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// «Разобраться» говорит, что и где проверено, а не «панель, раздел такой-то»: модель панели
+    /// не видит и гадала, откуда числа (так было в 1.28.0 до правки).
+    /// </summary>
+    [Fact]
+    public void The_request_names_the_logs_and_the_numbers_and_never_the_panel()
+    {
+        var context = HealthRules.Context(HealthRules.Stability(new Tools.EventHealth(0, 260, 2)));
+
+        Assert.DoesNotContain("панел", context, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("раздел", context, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("260", context, StringComparison.Ordinal);
+        Assert.Contains("24", context, StringComparison.Ordinal);
+        Assert.Contains("«Система»", context, StringComparison.Ordinal);
+        Assert.Contains(Loc.Get("S.Health.Ask.StabilityTask"), context, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_drive_line_has_a_single_colon_after_the_letter()
+    {
+        var card = HealthRules.Disks([new Tools.DriveHealth("C:", 500L << 30, 120L << 30)], []);
+
+        Assert.StartsWith("C: ", card.Facts[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("C::", card.Facts[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_summary_waits_for_every_area_and_then_takes_the_worst()
+    {
+        var ok = new HealthCard { Status = HealthStatus.Ok };
+        var attention = new HealthCard { Area = HealthArea.Stability, Status = HealthStatus.Attention };
+        Dictionary<HealthArea, HealthCard?> Cards(HealthCard? stability) =>
+            Enum.GetValues<HealthArea>().ToDictionary(area => area, area => area == HealthArea.Stability ? stability : ok);
+
+        Assert.Equal("Loading", UI.HealthPanel.Summarize(Cards(null)).Tone);
+        Assert.Equal("Ok", UI.HealthPanel.Summarize(Cards(ok)).Tone);
+        Assert.Equal("Attention", UI.HealthPanel.Summarize(Cards(attention)).Tone);
+    }
+
+    /// <summary>
+    /// Итог называет разделы, где есть на что смотреть, — худшие первыми; прежде было общее «Есть
+    /// на что взглянуть», и раздел приходилось искать глазами.
+    /// </summary>
+    [Fact]
+    public void The_summary_names_the_areas_that_need_a_look()
+    {
+        var cards = Enum.GetValues<HealthArea>().ToDictionary(area => area, area => (HealthCard?)new HealthCard
+        {
+            Area = area,
+            Status = area switch
+            {
+                HealthArea.Updates => HealthStatus.Attention,
+                HealthArea.Security => HealthStatus.Problem,
+                _ => HealthStatus.Ok
+            }
+        });
+
+        var summary = UI.HealthPanel.Summarize(cards);
+
+        Assert.Equal("Problem", summary.Tone);
+        var security = Loc.Get("S.Health.Area.Security").ToLowerInvariant();
+        var updates = Loc.Get("S.Health.Area.Updates").ToLowerInvariant();
+        Assert.Equal(Loc.Format("S.Health.Summary.Issues", security + ", " + updates), summary.Title);
+    }
+
+    /// <summary>
+    /// Панель показывает подпись и значение, а цвет — только у значения, которое требует внимания:
+    /// 260 ошибок выделены, ноль критических — обычным текстом.
+    /// </summary>
+    [Fact]
+    public void Only_the_value_that_needs_a_look_is_coloured()
+    {
+        var card = HealthRules.Stability(new EventHealth(0, 260, 0));
+
+        var errors = card.Items.Single(item => item.Label == Loc.Get("S.Health.Item.Errors"));
+        var critical = card.Items.Single(item => item.Label == Loc.Get("S.Health.Item.Critical"));
+        Assert.Equal(("260", HealthStatus.Attention), (errors.Value, errors.Status));
+        Assert.Equal(("0", HealthStatus.Ok), (critical.Value, critical.Status));
+    }
+
+    /// <summary>Диск — буква, полоска занятого и «свободно из», как в Проводнике.</summary>
+    [Fact]
+    public void A_drive_row_has_a_bar_and_explorer_style_sizes()
+    {
+        var card = HealthRules.Disks([new DriveHealth("D:", 2L << 40, 1L << 39)], []);
+
+        var drive = card.Items[0];
+        Assert.Equal("D:", drive.Label);
+        Assert.Equal(0.75, drive.Used!.Value, 3);
+        Assert.Equal(Loc.Format("S.Health.Item.DriveFree", Loc.Format("S.Health.Item.Gb", 512), Loc.Format("S.Health.Item.Tb", 2, 0)), drive.Value);
+        Assert.Equal(Loc.Format("S.Health.Item.Gb", 465), HealthRules.Size(465L << 30));
+        Assert.Equal(Loc.Format("S.Health.Item.GbTenths", 4, 2), HealthRules.Size((long)(4.2 * (1L << 30))));
+    }
+
+    /// <summary>Свежая проверка — одно время: с датой строка итога в русском не помещалась в ширину.</summary>
+    [Fact]
+    public void Today_shows_only_the_time_and_earlier_the_date_too()
+    {
+        var now = new DateTime(2026, 10, 2, 15, 0, 0);
+
+        Assert.Equal(Loc.Format("S.Health.UpdatedAt", "01:12"), HealthPanel.Updated(new DateTime(2026, 10, 2, 1, 12, 0), now, DateFormat.DayMonthShort));
+        Assert.Equal(
+            Loc.Format("S.Health.Updated", ChatFormat.DateTimeShort(new DateTime(2026, 10, 1, 1, 12, 0), DateFormat.DayMonthShort)),
+            HealthPanel.Updated(new DateTime(2026, 10, 1, 1, 12, 0), now, DateFormat.DayMonthShort));
+    }
+
+    /// <summary>Снимок прежней версии без строк показывает свои факты, а не пустой раздел.</summary>
+    [Fact]
+    public void An_old_snapshot_without_rows_shows_its_facts()
+    {
+        var row = new HealthCardRow(HealthArea.Updates, new HealthCard { Area = HealthArea.Updates, Status = HealthStatus.Attention, Facts = ["x", "y"] });
+
+        Assert.Equal(["x", "y"], row.Items.Select(item => item.Label));
+        Assert.All(row.Items, item => Assert.Equal(3, item.LabelSpan));
+    }
+
     // ───────────────────────── разбор ответов PowerShell ─────────────────────────
 
     [Fact]
@@ -216,6 +332,7 @@ public sealed class HealthRulesTests
         Assert.Equal(5, rows.Count);
         Assert.Equal(Visibility.Visible, rows[0].AskVisibility);
         Assert.Equal("Loading", rows[1].Tone);
+        Assert.Equal(Loc.Get("S.Health.Checking"), Assert.Single(rows[1].Items).Label);
         Assert.Equal(Visibility.Collapsed, rows[1].AskVisibility);
     }
 }
@@ -269,6 +386,53 @@ public sealed class HealthPanelUiTests
 
             Assert.Equal(5, count);
             Assert.True(inside, "прокручиваемая часть выходит за карточку");
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// «Проверить снова» не стирает прежние значения до прихода новых: сброс всех строк в
+    /// «Проверяю…» схлопывал панель, и она дёргалась, вырастая обратно.
+    /// </summary>
+    [Fact]
+    public async Task A_refresh_keeps_the_old_values_until_new_ones_arrive()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "amarin-health-refresh-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var (labels, summary) = await _wpf.Ui.Invoke(async () =>
+            {
+                var cache = new HealthCache(root);
+                cache.Store(new HealthReport
+                {
+                    At = DateTime.Now.AddHours(-1),
+                    Cards = Enum.GetValues<HealthArea>()
+                        .Select(area => new HealthCard { Area = area, Status = HealthStatus.Ok, Items = [new HealthItem { Label = "old " + area, Value = "1" }] })
+                        .ToList()
+                });
+
+                var never = new TaskCompletionSource<HealthCard>();
+                var panel = new HealthPanel
+                {
+                    Probes = Enum.GetValues<HealthArea>().Select(_ => (Func<CancellationToken, Task<HealthCard>>)(_ => never.Task)).ToList()
+                };
+                panel.Attach(cache, () => DateFormat.DayMonthShort);
+                panel.Open();
+                await Task.Delay(50);
+
+                var rows = (IEnumerable<HealthCardRow>)((ItemsControl)panel.FindName("Cards")).ItemsSource;
+                var shown = rows.SelectMany(row => row.Items).Select(item => item.Label).ToList();
+                var tone = ((HealthSummary)((FrameworkElement)panel.FindName("Summary")).DataContext).Tone;
+                panel.Cancel();
+                return (shown, tone);
+            });
+
+            Assert.All(Enum.GetValues<HealthArea>(), area => Assert.Contains("old " + area, labels));
+            Assert.Equal("Loading", summary);
         }
         finally
         {

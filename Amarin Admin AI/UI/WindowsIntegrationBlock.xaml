@@ -9,28 +9,68 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Интеграция с Windows (G1–G5): трей, уведомления, автозапуск, Проводник, глобальные сочетания. -->
+    <!--
+        Подстраница «Интеграция с Windows» (G1–G4): значок в трее, автозапуск, пункт в Проводнике.
+        «Кнопка ✕ прячет в трей» вложена под значок и без него неактивна: прятать некуда.
+        Сворачивания в трей нет намеренно — две галки «закрывать» и «сворачивать» в трей путали,
+        а кнопке «свернуть» хватает обычного поведения Windows.
+    -->
     <StackPanel>
-        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.Title}"/>
-        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.Desc}" Margin="0,2,0,8"/>
-        <StackPanel x:Name="Toggles"/>
-
-        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Windows.Notifications}" Margin="0,10,0,4"/>
-        <WrapPanel>
-            <RadioButton x:Name="NotifyCard" GroupName="NotifyStyle" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Windows.NotifyCard}" Checked="Notify_Checked"/>
-            <RadioButton x:Name="NotifySystem" GroupName="NotifyStyle" Style="{StaticResource ChipRadio}"
-                         Content="{DynamicResource S.Windows.NotifySystem}" Checked="Notify_Checked"/>
-        </WrapPanel>
-        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Windows.NotifyHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-
-        <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Windows.Hotkeys}" Margin="0,12,0,4"/>
-        <Grid x:Name="HotkeyGrid">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.TrayIcon}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.TrayIconDesc}"/>
+            </StackPanel>
+            <CheckBox x:Name="TrayIconToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                      AutomationProperties.Name="{DynamicResource S.Windows.TrayIcon}"
+                      Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
         </Grid>
-        <TextBlock Style="{StaticResource FieldHint}" Text="{DynamicResource S.Windows.HotkeysHint}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+        <Grid Style="{StaticResource NestedRow}" IsEnabled="{Binding IsChecked, ElementName=TrayIconToggle}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.CloseToTray}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.CloseToTrayDesc}"/>
+            </StackPanel>
+            <CheckBox x:Name="CloseToTrayToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                      AutomationProperties.Name="{DynamicResource S.Windows.CloseToTray}"
+                      Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+        </Grid>
+
+        <Border Style="{StaticResource SettingsDivider}"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.AutoStart}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.AutoStartDesc}"/>
+            </StackPanel>
+            <CheckBox x:Name="AutoStartToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                      AutomationProperties.Name="{DynamicResource S.Windows.AutoStart}"
+                      Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+        </Grid>
+
+        <Border Style="{StaticResource SettingsDivider}"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.Explorer}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.ExplorerDesc}"/>
+            </StackPanel>
+            <CheckBox x:Name="ExplorerToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                      AutomationProperties.Name="{DynamicResource S.Windows.Explorer}"
+                      Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+        </Grid>
     </StackPanel>
 </UserControl>

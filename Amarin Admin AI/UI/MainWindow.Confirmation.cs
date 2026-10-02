@@ -261,6 +261,37 @@ namespace Amarin.UI
             };
         }
 
+        /// <summary>
+        /// Сводка над кодом: что за действие и что в нём меняет систему. Сводка PowerShell
+        /// начинается с эха команды («Выполнение PowerShell: Get-Service …»), а та же команда
+        /// целиком стоит ниже блоком кода — в окне эхо только раздувало верх и путало, где
+        /// начинается сам скрипт. Остальные сводки (путь, служба, домен) остаются как есть.
+        /// </summary>
+        internal static string ConfirmationSummary(DangerousActionInfo info)
+        {
+            var summary = string.IsNullOrWhiteSpace(info.ChangeSummary) ? info.ToolName : info.ChangeSummary.Trim();
+            var code = info.CodeText?.Trim() ?? "";
+            var lines = summary.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+            var head = lines[0];
+            var colon = head.IndexOf(": ", StringComparison.Ordinal);
+            if (code.Length == 0 || colon <= 0)
+            {
+                return summary;
+            }
+
+            var echoed = head[(colon + 2)..].TrimStart();
+            var start = code.Split('\n')[0].Trim();
+            start = start[..Math.Min(start.Length, 24)];
+            if (start.Length == 0 || !echoed.StartsWith(start, StringComparison.Ordinal))
+            {
+                return summary;
+            }
+
+            var changesPrefix = Loc.Get("S.Confirm.ScriptChanges").Split("{0}")[0];
+            var changes = lines.Skip(1).Where(line => line.StartsWith(changesPrefix, StringComparison.Ordinal));
+            return string.Join("\n", new[] { head[..colon] }.Concat(changes));
+        }
+
         private static int CountLines(string text)
         {
             var lines = 1;

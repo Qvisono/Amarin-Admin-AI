@@ -34,18 +34,13 @@ namespace Amarin.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Share.FailedTitle"), ex.Message);
                 return;
             }
 
             if (!TrySetClipboardText(code))
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Share.ClipboardBusy"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                Inform(Loc.Get("S.Common.ClipboardBusyTitle"), Loc.Get("S.Share.ClipboardBusy"));
                 return;
             }
 
@@ -61,7 +56,7 @@ namespace Amarin.UI
                 note += "\n\n" + Loc.Format("S.Share.SavedToFile", path);
             }
 
-            MessageBox.Show(this, note, Title, MessageBoxButton.OK, MessageBoxImage.Information);
+            Inform(Loc.Get("S.Share.CopiedTitle"), note, NoticeTone.Info);
         }
 
         private void ExportMessage(ChatDisplayMessage message, FrameworkElement anchor) => OpenExportMenu(anchor, _session, message.Id);
@@ -90,16 +85,11 @@ namespace Amarin.UI
             try
             {
                 File.WriteAllText(dialog.FileName, ChatShareCodec.ExportJson(session, upToMessageId));
-                MessageBox.Show(
-                    this,
-                    Loc.Format("S.Share.Saved", dialog.FileName),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                Inform(Loc.Get("S.Export.SavedTitle"), dialog.FileName, NoticeTone.Info);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Spend.ExportFailedTitle"), ex.Message);
             }
         }
 
@@ -155,7 +145,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Share.OpenFailedTitle"), ex.Message);
                 return;
             }
 
@@ -166,12 +156,7 @@ namespace Amarin.UI
 
             if (session is null)
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Share.NotAChat"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                Inform(Loc.Get("S.Share.OpenFailedTitle"), Loc.Get("S.Share.NotAChat"));
                 return;
             }
 

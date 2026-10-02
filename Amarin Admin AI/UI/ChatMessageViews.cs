@@ -2026,16 +2026,7 @@ internal static class ChatMessageViews
                 return;
             }
 
-            var owner = Window.GetWindow(host);
-            var text = Loc.Format("S.Attach.RevealFailed", file.FileName);
-            if (owner is null)
-            {
-                MessageBox.Show(text, file.FileName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            else
-            {
-                MessageBox.Show(owner, text, owner.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            MainWindow.Inform(host, Loc.Get("S.Links.OpenFailed"), Loc.Format("S.Attach.RevealFailed", file.FileName));
         };
 
         // Иконка - плиткой слева, подписи - справа от неё. Столбиком карточка выходила высокой

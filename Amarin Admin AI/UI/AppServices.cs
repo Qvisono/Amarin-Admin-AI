@@ -185,11 +185,6 @@ internal sealed class AppServices : IDisposable
         _drafts?.Delete(id);
     };
 
-    /// <summary>Шаблоны новых чатов (D11).</summary>
-    internal ChatTemplateBook Templates => _templates ??= new ChatTemplateBook(Path.GetDirectoryName(SettingsStore.FilePath)!);
-
-    private ChatTemplateBook? _templates;
-
     /// <summary>Черновики чатов (D12). Удалённый чат уносит и свой черновик — тем же событием.</summary>
     internal DraftStore Drafts
     {
@@ -354,7 +349,6 @@ internal sealed class AppServices : IDisposable
         }
 
         _drafts?.UseRoot(dataRoot, () => Settings.EncryptChats);
-        _templates?.UseRoot(dataRoot);
         if (_organizer is not null)
         {
             _organizer.UseRoot(dataRoot);

@@ -57,6 +57,7 @@ public partial class SettingsKeyPage : UserControl
         // Та же плавная прокрутка, что у боковой колонки и ленты чата.
         SmoothScroll.SetIsEnabled(KeyPageScroll, true);
         SmoothScroll.SetDragScroll(KeyPageScroll, true);
+        LimitsBlock.Changed += ShowLimitsSummary;
 
         // Раскрытый ключ не должен пережить уход со страницы: настройки закрывают и уходят
         // от компьютера, а ключ так и остался бы на экране.
@@ -94,6 +95,7 @@ public partial class SettingsKeyPage : UserControl
         if (_services is not null)
         {
             LimitsBlock.Load(_services);
+            ShowLimitsSummary();
         }
 
         Detached.Run(BackfillThenReloadAsync(), "spend_report");
@@ -117,9 +119,12 @@ public partial class SettingsKeyPage : UserControl
         await ReloadAsync(force: false).ConfigureAwait(true);
     }
 
-    /// <summary>Доезжает до лимитов: сюда ведёт «Изменить лимиты» из вопроса посреди хода.</summary>
+    /// <summary>Открывает подстраницу лимитов: сюда ведёт «Изменить лимиты» из вопроса посреди хода.</summary>
     internal void ShowLimits() =>
-        Dispatcher.BeginInvoke(() => LimitsBlock.BringIntoView(), System.Windows.Threading.DispatcherPriority.Loaded);
+        Dispatcher.BeginInvoke(() => SettingsDrill.Open(LimitsSub), System.Windows.Threading.DispatcherPriority.Loaded);
+
+    private void ShowLimitsSummary() =>
+        LimitsLinkRow.Tag = SpendLimitsBlock.Summary(_services?.Settings.SpendLimits);
 
     // ───────────────────────── траты ─────────────────────────
 

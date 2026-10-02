@@ -165,7 +165,6 @@ namespace Amarin.UI
 
             OpenNameDialog(
                 Loc.Get("S.ChatList.NameTitle"),
-                Loc.Get("S.ChatList.NameDesc"),
                 current,
                 title =>
                 {
@@ -225,7 +224,7 @@ namespace Amarin.UI
             }
 
             var confirmed = await ShowNoticeAsync(
-                Loc.Get("S.ChatList.DeleteTitle"),
+                Loc.Get(ids.Count == 1 ? "S.ChatList.DeleteTitle" : "S.ChatList.DeleteManyTitle"),
                 text,
                 Loc.Get("S.Common.Delete"),
                 Loc.Get("S.Common.Cancel"),

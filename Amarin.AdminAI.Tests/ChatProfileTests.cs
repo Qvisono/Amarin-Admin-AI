@@ -1,13 +1,12 @@
-using System.Reflection;
 using Amarin.Core;
 using Amarin.Tools;
 
 namespace Amarin.AdminAI.Tests;
 
-/// <summary>Профиль чата и шаблоны (D11).</summary>
+/// <summary>Профиль чата (D11): свой промпт и набор инструкций.</summary>
 public sealed class ChatProfileTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "amarin-templates-" + Guid.NewGuid().ToString("N"));
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "amarin-chat-profile-" + Guid.NewGuid().ToString("N"));
 
     public ChatProfileTests() => Directory.CreateDirectory(_root);
 
@@ -43,54 +42,6 @@ public sealed class ChatProfileTests : IDisposable
     }
 
     [Fact]
-    public void A_template_carries_prompt_model_thinking_and_instructions_into_a_new_chat()
-    {
-        var source = new ChatSession
-        {
-            SelectedModelId = "grok-4-6",
-            DisableThinking = false,
-            ReasoningEffort = "high",
-            Profile = new ChatProfile { Prompt = "be terse", InstructionIds = ["x"] }
-        };
-        var template = ChatTemplate.From("Terse", source);
-
-        var fresh = new ChatSession { SelectedModelId = "other", DisableThinking = true };
-        template.ApplyTo(fresh);
-
-        Assert.Equal("grok-4-6", fresh.SelectedModelId);
-        Assert.False(fresh.DisableThinking);
-        Assert.Equal("high", fresh.ReasoningEffort);
-        Assert.Equal("be terse", fresh.Profile!.Prompt);
-        Assert.Equal(["x"], fresh.Profile.InstructionIds!);
-
-        // Правка шаблона не трогает уже созданный по нему чат.
-        template.InstructionIds!.Add("y");
-        Assert.Single(fresh.Profile.InstructionIds!);
-    }
-
-    [Fact]
-    public void Templates_survive_a_restart_and_can_be_deleted()
-    {
-        var book = new ChatTemplateBook(_root);
-        var template = ChatTemplate.From("One", new ChatSession { SelectedModelId = "m" });
-        book.Save(template);
-        book.Save(ChatTemplate.From("Two", new ChatSession()));
-
-        var reread = new ChatTemplateBook(_root);
-        Assert.Equal(["One", "Two"], reread.All().Select(item => item.Name).Order());
-
-        reread.Delete(template.Id);
-        Assert.Equal(["Two"], new ChatTemplateBook(_root).All().Select(item => item.Name));
-    }
-
-    [Fact]
-    public void Templates_travel_with_the_settings_and_are_wiped_with_the_profile()
-    {
-        Assert.Equal(DataCategory.Settings, DataBundle.CategoryOf(ChatTemplateBook.FileName));
-        Assert.Contains(ChatTemplateBook.FileName, ProfileDataWiperFiles());
-    }
-
-    [Fact]
     public void The_chat_prompt_replaces_the_main_prompt_and_hides_other_instructions()
     {
         var library = new InstructionLibrary(_root);
@@ -118,9 +69,4 @@ public sealed class ChatProfileTests : IDisposable
         Assert.Contains("GENERAL-MAIN-PROMPT", general, StringComparison.Ordinal);
         Assert.Contains(hidden.Name, general, StringComparison.Ordinal);
     }
-
-    private static IEnumerable<string> ProfileDataWiperFiles() =>
-        typeof(ProfileDataWiper).GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-            .Where(field => field.FieldType == typeof(string[]))
-            .SelectMany(field => (string[])field.GetValue(null)!);
 }

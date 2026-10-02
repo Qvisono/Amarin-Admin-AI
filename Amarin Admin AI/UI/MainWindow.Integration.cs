@@ -7,7 +7,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shell;
-using System.Windows.Threading;
 using Amarin.Core;
 using Amarin.Tools;
 using Microsoft.Win32;
@@ -80,6 +79,59 @@ namespace Amarin.UI
         /// <summary>Спрятано ли окно в трей: список переходов и второй запуск возвращают его.</summary>
         internal bool IsHiddenToTray => _hiddenToTray;
 
+        private bool _integrationUiWired;
+
+        /// <summary>
+        /// Behavior: подстраницы «Интеграция с Windows» и «Голосовой ввод», сочетания из любой
+        /// программы и вид уведомлений. Строки-ссылки показывают справа, что внутри включено.
+        /// </summary>
+        private void LoadIntegrationUi(AppServices services)
+        {
+            if (!_integrationUiWired)
+            {
+                _integrationUiWired = true;
+                WindowsSettings.Applied = ApplyWindowsIntegration;
+                WindowsSettings.Changed += RefreshBehaviorLinks;
+                VoiceSettings.Changed += RefreshBehaviorLinks;
+                GlobalHotkeysSettings.Applied = () =>
+                {
+                    ApplyWindowsIntegration();
+                    return GlobalHotkeyProblems;
+                };
+            }
+
+            WindowsSettings.Load(services);
+            VoiceSettings.Load(services);
+            GlobalHotkeysSettings.Load(services);
+            GlobalHotkeysSettings.ShowProblems(GlobalHotkeyProblems);
+            NotifyStyleCombo.SelectedIndex = services.Settings.Windows?.Notifications == NotificationStyle.System ? 1 : 0;
+            RefreshBehaviorLinks();
+        }
+
+        private void RefreshBehaviorLinks()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            WindowsLinkRow.Tag = WindowsIntegrationBlock.Summary(_services.Settings.Windows);
+            VoiceLinkRow.Tag = VoiceSettingsBlock.Summary(_services.Settings, IsVoiceAvailable());
+        }
+
+        private void NotifyStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            var settings = _services.Settings.Windows ??= new WindowsIntegrationSettings();
+            settings.Notifications = NotifyStyleCombo.SelectedIndex == 1 ? NotificationStyle.System : NotificationStyle.Card;
+            _services.SettingsStore.Save(_services.Settings);
+            ApplyWindowsIntegration();
+        }
+
         private void WireWindowsIntegration()
         {
             if (Application.Current is { } application)
@@ -92,12 +144,6 @@ namespace Amarin.UI
                 if (WindowState != WindowState.Minimized)
                 {
                     _stateBeforeTray = WindowState;
-                    return;
-                }
-
-                if (_services?.Settings.Windows is { MinimizeToTray: true } && _tray is { IsShown: true })
-                {
-                    Dispatcher.BeginInvoke(HideToTray, DispatcherPriority.Background);
                 }
             };
             Closed += (_, _) =>

@@ -87,3 +87,50 @@ public sealed class VoiceInputTests
         Assert.Matches("filename=\"?speech\\.wav\"?", capture.Body);
     }
 }
+
+/// <summary>
+/// Есть ли чем распознать речь — по нему микрофон у поля ввода показывается или прячется.
+/// До правки кнопка была всегда, и без распознавателя человек узнавал об этом только после
+/// записи.
+/// </summary>
+public sealed class VoiceAvailabilityTests
+{
+    private static readonly System.Globalization.CultureInfo Russian = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
+
+    private static bool Available(VoiceEngine engine, string? model, bool local, bool key) =>
+        Amarin.UI.VoiceAvailability.IsAvailable(
+            new AppSettings { VoiceEngine = engine, VoiceModel = model },
+            Russian,
+            _ => local,
+            _ => key);
+
+    [Fact]
+    public void Without_a_windows_recogniser_and_without_a_cloud_model_there_is_nothing_to_recognise_with()
+    {
+        Assert.False(Available(VoiceEngine.Auto, null, local: false, key: true));
+        Assert.False(Available(VoiceEngine.Auto, "  ", local: false, key: true));
+    }
+
+    [Fact]
+    public void A_windows_recogniser_is_enough_unless_the_cloud_is_chosen()
+    {
+        Assert.True(Available(VoiceEngine.Auto, null, local: true, key: false));
+        Assert.True(Available(VoiceEngine.Local, null, local: true, key: false));
+        Assert.False(Available(VoiceEngine.Cloud, null, local: true, key: false));
+    }
+
+    [Fact]
+    public void A_cloud_model_needs_a_key_and_is_ignored_on_this_pc_only()
+    {
+        Assert.True(Available(VoiceEngine.Cloud, "whisper", local: false, key: true));
+        Assert.False(Available(VoiceEngine.Cloud, "whisper", local: false, key: false));
+        Assert.False(Available(VoiceEngine.Local, "whisper", local: false, key: true));
+    }
+
+    [Fact]
+    public void The_speech_language_falls_back_to_the_interface()
+    {
+        Assert.Equal("en", Amarin.UI.VoiceAvailability.SpeechCulture(new AppSettings(), "en").Name);
+        Assert.Equal("ru-RU", Amarin.UI.VoiceAvailability.SpeechCulture(new AppSettings { VoiceLanguage = " ru-RU " }, "en").Name);
+    }
+}

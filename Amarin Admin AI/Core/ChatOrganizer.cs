@@ -56,8 +56,13 @@ internal sealed class ChatOrganizer
     internal const string FileName = "organize.json";
 
     /// <summary>Кисти палитры, из которых выбирается цвет тега.</summary>
+    /// <remarks>
+    /// Синий, бирюзовый и фиолетовый — из подсветки кода: в каждой теме это разные оттенки.
+    /// Прежде здесь стояли акцент и цвет ссылки, а в тёмных темах оба почти белые — два тега
+    /// выходили одного цвета. Теги со старыми цветами так и показываются: ключи ресурсов живы.
+    /// </remarks>
     public static readonly string[] TagColors =
-        ["Status.Danger", "Status.Warning", "Status.Success", "Link.Default", "Accent.Fill", "Text.Muted"];
+        ["Status.Danger", "Status.Warning", "Status.Success", "Code.Type", "Code.Keyword", "Code.Control", "Text.Muted"];
 
     private readonly Lock _gate = new();
     private string _path;
@@ -161,6 +166,20 @@ internal sealed class ChatOrganizer
         Mutate(state => state.Tags.Add(tag));
         return tag;
     }
+
+    /// <summary>Новое имя и цвет тега. Цвет не из набора <see cref="TagColors"/> не принимается.</summary>
+    public void UpdateTag(string id, string name, string color) =>
+        Mutate(state =>
+        {
+            if (state.Tags.FirstOrDefault(tag => tag.Id == id) is { } tag)
+            {
+                tag.Name = name.Trim();
+                if (TagColors.Contains(color))
+                {
+                    tag.Color = color;
+                }
+            }
+        });
 
     public void DeleteTag(string id) =>
         Mutate(state =>
@@ -288,7 +307,8 @@ internal sealed record ChatListFolder(ChatFolder Folder, int Count) : ChatListNo
 
 internal sealed record ChatListArchive(int Count, bool Expanded) : ChatListNode;
 
-internal sealed record ChatListChat(ChatIndexEntry Entry, IReadOnlyList<ChatTag> Tags) : ChatListNode;
+/// <param name="Nested">Строка внутри раскрытой папки или архива — её рисуют в карточке папки.</param>
+internal sealed record ChatListChat(ChatIndexEntry Entry, IReadOnlyList<ChatTag> Tags, bool Nested = false) : ChatListNode;
 
 /// <summary>
 /// Раскладка боковой панели: закреплённые, папки, группы по датам (или один список при другой
@@ -333,7 +353,9 @@ internal static class ChatListLayout
         Group("S.ChatList.Pinned", active.Where(entry => entry.IsPinned));
 
         // Папки — после закреплённых: у закреплённого чата место одно, наверху, даже если он в папке.
+        // Под своим заголовком: без него первая папка читалась как ещё один закреплённый чат.
         var loose = active.Where(entry => !entry.IsPinned).ToList();
+        var foldersTitled = false;
         foreach (var folder in organize.Folders)
         {
             var inside = Sort(loose.Where(entry => PlacementOf(entry).FolderId == folder.Id), sort).ToList();
@@ -342,10 +364,16 @@ internal static class ChatListLayout
                 continue;
             }
 
+            if (!foldersTitled)
+            {
+                nodes.Add(new ChatListGroup("S.ChatList.Folders"));
+                foldersTitled = true;
+            }
+
             nodes.Add(new ChatListFolder(folder, inside.Count));
             if (!folder.Collapsed)
             {
-                nodes.AddRange(inside.Select(Row));
+                nodes.AddRange(inside.Select(entry => Row(entry) with { Nested = true }));
             }
         }
 
@@ -367,7 +395,7 @@ internal static class ChatListLayout
             nodes.Add(new ChatListArchive(archived.Count, archiveExpanded));
             if (archiveExpanded)
             {
-                nodes.AddRange(Sort(archived, sort).Select(Row));
+                nodes.AddRange(Sort(archived, sort).Select(entry => Row(entry) with { Nested = true }));
             }
         }
 

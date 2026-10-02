@@ -11,11 +11,48 @@
                 <ResourceDictionary Source="SettingsPageStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Точка и подпись итога: цвет — по имени значения HealthStatus. -->
+            <!--
+                Цвет — только у того, что требует внимания: значение «в порядке» пишется обычным
+                текстом, «не проверено» — бледным. Tone — имя значения HealthStatus или «Loading».
+            -->
+            <Style x:Key="ValueText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tone}" Value="Attention">
+                        <Setter Property="Foreground" Value="{DynamicResource Status.Warning}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="Problem">
+                        <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="Unknown">
+                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="LabelText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tone}" Value="Loading">
+                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="BarFill" TargetType="Border">
+                <Setter Property="CornerRadius" Value="2"/>
+                <Setter Property="Background" Value="{DynamicResource Text.Dim}"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tone}" Value="Attention">
+                        <Setter Property="Background" Value="{DynamicResource Status.Warning}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Tone}" Value="Problem">
+                        <Setter Property="Background" Value="{DynamicResource Status.Danger}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
             <Style x:Key="ToneDot" TargetType="Ellipse">
-                <Setter Property="Width" Value="8"/>
-                <Setter Property="Height" Value="8"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Fill" Value="{DynamicResource Text.Faint}"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding Tone}" Value="Ok">
@@ -32,46 +69,58 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!--
+        «Состояние ПК» (C4) — сводка, как «Сведения о системе»: под заголовком одна строка итога,
+        ниже пять разделов строками «подпись — значение». Цвет только у значений, которые требуют
+        внимания; у дисков — полоска заполненности, как в Проводнике. «Разобраться» стоит у
+        заголовка раздела, где есть на что смотреть. Прежде были карточки с плитками-значками и
+        словом статуса на каждой строке, и панель читалась отчётом, а не сводкой.
+    -->
     <Grid>
         <Border Background="{DynamicResource Overlay.Scrim}" MouseLeftButtonDown="Scrim_MouseLeftButtonDown"/>
-        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border x:Name="Card" Width="640" MaxHeight="580"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
+        <!-- Прижата к верху, под кнопкой «Состояние ПК»: строки доезжают по одной, и панель по
+             центру при каждой из них сдвигалась бы целиком, а так растёт только вниз. -->
+        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24,56,24,24" VerticalAlignment="Top">
+            <Border x:Name="Card" Width="440" MaxHeight="700"
+                    HorizontalAlignment="Center" VerticalAlignment="Top"
                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                     BorderThickness="1" CornerRadius="10" Padding="20,16,20,18">
-                <!-- Grid, а не StackPanel: карточки растут в прокручиваемой строке «*». -->
+                <!-- Grid, а не StackPanel: список растёт в прокручиваемой строке «*». -->
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Grid Margin="0,0,0,12">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{DynamicResource S.Health.Title}" FontSize="15" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource Text.Primary}"/>
-                                <Border x:Name="OverallPill" Margin="10,0,0,0" Padding="8,1,9,2" CornerRadius="9"
-                                        VerticalAlignment="Center" Background="{DynamicResource Bg.Raised}"
-                                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Style="{StaticResource ToneDot}" Margin="0,0,6,0"/>
-                                        <TextBlock Text="{Binding StatusText}" FontSize="11"
-                                                   Foreground="{DynamicResource Text.Muted}"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <TextBlock x:Name="UpdatedText" FontSize="11" Margin="0,4,0,0"
-                                       Foreground="{DynamicResource Text.Faint}"/>
+                            <TextBlock Text="{DynamicResource S.Health.Title}" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Primary}"/>
+                            <!-- Итог: точка цветом худшего, одна фраза и когда проверено; длинный — переносится. -->
+                            <Grid x:Name="Summary" Margin="0,5,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Style="{StaticResource ToneDot}" Width="7" Height="7" Margin="1,6,7,0"
+                                         VerticalAlignment="Top"/>
+                                <TextBlock Grid.Column="1" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource Text.Secondary}">
+                                    <Run Text="{Binding Title, Mode=OneWay}"/><Run x:Name="UpdatedText" Foreground="{DynamicResource Text.Faint}"/>
+                                </TextBlock>
+                            </Grid>
                         </StackPanel>
-                        <Button x:Name="RefreshButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                Margin="0,0,8,0" VerticalAlignment="Top"
-                                Content="{DynamicResource S.Health.Refresh}" Click="Refresh_Click"/>
+                        <Button x:Name="RefreshButton" Grid.Column="1" Style="{StaticResource IconButton}" Margin="0,0,2,0"
+                                VerticalAlignment="Top"
+                                Click="Refresh_Click" ToolTip="{DynamicResource S.Health.Refresh}"
+                                AutomationProperties.Name="{DynamicResource S.Health.Refresh}">
+                            <Path Style="{StaticResource IconGlyph}" Width="12" Height="12"
+                                  Data="M11.5,6 A5,5 0 1 1 10,2.5 M10.5,0.5 L10.5,3 L8,3"/>
+                        </Button>
                         <Button Grid.Column="2" Style="{StaticResource IconButton}" VerticalAlignment="Top"
                                 Click="Close_Click" ToolTip="{DynamicResource S.Common.Close}"
                                 AutomationProperties.Name="{DynamicResource S.Common.Close}">
@@ -79,53 +128,64 @@
                         </Button>
                     </Grid>
 
-                    <ScrollViewer x:Name="CardsScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled" Margin="0,0,-8,0" Padding="0,0,8,0">
-                        <ItemsControl x:Name="Cards" Focusable="False">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <UniformGrid Columns="2"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                    <!-- Полоса прокрутки — в правом поле карточки, а не поверх значений. -->
+                    <ScrollViewer x:Name="CardsScroll" Grid.Row="1" Margin="0,14,-14,0"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="Cards" Focusable="False" Margin="0,0,14,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="0,0,8,8" Padding="12,10" CornerRadius="9"
-                                            Background="{DynamicResource Bg.Card}" BorderThickness="1"
-                                            BorderBrush="{DynamicResource Border.Default}" MinHeight="118">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="*"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource Text.Primary}"
-                                                           TextTrimming="CharacterEllipsis"/>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                    <Ellipse Style="{StaticResource ToneDot}" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="{Binding StatusText}" FontSize="11"
-                                                               Foreground="{DynamicResource Text.Muted}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <ItemsControl Grid.Row="1" ItemsSource="{Binding Facts}" Margin="0,6,0,0" Focusable="False">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding}" FontSize="11.5" TextWrapping="Wrap"
-                                                                   Margin="0,0,0,3" Foreground="{DynamicResource Text.Body}"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                            <Button Grid.Row="2" HorizontalAlignment="Right" Margin="0,6,0,0"
-                                                    Style="{StaticResource SecondaryButton}" Tag="{Binding Area}"
-                                                    Content="{DynamicResource S.Health.Ask}" Click="Ask_Click"
+                                    <StackPanel>
+                                        <Border Style="{StaticResource SettingsDivider}" Margin="0,10" Visibility="{Binding DividerVisibility}"/>
+                                        <!-- Заголовок раздела; высота — по кнопке, чтобы разделы с ней и без неё шли ровно. -->
+                                        <Grid MinHeight="24" Margin="0,0,0,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Height="24"
+                                                    Tag="{Binding Area}" Content="{DynamicResource S.Health.Ask}" Click="Ask_Click"
                                                     Visibility="{Binding AskVisibility}"/>
                                         </Grid>
-                                    </Border>
+                                        <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,3">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
+                                                        <!-- Строка без значения (проверка идёт, снимок прежней версии) —
+                                                             во всю ширину, иначе длинная фраза не перенеслась бы. -->
+                                                        <TextBlock Style="{StaticResource LabelText}" Text="{Binding Label}"
+                                                                   Grid.ColumnSpan="{Binding LabelSpan}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Style="{StaticResource ValueText}" Text="{Binding Value}"
+                                                                   Margin="12,0,0,0" VerticalAlignment="Center" TextAlignment="Right"/>
+                                                        <!--
+                                                            Полоска заполненности — под строкой во всю ширину, как в
+                                                            Проводнике: рядом с текстом её длина зависела бы от длины
+                                                            «свободно из», и у двух дисков полоски вышли бы разными.
+                                                        -->
+                                                        <Grid Grid.Row="1" Grid.ColumnSpan="3" Height="4" Margin="0,6,0,2"
+                                                              Visibility="{Binding BarVisibility}">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="{Binding UsedWidth}"/>
+                                                                <ColumnDefinition Width="{Binding FreeWidth}"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Grid.ColumnSpan="2" CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                                                            <Border Style="{StaticResource BarFill}"/>
+                                                        </Grid>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

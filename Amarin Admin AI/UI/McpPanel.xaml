@@ -16,14 +16,16 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <Grid Margin="0,0,0,10">
+            <!-- Высота и одна строка — общие с остальными вкладками Automation, иначе список прыгает. -->
+            <Grid Height="28" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,12,0" VerticalAlignment="Center"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                            Text="{DynamicResource S.Mcp.Desc}"/>
-                <Button Grid.Column="1" Style="{StaticResource AddButton}" VerticalAlignment="Top"
+                <Button Grid.Column="1" Style="{StaticResource AddButton}" VerticalAlignment="Center"
                         Content="{DynamicResource S.Mcp.Add}" Click="Add_Click"/>
             </Grid>
 
@@ -60,16 +62,9 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Border x:Name="EmptyState" Margin="0,4,0,0" Padding="24,22" CornerRadius="10"
-                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                            Background="{DynamicResource Bg.Card}" Visibility="Collapsed">
-                        <StackPanel HorizontalAlignment="Center" MaxWidth="360">
-                            <TextBlock Text="{DynamicResource S.Mcp.EmptyTitle}" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Body}" HorizontalAlignment="Center"/>
-                            <TextBlock Style="{StaticResource SettingDesc}" TextAlignment="Center" Margin="0,5,0,0"
-                                       Text="{DynamicResource S.Mcp.EmptyDesc}"/>
-                        </StackPanel>
-                    </Border>
+                    <TextBlock x:Name="EmptyState" Style="{StaticResource SettingDesc}" Margin="0,2,0,0"
+                               Foreground="{DynamicResource Text.Faint}" Visibility="Collapsed"
+                               Text="{DynamicResource S.Mcp.EmptyDesc}"/>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
@@ -83,7 +78,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid>
+            <Grid Margin="0,0,30,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -92,7 +87,7 @@
                         ToolTip="{DynamicResource S.Mcp.Tab}" AutomationProperties.Name="{DynamicResource S.Mcp.Tab}">
                     <Path Style="{StaticResource IconGlyph}" Width="7" Data="M6,1 L1,6 L6,11"/>
                 </Button>
-                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" VerticalAlignment="Center"
+                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" Margin="0" VerticalAlignment="Center"
                            Text="{DynamicResource S.Mcp.NewTitle}"/>
             </Grid>
 
@@ -106,9 +101,9 @@
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{DynamicResource S.Mcp.TransportLabel}"/>
                     <WrapPanel>
-                        <RadioButton x:Name="TransportStdio" GroupName="McpTransport" Style="{StaticResource ChipRadio}"
+                        <RadioButton x:Name="TransportStdio" GroupName="McpTransport" Style="{StaticResource PageTab}"
                                      IsChecked="True" Content="{DynamicResource S.Mcp.Stdio}" Checked="Transport_Checked"/>
-                        <RadioButton x:Name="TransportHttp" GroupName="McpTransport" Style="{StaticResource ChipRadio}"
+                        <RadioButton x:Name="TransportHttp" GroupName="McpTransport" Style="{StaticResource PageTab}"
                                      Content="HTTP" Checked="Transport_Checked"/>
                     </WrapPanel>
 

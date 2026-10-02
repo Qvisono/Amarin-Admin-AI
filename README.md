@@ -60,7 +60,7 @@ work on **another computer** over PowerShell Remoting, and tools of **MCP server
 in next to the built-in ones.
 
 Chats stay manageable when there are hundreds of them: folders, tags and an archive, free search
-through the text of every chat, export to Markdown, HTML or PDF, per-chat settings and templates,
+through the text of every chat, export to Markdown, HTML or PDF, per-chat settings,
 a draft kept per chat, voice input, and the cost of the whole chat next to an estimate for the
 next answer.
 
@@ -197,8 +197,8 @@ takes its place.
 
 ## Working with Windows
 
-A tray icon shows whether the program is answering or waiting for you, and the window can close or
-minimise into it. A global shortcut (Win+Shift+A by default) shows or hides the window from
+A tray icon shows whether the program is answering or waiting for you, and the close button can
+hide the window into it. A global shortcut (Win+Shift+A by default) shows or hides the window from
 anywhere; two more start a chat with the clipboard text or a screenshot. The program can start with
 Windows straight into the tray, adds **Ask Amarin** to Explorer's menu for files and folders, and
 keeps the latest chats in its jump list. Notifications come as the program's own card or as

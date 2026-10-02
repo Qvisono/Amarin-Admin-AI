@@ -222,8 +222,37 @@ public sealed class ChatOrganizerTests : IDisposable
         var nodes = ChatListLayout.Build(items, organize, ChatSort.Updated, null, false, Today);
 
         Assert.Equal(
-            ["#S.ChatList.Pinned", "p", "folder:Open/1", "a", "folder:Shut/2", "folder:Empty/0", "#S.ChatList.Today", "loose"],
+            ["#S.ChatList.Pinned", "p", "#S.ChatList.Folders", "folder:Open/1", "a", "folder:Shut/2", "folder:Empty/0", "#S.ChatList.Today", "loose"],
             Shape(nodes));
+    }
+
+    /// <summary>
+    /// Чат раскрытой папки помечен вложенным — по метке строка рисуется внутри карточки папки.
+    /// До правки чаты папки стояли вровень с остальными, и что они в папке, видно не было.
+    /// </summary>
+    [Fact]
+    public void Chats_of_an_open_folder_and_of_the_archive_are_nested_and_others_are_not()
+    {
+        var organize = new ChatOrganizer.State
+        {
+            Folders = [new ChatFolder { Id = "f1", Name = "Open" }],
+            Chats =
+            {
+                ["in"] = new ChatPlacement { FolderId = "f1" },
+                ["pinned"] = new ChatPlacement { FolderId = "f1" },
+                ["old"] = new ChatPlacement { Archived = true }
+            }
+        };
+        var items = new[] { Entry("in", Today), Entry("pinned", Today, pinned: true), Entry("loose", Today), Entry("old", Today) };
+
+        var nested = ChatListLayout.Build(items, organize, ChatSort.Updated, null, archiveExpanded: true, Today)
+            .OfType<ChatListChat>()
+            .ToDictionary(chat => chat.Entry.Id, chat => chat.Nested);
+
+        Assert.True(nested["in"]);
+        Assert.True(nested["old"]);
+        Assert.False(nested["pinned"]);
+        Assert.False(nested["loose"]);
     }
 
     [Fact]

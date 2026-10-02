@@ -6,7 +6,7 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Блок «Хранение и очистка» на странице данных (F3).
+/// Подстраница «Хранение и очистка» на странице данных (F3).
 /// </summary>
 /// <remarks>
 /// Правда о хранении — в <see cref="AppSettings.Retention"/>, контролы только отражают её. Всё,
@@ -23,6 +23,18 @@ public partial class DataCareBlock : UserControl
     private CancellationTokenSource? _measuring;
 
     public DataCareBlock() => InitializeComponent();
+
+    /// <summary>Правило хранения поменялось — строка-ссылка на странице перечитывает своё значение.</summary>
+    internal event Action? Changed;
+
+    /// <summary>Значение строки-ссылки: что делается со старыми чатами.</summary>
+    internal static string Summary(ChatRetention? retention) =>
+        (retention?.Mode ?? RetentionMode.Off) switch
+        {
+            RetentionMode.Archive => Loc.Format("S.Care.Short.Archive", retention!.Days),
+            RetentionMode.Delete => Loc.Format("S.Care.Short.Delete", retention!.Days),
+            _ => Loc.Get("S.Care.Short.Keep")
+        };
 
     /// <summary>Спросить человека (заголовок, текст, подпись кнопки «да»); true — да. Ставит окно.</summary>
     internal Func<string, string, string, Task<bool>>? Confirm { get; set; }
@@ -43,14 +55,9 @@ public partial class DataCareBlock : UserControl
         try
         {
             var retention = services.Settings.Retention ?? new ChatRetention();
-            (retention.Mode switch
-            {
-                RetentionMode.Archive => ModeArchive,
-                RetentionMode.Delete => ModeDelete,
-                _ => ModeOff
-            }).IsChecked = true;
+            SelectMode(retention.Mode);
             DaysBox.Text = retention.Days.ToString(CultureInfo.InvariantCulture);
-            DaysBox.IsEnabled = retention.Mode != RetentionMode.Off;
+            DaysRow.IsEnabled = retention.Mode != RetentionMode.Off;
         }
         finally
         {
@@ -115,18 +122,18 @@ public partial class DataCareBlock : UserControl
 
     private FrameworkElement CleanupRow(CleanupTarget target, CleanupSize size)
     {
-        var grid = new Grid { Margin = new Thickness(0, 4, 0, 4) };
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
         text.Children.Add(new TextBlock { Text = Loc.Get(TitleKey(target)), Style = (Style)FindResource("SettingTitle") });
         text.Children.Add(new TextBlock
         {
             Text = size.Files == 0
                 ? Loc.Get("S.Care.Nothing")
                 : Loc.Format("S.Care.Size", AttachmentTypes.FormatSize(size.Bytes), size.Files.ToString(CultureInfo.InvariantCulture)),
-            Style = (Style)FindResource("FieldHint")
+            Style = (Style)FindResource("SettingDesc")
         });
         grid.Children.Add(text);
 
@@ -163,42 +170,42 @@ public partial class DataCareBlock : UserControl
         await MeasureAsync().ConfigureAwait(true);
     }
 
+    /// <summary>Строка-ссылка, как у подстраниц: название чата, справа размер и «›» — щелчок открывает чат.</summary>
     private Button LargestRow(ChatSize chat, string title)
     {
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var name = new TextBlock
         {
             Text = title,
             TextTrimming = TextTrimming.CharacterEllipsis,
-            FontSize = 12.5,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 12, 0)
+            Style = (Style)FindResource("SettingTitle")
         };
-        name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Primary");
-        var size = new TextBlock { Text = AttachmentTypes.FormatSize(chat.Bytes), FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-        size.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
-        Grid.SetColumn(size, 1);
-        grid.Children.Add(name);
-        grid.Children.Add(size);
 
-        var button = new Button { Content = grid, Style = (Style)FindResource("CardButton"), Margin = new Thickness(0, 0, 0, 6) };
+        var button = new Button
+        {
+            Content = name,
+            Tag = AttachmentTypes.FormatSize(chat.Bytes),
+            Style = (Style)FindResource("SettingsLinkRow"),
+            Margin = new Thickness(-8, -2, -8, 2)
+        };
         System.Windows.Automation.AutomationProperties.SetName(button, title);
         button.Click += (_, _) => OpenChat?.Invoke(chat.Id);
         return button;
     }
 
-    private async void Mode_Checked(object sender, RoutedEventArgs e)
+    private void SelectMode(RetentionMode mode) =>
+        ModeCombo.SelectedItem = ModeCombo.Items.OfType<ComboBoxItem>().First(item => (string)item.Tag == mode.ToString());
+
+    private RetentionMode SelectedMode =>
+        ModeCombo.SelectedItem is ComboBoxItem { Tag: string tag } && Enum.TryParse(tag, out RetentionMode mode) ? mode : RetentionMode.Off;
+
+    private async void ModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || _services is not { } services)
         {
             return;
         }
 
-        var mode = ModeDelete.IsChecked == true ? RetentionMode.Delete
-            : ModeArchive.IsChecked == true ? RetentionMode.Archive
-            : RetentionMode.Off;
+        var mode = SelectedMode;
         var retention = services.Settings.Retention ?? new ChatRetention();
 
         // Удаление — необратимо: включают его, увидев, сколько чатов уйдёт прямо сейчас.
@@ -218,13 +225,13 @@ public partial class DataCareBlock : UserControl
             if (!agreed)
             {
                 _loading = true;
-                (retention.Mode == RetentionMode.Archive ? ModeArchive : ModeOff).IsChecked = true;
+                SelectMode(retention.Mode);
                 _loading = false;
                 return;
             }
         }
 
-        DaysBox.IsEnabled = mode != RetentionMode.Off;
+        DaysRow.IsEnabled = mode != RetentionMode.Off;
         Save(copy => copy.Mode = mode);
     }
 
@@ -277,5 +284,6 @@ public partial class DataCareBlock : UserControl
         var retention = _services.Settings.Retention ??= new ChatRetention();
         change(retention);
         _services.SettingsStore.Save(_services.Settings);
+        Changed?.Invoke();
     }
 }

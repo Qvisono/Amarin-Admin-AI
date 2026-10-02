@@ -94,8 +94,8 @@ namespace Amarin.UI
             // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).
             AccessibilityDefaults.Register();
             ChatTargetPicker.Picked += OnTargetPicked;
-            ConnectionsPage.MachinesChanged += OnMachinesChanged;
-            ChatTargetPicker.ManageRequested += () => OpenSettingsPage(NavConnections);
+            AutomationPage.Machines.MachinesChanged += OnMachinesChanged;
+            ChatTargetPicker.ManageRequested += OpenMachinesSettings;
             HealthOverlay.CloseRequested += CloseHealth;
             AutomationPage.Schedule.RunNow = RunScheduledJobNowAsync;
             AutomationPage.Schedule.OpenChatRequested += chatId =>
@@ -258,6 +258,7 @@ namespace Amarin.UI
 
             // Трей, глобальные сочетания и записи в реестре (G) — хэндл окна уже есть: его завёл масштаб.
             ApplyWindowsIntegration();
+            UpdateMicAvailability();
 
             // До Show(), как и масштаб: углы — форма окна, и первым кадром она уже должна быть той,
             // что выбрана, а не заводской системной.
@@ -469,25 +470,27 @@ namespace Amarin.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Links.OpenFailed"), ex.Message);
             }
         }
 
-        private void DeleteAllChatsButton_Click(object sender, RoutedEventArgs e)
+        private void DeleteAllChatsButton_Click(object sender, RoutedEventArgs e) =>
+            Detached.Run(DeleteAllChatsAsync(), "delete_all_chats");
+
+        private async Task DeleteAllChatsAsync()
         {
             if (_services is null)
             {
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                this,
+            var confirmed = await ShowNoticeAsync(
+                Loc.Get("S.ChatList.DeleteAllTitle"),
                 Loc.Get("S.ChatList.DeleteAllConfirm"),
-                Title,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-            if (confirm != MessageBoxResult.Yes)
+                Loc.Get("S.Common.Delete"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+            if (!confirmed || _services is null)
             {
                 return;
             }
@@ -1691,16 +1694,10 @@ namespace Amarin.UI
                 CodeLineNumbersToggle.IsChecked = settings.CodeLineNumbers;
                 if (_services is not null)
                 {
-                    VoiceSettings.Load(_services);
-                    WindowsSettings.Applied ??= () =>
-                    {
-                        ApplyWindowsIntegration();
-                        return GlobalHotkeyProblems;
-                    };
-                    WindowsSettings.Load(_services);
+                    LoadIntegrationUi(_services);
                     AccessibilitySettings.Changed ??= ApplyAccessibility;
                     AccessibilitySettings.Load(_services);
-                    WindowsSettings.ShowHotkeyProblems(GlobalHotkeyProblems);
+                    HighContrastToggle.IsChecked = _services.Settings.FollowHighContrast;
                 }
                 NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                 NotifySoundToggle.IsChecked = settings.NotifySound;
@@ -1865,12 +1862,7 @@ namespace Amarin.UI
                 SearchBox.Clear();
                 if (shared is null)
                 {
-                    MessageBox.Show(
-                        this,
-                        Loc.Get("S.Share.CodeBroken"),
-                        Title,
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                    Inform(Loc.Get("S.Share.OpenFailedTitle"), Loc.Get("S.Share.CodeBroken"));
                     return;
                 }
 
@@ -2045,6 +2037,13 @@ namespace Amarin.UI
                     CloseNotice(false);
                 }
 
+                return;
+            }
+
+            // Esc в настройках сперва возвращает с подстраницы «›» на её страницу.
+            if (e.Key == Key.Escape && SettingsOverlay.IsVisible && SettingsDrill.TryBackIn(SettingsOverlay))
+            {
+                e.Handled = true;
                 return;
             }
 
@@ -2931,7 +2930,7 @@ namespace Amarin.UI
                 _tagFilter = null;
             }
 
-            RefreshTagFilterRow(organize);
+            RefreshTagFilterPill(organize, query);
 
             // Перерисовка стоит полной пересборки панели, а зовут её и фоновые ходы — по
             // несколько раз за секунду. Если состав списка не изменился, строки остаются на
@@ -3121,15 +3120,18 @@ namespace Amarin.UI
             _sidebarCollapsed = collapsed;
             SidebarColumn.Width = new GridLength(collapsed ? 42 : SidebarWidths.Clamp(_services?.Settings.SidebarWidth));
             SidebarGrip.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
-            TemplatesButton.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
-            TagFilterRow.Visibility = collapsed || TagFilterRow.Children.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
             if (collapsed)
             {
                 BatchBar.Visibility = Visibility.Collapsed;
+                TagFilterPill.Visibility = Visibility.Collapsed;
             }
             else
             {
                 UpdateBatchBar();
+                if (_services is { } organized)
+                {
+                    RefreshTagFilterPill(organized.Organizer.Snapshot(), SearchBox.Text);
+                }
             }
 
             if (_services is { } services && services.Settings.SidebarCollapsed != collapsed)
@@ -3642,9 +3644,7 @@ namespace Amarin.UI
             ConfirmationAgentText.Text = request.Info.Target is { } target
                 ? request.AgentLabel + " · " + Loc.Format("S.Remote.OnMachine", target)
                 : request.AgentLabel;
-            ConfirmationSummaryText.Text = string.IsNullOrWhiteSpace(request.Info.ChangeSummary)
-                ? request.Info.ToolName
-                : request.Info.ChangeSummary;
+            ConfirmationSummaryText.Text = ConfirmationSummary(request.Info);
             FillConfirmationBody(request.Info);
 
             // Следующий вопрос начинается сверху: прокрутка, оставшаяся от предыдущего, прятала

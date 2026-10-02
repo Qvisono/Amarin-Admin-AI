@@ -66,8 +66,10 @@
     <Grid>
         <!-- ═══════════ СПИСОК ═══════════ -->
         <!--
-            Список — ItemsControl со своей прокруткой и виртуализацией: карточки строятся по мере
-            прокрутки, а не все сразу. Заголовок и поиск стоят над ним строками Auto.
+            Четыре вкладки — рецепты, расписание, компьютеры и MCP: всё, что агент делает сам или
+            не на этом ПК. Прежде компьютеры и MCP жили отдельной страницей «Подключения», и
+            навигация не помещалась в окно. Пока у вкладки открыт редактор, заголовок и вкладки
+            уходят: у редактора своя шапка «‹».
         -->
         <Grid x:Name="ListPane" Margin="20,14,20,16">
             <Grid.RowDefinitions>
@@ -76,50 +78,57 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Margin="0,0,30,0">
-                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Automation.Title}"/>
-            </StackPanel>
+            <TextBlock x:Name="PageTitleText" Style="{StaticResource PageTitle}" Margin="0,0,30,14"
+                       Text="{DynamicResource S.Settings.Automation.Title}"/>
 
-            <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                <WrapPanel>
-                    <RadioButton x:Name="RecipesTab" GroupName="AutomationTab" Style="{StaticResource ChipRadio}"
-                                 IsChecked="True" Content="{DynamicResource S.Recipe.Tab}" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="ScheduleTab" GroupName="AutomationTab" Style="{StaticResource ChipRadio}"
-                                 Content="{DynamicResource S.Schedule.Tab}" Checked="Tab_Checked"/>
-                </WrapPanel>
-                <TextBlock x:Name="RecipesDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Recipe.Desc}"
-                           Margin="0,8,0,0"/>
-            </StackPanel>
+            <WrapPanel x:Name="TabsRow" Grid.Row="1" Margin="0,0,0,14">
+                <RadioButton x:Name="RecipesTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
+                             IsChecked="True" Content="{DynamicResource S.Recipe.Tab}" Checked="Tab_Checked"/>
+                <RadioButton x:Name="ScheduleTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
+                             Content="{DynamicResource S.Schedule.Tab}" Checked="Tab_Checked"/>
+                <RadioButton x:Name="MachinesTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
+                             Content="{DynamicResource S.Machines.Tab}" Checked="Tab_Checked"/>
+                <RadioButton x:Name="McpTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
+                             Content="{DynamicResource S.Mcp.Tab}" Checked="Tab_Checked"/>
+            </WrapPanel>
 
-            <!-- Рецепты: поиск, список. Вкладка «Расписание» лежит рядом, на тех же строках. -->
+            <!-- Рецепты: пояснение и «Новый рецепт», поиск — когда рецептов много, список. -->
             <Grid x:Name="RecipesContent" Grid.Row="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid Grid.Row="0" Margin="0,12,0,10">
+                <!-- Шапка вкладки одной высоты и в одну строку у всех четырёх вкладок: пока описание у одних
+                     переносилось на вторую строку, список при переключении вкладок прыгал вниз. -->
+                <Grid Height="28" Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource FieldFrame}" Padding="9,0" Height="26" Margin="0,0,10,0">
-                        <Grid>
-                            <TextBox x:Name="SearchBox" Style="{StaticResource FieldTextBox}" FontSize="11.5"
-                                     AutomationProperties.Name="{DynamicResource S.Recipe.SearchPlaceholder}"
-                                     TextChanged="SearchBox_TextChanged"/>
-                            <TextBlock x:Name="SearchPlaceholder" Style="{StaticResource Placeholder}" FontSize="11.5"
-                                       Text="{DynamicResource S.Recipe.SearchPlaceholder}"/>
-                        </Grid>
-                    </Border>
-                    <Button x:Name="CreateButton" Grid.Column="1" Style="{StaticResource AddButton}"
+                    <TextBlock x:Name="RecipesDesc" Style="{StaticResource SettingDesc}" Margin="0,0,12,0"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" Text="{DynamicResource S.Recipe.Desc}"/>
+                    <Button x:Name="CreateButton" Grid.Column="1" Style="{StaticResource AddButton}" VerticalAlignment="Center"
                             Content="{DynamicResource S.Recipe.Create}" Click="Create_Click"/>
                 </Grid>
 
-                <TextBlock x:Name="StatusText" Grid.Row="1" Style="{StaticResource SettingDesc}" Margin="0,-4,0,10"
+                <Border x:Name="SearchFrame" Grid.Row="1" Style="{StaticResource FieldFrame}" Padding="9,0" Height="28"
+                        Margin="0,0,0,10" Visibility="Collapsed">
+                    <Grid>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource FieldTextBox}" FontSize="11.5"
+                                 AutomationProperties.Name="{DynamicResource S.Recipe.SearchPlaceholder}"
+                                 TextChanged="SearchBox_TextChanged"/>
+                        <TextBlock x:Name="SearchPlaceholder" Style="{StaticResource Placeholder}" FontSize="11.5"
+                                   Text="{DynamicResource S.Recipe.SearchPlaceholder}"/>
+                    </Grid>
+                </Border>
+
+                <TextBlock x:Name="StatusText" Grid.Row="2" Style="{StaticResource SettingDesc}" Margin="0,-4,0,10"
                            Foreground="{DynamicResource Text.Muted}" Visibility="Collapsed"/>
 
-                <ItemsControl x:Name="RecipeItems" Grid.Row="2" ItemTemplate="{StaticResource RecipeRowTemplate}"
+                <ItemsControl x:Name="RecipeItems" Grid.Row="3" ItemTemplate="{StaticResource RecipeRowTemplate}"
                               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                               VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.CanContentScroll="True"
                               Focusable="False">
@@ -138,30 +147,18 @@
                     </ItemsControl.Template>
                 </ItemsControl>
 
-                <TextBlock x:Name="NothingFoundText" Grid.Row="2" Style="{StaticResource SettingDesc}" Margin="2,4,0,0"
+                <TextBlock x:Name="NothingFoundText" Grid.Row="3" Style="{StaticResource SettingDesc}" Margin="2,0,0,0"
                            VerticalAlignment="Top" Text="{DynamicResource S.Common.NothingFound}" Visibility="Collapsed"/>
 
-                <!-- Пустое состояние: зачем рецепты и откуда они берутся. -->
-                <Border x:Name="EmptyState" Grid.Row="2" Margin="0,8,0,0" Padding="24,26" CornerRadius="10"
-                        VerticalAlignment="Top" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                        Background="{DynamicResource Bg.Card}" Visibility="Collapsed">
-                    <StackPanel HorizontalAlignment="Center" MaxWidth="340">
-                        <Border Width="40" Height="40" CornerRadius="20" HorizontalAlignment="Center"
-                                Background="{DynamicResource Bg.Selected}">
-                            <Path Data="M2,1 L11,6.5 L2,12 Z" Width="13" Height="14" Stretch="Uniform"
-                                  Fill="{DynamicResource Text.Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <TextBlock Text="{DynamicResource S.Recipe.EmptyTitle}" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Body}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" TextAlignment="Center" Margin="0,5,0,0"
-                                   Text="{DynamicResource S.Recipe.EmptyDesc}"/>
-                        <Button Style="{StaticResource AddButton}" HorizontalAlignment="Center" Margin="0,14,0,0"
-                                Content="{DynamicResource S.Recipe.Create}" Click="Create_Click"/>
-                    </StackPanel>
-                </Border>
+                <!-- Пусто — одна строка: кнопка «Новый рецепт» уже стоит выше, второй ей не нужно. -->
+                <TextBlock x:Name="EmptyState" Grid.Row="3" Style="{StaticResource SettingDesc}" Margin="0,2,0,0"
+                           VerticalAlignment="Top" Foreground="{DynamicResource Text.Faint}" Visibility="Collapsed"
+                           Text="{DynamicResource S.Recipe.EmptyDesc}"/>
             </Grid>
 
-            <local:SchedulePanel x:Name="SchedulePane" Grid.Row="2" Margin="0,12,0,0" Visibility="Collapsed"/>
+            <local:SchedulePanel x:Name="SchedulePane" Grid.Row="2" Visibility="Collapsed"/>
+            <local:MachinesPanel x:Name="MachinesPane" Grid.Row="2" Visibility="Collapsed"/>
+            <local:McpPanel x:Name="McpPane" Grid.Row="2" Visibility="Collapsed"/>
         </Grid>
 
         <!-- ═══════════ РЕДАКТОР ═══════════ -->
@@ -186,7 +183,7 @@
                         AutomationProperties.Name="{DynamicResource S.Settings.Nav.Automation}">
                     <Path Style="{StaticResource IconGlyph}" Width="7" Data="M6,1 L1,6 L6,11"/>
                 </Button>
-                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}"
+                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" Margin="0"
                            VerticalAlignment="Center" Text="{DynamicResource S.Recipe.NewTitle}"/>
             </Grid>
 
@@ -300,7 +297,7 @@
                         AutomationProperties.Name="{DynamicResource S.Settings.Nav.Automation}">
                     <Path Style="{StaticResource IconGlyph}" Width="7" Data="M6,1 L1,6 L6,11"/>
                 </Button>
-                <TextBlock x:Name="RunTitle" Grid.Column="1" Style="{StaticResource PageTitle}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="RunTitle" Grid.Column="1" Style="{StaticResource PageTitle}" Margin="0" VerticalAlignment="Center"/>
             </Grid>
 
             <TextBlock x:Name="RunTechnical" Grid.Row="1" FontFamily="Consolas" FontSize="11" Margin="0,6,0,0"

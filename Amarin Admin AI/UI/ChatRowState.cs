@@ -63,6 +63,35 @@ public static class ChatRowState
             typeof(ChatRowState),
             new PropertyMetadata(false));
 
+    /// <summary>
+    /// Место строки в карточке раскрытой папки (или архива): заголовок, середина, низ. Шаблон
+    /// рисует по нему свой кусок общей подложки — вместе куски дают одну скруглённую карточку.
+    /// </summary>
+    /// <remarks>
+    /// Строки остаются прямыми детьми списка, а не уходят в контейнер папки: на этом стоят
+    /// подсветка открытого чата, выбор диапазона Shift-щелчком и переходы по Ctrl+Tab. До 1.28.0
+    /// чаты папки стояли вровень с остальными, потом — с отступом и волосяной линией, и в обоих
+    /// случаях было не видно, где папка кончается.
+    /// </remarks>
+    public static readonly DependencyProperty BandProperty =
+        DependencyProperty.RegisterAttached(
+            "Band",
+            typeof(FolderBand),
+            typeof(ChatRowState),
+            new PropertyMetadata(FolderBand.None));
+
+    public static void SetBand(DependencyObject element, FolderBand value)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        element.SetValue(BandProperty, value);
+    }
+
+    public static FolderBand GetBand(DependencyObject element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        return (FolderBand)element.GetValue(BandProperty);
+    }
+
     public static void SetIsPinned(DependencyObject element, bool value) =>
         Set(element, IsPinnedProperty, value);
 
@@ -131,4 +160,23 @@ public static class ChatRowState
         ArgumentNullException.ThrowIfNull(element);
         return (bool)element.GetValue(property);
     }
+}
+
+/// <summary>Кусок карточки раскрытой папки, который рисует строка.</summary>
+public enum FolderBand
+{
+    /// <summary>Строка вне карточки.</summary>
+    None,
+
+    /// <summary>Заголовок раскрытой папки — верх карточки.</summary>
+    Top,
+
+    /// <summary>Чат в середине папки.</summary>
+    Middle,
+
+    /// <summary>Последний чат папки — низ карточки.</summary>
+    Bottom,
+
+    /// <summary>Заголовок свёрнутой или пустой папки — карточка из одной строки.</summary>
+    Single
 }

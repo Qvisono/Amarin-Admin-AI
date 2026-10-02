@@ -144,12 +144,8 @@ namespace Amarin.UI
                 return;
             }
 
-            KeyDialogHint.SetResourceReference(
-                TextBlock.TextProperty,
-                KeyDialogProvider == LlmProvider.OpenRouter
-                    ? "S.Key.AddHint.OpenRouter"
-                    : "S.Key.AddHint.Venice");
-            KeyDialogError.Visibility = Visibility.Collapsed;
+            KeyDialogKeysLink.ToolTip = ProviderSpec.For(KeyDialogProvider).KeysUrl;
+            KeyDialogStatus.Text = "";
         }
 
         private void KeyDialogKeysLink_Click(object sender, RoutedEventArgs e) =>
@@ -161,7 +157,7 @@ namespace Amarin.UI
             KeyDialogValue.Text = "";
             KeyDialogVenice.IsChecked = true;
             KeyDialogProvider_Checked(KeyDialogVenice, new RoutedEventArgs());
-            KeyDialogError.Visibility = Visibility.Collapsed;
+            KeyDialogStatus.Text = "";
             SetKeyDialogBusy(false);
             KeyOverlay.Visibility = Visibility.Visible;
 
@@ -268,14 +264,23 @@ namespace Amarin.UI
 
         private void ShowKeyDialogError(string text)
         {
-            KeyDialogError.Text = text;
-            KeyDialogError.Visibility = Visibility.Visible;
+            KeyDialogStatus.SetResourceReference(TextBlock.ForegroundProperty, "Status.Danger");
+            KeyDialogStatus.Text = text;
         }
 
+        /// <summary>«Проверяю ключ…» — в подвале, на месте будущей ошибки: окно не меняет высоту.</summary>
         private void SetKeyDialogBusy(bool busy)
         {
             KeyDialogSaveButton.IsEnabled = !busy;
-            KeyDialogBusy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+            if (busy)
+            {
+                KeyDialogStatus.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+                KeyDialogStatus.Text = Loc.Get("S.Key.Checking");
+            }
+            else if (KeyDialogStatus.Text == Loc.Get("S.Key.Checking"))
+            {
+                KeyDialogStatus.Text = "";
+            }
         }
 
         // ───────────────────────── удаление ключа ─────────────────────────

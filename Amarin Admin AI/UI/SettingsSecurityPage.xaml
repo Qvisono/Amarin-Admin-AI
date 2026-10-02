@@ -1,316 +1,151 @@
 <UserControl x:Class="Amarin.UI.SettingsSecurityPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!--
-        Стили настроек объявлены локально в SettingsOverlay.Resources главного окна, и
-        StaticResource из этого файла их не достанет: поиск идёт по словарям разметки, а не по
-        дереву. Поэтому нужные ключи повторены здесь — тем же приёмом, что у страниц Key, Info и
-        Instructions.
-    -->
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
     <UserControl.Resources>
-        <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
-        </Style>
-        <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
-            <Setter Property="Margin" Value="0,18,0,4"/>
-        </Style>
-        <Style x:Key="GroupTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
-            <Setter Property="Margin" Value="2,14,0,6"/>
-        </Style>
-        <Style x:Key="SettingTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
-        </Style>
-        <Style x:Key="SettingDesc" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,3,0,0"/>
-        </Style>
-
-        <!-- Карточка выбора — копия DialogChoiceCard из Resources.xaml. -->
-        <Style x:Key="ChoiceCard" TargetType="RadioButton">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Card" Background="{DynamicResource Bg.Card}"
-                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                CornerRadius="8" Padding="12,10">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Тумблер — копия SettingsToggle из настроек главного окна. -->
-        <Style x:Key="SettingsToggle" TargetType="CheckBox">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="{DynamicResource Bg.Track}">
-                            <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="{DynamicResource Text.Dim}"
-                                     HorizontalAlignment="Left" Margin="3,0"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.Fill}"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
-                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.Tertiary}"/>
-                            </Trigger>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                    <Condition Property="IsChecked" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
-                                <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
-                            </MultiTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Выбор из короткого ряда значений — пилюлями: пять вариантов по слову не стоят карточек. -->
-        <Style x:Key="ChipRadio" TargetType="RadioButton">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Chip" Background="{DynamicResource Bg.Raised}"
-                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                CornerRadius="12" Height="24" Padding="11,0">
-                            <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
-                                       Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="SecondaryButton" TargetType="Button">
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Height" Value="26"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
-                                       Foreground="{TemplateBinding Foreground}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
+    <!--
+        Страница — строки, как у остальных: режим доступа выпадающим списком с одной строкой о
+        выбранном режиме, план, приватность. Список инструментов в сорок строк — подстраницей «›»:
+        на первом уровне он закрывал собой всё остальное.
+    -->
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="20,14,20,16">
-            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Security.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.Subtitle}" Margin="0,4,0,0"/>
+        <Grid local:SettingsDrill.IsHost="True">
+            <StackPanel Margin="20,14,20,16">
+                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Security.Title}"/>
 
-            <!-- ═══════════ РЕЖИМ ДОСТУПА ═══════════ -->
-            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.ModeLabel}"/>
-            <StackPanel x:Name="ModeCards" Margin="0,6,0,0">
-                <RadioButton x:Name="ModeNormal" Tag="Normal" GroupName="AccessMode"
-                             Style="{StaticResource ChoiceCard}" Checked="ModeCard_Checked">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SettingTitle}" FontWeight="SemiBold"
-                                   Text="{DynamicResource S.Access.Normal}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.NormalDesc}"/>
+                <!-- ═══════════ РЕЖИМ ДОСТУПА ═══════════ -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ModeLabel}"/>
+                        <TextBlock x:Name="ModeDesc" Style="{StaticResource SettingDesc}"/>
                     </StackPanel>
-                </RadioButton>
-                <RadioButton x:Name="ModeAskAll" Tag="AskAll" GroupName="AccessMode"
-                             Style="{StaticResource ChoiceCard}" Checked="ModeCard_Checked">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SettingTitle}" FontWeight="SemiBold"
-                                   Text="{DynamicResource S.Access.AskAll}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.AskAllDesc}"/>
+                    <ComboBox x:Name="ModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" SelectedIndex="0"
+                              AutomationProperties.Name="{DynamicResource S.Security.ModeLabel}"
+                              SelectionChanged="ModeCombo_SelectionChanged">
+                        <ComboBoxItem Tag="Normal" Content="{DynamicResource S.Access.Normal}"/>
+                        <ComboBoxItem Tag="AskAll" Content="{DynamicResource S.Access.AskAll}"/>
+                        <ComboBoxItem Tag="ReadOnly" Content="{DynamicResource S.Access.ReadOnly}"/>
+                        <ComboBoxItem Tag="AlwaysApprove" Content="{DynamicResource S.Access.AlwaysApprove}"/>
+                    </ComboBox>
+                </Grid>
+
+                <!-- ═══════════ ПЛАН ПЕРЕД ИЗМЕНЕНИЯМИ ═══════════ -->
+                <Border Style="{StaticResource SettingsDivider}"/>
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,4,0,2" Text="{DynamicResource S.Security.PlanLabel}"/>
+                <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,0,10" Text="{DynamicResource S.Security.PlanDesc}"/>
+                <Grid Margin="0,0,0,10">
+                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                               Text="{DynamicResource S.Customize.AgentLight}"/>
+                    <CheckBox x:Name="PlanLiteToggle" Tag="lite" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                              AutomationProperties.Name="{DynamicResource S.Customize.AgentLight}"
+                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                </Grid>
+                <Grid Margin="0,0,0,10">
+                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                               Text="{DynamicResource S.Customize.AgentFast}"/>
+                    <CheckBox x:Name="PlanFastToggle" Tag="fast" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                              AutomationProperties.Name="{DynamicResource S.Customize.AgentFast}"
+                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                </Grid>
+                <Grid>
+                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                               Text="{DynamicResource S.Customize.AgentHeavy}"/>
+                    <CheckBox x:Name="PlanHeavyToggle" Tag="heavy" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                              AutomationProperties.Name="{DynamicResource S.Customize.AgentHeavy}"
+                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                </Grid>
+
+                <!-- ═══════════ ПРИВАТНОСТЬ ═══════════ -->
+                <Border Style="{StaticResource SettingsDivider}"/>
+                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
                     </StackPanel>
-                </RadioButton>
-                <RadioButton x:Name="ModeReadOnly" Tag="ReadOnly" GroupName="AccessMode"
-                             Style="{StaticResource ChoiceCard}" Checked="ModeCard_Checked">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SettingTitle}" FontWeight="SemiBold"
-                                   Text="{DynamicResource S.Access.ReadOnly}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.ReadOnlyDesc}"/>
+                    <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1"
+                              Style="{StaticResource SettingsToggle}"
+                              Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
+                </Grid>
+                <Border Style="{StaticResource SettingsDivider}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
+                        <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
                     </StackPanel>
-                </RadioButton>
-                <RadioButton x:Name="ModeAlwaysApprove" Tag="AlwaysApprove" GroupName="AccessMode"
-                             Style="{StaticResource ChoiceCard}" Checked="ModeCard_Checked">
+                    <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
+                              AutomationProperties.Name="{DynamicResource S.Security.AutoLock}"
+                              SelectionChanged="AutoLockCombo_SelectionChanged">
+                        <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
+                        <ComboBoxItem Tag="5"/>
+                        <ComboBoxItem Tag="15"/>
+                        <ComboBoxItem Tag="30"/>
+                        <ComboBoxItem Tag="60"/>
+                    </ComboBox>
+                </Grid>
+                <Border Style="{StaticResource SettingsDivider}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                               Text="{DynamicResource S.Security.LockNowTitle}"/>
+                    <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
+                </Grid>
+
+                <!-- ═══════════ ИНСТРУМЕНТЫ ═══════════ -->
+                <Border Style="{StaticResource SettingsDivider}"/>
+                <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}"
+                        local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
+                        AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center"
-                                     Fill="{DynamicResource Status.Warning}"/>
-                            <TextBlock Style="{StaticResource SettingTitle}" FontWeight="SemiBold"
-                                       Text="{DynamicResource S.Access.AlwaysApprove}"/>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.AlwaysApproveDesc}"/>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ToolsLabel}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
                     </StackPanel>
-                </RadioButton>
+                </Button>
             </StackPanel>
 
-            <!-- ═══════════ ПЛАН ПЕРЕД ИЗМЕНЕНИЯМИ ═══════════ -->
-            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.PlanLabel}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.PlanDesc}"/>
-            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,4" Margin="0,6,0,0">
-                <StackPanel x:Name="PlanTierRows">
-                    <Grid Margin="0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                                   Text="{DynamicResource S.Customize.AgentLight}"/>
-                        <CheckBox x:Name="PlanLiteToggle" Grid.Column="1" Tag="lite" Style="{StaticResource SettingsToggle}"
-                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentLight}"
-                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                    </Grid>
-                    <Border Height="1" Background="{DynamicResource Bg.Hover}"/>
-                    <Grid Margin="0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                                   Text="{DynamicResource S.Customize.AgentFast}"/>
-                        <CheckBox x:Name="PlanFastToggle" Grid.Column="1" Tag="fast" Style="{StaticResource SettingsToggle}"
-                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentFast}"
-                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                    </Grid>
-                    <Border Height="1" Background="{DynamicResource Bg.Hover}"/>
-                    <Grid Margin="0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                                   Text="{DynamicResource S.Customize.AgentHeavy}"/>
-                        <CheckBox x:Name="PlanHeavyToggle" Grid.Column="1" Tag="heavy" Style="{StaticResource SettingsToggle}"
-                                  AutomationProperties.Name="{DynamicResource S.Customize.AgentHeavy}"
-                                  Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
+            <!-- ═══════════ ПОДСТРАНИЦА: ИНСТРУМЕНТЫ ═══════════ -->
+            <StackPanel x:Name="ToolsSub" Margin="20,14,20,16" Visibility="Collapsed">
+                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Security.ToolsLabel}"/>
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,16,0" VerticalAlignment="Center"
+                               Text="{DynamicResource S.Security.ToolsHint}"/>
+                    <Button x:Name="EnableAllToolsButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.Security.EnableAll}" Click="EnableAllToolsButton_Click"/>
+                </Grid>
 
-            <!-- ═══════════ ЗАЩИТА ДАННЫХ ═══════════ -->
-            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
-            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,6,0,0">
-                <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Margin="0,0,16,0">
-                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
-                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
-                        </StackPanel>
-                        <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
-                                  Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
-                    </Grid>
-
-                    <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,10"/>
-
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
-                    <WrapPanel x:Name="AutoLockChoices" Margin="0,8,0,0">
-                        <RadioButton Tag="0" GroupName="AutoLock" Style="{StaticResource ChipRadio}"
-                                     Content="{DynamicResource S.Security.AutoLockOff}" Checked="AutoLockChoice_Checked"/>
-                        <RadioButton Tag="5" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
-                        <RadioButton Tag="15" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
-                        <RadioButton Tag="30" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
-                        <RadioButton Tag="60" GroupName="AutoLock" Style="{StaticResource ChipRadio}" Checked="AutoLockChoice_Checked"/>
-                    </WrapPanel>
-                    <TextBlock x:Name="AutoLockNeedsPassword" Style="{StaticResource SettingDesc}" Margin="0,8,0,0"
-                               Foreground="{DynamicResource Status.Warning}" Visibility="Collapsed"
-                               Text="{DynamicResource S.Security.AutoLockNeedsPassword}"/>
-                    <Button x:Name="LockNowButton" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
-                            Margin="0,10,0,0" Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
-                </StackPanel>
-            </Border>
-
-            <!-- ═══════════ ИНСТРУМЕНТЫ ═══════════ -->
-            <Grid Margin="0,18,0,0">
-                <StackPanel Margin="0,0,12,0">
-                    <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.ToolsLabel}"
-                               Margin="0"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
-                </StackPanel>
-                <Button x:Name="EnableAllToolsButton" Style="{StaticResource SecondaryButton}"
-                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Content="{DynamicResource S.Security.EnableAll}" Click="EnableAllToolsButton_Click"/>
-            </Grid>
-
-            <TextBlock Style="{StaticResource GroupTitle}" Text="{DynamicResource S.Security.ChatGroup}"/>
-            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,4">
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,14,0,6" Text="{DynamicResource S.Security.ChatGroup}"/>
                 <StackPanel x:Name="ChatToolRows"/>
-            </Border>
 
-            <TextBlock Style="{StaticResource GroupTitle}" Text="{DynamicResource S.Security.AgentGroup}"/>
-            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,4">
+                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,14,0,6" Text="{DynamicResource S.Security.AgentGroup}"/>
                 <StackPanel x:Name="AgentToolRows"/>
-            </Border>
-        </StackPanel>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

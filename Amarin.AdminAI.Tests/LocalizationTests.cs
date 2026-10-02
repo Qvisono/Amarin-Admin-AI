@@ -381,12 +381,27 @@ public sealed class LocalizationTests
                 LanguageManager.Apply("en");
                 var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
                 overlay.Visibility = Visibility.Visible;
-                window.UpdateLayout();
 
+                // Все страницы по очереди, а не та, что осталась открытой от соседнего теста:
+                // иначе проверка зависела от порядка прогона.
+                var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)window.FindName("NavAccount")!);
+                var pages = nav.Children.OfType<RadioButton>().ToList();
+                var previous = pages.FirstOrDefault(page => page.IsChecked == true);
                 var found = new List<string>();
-                Walk(overlay, found);
+                foreach (var page in pages)
+                {
+                    page.IsChecked = true;
+                    window.UpdateLayout();
+                    Walk(overlay, found);
+                }
+
+                if (previous is not null)
+                {
+                    previous.IsChecked = true;
+                }
+
                 overlay.Visibility = Visibility.Collapsed;
-                return found;
+                return found.Distinct().ToList();
             });
 
             Assert.True(blanks.Count == 0, "пустые подписи: " + string.Join(" | ", blanks));
@@ -407,7 +422,7 @@ public sealed class LocalizationTests
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
         {
             var child = VisualTreeHelper.GetChild(root, i);
-            if (child is TextBlock { Visibility: Visibility.Visible } text &&
+            if (child is TextBlock { IsVisible: true } text &&
                 string.IsNullOrEmpty(text.Text) &&
                 text.Inlines.Count == 0 &&
                 text.Name.Length > 0 &&
@@ -420,12 +435,18 @@ public sealed class LocalizationTests
         }
     }
 
-    /// <summary>Эти подписи заполняются кодом по ходу дела и до первого события пусты.</summary>
+    /// <summary>
+    /// Эти подписи заполняются кодом по ходу дела и до первого события пусты. Окно теста —
+    /// без служб, поэтому пусты и показания ползунков («…Value»), итоги графика трат и выбор
+    /// в полях моделей и ключей (SelectedLabel).
+    /// </summary>
     private static bool IsFilledFromCode(string name) =>
-        name is "AttachmentsWarning" or "ConfirmationAgentText" or "ConfirmationSummaryText"
+        name.EndsWith("Value", StringComparison.Ordinal)
+            || name is "AttachmentsWarning" or "ConfirmationAgentText" or "ConfirmationSummaryText"
             or "ConfirmationExplanationText" or "DomainError" or "NameError" or "UpdateStatusText"
             or "SummarizeError" or "BalanceAmount" or "AllowedDomainsEmpty" or "UsageAppText"
-            or "ConfirmationAiText";
+            or "ConfirmationAiText" or "SpendTotalCaption" or "SpendTotalCredits" or "UpdateLastCheckText"
+            or "SelectedLabel";
 
     [Fact]
     public void Round_markers_stay_russian_on_disk_but_are_shown_in_the_interface_language()

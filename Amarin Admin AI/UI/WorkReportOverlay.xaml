@@ -15,10 +15,7 @@
     <Grid>
         <Border Background="{DynamicResource Overlay.Scrim}"/>
         <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border x:Name="Card" Width="640" Height="620"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="10" Padding="20,18">
+            <Border x:Name="Card" Style="{StaticResource DialogCard}" Width="640" Height="620">
                 <!-- Grid, а не StackPanel: длинный отчёт уходит в прокрутку строки «*», кнопки
                      в строке Auto остаются на карточке (см. памятку про модалки). -->
                 <Grid>
@@ -29,8 +26,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Margin="0,0,0,10">
-                        <TextBlock Text="{DynamicResource S.Report.WindowTitle}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}"/>
+                        <TextBlock Text="{DynamicResource S.Report.WindowTitle}" Style="{StaticResource DialogTitle}"/>
                         <TextBlock x:Name="StatusText" FontSize="11.5" Margin="0,4,0,0" TextWrapping="Wrap"
                                    Foreground="{DynamicResource Text.Muted}"
                                    AutomationProperties.LiveSetting="Polite"/>

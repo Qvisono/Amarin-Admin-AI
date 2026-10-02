@@ -19,6 +19,20 @@ public partial class SpendLimitsBlock : UserControl
 
     public SpendLimitsBlock() => InitializeComponent();
 
+    /// <summary>Лимит или порог поменялся — строка-ссылка на странице перечитывает своё значение.</summary>
+    internal event Action? Changed;
+
+    /// <summary>Значение строки-ссылки: самый заметный из лимитов коротко, или «выключено».</summary>
+    internal static string Summary(SpendLimits? limits) =>
+        limits switch
+        {
+            { DayUsd: { } day } => Loc.Format("S.Limit.Short.Day", SpendReport.FormatUsd(day)),
+            { MonthUsd: { } month } => Loc.Format("S.Limit.Short.Month", SpendReport.FormatUsd(month)),
+            { TurnUsd: { } turn } => Loc.Format("S.Limit.Short.Turn", SpendReport.FormatUsd(turn)),
+            { Keys.Count: > 0 } => Loc.Get("S.Limit.Short.Keys"),
+            _ => Loc.Get("S.Common.Off")
+        };
+
     internal void Load(AppServices services)
     {
         _services = services;
@@ -120,6 +134,7 @@ public partial class SpendLimitsBlock : UserControl
         change(copy);
         _services.Settings.BalanceThresholds = copy;
         _services.SettingsStore.Save(_services.Settings);
+        Changed?.Invoke();
     }
 
     /// <summary>Строка таблицы: подпись и два поля (или две подписи колонок).</summary>
@@ -260,6 +275,7 @@ public partial class SpendLimitsBlock : UserControl
         change(copy);
         _services.Settings.SpendLimits = copy;
         _services.SettingsStore.Save(_services.Settings);
+        Changed?.Invoke();
     }
 
     internal static SpendLimits Copy(SpendLimits source) => new()

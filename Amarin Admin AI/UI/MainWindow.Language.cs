@@ -98,14 +98,18 @@ namespace Amarin.UI
 
             // Перевод стоит модели минуты работы и денег, поэтому спрашиваем, а не стираем
             // молча, — и по умолчанию отвечаем «нет», как при удалении всех чатов.
-            var answer = MessageBox.Show(
-                this,
-                Loc.Format("S.Language.DeleteConfirm", language.NativeName),
-                Title,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-            if (answer != MessageBoxResult.Yes)
+            Detached.Run(DeleteLanguageAsync(language), "delete_language");
+        }
+
+        private async Task DeleteLanguageAsync(UiLanguage language)
+        {
+            var confirmed = await ShowNoticeAsync(
+                Loc.Format("S.Language.DeleteTitle", language.NativeName),
+                Loc.Get("S.Language.DeleteConfirm"),
+                Loc.Get("S.Common.Delete"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+            if (!confirmed || _services is null)
             {
                 return;
             }
@@ -139,9 +143,11 @@ namespace Amarin.UI
 
             OpenNameDialog(
                 Loc.Get("S.Language.NameTitle"),
-                Loc.Get("S.Language.NameDesc"),
                 "",
-                name => Detached.Run(TranslateLanguageAsync(name), "translate_language"));
+                name => Detached.Run(TranslateLanguageAsync(name), "translate_language"),
+                Loc.Get("S.Language.Translate"),
+                Loc.Get("S.Language.NamePlaceholder"),
+                Loc.Get("S.Language.NameDesc"));
         }
 
         private async Task TranslateLanguageAsync(string languageName)

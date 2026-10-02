@@ -40,10 +40,12 @@ namespace Amarin.UI
 
         private void RenderChatListNodes(IReadOnlyList<ChatListNode> nodes)
         {
-            var first = true;
-            foreach (var node in nodes)
+            for (var i = 0; i < nodes.Count; i++)
             {
-                switch (node)
+                // Чаты раскрытой папки идут сразу за её заголовком, и карточку папки замыкает
+                // последний из них — чей сосед снизу уже не вложенный чат.
+                var nextNested = i + 1 < nodes.Count && nodes[i + 1] is ChatListChat { Nested: true };
+                switch (nodes[i])
                 {
                     case ChatListGroup group:
                         var header = new TextBlock
@@ -51,7 +53,7 @@ namespace Amarin.UI
                             Style = (Style)ChatListPanel.FindResource("GroupHeader"),
                             Text = Loc.Get(group.TitleKey)
                         };
-                        if (first)
+                        if (i == 0)
                         {
                             // Верхний заголовок стоит прямо под поиском — ему нужно меньше воздуха.
                             header.Margin = new Thickness(14, 6, 6, 4);
@@ -60,18 +62,32 @@ namespace Amarin.UI
                         ChatListPanel.Children.Add(header);
                         break;
                     case ChatListFolder folder:
-                        ChatListPanel.Children.Add(BuildFolderHeader(folder));
+                        ChatListPanel.Children.Add(Banded(BuildFolderHeader(folder), folder.Folder.Collapsed, nextNested));
                         break;
                     case ChatListArchive archive:
-                        ChatListPanel.Children.Add(BuildArchiveHeader(archive));
+                        ChatListPanel.Children.Add(Banded(BuildArchiveHeader(archive), !archive.Expanded, nextNested));
                         break;
                     case ChatListChat chat:
-                        ChatListPanel.Children.Add(BuildChatRow(chat));
+                        var row = BuildChatRow(chat);
+                        if (chat.Nested)
+                        {
+                            ChatRowState.SetBand(row, nextNested ? FolderBand.Middle : FolderBand.Bottom);
+                        }
+
+                        ChatListPanel.Children.Add(row);
                         break;
                 }
-
-                first = false;
             }
+        }
+
+        /// <summary>
+        /// Раскрытая папка с чатами — верх карточки; свёрнутая и пустая — карточка из одной
+        /// строки. Голой строкой папка не бывает: тогда раскрытие меняло бы высоту заголовка.
+        /// </summary>
+        private static Button Banded(Button header, bool collapsed, bool hasRows)
+        {
+            ChatRowState.SetBand(header, !collapsed && hasRows ? FolderBand.Top : FolderBand.Single);
+            return header;
         }
 
         private Button BuildChatRow(ChatListChat chat)
@@ -109,7 +125,8 @@ namespace Amarin.UI
         private Button BuildFolderHeader(ChatListFolder node)
         {
             var folder = node.Folder;
-            var button = BuildGroupButton(folder.Name, node.Count, open: !folder.Collapsed, glyph: FolderGlyph);
+            var open = !folder.Collapsed;
+            var button = BuildGroupButton(folder.Name, node.Count, open, open ? FolderOpenGlyph : FolderGlyph);
             button.Tag = folder;
             button.Click += (_, e) =>
             {
@@ -138,73 +155,84 @@ namespace Amarin.UI
             return button;
         }
 
-        private const string FolderGlyph = "M1,3 L1,12 L14,12 L14,4.5 L7.5,4.5 L6,3 Z";
-        private const string ArchiveGlyph = "M1,1 L13,1 L13,4 L1,4 Z M2,4 L2,12 L12,12 L12,4 M5,7 L9,7";
+        // Значки в точках, без растяжения: открытая и закрытая папка обязаны совпадать по
+        // размеру и месту, иначе при раскрытии имя папки дёргалось бы вбок.
+        private const string FolderGlyph = "M1.5,2.5 L5.5,2.5 L7,4 L13.5,4 L13.5,11.5 L1.5,11.5 Z";
+        private const string FolderOpenGlyph = "M1.5,11.5 L1.5,2.5 L5.5,2.5 L7,4 L12.5,4 L12.5,6 M1.5,11.5 L3.5,6 L14.5,6 L12.5,11.5 Z";
+        private const string ArchiveGlyph = "M1.5,2 L13.5,2 L13.5,5 L1.5,5 Z M2.5,5 L2.5,11.5 L12.5,11.5 L12.5,5 M5.5,8 L9.5,8";
 
-        /// <summary>Заголовок сворачиваемой группы: шеврон, значок, имя и число чатов справа.</summary>
+        /// <summary>
+        /// Заголовок сворачиваемой группы: значок, имя, справа число чатов (у свёрнутой) и шеврон.
+        /// Значок стоит там, где у чатов начинается название, а название чата в папке — под именем
+        /// папки: так видно, что чат лежит внутри.
+        /// </summary>
         private Button BuildGroupButton(string name, int count, bool open, string glyph)
         {
-            var chevron = new Path
-            {
-                Data = Geometry.Parse("M1,1 L5,5 L1,9"),
-                Width = 6,
-                Height = 9,
-                Stretch = Stretch.Uniform,
-                StrokeThickness = 1.4,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                StrokeLineJoin = PenLineJoin.Round,
-                Margin = new Thickness(2, 0, 7, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                RenderTransformOrigin = new Point(0.5, 0.5),
-                RenderTransform = new RotateTransform(open ? 90 : 0)
-            };
-            chevron.SetResourceReference(Shape.StrokeProperty, "Text.Faint");
-
             var icon = new Path
             {
                 Data = Geometry.Parse(glyph),
-                Width = 12,
-                Height = 11,
-                Stretch = Stretch.Uniform,
+                Width = 15,
+                Height = 13,
+                Stretch = Stretch.None,
                 StrokeThickness = 1.2,
                 StrokeLineJoin = PenLineJoin.Round,
-                Margin = new Thickness(0, 0, 6, 0),
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                Margin = new Thickness(0, 0, 8, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            icon.SetResourceReference(Shape.StrokeProperty, "Text.Dim");
+            icon.SetResourceReference(Shape.StrokeProperty, open ? "Text.Muted" : "Text.Dim");
 
             var label = new TextBlock
             {
                 Text = name,
-                FontSize = 12,
+                FontSize = 12.5,
                 FontWeight = FontWeights.SemiBold,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
             label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
 
+            // Число — только у свёрнутой: у раскрытой чаты и так перед глазами.
             var number = new TextBlock
             {
                 Text = count.ToString(System.Globalization.CultureInfo.CurrentCulture),
-                FontSize = 10.5,
-                Margin = new Thickness(6, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center
+                FontSize = 11,
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = open ? Visibility.Collapsed : Visibility.Visible
             };
             number.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
 
+            var chevron = new Path
+            {
+                Data = Geometry.Parse("M1,1 L5,5 L9,1"),
+                Width = 10,
+                Height = 6,
+                Stretch = Stretch.Uniform,
+                StrokeThickness = 1.4,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+                Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                RenderTransform = new RotateTransform(open ? 180 : 0)
+            };
+            chevron.SetResourceReference(Shape.StrokeProperty, "Text.Faint");
+
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(icon, 1);
-            Grid.SetColumn(label, 2);
-            Grid.SetColumn(number, 3);
-            grid.Children.Add(chevron);
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(label, 1);
+            Grid.SetColumn(number, 2);
+            Grid.SetColumn(chevron, 3);
             grid.Children.Add(icon);
             grid.Children.Add(label);
             grid.Children.Add(number);
+            grid.Children.Add(chevron);
 
             var button = new Button
             {
@@ -220,64 +248,47 @@ namespace Amarin.UI
 
         // ───────────────────────── Фильтр по тегу ─────────────────────────
 
-        private string _tagFilterSignature = "";
-
-        private void RefreshTagFilterRow(ChatOrganizer.State organize)
+        /// <summary>
+        /// Пилюля включённого фильтра под поиском и точка на кнопке ⇅. Сам фильтр ставится в меню
+        /// кнопки; здесь только видно, что он есть, и снимается он одним щелчком. Во время поиска
+        /// пилюли нет: выдача поиска фильтр не учитывает, и пилюля врала бы.
+        /// </summary>
+        private void RefreshTagFilterPill(ChatOrganizer.State organize, string query)
         {
-            var signature = string.Join("|", organize.Tags.Select(tag => tag.Id + "~" + tag.Name + "~" + tag.Color)) + "#" + _tagFilter;
-            if (signature == _tagFilterSignature)
+            var tag = _tagFilter is null ? null : organize.Tags.FirstOrDefault(item => item.Id == _tagFilter);
+            ListFilterDot.Visibility = tag is null ? Visibility.Collapsed : Visibility.Visible;
+            if (tag is null || _sidebarCollapsed || query.Trim().Length > 0)
             {
+                TagFilterPill.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            _tagFilterSignature = signature;
-            TagFilterRow.Children.Clear();
-            if (organize.Tags.Count > 0)
-            {
-                TagFilterRow.Children.Add(BuildTagChip(null, Loc.Get("S.ChatList.AllTags"), null));
-                foreach (var tag in organize.Tags)
-                {
-                    TagFilterRow.Children.Add(BuildTagChip(tag.Id, tag.Name, tag.Color));
-                }
-            }
-
-            TagFilterRow.Visibility = organize.Tags.Count > 0 && !_sidebarCollapsed ? Visibility.Visible : Visibility.Collapsed;
+            TagFilterDot.SetResourceReference(Shape.FillProperty, tag.Color);
+            TagFilterName.Text = tag.Name;
+            TagFilterPill.Visibility = Visibility.Visible;
         }
 
-        private ToggleButton BuildTagChip(string? tagId, string name, string? color)
+        private void SetTagFilter(string? tagId)
         {
-            var content = new StackPanel { Orientation = Orientation.Horizontal };
-            if (color is not null)
-            {
-                var dot = new Ellipse { Width = 6, Height = 6, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
-                dot.SetResourceReference(Shape.FillProperty, color);
-                content.Children.Add(dot);
-            }
+            _tagFilter = tagId;
+            RefreshChatList();
+        }
 
-            content.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 110, TextTrimming = TextTrimming.CharacterEllipsis });
+        private void TagFilterClear_Click(object sender, RoutedEventArgs e) => SetTagFilter(null);
 
-            var chip = new ToggleButton
+        /// <summary>Подпись раздела в меню: не пункт, а заголовок над группой пунктов.</summary>
+        private MenuItem MenuSection(string text)
+        {
+            var label = new TextBlock { Text = text, FontSize = 10.5, FontWeight = FontWeights.SemiBold };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
+            return new MenuItem
             {
-                Content = content,
-                IsChecked = _tagFilter == tagId,
-                Style = (Style)ChatListPanel.FindResource("TagChip")
+                Header = label,
+                Height = 24,
+                Style = (Style)FindResource("AppMenuItem"),
+                IsHitTestVisible = false,
+                Focusable = false
             };
-            System.Windows.Automation.AutomationProperties.SetName(chip, name);
-            chip.Click += (_, _) =>
-            {
-                // Повторный щелчок по выбранному тегу снимает фильтр — как «Все».
-                _tagFilter = _tagFilter == tagId ? null : tagId;
-                RefreshChatList();
-            };
-
-            if (tagId is not null)
-            {
-                var menu = new ContextMenu { Style = (Style)FindResource("AppContextMenu") };
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.DeleteTag"), () => Detached.Run(DeleteTagAsync(tagId, name), "delete_tag"), danger: true));
-                chip.ContextMenu = menu;
-            }
-
-            return chip;
         }
 
         // ───────────────────────── Выбор ─────────────────────────
@@ -444,7 +455,7 @@ namespace Amarin.UI
                 {
                     _services?.Organizer.ToggleTag(ids, tagId);
                     RefreshChatList();
-                }));
+                }, tag));
             }
 
             if (organize.Tags.Count > 0)
@@ -464,7 +475,8 @@ namespace Amarin.UI
         };
 
         /// <summary>Пункт с местом под галочку слева и, для тегов, точкой цвета.</summary>
-        private MenuItem CheckItem(string text, bool check, string? color, Action invoke)
+        /// <param name="tag">Тег пункта: справа у него кнопка «⋯» — изменить или удалить.</param>
+        private MenuItem CheckItem(string text, bool check, string? color, Action invoke, ChatTag? tag = null)
         {
             var mark = new TextBlock
             {
@@ -474,20 +486,109 @@ namespace Amarin.UI
             };
             mark.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
 
-            var header = new StackPanel { Orientation = Orientation.Horizontal };
+            var header = new Grid();
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             header.Children.Add(mark);
             if (color is not null)
             {
                 var dot = new Ellipse { Width = 7, Height = 7, Margin = new Thickness(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center };
                 dot.SetResourceReference(Shape.FillProperty, color);
+                Grid.SetColumn(dot, 1);
                 header.Children.Add(dot);
             }
 
-            header.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 240, TextTrimming = TextTrimming.CharacterEllipsis });
+            var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 240, TextTrimming = TextTrimming.CharacterEllipsis };
+            Grid.SetColumn(label, 2);
+            header.Children.Add(label);
+
             var item = MenuItemFor("", invoke);
             item.Header = header;
+            if (tag is not null)
+            {
+                var more = TagMoreButton(tag);
+                Grid.SetColumn(more, 3);
+                header.Children.Add(more);
+            }
+
             System.Windows.Automation.AutomationProperties.SetName(item, check ? $"{text} ✓" : text);
             return item;
+        }
+
+        /// <summary>
+        /// «⋯» у тега в меню: изменить или удалить, не уходя из списка. Прежде удаление пряталось
+        /// за «Изменить тег…» → тег → «Удалить», хотя новый тег заводился одним пунктом.
+        /// </summary>
+        /// <remarks>
+        /// Кнопка гасит своё нажатие сама, поэтому щелчок по ней не ставит фильтр и не вешает тег
+        /// на чат — это делает только щелчок по строке.
+        /// </remarks>
+        private Button TagMoreButton(ChatTag tag)
+        {
+            var glyph = new TextBlock
+            {
+                Text = "⋯",
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 2)
+            };
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+
+            var button = new Button
+            {
+                Content = glyph,
+                Width = 24,
+                Height = 22,
+                Margin = new Thickness(12, 0, -4, 0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                // Стиль живёт в ресурсах боковой панели, не окна, — ищем от списка чатов.
+                Style = (Style)ChatListPanel.FindResource("SidebarIconButton")
+            };
+            button.SetResourceReference(ToolTipProperty, "S.ChatList.TagActions");
+            System.Windows.Automation.AutomationProperties.SetName(button, Loc.Format("S.ChatList.TagActionsFor", tag.Name));
+            button.Click += (_, e) =>
+            {
+                e.Handled = true;
+                var owner = FindParentMenu(button);
+                var anchor = owner?.PlacementTarget as FrameworkElement ?? ListOptionsButton;
+                if (owner is not null)
+                {
+                    owner.IsOpen = false;
+                }
+
+                OpenTagActions(tag, anchor);
+            };
+            return button;
+        }
+
+        private static ContextMenu? FindParentMenu(DependencyObject start)
+        {
+            for (var node = start; node is not null; node = VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node))
+            {
+                if (node is ContextMenu menu)
+                {
+                    return menu;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Действия с тегом: изменить (имя и цвет) или удалить.</summary>
+        private void OpenTagActions(ChatTag tag, FrameworkElement anchor)
+        {
+            var menu = NewMenu(anchor);
+            menu.Placement = PlacementMode.MousePoint;
+            var id = tag.Id;
+            var name = tag.Name;
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.EditTag") + "…", () => OpenTagDialog(tag, null)));
+            menu.Items.Add(Divider());
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.DeleteTag"), () => Detached.Run(DeleteTagAsync(id, name), "delete_tag"), danger: true));
+            menu.IsOpen = true;
         }
 
         private void MoveChats(IReadOnlyList<string> ids, string? folderId)
@@ -511,7 +612,6 @@ namespace Amarin.UI
         {
             OpenNameDialog(
                 Loc.Get("S.ChatList.NewFolder"),
-                Loc.Get("S.ChatList.NewFolderDesc"),
                 "",
                 name =>
                 {
@@ -527,14 +627,15 @@ namespace Amarin.UI
                     }
 
                     RefreshChatList();
-                });
+                },
+                Loc.Get("S.Common.Create"),
+                Loc.Get("S.Common.NamePlaceholder"));
         }
 
         private void RenameFolder(ChatFolder folder)
         {
             OpenNameDialog(
                 Loc.Get("S.ChatList.RenameFolder"),
-                Loc.Get("S.ChatList.NewFolderDesc"),
                 folder.Name,
                 name =>
                 {
@@ -546,10 +647,11 @@ namespace Amarin.UI
         private async Task DeleteFolderAsync(ChatFolder folder)
         {
             var confirmed = await ShowNoticeAsync(
-                Loc.Get("S.ChatList.DeleteFolder"),
-                Loc.Format("S.ChatList.DeleteFolderText", folder.Name),
+                Loc.Format("S.ChatList.DeleteFolderTitle", folder.Name),
+                Loc.Get("S.ChatList.DeleteFolderText"),
                 Loc.Get("S.Common.Delete"),
-                Loc.Get("S.Common.Cancel"));
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
             if (!confirmed || _services is null)
             {
                 return;
@@ -559,12 +661,27 @@ namespace Amarin.UI
             RefreshChatList();
         }
 
-        private void CreateTag(IReadOnlyList<string>? applyTo)
+        private void CreateTag(IReadOnlyList<string>? applyTo) => OpenTagDialog(null, applyTo);
+
+        private string _tagDialogColor = ChatOrganizer.TagColors[0];
+
+        /// <summary>
+        /// Тег: название и цвет; у существующего ещё и «Удалить». Прежде цвет назначался сам по
+        /// кругу, а поменять ни его, ни имя было нельзя — только удалить тег и завести заново.
+        /// </summary>
+        private void OpenTagDialog(ChatTag? existing, IReadOnlyList<string>? applyTo)
         {
+            if (_services is null)
+            {
+                return;
+            }
+
+            // Новому тегу — следующий цвет по кругу: соседние теги различаются и без выбора.
+            var used = _services.Organizer.Snapshot().Tags.Count;
+            var color = existing?.Color ?? ChatOrganizer.TagColors[used % ChatOrganizer.TagColors.Length];
             OpenNameDialog(
-                Loc.Get("S.ChatList.NewTag"),
-                Loc.Get("S.ChatList.NewTagDesc"),
-                "",
+                Loc.Get(existing is null ? "S.ChatList.NewTag" : "S.ChatList.EditTag"),
+                existing?.Name ?? "",
                 name =>
                 {
                     if (_services is null)
@@ -572,25 +689,65 @@ namespace Amarin.UI
                         return;
                     }
 
-                    // Цвета идут по кругу: у соседних тегов они различаются без выбора вручную.
-                    var used = _services.Organizer.Snapshot().Tags.Count;
-                    var tag = _services.Organizer.CreateTag(name, ChatOrganizer.TagColors[used % ChatOrganizer.TagColors.Length]);
-                    if (applyTo is { Count: > 0 })
+                    if (existing is not null)
                     {
-                        _services.Organizer.ToggleTag(applyTo, tag.Id);
+                        _services.Organizer.UpdateTag(existing.Id, name, _tagDialogColor);
+                    }
+                    else
+                    {
+                        var tag = _services.Organizer.CreateTag(name, _tagDialogColor);
+                        if (applyTo is { Count: > 0 })
+                        {
+                            _services.Organizer.ToggleTag(applyTo, tag.Id);
+                        }
                     }
 
                     RefreshChatList();
-                });
+                },
+                Loc.Get(existing is null ? "S.Common.Create" : "S.Common.Save"),
+                Loc.Get("S.Common.NamePlaceholder"));
+
+            ShowTagColors(color);
+            NameColorRow.Visibility = Visibility.Visible;
+            if (existing is not null)
+            {
+                var id = existing.Id;
+                var name = existing.Name;
+                NameDeleteButton.Visibility = Visibility.Visible;
+                _nameDialogDelete = () => Detached.Run(DeleteTagAsync(id, name), "delete_tag");
+            }
+        }
+
+        private void ShowTagColors(string selected)
+        {
+            _tagDialogColor = selected;
+            NameColors.Children.Clear();
+            for (var i = 0; i < ChatOrganizer.TagColors.Length; i++)
+            {
+                var color = ChatOrganizer.TagColors[i];
+                var dot = new Ellipse { Width = 18, Height = 18 };
+                dot.SetResourceReference(Shape.FillProperty, color);
+                var swatch = new RadioButton
+                {
+                    Style = (Style)FindResource("TagSwatch"),
+                    GroupName = "TagDialogColor",
+                    Content = dot,
+                    IsChecked = color == selected
+                };
+                System.Windows.Automation.AutomationProperties.SetName(swatch, Loc.Format("S.ChatList.TagColorItem", i + 1));
+                swatch.Checked += (_, _) => _tagDialogColor = color;
+                NameColors.Children.Add(swatch);
+            }
         }
 
         private async Task DeleteTagAsync(string tagId, string name)
         {
             var confirmed = await ShowNoticeAsync(
-                Loc.Get("S.ChatList.DeleteTag"),
-                Loc.Format("S.ChatList.DeleteTagText", name),
+                Loc.Format("S.ChatList.DeleteTagTitle", name),
+                Loc.Get("S.ChatList.DeleteTagText"),
                 Loc.Get("S.Common.Delete"),
-                Loc.Get("S.Common.Cancel"));
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
             if (!confirmed || _services is null)
             {
                 return;
@@ -602,6 +759,10 @@ namespace Amarin.UI
 
         // ───────────────────────── Меню списка ─────────────────────────
 
+        /// <summary>
+        /// Меню ⇅: сортировка, фильтр по тегу и заведение папок и тегов. Фильтр — здесь, а не
+        /// рядом пилюль под поиском: теги нужны не каждый раз, а место в колонке — всегда.
+        /// </summary>
         private void ListOptionsButton_Click(object sender, RoutedEventArgs e)
         {
             if (_services is null)
@@ -611,6 +772,7 @@ namespace Amarin.UI
 
             var menu = NewMenu(ListOptionsButton);
             var sort = _services.Settings.ChatSort;
+            menu.Items.Add(MenuSection(Loc.Get("S.ChatList.SortSection")));
             foreach (var (value, key) in new[]
                      {
                          (ChatSort.Updated, "S.ChatList.SortUpdated"),
@@ -622,9 +784,23 @@ namespace Amarin.UI
                 menu.Items.Add(CheckItem(Loc.Get(key), sort == value, null, () => SetChatSort(value)));
             }
 
+            var tags = _services.Organizer.Snapshot().Tags;
+            if (tags.Count > 0)
+            {
+                menu.Items.Add(Divider());
+                menu.Items.Add(MenuSection(Loc.Get("S.ChatList.FilterSection")));
+                menu.Items.Add(CheckItem(Loc.Get("S.ChatList.AllTags"), _tagFilter is null, null, () => SetTagFilter(null)));
+                foreach (var tag in tags)
+                {
+                    var id = tag.Id;
+                    menu.Items.Add(CheckItem(tag.Name, _tagFilter == id, tag.Color, () => SetTagFilter(id), tag));
+                }
+            }
+
             menu.Items.Add(Divider());
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewFolder") + "…", () => CreateFolder(null)));
             menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewTag") + "…", () => CreateTag(null)));
+
             menu.IsOpen = true;
         }
 

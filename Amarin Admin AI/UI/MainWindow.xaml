@@ -104,9 +104,14 @@
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border x:Name="Bg" Background="Transparent" CornerRadius="5"
                                             Padding="{TemplateBinding Padding}">
-                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
-                                                   Foreground="{DynamicResource Text.Faint}"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                                 соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                            <TextBlock Text="{TemplateBinding Content}" FontSize="11" FontWeight="SemiBold" Visibility="Hidden"/>
+                                            <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11"
+                                                       Foreground="{DynamicResource Text.Faint}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
@@ -124,37 +129,6 @@
                         </Setter>
                     </Style>
 
-                    <!-- Фишка фильтра по тегу (D5): точка цвета и имя, выбранная — подложкой. -->
-                    <Style x:Key="TagChip" TargetType="ToggleButton">
-                        <Setter Property="Height" Value="22"/>
-                        <Setter Property="Margin" Value="0,0,4,4"/>
-                        <Setter Property="Padding" Value="7,0,8,0"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="FontSize" Value="11"/>
-                        <Setter Property="Foreground" Value="{DynamicResource Text.Faint}"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="11"
-                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter VerticalAlignment="Center"
-                                                          TextBlock.Foreground="{TemplateBinding Foreground}"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                        </Trigger>
-                                        <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                            <Setter TargetName="Bg" Property="BorderBrush" Value="Transparent"/>
-                                            <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
 
                     <!-- Кнопка-значок пакетной панели (D5). Подпись — в подсказке и для дикторов. -->
                     <Style x:Key="SidebarIconButton" TargetType="Button">
@@ -189,23 +163,41 @@
                     </Style>
 
                     <!--
-                        Заголовок папки или архива (D5): кнопка, которая сворачивает свою группу.
-                        Шеврон поворачивает триггер по Tag = "open": состояние задаёт код при сборке.
+                        Заголовок папки или архива (D5) — кнопка, которая сворачивает свою группу.
+                        Папка всегда карточка: свёрнутая — из одной строки, раскрытая — её верх
+                        (ChatRowState.Band = Top), а низ дорисует последний чат. Верх у обеих
+                        одинаковый — поле 3, подсветка с отступом 4, — поэтому при раскрытии
+                        заголовок не сдвигается ни на точку: карточка просто растёт вниз. Пока
+                        свёрнутая папка была голой строкой, она при раскрытии меняла высоту и
+                        съезжала на несколько точек. Углы концентричны: у карточки 10, у подсветки 6.
                     -->
                     <Style x:Key="FolderHeader" TargetType="Button">
-                        <Setter Property="Height" Value="26"/>
-                        <Setter Property="Margin" Value="6,8,6,1"/>
+                        <Setter Property="Height" Value="38"/>
+                        <Setter Property="Margin" Value="6,3"/>
                         <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,0,8,0">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                    </Border>
+                                    <Grid>
+                                        <Border x:Name="Band" Background="{DynamicResource Bg.Card}" CornerRadius="10"/>
+                                        <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Margin="4"
+                                                Padding="5,0,6,0">
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
                                     <ControlTemplate.Triggers>
+                                        <Trigger Property="local:ChatRowState.Band" Value="Top">
+                                            <Setter Property="Height" Value="35"/>
+                                            <Setter Property="Margin" Value="6,3,6,0"/>
+                                            <Setter TargetName="Band" Property="CornerRadius" Value="10,10,0,0"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="4,4,4,1"/>
+                                        </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -223,6 +215,9 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
+                                    <Grid>
+                                    <!-- Кусок карточки раскрытой папки: см. FolderHeader и ChatRowState.Band. -->
+                                    <Border x:Name="Band" Background="{DynamicResource Bg.Card}" Visibility="Collapsed"/>
                                     <Border x:Name="Bg" Background="{TemplateBinding Background}"
                         CornerRadius="6" Padding="9,0,4,0">
                                         <Grid>
@@ -297,7 +292,30 @@
                                             </Button>
                                         </Grid>
                                     </Border>
+                                    </Grid>
                                     <ControlTemplate.Triggers>
+                                        <!--
+                                            Чат раскрытой папки. Название стоит под именем папки (после
+                                            значка), подсветка — внутри карточки с отступом 4. Строки
+                                            карточки идут без зазора (поле 6,0): куски подложки обязаны
+                                            сомкнуться, зазор между подсветками даёт само поле Bg.
+                                        -->
+                                        <Trigger Property="local:ChatRowState.Band" Value="Middle">
+                                            <Setter Property="Margin" Value="6,0"/>
+                                            <Setter TargetName="Band" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="4,1"/>
+                                            <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
+                                            <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
+                                        </Trigger>
+                                        <Trigger Property="local:ChatRowState.Band" Value="Bottom">
+                                            <Setter Property="Height" Value="35"/>
+                                            <Setter Property="Margin" Value="6,0,6,3"/>
+                                            <Setter TargetName="Band" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="Band" Property="CornerRadius" Value="0,0,10,10"/>
+                                            <Setter TargetName="Bg" Property="Margin" Value="4,1,4,4"/>
+                                            <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
+                                            <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
+                                        </Trigger>
                                         <!--
                                             Открытый чат. Стоит первым: IsMouseOver ниже перекрывает
                                             его фон, и это правильный порядок — под курсором строка
@@ -451,33 +469,7 @@
                                 </Button>
                             </Grid>
 
-                            <!-- New Chat: белая primary-кнопка; справа — шаблоны новых чатов (D11). -->
-                            <Grid x:Name="NewChatRow">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Button x:Name="TemplatesButton" Grid.Column="1" Width="28" Height="28" Margin="0,5,6,4"
-                                        Cursor="Hand" Click="TemplatesButton_Click"
-                                        ToolTip="{DynamicResource S.Templates.Button}"
-                                        AutomationProperties.Name="{DynamicResource S.Templates.Button}">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
-                                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
-                                                <Path Data="M1,1 L5,5 L9,1" Width="9" Height="6" Stretch="Uniform"
-                                                      Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.5"
-                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
+                            <!-- New Chat: белая primary-кнопка -->
                             <Button x:Name="NewChatButton" AutomationProperties.Name="{DynamicResource S.ChatList.NewChat}" Cursor="Hand" Margin="0,5,0,0" Click="NewChatButton_Click">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
@@ -505,7 +497,6 @@
                                     </ControlTemplate>
                                 </Button.Template>
                             </Button>
-                            </Grid>
 
                             <!-- Поиск -->
                             <Border x:Name="SearchBorder" Height="28" Margin="6,0,6,6" CornerRadius="6" BorderThickness="1">
@@ -531,7 +522,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <!-- Сортировка, папки и теги (D5) — меню у поиска: место в колонке дорого. -->
+                                    <!-- Сортировка, фильтр по тегу, папки и теги (D5) — меню у поиска: место в колонке дорого. -->
                                     <Button x:Name="ListOptionsButton" Grid.Column="2" Width="24" Height="22" Margin="0,0,2,0"
                                             Cursor="Hand" Click="ListOptionsButton_Click"
                                             ToolTip="{DynamicResource S.ChatList.Options}"
@@ -552,6 +543,9 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
+                                    <Ellipse x:Name="ListFilterDot" Grid.Column="2" Width="6" Height="6" Margin="0,4,4,0"
+                                             HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False"
+                                             Fill="{DynamicResource Accent.Fill}" Visibility="Collapsed"/>
                                     <Path Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
               Fill="{DynamicResource Text.Dim}" Width="12" Height="12" Stretch="Uniform"
               HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -597,8 +591,28 @@
                                               Click="SearchModeContent_Click"/>
                             </WrapPanel>
 
-                            <!-- Фильтр по тегу (D5): виден, когда теги есть. -->
-                            <WrapPanel x:Name="TagFilterRow" Margin="6,0,6,4" Visibility="Collapsed"/>
+                            <!--
+                                Фильтр по тегу (D5) ставится в меню ⇅, а здесь только видно, что он
+                                включён, и снимается одним щелчком. Ряд всех тегов под поиском
+                                отнимал у списка две строки и путал теги с папками.
+                            -->
+                            <Border x:Name="TagFilterPill" Margin="6,0,6,6" Height="26" CornerRadius="7" Padding="9,0,2,0"
+                                    HorizontalAlignment="Left" Background="{DynamicResource Bg.Raised}"
+                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="TagFilterDot" Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TagFilterName" FontSize="11.5" MaxWidth="150" TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" Foreground="{DynamicResource Text.Body}"/>
+                                    <Button x:Name="TagFilterClear" Style="{StaticResource SidebarIconButton}" Width="20" Height="20"
+                                            Margin="4,0,0,0" Click="TagFilterClear_Click"
+                                            ToolTip="{DynamicResource S.ChatList.ClearFilter}"
+                                            AutomationProperties.Name="{DynamicResource S.ChatList.ClearFilter}">
+                                        <Path Data="M1,1 L8,8 M8,1 L1,8" Width="8" Height="8" Stretch="Uniform"
+                                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                              StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
 
                             <!--
                                 Пакетные действия над выбранными чатами (D5): появляется при выборе
@@ -655,7 +669,9 @@
                             </Border>
 
                             <!-- ===== СПИСОК ЧАТОВ ===== -->
-                            <StackPanel x:Name="ChatListPanel"/>
+                            <!-- Округление раскладки: куски карточки раскрытой папки лежат встык,
+                                 и на дробном масштабе без него между ними светился бы шов. -->
+                            <StackPanel x:Name="ChatListPanel" UseLayoutRounding="True"/>
 
                         </StackPanel>
                     </ScrollViewer>
@@ -1070,9 +1086,14 @@
                                         <ControlTemplate TargetType="RadioButton">
                                             <Border x:Name="Bg" Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                             BorderThickness="1" CornerRadius="6">
-                                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="10.5"
-                                   Foreground="{DynamicResource Text.Muted}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                                         соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                                    <TextBlock Text="{TemplateBinding Content}" FontSize="10.5" FontWeight="SemiBold" Visibility="Hidden"/>
+                                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="10.5"
+                                       Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
@@ -1594,13 +1615,15 @@
                                     <!--
                                         Голосовой ввод (D14): щелчок — начать и остановить, удержание —
                                         говорить, пока держишь; Esc отменяет. Круг за кнопкой дышит
-                                        громкостью, рядом — время записи.
+                                        громкостью, рядом — время записи. Без распознавания (нет
+                                        распознавателя Windows для языка и не задана облачная модель)
+                                        кнопки нет вовсе: записывать было бы нечем распознавать.
                                     -->
                                     <TextBlock x:Name="VoiceTimer" Visibility="Collapsed" FontSize="12" FontWeight="SemiBold"
                                                VerticalAlignment="Center" Margin="0,0,6,0"
                                                Foreground="{DynamicResource Status.Danger}"
                                                AutomationProperties.LiveSetting="Polite"/>
-                                    <Grid Width="32" Height="32" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Grid x:Name="MicHost" Width="32" Height="32" Margin="0,0,8,0" VerticalAlignment="Center">
                                         <Ellipse x:Name="VoiceLevel" Fill="{DynamicResource Status.Danger}" Opacity="0"
                                                  IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
                                             <Ellipse.RenderTransform>
@@ -1665,7 +1688,11 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="TitleText" Style="{StaticResource TitleUrbanist}" Text="Amarin Admin AI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Column="1">
-                        <!-- Кнопка, а не значок: щелчок перезапускает программу от администратора (C9). -->
+                        <!--
+                            Кнопка, а не значок: щелчок перезапускает программу от администратора (C9).
+                            Вид и подсказка — ровно как в 1.27.1: без подсветки под курсором и с одной
+                            строкой текста; о щелчке говорит курсор-рука.
+                        -->
                         <Button Width="32" Height="32" x:Name="Warn"
         Cursor="Hand"
         Click="Warn_Click"
@@ -1677,14 +1704,9 @@
         ToolTipService.ShowDuration="20000">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="4">
+                                    <Border Background="Transparent" CornerRadius="4">
                                         <ContentPresenter/>
                                     </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Status.WarningSurface}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Button.Template>
                             <Button.ToolTip>
@@ -1723,19 +1745,12 @@
                                            Foreground="{DynamicResource Status.Warning}"
                                            VerticalAlignment="Top"
                                            Margin="0,1,8,0"/>
-                                                        <StackPanel MaxWidth="196">
-                                                            <TextBlock Text="{DynamicResource S.Chrome.NotAdmin}"
+                                                        <TextBlock Text="{DynamicResource S.Chrome.NotAdmin}"
                                            FontSize="11.5"
                                            Foreground="{DynamicResource Text.Secondary}"
                                            TextWrapping="Wrap"
-                                           LineHeight="15"/>
-                                                            <TextBlock Text="{DynamicResource S.Chrome.NotAdminAction}"
-                                           FontSize="11"
-                                           Margin="0,5,0,0"
-                                           Foreground="{DynamicResource Text.Muted}"
-                                           TextWrapping="Wrap"
-                                           LineHeight="14"/>
-                                                        </StackPanel>
+                                           LineHeight="15"
+                                           MaxWidth="196"/>
                                                     </StackPanel>
                                                 </Border>
                                             </Grid>
@@ -1764,6 +1779,15 @@
 
         <Grid x:Name="SettingsOverlay" Visibility="Collapsed">
             <Grid.Resources>
+                <ResourceDictionary>
+                <!--
+                    Общие стили настроек — один словарь на окно и на страницы-UserControl: у
+                    страниц 1.28.0 были свои копии тумблера, кнопок и заголовков, и вид
+                    расходился от страницы к странице. Здесь остаётся только своё.
+                -->
+                <ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+                </ResourceDictionary.MergedDictionaries>
                 <!-- ===== Кнопка "Сохранить" для промптов ===== -->
                 <Style x:Key="SavePromptButton" TargetType="Button">
                     <Setter Property="Cursor" Value="Hand"/>
@@ -1874,39 +1898,6 @@
                     <Setter Property="Margin" Value="18,12,8,4"/>
                 </Style>
 
-                <!-- ===== Тумблер ===== -->
-                <Style x:Key="SettingsToggle" TargetType="CheckBox">
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="CheckBox">
-                                <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="{DynamicResource Bg.Track}">
-                                    <Ellipse x:Name="Thumb" Width="14" Height="14" Fill="{DynamicResource Text.Dim}"
-                                     HorizontalAlignment="Left" Margin="3,0"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.Fill}"/>
-                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
-                                        <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-                                    </Trigger>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.Tertiary}"/>
-                                    </Trigger>
-                                    <MultiTrigger>
-                                        <MultiTrigger.Conditions>
-                                            <Condition Property="IsMouseOver" Value="True"/>
-                                            <Condition Property="IsChecked" Value="True"/>
-                                        </MultiTrigger.Conditions>
-                                        <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
-                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
-                                    </MultiTrigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
 
                 <!-- ===== Мелкий раскрывающийся пункт (модель SynGuard) =====
                      Тот же приём с шевроном, что у ActionExpanderToggle, но по размеру подписи:
@@ -1951,67 +1942,8 @@
                     </Setter>
                 </Style>
 
-                <!-- ===== Тексты ===== -->
-                <Style x:Key="PageTitle" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="15"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
-                    <Setter Property="Margin" Value="0,0,0,14"/>
-                </Style>
-                <Style x:Key="SectionTitle" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="12"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
-                    <Setter Property="Margin" Value="0,4,0,8"/>
-                </Style>
-                <Style x:Key="SettingTitle" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="13"/>
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Body}"/>
-                </Style>
-                <Style x:Key="SettingDesc" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="11.5"/>
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
-                    <Setter Property="TextWrapping" Value="Wrap"/>
-                    <Setter Property="Margin" Value="0,3,0,0"/>
-                </Style>
-                <Style x:Key="SettingsDivider" TargetType="Border">
-                    <Setter Property="Height" Value="1"/>
-                    <Setter Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                    <Setter Property="Margin" Value="0,12"/>
-                </Style>
 
-                <!-- ===== Вторичная кнопка (Manage/Open...) ===== -->
-                <Style x:Key="SecondaryButton" TargetType="Button">
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-                    <Setter Property="FontSize" Value="11.5"/>
-                    <Setter Property="Height" Value="26"/>
-                    <Setter Property="Padding" Value="12,0"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                    <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
-                                       Foreground="{TemplateBinding Foreground}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
 
-                <!-- ===== Опасная кнопка ===== -->
-                <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                    <Setter Property="Foreground" Value="{DynamicResource Status.Danger}"/>
-                </Style>
 
                 <!--
                     Нижняя половина плашки «версия и репозиторий». Своим шаблоном, а не Hyperlink:
@@ -2064,82 +1996,7 @@
                     </Setter>
                 </Style>
 
-                <!-- ===== ComboBox ===== -->
-                <Style x:Key="DarkComboBoxItem" TargetType="ComboBoxItem">
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-                    <Setter Property="FontSize" Value="12"/>
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ComboBoxItem">
-                                <Border x:Name="Bg" Background="Transparent" CornerRadius="4"
-                                Padding="8,5" Margin="3,1">
-                                    <ContentPresenter/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
 
-                <Style x:Key="DarkComboBox" TargetType="ComboBox">
-                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
-                    <Setter Property="FontSize" Value="12"/>
-                    <Setter Property="Height" Value="28"/>
-                    <Setter Property="MinWidth" Value="170"/>
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItem}"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ComboBox">
-                                <Grid>
-                                    <ToggleButton IsChecked="{Binding IsDropDownOpen,
-                                          RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                          Focusable="False" ClickMode="Press" Cursor="Hand">
-                                        <ToggleButton.Template>
-                                            <ControlTemplate TargetType="ToggleButton">
-                                                <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
-                                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="6">
-                                                    <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
-                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                                  Width="8" Height="4" Stretch="Uniform"
-                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                  Margin="0,0,10,0"/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </ToggleButton.Template>
-                                    </ToggleButton>
-                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
-                                              Margin="10,0,26,0" VerticalAlignment="Center"
-                                              IsHitTestVisible="False"/>
-                                    <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
-                                   VerticalOffset="4" AllowsTransparency="True" StaysOpen="False"
-                                   PopupAnimation="Fade">
-                                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                        BorderThickness="1" CornerRadius="8" Padding="0,3"
-                                        MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
-                                            <!-- Та же плавная прокрутка, что у списков моделей и страниц настроек. -->
-                                            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                                          local:SmoothScroll.IsEnabled="True">
-                                                <ItemsPresenter/>
-                                            </ScrollViewer>
-                                        </Border>
-                                    </Popup>
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
 
                 <!-- ===== Многострочный промпт ===== -->
                 <!--
@@ -2343,9 +2200,14 @@
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
                                         BorderBrush="{DynamicResource Border.Default}"
                                         BorderThickness="1" CornerRadius="6" Padding="12,0">
-                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5"
-                                               Foreground="{DynamicResource Text.Muted}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                             соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="11.5" FontWeight="SemiBold" Visibility="Hidden"/>
+                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5"
+                                                   Foreground="{DynamicResource Text.Muted}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
@@ -2420,6 +2282,7 @@
                     <Setter Property="HorizontalAlignment" Value="Right"/>
                 </Style>
 
+                </ResourceDictionary>
             </Grid.Resources>
 
             <!-- Затемнение -->
@@ -2429,13 +2292,15 @@
 
             <!-- Окно -->
             <!--
-                Высота 620: с «Автоматизацией» и «Подключениями» в навигации одиннадцать страниц. Колонка навигации ещё и
-                прокручивается, а плашка версии стоит своей строкой под ней — прежде она лежала
-                поверх колонки, и каждый новый пункт наезжал на неё. На маленьком экране Viewbox
-                ужимает окно целиком.
+                690×520 и десять страниц в четырёх группах, как в 1.27.1 (там было 690×460 и восемь).
+                1.28.0 растянула окно до 620: каждая новая страница шла отдельным пунктом, и колонка
+                перестала помещаться. Теперь компьютеры и MCP — вкладки Automation, а тяжёлые блоки
+                живут на подстраницах (SettingsDrill), и окно снова не выше, чем нужно. Колонка
+                навигации всё равно прокручивается, а плашка версии стоит своей строкой под ней.
+                На маленьком экране Viewbox ужимает окно целиком.
             -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="690" Height="620" Background="{DynamicResource Bg.Panel}"
+            <Border x:Name="SettingsCard" Width="690" Height="520" Background="{DynamicResource Bg.Panel}"
             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -2462,9 +2327,7 @@
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Model}"/>
                                 <RadioButton x:Name="NavCustomize" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Customize}"/>
                                 <RadioButton x:Name="NavInstructions" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Instructions}" Checked="NavInstructions_Checked"/>
-                                <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.AutomationGroup}"/>
                                 <RadioButton x:Name="NavAutomation" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Automation}" Checked="NavAutomation_Checked"/>
-                                <RadioButton x:Name="NavConnections" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.Connections}" Checked="NavConnections_Checked"/>
                                 <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.Key}"/>
                     <RadioButton x:Name="NavKey" Style="{StaticResource SettingsNavItem}" Content="{DynamicResource S.Settings.Nav.KeyInfo}" Checked="NavKey_Checked"/>
                     <TextBlock Style="{StaticResource SettingsNavGroup}" Text="{DynamicResource S.Settings.Nav.DataAndInfo}"/>
@@ -2538,7 +2401,7 @@
                         </Button>
 
                         <!-- ═══════════ ACCOUNT ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2632,7 +2495,7 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ APPEARANCE ═══════════ -->
-                        <ScrollViewer x:Name="AppearancePageScroll" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="AppearancePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2713,7 +2576,7 @@
                                     </ComboBox>
                                 </Grid>
 
-                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <!-- Размер текста ленты и шрифт кода (I3) — в той же группе, что масштаб. -->
                                 <local:AccessibilityBlock x:Name="AccessibilitySettings"/>
                                 <Border Style="{StaticResource SettingsDivider}"/>
 
@@ -2737,6 +2600,21 @@
                                               Style="{StaticResource SettingsToggle}"
                                               Checked="ThemeFollowSystemToggle_Changed"
                                               Unchecked="ThemeFollowSystemToggle_Changed"/>
+                                </Grid>
+                                <!-- Высокая контрастность Windows (I2) — рядом с другим «как в Windows» у темы. -->
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Access.Contrast}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Access.ContrastDesc}"/>
+                                    </StackPanel>
+                                    <CheckBox AutomationProperties.Name="{DynamicResource S.Access.Contrast}" x:Name="HighContrastToggle" Grid.Column="1"
+                                              Style="{StaticResource SettingsToggle}"
+                                              Checked="HighContrastToggle_Changed"
+                                              Unchecked="HighContrastToggle_Changed"/>
                                 </Grid>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -3191,7 +3069,14 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ BEHAVIOR ═══════════ -->
-                        <ScrollViewer x:Name="BehaviorPageScroll" VerticalScrollBarVisibility="Auto">
+                        <!--
+                            Порядок 1.27.1: чат, окно, уведомления, язык, горячие клавиши. Новое 1.28.0
+                            встало туда, где его ищут: номера строк — к чату, вид уведомлений — к
+                            уведомлениям, сочетания из любой программы — к горячим клавишам, а трей с
+                            автозапуском и голосовой ввод — строками «›» на свои подстраницы.
+                        -->
+                        <ScrollViewer x:Name="BehaviorPageScroll" VerticalScrollBarVisibility="Auto"
+                                      local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3202,6 +3087,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
+                            <Grid local:SettingsDrill.IsHost="True">
                             <StackPanel Margin="20,14,20,16">
                                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Behavior.Title}"/>
 
@@ -3217,10 +3103,6 @@
                                               AutomationProperties.Name="{DynamicResource S.Behavior.CodeLineNumbers}"
                                               Checked="CodeLineNumbersToggle_Changed" Unchecked="CodeLineNumbersToggle_Changed"/>
                                 </Grid>
-                                <Border Style="{StaticResource SettingsDivider}"/>
-                                <local:VoiceSettingsBlock x:Name="VoiceSettings"/>
-                                <Border Style="{StaticResource SettingsDivider}"/>
-                                <local:WindowsIntegrationBlock x:Name="WindowsSettings"/>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -3253,21 +3135,36 @@
                                               Checked="NotifyOnCompleteToggle_Changed"
                                               Unchecked="NotifyOnCompleteToggle_Changed"/>
                                 </Grid>
-                                <Grid Margin="18,10,0,0"
+                                <Grid Style="{StaticResource NestedRow}"
                                       IsEnabled="{Binding IsChecked, ElementName=NotifyOnCompleteToggle}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.NotifySound}"/>
-                                        <TextBlock Style="{StaticResource SettingDesc}"
-                                           Text="{DynamicResource S.Behavior.NotifySoundDesc}"/>
-                                    </StackPanel>
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Behavior.NotifySound}"
+                                               VerticalAlignment="Center" Margin="0,0,16,0"/>
                                     <CheckBox AutomationProperties.Name="{DynamicResource S.Behavior.NotifySound}" x:Name="NotifySoundToggle" Grid.Column="1"
                                               Style="{StaticResource SettingsToggle}" IsChecked="True"
                                               Checked="NotifySoundToggle_Changed"
                                               Unchecked="NotifySoundToggle_Changed"/>
+                                </Grid>
+                                <!-- Вид всех уведомлений программы (G3), не только о готовом ответе. -->
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.Notifications}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Windows.NotifyHint}"/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="NotifyStyleCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                              AutomationProperties.Name="{DynamicResource S.Windows.Notifications}"
+                                              SelectionChanged="NotifyStyleCombo_SelectionChanged">
+                                        <ComboBoxItem Tag="Card" Content="{DynamicResource S.Windows.NotifyCard}"/>
+                                        <ComboBoxItem Tag="System" Content="{DynamicResource S.Windows.NotifySystem}"/>
+                                    </ComboBox>
                                 </Grid>
 
                                 <Border Style="{StaticResource SettingsDivider}"/>
@@ -3295,20 +3192,49 @@
                                     </StackPanel>
                                 </Grid>
 
+                                <!-- Трей, автозапуск, Проводник (G1, G4) и голосовой ввод (D14) — подстраницами. -->
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Button x:Name="WindowsLinkRow" Style="{StaticResource SettingsLinkRow}"
+                                        local:SettingsDrill.Opens="{Binding ElementName=BehaviorWindowsSub}"
+                                        AutomationProperties.Name="{DynamicResource S.Windows.Title}">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Windows.Title}"/>
+                                </Button>
+                                <Border Style="{StaticResource SettingsDivider}"/>
+                                <Button x:Name="VoiceLinkRow" Style="{StaticResource SettingsLinkRow}"
+                                        local:SettingsDrill.Opens="{Binding ElementName=BehaviorVoiceSub}"
+                                        AutomationProperties.Name="{DynamicResource S.Voice.Title}">
+                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Title}"/>
+                                </Button>
+
                                 <!--
                                     Горячие клавиши. Строки собираются кодом по HotkeyMap.All:
                                     список действий один на программу, и вторая его копия
-                                    в разметке разошлась бы с ним молча.
+                                    в разметке разошлась бы с ним молча. Ниже — сочетания из любой
+                                    программы (G5): их ищут здесь же, а не в трее.
                                 -->
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <TextBlock Style="{StaticResource SectionTitle}"
                                            Text="{DynamicResource S.Behavior.Hotkeys}"/>
                                 <StackPanel x:Name="HotkeyList"/>
+                                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,8,0,8"
+                                           Text="{DynamicResource S.Windows.Hotkeys}"/>
+                                <local:GlobalHotkeysBlock x:Name="GlobalHotkeysSettings"/>
                             </StackPanel>
+
+                            <StackPanel x:Name="BehaviorWindowsSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Windows.Title}"/>
+                                <local:WindowsIntegrationBlock x:Name="WindowsSettings"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="BehaviorVoiceSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Voice.Title}"/>
+                                <local:VoiceSettingsBlock x:Name="VoiceSettings"/>
+                            </StackPanel>
+                            </Grid>
                         </ScrollViewer>
 
                         <!-- ═══════════ CUSTOMIZE ═══════════ -->
-                        <ScrollViewer x:Name="CustomizePageScroll" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="CustomizePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3623,7 +3549,8 @@
                         </ScrollViewer>
 
                         <!-- ═══════════ DATA CONTROLS ═══════════ -->
-                        <ScrollViewer x:Name="DataPageScroll" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="DataPageScroll" VerticalScrollBarVisibility="Auto"
+                                      local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3634,6 +3561,7 @@
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
+                            <Grid local:SettingsDrill.IsHost="True">
                             <StackPanel Margin="20,14,20,16">
                                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Data.Title}"/>
 
@@ -3753,10 +3681,29 @@
                                                 Click="DataImportButton_Click"/>
                                     </StackPanel>
                                 </Grid>
+                                <!--
+                                    Резервные копии (F1) и хранение с очисткой (F3) — подстраницами:
+                                    в 1.28.0 два блока по экрану высотой стояли посреди страницы, и до
+                                    обновлений и удаления данных было не долистать.
+                                -->
                                 <Border Style="{StaticResource SettingsDivider}"/>
-                                <local:BackupBlock x:Name="BackupPanel"/>
+                                <Button x:Name="BackupLinkRow" Style="{StaticResource SettingsLinkRow}"
+                                        local:SettingsDrill.Opens="{Binding ElementName=DataBackupSub}"
+                                        AutomationProperties.Name="{DynamicResource S.Backup.Title}">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Title}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.LinkDesc}"/>
+                                    </StackPanel>
+                                </Button>
                                 <Border Style="{StaticResource SettingsDivider}"/>
-                                <local:DataCareBlock x:Name="DataCarePanel"/>
+                                <Button x:Name="CareLinkRow" Style="{StaticResource SettingsLinkRow}"
+                                        local:SettingsDrill.Opens="{Binding ElementName=DataCareSub}"
+                                        AutomationProperties.Name="{DynamicResource S.Care.Title}">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Title}"/>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LinkDesc}"/>
+                                    </StackPanel>
+                                </Button>
                                 <Border Style="{StaticResource SettingsDivider}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -3963,6 +3910,17 @@
                                             Content="{DynamicResource S.Common.Delete}" Click="DeleteAllDataButton_Click"/>
                                 </Grid>
                             </StackPanel>
+
+                            <StackPanel x:Name="DataBackupSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Backup.Title}"/>
+                                <local:BackupBlock x:Name="BackupPanel"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="DataCareSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Care.Title}"/>
+                                <local:DataCareBlock x:Name="DataCarePanel"/>
+                            </StackPanel>
+                            </Grid>
                         </ScrollViewer>
 
                         <!-- ═══════════ KEY AND INFO ═══════════ -->
@@ -3972,7 +3930,7 @@
                             остаётся здесь, потому что ElementName=NavKey ищется в области имён
                             этого файла.
                         -->
-                        <local:SettingsKeyPage x:Name="KeyPage">
+                        <local:SettingsKeyPage x:Name="KeyPage" local:UiMotion.FadeOnShow="True">
                             <local:SettingsKeyPage.Style>
                                 <Style TargetType="local:SettingsKeyPage">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3987,7 +3945,7 @@
 
                         <!-- ═══════════ SECURITY ═══════════ -->
                         <!-- Отдельным UserControl, как Key и Instructions: режим доступа и инструменты. -->
-                        <local:SettingsSecurityPage x:Name="SecurityPage">
+                        <local:SettingsSecurityPage x:Name="SecurityPage" local:UiMotion.FadeOnShow="True">
                             <local:SettingsSecurityPage.Style>
                                 <Style TargetType="local:SettingsSecurityPage">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -4006,7 +3964,7 @@
                             Стиль с триггером остаётся здесь, потому что ElementName=NavInstructions
                             ищется в области имён этого файла.
                         -->
-                        <local:SettingsInstructionsPage x:Name="InstructionsPage">
+                        <local:SettingsInstructionsPage x:Name="InstructionsPage" local:UiMotion.FadeOnShow="True">
                             <local:SettingsInstructionsPage.Style>
                                 <Style TargetType="local:SettingsInstructionsPage">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -4020,8 +3978,8 @@
                         </local:SettingsInstructionsPage>
 
                         <!-- ═══════════ AUTOMATION ═══════════ -->
-                        <!-- Отдельным UserControl: рецепты (C7), дальше — расписание. -->
-                        <local:SettingsAutomationPage x:Name="AutomationPage">
+                        <!-- Отдельным UserControl: рецепты (C7), расписание, удалённые компьютеры (C10) и MCP (C11). -->
+                        <local:SettingsAutomationPage x:Name="AutomationPage" local:UiMotion.FadeOnShow="True">
                             <local:SettingsAutomationPage.Style>
                                 <Style TargetType="local:SettingsAutomationPage">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -4034,21 +3992,6 @@
                             </local:SettingsAutomationPage.Style>
                         </local:SettingsAutomationPage>
 
-                        <!-- ═══════════ CONNECTIONS ═══════════ -->
-                        <!-- Удалённые машины (C10), дальше — серверы MCP (C11). -->
-                        <local:SettingsConnectionsPage x:Name="ConnectionsPage">
-                            <local:SettingsConnectionsPage.Style>
-                                <Style TargetType="local:SettingsConnectionsPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavConnections}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsConnectionsPage.Style>
-                        </local:SettingsConnectionsPage>
-
                         <!-- ═══════════ INFO ═══════════ -->
                         <!--
                             Отдельным UserControl, а не шестым ScrollViewer в этой разметке: гайд
@@ -4056,7 +3999,7 @@
                             и так три тысячи строк. Стиль с триггером остаётся здесь, потому что
                             ElementName=NavInfo ищется в области имён этого файла.
                         -->
-                        <local:SettingsInfoPage>
+                        <local:SettingsInfoPage local:UiMotion.FadeOnShow="True">
                             <local:SettingsInfoPage.Style>
                                 <Style TargetType="local:SettingsInfoPage">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -4097,9 +4040,14 @@
                                 <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" CornerRadius="6"
                                         BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
                                         Padding="{TemplateBinding Padding}">
-                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
-                                               Foreground="{DynamicResource Text.Tertiary}"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                             соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                        <TextBlock Text="{TemplateBinding Content}" FontSize="12" FontWeight="SemiBold" Visibility="Hidden"/>
+                                        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="12"
+                                                   Foreground="{DynamicResource Text.Tertiary}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
@@ -4550,14 +4498,12 @@
             <Border Background="{DynamicResource Overlay.Scrim}"/>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
             <!--
-                Шире обычных 420 и с потолком высоты: сюда кладётся блок кода, а карточка живёт
-                внутри Viewbox со Stretch="Uniform" — без MaxHeight длинный скрипт растянул бы её,
-                и Viewbox ужал бы весь диалог вместе с кнопками до нечитаемого.
+                Шире обычных диалогов и с потолком высоты: сюда кладётся блок кода, а карточка
+                живёт внутри Viewbox со Stretch="Uniform" — без MaxHeight длинный скрипт растянул
+                бы её, и Viewbox ужал бы весь диалог вместе с кнопками до нечитаемого.
             -->
-            <Border x:Name="ConfirmationCard"
-                    Width="460" MinHeight="180" MaxHeight="560" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
-                    Padding="20,18">
+            <Border x:Name="ConfirmationCard" Style="{StaticResource DialogCard}"
+                    Width="480" MinHeight="180" MaxHeight="580">
                 <!--
                     Grid, а не StackPanel, — и в этом вся суть. StackPanel меряет детей
                     бесконечностью и раскладывает подряд на полную желаемую высоту: потолок
@@ -4575,64 +4521,73 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="{DynamicResource S.Confirm.Title}" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,12"/>
-                    <!-- Из какого чата пришёл вопрос: спрашивать могут сразу несколько, и
+                    <!-- Вопрос — заголовком: кнопки внизу отвечают именно на него. -->
+                    <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Confirm.Title}"/>
+
+                    <!-- Кто спрашивает и из какого чата: спрашивать могут сразу несколько, и
                          «удалить папку X» без имени разговора — опасная неизвестность. -->
-                    <Button x:Name="ConfirmationChatButton" Grid.Row="1" Style="{StaticResource InlineLinkButton}"
-                            HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
-                            Click="ConfirmationChatButton_Click"/>
+                    <WrapPanel Grid.Row="1" Margin="0,4,0,14">
+                        <TextBlock x:Name="ConfirmationAgentText" FontSize="12" Foreground="{DynamicResource Text.Dim}"/>
+                        <TextBlock x:Name="ConfirmationChatDot" Text=" · " FontSize="12" Foreground="{DynamicResource Text.Dim}"
+                                   Visibility="{Binding Visibility, ElementName=ConfirmationChatButton}"/>
+                        <Button x:Name="ConfirmationChatButton" Style="{StaticResource DialogLink}" Visibility="Collapsed"
+                                Click="ConfirmationChatButton_Click"/>
+                    </WrapPanel>
 
                     <!-- Отступ справа отрицательный: полоса прокрутки встаёт в поле карточки,
                          а не отжимает текст от него. -->
                     <ScrollViewer x:Name="ConfirmationBodyScroll" Grid.Row="2"
-                                  VerticalScrollBarVisibility="Auto" Margin="0,0,-8,0" Padding="0,0,8,0">
+                                  VerticalScrollBarVisibility="Auto" Margin="0,0,-10,0" Padding="0,0,10,0">
                         <StackPanel>
-                            <TextBlock x:Name="ConfirmationAgentText" FontSize="12.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Tertiary}" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                            <TextBlock x:Name="ConfirmationSummaryText" FontSize="13.5" Foreground="{DynamicResource Text.Body}"
-                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
-                            <TextBlock x:Name="ConfirmationExplanationText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="ConfirmationSummaryText" FontSize="13" Foreground="{DynamicResource Text.Body}"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock x:Name="ConfirmationExplanationText" Style="{StaticResource DialogText}" Margin="0,8,0,0"/>
                             <!--
                                 Разъяснение от ИИ: то же, что в журнале умеет кнопка «Спросить ИИ», только
                                 здесь оно спрашивается само и заранее. Поле explanation у инструмента —
                                 просьба к модели, а не обязанность, и чаще всего оно пустое; человек при
-                                этом жмёт «Да» под текстом скрипта, который никто ему не объяснил.
+                                этом жмёт «Разрешить» под текстом скрипта, который никто ему не объяснил.
+                                Отбито чертой слева: это слова модели, а не факты о вызове.
                                 Обычный TextBlock: текст пришёл от модели и остаётся текстом.
                             -->
-                            <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                                       TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
-                            <!--
-                                Что именно выполнится, целиком, и технические подробности. Наполняются из
-                                кода: заголовок и подсветка зависят от инструмента, а пустой экспандер в
-                                диалоге хуже, чем его отсутствие.
-                            -->
+                            <Border x:Name="ConfirmationAiBox" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="2,0,0,0"
+                                    Padding="10,1,0,1" Margin="0,12,0,0"
+                                    Visibility="{Binding Visibility, ElementName=ConfirmationAiText}">
+                                <TextBlock x:Name="ConfirmationAiText" FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
+                                           TextWrapping="Wrap" Visibility="Collapsed"/>
+                            </Border>
                             <!--
                                 Пробный прогон (-WhatIf): что именно изменится. Над текстом команды, потому
                                 что отвечает на тот же вопрос короче. Появляется, только когда прогон
                                 возможен, и кнопки его не ждут — как и разъяснение выше.
+                                Ниже — что именно выполнится, целиком, и технические подробности.
+                                Наполняются из кода: пустой экспандер в диалоге хуже его отсутствия.
                             -->
-                            <ContentControl x:Name="ConfirmationWhatIfHost" Visibility="Collapsed" Margin="0,0,0,8"/>
-                            <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,0,0,8"/>
-                            <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,0,0,8"/>
+                            <ContentControl x:Name="ConfirmationWhatIfHost" Visibility="Collapsed" Margin="0,14,0,0"/>
+                            <ContentControl x:Name="ConfirmationCodeHost" Visibility="Collapsed" Margin="0,10,0,0"/>
+                            <ContentControl x:Name="ConfirmationDetailsHost" Visibility="Collapsed" Margin="0,10,0,0"/>
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- Подвал с волоском сверху: когда тело прокручивается, край должен читаться. -->
+                    <!--
+                        Подвал: слева «Не спрашивать…» (разрешение впрок, отдельно от пары ответов),
+                        справа «Запретить» и «Разрешить». Волосок сверху — край прокручиваемого тела.
+                    -->
                     <StackPanel Grid.Row="3">
-                        <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,10,0,0"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                            <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Common.No}"
-                                    Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                        <Border Height="1" Background="{DynamicResource Bg.Hover}" Margin="0,14,0,0"/>
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
                             <!--
-                                «Разрешить…» — ответ «да» с запасом: этот инструмент в этом чате до
+                                «Не спрашивать…» — ответ «да» с запасом: этот инструмент в этом чате до
                                 конца ответа или до конца разговора больше не спрашивается. У
                                 вопросов SynGuard и вопросов без чата кнопки нет.
                             -->
                             <ToggleButton x:Name="ConfirmationAllowToggle" Content="{DynamicResource S.Confirm.Allow}"
-                                          Style="{StaticResource DialogSecondaryToggle}" Margin="0,0,8,0"
+                                          Style="{StaticResource DialogSecondaryToggle}"
                                           ToolTip="{DynamicResource S.Confirm.Allow.Tooltip}"/>
                             <Popup x:Name="ConfirmationAllowPopup"
                                    PlacementTarget="{Binding ElementName=ConfirmationAllowToggle}"
@@ -4667,10 +4622,15 @@
                                     </StackPanel>
                                 </Border>
                             </Popup>
-                            <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Common.Yes}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="ConfirmationYesButton_Click"/>
-                        </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button x:Name="ConfirmationNoButton" Content="{DynamicResource S.Confirm.Deny}"
+                                        Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="ConfirmationNoButton_Click"/>
+                                <Button x:Name="ConfirmationYesButton" Content="{DynamicResource S.Confirm.Approve}"
+                                        Style="{StaticResource DialogPrimaryButton}"
+                                        Click="ConfirmationYesButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -4683,34 +4643,31 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DomainCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-            <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="10" Padding="20,18">
+            <Border Style="{StaticResource DialogCard}">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource S.Domain.Title}" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                    <TextBlock Text="{DynamicResource S.Domain.Desc}"
-                               FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                               TextWrapping="Wrap" Margin="0,0,0,14"/>
-                    <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                            BorderThickness="1" CornerRadius="6" Padding="10,7">
-                        <TextBox x:Name="DomainInput" Background="Transparent" BorderThickness="0"
-                                 FontFamily="Consolas" FontSize="13"
-                                 Foreground="{DynamicResource Text.Body}"
-                                 CaretBrush="{DynamicResource Text.Bright}"
+                    <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Domain.Title}"/>
+                    <TextBlock Style="{StaticResource DialogText}" Text="{DynamicResource S.Domain.Desc}"/>
+                    <Border Style="{StaticResource DialogField}" Margin="0,16,0,0">
+                        <TextBox x:Name="DomainInput" Style="{StaticResource DialogInput}" FontFamily="Consolas"
+                                 Tag="example.com" AutomationProperties.Name="{DynamicResource S.Domain.Title}"
                                  KeyDown="DomainInput_KeyDown"
                                  TextChanged="DomainInput_TextChanged"/>
                     </Border>
-                    <TextBlock x:Name="DomainError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
-                               TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                        <Button x:Name="DomainCancelButton" Content="{DynamicResource S.Common.Cancel}"
-                                Style="{StaticResource DialogSecondaryButton}"
-                                Margin="0,0,8,0" Click="DomainCancelButton_Click"/>
-                        <Button x:Name="DomainAddButton" Content="{DynamicResource S.Common.Add}"
-                                Style="{StaticResource DialogPrimaryButton}"
-                                Click="DomainAddButton_Click"/>
-                    </StackPanel>
+                    <Grid Style="{StaticResource DialogFooter}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="DomainError" Style="{StaticResource DialogError}" Visibility="Collapsed"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button x:Name="DomainCancelButton" Content="{DynamicResource S.Common.Cancel}"
+                                    Style="{StaticResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="DomainCancelButton_Click"/>
+                            <Button x:Name="DomainAddButton" Content="{DynamicResource S.Common.Add}"
+                                    Style="{StaticResource DialogPrimaryButton}"
+                                    Click="DomainAddButton_Click"/>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
             </Border>
             </Viewbox>
@@ -4734,10 +4691,7 @@
                     по правилу памятки всё, что может вырасти, лежит в строке «*» с прокруткой, а
                     заголовок и кнопки — в строках Auto.
                 -->
-                <Border x:Name="DataExportCard" Width="460" MaxHeight="560"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border x:Name="DataExportCard" Style="{StaticResource DialogCard}" Width="460" MaxHeight="560">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -4746,9 +4700,7 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource S.Bundle.Export.Title}" FontSize="15"
-                                       FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
-                                       Margin="0,0,0,6"/>
+                            <TextBlock Text="{DynamicResource S.Bundle.Export.Title}" Style="{StaticResource DialogTitle}"/>
                             <TextBlock Text="{DynamicResource S.Bundle.Export.Desc}" FontSize="12.5"
                                        Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
                                        Margin="0,0,0,12"/>
@@ -4807,7 +4759,7 @@
                                        Foreground="{DynamicResource Status.Danger}" TextWrapping="Wrap"
                                        Visibility="Collapsed"/>
 
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
                                 <Button x:Name="DataExportCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                         Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0"
                                         Click="DataExportCancelButton_Click"/>
@@ -4835,18 +4787,14 @@
                     в строке «*» с прокруткой, заголовок и кнопки — в строках Auto, и вытолкнуть
                     кнопки за кромку нечем.
                 -->
-                <Border x:Name="DataImportCard" Width="460" MaxHeight="660"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border x:Name="DataImportCard" Style="{StaticResource DialogCard}" Width="460" MaxHeight="660">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="{DynamicResource S.Bundle.Import.Title}" FontSize="15"
-                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
+                        <TextBlock Text="{DynamicResource S.Bundle.Import.Title}" Style="{StaticResource DialogTitle}"
                                    Margin="0,0,0,10"/>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
@@ -4926,16 +4874,10 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="UpdateConfirmCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}" Width="440">
                     <StackPanel>
-                        <TextBlock x:Name="UpdateConfirmTitle" Text="{DynamicResource S.Update.Title}" FontSize="15"
-                                   FontWeight="SemiBold" Foreground="{DynamicResource Text.Primary}"
-                                   Margin="0,0,0,6"/>
-                        <TextBlock x:Name="UpdateConfirmText" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}"
-                                   TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <TextBlock x:Name="UpdateConfirmTitle" Text="{DynamicResource S.Update.Title}" Style="{StaticResource DialogTitle}"/>
+                        <TextBlock x:Name="UpdateConfirmText" Style="{StaticResource DialogText}" Margin="0,6,0,14"/>
                         <!--
                             Заметки к релизу (H4). Высота ограничена, текст листается внутри: карточка
                             лежит в Viewbox, и длинные заметки иначе сжали бы её целиком до мелкого
@@ -4972,9 +4914,6 @@
                         <TextBlock x:Name="UpdateConfirmNote" FontSize="11.5"
                                    Foreground="{DynamicResource Text.Faint}"
                                    TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        <TextBlock Text="{DynamicResource S.Update.Desc}"
-                                   FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
-                                   TextWrapping="Wrap" Margin="0,6,0,0"/>
                         <!--
                             Сборку нечем сверить: сама программа её не ставит, а кнопкой — только
                             отдельным согласием. Плашка стоит над кнопками, чтобы её нельзя было
@@ -4987,7 +4926,7 @@
                             <TextBlock Text="{DynamicResource S.Updates.NoChecksumNote}" FontSize="11.5"
                                        Foreground="{DynamicResource Status.Warning}" TextWrapping="Wrap"/>
                         </Border>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
                             <Button x:Name="UpdateConfirmCancelButton" Content="{DynamicResource S.Common.Cancel}"
                                     Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="UpdateConfirmCancelButton_Click"/>
@@ -5009,36 +4948,28 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="DownloadRequestDenyButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0"
-                                     Fill="{DynamicResource Status.Warning}"/>
-                            <TextBlock Text="{DynamicResource S.Download.Title}" FontSize="15" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Primary}"/>
-                        </StackPanel>
-                        <TextBlock x:Name="DownloadRequestText" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}"
-                                   TextWrapping="Wrap" Margin="0,0,0,12"/>
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
+                        <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Download.Title}"/>
+                        <TextBlock x:Name="DownloadRequestText" Style="{StaticResource DialogText}"/>
+                        <!-- Сайт — крупно и моноширинно: решение принимается про этот адрес. -->
+                        <Border Style="{StaticResource DialogField}" Margin="0,16,0,0">
                             <TextBlock x:Name="DownloadRequestHost" FontFamily="Consolas" FontSize="13"
-                                       Foreground="{DynamicResource Text.Body}"
+                                       Foreground="{DynamicResource Text.Body}" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"/>
                         </Border>
-                        <TextBlock Text="{DynamicResource S.Download.Desc}"
-                                   FontSize="11.5" Foreground="{DynamicResource Text.Faint}"
-                                   TextWrapping="Wrap" Margin="0,10,0,0"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button x:Name="DownloadRequestDenyButton" Content="{DynamicResource S.Download.Refuse}"
-                                    Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="DownloadRequestDenyButton_Click"/>
-                            <Button x:Name="DownloadRequestAllowButton" Content="{DynamicResource S.Download.Allow}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="DownloadRequestAllowButton_Click"/>
-                        </StackPanel>
+                        <TextBlock Style="{StaticResource DialogText}" FontSize="12" Foreground="{DynamicResource Text.Dim}"
+                                   Margin="1,8,0,0" Text="{DynamicResource S.Download.Desc}"/>
+                        <Grid Style="{StaticResource DialogFooter}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="DownloadRequestDenyButton" Content="{DynamicResource S.Download.Refuse}"
+                                        Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="DownloadRequestDenyButton_Click"/>
+                                <Button x:Name="DownloadRequestAllowButton" Content="{DynamicResource S.Download.Allow}"
+                                        Style="{StaticResource DialogPrimaryButton}"
+                                        Click="DownloadRequestAllowButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Viewbox>
@@ -5049,137 +4980,109 @@
             <Border Background="{DynamicResource Overlay.Scrim}">
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="NameCancelButton_Click"/>
             </Border>
+            <!-- Одно поле: название чата, папки, тега, профиля, имя пользователя, язык. Без абзаца
+                 пояснений — заголовок говорит, что вводить; редкая подсказка — строкой под полем. -->
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <TextBlock x:Name="NameDialogTitle" Text="{DynamicResource S.Name.Title}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                        <TextBlock x:Name="NameDialogSubtitle"
-                                   Text="{DynamicResource S.Name.Desc}"
-                                   FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                                   TextWrapping="Wrap" Margin="0,0,0,14"/>
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
-                            <TextBox x:Name="NameInput" Background="Transparent" BorderThickness="0"
-                                     FontSize="13" MaxLength="40"
-                                     Foreground="{DynamicResource Text.Body}"
-                                     CaretBrush="{DynamicResource Text.Bright}"
+                        <TextBlock x:Name="NameDialogTitle" Style="{StaticResource DialogTitle}" Margin="0,0,0,16"
+                                   Text="{DynamicResource S.Account.UserName}"/>
+                        <Border Style="{StaticResource DialogField}">
+                            <TextBox x:Name="NameInput" Style="{StaticResource DialogInput}" MaxLength="40"
+                                     AutomationProperties.Name="{Binding Text, ElementName=NameDialogTitle}"
                                      KeyDown="NameInput_KeyDown"/>
                         </Border>
-                        <TextBlock x:Name="NameError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
-                                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="NameCancelButton_Click"/>
-                            <Button x:Name="NameSaveButton" Content="{DynamicResource S.Common.Save}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="NameSaveButton_Click"/>
+                        <TextBlock x:Name="NameDialogHint" Style="{StaticResource DialogText}" FontSize="12"
+                                   Foreground="{DynamicResource Text.Dim}" Margin="1,8,0,0" Visibility="Collapsed"/>
+                        <!-- Цвет тега: шесть кружков из набора ChatOrganizer.TagColors, строит код. -->
+                        <StackPanel x:Name="NameColorRow" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource DialogLabel}" Text="{DynamicResource S.ChatList.TagColor}"/>
+                            <StackPanel x:Name="NameColors" Orientation="Horizontal" Margin="-3,0,0,0"/>
                         </StackPanel>
+                        <Grid Style="{StaticResource DialogFooter}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="NameDeleteButton" Style="{StaticResource DialogDangerButton}" Margin="0,0,12,0"
+                                    Content="{DynamicResource S.Common.Delete}" Visibility="Collapsed"
+                                    Click="NameDeleteButton_Click"/>
+                            <TextBlock x:Name="NameError" Grid.Column="1" Style="{StaticResource DialogError}"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="NameCancelButton_Click"/>
+                                <Button x:Name="NameSaveButton" Content="{DynamicResource S.Common.Save}"
+                                        Style="{StaticResource DialogPrimaryButton}"
+                                        Click="NameSaveButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Viewbox>
         </Grid>
 
         <!-- ═══════════ ДОБАВЛЕНИЕ КЛЮЧА ═══════════ -->
+        <!--
+            Провайдер — сегментами сверху: от него зависят и проверка ключа, и ссылка «Где взять»
+            у подписи поля. Чем провайдеры различаются, видно в подсказке на сегменте, а не
+            абзацем в окне. «Проверяю…» и отказ — в подвале, окно от них не меняет высоту.
+        -->
         <Grid x:Name="KeyOverlay" Visibility="Collapsed" Panel.ZIndex="42">
             <Border Background="{DynamicResource Overlay.Scrim}">
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyDialogCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="440" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}" Width="420">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource S.Key.AddTitle}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                        <TextBlock x:Name="KeyDialogHint" Text="{DynamicResource S.Key.AddHint.Venice}" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap" Margin="0,0,0,2"/>
-                        <!--
-                            Ссылка здесь, а не на странице «Info»: там рассказано про Venice, и
-                            человеку с выбранным OpenRouter она указала бы не туда. Адрес идёт
-                            за выбором карточек ниже.
-                        -->
-                        <Button x:Name="KeyDialogKeysLink" Style="{StaticResource InlineLinkButton}"
-                                HorizontalAlignment="Left" Margin="-7,0,0,12"
-                                Content="{DynamicResource S.Key.WhereToGet}"
-                                Click="KeyDialogKeysLink_Click"/>
+                        <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Key.AddTitle}"/>
 
-                        <!--
-                            Провайдер выбирается до ключа: от него зависят и проверка ключа, и
-                            подсказка о том, где его взять. Карточками, а не выпадашкой:
-                            вариантов два, и у каждого есть строка пояснения, которую в
-                            выпадашке показать негде.
-                        -->
-                        <TextBlock Text="{DynamicResource S.Key.Provider}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <UniformGrid Columns="2" Margin="0,16,0,0">
                             <RadioButton x:Name="KeyDialogVenice" GroupName="KeyDialogProvider" IsChecked="True"
-                                         Style="{StaticResource DialogChoiceCard}" Margin="0,0,4,0"
-                                         Checked="KeyDialogProvider_Checked">
-                                <StackPanel>
-                                    <TextBlock Text="Venice" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Text.Bright}"/>
-                                    <TextBlock Text="{DynamicResource S.Key.Provider.VeniceDesc}" FontSize="11"
-                                               Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
-                                               Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </RadioButton>
-                            <RadioButton x:Name="KeyDialogOpenRouter" Grid.Column="1" GroupName="KeyDialogProvider"
-                                         Style="{StaticResource DialogChoiceCard}" Margin="4,0,0,0"
-                                         Checked="KeyDialogProvider_Checked">
-                                <StackPanel>
-                                    <TextBlock Text="OpenRouter" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Text.Bright}"/>
-                                    <TextBlock Text="{DynamicResource S.Key.Provider.OpenRouterDesc}" FontSize="11"
-                                               Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
-                                               Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </RadioButton>
+                                         Style="{StaticResource DialogSegment}" Margin="0,0,4,0" Content="Venice"
+                                         ToolTip="{DynamicResource S.Key.Provider.VeniceDesc}"
+                                         Checked="KeyDialogProvider_Checked"/>
+                            <RadioButton x:Name="KeyDialogOpenRouter" GroupName="KeyDialogProvider"
+                                         Style="{StaticResource DialogSegment}" Margin="4,0,0,0" Content="OpenRouter"
+                                         ToolTip="{DynamicResource S.Key.Provider.OpenRouterDesc}"
+                                         Checked="KeyDialogProvider_Checked"/>
+                        </UniformGrid>
+
+                        <Grid Margin="0,16,0,6">
+                            <TextBlock Style="{StaticResource DialogLabel}" Margin="0" Text="{DynamicResource S.Key.Value}"/>
+                            <!-- Адрес идёт за выбранным провайдером: он же в подсказке ссылки. -->
+                            <Button x:Name="KeyDialogKeysLink" Style="{StaticResource DialogLink}" HorizontalAlignment="Right"
+                                    Content="{DynamicResource S.Key.WhereToGet}" Click="KeyDialogKeysLink_Click"/>
                         </Grid>
-
-                        <TextBlock Text="{DynamicResource S.Key.Name}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
-                            <TextBox x:Name="KeyDialogLabel" Background="Transparent" BorderThickness="0"
-                                     FontSize="13" MaxLength="40"
-                                     Foreground="{DynamicResource Text.Body}"
-                                     CaretBrush="{DynamicResource Text.Bright}"/>
-                        </Border>
-
-                        <TextBlock Text="{DynamicResource S.Key.Value}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,12,0,5"/>
-                        <!--
-                            Обычный TextBox, а не PasswordBox: человек вставляет ключ из буфера и
-                            обязан видеть, что вставилось. Прячется он в списке, а не здесь.
-                        -->
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
-                            <TextBox x:Name="KeyDialogValue" Background="Transparent" BorderThickness="0"
-                                     FontSize="13"
-                                     Foreground="{DynamicResource Text.Body}"
-                                     CaretBrush="{DynamicResource Text.Bright}"
+                        <!-- Обычный TextBox, а не PasswordBox: ключ вставляют из буфера, и видно должно быть,
+                             что вставилось. Прячется он в списке, а не здесь. -->
+                        <Border Style="{StaticResource DialogField}">
+                            <TextBox x:Name="KeyDialogValue" Style="{StaticResource DialogInput}" FontFamily="Consolas" FontSize="12.5"
+                                     AutomationProperties.Name="{DynamicResource S.Key.Value}"
                                      KeyDown="KeyDialogValue_KeyDown"/>
                         </Border>
 
-                        <TextBlock x:Name="KeyDialogBusy" Text="{DynamicResource S.Key.Checking}" FontSize="12"
-                                   Foreground="{DynamicResource Text.Muted}" Margin="0,8,0,0" Visibility="Collapsed"/>
-                        <TextBlock x:Name="KeyDialogError" FontSize="12" Foreground="{DynamicResource Status.Danger}"
-                                   TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+                        <TextBlock Style="{StaticResource DialogLabel}" Text="{DynamicResource S.Key.Name}"/>
+                        <Border Style="{StaticResource DialogField}">
+                            <TextBox x:Name="KeyDialogLabel" Style="{StaticResource DialogInput}" MaxLength="40"
+                                     Tag="{DynamicResource S.Key.NamePlaceholder}"
+                                     AutomationProperties.Name="{DynamicResource S.Key.Name}"/>
+                        </Border>
 
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="KeyDialogCancelButton_Click"/>
-                            <Button x:Name="KeyDialogSaveButton" Content="{DynamicResource S.Common.Save}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="KeyDialogSaveButton_Click"/>
-                        </StackPanel>
+                        <Grid Style="{StaticResource DialogFooter}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="KeyDialogStatus" Style="{StaticResource DialogStatus}"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="KeyDialogCancelButton_Click"/>
+                                <Button x:Name="KeyDialogSaveButton" Content="{DynamicResource S.Common.Add}"
+                                        Style="{StaticResource DialogPrimaryButton}"
+                                        Click="KeyDialogSaveButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Viewbox>
@@ -5195,29 +5098,25 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyRenameCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource S.Key.RenameTitle}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                        <TextBlock Text="{DynamicResource S.Key.RenameHint}" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap" Margin="0,0,0,12"/>
-                        <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                                BorderThickness="1" CornerRadius="6" Padding="10,7">
-                            <TextBox x:Name="KeyRenameValue" Background="Transparent" BorderThickness="0"
-                                     FontSize="13" MaxLength="40"
-                                     Foreground="{DynamicResource Text.Body}"
-                                     CaretBrush="{DynamicResource Text.Bright}"
+                        <TextBlock Style="{StaticResource DialogTitle}" Margin="0,0,0,16" Text="{DynamicResource S.Key.RenameTitle}"/>
+                        <Border Style="{StaticResource DialogField}">
+                            <!-- Пустое название возвращает то, что стояло по умолчанию: подсказка в пустом поле. -->
+                            <TextBox x:Name="KeyRenameValue" Style="{StaticResource DialogInput}" MaxLength="40"
+                                     Tag="{DynamicResource S.Key.RenamePlaceholder}"
+                                     AutomationProperties.Name="{DynamicResource S.Key.RenameTitle}"
                                      KeyDown="KeyRenameValue_KeyDown"/>
                         </Border>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="KeyRenameCancelButton_Click"/>
-                            <Button x:Name="KeyRenameSaveButton" Content="{DynamicResource S.Common.Save}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="KeyRenameSaveButton_Click"/>
-                        </StackPanel>
+                        <Grid Style="{StaticResource DialogFooter}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="KeyRenameCancelButton_Click"/>
+                                <Button x:Name="KeyRenameSaveButton" Content="{DynamicResource S.Common.Save}"
+                                        Style="{StaticResource DialogPrimaryButton}"
+                                        Click="KeyRenameSaveButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Viewbox>
@@ -5229,22 +5128,19 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyRemoveNoButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}">
                     <StackPanel>
-                        <TextBlock x:Name="KeyRemoveTitle" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"
-                                   TextWrapping="Wrap"/>
-                        <TextBlock x:Name="KeyRemoveText" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="{DynamicResource S.Common.No}" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="KeyRemoveNoButton_Click"/>
-                            <Button x:Name="KeyRemoveYesButton" Content="{DynamicResource S.Common.Yes}"
-                                    Style="{StaticResource DialogPrimaryButton}"
-                                    Click="KeyRemoveYesButton_Click"/>
-                        </StackPanel>
+                        <TextBlock x:Name="KeyRemoveTitle" Style="{StaticResource DialogTitle}"/>
+                        <TextBlock x:Name="KeyRemoveText" Style="{StaticResource DialogText}"/>
+                        <Grid Style="{StaticResource DialogFooter}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="KeyRemoveNoButton_Click"/>
+                                <Button x:Name="KeyRemoveYesButton" Content="{DynamicResource S.Common.Delete}"
+                                        Style="{StaticResource DialogDangerButton}"
+                                        Click="KeyRemoveYesButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Viewbox>
@@ -5261,10 +5157,11 @@
                 <Button Opacity="0" Focusable="False" Click="NoticeSecondaryButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border x:Name="NoticeCard" Width="420" MaxHeight="520"
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <!--
+                    Тон вопроса — у главной кнопки (красная подпись у необратимого), а не цветной
+                    точкой у заголовка: точка ничего не говорила, а кнопка отвечает на вопрос.
+                -->
+                <Border x:Name="NoticeCard" Style="{StaticResource DialogCard}" Width="420" MaxHeight="520">
                     <!-- Grid, а не StackPanel: длинный текст уходит в прокрутку, кнопки остаются. -->
                     <Grid>
                         <Grid.RowDefinitions>
@@ -5273,32 +5170,26 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <DockPanel Margin="0,0,0,6">
-                            <Ellipse x:Name="NoticeMark" DockPanel.Dock="Left" Width="7" Height="7"
-                                     VerticalAlignment="Center" Margin="0,0,8,0"
-                                     Fill="{DynamicResource Status.Warning}"/>
-                            <TextBlock x:Name="NoticeTitle" FontSize="15" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource Text.Primary}" TextWrapping="Wrap"/>
-                        </DockPanel>
+                        <TextBlock x:Name="NoticeTitle" Style="{StaticResource DialogTitle}"/>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                                       Margin="0,0,-8,0" Padding="0,0,8,0">
                             <StackPanel>
-                                <TextBlock x:Name="NoticeText" FontSize="12.5"
-                                           Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="NoticeText" Style="{StaticResource DialogText}"/>
                                 <!-- Своё содержимое вопроса: галочка, поле для слова-подтверждения. -->
-                                <ContentControl x:Name="NoticeExtra" Focusable="False" Margin="0,12,0,0"
+                                <ContentControl x:Name="NoticeExtra" Focusable="False" Margin="0,14,0,0"
                                                 Visibility="Collapsed"/>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
-                                    Margin="0,16,0,0">
-                            <Button x:Name="NoticeSecondaryButton" Style="{StaticResource DialogSecondaryButton}"
-                                    Margin="0,0,8,0" Click="NoticeSecondaryButton_Click"/>
-                            <Button x:Name="NoticePrimaryButton" Style="{StaticResource DialogPrimaryButton}"
-                                    Click="NoticePrimaryButton_Click"/>
-                        </StackPanel>
+                        <Grid Grid.Row="2" Style="{StaticResource DialogFooter}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="NoticeSecondaryButton" Style="{StaticResource DialogSecondaryButton}"
+                                        Margin="0,0,8,0" Click="NoticeSecondaryButton_Click"/>
+                                <Button x:Name="NoticePrimaryButton" Style="{StaticResource DialogPrimaryButton}"
+                                        Click="NoticePrimaryButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </Border>
             </Viewbox>
@@ -5349,12 +5240,9 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptPresetCancelButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}" Width="460">
                     <StackPanel>
-                        <TextBlock x:Name="PromptPresetTitle" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,14"/>
+                        <TextBlock x:Name="PromptPresetTitle" Style="{StaticResource DialogTitle}" Margin="0,0,0,2"/>
 
                         <TextBlock Text="{DynamicResource S.Customize.PromptName}" FontSize="12"
                                    Foreground="{DynamicResource Text.Muted}" Margin="0,0,0,5"/>
@@ -5408,20 +5296,14 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="PromptApplyNoButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}" Width="420">
                     <StackPanel>
-                        <TextBlock x:Name="PromptApplyTitle" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"
-                                   TextWrapping="Wrap"/>
-                        <TextBlock x:Name="PromptApplyText" FontSize="12.5"
-                                   Foreground="{DynamicResource Text.Muted}"
-                                   TextWrapping="Wrap"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                            <Button Content="{DynamicResource S.Common.No}" Style="{StaticResource DialogSecondaryButton}"
+                        <TextBlock x:Name="PromptApplyTitle" Style="{StaticResource DialogTitle}"/>
+                        <TextBlock x:Name="PromptApplyText" Style="{StaticResource DialogText}"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
                                     Margin="0,0,8,0" Click="PromptApplyNoButton_Click"/>
-                            <Button x:Name="PromptApplyYesButton" Content="{DynamicResource S.Common.Yes}"
+                            <Button x:Name="PromptApplyYesButton" Content="{DynamicResource S.Common.Apply}"
                                     Style="{StaticResource DialogPrimaryButton}"
                                     Click="PromptApplyYesButton_Click"/>
                         </StackPanel>
@@ -5436,22 +5318,16 @@
                 <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="ProfileCloseButton_Click"/>
             </Border>
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                        BorderThickness="1" CornerRadius="10" Padding="20,18">
+                <Border Style="{StaticResource DialogCard}" Width="420">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource S.Profiles.Title}" FontSize="15" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource Text.Primary}" Margin="0,0,0,6"/>
-                        <TextBlock Text="{DynamicResource S.Profiles.Desc}"
-                                   FontSize="12.5" Foreground="{DynamicResource Text.Muted}"
-                                   TextWrapping="Wrap" Margin="0,0,0,14"/>
+                        <TextBlock Text="{DynamicResource S.Profiles.Title}" Style="{StaticResource DialogTitle}" Margin="0,0,0,14"/>
                         <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
                                 BorderThickness="1" CornerRadius="8" Padding="4">
                             <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
                                 <StackPanel x:Name="ProfileList"/>
                             </ScrollViewer>
                         </Border>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
                             <!-- Только у профиля с паролем: без него снять блокировку нечем. -->
                             <Button x:Name="ProfileLockNowButton" Content="{DynamicResource S.Security.LockNow}"
                                     Style="{StaticResource DialogSecondaryButton}" Visibility="Collapsed"

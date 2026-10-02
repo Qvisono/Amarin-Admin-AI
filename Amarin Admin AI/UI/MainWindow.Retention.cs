@@ -32,6 +32,8 @@ namespace Amarin.UI
             };
             DataCarePanel.BusyChats = BusyChatIds;
             DataCarePanel.Cleaned = () => Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
+            DataCarePanel.Changed += RefreshDataLinks;
+            BackupPanel.Changed += RefreshDataLinks;
         }
 
         /// <summary>Открытый чат и чаты, где идёт ход.</summary>

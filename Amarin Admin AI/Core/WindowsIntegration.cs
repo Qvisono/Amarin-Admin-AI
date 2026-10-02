@@ -18,11 +18,11 @@ public sealed class WindowsIntegrationSettings
     /// <summary>Значок в области уведомлений. Заводское — есть: он показывает, идёт ли работа.</summary>
     public bool ShowTrayIcon { get; set; } = true;
 
-    /// <summary>Крестик прячет окно в трей, а не закрывает программу.</summary>
+    /// <summary>
+    /// Крестик прячет окно в трей, а не закрывает программу. Отдельного «сворачивать в трей» нет:
+    /// две галки про трей путали, а кнопке «свернуть» хватает обычного поведения Windows.
+    /// </summary>
     public bool CloseToTray { get; set; }
-
-    /// <summary>Свёрнутое окно уходит в трей, а не на панель задач.</summary>
-    public bool MinimizeToTray { get; set; }
 
     public NotificationStyle Notifications { get; set; } = NotificationStyle.Card;
 

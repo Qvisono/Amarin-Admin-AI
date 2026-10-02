@@ -1,16 +1,15 @@
 using System.Globalization;
-using System.Windows;
 using System.Windows.Controls;
 using Amarin.Core;
 
 namespace Amarin.UI;
 
 /// <summary>
-/// Блок «Специальные возможности» на странице оформления (I2, I3).
+/// Размер текста ленты и шрифт кода на странице оформления (I3).
 /// </summary>
 /// <remarks>
 /// Правда — в <see cref="AppSettings"/>; после правки окно применяет её сразу через
-/// <see cref="Changed"/>: тема перекрашивается, лента пересобирается без сброса лупы.
+/// <see cref="Changed"/>: лента пересобирается без сброса лупы.
 /// </remarks>
 public partial class AccessibilityBlock : UserControl
 {
@@ -29,18 +28,12 @@ public partial class AccessibilityBlock : UserControl
         try
         {
             var settings = services.Settings;
-            ContrastToggle.IsChecked = settings.FollowHighContrast;
             var size = ChatFonts.Clamp(settings.ChatFontSize);
-            foreach (var chip in SizeChips.Children.OfType<RadioButton>())
-            {
-                chip.IsChecked = double.Parse((string)chip.Tag, CultureInfo.InvariantCulture) == size;
-            }
+            SizeCombo.SelectedItem = SizeCombo.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => double.Parse((string)item.Tag, CultureInfo.InvariantCulture) == size);
 
             var mono = settings.CodeFont ?? ChatFonts.DefaultMono;
-            foreach (var chip in MonoChips.Children.OfType<RadioButton>())
-            {
-                chip.IsChecked = (string)chip.Tag == mono;
-            }
+            MonoCombo.SelectedItem = MonoCombo.Items.OfType<ComboBoxItem>().FirstOrDefault(item => (string)item.Tag == mono);
         }
         finally
         {
@@ -60,12 +53,9 @@ public partial class AccessibilityBlock : UserControl
         Changed?.Invoke();
     }
 
-    private void ContrastToggle_Changed(object sender, RoutedEventArgs e) =>
-        Save(settings => settings.FollowHighContrast = ContrastToggle.IsChecked == true);
-
-    private void Size_Checked(object sender, RoutedEventArgs e)
+    private void SizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is RadioButton { Tag: string tag })
+        if (SizeCombo.SelectedItem is ComboBoxItem { Tag: string tag })
         {
             var size = double.Parse(tag, CultureInfo.InvariantCulture);
 
@@ -74,9 +64,9 @@ public partial class AccessibilityBlock : UserControl
         }
     }
 
-    private void Mono_Checked(object sender, RoutedEventArgs e)
+    private void MonoCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is RadioButton { Tag: string tag })
+        if (MonoCombo.SelectedItem is ComboBoxItem { Tag: string tag })
         {
             Save(settings => settings.CodeFont = tag == ChatFonts.DefaultMono ? null : tag);
         }

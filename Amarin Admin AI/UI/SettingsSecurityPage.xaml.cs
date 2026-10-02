@@ -10,8 +10,9 @@ namespace Amarin.UI;
 /// </summary>
 /// <remarks>
 /// Отдельным <see cref="UserControl"/>, как Key, Info и Instructions: разметка главного окна и так
-/// на три тысячи строк. Режим доступа переехал сюда из «Поведения» — четыре режима с разной
-/// ценой ошибки читаются карточками с объяснением, а не строкой выпадающего списка.
+/// на три тысячи строк. Режим доступа — выпадающим списком, как было в «Поведении» 1.27.1, а цена
+/// ошибки выбранного режима — строкой под ним: четыре карточки с абзацем каждая занимали весь
+/// первый экран страницы.
 /// <para>
 /// Контролы нигде не читаются как состояние: каждый живёт в своём обработчике под
 /// <see cref="_loading"/>, правда лежит в <see cref="AppSettings"/>. Строки инструментов
@@ -48,18 +49,16 @@ public partial class SettingsSecurityPage : UserControl
         _loading = true;
         try
         {
-            foreach (var card in ModeCards.Children.OfType<RadioButton>())
-            {
-                card.IsChecked = card.Tag is string tag &&
-                                 string.Equals(tag, settings.ApprovalMode.ToString(), StringComparison.Ordinal);
-            }
+            ModeCombo.SelectedItem = ModeItems.FirstOrDefault(item =>
+                string.Equals((string)item.Tag, settings.ApprovalMode.ToString(), StringComparison.Ordinal));
+            ShowModeDescription(settings.ApprovalMode);
 
             foreach (var (tool, toggle) in _toolToggles)
             {
                 toggle.IsChecked = !ToolGate.IsDisabled(settings, tool);
             }
 
-            EnableAllToolsButton.IsEnabled = settings.DisabledTools is { Count: > 0 };
+            ShowToolsSummary(settings);
 
             foreach (var toggle in PlanToggles)
             {
@@ -86,20 +85,25 @@ public partial class SettingsSecurityPage : UserControl
     {
         var hasPassword = HasPassword;
         var minutes = AutoLock.Normalize(settings.AutoLockMinutes);
-        foreach (var chip in AutoLockChoices.Children.OfType<RadioButton>())
+        foreach (var item in AutoLockCombo.Items.OfType<ComboBoxItem>())
         {
-            var value = int.Parse((string)chip.Tag, System.Globalization.CultureInfo.InvariantCulture);
+            var value = int.Parse((string)item.Tag, System.Globalization.CultureInfo.InvariantCulture);
             if (value > 0)
             {
-                chip.Content = Loc.Format("S.Security.Minutes", value);
+                item.Content = Loc.Format("S.Security.Minutes", value);
             }
 
-            chip.IsChecked = value == minutes;
-            chip.IsEnabled = hasPassword;
+            if (value == minutes)
+            {
+                AutoLockCombo.SelectedItem = item;
+            }
         }
 
-        AutoLockNeedsPassword.Visibility = hasPassword ? Visibility.Collapsed : Visibility.Visible;
+        AutoLockCombo.IsEnabled = hasPassword;
         LockNowButton.IsEnabled = hasPassword;
+        AutoLockDesc.SetResourceReference(TextBlock.TextProperty,
+            hasPassword ? "S.Security.AutoLockDesc" : "S.Security.AutoLockNeedsPassword");
+        AutoLockDesc.SetResourceReference(TextBlock.ForegroundProperty, hasPassword ? "Text.Dim" : "Status.Warning");
     }
 
     private bool HasPassword =>
@@ -122,9 +126,9 @@ public partial class SettingsSecurityPage : UserControl
         _services.TextIndex.SaveNow();
     }
 
-    private void AutoLockChoice_Checked(object sender, RoutedEventArgs e)
+    private void AutoLockCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_loading || _services is null || sender is not RadioButton { Tag: string tag })
+        if (_loading || _services is null || AutoLockCombo.SelectedItem is not ComboBoxItem { Tag: string tag })
         {
             return;
         }
@@ -148,20 +152,50 @@ public partial class SettingsSecurityPage : UserControl
 
     private void LockNowButton_Click(object sender, RoutedEventArgs e) => LockRequested?.Invoke(this, EventArgs.Empty);
 
-    /// <summary>Карточки режимов — для тестов: сколько их и какие режимы они ставят.</summary>
-    internal IEnumerable<string> ModeTags => ModeCards.Children.OfType<RadioButton>().Select(card => (string)card.Tag);
+    private IEnumerable<ComboBoxItem> ModeItems => ModeCombo.Items.OfType<ComboBoxItem>();
 
-    private void ModeCard_Checked(object sender, RoutedEventArgs e)
+    /// <summary>Режимы списка — для тестов: сколько их и какие режимы они ставят.</summary>
+    internal IEnumerable<string> ModeTags => ModeItems.Select(item => (string)item.Tag);
+
+    /// <summary>Выбирает режим так же, как человек в списке, — для тестов.</summary>
+    internal void SelectMode(ApprovalMode mode) =>
+        ModeCombo.SelectedItem = ModeItems.First(item => (string)item.Tag == mode.ToString());
+
+    /// <summary>Режим, выбранный в списке сейчас.</summary>
+    internal ApprovalMode? ShownMode =>
+        ModeCombo.SelectedItem is ComboBoxItem { Tag: string tag } && Enum.TryParse(tag, out ApprovalMode mode) ? mode : null;
+
+    private void ModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_loading || _services is null ||
-            sender is not RadioButton { Tag: string tag } ||
-            !Enum.TryParse(tag, ignoreCase: false, out ApprovalMode mode))
+        if (ModeDesc is null || ShownMode is not { } mode)
+        {
+            // SelectionChanged приходит из InitializeComponent, до полей.
+            return;
+        }
+
+        ShowModeDescription(mode);
+        if (_loading || _services is null)
         {
             return;
         }
 
         _services.Settings.ApprovalMode = mode;
         _services.SettingsStore.Save(_services.Settings);
+    }
+
+    /// <summary>Одна строка о выбранном режиме; у «Подтверждать всё» — цветом предупреждения.</summary>
+    private void ShowModeDescription(ApprovalMode mode)
+    {
+        ModeDesc.SetResourceReference(TextBlock.TextProperty, "S.Access." + mode + "Desc");
+        ModeDesc.SetResourceReference(TextBlock.ForegroundProperty, mode == ApprovalMode.AlwaysApprove ? "Status.Warning" : "Text.Dim");
+    }
+
+    /// <summary>Значение строки «Инструменты ›»: все ли включены, а если нет — сколько выключено.</summary>
+    private void ShowToolsSummary(AppSettings settings)
+    {
+        var off = _toolToggles.Keys.Count(tool => ToolGate.IsDisabled(settings, tool));
+        ToolsLinkRow.Tag = off == 0 ? Loc.Get("S.Security.ToolsAllOn") : Loc.Format("S.Security.ToolsOff", off);
+        EnableAllToolsButton.IsEnabled = settings.DisabledTools is { Count: > 0 };
     }
 
     private void ToolToggle_Changed(object sender, RoutedEventArgs e)
@@ -182,7 +216,7 @@ public partial class SettingsSecurityPage : UserControl
         // Пустой список — null: старый settings.json и новый с выключенным ничем пишутся одинаково.
         settings.DisabledTools = disabled.Count == 0 ? null : disabled;
         _services.SettingsStore.Save(settings);
-        EnableAllToolsButton.IsEnabled = settings.DisabledTools is not null;
+        ShowToolsSummary(settings);
     }
 
     private void EnableAllToolsButton_Click(object sender, RoutedEventArgs e)
@@ -214,9 +248,7 @@ public partial class SettingsSecurityPage : UserControl
         {
             if (i > 0)
             {
-                var divider = new Border { Height = 1 };
-                divider.SetResourceReference(Border.BackgroundProperty, "Bg.Hover");
-                host.Children.Add(divider);
+                host.Children.Add(new Border { Style = (Style)FindResource("SettingsDivider"), Margin = new Thickness(0, 9, 0, 9) });
             }
 
             host.Children.Add(BuildRow(tools[i]));
@@ -226,13 +258,12 @@ public partial class SettingsSecurityPage : UserControl
     /// <summary>Строка инструмента: подпись человеческая, под ней — имя, которым его зовёт модель.</summary>
     private Grid BuildRow(string tool)
     {
-        var row = new Grid { Margin = new Thickness(0, 7, 0, 7) };
+        var row = new Grid();
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var label = new TextBlock { FontSize = 12.5, TextTrimming = TextTrimming.CharacterEllipsis };
+        var label = new TextBlock { Style = (Style)FindResource("SettingTitle"), TextTrimming = TextTrimming.CharacterEllipsis };
         label.SetResourceReference(TextBlock.TextProperty, ToolCatalog.LabelKey(tool));
-        label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
 
         var name = new TextBlock
         {
@@ -266,6 +297,7 @@ public partial class SettingsSecurityPage : UserControl
             Tag = tool,
             IsChecked = true
         };
+        toggle.SetResourceReference(System.Windows.Automation.AutomationProperties.NameProperty, ToolCatalog.LabelKey(tool));
         toggle.Checked += ToolToggle_Changed;
         toggle.Unchecked += ToolToggle_Changed;
         Grid.SetColumn(toggle, 1);

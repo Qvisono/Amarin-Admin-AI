@@ -188,9 +188,14 @@
                         <ControlTemplate TargetType="ToggleButton">
                             <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="5" Padding="8,0">
-                                <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
-                                           FontSize="10.5" Foreground="{DynamicResource Text.Muted}"
-                                           VerticalAlignment="Center"/>
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                         соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                                    <TextBlock Text="{TemplateBinding Content}" FontSize="10.5" FontWeight="SemiBold" Visibility="Hidden"/>
+                                    <TextBlock x:Name="Label" Text="{TemplateBinding Content}"
+                                               FontSize="10.5" Foreground="{DynamicResource Text.Muted}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

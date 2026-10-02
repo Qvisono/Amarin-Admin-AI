@@ -3,7 +3,7 @@ using Amarin.Core;
 
 namespace Amarin.UI
 {
-    /// <summary>Цель чата (C10): выбор машины в панели композера и страница «Подключения».</summary>
+    /// <summary>Цель чата (C10): выбор машины в панели композера и вкладка «Компьютеры» в Automation.</summary>
     public partial class MainWindow
     {
         private void RefreshTargetPicker()
@@ -48,15 +48,11 @@ namespace Amarin.UI
             RefreshTargetPicker();
         }
 
-        private void NavConnections_Checked(object sender, RoutedEventArgs e)
+        /// <summary>«Управлять…» в выборе цели: настройки сразу на вкладке «Компьютеры».</summary>
+        private void OpenMachinesSettings()
         {
-            if (_services is null)
-            {
-                return;
-            }
-
-            ConnectionsPage.Attach(_services);
-            ConnectionsPage.Load();
+            OpenSettingsPage(NavAutomation);
+            AutomationPage.ShowMachinesTab();
         }
 
         /// <summary>Список машин изменился — выбор в чате перечитывает его.</summary>

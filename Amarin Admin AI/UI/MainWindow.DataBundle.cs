@@ -237,12 +237,10 @@ namespace Amarin.UI
 
             ClearExportPasswords();
             CloseOverlay(DataExportOverlay);
-            MessageBox.Show(
-                this,
-                Loc.Format("S.Bundle.Export.Done", path),
-                Title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            if (await ShowNoticeAsync(Loc.Get("S.Bundle.Export.DoneTitle"), path, Loc.Get("S.Export.OpenFolder"), Loc.Get("S.Common.Close"), NoticeTone.Info))
+            {
+                AttachmentOpener.RevealInExplorer(path);
+            }
         }
 
         /// <summary>
@@ -328,12 +326,7 @@ namespace Amarin.UI
             // только что импортированных.
             if (AnyTurnRunning)
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Bundle.Import.Busy"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                Inform(Loc.Get("S.Bundle.Import.BusyTitle"), Loc.Get("S.Bundle.Import.Busy"));
                 return;
             }
 

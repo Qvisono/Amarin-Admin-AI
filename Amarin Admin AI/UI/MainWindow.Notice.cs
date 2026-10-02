@@ -34,6 +34,30 @@ namespace Amarin.UI
         /// Новый вопрос поверх незакрытого снимает прежний ответом «нет»: два окна одно над другим
         /// путали бы, на какой вопрос отвечает нажатая кнопка.
         /// </remarks>
+        /// <summary>Сообщить без вопроса: одна кнопка «Закрыть».</summary>
+        internal void Inform(string title, string text, NoticeTone tone = NoticeTone.Warning) =>
+            Detached.Run(ShowNoticeAsync(title, text, Loc.Get("S.Common.Close"), null, tone), "notice");
+
+        /// <summary>
+        /// Сообщить из кода, у которого есть только элемент, а не окно (вложение в ленте). В
+        /// главном окне — своим окном; вне его (тесты, отдельные окна) — системным, как раньше.
+        /// </summary>
+        internal static void Inform(FrameworkElement host, string title, string text)
+        {
+            switch (Window.GetWindow(host))
+            {
+                case MainWindow main:
+                    main.Inform(title, text);
+                    break;
+                case { } other:
+                    MessageBox.Show(other, text, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
+                default:
+                    MessageBox.Show(text, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
+            }
+        }
+
         internal Task<bool> ShowNoticeAsync(
             string title,
             string text,
@@ -49,14 +73,9 @@ namespace Amarin.UI
             NoticeTitle.Text = title;
             NoticeText.Text = text;
             NoticeText.Visibility = string.IsNullOrWhiteSpace(text) ? Visibility.Collapsed : Visibility.Visible;
-            NoticeMark.SetResourceReference(
-                System.Windows.Shapes.Shape.FillProperty,
-                tone switch
-                {
-                    NoticeTone.Danger => "Status.Danger",
-                    NoticeTone.Info => "Accent.Fill",
-                    _ => "Status.Warning"
-                });
+            // Необратимое («Удалить») — красной подписью; вопрос с одной кнопкой и обычный — главной.
+            NoticePrimaryButton.Style = (Style)FindResource(
+                tone == NoticeTone.Danger && secondary is not null ? "DialogDangerButton" : "DialogPrimaryButton");
 
             NoticeExtra.Content = extra;
             NoticeExtra.Visibility = extra is null ? Visibility.Collapsed : Visibility.Visible;

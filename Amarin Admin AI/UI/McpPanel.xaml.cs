@@ -23,12 +23,16 @@ public partial class McpPanel : UserControl
         InitializeComponent();
     }
 
+    /// <summary>Открыт или закрыт редактор — страница прячет над ним свой заголовок и вкладки.</summary>
+    internal event Action<bool>? EditingChanged;
+
     internal void Attach(AppServices services) => _services = services;
 
     internal void Load()
     {
         EditorPane.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(false);
         Refresh();
     }
 
@@ -133,6 +137,7 @@ public partial class McpPanel : UserControl
         ErrorText.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Collapsed;
         EditorPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(true);
         NameBox.Focus();
     }
 

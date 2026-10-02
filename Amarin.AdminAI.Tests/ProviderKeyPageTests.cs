@@ -39,14 +39,14 @@ public sealed class ProviderKeyDialogTests
         {
             var venice = Part<RadioButton>("KeyDialogVenice");
             var openRouter = Part<RadioButton>("KeyDialogOpenRouter");
-            var card = (Style)Window().FindResource("DialogChoiceCard");
+            var card = (Style)Window().FindResource("DialogSegment");
 
             var chosen = (venice.IsChecked == true ? 1 : 0) + (openRouter.IsChecked == true ? 1 : 0);
             return (venice.Style == card, openRouter.Style == card, chosen);
         });
 
-        Assert.True(veniceStyled, "карточка Venice не взяла общий стиль");
-        Assert.True(openRouterStyled, "карточка OpenRouter не взяла общий стиль");
+        Assert.True(veniceStyled, "сегмент Venice не взял общий стиль");
+        Assert.True(openRouterStyled, "сегмент OpenRouter не взял общий стиль");
         Assert.Equal(1, checkedCount);
     }
 
@@ -62,30 +62,30 @@ public sealed class ProviderKeyDialogTests
     }
 
     /// <summary>
-    /// Подсказка идёт за выбором: отправлять человека на venice.ai за ключом OpenRouter значило
+    /// «Где взять» идёт за выбором: отправлять человека на venice.ai за ключом OpenRouter значило
     /// бы врать ему прямо в диалоге.
     /// </summary>
     [Fact]
-    public void The_hint_follows_the_chosen_provider()
+    public void The_key_link_follows_the_chosen_provider()
     {
         var (venice, openRouter) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
             window.OpenKeyDialog();
 
-            var hint = Part<TextBlock>("KeyDialogHint");
-            var first = hint.Text;
+            var link = Part<Button>("KeyDialogKeysLink");
+            var first = (string)link.ToolTip;
 
             Part<RadioButton>("KeyDialogOpenRouter").IsChecked = true;
-            var second = hint.Text;
+            var second = (string)link.ToolTip;
 
             Part<RadioButton>("KeyDialogVenice").IsChecked = true;
             Part<Grid>("KeyOverlay").Visibility = Visibility.Collapsed;
             return (first, second);
         });
 
-        Assert.Contains("Venice", venice, StringComparison.Ordinal);
-        Assert.Contains("OpenRouter", openRouter, StringComparison.Ordinal);
+        Assert.Contains("venice", venice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("openrouter", openRouter, StringComparison.OrdinalIgnoreCase);
         Assert.NotEqual(venice, openRouter);
     }
 
@@ -101,7 +101,7 @@ public sealed class ProviderKeyDialogTests
             var empty = Labels(Part<Grid>("KeyOverlay"))
                 .Where(text => text.Name.Length > 0 && string.IsNullOrWhiteSpace(text.Text))
                 .Select(text => text.Name)
-                .Where(name => name is not "KeyDialogError")
+                .Where(name => name is not "KeyDialogStatus")
                 .ToList();
 
             Part<Grid>("KeyOverlay").Visibility = Visibility.Collapsed;

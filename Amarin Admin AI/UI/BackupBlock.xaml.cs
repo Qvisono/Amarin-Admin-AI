@@ -7,7 +7,7 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Блок «Резервные копии» на странице данных (F1).
+/// Подстраница «Резервные копии» на странице данных (F1).
 /// </summary>
 /// <remarks>
 /// Как у страниц настроек: правда в <see cref="AppSettings.Backup"/>, контролы только отражают её
@@ -19,7 +19,18 @@ public partial class BackupBlock : UserControl
     private AppServices? _services;
     private bool _loading;
 
+    private string _folder = "";
+
     public BackupBlock() => InitializeComponent();
+
+    /// <summary>Что-то поменялось — строка-ссылка на странице перечитывает своё значение.</summary>
+    internal event Action? Changed;
+
+    /// <summary>Значение строки-ссылки: как часто, или «выключено».</summary>
+    internal static string Summary(BackupSettings? backup) =>
+        backup is { Enabled: true }
+            ? Loc.Get(backup.Interval == BackupInterval.Weekly ? "S.Backup.Weekly" : "S.Backup.Daily")
+            : Loc.Get("S.Common.Off");
 
     /// <summary>Сделать копию сейчас. Ставит окно.</summary>
     internal Func<Task>? RunNow { get; set; }
@@ -32,8 +43,8 @@ public partial class BackupBlock : UserControl
         {
             var backup = services.Settings.Backup ?? new BackupSettings();
             EnabledToggle.IsChecked = backup.Enabled;
-            (backup.Interval == BackupInterval.Weekly ? WeeklyChip : DailyChip).IsChecked = true;
-            FolderBox.Text = Backups.FolderOf(backup);
+            IntervalCombo.SelectedIndex = backup.Interval == BackupInterval.Weekly ? 1 : 0;
+            ShowFolder(Backups.FolderOf(backup));
             KeepBox.Text = backup.Keep.ToString(CultureInfo.InvariantCulture);
             Details.IsEnabled = backup.Enabled;
             PlainWarning.Visibility = services.Settings.EncryptChats ? Visibility.Visible : Visibility.Collapsed;
@@ -76,6 +87,14 @@ public partial class BackupBlock : UserControl
         var backup = _services.Settings.Backup ??= new BackupSettings();
         change(backup);
         _services.SettingsStore.Save(_services.Settings);
+        Changed?.Invoke();
+    }
+
+    private void ShowFolder(string folder)
+    {
+        _folder = folder;
+        FolderText.Text = folder;
+        FolderText.ToolTip = folder;
     }
 
     private void EnabledToggle_Changed(object sender, RoutedEventArgs e)
@@ -84,8 +103,8 @@ public partial class BackupBlock : UserControl
         Save(backup => backup.Enabled = EnabledToggle.IsChecked == true);
     }
 
-    private void Interval_Checked(object sender, RoutedEventArgs e) =>
-        Save(backup => backup.Interval = WeeklyChip.IsChecked == true ? BackupInterval.Weekly : BackupInterval.Daily);
+    private void IntervalCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        Save(backup => backup.Interval = IntervalCombo.SelectedIndex == 1 ? BackupInterval.Weekly : BackupInterval.Daily);
 
     private void KeepBox_LostFocus(object sender, RoutedEventArgs e)
     {
@@ -100,7 +119,7 @@ public partial class BackupBlock : UserControl
     {
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            InitialDirectory = Directory.Exists(FolderBox.Text) ? FolderBox.Text : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            InitialDirectory = Directory.Exists(_folder) ? _folder : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
         };
         if (dialog.ShowDialog(Window.GetWindow(this)) != true)
         {
@@ -115,7 +134,7 @@ public partial class BackupBlock : UserControl
             return;
         }
 
-        FolderBox.Text = chosen;
+        ShowFolder(chosen);
         Save(backup => backup.Folder = chosen);
     }
 
@@ -123,8 +142,8 @@ public partial class BackupBlock : UserControl
     {
         try
         {
-            Directory.CreateDirectory(FolderBox.Text);
-            Process.Start(new ProcessStartInfo { FileName = FolderBox.Text, UseShellExecute = true });
+            Directory.CreateDirectory(_folder);
+            Process.Start(new ProcessStartInfo { FileName = _folder, UseShellExecute = true });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

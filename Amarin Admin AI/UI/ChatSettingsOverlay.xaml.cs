@@ -33,7 +33,7 @@ internal sealed class InstructionChoice(string id, string name, bool chosen) : I
 
 /// <summary>
 /// Настройки одного чата (D11): свой промпт и какие инструкции он видит. Модель и размышление
-/// выбираются как всегда — у поля ввода, и шаблон их запоминает.
+/// выбираются как всегда — у поля ввода.
 /// </summary>
 public partial class ChatSettingsOverlay : UserControl
 {
@@ -43,9 +43,6 @@ public partial class ChatSettingsOverlay : UserControl
 
     /// <summary>Сохранить; null — профиль пуст, чат берёт общее.</summary>
     internal event Action<ChatProfile?>? Saved;
-
-    /// <summary>«Сохранить как шаблон»: хозяин спрашивает имя.</summary>
-    internal event Action<ChatProfile?>? TemplateRequested;
 
     internal void Show(ChatProfile? profile, IReadOnlyList<Instruction> enabled)
     {
@@ -96,8 +93,6 @@ public partial class ChatSettingsOverlay : UserControl
         PromptBox.Text = "";
         AllInstructionsBox.IsChecked = true;
     }
-
-    private void TemplateButton_Click(object sender, RoutedEventArgs e) => TemplateRequested?.Invoke(Current());
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) => Visibility = Visibility.Collapsed;
 

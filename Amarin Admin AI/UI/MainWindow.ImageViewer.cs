@@ -298,7 +298,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Spend.ExportFailedTitle"), ex.Message);
             }
         }
 
@@ -316,12 +316,7 @@ namespace Amarin.UI
                 return;
             }
 
-            MessageBox.Show(
-                this,
-                Loc.Get("S.Viewer.ClipboardBusy"),
-                Title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            Inform(Loc.Get("S.Common.ClipboardBusyTitle"), Loc.Get("S.Viewer.ClipboardBusy"));
         }
     }
 }

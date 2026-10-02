@@ -30,6 +30,13 @@ public partial class PasswordWindow : Window
         _verifyAgainst = verifyAgainst;
         _confirmTwice = confirmTwice;
         SecondFieldBorder.Visibility = confirmTwice ? Visibility.Visible : Visibility.Collapsed;
+
+        // У двух полей над первым стоит подпись со своим отступом — второй ему не нужен.
+        if (confirmTwice)
+        {
+            FirstFieldBorder.Margin = new Thickness(0);
+        }
+
         Loaded += (_, _) => FirstBox.Focus();
     }
 

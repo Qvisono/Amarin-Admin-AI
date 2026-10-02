@@ -3,11 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Amarin.UI">
     <!--
-        Стили настроек объявлены локально в SettingsOverlay.Resources главного окна, и
-        StaticResource из этого файла их не достанет: поиск идёт по словарям разметки, а не по
-        дереву. Поэтому нужные ключи повторены здесь — тем же приёмом, что у страниц Key и Info.
+        Общие стили настроек — из SettingsPageStyles.xaml; свои копии страница держит поверх них,
+        чтобы выглядеть ровно как в 1.27.1.
     -->
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -462,6 +465,7 @@
             <Setter Property="Margin" Value="0,2,5,2"/>
             <Setter Property="Height" Value="22"/>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid>
@@ -573,15 +577,6 @@
                 <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}"
                            VerticalAlignment="Center" Text="{DynamicResource S.Instructions.NewTitle}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Агенту — отдельным тумблером: он исполняет команды на машине, и открывать
-                         ему инструкцию человек решает сам (1.28.0). -->
-                    <TextBlock Text="{DynamicResource S.Instructions.AgentLabel}" FontSize="11.5"
-                               Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
-                    <CheckBox x:Name="AgentToggle" Style="{StaticResource SettingsToggle}" IsChecked="False"
-                              Click="Draft_Changed" ToolTip="{DynamicResource S.Instructions.AgentTip}"
-                              AutomationProperties.Name="{DynamicResource S.Instructions.AgentLabel}"
-                              Margin="0,0,16,0"/>
                     <TextBlock Text="{DynamicResource S.Instructions.EnabledLabel}" FontSize="11.5"
                                Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"
                                Margin="0,0,8,0"/>
@@ -623,6 +618,24 @@
                 </Border>
                 <TextBlock x:Name="TriggerHint" Style="{StaticResource FieldHint}"
                            Text="{DynamicResource S.Instructions.TriggersHint}"/>
+                <!--
+                    Агенту — отдельной строкой, а не вторым тумблером в шапке: он исполняет команды
+                    на машине, и открывать ему инструкцию человек решает сам (1.28.0). Два тумблера
+                    рядом в шапке читались как один выбор из двух.
+                -->
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Instructions.AgentLabel}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Instructions.AgentTip}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="AgentToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}" IsChecked="False"
+                              Click="Draft_Changed"
+                              AutomationProperties.Name="{DynamicResource S.Instructions.AgentLabel}"/>
+                </Grid>
             </StackPanel>
 
             <!-- Текст: растёт в строке «*», своя прокрутка, счётчик в углу -->

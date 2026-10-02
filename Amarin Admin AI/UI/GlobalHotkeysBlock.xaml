@@ -1,0 +1,19 @@
+<UserControl x:Class="Amarin.UI.GlobalHotkeysBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        Сочетания из любой программы (G5) — под остальными горячими клавишами страницы Behavior.
+        Поле — текстом («Win+Shift+A»), а не записью нажатий, как у сочетаний программы: те клавишу
+        Win не принимают, а глобальным она как раз и нужна. Строки собираются кодом по
+        GlobalHotkeys.All.
+    -->
+    <StackPanel x:Name="Rows"/>
+</UserControl>

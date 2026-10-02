@@ -27,6 +27,7 @@ namespace Amarin.UI
 
         /// <summary>What the name dialog does when it is confirmed.</summary>
         private Action<string>? _nameDialogCommit;
+        private Action? _nameDialogDelete;
 
         private ProfileStore ProfileStore => _services!.Profiles;
 
@@ -207,12 +208,7 @@ namespace Amarin.UI
                 var original = LoadForCrop(dialog.FileName);
                 if (original is null)
                 {
-                    MessageBox.Show(
-                        this,
-                        Loc.Get("S.Account.ImageUnreadable"),
-                        Title,
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    Inform(Loc.Get("S.Account.ImageFailedTitle"), Loc.Get("S.Account.ImageUnreadable"));
                     return;
                 }
 
@@ -238,7 +234,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Account.ImageFailedTitle"), ex.Message);
             }
         }
 
@@ -287,7 +283,6 @@ namespace Amarin.UI
             var profile = ActiveProfile;
             OpenNameDialog(
                 Loc.Get("S.Account.UserName"),
-                Loc.Get("S.Account.UserNameDesc"),
                 profile.Name,
                 name =>
                 {
@@ -297,13 +292,31 @@ namespace Amarin.UI
                 });
         }
 
-        private void OpenNameDialog(string title, string subtitle, string current, Action<string> commit)
+        /// <summary>Окно с одним полем: название чата, папки, тега, профиля, имя, язык.</summary>
+        /// <param name="action">Подпись главной кнопки; по умолчанию «Сохранить», для нового — «Создать».</param>
+        /// <param name="placeholder">Подсказка в пустом поле.</param>
+        /// <param name="hint">Строка под полем — только когда без неё не понять, что вводить.</param>
+        private void OpenNameDialog(
+            string title,
+            string current,
+            Action<string> commit,
+            string? action = null,
+            string? placeholder = null,
+            string? hint = null)
         {
             _nameDialogCommit = commit;
             NameDialogTitle.Text = title;
-            NameDialogSubtitle.Text = subtitle;
             NameInput.Text = current;
-            NameError.Visibility = Visibility.Collapsed;
+            NameInput.Tag = placeholder;
+            NameDialogHint.Text = hint ?? "";
+            NameDialogHint.Visibility = string.IsNullOrEmpty(hint) ? Visibility.Collapsed : Visibility.Visible;
+            NameSaveButton.Content = action ?? Loc.Get("S.Common.Save");
+            NameError.Text = "";
+
+            // Цвет и «Удалить» — только у тега; их включает OpenTagDialog после этого вызова.
+            NameColorRow.Visibility = Visibility.Collapsed;
+            NameDeleteButton.Visibility = Visibility.Collapsed;
+            _nameDialogDelete = null;
             NameOverlay.Visibility = Visibility.Visible;
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -316,6 +329,14 @@ namespace Amarin.UI
         {
             NameOverlay.Visibility = Visibility.Collapsed;
             _nameDialogCommit = null;
+            _nameDialogDelete = null;
+        }
+
+        private void NameDeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            var delete = _nameDialogDelete;
+            NameCancelButton_Click(sender, e);
+            delete?.Invoke();
         }
 
         private void NameSaveButton_Click(object sender, RoutedEventArgs e)
@@ -324,7 +345,6 @@ namespace Amarin.UI
             if (name.Length == 0)
             {
                 NameError.Text = Loc.Get("S.Account.NameEmpty");
-                NameError.Visibility = Visibility.Visible;
                 return;
             }
 
@@ -371,13 +391,7 @@ namespace Amarin.UI
             profile.PasswordSalt = salt;
             SaveProfiles();
             LoadAccountUi();
-
-            MessageBox.Show(
-                this,
-                Loc.Get("S.Account.PasswordSaved"),
-                Title,
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            Inform(Loc.Get("S.Account.PasswordSavedTitle"), Loc.Get("S.Account.PasswordSaved"), NoticeTone.Info);
         }
 
         private void RemovePasswordButton_Click(object sender, RoutedEventArgs e)
@@ -408,12 +422,7 @@ namespace Amarin.UI
             {
                 // Nothing to check against — bounce the toggle and say why.
                 LockOnStartupToggle.IsChecked = false;
-                MessageBox.Show(
-                    this,
-                    Loc.Get("S.Account.SetPasswordFirst"),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                Inform(Loc.Get("S.Account.SetPasswordFirstTitle"), Loc.Get("S.Account.SetPasswordFirst"));
                 return;
             }
 
@@ -444,13 +453,14 @@ namespace Amarin.UI
             ProfileOverlay.Visibility = Visibility.Collapsed;
             OpenNameDialog(
                 Loc.Get("S.Account.NewProfile"),
-                Loc.Get("S.Account.NewProfileDesc"),
-                Loc.Get("S.Account.NewProfile"),
+                "",
                 name =>
                 {
                     var created = ProfileStore.Create(_services!.ProfileRegistry, name);
                     SwitchToProfile(created.Id);
-                });
+                },
+                Loc.Get("S.Common.Create"),
+                Loc.Get("S.Account.ProfileNamePlaceholder"));
         }
 
         private void RefreshProfileList()
@@ -568,15 +578,17 @@ namespace Amarin.UI
             return grid;
         }
 
-        private void DeleteProfile(UserProfile profile)
+        private void DeleteProfile(UserProfile profile) => Detached.Run(DeleteProfileAsync(profile), "delete_profile");
+
+        private async Task DeleteProfileAsync(UserProfile profile)
         {
-            var confirm = MessageBox.Show(
-                this,
-                Loc.Format("S.Account.DeleteProfileConfirm", profile.Name),
-                Title,
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes)
+            var confirmed = await ShowNoticeAsync(
+                Loc.Format("S.Account.DeleteProfileTitle", profile.Name),
+                Loc.Get("S.Account.DeleteProfileConfirm"),
+                Loc.Get("S.Common.Delete"),
+                Loc.Get("S.Common.Cancel"),
+                NoticeTone.Danger);
+            if (!confirmed || _services is null)
             {
                 return;
             }

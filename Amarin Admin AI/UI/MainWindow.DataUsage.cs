@@ -157,9 +157,22 @@ namespace Amarin.UI
                 BackupPanel.ShowStatus(_services.Settings.Backup ?? new BackupSettings(), _backupRunning);
                 WireDataCare();
                 DataCarePanel.Load(_services);
+                RefreshDataLinks();
             }
 
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
+        }
+
+        /// <summary>Значения строк «Резервные копии ›» и «Хранение и очистка ›».</summary>
+        private void RefreshDataLinks()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            BackupLinkRow.Tag = BackupBlock.Summary(_services.Settings.Backup);
+            CareLinkRow.Tag = DataCareBlock.Summary(_services.Settings.Retention);
         }
     }
 }

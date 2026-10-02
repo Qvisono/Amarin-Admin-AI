@@ -8,7 +8,7 @@ namespace Amarin.UI;
 
 /// <summary>
 /// Страница «Автоматизация»: рецепты — сохранённые вызовы инструментов, которые повторяют без
-/// модели (C7).
+/// модели (C7), — расписание, удалённые компьютеры и серверы MCP вкладками.
 /// </summary>
 /// <remarks>
 /// Три состояния на одной странице — список, редактор, запуск, — а не модалки: модалки живут в
@@ -27,9 +27,23 @@ public partial class SettingsAutomationPage : UserControl
     private Recipe? _running;
     private CancellationTokenSource? _runCancel;
 
+    /// <summary>Сколько рецептов, прежде чем над списком появляется поиск: на трёх-четырёх он только мешает.</summary>
+    internal const int SearchFrom = 6;
+
     public SettingsAutomationPage()
     {
         InitializeComponent();
+        SchedulePane.EditingChanged += ShowHeader;
+        MachinesPane.EditingChanged += ShowHeader;
+        McpPane.EditingChanged += ShowHeader;
+    }
+
+    /// <summary>У редактора вкладки своя шапка «‹» — заголовок страницы и вкладки над ним лишние.</summary>
+    private void ShowHeader(bool editing)
+    {
+        var visibility = editing ? Visibility.Collapsed : Visibility.Visible;
+        PageTitleText.Visibility = visibility;
+        TabsRow.Visibility = visibility;
     }
 
     /// <summary>
@@ -42,7 +56,12 @@ public partial class SettingsAutomationPage : UserControl
     {
         _services = services;
         SchedulePane.Attach(services);
+        MachinesPane.Attach(services);
+        McpPane.Attach(services);
     }
+
+    /// <summary>Вкладка «Компьютеры» — для хозяина: список машин меняет выбор цели в чате.</summary>
+    internal MachinesPanel Machines => MachinesPane;
 
     /// <summary>Вкладка «Расписание» — для хозяина: «Запустить сейчас», переход в чат прогона.</summary>
     internal SchedulePanel Schedule => SchedulePane;
@@ -58,37 +77,59 @@ public partial class SettingsAutomationPage : UserControl
 
     private void Tab_Checked(object sender, RoutedEventArgs e)
     {
-        if (SchedulePane is null || RecipesContent is null)
+        if (McpPane is null || RecipesContent is null)
         {
             // Checked у заранее отмеченной вкладки приходит из InitializeComponent, до полей.
             return;
         }
 
-        var schedule = ScheduleTab.IsChecked == true;
         CancelRun();
-        RecipesContent.Visibility = schedule ? Visibility.Collapsed : Visibility.Visible;
-        RecipesDesc.Visibility = RecipesContent.Visibility;
-        SchedulePane.Visibility = schedule ? Visibility.Visible : Visibility.Collapsed;
-        if (schedule)
+        ShowHeader(false);
+        ShowTabContent();
+        UiMotion.Enter(ActiveTabContent(), dy: 4, milliseconds: 120);
+    }
+
+    private void ShowTabContent()
+    {
+        RecipesContent.Visibility = RecipesTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SchedulePane.Visibility = ScheduleTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        MachinesPane.Visibility = MachinesTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        McpPane.Visibility = McpTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (SchedulePane.Visibility == Visibility.Visible)
         {
             SchedulePane.Load();
         }
+        else if (MachinesPane.Visibility == Visibility.Visible)
+        {
+            MachinesPane.Load();
+        }
+        else if (McpPane.Visibility == Visibility.Visible)
+        {
+            McpPane.Load();
+        }
     }
+
+    private FrameworkElement ActiveTabContent() =>
+        ScheduleTab.IsChecked == true ? SchedulePane
+        : MachinesTab.IsChecked == true ? MachinesPane
+        : McpTab.IsChecked == true ? McpPane
+        : RecipesContent;
 
     /// <summary>Перечитывает рецепты и показывает список. Зовётся при входе на страницу.</summary>
     internal void Load()
     {
         CancelRun();
         ShowList();
+        ShowHeader(false);
         Detached.Run(ReloadAsync(), "recipes_load");
-        if (SchedulePane.Visibility == Visibility.Visible)
-        {
-            SchedulePane.Load();
-        }
+        ShowTabContent();
     }
 
     /// <summary>Открывает вкладку «Расписание».</summary>
     internal void ShowScheduleTab() => ScheduleTab.IsChecked = true;
+
+    /// <summary>Открывает вкладку «Компьютеры» — из выбора цели чата («Управлять…»).</summary>
+    internal void ShowMachinesTab() => MachinesTab.IsChecked = true;
 
     /// <summary>Форма запуска рецепта — для команды <c>/recipe</c> (D9). False — такого нет.</summary>
     internal bool Run(string id)
@@ -141,6 +182,7 @@ public partial class SettingsAutomationPage : UserControl
 
     private void ApplyFilter()
     {
+        SearchFrame.Visibility = _all.Count >= SearchFrom || SearchBox.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         var rows = Filter(_all, SearchBox.Text);
         RecipeItems.ItemsSource = rows;
         EmptyState.Visibility = _all.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

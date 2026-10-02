@@ -77,7 +77,11 @@ public partial class SchedulePanel : UserControl
     {
         EditorPane.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(false);
     }
+
+    /// <summary>Открыт или закрыт редактор — страница прячет над ним свой заголовок и вкладки.</summary>
+    internal event Action<bool>? EditingChanged;
 
     private ScheduledJob? JobOf(object sender) =>
         sender is FrameworkElement { Tag: string id } ? _services?.Schedule.Load().FirstOrDefault(job => job.Id == id) : null;
@@ -170,6 +174,7 @@ public partial class SchedulePanel : UserControl
         ErrorText.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Collapsed;
         EditorPane.Visibility = Visibility.Visible;
+        EditingChanged?.Invoke(true);
         NameBox.Focus();
     }
 

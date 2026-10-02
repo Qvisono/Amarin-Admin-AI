@@ -579,12 +579,9 @@ namespace Amarin.UI
             // до второй машины, и человек узнал бы об этом, только развернув там копию.
             if (!DataBundle.IsSupportedImageName(dialog.FileName))
             {
-                MessageBox.Show(
-                    this,
-                    Loc.Format("S.Appearance.BackgroundBadFormat", string.Join(", ", DataBundle.ImageExtensions)),
-                    Title,
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                Inform(
+                    Loc.Get("S.Appearance.BackgroundFailedTitle"),
+                    Loc.Format("S.Appearance.BackgroundBadFormat", string.Join(", ", DataBundle.ImageExtensions)));
                 return;
             }
 
@@ -610,7 +607,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
-                MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                Inform(Loc.Get("S.Appearance.BackgroundFailedTitle"), ex.Message);
             }
         }
 
@@ -654,21 +651,22 @@ namespace Amarin.UI
             }
         }
 
-        private void ResetAppearanceButton_Click(object sender, RoutedEventArgs e)
+        private void ResetAppearanceButton_Click(object sender, RoutedEventArgs e) =>
+            Detached.Run(ResetAppearanceAsync(), "reset_appearance");
+
+        private async Task ResetAppearanceAsync()
         {
             if (_services is null)
             {
                 return;
             }
 
-            var confirmed = MessageBox.Show(
-                this,
+            var confirmed = await ShowNoticeAsync(
+                Loc.Get("S.Appearance.ResetTitle"),
                 Loc.Get("S.Appearance.ResetConfirm"),
-                Title,
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question);
-
-            if (confirmed != MessageBoxResult.OK)
+                Loc.Get("S.Appearance.ResetAction"),
+                Loc.Get("S.Common.Cancel"));
+            if (!confirmed || _services is null)
             {
                 return;
             }
@@ -784,6 +782,8 @@ namespace Amarin.UI
         /// </summary>
         private void ApplyInterfaceOptions(AppearanceSettings appearance)
         {
+            UiMotion.Enabled = appearance.AnimationsEnabled;
+
             // У FontFamily нет равенства по значению: новый объект с тем же именем WPF считает
             // изменением наследуемого свойства и перемеряет всё дерево окна вместе с лентой чата.
             // А заходят сюда на каждое открытие настроек, где шрифт почти всегда тот же самый.

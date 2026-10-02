@@ -33,15 +33,7 @@ internal static class AttachmentOpener
             return;
         }
 
-        var owner = Window.GetWindow(host);
-        var message = Loc.Format("S.Attach.OpenFailed", attachment.FileName);
-        if (owner is null)
-        {
-            MessageBox.Show(message, attachment.FileName, MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        MessageBox.Show(owner, message, owner.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        MainWindow.Inform(host, Loc.Get("S.Links.OpenFailed"), Loc.Format("S.Attach.OpenFailed", attachment.FileName));
     }
 
     /// <summary>Открывает вложение; возвращает <c>false</c>, если показать его не удалось.</summary>

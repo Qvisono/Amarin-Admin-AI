@@ -55,11 +55,11 @@ public sealed class SecurityPageUiTests : IDisposable
             .GetValue(page)!)[tool];
 
     [Fact]
-    public void Choosing_a_card_saves_the_access_mode()
+    public void Choosing_a_mode_saves_it()
     {
         var saved = WithPage((window, page, services) =>
         {
-            ((RadioButton)page.FindName("ModeReadOnly")!).IsChecked = true;
+            page.SelectMode(ApprovalMode.ReadOnly);
             return new AppSettingsStore(_root).Load().ApprovalMode;
         });
 
@@ -100,7 +100,7 @@ public sealed class SecurityPageUiTests : IDisposable
                 ? File.GetLastWriteTimeUtc(Path.Combine(_root, "settings.json"))
                 : DateTime.MinValue;
             return (
-                ((RadioButton)page.FindName("ModeAskAll")!).IsChecked == true,
+                page.ShownMode == ApprovalMode.AskAll,
                 Toggle(page, "run_powershell").IsChecked == true,
                 Toggle(page, "write_file").IsChecked == true,
                 before != after);
