@@ -47,6 +47,7 @@ namespace Amarin.UI
                     RefreshChatList();
                 }
             };
+            _chatDrag.Starting += FinishChatListMotion;
         }
 
         /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop.Apply"/>.</summary>
@@ -101,14 +102,100 @@ namespace Amarin.UI
 
         // ───────────────────────── Отрисовка ─────────────────────────
 
+        /// <summary>Снимок раскладки, которая сейчас нарисована, и её элементы — по номеру строки.</summary>
+        private ChatListShown _shown = ChatListShown.Empty;
+
+        private FrameworkElement[] _shownElements = [];
+
+        /// <summary>Строки, которые сейчас вырастают (раскрытие) или сворачиваются (свёртывание).</summary>
+        private readonly List<FrameworkElement> _growingRows = [];
+
+        private readonly List<FrameworkElement> _leavingRows = [];
+
+        /// <summary>Заголовок папки и полоса, которую он получит, когда его строки досвернутся.</summary>
+        private readonly List<(Button Header, FolderBand Band)> _foldingHeaders = [];
+
         /// <param name="droppable">
         /// Раскладка по разделам, а не выдача поиска: каждому элементу проставляется раздел, куда
         /// упадёт брошенный на него чат.
         /// </param>
+        /// <remarks>
+        /// Прежняя раскладка сверяется с новой (<see cref="ChatListPatch"/>): строка, у которой не
+        /// поменялось ничего из того, из чего она строится, остаётся тем же элементом, а строятся
+        /// только новые и изменившиеся. До 1.30.0 панель сносилась и собиралась целиком — щелчок по
+        /// папке в списке из трёхсот чатов стоил 120 мс работы потока окна.
+        /// </remarks>
         private void RenderChatListNodes(IReadOnlyList<ChatListNode> nodes, bool droppable)
         {
             _chatListDroppable = droppable;
+            FinishChatListMotion();
 
+            // Видимая панель и включённые анимации: иначе строки встают и пропадают сразу.
+            var animate = UiMotion.Enabled && ChatListPanel.IsVisible;
+            var shown = ChatListPatch.Snapshot(nodes);
+            var slots = ChatListPatch.Plan(_shown, shown);
+            var elements = new FrameworkElement[nodes.Count];
+            var desired = new List<UIElement>(slots.Count);
+            var oldOuter = new Dictionary<FrameworkElement, double>();
+            foreach (var slot in slots)
+            {
+                if (slot.NewIndex < 0)
+                {
+                    if (animate)
+                    {
+                        // Строка уходит: в Tag больше нет id, и выбор, Ctrl+Tab и перетаскивание
+                        // её не видят, пока она досворачивается.
+                        var leaving = _shownElements[slot.OldIndex];
+                        leaving.Tag = null;
+                        leaving.IsHitTestVisible = false;
+                        desired.Add(leaving);
+                        _leavingRows.Add(leaving);
+                    }
+
+                    continue;
+                }
+
+                var element = slot.OldIndex >= 0 ? _shownElements[slot.OldIndex] : BuildNode(nodes[slot.NewIndex]);
+                if (slot.OldIndex >= 0 && ChatListPatch.IsOpen(nodes[slot.NewIndex]) is not null)
+                {
+                    oldOuter[element] = OuterHeight(element);
+                }
+
+                elements[slot.NewIndex] = element;
+                desired.Add(element);
+                if (animate && slot.Motion == ChatListMotion.Enter)
+                {
+                    _growingRows.Add(element);
+                }
+            }
+
+            PlaceNodes(nodes, elements, droppable, animate);
+            SyncChildren(ChatListPanel, desired);
+            _shown = shown;
+            _shownElements = elements;
+
+            if (_growingRows.Count > 0 || _leavingRows.Count > 0)
+            {
+                StartChatListMotion(desired, oldOuter);
+            }
+        }
+
+        private FrameworkElement BuildNode(ChatListNode node) => node switch
+        {
+            ChatListGroup => new TextBlock { Style = (Style)ChatListPanel.FindResource("GroupHeader") },
+            ChatListFolder folder => BuildFolderHeader(folder),
+            ChatListArchive archive => BuildArchiveHeader(archive),
+            ChatListChat chat => BuildChatRow(chat),
+            _ => new TextBlock()
+        };
+
+        /// <summary>
+        /// Всё, что зависит от места строки в списке: подпись группы, полоса карточки папки,
+        /// раздел для броска, раскрыт ли заголовок и признаки строки. Ставится каждой строке, и
+        /// новой, и оставленной, — поэтому этого нет в штампе строки.
+        /// </summary>
+        private void PlaceNodes(IReadOnlyList<ChatListNode> nodes, FrameworkElement[] elements, bool droppable, bool animate)
+        {
             // Раздел текущей группы и раздел раскрытой папки или архива — для вложенных строк.
             ChatDropTarget? section = null;
             ChatDropTarget? nested = null;
@@ -117,51 +204,256 @@ namespace Amarin.UI
                 // Чаты раскрытой папки идут сразу за её заголовком, и карточку папки замыкает
                 // последний из них — чей сосед снизу уже не вложенный чат.
                 var nextNested = i + 1 < nodes.Count && nodes[i + 1] is ChatListChat { Nested: true };
-                FrameworkElement element;
+                var element = elements[i];
                 switch (nodes[i])
                 {
-                    case ChatListGroup group:
-                        var header = new TextBlock
-                        {
-                            Style = (Style)ChatListPanel.FindResource("GroupHeader"),
-                            Text = Loc.Get(group.TitleKey)
-                        };
+                    case ChatListGroup group when element is TextBlock header:
+                        header.Text = Loc.Get(group.TitleKey);
+
+                        // Верхний заголовок стоит прямо под поиском — ему нужно меньше воздуха.
                         if (i == 0)
                         {
-                            // Верхний заголовок стоит прямо под поиском — ему нужно меньше воздуха.
                             header.Margin = new Thickness(14, 6, 6, 4);
+                        }
+                        else
+                        {
+                            header.ClearValue(MarginProperty);
                         }
 
                         section = droppable ? SectionOf(group.TitleKey) : null;
                         ChatRowState.SetDropTarget(header, section);
-                        element = header;
                         break;
-                    case ChatListFolder folder:
+                    case ChatListFolder folder when element is Button header:
                         nested = droppable ? ChatDropTarget.Folder(folder.Folder.Id) : null;
-                        element = Banded(BuildFolderHeader(folder), folder.Folder.Collapsed, nextNested);
-                        ChatRowState.SetDropTarget(element, nested);
+                        header.Tag = folder.Folder;
+                        ShowGroupOpen(header, !folder.Folder.Collapsed, FolderOpenGlyph, FolderGlyph, animate);
+                        Banded(header, folder.Folder.Collapsed, nextNested);
+                        ChatRowState.SetDropTarget(header, nested);
                         break;
-                    case ChatListArchive archive:
+                    case ChatListArchive archive when element is Button header:
                         nested = droppable ? ChatDropTarget.Archive : null;
-                        element = Banded(BuildArchiveHeader(archive), !archive.Expanded, nextNested);
-                        ChatRowState.SetDropTarget(element, nested);
+                        header.Tag = archive;
+                        ShowGroupOpen(header, archive.Expanded, ArchiveGlyph, ArchiveGlyph, animate);
+                        Banded(header, !archive.Expanded, nextNested);
+                        ChatRowState.SetDropTarget(header, nested);
                         break;
-                    case ChatListChat chat:
-                        var row = BuildChatRow(chat);
-                        if (chat.Nested)
-                        {
-                            ChatRowState.SetBand(row, nextNested ? FolderBand.Middle : FolderBand.Bottom);
-                        }
-
+                    case ChatListChat chat when element is Button row:
+                        ChatRowState.SetBand(row, chat.Nested ? (nextNested ? FolderBand.Middle : FolderBand.Bottom) : FolderBand.None);
                         ChatRowState.SetDropTarget(row, chat.Nested ? nested : section);
-                        element = row;
+                        ApplyChatRowState(row, chat.Entry.Id);
                         break;
-                    default:
-                        continue;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Приводит детей панели к нужному порядку, не трогая тех, кто уже стоит на месте:
+        /// оставленная строка не отрывается от дерева и не теряет шаблона.
+        /// </summary>
+        private static void SyncChildren(Panel panel, IReadOnlyList<UIElement> desired)
+        {
+            var children = panel.Children;
+            for (var i = 0; i < desired.Count; i++)
+            {
+                var element = desired[i];
+                if (i < children.Count && ReferenceEquals(children[i], element))
+                {
+                    continue;
                 }
 
-                ChatListPanel.Children.Add(element);
+                var at = children.IndexOf(element);
+                if (at >= 0)
+                {
+                    children.RemoveAt(at);
+                }
+
+                children.Insert(i, element);
             }
+
+            if (children.Count > desired.Count)
+            {
+                children.RemoveRange(desired.Count, children.Count - desired.Count);
+            }
+        }
+
+        /// <summary>Высота строки вместе с полями — столько она занимает в колонке.</summary>
+        private static double OuterHeight(FrameworkElement element) =>
+            element.ActualHeight + element.Margin.Top + element.Margin.Bottom;
+
+        /// <summary>
+        /// Раскрытие и свёртывание папки: её строки вырастают из-под заголовка или уходят под него.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Колонка не прыгает ни в начале, ни в конце: раскрытая папка — заголовок «верх карточки»
+        /// (35 + поле 3) и строки, свёрнутая — карточка в одну строку (38 + поля 3 и 3). Разницу
+        /// в начале раскрытия держит последняя строка, начиная не с нуля, а с неё; в конце
+        /// свёртывания — так же, и только потом заголовок становится карточкой в одну строку.
+        /// </para>
+        /// <para>
+        /// Конечная высота строки известна лишь после раскладки — её задают триггеры шаблона по
+        /// полосе карточки, — поэтому панель раскладывается здесь же, до первого кадра: строки
+        /// встают в свою высоту, высота читается, и анимация начинается с начальной.
+        /// </para>
+        /// </remarks>
+        private void StartChatListMotion(List<UIElement> desired, Dictionary<FrameworkElement, double> oldOuter)
+        {
+            // Уходящие строки стоят сразу за заголовком своей папки: на время свёртывания он
+            // остаётся верхом карточки, иначе карточка закрылась бы раньше, чем ушли строки.
+            for (var i = 0; i < desired.Count; i++)
+            {
+                if (desired[i] is Button header && header.Tag is ChatFolder or ChatListArchive &&
+                    i + 1 < desired.Count && _leavingRows.Contains((FrameworkElement)desired[i + 1]))
+                {
+                    _foldingHeaders.Add((header, ChatRowState.GetBand(header)));
+                    ChatRowState.SetBand(header, FolderBand.Top);
+                }
+            }
+
+            ChatListPanel.UpdateLayout();
+
+            foreach (var run in Runs(desired, _growingRows))
+            {
+                // Разница высот заголовка до и после — её и держит последняя строка в начале.
+                var header = run.Header;
+                var start = header is not null && oldOuter.TryGetValue(header, out var before)
+                    ? before - OuterHeight(header) - run.Rows.Sum(row => row.Margin.Top + row.Margin.Bottom)
+                    : 0;
+                for (var i = 0; i < run.Rows.Count; i++)
+                {
+                    UiMotion.Grow(run.Rows[i], i == run.Rows.Count - 1 ? Math.Max(0, start) : 0);
+                }
+            }
+
+            foreach (var run in Runs(desired, _leavingRows))
+            {
+                var header = run.Header;
+                var folding = _foldingHeaders.FirstOrDefault(entry => ReferenceEquals(entry.Header, header));
+                var end = 0.0;
+                if (header is not null && folding.Header is not null)
+                {
+                    // Сколько займёт свёрнутая карточка против раскрытого заголовка — столько и
+                    // останется от последней строки к концу.
+                    end = Math.Max(0, CollapsedHeaderOuter() - OuterHeight(header) - run.Rows.Sum(row => row.Margin.Top + row.Margin.Bottom));
+                }
+
+                var left = run.Rows.Count;
+                for (var i = 0; i < run.Rows.Count; i++)
+                {
+                    var row = run.Rows[i];
+                    UiMotion.Shrink(row, i == run.Rows.Count - 1 ? end : 0, () =>
+                    {
+                        if (--left == 0)
+                        {
+                            FinishFolding(header, run.Rows);
+                        }
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Высота свёрнутой карточки папки вместе с полями — из сеттеров стиля <c>FolderHeader</c>
+        /// (38 + 3 + 3), а не числом здесь: поменяют стиль — не разойдётся.
+        /// </summary>
+        private double CollapsedHeaderOuter()
+        {
+            var height = 38.0;
+            var margin = new Thickness(6, 3, 6, 3);
+            if (ChatListPanel.TryFindResource("FolderHeader") is Style style)
+            {
+                foreach (var setter in style.Setters.OfType<Setter>())
+                {
+                    if (setter.Property == HeightProperty && setter.Value is double value)
+                    {
+                        height = value;
+                    }
+                    else if (setter.Property == MarginProperty && setter.Value is Thickness thickness)
+                    {
+                        margin = thickness;
+                    }
+                }
+            }
+
+            return height + margin.Top + margin.Bottom;
+        }
+
+        /// <summary>Подряд идущие строки из набора и заголовок над ними.</summary>
+        private static List<(Button? Header, List<FrameworkElement> Rows)> Runs(List<UIElement> desired, List<FrameworkElement> set)
+        {
+            var runs = new List<(Button? Header, List<FrameworkElement> Rows)>();
+            for (var i = 0; i < desired.Count; i++)
+            {
+                if (desired[i] is not FrameworkElement element || !set.Contains(element))
+                {
+                    continue;
+                }
+
+                if (runs.Count > 0 && i > 0 && runs[^1].Rows.Count > 0 && ReferenceEquals(runs[^1].Rows[^1], desired[i - 1]))
+                {
+                    runs[^1].Rows.Add(element);
+                    continue;
+                }
+
+                runs.Add((i > 0 ? desired[i - 1] as Button : null, [element]));
+            }
+
+            return runs;
+        }
+
+        /// <summary>Строки свёрнутой папки досвернулись: убрать их, а заголовок сделать карточкой в одну строку.</summary>
+        private void FinishFolding(Button? header, List<FrameworkElement> rows)
+        {
+            foreach (var row in rows)
+            {
+                _leavingRows.Remove(row);
+                ChatListPanel.Children.Remove(row);
+            }
+
+            var index = _foldingHeaders.FindIndex(entry => ReferenceEquals(entry.Header, header));
+            if (index >= 0)
+            {
+                ChatRowState.SetBand(_foldingHeaders[index].Header, _foldingHeaders[index].Band);
+                _foldingHeaders.RemoveAt(index);
+            }
+        }
+
+        /// <summary>
+        /// Доводит раскрытие и свёртывание до конца сразу: новая раскладка списка или начало
+        /// перетаскивания не должны застать строки посреди хода.
+        /// </summary>
+        private void FinishChatListMotion()
+        {
+            foreach (var row in _growingRows)
+            {
+                UiMotion.Settle(row);
+            }
+
+            _growingRows.Clear();
+            foreach (var row in _leavingRows)
+            {
+                UiMotion.Settle(row);
+                ChatListPanel.Children.Remove(row);
+            }
+
+            _leavingRows.Clear();
+            foreach (var (header, band) in _foldingHeaders)
+            {
+                ChatRowState.SetBand(header, band);
+            }
+
+            _foldingHeaders.Clear();
+        }
+
+        /// <summary>
+        /// Нарисованное забыто: следующая раскладка построит каждую строку заново. Для смены языка,
+        /// профиля и выдачи поиска по тексту, которая заняла панель своими карточками.
+        /// </summary>
+        private void ForgetChatListRows()
+        {
+            FinishChatListMotion();
+            _shown = ChatListShown.Empty;
+            _shownElements = [];
         }
 
         /// <summary>Раздел группы по её заголовку. Над папками заголовок общий — бросать туда некуда.</summary>
@@ -176,11 +468,8 @@ namespace Amarin.UI
         /// Раскрытая папка с чатами — верх карточки; свёрнутая и пустая — карточка из одной
         /// строки. Голой строкой папка не бывает: тогда раскрытие меняло бы высоту заголовка.
         /// </summary>
-        private static Button Banded(Button header, bool collapsed, bool hasRows)
-        {
+        private static void Banded(Button header, bool collapsed, bool hasRows) =>
             ChatRowState.SetBand(header, !collapsed && hasRows ? FolderBand.Top : FolderBand.Single);
-            return header;
-        }
 
         private Button BuildChatRow(ChatListChat chat)
         {
@@ -214,6 +503,11 @@ namespace Amarin.UI
             return button;
         }
 
+        /// <remarks>
+        /// Заголовок переживает обновления списка (<see cref="ChatListPatch"/>), а папка в его
+        /// <c>Tag</c> каждый раз свежая. Поэтому щелчок и меню берут её оттуда в момент нажатия:
+        /// папка, пойманная при постройке, помнила бы, свёрнута ли она была тогда.
+        /// </remarks>
         private Button BuildFolderHeader(ChatListFolder node)
         {
             var folder = node.Folder;
@@ -223,15 +517,21 @@ namespace Amarin.UI
             button.Click += (_, e) =>
             {
                 e.Handled = true;
-                _services?.Organizer.SetCollapsed(folder.Id, !folder.Collapsed);
-                RefreshChatList();
+                if (button.Tag is ChatFolder current)
+                {
+                    _services?.Organizer.SetCollapsed(current.Id, !current.Collapsed);
+                    RefreshChatList();
+                }
             };
 
             var menu = new ContextMenu { Style = (Style)FindResource("AppContextMenu") };
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.RenameFolder"), () => RenameFolder(folder), icon: "Icon.Menu.Rename"));
+            menu.Items.Add(MenuItemFor(
+                Loc.Get("S.ChatList.RenameFolder"),
+                () => RenameFolder(button.Tag as ChatFolder ?? folder),
+                icon: "Icon.Menu.Rename"));
             menu.Items.Add(MenuItemFor(
                 Loc.Get("S.ChatList.DeleteFolder"),
-                () => Detached.Run(DeleteFolderAsync(folder), "delete_folder"),
+                () => Detached.Run(DeleteFolderAsync(button.Tag as ChatFolder ?? folder), "delete_folder"),
                 danger: true,
                 icon: "Icon.Menu.Delete"));
             button.ContextMenu = menu;
@@ -340,6 +640,31 @@ namespace Amarin.UI
                 button,
                 Loc.Get(open ? "S.ChatList.Collapse" : "S.ChatList.Expand"));
             return button;
+        }
+
+        /// <summary>
+        /// Раскрыт ли заголовок: значок, число у свёрнутого, шеврон и подсказка для экранного
+        /// диктора. Зовётся на каждом обновлении — заголовок теперь живёт дольше одной раскладки.
+        /// </summary>
+        private static void ShowGroupOpen(Button header, bool open, string openGlyph, string closedGlyph, bool animate)
+        {
+            if (header.Content is not Grid grid || grid.Children.Count < 4 ||
+                grid.Children[0] is not Path icon || grid.Children[2] is not TextBlock number || grid.Children[3] is not Path chevron)
+            {
+                return;
+            }
+
+            icon.Data = Glyphs.Get(open ? openGlyph : closedGlyph);
+            icon.SetResourceReference(Shape.StrokeProperty, open ? "Text.Muted" : "Text.Dim");
+            number.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+            if (chevron.RenderTransform is RotateTransform turn)
+            {
+                UiMotion.Turn(turn, open ? 180 : 0, animate);
+            }
+
+            System.Windows.Automation.AutomationProperties.SetHelpText(
+                header,
+                Loc.Get(open ? "S.ChatList.Collapse" : "S.ChatList.Expand"));
         }
 
         // ───────────────────────── Фильтр по тегу ─────────────────────────

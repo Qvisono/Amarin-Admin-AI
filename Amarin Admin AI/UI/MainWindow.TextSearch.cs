@@ -125,6 +125,8 @@ namespace Amarin.UI
 
         private void ShowTextHits(string query, IReadOnlyList<TextSearchHit> hits)
         {
+            // Панель занята выдачей: строки списка уходят, и вернувшись, он соберётся заново.
+            ForgetChatListRows();
             ChatListPanel.Children.Clear();
             if (hits.Count == 0)
             {

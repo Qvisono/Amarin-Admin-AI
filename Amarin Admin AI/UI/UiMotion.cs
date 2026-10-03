@@ -56,6 +56,98 @@ internal static class UiMotion
         shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(dy, 0, duration) { EasingFunction = Ease });
     }
 
+    // ───────────────────────── Раскрытие и свёртывание строк ─────────────────────────
+
+    /// <summary>
+    /// Строка вырастает от <paramref name="from"/> до своей высоты и проявляется — раскрытие
+    /// папки в списке чатов.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Анимируется сама высота, а не масштаб: строка обрезается, а не сплющивается, и соседи
+    /// снизу едут вниз вместе с ней. Конечная высота — та, что строка получила на раскладке
+    /// (шаблон задаёт её триггерами, и до раскладки её не прочесть). По окончании анимация
+    /// снимается, и высоту снова задаёт стиль.
+    /// </para>
+    /// <para>
+    /// Начальные высота и прозрачность ставятся и локальным значением: анимация вступает в силу
+    /// со следующего тика часов, и до него строка разложилась бы в полную высоту — первый кадр
+    /// раскрытия мигнул бы уже раскрытой папкой.
+    /// </para>
+    /// </remarks>
+    public static void Grow(FrameworkElement element, double from, int milliseconds = 180)
+    {
+        var to = element.ActualHeight;
+        if (!Enabled || to <= from)
+        {
+            return;
+        }
+
+        var duration = TimeSpan.FromMilliseconds(milliseconds);
+        element.ClipToBounds = true;
+        element.Height = from;
+        element.Opacity = 0;
+        var height = new DoubleAnimation(from, to, duration) { EasingFunction = Ease };
+        height.Completed += (_, _) => Settle(element);
+        element.BeginAnimation(FrameworkElement.HeightProperty, height);
+        element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, duration) { EasingFunction = Ease });
+    }
+
+    /// <summary>
+    /// Строка сворачивается до <paramref name="to"/> и гаснет, а потом зовёт <paramref name="done"/> —
+    /// свёртывание папки. Убрать строку из списка — дело того, кто зовёт.
+    /// </summary>
+    public static void Shrink(FrameworkElement element, double to, Action done, int milliseconds = 160)
+    {
+        ArgumentNullException.ThrowIfNull(done);
+        var from = element.ActualHeight;
+        if (!Enabled || from <= to)
+        {
+            done();
+            return;
+        }
+
+        var duration = TimeSpan.FromMilliseconds(milliseconds);
+        element.ClipToBounds = true;
+        var height = new DoubleAnimation(from, to, duration) { EasingFunction = Ease };
+        height.Completed += (_, _) => done();
+        element.BeginAnimation(FrameworkElement.HeightProperty, height);
+        element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0, duration) { EasingFunction = Ease });
+    }
+
+    /// <summary>
+    /// Снимает с элемента рост или свёртывание: он сразу встаёт в свою высоту. Локальные высота
+    /// и прозрачность, поставленные на время хода, тоже снимаются — их задаёт стиль.
+    /// </summary>
+    public static void Settle(FrameworkElement element)
+    {
+        element.BeginAnimation(FrameworkElement.HeightProperty, null);
+        element.BeginAnimation(UIElement.OpacityProperty, null);
+        element.ClearValue(FrameworkElement.HeightProperty);
+        element.ClearValue(UIElement.OpacityProperty);
+        element.ClearValue(UIElement.ClipToBoundsProperty);
+    }
+
+    /// <summary>Поворот (шеврон папки) доезжает до угла, а не прыгает; без анимаций — встаёт сразу.</summary>
+    public static void Turn(RotateTransform rotation, double angle, bool animate, int milliseconds = 180)
+    {
+        if (rotation.IsFrozen)
+        {
+            return;
+        }
+
+        if (!Enabled || !animate || Math.Abs(rotation.Angle - angle) < 0.5)
+        {
+            rotation.BeginAnimation(RotateTransform.AngleProperty, null);
+            rotation.Angle = angle;
+            return;
+        }
+
+        var turn = new DoubleAnimation(rotation.Angle, angle, TimeSpan.FromMilliseconds(milliseconds)) { EasingFunction = Ease, FillBehavior = FillBehavior.Stop };
+        rotation.Angle = angle;
+        rotation.BeginAnimation(RotateTransform.AngleProperty, turn);
+    }
+
     // ───────────────────────── Проявление страницы ─────────────────────────
 
     /// <summary>

@@ -98,6 +98,13 @@ internal sealed class ChatListDrag
     /// <summary>Жест кончился — броском или отменой.</summary>
     public event Action? Ended;
 
+    /// <summary>
+    /// Жест вот-вот начнётся — раньше, чем снимутся положения строк. Список доводит раскрытие и
+    /// свёртывание папок до конца: строка посреди хода дала бы неверный раздел для броска, а
+    /// идущая прозрачность перекрыла бы приглушение перетаскиваемых.
+    /// </summary>
+    public event Action? Starting;
+
     /// <summary>Куда упадут чаты, если отпустить сейчас.</summary>
     internal ChatDropTarget? Target => _target;
 
@@ -250,6 +257,7 @@ internal sealed class ChatListDrag
 
     private void Begin()
     {
+        Starting?.Invoke();
         var row = _pressRow!;
         _ids = _payload((string)row.Tag);
         _dragging = true;

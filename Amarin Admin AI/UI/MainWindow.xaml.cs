@@ -2922,6 +2922,9 @@ namespace Amarin.UI
         {
             _chatListSignature.Clear();
             _textSearchShown = null;
+
+            // Подписи строк (язык, даты) рисуются при постройке — оставлять прежние нельзя.
+            ForgetChatListRows();
         }
 
         private void RefreshChatList()
@@ -2933,6 +2936,7 @@ namespace Amarin.UI
 
             if (_services is null)
             {
+                ForgetChatListRows();
                 ChatListPanel.Children.Clear();
                 return;
             }
@@ -2986,8 +2990,9 @@ namespace Amarin.UI
                 return;
             }
 
+            // Панель не сносится: RenderChatListNodes сверяет её с прежней раскладкой и трогает
+            // только изменившиеся строки.
             (_chatListSignature, _chatListScratch) = (signature, _chatListSignature);
-            ChatListPanel.Children.Clear();
 
             IReadOnlyList<ChatListNode> nodes;
             var searching = (IsContentSearchResult && items.Count > 0) || query.Trim().Length > 0;
