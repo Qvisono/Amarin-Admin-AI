@@ -26,14 +26,6 @@
       GuideShot ищет файл в коде, поэтому отсутствие любого из них — не ошибка сборки.
     -->
     <Resource Include="Assets\Guide\*.png" />
-    <!--
-      Заметки этой версии для окна «Что нового» (WhatsNew): тот же файл, из которого release.yml
-      делает страницу релиза, поэтому текст один. Condition — чтобы сборка версии, заметки к
-      которой ещё не написаны, не падала: окно тогда просто не показывается.
-    -->
-    <EmbeddedResource Include="..\.github\release-notes\v$(Version).md"
-                      LogicalName="Amarin.ReleaseNotes.md"
-                      Condition="Exists('..\.github\release-notes\v$(Version).md')" />
   </ItemGroup>
 
   <!--
@@ -57,18 +49,17 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.4" />
-    <!-- 10.x, а не 9.x: их требует System.Management.Automation ниже, и старые версии дали бы
-         NU1605 (понижение пакета) — а он в сборке считается ошибкой. -->
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
-    <PackageReference Include="System.Management" Version="10.0.12" />
     <!-- Распознавание речи на этом ПК (D14): распознаватели SAPI, что установлены в Windows. -->
     <PackageReference Include="System.Speech" Version="10.0.12" />
-    <!--
-      Только ради разборщика PowerShell (Parser.ParseInput) — защита решает по дереву команды,
-      а не по регулярке. Сам PowerShell здесь не исполняется: скрипты идут в powershell.exe 5.1.
-    -->
-    <PackageReference Include="System.Management.Automation" Version="7.6.6" />
-    <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
+  </ItemGroup>
+
+  <!--
+    Логика и инструменты — в Amarin.Core (сборка без WPF). Пакеты разборщика PowerShell, WMI и
+    служб приходят оттуда, поэтому исключения ReadyToRun и чистка нативной части PowerShell ниже
+    по-прежнему про них: публикуется приложение со всем, что ему досталось.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">

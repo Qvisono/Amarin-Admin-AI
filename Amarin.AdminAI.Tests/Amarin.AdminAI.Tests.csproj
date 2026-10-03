@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
     <ProjectReference Include="..\Amarin Admin AI\Amarin Admin AI.csproj" />
   </ItemGroup>
 

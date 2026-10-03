@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Логика программы без WPF: движок чата, агент, провайдеры, хранилища, обновления и
+    инструменты. Отдельной сборкой, чтобы «Core не знает об окне» сторожил компилятор, а не
+    договорённость: UseWPF здесь нет, и System.Windows отсюда не подключить. Папки — функции
+    (Chat, Agents, Providers…), а пространства имён — слои (Amarin.Core, Amarin.Tools): иначе
+    перенос стоил бы новых using в сотнях файлов и правок в инструментах.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Amarin</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatform>windows</SupportedOSPlatform>
+    <!-- Инструментам: таблицы сети и процессов читаются указателями. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!--
+    Версия одна на программу и живёт в csproj приложения: её читает release.yml, а рядом с ней —
+    подпись в MainWindow.xaml. Здесь она берётся оттуда же, иначе отчёт об аварии, архив данных
+    и сервер MCP называли бы версию этой сборки (1.0.0), а заметки «Что нового» искались бы не
+    к той версии. Совпадение сторожит тест.
+  -->
+  <PropertyGroup>
+    <AmarinAppProject>$(MSBuildThisFileDirectory)..\Amarin Admin AI\Amarin Admin AI.csproj</AmarinAppProject>
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(AmarinAppProject)')), '(?&lt;=&lt;Version&gt;)[^&lt;]+(?=&lt;/Version&gt;)').Value.Trim())</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Заметки этой версии для окна «Что нового» (WhatsNew): тот же файл, из которого release.yml
+      делает страницу релиза, поэтому текст один. Condition — чтобы сборка версии, заметки к
+      которой ещё не написаны, не падала: окно тогда просто не показывается.
+    -->
+    <EmbeddedResource Include="..\.github\release-notes\v$(Version).md"
+                      LogicalName="Amarin.ReleaseNotes.md"
+                      Condition="Exists('..\.github\release-notes\v$(Version).md')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.3.2" />
+    <!-- 10.x, а не 9.x: их требует System.Management.Automation ниже, и старые версии дали бы
+         NU1605 (понижение пакета) — а он в сборке считается ошибкой. -->
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.12" />
+    <PackageReference Include="System.Management" Version="10.0.12" />
+    <!--
+      Только ради разборщика PowerShell (Parser.ParseInput) — защита решает по дереву команды,
+      а не по регулярке. Сам PowerShell здесь не исполняется: скрипты идут в powershell.exe 5.1.
+    -->
+    <PackageReference Include="System.Management.Automation" Version="7.6.6" />
+    <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
+    <!--
+      Приложению это даёт рабочий стол Windows (Microsoft.WindowsDesktop.App), а здесь его нет:
+      картинки инструментов, DPAPI и счётчики производительности подключаются пакетами.
+    -->
+    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Amarin Admin AI" />
+    <InternalsVisibleTo Include="Amarin.AdminAI.Tests" />
+  </ItemGroup>
+
+</Project>
