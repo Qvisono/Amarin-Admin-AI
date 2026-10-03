@@ -125,7 +125,7 @@ public sealed class ReasoningToggleTests
             ];
 
             return names
-                .Where(name => ((ReasoningPicker)window.FindName(name)!).ShowGaugeIcon == false)
+                .Where(name => !((ReasoningPicker)window.FindName(name)!).ShowGaugeIcon)
                 .ToList();
         });
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
@@ -20,9 +21,9 @@ internal static partial class RemoteImages
     /// Только http(s) и ничего, что указывает на эту машину или локальную сеть. Адрес выбирает
     /// модель, и скачивание без фильтра стало бы подделкой запросов (SSRF) в домашнюю сеть человека.
     /// </summary>
-    public static bool IsSafeTarget(string? url, out Uri target)
+    public static bool IsSafeTarget(string? url, [NotNullWhen(true)] out Uri? target)
     {
-        target = null!;
+        target = null;
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || !IsSafeTarget(uri))
         {
             return false;

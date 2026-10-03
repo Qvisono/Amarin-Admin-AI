@@ -18,7 +18,7 @@ namespace Amarin.AdminAI.Tests;
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ChatZoomSurvivalTests
 {
-    private static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
     private readonly WpfFixture _wpf;
 

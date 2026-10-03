@@ -71,9 +71,9 @@ public sealed class SessionUndoTracker
             result = SnapshotEnsureResult.Created(taken.SnapshotId, taken.Message);
         }
 
-        if (arguments.ValueKind == JsonValueKind.Object)
+        if (arguments.ValueKind == JsonValueKind.Object && _activeSnapshotId is { } snapshotId)
         {
-            ExtendSnapshot(_activeSnapshotId!, toolName, arguments);
+            ExtendSnapshot(snapshotId, toolName, arguments);
         }
 
         return result;

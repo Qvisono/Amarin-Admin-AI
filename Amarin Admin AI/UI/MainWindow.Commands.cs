@@ -128,7 +128,7 @@ namespace Amarin.UI
             }
 
             var all = _services.Instructions.Snapshot();
-            var found = all.FirstOrDefault(item => item.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
+            var found = all.FirstOrDefault(item => item.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         ?? all.FirstOrDefault(item => name.Length > 0 && item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
             if (found is not null)
             {
@@ -152,7 +152,7 @@ namespace Amarin.UI
             }
 
             var all = _services.Recipes.All();
-            var found = all.FirstOrDefault(item => item.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
+            var found = all.FirstOrDefault(item => item.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         ?? all.FirstOrDefault(item => name.Length > 0 && item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
             OpenSettingsPage(NavAutomation);
             if (found is not null)

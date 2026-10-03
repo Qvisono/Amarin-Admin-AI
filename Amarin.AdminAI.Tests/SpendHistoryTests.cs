@@ -396,15 +396,6 @@ public sealed class SpendServiceTests : IDisposable
         return (new SpendService(venice, new SpendHistoryStore(_root), new SpendLedger(_root)), handler);
     }
 
-    private (SpendService Service, Pages Handler, SpendLedger Ledger) BuildWithLedger(params string[] bodies)
-    {
-        var handler = new Pages(bodies);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
-        var venice = new VeniceClient(http, new AgentOptions { ApiKey = "key-1234567890" });
-        var ledger = new SpendLedger(_root);
-        return (new SpendService(venice, new SpendHistoryStore(_root), ledger), handler, ledger);
-    }
-
     [Fact]
     public async Task A_missing_key_is_reported_and_costs_no_request()
     {

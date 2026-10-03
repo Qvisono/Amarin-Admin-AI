@@ -694,7 +694,7 @@ internal static class MathRenderer
 
     private static MathVisual LayoutLines(MathLines lines, Context context, double size)
     {
-        var rows = lines.Rows.Select(row => (IReadOnlyList<MathNode>)new[] { row }).ToList();
+        var rows = lines.Rows.Select(IReadOnlyList<MathNode> (row) => [row]).ToList();
         return LayoutMatrix(new MathMatrix(rows, "", "", LeftAligned: false), context, size);
     }
 

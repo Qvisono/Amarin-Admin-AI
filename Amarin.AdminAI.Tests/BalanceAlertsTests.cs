@@ -61,7 +61,7 @@ public sealed class BalanceAlertsTests
     {
         var thresholds = new BalanceThresholds { LowUsd = null, CriticalUsd = null, Keys = { ["fp"] = 2m } };
         var watch = new BalanceWatch();
-        BalanceRow Row(decimal usd) => new("Work", LlmProvider.Venice, usd, null, "fp");
+        static BalanceRow Row(decimal usd) => new("Work", LlmProvider.Venice, usd, null, "fp");
 
         watch.Observe(thresholds, Total(3m), [Row(3m)]);
         var alert = Assert.Single(watch.Observe(thresholds, Total(1.5m), [Row(1.5m), Row(1.5m)]));

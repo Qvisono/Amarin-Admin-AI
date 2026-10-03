@@ -337,7 +337,7 @@ public static class UpdateInstaller
             return UpdateStepResult.Failed(Loc.Get("S.Updates.NotOurFile"));
         }
 
-        return Swap(source!, exePath, expectedSha256);
+        return Swap(source, exePath, expectedSha256);
     }
 
     /// <summary>
@@ -349,7 +349,7 @@ public static class UpdateInstaller
     /// повышенный процесс идёт уже от другого пользователя — со своим <c>%TEMP%</c>. Полный путь
     /// там не сойдётся никогда, и обновление отказывало бы ровно тем, кому без прав труднее всего.
     /// </remarks>
-    public static bool IsUpdateWorkFile(string? source, string? exePath)
+    public static bool IsUpdateWorkFile([NotNullWhen(true)] string? source, string? exePath)
     {
         if (string.IsNullOrWhiteSpace(source) ||
             !source.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ||
@@ -538,7 +538,7 @@ public static class UpdateInstaller
     {
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var file = File.Create(path);
-        using var hasher = SHA256.Create();
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
         var buffer = ArrayPool<byte>.Shared.Rent(1024 * 1024);
         long total = 0;
@@ -555,7 +555,7 @@ public static class UpdateInstaller
                     throw new IOException(Loc.Get("S.Updates.TooBig"));
                 }
 
-                hasher.TransformBlock(buffer, 0, read, null, 0);
+                hasher.AppendData(buffer, 0, read);
                 await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
 
                 if (progress is null || expected <= 0)
@@ -578,9 +578,8 @@ public static class UpdateInstaller
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
-        hasher.TransformFinalBlock([], 0, 0);
         progress?.Report(1);
-        return Convert.ToHexString(hasher.Hash!).ToLowerInvariant();
+        return Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
     }
 
     private static bool TryEnsureWritable(string directory, out string error)

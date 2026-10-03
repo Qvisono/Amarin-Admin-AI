@@ -121,9 +121,9 @@ internal static class ContextCompaction
         {
             var builder = new StringBuilder();
             var from = 0;
-            if (IsActive(session))
+            if (IsActive(session) && session.CompactSummary is { } summary)
             {
-                builder.AppendLine("PREVIOUS SUMMARY:").AppendLine(session.CompactSummary!.Trim()).AppendLine();
+                builder.AppendLine("PREVIOUS SUMMARY:").AppendLine(summary.Trim()).AppendLine();
                 from = session.CompactedThrough;
             }
 

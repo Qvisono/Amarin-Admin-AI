@@ -237,7 +237,10 @@ internal sealed class StartupArgs
             (shortName is not null && a.Equals(shortName, StringComparison.OrdinalIgnoreCase)))
         {
             if (i + 1 >= args.Length)
+            {
                 return false;
+            }
+
             value = args[++i];
             return true;
         }
@@ -265,7 +268,9 @@ internal sealed class StartupArgs
     private static string? ReadPromptFile(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
             return null;
+        }
 
         try
         {

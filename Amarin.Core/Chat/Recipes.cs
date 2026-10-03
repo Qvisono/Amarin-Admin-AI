@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -132,9 +133,8 @@ internal static class RecipeRules
         try
         {
             var parsed = ToolArguments.Parse(argumentsJson ?? "{}");
-            if (parsed.ValueKind == JsonValueKind.Object)
+            if (parsed.ValueKind == JsonValueKind.Object && JsonNode.Parse(parsed.GetRawText()) is JsonObject node)
             {
-                var node = JsonNode.Parse(parsed.GetRawText())!.AsObject();
                 foreach (var field in ModelOnlyFields)
                 {
                     node.Remove(field);
@@ -226,7 +226,7 @@ internal sealed class RecipeLibrary
     }
 
     public Recipe? Find(string? id) =>
-        IsUsableId(id) ? Read(PathFor(id!)) : null;
+        IsUsableId(id) ? Read(PathFor(id)) : null;
 
     /// <summary>Записывает рецепт; без годного идентификатора заводит новый. Null — диск отказал.</summary>
     public Recipe? Save(Recipe recipe)
@@ -268,7 +268,7 @@ internal sealed class RecipeLibrary
 
         try
         {
-            File.Delete(PathFor(id!));
+            File.Delete(PathFor(id));
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -281,7 +281,7 @@ internal sealed class RecipeLibrary
     /// Идентификатор становится именем файла, поэтому только буквы, цифры, «-» и «_»: иначе
     /// «..\\settings» из подложенного файла указал бы мимо папки.
     /// </summary>
-    internal static bool IsUsableId(string? id) =>
+    internal static bool IsUsableId([NotNullWhen(true)] string? id) =>
         !string.IsNullOrEmpty(id) && id.Length <= 64 && id.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
     private string PathFor(string id) => Path.Combine(Folder, id + ".json");

@@ -250,7 +250,7 @@ internal sealed class BalanceBadge
 
         if (total.Diem is { } diem and > 0)
         {
-            text.Append("\n").Append(Loc.Format(
+            text.Append('\n').Append(Loc.Format(
                 "S.Key.Balance.Diem", diem.ToString("0.##", CultureInfo.InvariantCulture)));
         }
 
@@ -258,13 +258,13 @@ internal sealed class BalanceBadge
         {
             foreach (var row in rows)
             {
-                text.Append("\n").Append(row.Label).Append(" — ").Append(FormatUsd(row.Usd));
+                text.Append('\n').Append(row.Label).Append(" — ").Append(FormatUsd(row.Usd));
             }
         }
 
         if (total.Unknown > 0)
         {
-            text.Append("\n").Append(Loc.Format(
+            text.Append('\n').Append(Loc.Format(
                 "S.Balance.Unknown.Some",
                 total.Unknown.ToString(CultureInfo.InvariantCulture)));
         }
@@ -272,14 +272,14 @@ internal sealed class BalanceBadge
         switch (BalanceWatch.Level(total.Usd, thresholds.LowUsd, thresholds.CriticalUsd))
         {
             case BalanceLevel.Critical:
-                text.Append("\n").Append(Loc.Get("S.Balance.AlmostOut"));
+                text.Append('\n').Append(Loc.Get("S.Balance.AlmostOut"));
                 break;
             case BalanceLevel.Low:
-                text.Append("\n").Append(Loc.Get("S.Balance.Low"));
+                text.Append('\n').Append(Loc.Get("S.Balance.Low"));
                 break;
         }
 
-        return text.Append("\n").Append(Loc.Get("S.Balance.Refresh")).ToString();
+        return text.Append('\n').Append(Loc.Get("S.Balance.Refresh")).ToString();
     }
 
     private static SolidColorBrush Frozen(Color colour)

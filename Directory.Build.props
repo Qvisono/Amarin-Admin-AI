@@ -1,0 +1,15 @@
+<Project>
+
+  <!--
+    Общее для всех проектов. Анализаторы — последнего уровня, но правила включены поимённо в
+    .editorconfig: «всё подряд» (AnalysisMode=All) дало две с половиной тысячи замечаний, из
+    которых большая часть — стиль или советы для библиотек (ConfigureAwait, IFormatProvider в
+    каждой интерполяции), а не ошибки этой программы.
+  -->
+  <PropertyGroup>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Правила стиля (IDE…) из .editorconfig — и в сборке, а не только в редакторе. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

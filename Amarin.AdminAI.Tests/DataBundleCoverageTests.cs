@@ -195,8 +195,9 @@ public sealed class DataBundleCoverageTests
         return (DataCategory)method.Invoke(null, [relative])!;
     }
 
-    private static string Json(AppSettings settings) =>
-        JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
+    private static string Json(AppSettings settings) => JsonSerializer.Serialize(settings, Indented);
 
     /// <summary>
     /// Меняет каждое свойство на что-нибудь непохожее на умолчание, вглубь по вложенным объектам.

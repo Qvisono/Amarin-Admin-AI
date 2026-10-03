@@ -309,7 +309,11 @@ public sealed class DataBundleImporter
             }
 
             total += bytes.Length;
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            if (Path.GetDirectoryName(target) is { } folder)
+            {
+                Directory.CreateDirectory(folder);
+            }
+
             File.WriteAllBytes(target, bytes);
         }
 
@@ -525,7 +529,7 @@ public sealed class DataBundleImporter
     /// Профиль только что заведён импортом. В слиянии это и есть условие, при котором настройки
     /// и оформление применяются: своё человек менять не просил.
     /// </param>
-    private void ApplyTree(
+    private static void ApplyTree(
         string source,
         string targetRoot,
         DataCategory categories,
@@ -613,7 +617,7 @@ public sealed class DataBundleImporter
     private static bool EncryptsAtRest(string targetRoot) =>
         new AppSettingsStore(targetRoot).Load().EncryptChats;
 
-    private void ApplyChats(
+    private static void ApplyChats(
         string source,
         string targetRoot,
         DataImportMode mode,
@@ -698,7 +702,7 @@ public sealed class DataBundleImporter
         store.Flush();
     }
 
-    private void ApplySettings(string file, string targetRoot, ImportState state)
+    private static void ApplySettings(string file, string targetRoot, ImportState state)
     {
         var incoming = ReadJson<AppSettings>(file, state);
         if (incoming is null)

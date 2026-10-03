@@ -25,7 +25,7 @@ namespace Amarin.UI
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 IntPtr windowHandle = new WindowInteropHelper(window).Handle;
-                SendMessage(windowHandle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
+                _ = SendMessage(windowHandle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
             }
         }
     }

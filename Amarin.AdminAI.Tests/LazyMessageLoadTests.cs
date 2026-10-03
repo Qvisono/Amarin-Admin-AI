@@ -29,7 +29,7 @@ public sealed class LazyMessageLoadTests
     private static MainWindow Window() =>
         Application.Current.Windows.OfType<MainWindow>().Single();
 
-    private static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
     private static void Set(object target, string field, object? value) =>
         target.GetType().GetField(field, Hidden)!.SetValue(target, value);

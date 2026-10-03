@@ -956,7 +956,7 @@ internal sealed class AssistantMessageView
     /// План агента и решение по нему (C1) — первым в блоке агента: по нему читаются все вызовы
     /// ниже, и видно, какие из них шли без вопроса как шаги одобренного плана.
     /// </summary>
-    private Border BuildPlanBlock(AgentPlan plan, PlanVerdict? verdict)
+    private static Border BuildPlanBlock(AgentPlan plan, PlanVerdict? verdict)
     {
         var panel = new StackPanel();
         var title = new TextBlock

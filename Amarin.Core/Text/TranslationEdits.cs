@@ -107,7 +107,7 @@ internal static class TranslationEdits
         var result = new Dictionary<string, string>(fresh, StringComparer.Ordinal);
         foreach (var key in edited)
         {
-            if (existing!.TryGetValue(key, out var value))
+            if (existing is not null && existing.TryGetValue(key, out var value))
             {
                 result[key] = value;
             }

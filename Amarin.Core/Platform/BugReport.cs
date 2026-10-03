@@ -59,7 +59,7 @@ internal static class BugReport
 
         text = ReplaceWord(text, userName, UserMark);
         text = ReplaceWord(text, machineName, MachineMark);
-        return CrashReport.Scrub(text, Array.Empty<string?>());
+        return CrashReport.Scrub(text, []);
     }
 
     /// <summary>То же с данными этой машины.</summary>

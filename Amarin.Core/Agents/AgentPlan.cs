@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -177,8 +178,9 @@ internal static partial class AgentPlans
 
         var targets = TargetFields
             .Select(field => Text(arguments, field))
-            .Where(value => value is { Length: > 0 })
-            .Select(value => Normalize(value!))
+            .OfType<string>()
+            .Where(value => value.Length > 0)
+            .Select(Normalize)
             .ToList();
 
         if (string.IsNullOrWhiteSpace(step.Target))
@@ -294,11 +296,11 @@ internal sealed class PlanReviewQueue
         return await request.Completion.Task.ConfigureAwait(false);
     }
 
-    public bool TryPeek(out PlanReviewRequest request)
+    public bool TryPeek([NotNullWhen(true)] out PlanReviewRequest? request)
     {
         lock (_gate)
         {
-            request = _queue.FirstOrDefault()!;
+            request = _queue.FirstOrDefault();
             return request is not null;
         }
     }

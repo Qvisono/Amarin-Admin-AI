@@ -113,7 +113,7 @@ public static class AuthenticodeCheck
 
             // Состояние, открытое проверкой, закрывается вторым вызовом — иначе утечка.
             data.StateAction = StateActionClose;
-            WinVerifyTrust(IntPtr.Zero, ref action, ref data);
+            _ = WinVerifyTrust(IntPtr.Zero, ref action, ref data);
             return result;
         }
         finally

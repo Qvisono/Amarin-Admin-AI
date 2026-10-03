@@ -471,7 +471,7 @@ namespace Amarin.UI
 
         private IntPtr HotkeyHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_HOTKEY && _hotkeyIds.TryGetValue((int)wParam, out var action))
+            if (msg == WM_HOTKEY && _hotkeyIds.TryGetValue((int)wParam.ToInt64(), out var action))
             {
                 handled = true;
                 RunGlobalHotkey(action);

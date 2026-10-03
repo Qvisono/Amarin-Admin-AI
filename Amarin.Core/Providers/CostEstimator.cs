@@ -91,7 +91,7 @@ internal static class CostEstimator
             high = high is null ? cost : Math.Max(high.Value, cost);
         }
 
-        return low is null ? null : new CostEstimate(low.Value, high!.Value, inputTokens, outputTokens);
+        return low is { } min && high is { } max ? new CostEstimate(min, max, inputTokens, outputTokens) : null;
     }
 
     /// <summary>Подпись у кольца: «≈ $0.03», «≈ $0.01–0.09», «&lt; $0.01».</summary>

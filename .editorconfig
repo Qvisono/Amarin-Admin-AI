@@ -1,0 +1,295 @@
+# Правила анализаторов для всех проектов. Сборка идёт с -warnaserror, поэтому «warning» здесь —
+# это ошибка сборки. Выбраны правила, которые ловят ошибки и лишнюю работу, а не вкус: что
+# включено и почему не включено остальное — в HANDOFF-1.30.md («Анализаторы»).
+root = true
+
+[*.cs]
+
+# ── Производительность ─────────────────────────────────────────────────────────────────────
+# Запечатать internal-типы. По умолчанию правило молчит в сборках с InternalsVisibleTo, а такие
+# здесь все: тестам видны internal-типы, но наследоваться от них тестам незачем.
+dotnet_code_quality.CA1852.ignore_internalsvisibleto = true
+dotnet_diagnostic.CA1852.severity = warning
+# «Сделать статическим» — только для закрытых членов: публичный экземплярный метод, ставший
+# статическим, ломает всех, кто зовёт его через экземпляр.
+dotnet_code_quality.CA1822.api_surface = private, internal
+dotnet_diagnostic.CA1822.severity = warning
+dotnet_diagnostic.CA1802.severity = warning
+dotnet_diagnostic.CA1825.severity = warning
+dotnet_diagnostic.CA1826.severity = warning
+dotnet_diagnostic.CA1827.severity = warning
+dotnet_diagnostic.CA1828.severity = warning
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1830.severity = warning
+dotnet_diagnostic.CA1832.severity = warning
+dotnet_diagnostic.CA1833.severity = warning
+dotnet_diagnostic.CA1834.severity = warning
+dotnet_diagnostic.CA1835.severity = warning
+dotnet_diagnostic.CA1836.severity = warning
+dotnet_diagnostic.CA1837.severity = warning
+dotnet_diagnostic.CA1838.severity = warning
+dotnet_diagnostic.CA1839.severity = warning
+dotnet_diagnostic.CA1840.severity = warning
+dotnet_diagnostic.CA1841.severity = warning
+dotnet_diagnostic.CA1842.severity = warning
+dotnet_diagnostic.CA1843.severity = warning
+dotnet_diagnostic.CA1844.severity = warning
+dotnet_diagnostic.CA1845.severity = warning
+dotnet_diagnostic.CA1846.severity = warning
+dotnet_diagnostic.CA1847.severity = warning
+dotnet_diagnostic.CA1850.severity = warning
+dotnet_diagnostic.CA1851.severity = warning
+dotnet_diagnostic.CA1853.severity = warning
+dotnet_diagnostic.CA1854.severity = warning
+dotnet_diagnostic.CA1855.severity = warning
+dotnet_diagnostic.CA1856.severity = warning
+dotnet_diagnostic.CA1857.severity = warning
+dotnet_diagnostic.CA1858.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+dotnet_diagnostic.CA1861.severity = warning
+dotnet_diagnostic.CA1862.severity = warning
+dotnet_diagnostic.CA1863.severity = warning
+dotnet_diagnostic.CA1864.severity = warning
+dotnet_diagnostic.CA1865.severity = warning
+dotnet_diagnostic.CA1866.severity = warning
+dotnet_diagnostic.CA1867.severity = warning
+dotnet_diagnostic.CA1868.severity = warning
+# Новый JsonSerializerOptions на каждый вызов — это новый кэш метаданных на каждый вызов.
+dotnet_diagnostic.CA1869.severity = warning
+dotnet_diagnostic.CA1870.severity = warning
+dotnet_diagnostic.CA1871.severity = warning
+dotnet_diagnostic.CA1872.severity = warning
+
+# ── Надёжность ─────────────────────────────────────────────────────────────────────────────
+dotnet_diagnostic.CA2002.severity = warning
+dotnet_diagnostic.CA2008.severity = warning
+dotnet_diagnostic.CA2009.severity = warning
+dotnet_diagnostic.CA2011.severity = warning
+dotnet_diagnostic.CA2012.severity = warning
+dotnet_diagnostic.CA2013.severity = warning
+dotnet_diagnostic.CA2014.severity = warning
+dotnet_diagnostic.CA2015.severity = warning
+# Токен отмены, который есть у метода, обязан дойти до вызываемого.
+dotnet_diagnostic.CA2016.severity = warning
+dotnet_diagnostic.CA2017.severity = warning
+dotnet_diagnostic.CA2018.severity = warning
+dotnet_diagnostic.CA2019.severity = warning
+dotnet_diagnostic.CA2020.severity = warning
+dotnet_diagnostic.CA2021.severity = warning
+dotnet_diagnostic.CA2022.severity = warning
+dotnet_diagnostic.CA2024.severity = warning
+dotnet_diagnostic.CA2025.severity = warning
+
+# ── Использование и глобализация ───────────────────────────────────────────────────────────
+# Отброшенный результат — явно (_ =): так видно, что код возврата WinAPI не забыт, а не нужен.
+dotnet_diagnostic.CA1806.severity = warning
+dotnet_diagnostic.CA1309.severity = warning
+dotnet_diagnostic.CA1310.severity = warning
+dotnet_diagnostic.CA1311.severity = warning
+dotnet_diagnostic.CA1510.severity = warning
+dotnet_diagnostic.CA1511.severity = warning
+dotnet_diagnostic.CA1512.severity = warning
+dotnet_diagnostic.CA1513.severity = warning
+dotnet_diagnostic.CA1514.severity = warning
+dotnet_diagnostic.CA1823.severity = warning
+dotnet_diagnostic.CA1018.severity = warning
+dotnet_diagnostic.CA1050.severity = warning
+dotnet_diagnostic.CA1069.severity = warning
+dotnet_diagnostic.CA2200.severity = warning
+dotnet_diagnostic.CA2201.severity = warning
+dotnet_diagnostic.CA2208.severity = warning
+# Изменяемое статическое поле наружу — это общее состояние, которое правит кто угодно.
+dotnet_diagnostic.CA2211.severity = warning
+dotnet_diagnostic.CA2215.severity = warning
+dotnet_diagnostic.CA2219.severity = warning
+dotnet_diagnostic.CA2229.severity = warning
+dotnet_diagnostic.CA2231.severity = warning
+dotnet_diagnostic.CA2241.severity = warning
+dotnet_diagnostic.CA2242.severity = warning
+dotnet_diagnostic.CA2245.severity = warning
+dotnet_diagnostic.CA2246.severity = warning
+dotnet_diagnostic.CA2247.severity = warning
+dotnet_diagnostic.CA2248.severity = warning
+dotnet_diagnostic.CA2249.severity = warning
+dotnet_diagnostic.CA2250.severity = warning
+dotnet_diagnostic.CA2251.severity = warning
+dotnet_diagnostic.CA2253.severity = warning
+dotnet_diagnostic.CA2254.severity = warning
+dotnet_diagnostic.CA2255.severity = warning
+dotnet_diagnostic.CA2256.severity = warning
+dotnet_diagnostic.CA2257.severity = warning
+dotnet_diagnostic.CA2258.severity = warning
+dotnet_diagnostic.CA2260.severity = warning
+dotnet_diagnostic.CA2261.severity = warning
+dotnet_diagnostic.CA2262.severity = warning
+dotnet_diagnostic.CA2263.severity = warning
+dotnet_diagnostic.CA2264.severity = warning
+dotnet_diagnostic.CA2265.severity = warning
+
+# ── Стиль, который ловит ошибки ────────────────────────────────────────────────────────────
+# Фигурные скобки всегда: строка, дописанная под if без скобок, молча выпадает из условия.
+dotnet_diagnostic.IDE0011.severity = warning
+dotnet_diagnostic.IDE0040.severity = warning
+dotnet_diagnostic.IDE0044.severity = warning
+# Неиспользуемые закрытые члены. В окнах выключено ниже: обработчики, которые разметка
+# подключает по имени, анализатор считает мёртвыми.
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0059.severity = warning
+dotnet_diagnostic.IDE0062.severity = warning
+dotnet_diagnostic.IDE0063.severity = warning
+dotnet_diagnostic.IDE0066.severity = warning
+dotnet_diagnostic.IDE0071.severity = warning
+dotnet_diagnostic.IDE0074.severity = warning
+dotnet_diagnostic.IDE0090.severity = warning
+dotnet_diagnostic.IDE0100.severity = warning
+dotnet_diagnostic.IDE0150.severity = warning
+dotnet_diagnostic.IDE0230.severity = warning
+dotnet_diagnostic.IDE0250.severity = warning
+dotnet_diagnostic.IDE0251.severity = warning
+dotnet_diagnostic.IDE0270.severity = warning
+dotnet_diagnostic.IDE0300.severity = warning
+dotnet_diagnostic.IDE0301.severity = warning
+
+# ── Окна: обработчики из разметки ──────────────────────────────────────────────────────────
+[Amarin Admin AI/UI/**.cs]
+dotnet_diagnostic.IDE0051.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+
+# ── Тесты ──────────────────────────────────────────────────────────────────────────────────
+# Помощники тестов читаются лучше экземплярными, а массив-литерал в аргументе теста — это
+# данные проверки, а не горячий путь.
+[Amarin.AdminAI.Tests/**.cs]
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
+# ── Замороженные зоны 1.30.0 ───────────────────────────────────────────────────────────────
+# Инструменты и их шлюз, прокрутка, лупа: их по заданию не переписывают, и правка ради
+# анализатора — тоже правка. Правила выключены для этих файлов поимённо (настройка категории
+# поимённую не перебивает), а не подавлены в коде.
+[{Amarin.Core/Tools/**.cs,Amarin.Core/Security/ToolGate.cs,Amarin Admin AI/UI/SmoothScroll.cs,Amarin Admin AI/UI/ChatZoom*.cs,Amarin Admin AI/UI/MainWindow.ChatZoom.cs,Amarin Admin AI/UI/PanZoom.cs,Amarin Admin AI/UI/MainWindow.ScrollJump.cs}]
+dotnet_diagnostic.CA1852.severity = none
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CA1802.severity = none
+dotnet_diagnostic.CA1825.severity = none
+dotnet_diagnostic.CA1826.severity = none
+dotnet_diagnostic.CA1827.severity = none
+dotnet_diagnostic.CA1828.severity = none
+dotnet_diagnostic.CA1829.severity = none
+dotnet_diagnostic.CA1830.severity = none
+dotnet_diagnostic.CA1832.severity = none
+dotnet_diagnostic.CA1833.severity = none
+dotnet_diagnostic.CA1834.severity = none
+dotnet_diagnostic.CA1835.severity = none
+dotnet_diagnostic.CA1836.severity = none
+dotnet_diagnostic.CA1837.severity = none
+dotnet_diagnostic.CA1838.severity = none
+dotnet_diagnostic.CA1839.severity = none
+dotnet_diagnostic.CA1840.severity = none
+dotnet_diagnostic.CA1841.severity = none
+dotnet_diagnostic.CA1842.severity = none
+dotnet_diagnostic.CA1843.severity = none
+dotnet_diagnostic.CA1844.severity = none
+dotnet_diagnostic.CA1845.severity = none
+dotnet_diagnostic.CA1846.severity = none
+dotnet_diagnostic.CA1847.severity = none
+dotnet_diagnostic.CA1850.severity = none
+dotnet_diagnostic.CA1851.severity = none
+dotnet_diagnostic.CA1853.severity = none
+dotnet_diagnostic.CA1854.severity = none
+dotnet_diagnostic.CA1855.severity = none
+dotnet_diagnostic.CA1856.severity = none
+dotnet_diagnostic.CA1857.severity = none
+dotnet_diagnostic.CA1858.severity = none
+dotnet_diagnostic.CA1860.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1862.severity = none
+dotnet_diagnostic.CA1863.severity = none
+dotnet_diagnostic.CA1864.severity = none
+dotnet_diagnostic.CA1865.severity = none
+dotnet_diagnostic.CA1866.severity = none
+dotnet_diagnostic.CA1867.severity = none
+dotnet_diagnostic.CA1868.severity = none
+dotnet_diagnostic.CA1869.severity = none
+dotnet_diagnostic.CA1870.severity = none
+dotnet_diagnostic.CA1871.severity = none
+dotnet_diagnostic.CA1872.severity = none
+dotnet_diagnostic.CA2002.severity = none
+dotnet_diagnostic.CA2008.severity = none
+dotnet_diagnostic.CA2009.severity = none
+dotnet_diagnostic.CA2011.severity = none
+dotnet_diagnostic.CA2012.severity = none
+dotnet_diagnostic.CA2013.severity = none
+dotnet_diagnostic.CA2014.severity = none
+dotnet_diagnostic.CA2015.severity = none
+dotnet_diagnostic.CA2016.severity = none
+dotnet_diagnostic.CA2017.severity = none
+dotnet_diagnostic.CA2018.severity = none
+dotnet_diagnostic.CA2019.severity = none
+dotnet_diagnostic.CA2020.severity = none
+dotnet_diagnostic.CA2021.severity = none
+dotnet_diagnostic.CA2022.severity = none
+dotnet_diagnostic.CA2024.severity = none
+dotnet_diagnostic.CA2025.severity = none
+dotnet_diagnostic.CA1806.severity = none
+dotnet_diagnostic.CA1309.severity = none
+dotnet_diagnostic.CA1310.severity = none
+dotnet_diagnostic.CA1311.severity = none
+dotnet_diagnostic.CA1510.severity = none
+dotnet_diagnostic.CA1511.severity = none
+dotnet_diagnostic.CA1512.severity = none
+dotnet_diagnostic.CA1513.severity = none
+dotnet_diagnostic.CA1514.severity = none
+dotnet_diagnostic.CA1823.severity = none
+dotnet_diagnostic.CA1018.severity = none
+dotnet_diagnostic.CA1050.severity = none
+dotnet_diagnostic.CA1069.severity = none
+dotnet_diagnostic.CA2200.severity = none
+dotnet_diagnostic.CA2201.severity = none
+dotnet_diagnostic.CA2208.severity = none
+dotnet_diagnostic.CA2211.severity = none
+dotnet_diagnostic.CA2215.severity = none
+dotnet_diagnostic.CA2219.severity = none
+dotnet_diagnostic.CA2229.severity = none
+dotnet_diagnostic.CA2231.severity = none
+dotnet_diagnostic.CA2241.severity = none
+dotnet_diagnostic.CA2242.severity = none
+dotnet_diagnostic.CA2245.severity = none
+dotnet_diagnostic.CA2246.severity = none
+dotnet_diagnostic.CA2247.severity = none
+dotnet_diagnostic.CA2248.severity = none
+dotnet_diagnostic.CA2249.severity = none
+dotnet_diagnostic.CA2250.severity = none
+dotnet_diagnostic.CA2251.severity = none
+dotnet_diagnostic.CA2253.severity = none
+dotnet_diagnostic.CA2254.severity = none
+dotnet_diagnostic.CA2255.severity = none
+dotnet_diagnostic.CA2256.severity = none
+dotnet_diagnostic.CA2257.severity = none
+dotnet_diagnostic.CA2258.severity = none
+dotnet_diagnostic.CA2260.severity = none
+dotnet_diagnostic.CA2261.severity = none
+dotnet_diagnostic.CA2262.severity = none
+dotnet_diagnostic.CA2263.severity = none
+dotnet_diagnostic.CA2264.severity = none
+dotnet_diagnostic.CA2265.severity = none
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.IDE0040.severity = none
+dotnet_diagnostic.IDE0044.severity = none
+dotnet_diagnostic.IDE0051.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0059.severity = none
+dotnet_diagnostic.IDE0062.severity = none
+dotnet_diagnostic.IDE0063.severity = none
+dotnet_diagnostic.IDE0066.severity = none
+dotnet_diagnostic.IDE0071.severity = none
+dotnet_diagnostic.IDE0074.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.IDE0100.severity = none
+dotnet_diagnostic.IDE0150.severity = none
+dotnet_diagnostic.IDE0230.severity = none
+dotnet_diagnostic.IDE0250.severity = none
+dotnet_diagnostic.IDE0251.severity = none
+dotnet_diagnostic.IDE0270.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0301.severity = none

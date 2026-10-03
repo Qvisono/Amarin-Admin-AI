@@ -10,7 +10,7 @@ public sealed class VeniceClient
 {
     private readonly HttpClient _http;
     private readonly AgentOptions _options;
-    private string _primaryModel;
+    private readonly string _primaryModel;
 
     public VeniceBalance? LastBalance { get; private set; }
 
@@ -31,7 +31,7 @@ public sealed class VeniceClient
 
     /// <summary>Пометка для журнала трат: своя, если её поставили, иначе модель хода.</summary>
     private static string ChargeSku(string model) =>
-        string.IsNullOrWhiteSpace(ChargeLabel.Value) ? model : ChargeLabel.Value!;
+        ChargeLabel.Value is { } label && !string.IsNullOrWhiteSpace(label) ? label : model;
 
     /// <summary>
     /// Помечает всё, что спишется внутри области, служебной статьёй расхода.
@@ -1687,14 +1687,13 @@ public sealed class VeniceClient
         }
 
         var result = JsonSerializer.Deserialize(body, VeniceJsonContext.Default.ImageGenerateResponse);
-        var image = result?.Images.FirstOrDefault(item => !string.IsNullOrWhiteSpace(item));
-        if (image is null)
+        if (result?.Images.FirstOrDefault(item => !string.IsNullOrWhiteSpace(item)) is not { } image)
         {
             throw new VeniceApiException(Loc.Get("S.Provider.NoImage"));
         }
 
         AddCost(
-            PriceImage(result!.Cost, balanceBefore, LastBalance?.Usd),
+            PriceImage(result.Cost, balanceBefore, LastBalance?.Usd),
             resolved + "-image",
             credential);
         return image;

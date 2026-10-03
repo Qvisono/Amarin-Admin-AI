@@ -82,7 +82,7 @@ public sealed class ImageFormatTests
     [Fact]
     public void An_unknown_signature_keeps_the_declared_type()
     {
-        Assert.Null(ImageHelpers.SniffMimeType(new byte[] { 1, 2, 3, 4 }));
+        Assert.Null(ImageHelpers.SniffMimeType([1, 2, 3, 4]));
         Assert.Equal(
             "image/png",
             ImageHelpers.FromBytes([1, 2, 3, 4], "image/png").MimeType);

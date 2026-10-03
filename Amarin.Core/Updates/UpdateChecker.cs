@@ -248,7 +248,7 @@ public static class UpdateChecker
             text = text[..cut];
         }
 
-        if (text.Length == 0 || !Version.TryParse(text.Count(c => c == '.') == 0 ? text + ".0" : text, out var parsed))
+        if (text.Length == 0 || !Version.TryParse(!text.Contains('.') ? text + ".0" : text, out var parsed))
         {
             return null;
         }

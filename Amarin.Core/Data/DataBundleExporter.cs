@@ -228,7 +228,7 @@ public sealed class DataBundleExporter
     /// Приставка, которую видит классификатор. Нужна, когда папку обходят саму по себе: по имени
     /// «ru.json» категорию не определить, а по «languages/ru.json» — можно.
     /// </param>
-    private void AddFolder(
+    private static void AddFolder(
         List<Source> sources,
         string folder,
         string archivePrefix,
@@ -336,7 +336,7 @@ public sealed class DataBundleExporter
         _ => sources.Count()
     };
 
-    private byte[]? ReadSource(Source source)
+    private static byte[]? ReadSource(Source source)
     {
         if (source.Payload is not null)
         {
@@ -389,7 +389,7 @@ public sealed class DataBundleExporter
             return AtRestCipher.IsEncrypted(bytes) ? Encoding.UTF8.GetBytes(text) : bytes;
         }
 
-        var folder = ChatAttachmentFiles.FolderOf(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path));
+        var folder = ChatAttachmentFiles.FolderOf(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path));
         return Encoding.UTF8.GetBytes(ChatAttachmentFiles.Inline(text, sha => ChatStore.ReadBlob(folder, sha)));
     }
 

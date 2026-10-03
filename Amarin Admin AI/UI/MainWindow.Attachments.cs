@@ -471,7 +471,7 @@ namespace Amarin.UI
                 : $"{head}\n{location}\n{Loc.Get("S.Attach.OpenFile")}";
         }
 
-        private Button CreateRemoveButton(Action remove, string tooltip)
+        private static Button CreateRemoveButton(Action remove, string tooltip)
         {
             var glyph = new TextBlock
             {

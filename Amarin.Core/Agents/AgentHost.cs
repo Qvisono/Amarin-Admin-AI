@@ -255,7 +255,7 @@ internal sealed class AgentHost : IAgentHost
             {
                 if (entry is not null)
                 {
-                    _agents!.Unregister(entry.Id);
+                    _agents?.Unregister(entry.Id);
                 }
             }
         }

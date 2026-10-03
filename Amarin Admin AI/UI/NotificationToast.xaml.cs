@@ -82,7 +82,7 @@ public partial class NotificationToast : Window
         // в которой человек работает.
         var handle = new WindowInteropHelper(this).Handle;
         var ex = GetWindowLong(handle, GwlExStyle);
-        SetWindowLong(handle, GwlExStyle, ex | WsExToolWindow | WsExNoActivate);
+        _ = SetWindowLong(handle, GwlExStyle, ex | WsExToolWindow | WsExNoActivate);
 
         // Примерное место по известному размеру карточки: первый кадр уже в углу, а не в 0,0.
         // Точное место приедет со следующим проходом раскладки.

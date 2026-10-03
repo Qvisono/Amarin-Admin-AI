@@ -21,7 +21,7 @@ namespace Amarin.Core;
 [JsonSerializable(typeof(OpenRouterKeyResponse))]
 [JsonSerializable(typeof(OpenRouterCreditsResponse))]
 [JsonSerializable(typeof(string))]
-internal partial class VeniceJsonContext : JsonSerializerContext;
+internal sealed partial class VeniceJsonContext : JsonSerializerContext;
 
 internal sealed class ScrapeUrlRequest
 {

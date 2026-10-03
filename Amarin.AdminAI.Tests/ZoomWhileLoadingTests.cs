@@ -22,7 +22,7 @@ namespace Amarin.AdminAI.Tests;
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
 public sealed class ZoomWhileLoadingTests : IDisposable
 {
-    private static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
     private readonly WpfFixture _wpf;
     private readonly string _root = Path.Combine(Path.GetTempPath(), "amarin-zoomload-" + Guid.NewGuid().ToString("N"));

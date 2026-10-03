@@ -60,8 +60,10 @@ internal sealed class BalanceWatch
             var level = Level(sum, thresholds.LowUsd, thresholds.CriticalUsd);
             if (Worse(TotalScope, level))
             {
-                var threshold = level == BalanceLevel.Critical ? thresholds.CriticalUsd!.Value : thresholds.LowUsd!.Value;
-                alerts.Add(new BalanceAlert(null, sum, threshold, level));
+                if ((level == BalanceLevel.Critical ? thresholds.CriticalUsd : thresholds.LowUsd) is { } threshold)
+                {
+                    alerts.Add(new BalanceAlert(null, sum, threshold, level));
+                }
             }
         }
 

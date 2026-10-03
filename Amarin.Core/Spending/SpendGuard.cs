@@ -316,8 +316,14 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
                     meter,
                     reached,
                     cancellationToken,
-                    answered: () => meter!.LimitsWaived,
-                    approve: () => meter!.LimitsWaived = true)
+                    answered: () => meter?.LimitsWaived == true,
+                    approve: () =>
+                    {
+                        if (meter is not null)
+                        {
+                            meter.LimitsWaived = true;
+                        }
+                    })
                 .ConfigureAwait(false);
         }
 

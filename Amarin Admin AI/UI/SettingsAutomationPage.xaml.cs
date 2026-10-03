@@ -475,13 +475,15 @@ public partial class SettingsAutomationPage : UserControl
     /// Постановка агенту: что за рецепт и какой вызов в нём. Агент идёт через свои вопросы —
     /// рецепт не даёт ему разрешений.
     /// </summary>
+    private static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
+
     internal static string AgentPrompt(Recipe recipe, JsonElement? arguments) =>
         Loc.Format(
             "S.Recipe.AgentPrompt",
             recipe.Name,
             recipe.Tool,
             arguments is { } filled
-                ? JsonSerializer.Serialize(filled, new JsonSerializerOptions { WriteIndented = true })
+                ? JsonSerializer.Serialize(filled, IndentedJson)
                 : recipe.Arguments);
 
     private void EditFromRun_Click(object sender, RoutedEventArgs e)

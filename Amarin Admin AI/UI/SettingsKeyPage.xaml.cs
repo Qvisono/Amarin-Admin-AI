@@ -412,7 +412,7 @@ public partial class SettingsKeyPage : UserControl
         ModelsEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private UIElement BuildModelRow(SpendModelRow row, decimal top)
+    private static UIElement BuildModelRow(SpendModelRow row, decimal top)
     {
         var name = new TextBlock
         {

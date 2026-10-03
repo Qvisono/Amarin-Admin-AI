@@ -65,7 +65,7 @@ public sealed class ChatFindUiTests
 
     public ChatFindUiTests(WpfFixture wpf) => _wpf = wpf;
 
-    private static readonly BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    private const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
 
     [Fact]
     public void An_occurrence_is_highlighted_in_the_rendered_message()

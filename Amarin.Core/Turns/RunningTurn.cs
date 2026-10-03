@@ -79,5 +79,16 @@ internal sealed class RunningTurn
         }
     }
 
-    public bool TryTakeQueued(out string text) => _queued.TryDequeue(out text!);
+    /// <summary>Взять дописанное по ходу; нечего — пустая строка, как у <see cref="IChatTurnObserver"/>.</summary>
+    public bool TryTakeQueued(out string text)
+    {
+        if (_queued.TryDequeue(out var queued))
+        {
+            text = queued;
+            return true;
+        }
+
+        text = "";
+        return false;
+    }
 }

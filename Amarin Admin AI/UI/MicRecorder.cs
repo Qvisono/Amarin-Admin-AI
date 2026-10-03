@@ -113,8 +113,8 @@ internal sealed class MicRecorder : IDisposable
             var header = Marshal.AllocHGlobal((int)HeaderSize);
             Marshal.StructureToPtr(new WaveHeader { Data = data, BufferLength = BufferBytes }, header, false);
             _buffers.Add((header, data));
-            waveInPrepareHeader(_device, header, HeaderSize);
-            waveInAddBuffer(_device, header, HeaderSize);
+            _ = waveInPrepareHeader(_device, header, HeaderSize);
+            _ = waveInAddBuffer(_device, header, HeaderSize);
         }
 
         if (waveInStart(_device) != 0)
@@ -150,10 +150,10 @@ internal sealed class MicRecorder : IDisposable
             if (requeue && !_stopped)
             {
                 // Флаг «готово» снимается повторной подготовкой — так требует waveIn.
-                waveInUnprepareHeader(_device, header, HeaderSize);
+                _ = waveInUnprepareHeader(_device, header, HeaderSize);
                 Marshal.StructureToPtr(new WaveHeader { Data = data, BufferLength = BufferBytes }, header, false);
-                waveInPrepareHeader(_device, header, HeaderSize);
-                waveInAddBuffer(_device, header, HeaderSize);
+                _ = waveInPrepareHeader(_device, header, HeaderSize);
+                _ = waveInAddBuffer(_device, header, HeaderSize);
             }
         }
 
@@ -173,8 +173,8 @@ internal sealed class MicRecorder : IDisposable
 
         _stopped = true;
         _poll.Stop();
-        waveInStop(_device);
-        waveInReset(_device);
+        _ = waveInStop(_device);
+        _ = waveInReset(_device);
         Collect(requeue: false);
         Release();
         return _pcm.Length == 0 ? [] : WavFile.Build(_pcm.GetBuffer().AsSpan(0, (int)_pcm.Length));
@@ -186,10 +186,10 @@ internal sealed class MicRecorder : IDisposable
         {
             foreach (var (header, _) in _buffers)
             {
-                waveInUnprepareHeader(_device, header, HeaderSize);
+                _ = waveInUnprepareHeader(_device, header, HeaderSize);
             }
 
-            waveInClose(_device);
+            _ = waveInClose(_device);
             _device = IntPtr.Zero;
         }
 
@@ -208,8 +208,8 @@ internal sealed class MicRecorder : IDisposable
         _poll.Stop();
         if (_device != IntPtr.Zero)
         {
-            waveInStop(_device);
-            waveInReset(_device);
+            _ = waveInStop(_device);
+            _ = waveInReset(_device);
         }
 
         Release();

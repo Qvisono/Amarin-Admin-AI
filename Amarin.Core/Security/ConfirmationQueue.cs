@@ -1,4 +1,5 @@
 using Amarin.Tools;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Amarin.Core;
 
@@ -178,7 +179,7 @@ internal sealed class ConfirmationQueue
         }
     }
 
-    public bool TryPeek(out ConfirmationRequest request)
+    public bool TryPeek([NotNullWhen(true)] out ConfirmationRequest? request)
     {
         lock (_gate)
         {
@@ -195,7 +196,7 @@ internal sealed class ConfirmationQueue
             }
         }
 
-        request = null!;
+        request = null;
         return false;
     }
 
@@ -219,9 +220,10 @@ internal sealed class ConfirmationQueue
         ArgumentNullException.ThrowIfNull(request);
 
         if (approved && scope != AllowanceScope.Once && request.CanAllowAhead &&
-            (scope == AllowanceScope.Turn || request.CanAllowForChat))
+            (scope == AllowanceScope.Turn || request.CanAllowForChat) &&
+            request.SessionId is { } sessionId)
         {
-            Allow(request.SessionId!, request.Info.ToolName, scope);
+            Allow(sessionId, request.Info.ToolName, scope);
         }
 
         List<ConfirmationRequest> alsoAnswered = [];

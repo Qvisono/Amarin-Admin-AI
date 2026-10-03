@@ -92,7 +92,7 @@ public sealed class SavedFileCardTests
 
             Assert.Contains("amarin-card-test.zip", texts);
             Assert.Contains(texts, line => line.Contains("ZIP", StringComparison.Ordinal) &&
-                                           line.Contains("2", StringComparison.Ordinal) &&
+                                           line.Contains('2') &&
                                            line.Contains("КБ", StringComparison.Ordinal));
         }
         finally

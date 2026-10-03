@@ -461,7 +461,7 @@ namespace Amarin.UI
         /// на прежнем месте экрана. Кромку для растягивания здесь трогать нечем — ею заведует
         /// <c>WindowChrome</c>, и у развёрнутого окна она отключается сама.
         /// </summary>
-        private void ApplyWindowStateChrome()
+        private static void ApplyWindowStateChrome()
         {
             PopupManager.CloseAll();
         }

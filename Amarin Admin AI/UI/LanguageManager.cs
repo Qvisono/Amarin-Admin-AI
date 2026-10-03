@@ -107,7 +107,7 @@ internal static class LanguageManager
     /// <summary>Встроенный язык: его файла на диске нет, и удалить его нельзя.</summary>
     internal static bool IsBuiltIn(string? code) =>
         !string.IsNullOrWhiteSpace(code) &&
-        BuiltIn.Any(item => item.Code == code.Trim().ToLowerInvariant());
+        BuiltIn.Any(item => string.Equals(item.Code, code.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Неизвестный код тихо падает в русский, а не оставляет интерфейс пустым.</summary>
     internal static string Normalize(string? code)

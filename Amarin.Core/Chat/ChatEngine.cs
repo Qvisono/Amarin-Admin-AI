@@ -1609,6 +1609,7 @@ internal sealed partial class ChatEngine
         }
 
         var label = Loc.Get("S.Confirm.ChatLabel");
+        var confirmations = _confirmations;
         for (var i = 0; i < calls.Count; i++)
         {
             if (decisions[i] is not null || checks[i] is not { } check)
@@ -1623,16 +1624,20 @@ internal sealed partial class ChatEngine
                 continue;
             }
 
-            if (check.Effect == ToolEffect.Write && _confirmations is null)
+            if (check.Effect == ToolEffect.Write && confirmations is null)
             {
                 decisions[i] = Task.FromResult(GateDecision.Refuse(
                     Loc.Get("S.Gate.NoConfirmation"), ApprovalSource.NotRequired, check.Arguments, check.Effect));
                 continue;
             }
 
+            // Без очереди вопросов спросить некого: и чтение, которое режим велит подтверждать,
+            // отклоняется — так же, как запись строкой выше.
             decisions[i] = ToolGate.DecideAsync(
                 check,
-                (info, token) => _confirmations!.ConfirmDetailedAsync(label, info, session.Id, token),
+                (info, token) => confirmations is null
+                    ? Task.FromResult(new ConfirmationAnswer(false, ApprovalSource.NotRequired))
+                    : confirmations.ConfirmDetailedAsync(label, info, session.Id, token),
                 guardApproved[i],
                 cancellationToken);
         }
@@ -1724,7 +1729,7 @@ internal sealed partial class ChatEngine
         return round;
     }
 
-    private void FinishAssistant(
+    private static void FinishAssistant(
         ChatSession session,
         ChatDisplayMessage assistant,
         Stopwatch clock,
@@ -2157,9 +2162,9 @@ internal sealed partial class ChatEngine
         IReadOnlyList<ChatMessage> history;
         lock (session.Gate)
         {
-            if (ContextCompaction.IsActive(session))
+            if (ContextCompaction.IsActive(session) && session.CompactSummary is { } summary)
             {
-                system = (system + "\n\n" + ContextCompaction.PromptBlock(session.CompactSummary!)).Trim();
+                system = (system + "\n\n" + ContextCompaction.PromptBlock(summary)).Trim();
             }
 
             history = ContextCompaction.Tail(session);
@@ -2201,7 +2206,7 @@ internal sealed partial class ChatEngine
     {
         // Только чат: основной промпт + TechAiPrompt. У агента — TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
-        var main = string.IsNullOrWhiteSpace(profile?.Prompt) ? settings.MainPrompt?.Trim() ?? "" : profile!.Prompt!.Trim();
+        var main = profile?.Prompt is { } own && !string.IsNullOrWhiteSpace(own) ? own.Trim() : settings.MainPrompt?.Trim() ?? "";
         var tech = settings.TechAiPrompt?.Trim() ?? "";
         if (tech.Length == 0)
         {

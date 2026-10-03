@@ -19,7 +19,7 @@ public sealed class UpdateMachineTests
         var started = Next(UpdateState.Initial, new UpdateEvent.Heartbeat());
         Assert.True(started.State.CheckRunning);
         Assert.False(started.State.CheckManual);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.StartCheck(1) }, started.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.StartCheck(1)], started.Effects);
 
         var done = Next(started.State, new UpdateEvent.CheckFinished(1, Nothing()));
         Assert.False(done.State.CheckRunning);
@@ -33,7 +33,7 @@ public sealed class UpdateMachineTests
         Assert.Empty(early.Effects);
 
         var due = Next(done.State, new UpdateEvent.Heartbeat(), UpdateTestKit.Context(now: Context.NowUtc + UpdateSchedule.Interval));
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.StartCheck(2) }, due.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.StartCheck(2)], due.Effects);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public sealed class UpdateMachineTests
         var install = Next(UpdateState.Initial with { Latest = V130, Staged = staged }, Confirmed(V130));
 
         Assert.Same(staged, install.State.Installing);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.Install(staged) }, install.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.Install(staged)], install.Effects);
         Assert.Equal(UpdatePhase.Installing, install.State.Phase);
     }
 
@@ -213,8 +213,8 @@ public sealed class UpdateMachineTests
         Assert.Equal(UpdateDownloadOrigin.User, download.Origin);
         Assert.Equal(V131.Release, download.Version);
         Assert.Equal(2, download.Generation);
-        Assert.Equal(
-            new UpdateEffect[] { new UpdateEffect.CancelDownload(1), new UpdateEffect.StartDownload(2, V131, plan, false) },
+        Assert.Equal<UpdateEffect>(
+            [new UpdateEffect.CancelDownload(1), new UpdateEffect.StartDownload(2, V131, plan, false)],
             replaced.Effects);
     }
 
@@ -227,7 +227,7 @@ public sealed class UpdateMachineTests
 
         var installing = Assert.IsType<StagedUpdate>(done.State.Installing);
         Assert.Equal(V130.Release, installing.Version);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.Install(installing) }, done.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.Install(installing)], done.Effects);
         Assert.Null(done.State.Download);
     }
 
@@ -277,7 +277,7 @@ public sealed class UpdateMachineTests
 
         Assert.Null(cancelled.State.Download);
         Assert.Equal(UpdateNoticeKind.DownloadCancelled, cancelled.State.Notice?.Kind);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.CancelDownload(1) }, cancelled.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.CancelDownload(1)], cancelled.Effects);
 
         // Найденная версия остаётся — кнопка «Обновить» снова на месте.
         Assert.Same(V130, cancelled.State.Latest);
@@ -328,8 +328,8 @@ public sealed class UpdateMachineTests
         Assert.True(changed.State.CheckRunning);
         Assert.True(changed.State.CheckManual);
         Assert.Equal(5, changed.State.CheckGeneration);
-        Assert.Equal(
-            new UpdateEffect[] { new UpdateEffect.CancelDownload(1), new UpdateEffect.StartCheck(5) },
+        Assert.Equal<UpdateEffect>(
+            [new UpdateEffect.CancelDownload(1), new UpdateEffect.StartCheck(5)],
             changed.Effects);
 
         // Ответ проверки, начатой по прежнему каналу, уже не применяется.
@@ -374,7 +374,7 @@ public sealed class UpdateMachineTests
         Assert.Empty(refused.Effects);
 
         var again = Next(refused.State, Confirmed(V130));
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.Install(staged) }, again.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.Install(staged)], again.Effects);
     }
 
     [Fact]
@@ -389,7 +389,7 @@ public sealed class UpdateMachineTests
         Assert.True(swapped.State.SwapDone);
         Assert.Null(swapped.State.Staged);
         Assert.Equal(UpdatePhase.Installing, swapped.State.Phase);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.Restart(staged.Plan.ExePath) }, swapped.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.Restart(staged.Plan.ExePath)], swapped.Effects);
 
         var failed = Next(swapped.State, new UpdateEvent.RestartFailed("нет доступа"));
         Assert.Equal("нет доступа", failed.State.RestartError);
@@ -411,7 +411,7 @@ public sealed class UpdateMachineTests
         var dropped = Next(background, new UpdateEvent.AutoUpdateChanged(On: false), off);
         Assert.Null(dropped.State.Download);
         Assert.Null(dropped.State.Staged);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.CancelDownload(1) }, dropped.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.CancelDownload(1)], dropped.Effects);
 
         // Присоединённая загрузка становится загрузкой человека: снятая галка её не трогает.
         var joined = Next(Downloading(V130), Confirmed(V130)).State;
@@ -427,7 +427,7 @@ public sealed class UpdateMachineTests
 
         var on = Next(waiting, new UpdateEvent.AutoUpdateChanged(On: true));
 
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.StartCheck(1) }, on.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.StartCheck(1)], on.Effects);
     }
 
     [Fact]
@@ -439,7 +439,7 @@ public sealed class UpdateMachineTests
         Assert.Null(rolling.State.Download);
         Assert.Null(rolling.State.Staged);
         Assert.Equal(UpdateNoticeKind.RollingBack, rolling.State.Notice?.Kind);
-        Assert.Equal(new UpdateEffect[] { new UpdateEffect.CancelDownload(1) }, rolling.Effects);
+        Assert.Equal<UpdateEffect>([new UpdateEffect.CancelDownload(1)], rolling.Effects);
 
         // Прошлая версия на месте: до перезапуска плашка говорит «Возвращаю…», а выход не
         // примет её за недоведённое обновление.

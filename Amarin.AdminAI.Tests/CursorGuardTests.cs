@@ -40,7 +40,7 @@ public sealed class CursorGuardTests
             // Ровно то состояние, в котором поле оставляет поток после набора: флаг взведён,
             // счётчик показа опущен. Счётчик опускаем сами, чтобы _ShowCursor было что вернуть.
             flag.SetValue(store, true);
-            ShowCursor(false);
+            _ = ShowCursor(false);
             CursorGuard.Install();
 
             CursorGuard.OnMouseMoved();

@@ -106,7 +106,7 @@ public sealed class ChatOrganizerTests : IDisposable
 
         // Был не у всех — ставится всем.
         organizer.ToggleTag(["a", "b"], tag);
-        Assert.All(new[] { "a", "b" }, id => Assert.Contains(tag, organizer.PlacementOf(id).Tags));
+        Assert.All<string>(["a", "b"], id => Assert.Contains(tag, organizer.PlacementOf(id).Tags));
 
         // Теперь у всех — снимается со всех.
         organizer.ToggleTag(["a", "b"], tag);

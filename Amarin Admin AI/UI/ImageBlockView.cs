@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -301,7 +302,7 @@ internal static class ImageBlockView
     /// Только http(s): ни file://, ни адресов этой машины и локальной сети. Адрес пришёл из ответа
     /// модели, поэтому правила — в одном общем месте.
     /// </summary>
-    private static bool IsFetchable(string url, out Uri target) =>
+    private static bool IsFetchable(string url, [NotNullWhen(true)] out Uri? target) =>
         RemoteImages.IsSafeTarget(url, out target);
 
     private static void Remember(string url, BitmapSource source)

@@ -50,7 +50,7 @@ internal static class WorkReport
     {
         var approvals = (audit ?? [])
             .Where(entry => entry.ChatId == session.Id && !string.IsNullOrEmpty(entry.CallId))
-            .GroupBy(entry => entry.CallId!, StringComparer.Ordinal)
+            .GroupBy(entry => entry.CallId ?? "", StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last().ApprovedBy, StringComparer.Ordinal);
 
         lock (session.Gate)

@@ -186,7 +186,7 @@ public sealed class AgentPlanTests
     {
         var queue = new PlanReviewQueue();
         var first = queue.ReviewAsync("A", Plan(new PlanStep("d", "t")), "chat-1", CancellationToken.None);
-        queue.TryPeek(out var shown);
+        Assert.True(queue.TryPeek(out var shown));
         queue.CancelForSession("chat-1");
 
         queue.Complete(shown, PlanDecision.Execute);

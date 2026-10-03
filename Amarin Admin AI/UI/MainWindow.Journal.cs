@@ -545,6 +545,12 @@ namespace Amarin.UI
         /// Переформатирует аргументы модели: приходят они как есть, обычно одной длинной строкой,
         /// а экран подробностей должен читаться.
         /// </summary>
+        private static readonly System.Text.Json.JsonSerializerOptions PrettyJsonOptions = new()
+        {
+            WriteIndented = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
         private static string PrettyJson(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
@@ -555,13 +561,7 @@ namespace Amarin.UI
             try
             {
                 using var document = System.Text.Json.JsonDocument.Parse(json);
-                return System.Text.Json.JsonSerializer.Serialize(
-                    document.RootElement,
-                    new System.Text.Json.JsonSerializerOptions
-                    {
-                        WriteIndented = true,
-                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                    });
+                return System.Text.Json.JsonSerializer.Serialize(document.RootElement, PrettyJsonOptions);
             }
             catch (System.Text.Json.JsonException)
             {

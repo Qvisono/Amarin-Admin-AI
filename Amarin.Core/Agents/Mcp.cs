@@ -793,11 +793,20 @@ internal sealed class McpHost : IAsyncDisposable
         }
     }
 
-    private static Dictionary<string, string> Environment(McpServerConfig server) =>
-        server.ProtectedEnvironment
-            .Select(pair => (pair.Key, Value: DataProtector.Unprotect(pair.Value)))
-            .Where(pair => pair.Value is not null)
-            .ToDictionary(pair => pair.Key, pair => pair.Value!);
+    private static Dictionary<string, string> Environment(McpServerConfig server)
+    {
+        // Значение, которое не расшифровалось (ключ DPAPI другого пользователя), не передаётся вовсе.
+        var environment = new Dictionary<string, string>();
+        foreach (var (name, sealedValue) in server.ProtectedEnvironment)
+        {
+            if (DataProtector.Unprotect(sealedValue) is { } value)
+            {
+                environment[name] = value;
+            }
+        }
+
+        return environment;
+    }
 
     public async Task StopAsync(string serverId)
     {

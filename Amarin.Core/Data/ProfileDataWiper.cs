@@ -113,7 +113,7 @@ public static class ProfileDataWiper
     /// </summary>
     public static bool WordMatches(string? typed, string word) =>
         !string.IsNullOrWhiteSpace(typed) &&
-        string.Equals(typed.Trim(), word, StringComparison.CurrentCultureIgnoreCase);
+        string.Equals(typed.Trim(), word, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Недописанные «.tmp», запасные «.bak» и отложенные повреждённые «.broken-…» тех же файлов:
@@ -242,7 +242,7 @@ public static class PendingWipe
             return null;
         }
 
-        WipeRequest? request = null;
+        WipeRequest? request;
         try
         {
             request = JsonSerializer.Deserialize<WipeRequest>(File.ReadAllText(path), AppJson.Options);

@@ -25,10 +25,6 @@ public sealed class JournalAndRingUiTests
 
     private static MainWindow Window() => Application.Current.Windows.OfType<MainWindow>().Single();
 
-    private static T Field<T>(object target, string name) =>
-        (T)target.GetType()
-            .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(target)!;
 
     private static T Named<T>(MainWindow window, string name) where T : class =>
         (T)window.FindName(name)!;

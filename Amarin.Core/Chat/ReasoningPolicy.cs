@@ -159,12 +159,12 @@ internal static class ReasoningPolicy
             return [];
         }
 
-        if (!SupportsEffort(model))
+        if (model?.ModelSpec?.Capabilities is not { } capabilities || !SupportsEffort(model))
         {
             return [];
         }
 
-        var raw = model!.ModelSpec!.Capabilities!.ReasoningEffortOptions;
+        var raw = capabilities.ReasoningEffortOptions;
         if (raw is { Count: > 0 })
         {
             var visible = new List<string>(raw.Count);

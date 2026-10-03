@@ -494,10 +494,7 @@ internal sealed class AppearanceManager : IDisposable
     private void AddPulse(Storyboard storyboard, double speed)
     {
         _brightness.Visibility = Visibility.Visible;
-        if (_brightness.Fill is null)
-        {
-            _brightness.Fill = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
-        }
+        _brightness.Fill ??= new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
 
         var animation = new DoubleAnimation
         {

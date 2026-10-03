@@ -588,7 +588,13 @@ public sealed class ChatStore
                 continue;
             }
 
-            var written = TryWriteChat(chatId!, chat!);
+            // Без описи на руках выше всегда взят чат: пустая очередь вернулась из замка.
+            if (chatId is null || chat is null)
+            {
+                continue;
+            }
+
+            var written = TryWriteChat(chatId, chat);
             lock (_gate)
             {
                 _inFlightChat = null;
@@ -601,7 +607,7 @@ public sealed class ChatStore
                 // запустит проход заново, когда переписка уже не будет меняться.
                 lock (_gate)
                 {
-                    _pendingChats.TryAdd(chatId!, chat!);
+                    _pendingChats.TryAdd(chatId, chat);
                     _draining = false;
                 }
 
