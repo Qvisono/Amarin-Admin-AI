@@ -10,9 +10,9 @@ using Image = System.Windows.Controls.Image;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Settings → Account: the local profile (name, avatar, password lock) and switching
-    /// between profiles. Each profile owns a data directory; the default profile's directory
-    /// is the original app root, so existing chats are never moved.
+    /// Настройки → Аккаунт: локальный профиль (имя, аватар, пароль) и переключение профилей.
+    /// У каждого профиля своя папка данных; у профиля по умолчанию это корень программы, поэтому
+    /// старые чаты никуда не переезжают.
     /// </summary>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow
@@ -20,8 +20,8 @@ namespace Amarin.UI
         private const string AvatarFileName = "avatar.png";
 
         /// <summary>
-        /// Side of the stored avatar. Generous for a 36px chip, but cheap, and it leaves room
-        /// for a larger rendering later without asking the user to pick the photo again.
+        /// Сторона сохраняемого аватара. С запасом для плашки в 36 точек, но дёшево — и позволит
+        /// показать его крупнее, не прося выбрать фото заново.
         /// </summary>
         private const int AvatarPixels = 512;
 
@@ -61,9 +61,9 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Repaints both places the avatar appears. Every path that changes the picture goes
-        /// through here — the settings tab, "change" and "remove" — so the sidebar can never
-        /// drift out of step with the account panel again.
+        /// Перерисовывает аватар в обоих местах. Все пути смены картинки — вкладка настроек,
+        /// «Сменить» и «Убрать» — идут через этот метод, и боковая панель не расходится с
+        /// панелью аккаунта.
         /// </summary>
         private void ApplyAvatar(UserProfile profile)
         {
@@ -118,7 +118,7 @@ namespace Amarin.UI
         /// </remarks>
         private static (string Path, DateTime Written, long Length, BitmapImage Image)? _avatar;
 
-        /// <summary>Loads the file fully into memory so it is not left locked on disk.</summary>
+        /// <summary>Читает файл в память целиком, чтобы не держать его занятым на диске.</summary>
         private static BitmapImage? LoadAvatar(string path)
         {
             try
@@ -189,8 +189,8 @@ namespace Amarin.UI
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = Loc.Get("S.Account.Avatar"),
-                // No .webp: the WIC codec for it is not present on every Windows install, and a
-                // missing one surfaces as an unhelpful decoder error rather than a refusal here.
+                // Без .webp: кодека WIC для него нет на каждой Windows, а его отсутствие дало бы
+                // невнятную ошибку декодера вместо понятного отказа.
                 // Фильтр собирается из кусков: перевод целиком сломал бы разметку «имя|маска».
                 Filter = Loc.Get("S.Account.Images") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|" +
                          Loc.Get("S.Common.AllFiles") + "|*.*"
@@ -219,8 +219,8 @@ namespace Amarin.UI
 
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 
-                // Store exactly the square the user framed, at a size that suits a 36px chip —
-                // not the original, which for a phone photo is several megapixels of nothing.
+                // Сохраняем ровно выбранный квадрат в размере для плашки в 36 точек, а не оригинал —
+                // у фото с телефона это мегапиксели впустую.
                 using (var stream = File.Create(target))
                 {
                     var encoder = new PngBitmapEncoder();
@@ -239,9 +239,9 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Decodes the picked file at full size. WPF imaging throughout, so the pixels the crop
-        /// dialog shows are the pixels that get saved — GDI+ ignores the EXIF orientation that
-        /// WPF honours, and mixing the two would rotate the crop out from under the user.
+        /// Разбирает выбранный файл в полном размере. Везде графика WPF: что показало окно выбора
+        /// кадра, то и сохранится. GDI+ не учитывает ориентацию из EXIF, которую учитывает WPF, и
+        /// смесь двух повернула бы кадр из-под рук человека.
         /// </summary>
         private static BitmapSource? LoadForCrop(string path) => LoadFrozen(path, decodePixelWidth: 0);
 
@@ -272,7 +272,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // The profile no longer references it; a stray file is harmless.
+                // Профиль на него уже не ссылается; лишний файл безвреден.
             }
         }
 
@@ -374,7 +374,7 @@ namespace Amarin.UI
         {
             var profile = ActiveProfile;
 
-            // Changing an existing password requires proving you know the current one.
+            // Сменить пароль можно, только назвав нынешний.
             if (profile.HasPassword && !PasswordWindow.Confirm(profile, this))
             {
                 return;
@@ -420,7 +420,7 @@ namespace Amarin.UI
             var wanted = LockOnStartupToggle.IsChecked == true;
             if (wanted && !profile.HasPassword)
             {
-                // Nothing to check against — bounce the toggle and say why.
+                // Сверять не с чем — возвращаем переключатель и объясняем почему.
                 LockOnStartupToggle.IsChecked = false;
                 Inform(Loc.Get("S.Account.SetPasswordFirstTitle"), Loc.Get("S.Account.SetPasswordFirst"));
                 return;
@@ -560,8 +560,8 @@ namespace Amarin.UI
                 buttons.Children.Add(open);
             }
 
-            // The default profile's folder is the shared app root — deleting it would take
-            // settings and every other profile with it, so it is never removable.
+            // Папка профиля по умолчанию — общий корень программы: её удаление унесло бы настройки
+            // и все остальные профили, поэтому удалить его нельзя.
             if (!ProfileStore.IsDefault(profile.Id))
             {
                 var delete = new Button
@@ -626,7 +626,7 @@ namespace Amarin.UI
                 return;
             }
 
-            // Flush the outgoing profile's chat before any path changes underneath it.
+            // Сохраняем чат уходящего профиля раньше, чем под ним сменятся пути.
             PersistCurrent();
             StashDraft();
             FlushDraft();

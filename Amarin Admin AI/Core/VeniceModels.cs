@@ -27,9 +27,8 @@ public sealed class ChatCompletionRequest
     public bool Stream { get; init; }
 
     /// <summary>
-    /// Asks for the token count on a streamed answer. Only ever set alongside
-    /// <see cref="Stream"/>: a non-streaming request reports usage on its own, and some models
-    /// reject the field outright when there is no stream to attach it to.
+    /// Просит расход токенов у потокового ответа. Ставится только вместе с <see cref="Stream"/>:
+    /// обычный запрос сообщает расход сам, а часть моделей без потока отвергает это поле.
     /// </summary>
     [JsonPropertyName("stream_options")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -71,8 +70,8 @@ public sealed class ChatCompletionRequest
     public List<RequestPlugin>? Plugins { get; init; }
 
     /// <summary>
-    /// Caller's intent. Never serialized — <see cref="VeniceClient"/> clamps it per target
-    /// model (including fallback) before the body goes on the wire.
+    /// Чего хочет вызывающий. Не сериализуется: <see cref="VeniceClient"/> подгоняет значение под
+    /// модель запроса (и запасную тоже) перед отправкой.
     /// </summary>
     [JsonIgnore]
     public ReasoningChoice? ReasoningChoice { get; init; }
@@ -114,9 +113,9 @@ public sealed class StreamOptions
 }
 
 /// <summary>
-/// How many tokens the request actually cost. <see cref="PromptTokens"/> is the whole context the
-/// model read — system prompt, history, tool results — which is exactly what the context ring
-/// shows; counting it locally can only ever be a guess.
+/// Сколько токенов запрос стоил на деле. <see cref="PromptTokens"/> — весь прочитанный моделью
+/// контекст (системный промпт, история, ответы инструментов) — ровно то, что показывает кольцо
+/// контекста; своим подсчётом это можно лишь угадать.
 /// </summary>
 public sealed class VeniceUsage
 {
@@ -165,8 +164,8 @@ public sealed class VeniceParameters
 }
 
 /// <summary>
-/// Nested <c>reasoning</c> object on chat completions. Used to flip Venice's
-/// <c>enabled: false</c> switch; effort itself goes on the top-level field.
+/// Вложенный объект <c>reasoning</c> запроса чата — им выключают размышление Venice
+/// (<c>enabled: false</c>); сама сила идёт полем верхнего уровня.
 /// </summary>
 public sealed class ReasoningConfig
 {
@@ -188,7 +187,7 @@ public sealed class ChatMessage
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? Content { get; init; }
 
-    /// <summary>Read-only mirror of the streaming delta field; never sent back to the API.</summary>
+    /// <summary>Копия поля потокового кусочка, только для чтения; обратно в API не уходит.</summary>
     [JsonPropertyName("reasoning_content")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JsonElement? ReasoningContent { get; init; }
@@ -299,8 +298,8 @@ public sealed class ChatCompletionChunk
     public VeniceCostResponse? Cost { get; init; }
 
     /// <summary>
-    /// Arrives once, on a trailing chunk whose <see cref="Choices"/> is empty. Anything that reads
-    /// it after picking a choice out of the list will never see it.
+    /// Приходит один раз, в последнем кусочке с пустым <see cref="Choices"/>. Кто читает его после
+    /// выбора варианта из списка, не увидит его никогда.
     /// </summary>
     [JsonPropertyName("usage")]
     public VeniceUsage? Usage { get; init; }
@@ -327,9 +326,9 @@ public sealed class ChatMessageDelta
     public JsonElement? Content { get; init; }
 
     /// <summary>
-    /// Reasoning models (grok-4-x) stream their chain of thought here and only then start
-    /// filling <see cref="Content"/>. Venice ignores disable_thinking/strip_thinking_response
-    /// for them, so the field arrives whether we ask for it or not.
+    /// Рассуждающие модели (grok-4-x) сначала шлют сюда размышление и только потом заполняют
+    /// <see cref="Content"/>. disable_thinking/strip_thinking_response Venice для них не учитывает —
+    /// поле приходит, просим мы его или нет.
     /// </summary>
     [JsonPropertyName("reasoning_content")]
     public JsonElement? ReasoningContent { get; init; }
@@ -376,18 +375,18 @@ public sealed class StreamedChatCompletion
     public string Text { get; init; } = "";
 
     /// <summary>
-    /// Chain of thought collected from <c>reasoning_content</c>. Never shown as the answer
-    /// unless the model produced nothing else — see <c>ChatEngine.StreamWithRetryAsync</c>.
+    /// Размышление из <c>reasoning_content</c>. Ответом показывается, только если модель больше
+    /// ничего не дала, — см. <c>ChatEngine.StreamWithRetryAsync</c>.
     /// </summary>
     public string ReasoningText { get; init; } = "";
 
     /// <summary>
-    /// Chain of thought the model wrote into <c>content</c> in <c>&lt;think&gt;</c>-style tags
-    /// rather than on the reasoning channel. Already removed from <see cref="Text"/>.
+    /// Размышление, которое модель написала в <c>content</c> тегами вида <c>&lt;think&gt;</c>, а
+    /// не отдельным каналом. Из <see cref="Text"/> уже вырезано.
     /// </summary>
     public string InlineReasoning { get; init; } = "";
 
-    /// <summary>Time from the first chunk to the first word of the answer.</summary>
+    /// <summary>Время от первого кусочка до первого слова ответа.</summary>
     public TimeSpan ThinkingElapsed { get; init; }
 
     public List<ToolCall> ToolCalls { get; init; } = [];
@@ -397,8 +396,8 @@ public sealed class StreamedChatCompletion
     public VeniceCost Cost { get; init; } = VeniceCost.Zero;
 
     /// <summary>
-    /// Context the model read for this request, as counted by Venice. Zero when the API stayed
-    /// quiet about it — the caller then falls back to an estimate rather than showing nothing.
+    /// Контекст, прочитанный моделью в этом запросе, по счёту провайдера. Ноль — API промолчал, и
+    /// вызывающий берёт прикидку, а не пустоту.
     /// </summary>
     public int PromptTokens { get; init; }
 
@@ -550,8 +549,8 @@ public sealed class VeniceModelCapabilities
     public bool SupportsReasoningEffort { get; init; }
 
     /// <summary>
-    /// When false, <c>/chat/completions</c> rejects function tools together with a non-none
-    /// <c>reasoning_effort</c>. Null means the catalogue did not say — we fall back to known families.
+    /// False — <c>/chat/completions</c> не принимает инструменты вместе с <c>reasoning_effort</c>,
+    /// отличным от none. Null — каталог не сказал, решаем по известным семействам.
     /// </summary>
     [JsonPropertyName("supportsReasoningEffortWithTools")]
     public bool? SupportsReasoningEffortWithTools { get; init; }
@@ -569,8 +568,8 @@ public sealed class VeniceModelCapabilities
     public string? Quantization { get; init; }
 }
 /// <summary>
-/// Request for Venice's image endpoint. Separate from chat completions: it is a different API
-/// shape, and the models that serve it are not in the text catalogue.
+/// Запрос к рисованию Venice. Отдельно от запросов чата: у API другая форма, а рисующих моделей
+/// нет в текстовом каталоге.
 /// </summary>
 public sealed class ImageGenerateRequest
 {
@@ -584,9 +583,9 @@ public sealed class ImageGenerateRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? NegativePrompt { get; init; }
 
-    // Pixel size and aspect ratio are alternatives, not companions: the diffusion models take
-    // width/height, while the Gemini-backed nano-banana line is driven by aspect_ratio plus a
-    // resolution tier and rejects pixel dimensions. Both are nullable so only one goes on the wire.
+    // Размер в пикселях и соотношение сторон — взаимоисключающие: диффузионные модели берут
+    // width/height, а линейка nano-banana на Gemini — aspect_ratio с уровнем разрешения и пиксели
+    // отвергает. Оба поля могут быть пустыми, чтобы на провод ушло только одно.
     [JsonPropertyName("width")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Width { get; init; }
@@ -606,7 +605,7 @@ public sealed class ImageGenerateRequest
     [JsonPropertyName("format")]
     public string Format { get; init; } = "png";
 
-    /// <summary>Base64 in the JSON body rather than raw bytes, so it can go straight into a message.</summary>
+    /// <summary>Base64 в теле JSON, а не байтами, — чтобы сразу класть в сообщение.</summary>
     [JsonPropertyName("return_binary")]
     public bool ReturnBinary { get; init; }
 
@@ -626,8 +625,8 @@ public sealed class ImageGenerateResponse
     public List<string> Images { get; init; } = [];
 
     /// <summary>
-    /// Same shape as on a chat completion. Modelled so an image is billed in the message header
-    /// like everything else; if the endpoint omits it, the caller falls back to the balance delta.
+    /// Та же форма, что у ответа чата: картинка попадает в счёт сообщения, как всё остальное. Если
+    /// поле не пришло, вызывающий считает цену по изменению остатка.
     /// </summary>
     [JsonPropertyName("cost")]
     public VeniceCostResponse? Cost { get; init; }

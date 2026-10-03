@@ -5,13 +5,12 @@ using Amarin.Tools;
 namespace Amarin.UI;
 
 /// <summary>
-/// One line of the journal, already in the words it will be shown in.
+/// Строка журнала — уже теми словами, какими будет показана.
 /// </summary>
 /// <remarks>
-/// Plain read-only strings rather than converters on the model: the list is rebuilt whenever
-/// anything about it changes, so there is nothing to notify, and keeping the formatting here means
-/// the row template in XAML has no logic in it at all. Both tabs feed the same shape, which is why
-/// the fields are named by position instead of by meaning.
+/// Готовые строки, а не конвертеры на модели: список пересобирается при любом изменении, сообщать
+/// нечего, а форматирование здесь оставляет шаблон строки в XAML без логики. Обе вкладки дают одну
+/// форму, поэтому поля названы по месту, а не по смыслу.
 /// </remarks>
 internal sealed class JournalRow
 {
@@ -25,22 +24,22 @@ internal sealed class JournalRow
     /// <summary>Tool name, or the restore point's label.</summary>
     public required string Title { get; init; }
 
-    /// <summary>Arguments the model passed, or where the restore point lives.</summary>
+    /// <summary>Аргументы от модели или где лежит точка восстановления.</summary>
     public required string Subtitle { get; init; }
 
     public required string Timestamp { get; init; }
 
-    /// <summary>Duration and chat on an action; the machine name on a restore point.</summary>
+    /// <summary>Длительность и чат у действия; имя машины у точки восстановления.</summary>
     public required string Trailer { get; init; }
 
     public required string Tooltip { get; init; }
 
-    /// <summary>Chat to open on click. Null on rows that lead nowhere.</summary>
+    /// <summary>Чат, который откроется по щелчку; null — строка никуда не ведёт.</summary>
     public string? ChatId { get; init; }
 
     /// <summary>
-    /// What the row was built from, kept so the details screen does not have to reconstruct it
-    /// out of the formatted strings above. Exactly one of the two is set.
+    /// Из чего собрана строка — чтобы экран подробностей не восстанавливал это из готовых строк
+    /// выше. Задано ровно одно из двух.
     /// </summary>
     public JournalEntry? Entry { get; init; }
 
@@ -66,12 +65,12 @@ internal sealed class JournalRow
 /// </remarks>
 internal sealed record ChatSummaryEntry(string ChatId, string Title, string Text, DateTime UpdatedAt);
 
-/// <summary>Turns journal data into rows the overlay can show.</summary>
+/// <summary>Превращает данные журнала в строки для показа.</summary>
 internal static class JournalView
 {
     /// <summary>
-    /// Arguments are one line here even when the model sent them pretty-printed: the row has a
-    /// fixed height, and a newline inside it would push everything below off the card.
+    /// Аргументы — одной строкой, даже если модель прислала их с отступами: у строки журнала
+    /// постоянная высота, и перенос внутри вытолкнул бы всё ниже за край карточки.
     /// </summary>
     private const int SubtitleLimit = 200;
 
@@ -137,8 +136,8 @@ internal static class JournalView
                 ? "-"
                 : ChatFormat.DateTimeShort(snapshot.Created, format),
             Trailer = snapshot.Machine,
-            // Line break assembled here, not inside the caption: XAML would collapse it, and the
-            // translator has no business owning the layout of a tooltip.
+            // Перенос строки ставится здесь, а не в подписи: XAML его схлопнул бы, а раскладка
+            // подсказки — не дело переводчика.
             Tooltip = Loc.Get("S.Journal.Snapshot.Tooltip") + "\n" + snapshot.Path,
             Snapshot = snapshot,
             SortTime = snapshot.Created
@@ -220,7 +219,7 @@ internal static class JournalView
         };
     }
 
-    /// <summary>Everything a row can be searched by, lowercased once at build time.</summary>
+    /// <summary>Всё, по чему ищется строка, в нижнем регистре — один раз при сборке.</summary>
     public static string SearchKey(JournalEntry entry) =>
         (entry.ToolName + " " + entry.ArgumentsJson + " " + entry.ResultPreview + " " +
          entry.ChatTitle + " " + entry.AgentName).ToLowerInvariant();
@@ -314,7 +313,7 @@ internal static class JournalView
         return text;
     }
 
-    /// <summary>One line of context under the title on the details screen.</summary>
+    /// <summary>Строка пояснения под заголовком на экране подробностей.</summary>
     public static string BuildMeta(JournalEntry entry, DateFormat format = DateFormat.DayMonthShort)
     {
         var parts = new List<string> { FormatTime(entry.StartedAt, entry.TimeIsApproximate, format) };
@@ -400,8 +399,8 @@ internal static class JournalView
             ? at.ToString("HH:mm:ss", CultureInfo.InvariantCulture)
             : ChatFormat.DateTimeShort(at, format);
 
-        // The tilde is the only hint on the row itself that the time came from the surrounding
-        // message rather than the call; the tooltip spells it out.
+        // Тильда — единственный знак на строке, что время взято у сообщения, а не у вызова;
+        // подсказка объясняет это словами.
         return approximate ? "~" + text : text;
     }
 

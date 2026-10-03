@@ -8,19 +8,19 @@ using System.Text.Json.Serialization.Metadata;
 namespace Amarin.Core;
 
 /// <summary>
-/// Packs a conversation into a single self-contained string that can be pasted into another
-/// copy of the app (the sidebar search box decodes it). Deliberately unencrypted: the payload
-/// is gzip + base64url only, so anyone holding the code can read the chat.
+/// Упаковывает переписку в одну самодостаточную строку, которую можно вставить в другую копию
+/// программы (её разбирает поле поиска в боковой панели). Намеренно без шифрования — только
+/// gzip + base64url: кто держит код, тот читает чат.
 /// </summary>
 internal static class ChatShareCodec
 {
-    /// <summary>Format marker. Bump the digit if the payload shape ever changes.</summary>
+    /// <summary>Метка формата. Изменится форма содержимого — увеличить цифру.</summary>
     public const string Prefix = "AMRN1:";
 
-    /// <summary>File extension used when a code is too long to be comfortable in a clipboard.</summary>
+    /// <summary>Расширение файла для кода, слишком длинного для буфера обмена.</summary>
     public const string FileExtension = ".amrnchat";
 
-    /// <summary>Refuse to inflate more than this — a share code is untrusted input.</summary>
+    /// <summary>Больше этого не распаковываем: код «Поделиться» — чужие входные данные.</summary>
     private const int MaxDecodedBytes = 64 * 1024 * 1024;
 
     private static readonly JsonSerializerOptions Compact = new()
@@ -35,9 +35,9 @@ internal static class ChatShareCodec
     };
 
     /// <summary>
-    /// Indented, and with relaxed escaping so Cyrillic stays readable instead of becoming
-    /// \u04xx escapes — the export is meant to be opened and read, not just re-imported.
-    /// Safe here because the output is a file, never embedded in HTML or a script.
+    /// С отступами и мягким экранированием, чтобы кириллица читалась, а не превращалась в \u04xx:
+    /// экспорт открывают и читают, а не только импортируют обратно. Безопасно — результат файл,
+    /// он не встраивается ни в HTML, ни в скрипт.
     /// </summary>
     private static readonly JsonSerializerOptions Export = new()
     {
@@ -87,8 +87,8 @@ internal static class ChatShareCodec
     };
 
     /// <summary>
-    /// Encodes <paramref name="session"/> up to and including <paramref name="upToMessageId"/>.
-    /// A null id shares the whole conversation.
+    /// Кодирует <paramref name="session"/> до <paramref name="upToMessageId"/> включительно; null —
+    /// всю переписку.
     /// </summary>
     public static string Encode(ChatSession session, string? upToMessageId = null)
     {
@@ -106,7 +106,7 @@ internal static class ChatShareCodec
         return Prefix + ToBase64Url(output.ToArray());
     }
 
-    /// <summary>Decodes a share code into a fresh session, or null if it is not one.</summary>
+    /// <summary>Разбирает код в новую сессию; null — это не код.</summary>
     public static ChatSession? TryDecode(string? code)
     {
         var text = code?.Trim() ?? "";
@@ -122,7 +122,7 @@ internal static class ChatShareCodec
             using var gzip = new GZipStream(input, CompressionMode.Decompress);
             using var output = new MemoryStream();
 
-            // CopyTo would happily inflate a zip bomb; copy with a hard ceiling instead.
+            // CopyTo распаковал бы и zip-бомбу — копируем с жёстким потолком.
             var buffer = new byte[81920];
             int read;
             while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
@@ -141,8 +141,8 @@ internal static class ChatShareCodec
                 return null;
             }
 
-            // A shared chat becomes a normal local chat with full access — new id so it can
-            // never collide with, or overwrite, an existing conversation.
+            // Присланный чат становится обычным своим; новый id — чтобы он не столкнулся с
+            // существующей перепиской и не затёр её.
             session.Id = Guid.NewGuid().ToString("N");
             session.CreatedAt = DateTime.Now;
             session.UpdatedAt = DateTime.Now;
@@ -157,10 +157,10 @@ internal static class ChatShareCodec
     }
 
     /// <summary>
-    /// Cheap prefix check for the sidebar search box, which runs it on every keystroke.
-    /// The length floor matters: without it, typing the prefix by hand would be treated as a
-    /// broken code on each character and pop an error per keypress. Even a one-message chat
-    /// compresses to far more than this.
+    /// Дешёвая проверка начала строки для поля поиска — оно зовёт её на каждое нажатие. Нижняя
+    /// граница длины важна: без неё набранная руками метка считалась бы битым кодом на каждом
+    /// знаке и выдавала ошибку на каждое нажатие. Даже чат из одного сообщения сжимается в
+    /// гораздо большее.
     /// </summary>
     public static bool LooksLikeShareCode(string? text)
     {
@@ -171,7 +171,7 @@ internal static class ChatShareCodec
 
     private const int MinPayloadLength = 40;
 
-    /// <summary>Bare, unencrypted JSON dump of the dialog, model ids included.</summary>
+    /// <summary>Открытая выгрузка переписки в JSON, с идентификаторами моделей.</summary>
     public static string ExportJson(ChatSession session, string? upToMessageId = null)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -217,9 +217,9 @@ internal static class ChatShareCodec
     }
 
     /// <summary>
-    /// Copies the session up to the chosen message. Display and API histories are cut
-    /// independently: the API list holds extra tool traffic that has no display counterpart,
-    /// so it is trimmed by matching assistant/user turn count rather than by index.
+    /// Копирует сессию до выбранного сообщения. Ленту и историю API режем отдельно: в истории API
+    /// есть служебный обмен с инструментами без пары в ленте, поэтому она обрезается по числу
+    /// ходов человека и модели, а не по номеру.
     /// </summary>
     private static ChatSession Trim(ChatSession session, string? upToMessageId)
     {
@@ -275,7 +275,7 @@ internal static class ChatShareCodec
     {
         var normalized = new StringBuilder(text.Trim().Replace('-', '+').Replace('_', '/'));
 
-        // Strip whitespace a paste through chat apps or e-mail may have introduced.
+        // Убираем пробелы и переносы, которые добавляют мессенджеры и почта.
         for (var i = normalized.Length - 1; i >= 0; i--)
         {
             if (char.IsWhiteSpace(normalized[i]))

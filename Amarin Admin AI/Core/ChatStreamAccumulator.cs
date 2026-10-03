@@ -6,8 +6,8 @@ namespace Amarin.Core;
 internal sealed class ChatStreamAccumulator
 {
     /// <summary>
-    /// Venice appends the encrypted copy of the chain of thought to the last reasoning chunk.
-    /// Everything from this marker on is an opaque base64 blob and must never reach the user.
+    /// Venice дописывает к последнему кусочку размышления его зашифрованную копию. Всё от этой
+    /// метки — непрозрачный base64, человеку его показывать нельзя.
     /// </summary>
     private const string EncryptedReasoningMarker = "__ENCRYPTED_REASONING__";
 
@@ -35,12 +35,12 @@ internal sealed class ChatStreamAccumulator
     /// </remarks>
     private bool _mayHaveMarkers;
 
-    /// <summary>The answer alone: any chain of thought the model inlined is stripped out.</summary>
+    /// <summary>Только ответ: размышление, вписанное моделью в текст, вырезано.</summary>
     public string Text => Parsed().Answer;
 
     /// <summary>
-    /// Chain of thought the model wrote into <c>content</c> inside <c>&lt;think&gt;</c>-style
-    /// tags, as GLM does. Empty for models that use the <c>reasoning_content</c> channel.
+    /// Размышление, которое модель (как GLM) пишет в <c>content</c> тегами вида
+    /// <c>&lt;think&gt;</c>. Пусто у моделей с отдельным каналом <c>reasoning_content</c>.
     /// </summary>
     public string InlineReasoning => Parsed().Reasoning;
 
@@ -69,15 +69,13 @@ internal sealed class ChatStreamAccumulator
     }
 
     /// <summary>
-    /// Chain of thought from <c>reasoning_content</c>, with the encrypted tail stripped.
-    /// Surfaced as the collapsed block above the answer, and used as the answer itself only
-    /// when the model produced no content at all.
+    /// Размышление из <c>reasoning_content</c> без зашифрованного хвоста. Показывается свёрнутым
+    /// блоком над ответом, а ответом служит, только если модель не дала текста вовсе.
     /// </summary>
     public string ReasoningText => Sanitize(_reasoning.ToString());
 
     /// <summary>
-    /// How long the model spent before the first word of the answer appeared. Zero when it
-    /// started answering straight away — there was nothing to wait through.
+    /// Сколько модель думала до первого слова ответа. Ноль — начала отвечать сразу.
     /// </summary>
     public TimeSpan ThinkingElapsed { get; private set; }
 
@@ -86,8 +84,8 @@ internal sealed class ChatStreamAccumulator
     public VeniceCost Cost { get; private set; } = VeniceCost.Zero;
 
     /// <summary>
-    /// Context the model read, straight from the stream's trailing usage chunk. Zero when Venice
-    /// sent no usage at all.
+    /// Прочитанный моделью контекст — из последнего кусочка потока с расходом. Ноль — расход не
+    /// пришёл.
     /// </summary>
     public int PromptTokens { get; private set; }
 
@@ -105,8 +103,8 @@ internal sealed class ChatStreamAccumulator
             Cost = Cost.Add(chunk.Cost.ToCost());
         }
 
-        // Before the choice is picked, not after: the usage chunk carries an empty "choices" and
-        // the early return below would drop it on the floor.
+        // До выбора варианта, а не после: у кусочка с расходом пустой «choices», и ранний выход
+        // ниже его потерял бы.
         if (chunk.Usage?.PromptTokens > 0)
         {
             PromptTokens = chunk.Usage.PromptTokens.Value;
@@ -149,9 +147,9 @@ internal sealed class ChatStreamAccumulator
             _mayHaveMarkers |= ReasoningSplit.MayContainMarker(piece);
             if (_mayHaveMarkers)
             {
-                // Compared against the answer as it stood before this chunk, not against the
-                // chunk itself: a model writing inside <think> is producing content that must
-                // not repaint the bubble, and only the split can tell the two apart.
+                // Сравниваем с ответом до этого кусочка, а не с самим кусочком: модель, пишущая
+                // внутри <think>, даёт текст, который не должен перерисовывать пузырь, и различает
+                // их только разбор.
                 var before = Text.Length;
                 _text.Append(piece);
                 addedText = Text.Length > before;
@@ -179,10 +177,10 @@ internal sealed class ChatStreamAccumulator
         if (addedText && ThinkingElapsed == TimeSpan.Zero &&
             (_reasoning.Length > 0 || (_mayHaveMarkers && InlineReasoning.Length > 0)))
         {
-            // The first visible word closes the thinking phase, and only a model that actually
-            // thought gets a figure — otherwise this would report the network round trip of
-            // every answer as deliberation. Reasoning between later chunks is inside the turn's
-            // own duration and needs no second number.
+            // Первое видимое слово закрывает фазу размышления, и число получает только модель,
+            // которая и правда думала, — иначе сюда попадала бы сетевая задержка каждого ответа.
+            // Размышление между поздними кусочками входит в длительность хода и второго числа не
+            // требует.
             ThinkingElapsed = _clock.Elapsed;
         }
 

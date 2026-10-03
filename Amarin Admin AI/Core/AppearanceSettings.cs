@@ -1,36 +1,36 @@
 namespace Amarin.Core;
 
-/// <summary>What is painted behind the whole window, under the translucent panels.</summary>
+/// <summary>Что рисуется за всем окном, под полупрозрачными панелями.</summary>
 public enum BackdropMode
 {
-    /// <summary>Nothing — the palette's <c>Bg.Window</c> stays opaque. Cheapest, the default.</summary>
+    /// <summary>Ничего: <c>Bg.Window</c> палитры остаётся непрозрачным. Дешевле всего, по умолчанию.</summary>
     None,
     Gradient,
     Image
 }
 
-/// <summary>How a gradient backdrop moves. All motion stops when animations are off.</summary>
+/// <summary>Как движется фон-градиент. С выключенными анимациями движения нет вовсе.</summary>
 public enum BackdropMotion
 {
     None,
 
-    /// <summary>The gradient axis slowly rotates around the window.</summary>
+    /// <summary>Ось градиента медленно вращается.</summary>
     Drift,
 
-    /// <summary>Stops slide along the axis, like light moving across glass.</summary>
+    /// <summary>Цвета скользят вдоль оси, как свет по стеклу.</summary>
     Aurora,
 
-    /// <summary>The whole backdrop breathes between two brightness levels.</summary>
+    /// <summary>Весь фон «дышит» между двумя уровнями яркости.</summary>
     Pulse
 }
 
 /// <summary>How a background image is fitted to the window.</summary>
 public enum BackdropFit
 {
-    /// <summary>Cover the window, cropping the overflow. Almost always what you want.</summary>
+    /// <summary>Заполнить окно, обрезав лишнее. Почти всегда это и нужно.</summary>
     Fill,
 
-    /// <summary>Fit the whole picture inside, letterboxing the rest.</summary>
+    /// <summary>Вписать картинку целиком, оставив поля.</summary>
     Fit,
 
     /// <summary>Repeat the picture at its own size.</summary>
@@ -38,26 +38,26 @@ public enum BackdropFit
 }
 
 /// <summary>
-/// Everything on the Appearance page that is not the palette preset itself: the backdrop,
-/// the "behind glass" treatment of the panels, the accent override and the layout knobs.
+/// Всё со страницы «Оформление», кроме самой палитры: фон, «стекло» панелей, свой акцент и
+/// настройки раскладки.
 /// <para>
-/// Persisted inside <see cref="AppSettings"/>, so an old settings.json simply deserialises
-/// to the defaults below — which reproduce the shipped look exactly.
+/// Хранится внутри <see cref="AppSettings"/>: старый settings.json просто читается со значениями
+/// по умолчанию ниже, а они в точности повторяют заводской вид.
 /// </para>
 /// </summary>
 public sealed class AppearanceSettings
 {
-    /// <summary>Master switch. Off means: preset palette only, no backdrop, no glass.</summary>
+    /// <summary>Общий выключатель. Выключено — только палитра темы, без фона и стекла.</summary>
     public bool Enabled { get; set; }
 
-    /// <summary>Accent override as <c>#RRGGBB</c>. Empty keeps the preset's own accent.</summary>
+    /// <summary>Свой акцент, <c>#RRGGBB</c>. Пусто — акцент темы.</summary>
     public string AccentColor { get; set; } = "";
 
     public BackdropMode BackdropMode { get; set; } = BackdropMode.None;
 
     // ───────────────────────── Градиент ─────────────────────────
 
-    /// <summary>Two to five stops, <c>#RRGGBB</c>, painted in order along the axis.</summary>
+    /// <summary>От двух до пяти цветов <c>#RRGGBB</c> по порядку вдоль оси.</summary>
     public List<string> GradientColors { get; set; } = ["#1B2735", "#2C5364", "#0F2027"];
 
     /// <summary>Axis direction in degrees, 0 = left→right, 90 = top→bottom.</summary>
@@ -65,12 +65,12 @@ public sealed class AppearanceSettings
 
     public BackdropMotion GradientMotion { get; set; } = BackdropMotion.None;
 
-    /// <summary>Motion speed multiplier, 0.25..3. One full cycle at 1.0 takes 40 s.</summary>
+    /// <summary>Множитель скорости движения, 0.25..3. При 1.0 полный цикл — 40 с.</summary>
     public double MotionSpeed { get; set; } = 1.0;
 
     // ───────────────────────── Изображение ─────────────────────────
 
-    /// <summary>Absolute path to the picture. A missing file falls back to the gradient.</summary>
+    /// <summary>Путь к картинке. Нет файла — рисуется градиент.</summary>
     public string BackgroundImagePath { get; set; } = "";
 
     public BackdropFit ImageFit { get; set; } = BackdropFit.Fill;
@@ -78,32 +78,32 @@ public sealed class AppearanceSettings
     /// <summary>0.2..1.6. Below 1 the picture is dimmed, above 1 it is lifted.</summary>
     public double ImageBrightness { get; set; } = 0.75;
 
-    /// <summary>0 = greyscale, 1 = original, 2 = doubled. Costs a pixel pass, so it is debounced.</summary>
+    /// <summary>0 — серое, 1 — как есть, 2 — вдвое насыщеннее. Стоит прохода по пикселям, поэтому применяется с паузой.</summary>
     public double ImageSaturation { get; set; } = 1.0;
 
-    /// <summary>Blur radius in device-independent pixels, 0..80 — the "thickness" of the crystal.</summary>
+    /// <summary>Радиус размытия в независимых пикселях, 0..80 — «толщина» стекла.</summary>
     public double ImageBlur { get; set; } = 14;
 
     // ───────────────────────── Стекло ─────────────────────────
 
     /// <summary>
-    /// How solid the panels are over the backdrop, 0.15..1. Lower lets more of the picture
-    /// through; 1 is indistinguishable from no backdrop at all.
+    /// Насколько плотны панели над фоном, 0.15..1. Меньше — больше картинки видно; 1 не отличить
+    /// от окна без фона.
     /// </summary>
     public double GlassOpacity { get; set; } = 0.62;
 
-    /// <summary>Extra frost laid over the backdrop itself, 0..0.6. Softens busy pictures.</summary>
+    /// <summary>Дополнительная матовость поверх фона, 0..0.6. Смягчает пёстрые картинки.</summary>
     public double GlassFrost { get; set; } = 0.12;
 
-    /// <summary>Diagonal sheen across the backdrop — the "crystal" highlight.</summary>
+    /// <summary>Диагональный отблеск по фону — блик «стекла».</summary>
     public bool GlassSheen { get; set; } = true;
 
-    /// <summary>Darken the window edges so the chat text keeps its contrast.</summary>
+    /// <summary>Затемнять края окна, чтобы текст чата не терял контраст.</summary>
     public bool Vignette { get; set; } = true;
 
     // ───────────────────────── Компоновка ─────────────────────────
 
-    /// <summary>Composer corner radius, 0..20. 6 matches the shipped look.</summary>
+    /// <summary>Радиус углов поля ввода, 0..20. 6 — заводской вид.</summary>
     public double CornerRadius { get; set; } = 6;
 
     /// <summary>
@@ -120,20 +120,20 @@ public sealed class AppearanceSettings
     public double? Grain { get; set; }
 
     /// <summary>
-    /// Interface font. Empty means the Windows default; otherwise one of the families shipped in
-    /// <c>Fonts/</c> — <c>Urbanist</c>, <c>Outfit</c>, <c>Rubik</c>, <c>Arimo</c>.
+    /// Шрифт интерфейса. Пусто — шрифт Windows; иначе один из шрифтов в <c>Fonts/</c>:
+    /// <c>Urbanist</c>, <c>Outfit</c>, <c>Rubik</c>, <c>Arimo</c>.
     /// </summary>
     public string FontFamily { get; set; } = "";
 
-    /// <summary>Maximum width of the message column, in DIPs. 1070 is the shipped value.</summary>
+    /// <summary>Наибольшая ширина колонки сообщений, в DIP. 1070 — заводское значение.</summary>
     public double ChatColumnWidth { get; set; } = 1070;
 
-    /// <summary>Off freezes every backdrop motion and the composer collapse animation.</summary>
+    /// <summary>Выключено — фон не движется, поле ввода сворачивается без анимации.</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
     // ───────────────────────── Компактный ввод ─────────────────────────
 
-    /// <summary>Collapse the composer to a pill while it is empty and unattended.</summary>
+    /// <summary>Сворачивать пустое и оставленное поле ввода в полоску.</summary>
     public bool CompactComposer { get; set; }
 
     /// <summary>Idle time before the composer folds up, 300..5000 ms.</summary>
@@ -142,13 +142,13 @@ public sealed class AppearanceSettings
     /// <summary>Pill width as a share of the expanded composer, 30..100 %.</summary>
     public double CompactWidthPercent { get; set; } = 58;
 
-    /// <summary>How close the pointer must come, in pixels, to unfold the pill. 25..400.</summary>
+    /// <summary>На сколько пикселей нужно поднести указатель, чтобы полоска развернулась. 25..400.</summary>
     public double CompactHoverRadius { get; set; } = 40;
 
     /// <summary>
-    /// Does the pill react to the mouse at all. Off means the pointer is ignored entirely —
-    /// no hover unfolds it and nothing folds it back when the pointer leaves; it opens when the
-    /// caret goes into it and folds again once focus moves away and it is empty.
+    /// Реагирует ли полоска на мышь. Выключено — указатель не учитывается: наведение её не
+    /// разворачивает, уход не сворачивает; она открывается, когда в неё ставят каретку, и
+    /// сворачивается, когда фокус ушёл, а она пуста.
     /// </summary>
     public bool CompactHoverEnabled { get; set; } = true;
 
@@ -183,10 +183,10 @@ public sealed class AppearanceSettings
     };
 
     /// <summary>
-    /// Clamps every numeric field into its documented range and drops unusable colours.
-    /// Called on load, so a hand-edited settings.json can never render the window unusable.
+    /// Загоняет числа в их диапазоны и выбрасывает негодные цвета. Зовётся при чтении: поправленный
+    /// руками settings.json не сломает окно.
     /// </summary>
-    /// <returns><c>true</c> when something had to be corrected.</returns>
+    /// <returns><c>true</c>, если что-то пришлось поправить.</returns>
     public bool Normalize()
     {
         var before = Describe();
@@ -221,8 +221,8 @@ public sealed class AppearanceSettings
     }
 
     /// <summary>
-    /// Accepts <c>RGB</c>, <c>RRGGBB</c> and <c>AARRGGBB</c> with or without the hash and
-    /// returns the canonical <c>#RRGGBB</c>; anything else becomes the empty string.
+    /// Принимает <c>RGB</c>, <c>RRGGBB</c> и <c>AARRGGBB</c> с решёткой и без, возвращает
+    /// <c>#RRGGBB</c>; всё прочее — пустая строка.
     /// </summary>
     public static string NormalizeHex(string? value)
     {

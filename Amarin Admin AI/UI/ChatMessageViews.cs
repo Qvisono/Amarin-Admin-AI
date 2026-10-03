@@ -37,7 +37,7 @@ internal sealed class MessageActions
     /// </summary>
     public Func<ChatDisplayMessage, bool>? CanContinue;
 
-    /// <summary>Copy a share code for the dialog up to and including this message.</summary>
+    /// <summary>Скопировать код «Поделиться» для переписки до этого сообщения включительно.</summary>
     public Action<ChatDisplayMessage>? Share;
 
     /// <summary>
@@ -46,10 +46,10 @@ internal sealed class MessageActions
     /// </summary>
     public Action<ChatDisplayMessage, FrameworkElement>? Export;
 
-    /// <summary>False hides both of the above (Settings → Data Controls).</summary>
+    /// <summary>False прячет оба пункта выше (Настройки → Данные).</summary>
     public Func<bool>? SharingEnabled;
 
-    /// <summary>Raised by the "add to allowlist" chip under a download blocked by the domain list.</summary>
+    /// <summary>Кнопка «добавить в белый список» под загрузкой, которую не пустил список доменов.</summary>
     public Action<string>? AddDownloadDomain;
 
     /// <summary>
@@ -169,7 +169,7 @@ internal sealed class AssistantMessageView
 
     public required FrameworkElement Host { get; init; }
 
-    /// <summary>Callbacks owned by the window; used by the blocked-download chip.</summary>
+    /// <summary>Обработчики окна; нужны кнопке под отклонённой загрузкой.</summary>
     public MessageActions? Callbacks { get; set; }
 
     private Storyboard? _pulse;
@@ -254,8 +254,8 @@ internal sealed class AssistantMessageView
     }
 
     /// <summary>
-    /// Below this the figure is noise: the model started answering as soon as the connection
-    /// was open, and "думал 0s" beside the duration says nothing.
+    /// Меньше этого — шум: модель начала отвечать сразу, как открылось соединение, и «думал 0s»
+    /// рядом с длительностью ничего не говорит.
     /// </summary>
     private static readonly TimeSpan ThinkingWorthShowing = TimeSpan.FromSeconds(1);
 
@@ -768,8 +768,8 @@ internal sealed class AssistantMessageView
                 call.ResultPreview.StartsWith(DomainList.BlockedMarker, StringComparison.Ordinal));
 
     /// <summary>
-    /// Offer to allow the host when <c>download_file</c> was refused by the allowlist.
-    /// Returns null for every other tool result.
+    /// Предложение разрешить домен, когда <c>download_file</c> отклонён белым списком. Для
+    /// остальных итогов инструментов — null.
     /// </summary>
     private Border? BuildBlockedDomainNotice(ToolCallRecord call)
     {
@@ -782,7 +782,7 @@ internal sealed class AssistantMessageView
 
         if (!DomainList.TryGetHostFromToolArguments(call.ArgumentsJson, out var host))
         {
-            // Fall back to the host embedded in the marker: "DOMAIN_BLOCKED: example.com ...".
+            // Иначе — домен из самой метки: «DOMAIN_BLOCKED: example.com ...».
             var rest = call.ResultPreview[DomainList.BlockedMarker.Length..].TrimStart();
             host = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
             if (string.IsNullOrWhiteSpace(host))
@@ -953,12 +953,6 @@ internal sealed class AssistantMessageView
     }
 
     /// <summary>
-    /// The model's own aside, as opposed to <see cref="BuildInfoRow"/>, which is the engine
-    /// reporting on itself. Brighter and quoted rather than dim and prefixed with an info sign:
-    /// the two sit in the same list, and if they looked alike the model would read as a program
-    /// and the program as the model.
-    /// </summary>
-    /// <summary>
     /// План агента и решение по нему (C1) — первым в блоке агента: по нему читаются все вызовы
     /// ниже, и видно, какие из них шли без вопроса как шаги одобренного плана.
     /// </summary>
@@ -1023,6 +1017,11 @@ internal sealed class AssistantMessageView
         _ => Loc.Get("S.Plan.VerdictPending")
     };
 
+    /// <summary>
+    /// Реплика самой модели — в отличие от <see cref="BuildInfoRow"/>, где о себе сообщает движок.
+    /// Ярче и в кавычках, а не блёклая со значком: обе стоят в одном списке, и будь они похожи,
+    /// модель читалась бы как программа, а программа — как модель.
+    /// </summary>
     private Grid BuildNoteRow(string text)
     {
         var grid = new Grid { Style = (Style)Host.FindResource("ToolRow") };
@@ -1221,7 +1220,7 @@ internal static class ChatMessageViews
         row.Children.Add(copy);
         row.Children.Add(edit);
 
-        // Left as a stretched panel: UserBubble right-aligns itself and relies on its own margin.
+        // Растянутая панель: UserBubble сам прижимается вправо и держится на своём отступе.
         var root = new StackPanel();
         if (message.Images.Count > 0)
         {
@@ -1329,9 +1328,8 @@ internal static class ChatMessageViews
             Visibility = Visibility.Collapsed
         };
 
-        // These two are the fallbacks drawn when a model has no logo image, and they sit on
-        // AiLogoBorder — whose background is Bg.Card, so it follows the theme. A fixed grey
-        // would be a light mark on a light chip.
+        // Эти двое рисуются, когда у модели нет логотипа, и стоят на AiLogoBorder с фоном Bg.Card,
+        // который следует теме. Постоянный серый был бы светлым знаком на светлой плашке.
         logoLetter.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
         logoLightning.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "Text.Muted");
         var logoBorder = new Border { Style = (Style)host.FindResource("AiLogoBorder") };
@@ -1417,9 +1415,8 @@ internal static class ChatMessageViews
             Text = VeniceModelCatalog.GetDisplayName(message.ResolvedModelId ?? message.RequestedModelId ?? "")
         };
 
-        // A step brighter than the rest of the meta row (AiMetaText is Text.Dim) so the model
-        // stands out — but through the palette, not a fixed grey: a hardcoded one is invisible
-        // on the light themes.
+        // На ступень ярче остальной строки сведений (AiMetaText — Text.Dim), чтобы модель
+        // выделялась, но через палитру: зашитый серый на светлых темах не виден.
         modelName.SetResourceReference(TextBlock.ForegroundProperty, "Text.Tertiary");
         var clock = new TextBlock
         {
@@ -1452,9 +1449,9 @@ internal static class ChatMessageViews
         var costDot = new Ellipse { Style = (Style)host.FindResource("AiMetaDot"), Visibility = Visibility.Collapsed };
         var cost = new TextBlock { Style = (Style)host.FindResource("AiMetaText"), Visibility = Visibility.Collapsed };
 
-        // The price and its dot ride in a transparent border so the whole chip is one hover
-        // target: a bare TextBlock only answers the mouse over the glyphs themselves, and the
-        // breakdown would flicker as the pointer crossed a gap between digits.
+        // Цена и точка лежат в прозрачной рамке, чтобы вся плашка была одной целью для мыши:
+        // голый TextBlock отвечает только над самими знаками, и разбивка мигала бы, пока
+        // указатель пересекает промежуток между цифрами.
         var costChip = new Border { Background = Brushes.Transparent };
         ToolTipService.SetInitialShowDelay(costChip, 150);
         ToolTipService.SetShowDuration(costChip, 20000);
@@ -1664,8 +1661,8 @@ internal static class ChatMessageViews
     }
 
     /// <summary>
-    /// Thumbnails of the images sent with a user message, shown above the bubble so they are
-    /// still there after the chat is reloaded from disk.
+    /// Миниатюры картинок, отправленных с сообщением, — над пузырём; они остаются и после
+    /// повторной загрузки чата с диска.
     /// </summary>
     private static FrameworkElement CreateImageStrip(FrameworkElement host, ChatDisplayMessage message)
     {
@@ -2167,8 +2164,8 @@ internal static class ChatMessageViews
     }
 
     /// <summary>
-    /// Marker for buttons that must stay hidden. <see cref="AssistantMessageView.ShowFinished"/>
-    /// re-shows the whole action row, so a plain Collapsed would be undone on the next status change.
+    /// Метка кнопок, которые должны оставаться скрытыми: <see cref="AssistantMessageView.ShowFinished"/>
+    /// заново показывает весь ряд, и обычный Collapsed отменился бы при следующей смене статуса.
     /// </summary>
     private const string HiddenTag = "amarin.hidden";
 

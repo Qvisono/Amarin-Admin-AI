@@ -7,9 +7,8 @@ namespace Amarin.Core;
 internal sealed partial class ChatEngine
 {
     /// <summary>
-    /// Tooling rules for the ordinary chat companion only.
-    /// The agent never sees this text — it has <see cref="Agent.BaseSystemPrompt"/> /
-    /// <see cref="AppSettings.TechAgentPrompt"/>.
+    /// Правила инструментов только для обычного чата. Агент этого текста не видит — у него
+    /// <see cref="Agent.BaseSystemPrompt"/> / <see cref="AppSettings.TechAgentPrompt"/>.
     /// </summary>
     internal const string DefaultTechPrompt = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
@@ -315,12 +314,11 @@ internal sealed partial class ChatEngine
             .ConfigureAwait(false);
 
     /// <param name="images">
-    /// Attachments for this turn. A turn carrying images is valid with no text at all —
-    /// "look at this" is a complete request.
+    /// Картинки хода. С ними ход годится и без текста — «посмотри» уже полная просьба.
     /// </param>
     /// <param name="files">
-    /// Documents for this turn — PDF, spreadsheets, sources. Venice extracts their text on its
-    /// side, so nothing here parses them. Like images, they make a complete request on their own.
+    /// Документы хода — PDF, таблицы, исходники. Текст из них достаёт Venice на своей стороне,
+    /// здесь их никто не разбирает. Как и картинки, сами по себе они — полная просьба.
     /// </param>
     public async Task RunTurnAsync(
         ChatSession session,
@@ -383,9 +381,9 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Handles <c>/agent &lt;prompt&gt;</c>: starts the agent immediately instead of asking the
-    /// chat model whether it wants to call <c>init_agent</c>, then still runs one ordinary chat
-    /// completion so the user gets the usual written report over the agent's result.
+    /// Обрабатывает <c>/agent &lt;задача&gt;</c>: запускает агента сразу, не спрашивая модель
+    /// чата, хочет ли она звать <c>init_agent</c>, а потом всё же делает один обычный запрос —
+    /// человек получает привычный письменный отчёт по итогу агента.
     /// </summary>
     /// <param name="placed">
     /// Сообщение человека, уже поставленное в ленту и историю, — якорь правки
@@ -419,7 +417,7 @@ internal sealed partial class ChatEngine
                 Text = displayText.Trim()
             };
             session.Messages.Add(user);
-            // The model sees the task, not the slash syntax — it only has to write the report.
+            // Модель видит задачу, а не команду через «/»: ей остаётся только написать отчёт.
             session.ApiMessages.Add(AgentCommandTurn(prompt));
             session.UpdatedAt = now;
             observer.OnUserAppended(user);
@@ -473,9 +471,8 @@ internal sealed partial class ChatEngine
 
             var messages = BuildApiMessages(session, turn.ModelId, ActiveInstructions(session));
 
-            // Forge the tool call the chat model would normally have made. Everything
-            // downstream — slot limiting, the nested-agent card, cost roll-up — is the
-            // existing init_agent path, so nothing here is agent plumbing of its own.
+            // Подставляем вызов, который обычно сделала бы модель чата: дальше всё — лимит
+            // слотов, карточка вложенного агента, сложение цены — идёт обычным путём init_agent.
             // Уровень в аргументы не идёт: его назвал человек, и едет он мимо схемы
             // инструмента — тем же путём, каким туда не может попасть модель.
             var arguments = JsonSerializer.Serialize(new { prompt });
@@ -757,9 +754,9 @@ internal sealed partial class ChatEngine
                         session, assistant, observer, clock, turn, cancellationToken)
                     .ConfigureAwait(false);
 
-                // Typed while the answer itself was streaming: the loop above had already passed
-                // its last round boundary, so the follow-up gets an answer of its own rather than
-                // waiting for the person to notice nothing happened and send it again.
+                // Написано, пока шёл сам ответ: цикл выше уже прошёл последнюю границу раунда, и
+                // дописанное получает свой ответ — иначе человек ждал бы, пока заметит, что ничего
+                // не произошло, и отправил бы ещё раз.
                 if (!folded && !DrainQueued(session, observer, messages: null))
                 {
                     break;
@@ -815,17 +812,17 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Folds whatever the user typed mid-turn into the context the next request will carry.
+    /// Вплетает написанное посреди хода в контекст следующего запроса.
     /// </summary>
     /// <remarks>
-    /// The display side of these messages already belongs to the window: it built them, put them
-    /// in the transcript and drew them the moment they were typed. Only the API copy is made here,
-    /// which is why nothing calls <c>OnUserAppended</c> — that would draw them a second time.
+    /// Показ этих сообщений — дело окна: оно их собрало, положило в ленту и нарисовало сразу при
+    /// наборе. Здесь делается только копия для API, поэтому <c>OnUserAppended</c> никто не зовёт —
+    /// он нарисовал бы их второй раз.
     /// </remarks>
     /// <param name="taken">
-    /// Lines the round's watcher has already pulled off the queue — pulled early so that a
-    /// request to stop an agent could still be acted on. They enter the context here, ahead of
-    /// anything typed since, because that is the order they were written in.
+    /// Строки, которые наблюдатель раунда уже снял с очереди — заранее, чтобы успеть исполнить
+    /// просьбу остановить агента. В контекст они идут раньше написанного позже: в том порядке
+    /// их и писали.
     /// </param>
     private static bool DrainQueued(
         ChatSession session,
@@ -862,9 +859,8 @@ internal sealed partial class ChatEngine
     }
 
     /// <returns>
-    /// True when the loop stopped early because a follow-up was folded in: the caller closes this
-    /// answer and opens the next one, so the person's line is not buried under a reply that goes
-    /// on growing above it.
+    /// True — цикл остановлен раньше, потому что вплетено дописанное: вызывающий закрывает этот
+    /// ответ и открывает следующий, чтобы строка человека не тонула под растущим над ней ответом.
     /// </returns>
     private async Task<bool> RunToolLoopAsync(
         ChatSession session,
@@ -914,9 +910,9 @@ internal sealed partial class ChatEngine
 
             var toolRound = CreateRound(streamed.ToolCalls);
 
-            // The model often says something before reaching for a tool. That text lives in
-            // assistant.Text, which the next round overwrites wholesale (StreamOnceAsync assigns
-            // rather than appends), so it is copied onto the round now or lost for good.
+            // Модель часто что-то говорит перед вызовом инструмента. Этот текст лежит в
+            // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
+            // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
             toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
             assistant.ToolRounds.Add(toolRound);
             observer.OnToolsChanged(assistant);
@@ -949,10 +945,10 @@ internal sealed partial class ChatEngine
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            // The only safe seam for a follow-up. The round's assistant message and every tool
-            // reply that answers it are already in `messages`, so the roles stay in the order the
-            // API demands, and ExecuteRoundAsync has been awaited — the agents this round started
-            // have finished, and nothing in flight is lost by the model changing its mind now.
+            // Единственный безопасный шов для дописанного. Сообщение ассистента этого раунда и все
+            // ответы инструментов на него уже в `messages` — роли идут в порядке, которого требует
+            // API, а ExecuteRoundAsync дождались: агенты раунда закончили, и смена решения модели
+            // ничего идущего не потеряет.
             if (DrainQueued(session, observer, messages, early))
             {
                 CloseAssistantForFollowUp(session, assistant, clock, turn, observer);
@@ -1120,14 +1116,13 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Ends the answer at the point a follow-up was folded into the context.
+    /// Закрывает ответ в точке, где в контекст вплетено дописанное.
     /// </summary>
     /// <remarks>
-    /// Written by hand rather than through <see cref="FinishAssistant"/>, which would append a
-    /// second assistant message to the transcript: this round's assistant message — the one
-    /// carrying the tool calls — is already there, and a duplicate after the tool replies is
-    /// rejected by the API. The text is dropped because whatever the model said this round is
-    /// already kept as the round's own remark, and showing it twice reads like a stutter.
+    /// Руками, а не через <see cref="FinishAssistant"/>: тот дописал бы в историю второе сообщение
+    /// ассистента, а сообщение этого раунда с вызовами инструментов уже там, и дубль после ответов
+    /// инструментов API отвергает. Текст выбрасывается: сказанное моделью в этом раунде уже
+    /// сохранено репликой раунда, а дважды это читалось бы как заикание.
     /// </remarks>
     private static void CloseAssistantForFollowUp(
         ChatSession session,
@@ -1146,10 +1141,9 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Runs one streaming call and retries it once when the model returned nothing at all.
-    /// Reasoning models (grok-4-6) intermittently spend their whole completion budget on
-    /// chain of thought and stop with neither content nor tool calls; a plain retry clears it.
-    /// Mirrors the two-attempt loop the agent path has had all along (see <c>Agent</c>).
+    /// Один потоковый запрос и один повтор, если модель не вернула ничего. Рассуждающие модели
+    /// (grok-4-6) временами тратят весь бюджет ответа на размышление и останавливаются без текста
+    /// и без вызовов; простой повтор это лечит. Так же две попытки делает и агент (<c>Agent</c>).
     /// </summary>
     private async Task<StreamedChatCompletion> StreamWithRetryAsync(
         List<ChatMessage> messages,
@@ -1184,8 +1178,8 @@ internal sealed partial class ChatEngine
             return retry;
         }
 
-        // Both attempts thought and said nothing. Whatever reasoning we captured is a far
-        // better answer than a bare "no text" line, so hand that back instead.
+        // Обе попытки думали и ничего не сказали. Пойманное размышление — куда лучший ответ, чем
+        // голое «нет текста», отдаём его.
         var salvage = retry.ReasoningText.Length > 0 ? retry.ReasoningText : streamed.ReasoningText;
         if (salvage.Length == 0)
         {
@@ -1258,11 +1252,11 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Catches the model redrawing a picture it already made this turn. It is shown its own
-    /// output as a vision turn, decides the result is not quite right, and calls generate_image
-    /// again with a reworded version of the same prompt — then embeds only one of the two, while
-    /// the user pays for both. A genuinely different picture ("нарисуй кота", "нарисуй собаку")
-    /// shares almost no wording and goes through. Returns the handle to reuse, or null.
+    /// Ловит повторное рисование картинки, уже сделанной в этом ходе. Модель видит свой результат,
+    /// решает, что он не совсем тот, и зовёт generate_image снова с перефразированным запросом —
+    /// а вставляет в ответ одну из двух, хотя человек платит за обе. По-настоящему другая картинка
+    /// почти не делит слов с прежней и проходит. Возвращает ссылку для повторного использования
+    /// или null.
     /// </summary>
     internal static string? RedrawOf(ChatDisplayMessage assistant, ToolRound current, ToolCallRecord call)
     {
@@ -1289,8 +1283,8 @@ internal sealed partial class ChatEngine
                     continue;
                 }
 
-                // Calls inside one round run in parallel; only a call from a finished round can
-                // be judged a duplicate, since a sibling has not produced anything yet.
+                // Вызовы одного раунда идут параллельно; дублем можно счесть только вызов из
+                // завершённого раунда — соседний ещё ничего не нарисовал.
                 if (ReferenceEquals(round, current))
                 {
                     continue;
@@ -1331,7 +1325,7 @@ internal sealed partial class ChatEngine
         }
     }
 
-    /// <summary>Share of the smaller prompt's vocabulary the two have in common.</summary>
+    /// <summary>Доля слов меньшего запроса, общих для обоих.</summary>
     private static double Overlap(HashSet<string> left, HashSet<string> right)
     {
         var smaller = Math.Min(left.Count, right.Count);
@@ -1462,7 +1456,7 @@ internal sealed partial class ChatEngine
         }
         catch
         {
-            // Individual failures are stored on the call records.
+            // Отдельные сбои записаны на вызовах.
         }
 
         for (var i = 0; i < toolRound.Calls.Count; i++)
@@ -1491,10 +1485,10 @@ internal sealed partial class ChatEngine
                 continue;
             }
 
-            // Keep the pictures on the record so the transcript can draw them, and hand them to
-            // the model as a vision turn - a "tool" message may only carry text, so the images
-            // would otherwise be produced and then thrown away by both halves of the app.
-            // Each gets a handle the model can write into its answer to place the picture.
+            // Картинки остаются на записи — их нарисует лента — и уходят модели отдельным
+            // сообщением с изображениями: сообщение роли «tool» несёт только текст, и иначе
+            // картинки рисовались бы и выбрасывались обеими половинами программы. У каждой своя
+            // ссылка, которой модель ставит её в ответ.
             var images = result.GetImages();
             var handled = new List<ImageAttachment>(images.Count);
             var handles = new List<string>(images.Count);
@@ -1753,10 +1747,10 @@ internal sealed partial class ChatEngine
         ApplyCosts(assistant, turn.Total.HasData ? turn.Total : streamed.Cost);
         assistant.Status = AssistantStatus.Complete;
 
-        // prompt_tokens counts what this request carried, so the index is stamped before the answer
-        // joins the history: whatever is appended after it is what the gauge estimates on top.
-        // Guarded on a real number - a model that stayed quiet about usage must not reset the anchor
-        // to zero and send the ring back to a pure guess.
+        // prompt_tokens считает то, что нёс этот запрос, поэтому отметка ставится до того, как ответ
+        // ляжет в историю: всё, что допишется после, кольцо контекста прикидывает сверху. Только при
+        // настоящем числе — модель, промолчавшая о расходе, не должна сбрасывать опору в ноль и
+        // возвращать кольцо к чистой прикидке.
         if (streamed.PromptTokens > 0)
         {
             session.LastPromptTokens = streamed.PromptTokens;
@@ -1844,8 +1838,8 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Last resort text: two attempts produced neither content nor reasoning. Name the model
-    /// and the finish reason so the cause is visible instead of a bare "no text" line.
+    /// Последний текст, когда две попытки не дали ни ответа, ни размышления: называет модель и
+    /// причину остановки, чтобы было видно, в чём дело, а не голое «нет текста».
     /// </summary>
     private static string EmptyCompletionMessage(StreamedChatCompletion streamed)
     {
@@ -1889,14 +1883,14 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// Books the turn's bill and, alongside it, the breakdown the price tooltip reads.
+    /// Записывает счёт хода и рядом — разбивку, которую читает подсказка цены.
     /// </summary>
     /// <remarks>
-    /// <paramref name="chatCost"/> is what the shared <see cref="VeniceClient"/> spent, which
-    /// covers the conversation plus the tools that bill through it - drawing a picture, scraping
-    /// a page. Those same charges are mirrored onto the tool rows by
-    /// <c>AgentRunScope.Charge</c>, so taking them back out leaves exactly what the model itself
-    /// cost. Nested agents run on their own client and are added, not subtracted.
+    /// <paramref name="chatCost"/> — траты общего <see cref="VeniceClient"/>: разговор и инструменты,
+    /// которые платят через него (рисование, чтение страниц). Те же списания
+    /// <c>AgentRunScope.Charge</c> пишет и на строки инструментов, так что за их вычетом остаётся
+    /// ровно цена самой модели. Вложенные агенты работают на своём клиенте — их цена прибавляется,
+    /// а не вычитается.
     /// </remarks>
     internal static void ApplyCosts(ChatDisplayMessage assistant, VeniceCost chatCost)
     {
@@ -2185,8 +2179,8 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// The system prompt the next request would carry. Exposed so the context gauge can weigh it:
-    /// it is a real slice of the window, and rebuilding it in the UI would fork the logic.
+    /// Системный промпт следующего запроса. Открыт для кольца контекста: это настоящая часть окна,
+    /// а собирать его заново в интерфейсе значило бы раздвоить логику.
     /// </summary>
     /// <param name="session">Чат, чей промпт мерить: у него может быть свой профиль (D11).</param>
     internal string CurrentSystemPrompt(ChatSession? session = null) =>
@@ -2205,7 +2199,7 @@ internal sealed partial class ChatEngine
     /// </param>
     private string BuildSystemPrompt(string? currentModelId, IReadOnlyList<Instruction> instructions, ChatProfile? profile = null)
     {
-        // Chat companion only: main + TechAiPrompt. Agent uses TechAgentPrompt / BaseSystemPrompt.
+        // Только чат: основной промпт + TechAiPrompt. У агента — TechAgentPrompt / BaseSystemPrompt.
         var settings = _settings();
         var main = string.IsNullOrWhiteSpace(profile?.Prompt) ? settings.MainPrompt?.Trim() ?? "" : profile!.Prompt!.Trim();
         var tech = settings.TechAiPrompt?.Trim() ?? "";

@@ -57,7 +57,7 @@ public sealed class ChatSession
     /// </remarks>
     public string? SelectedKeyId { get; set; }
 
-    /// <summary>When true, the chat does not ask the model to think. Default preserves old behaviour.</summary>
+    /// <summary>True — чат не просит модель размышлять. По умолчанию — как раньше.</summary>
     public bool DisableThinking { get; set; } = true;
 
     public string? ReasoningEffort { get; set; }
@@ -104,10 +104,10 @@ public sealed class ChatSession
     public string? CompactedAfterMessageId { get; set; }
 
     /// <summary>
-    /// Context the model read on the last request, as Venice counted it. Kept with
-    /// <see cref="LastPromptTokensApiIndex"/> so the gauge can add an estimate for whatever was
-    /// appended since instead of showing a number that went stale the moment the user typed.
-    /// Zero on chats saved before the field existed, and on chats that never got an answer.
+    /// Контекст последнего запроса по счёту провайдера. Хранится вместе с
+    /// <see cref="LastPromptTokensApiIndex"/>, чтобы кольцо прибавляло прикидку за дописанное после
+    /// него, а не показывало число, устаревшее с первым же набранным словом. Ноль — у чатов,
+    /// сохранённых до появления поля, и у чатов без единого ответа.
     /// </summary>
     public int LastPromptTokens { get; set; }
 
@@ -157,8 +157,9 @@ public sealed class ChatDisplayMessage
     public string Text { get; set; } = "";
 
     /// <summary>
-    /// Images the user attached to this message, stored inline as base64 so they survive a
-    /// restart and travel with an exported or shared chat. Empty for assistant messages.
+    /// Картинки, приложенные к сообщению. В памяти — base64, на диске <see cref="ChatStore"/>
+    /// выносит их в файлы вложений; экспорт и «Поделиться» несут их внутри чата. У ответов
+    /// модели пусто.
     /// </summary>
     public List<ImageAttachment> Images { get; set; } = [];
 
@@ -186,17 +187,16 @@ public sealed class ChatDisplayMessage
     public TimeSpan Duration { get; set; }
 
     /// <summary>
-    /// How long the model spent before the first word of the answer. Shown beside the duration
-    /// when it is worth mentioning; zero for models that start writing immediately.
+    /// Сколько модель думала до первого слова ответа. Показывается рядом с длительностью, когда
+    /// это заметно; ноль у моделей, которые пишут сразу.
     /// </summary>
     public TimeSpan ThinkingDuration { get; set; }
 
     public VeniceCost? Cost { get; set; }
 
     /// <summary>
-    /// What the conversation with the model itself cost, with tools and nested agents taken
-    /// out. <see cref="Cost"/> is the sum of this, every tool call's own price and every nested
-    /// agent's — which is exactly the breakdown shown when hovering the price.
+    /// Цена разговора с самой моделью — без инструментов и вложенных агентов. <see cref="Cost"/> —
+    /// это она плюс цены вызовов инструментов и агентов: ровно та разбивка, что под курсором на цене.
     /// </summary>
     public VeniceCost? ModelCost { get; set; }
 
@@ -295,13 +295,12 @@ public sealed class ToolRound
     public string InfoLine { get; set; } = "";
 
     /// <summary>
-    /// What the model said before running this round of tools - its own remark, not the engine's
-    /// status line.
+    /// Что модель сказала перед этим раундом инструментов — её собственная реплика, а не служебная
+    /// строка движка.
     /// </summary>
     /// <remarks>
-    /// Kept apart from <see cref="InfoLine"/> because the engine overwrites that one with
-    /// "инструменты завершены" as soon as the round ends, and a remark stored there would not
-    /// survive its own round. Empty on chats saved before the field existed.
+    /// Отдельно от <see cref="InfoLine"/>: её движок перезаписывает «инструменты завершены» в конце
+    /// раунда, и реплика там свой раунд не пережила бы. Пусто у чатов, сохранённых до появления поля.
     /// </remarks>
     public string ModelNote { get; set; } = "";
 
@@ -340,8 +339,8 @@ public sealed class ToolCallRecord
     public string ResultPreview { get; set; } = "";
 
     /// <summary>
-    /// The tool's output in full, capped — what the journal opens when a row is clicked.
-    /// Empty on calls recorded before the field existed; the journal falls back to the summary.
+    /// Полный вывод инструмента (с потолком) — его журнал открывает по щелчку на строке. У старых
+    /// вызовов пусто, и журнал берёт краткий итог.
     /// </summary>
     public string ResultText { get; set; } = "";
 
@@ -350,9 +349,8 @@ public sealed class ToolCallRecord
     public ToolCallStatus Status { get; set; }
 
     /// <summary>
-    /// When the tool actually started running. Default on calls recorded before the field
-    /// existed — the journal falls back to the owning message's timestamp there rather than
-    /// sorting every old action to the year zero.
+    /// Когда инструмент на самом деле начал работу. У старых вызовов — значение по умолчанию, и
+    /// журнал берёт время сообщения, а не сортирует все старые действия в нулевой год.
     /// </summary>
     public DateTime StartedAt { get; set; }
 
@@ -360,8 +358,8 @@ public sealed class ToolCallRecord
     public TimeSpan Duration { get; set; }
 
     /// <summary>
-    /// Pictures the tool produced — a generated image, a screenshot. Stored inline as base64 so
-    /// they survive a restart and travel with an exported chat, exactly like user attachments.
+    /// Картинки от инструмента — нарисованная, снимок экрана. Хранятся так же, как вложения
+    /// человека: base64 в памяти, файлы вложений на диске.
     /// </summary>
     public List<ImageAttachment> Images { get; set; } = [];
 
@@ -382,9 +380,9 @@ public sealed class ToolCallRecord
     public Tools.InstructionRef? Instruction { get; set; }
 
     /// <summary>
-    /// What this one call added to the turn's bill. Display only — it is already inside the
-    /// message total, so summing it again would double-count. Set for the tools that actually
-    /// cost money (drawing a picture, scraping a page); null everywhere else.
+    /// Сколько этот вызов добавил к счёту хода. Только для показа: сумма уже в итоге сообщения, и
+    /// повторное сложение посчитало бы дважды. Есть у платных инструментов (рисование, чтение
+    /// страниц), у остальных null.
     /// </summary>
     public VeniceCost? Cost { get; set; }
 
@@ -435,8 +433,8 @@ public sealed class ChatIndexEntry
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// Kept at the top of the sidebar, out of the by-date groups. Lives on the index rather
-    /// than the session so pinning never counts as an edit to the conversation itself.
+    /// Стоит наверху боковой панели, вне групп по датам. Хранится в описи, а не в сессии:
+    /// закрепление не считается правкой самой переписки.
     /// </summary>
     public bool IsPinned { get; set; }
 
