@@ -24,14 +24,15 @@ namespace Amarin.UI
         private readonly List<ChatMessageHost> _messageHosts = [];
 
         /// <summary>
-        /// Измеренные высоты сообщений по их идентификаторам.
+        /// Измеренные высоты сообщений по их идентификаторам — вместе с шириной, на которой мерили.
         /// </summary>
         /// <remarks>
         /// Переживает переключение чатов: вернувшись в чат, лента резервирует ровно те высоты,
         /// что были в прошлый раз, и достраивание уже ничего не двигает. Оценка по длине текста
-        /// нужна только при самом первом показе.
+        /// нужна только при самом первом показе. Высота при другой ширине — уже не та: окно
+        /// растянули, и текст лёг в меньше строк, — поэтому тогда берётся оценка.
         /// </remarks>
-        private readonly Dictionary<string, double> _messageHeights = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, (double Height, double Width)> _messageHeights = new(StringComparer.Ordinal);
 
         /// <summary>Потолок памяти высот. За сеанс столько сообщений не открывают.</summary>
         private const int MessageHeightsLimit = 4000;
@@ -87,6 +88,7 @@ namespace Amarin.UI
             RememberHeights(_messageHosts);
             _justBuilt.Clear();
             _fillCursor = -1;
+            ForgetThaw();
             MessagesPanel.Children.Clear();
             _messageViews.Clear();
             _messageHosts.Clear();
@@ -380,10 +382,13 @@ namespace Amarin.UI
             });
         }
 
-        /// <summary>Заводит фоновую дорисовку остатка, если она ещё не идёт.</summary>
+        /// <summary>
+        /// Заводит фоновую дорисовку остатка, если она ещё не идёт. Той же очередью отпускаются
+        /// сообщения, замороженные на время изменения размера окна (<see cref="ThawNextChunk"/>).
+        /// </summary>
         private void ScheduleBackgroundFill()
         {
-            if (_fillScheduled || _unbuiltMessages == 0)
+            if (_fillScheduled || (_unbuiltMessages == 0 && !ThawPending))
             {
                 return;
             }
@@ -404,7 +409,14 @@ namespace Amarin.UI
         private void FillNextChunk()
         {
             _fillScheduled = false;
-            if (_unbuiltMessages == 0)
+            if (_unbuiltMessages == 0 && !ThawPending)
+            {
+                return;
+            }
+
+            // Окно тянут: порция стоила бы раскладки, которую никто не просил, а якорь у ленты
+            // сейчас занят. Конец жеста заведёт очередь сам (OnWindowResizeEnded).
+            if (_windowSizing)
             {
                 return;
             }
@@ -412,6 +424,14 @@ namespace Amarin.UI
             if (TranscriptInMotion)
             {
                 RetryBackgroundFillLater();
+                return;
+            }
+
+            // Сперва — отпустить замороженное: оно уже на экране рядом, а недостроенное подождёт.
+            if (ThawPending)
+            {
+                ThawNextChunk();
+                ScheduleBackgroundFill();
                 return;
             }
 
@@ -569,7 +589,7 @@ namespace Amarin.UI
             {
                 if (host.IsMaterialized && host.ActualHeight > 1 && !string.IsNullOrEmpty(host.Id))
                 {
-                    _messageHeights[host.Id] = host.ActualHeight;
+                    _messageHeights[host.Id] = (host.ActualHeight, host.LaidOutWidth);
                 }
             }
         }
@@ -580,14 +600,15 @@ namespace Amarin.UI
         /// </summary>
         private double ReservedHeight(ChatDisplayMessage message)
         {
-            if (!string.IsNullOrEmpty(message.Id) &&
-                _messageHeights.TryGetValue(message.Id, out var measured))
-            {
-                return measured;
-            }
-
             // Ширина ленты в её собственных координатах: лупа её не меняет.
             var width = MessagesPanel.ActualWidth > 1 ? MessagesPanel.ActualWidth : ChatScrollViewer.ViewportWidth / ChatScale;
+            if (!string.IsNullOrEmpty(message.Id) &&
+                _messageHeights.TryGetValue(message.Id, out var measured) &&
+                (double.IsNaN(measured.Width) || Math.Abs(measured.Width - width) < 1))
+            {
+                return measured.Height;
+            }
+
             return MessageHeightEstimate.For(message, width);
         }
     }

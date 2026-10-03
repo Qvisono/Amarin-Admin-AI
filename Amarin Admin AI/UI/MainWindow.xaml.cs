@@ -122,6 +122,10 @@ namespace Amarin.UI
 
             WindowMaximizeFix.Attach(this);
 
+            // Позже WindowMaximizeFix: перехватчик, добавленный последним, слышит сообщение первым,
+            // и лента успевает заморозиться до раскладки нового размера (см. MainWindow.Resize).
+            WireTranscriptResize();
+
             // Второй запуск программы просит это окно показаться. Вешаем здесь, а не в Program:
             // приём сообщения — дело самого окна, и в тестах оно работает так же, как в бою.
             SingleInstance.Attach(this, ActivateFromSecondInstance);
@@ -3286,6 +3290,21 @@ namespace Amarin.UI
             if (e.VerticalChange != 0 && ReferenceEquals(e.OriginalSource, ChatScrollViewer))
             {
                 HideReplyPill();
+            }
+
+            // Окно меняет размер: всё замороженное, что оказалось на виду, — сразу на новую ширину.
+            if (_windowSizing && ReferenceEquals(e.OriginalSource, ChatScrollViewer) &&
+                (e.ViewportHeightChange != 0 || e.ViewportWidthChange != 0 || e.VerticalChange != 0))
+            {
+                ThawAroundViewport();
+            }
+
+            // Видимая область выросла (окно растянули, развернули) — под ней могли открыться
+            // недостроенные сообщения. Прежде их достраивала только прокрутка, и до первого
+            // движения колеса на их месте стояли пустые резервы.
+            if (e.ViewportHeightChange > 0 && ReferenceEquals(e.OriginalSource, ChatScrollViewer) && !_autoScrolling)
+            {
+                MaterializeAroundViewport();
             }
 
             if (e.ExtentHeightChange != 0)

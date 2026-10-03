@@ -143,7 +143,7 @@ public sealed class LazyMessageLoadTests
                 Call(window, "RenderSession");
                 DrainBackgroundFill(window, Get<List<ChatMessageHost>>(window, "_messageHosts"));
 
-                var heights = Get<Dictionary<string, double>>(window, "_messageHeights");
+                var heights = Get<Dictionary<string, (double Height, double Width)>>(window, "_messageHeights");
                 var known = heights.Count;
 
                 // Второй заход в тот же чат: резерв берётся из памяти, а не из прикидки.
@@ -151,7 +151,7 @@ public sealed class LazyMessageLoadTests
                 var hosts = Get<List<ChatMessageHost>>(window, "_messageHosts");
                 var first = hosts.First(host => !host.IsMaterialized);
 
-                return (known, Math.Abs(first.Height - heights[first.Id]));
+                return (known, Math.Abs(first.Height - heights[first.Id].Height));
             }
             finally
             {
