@@ -3,35 +3,46 @@ using Amarin.Tools;
 
 namespace Amarin.UI;
 
+/// <summary>
+/// Службы, которые получает окно. Собирает их корень композиции (<c>AppComposition</c>), тесты —
+/// <c>UiServices</c>.
+/// </summary>
+/// <remarks>
+/// Данные профиля — настройки, чаты, ключи и всё, что лежит в его папке, — живут в
+/// <see cref="ProfileScope"/>, а здесь только пересылаются: окно читает их по-прежнему
+/// (<c>_services.ChatStore</c>), а переезд на другой профиль проверяется без окна.
+/// </remarks>
 internal sealed class AppServices : IDisposable
 {
     public required AgentOptions Options { get; init; }
 
-    // Не init-only: смена профиля переводит оба хранилища на месте.
-    public required AppSettingsStore SettingsStore { get; set; }
+    /// <summary>Данные открытого профиля и переезд на другой.</summary>
+    public required ProfileScope Profile { get; init; }
 
-    public required AppSettings Settings { get; set; }
+    public AppSettingsStore SettingsStore => Profile.SettingsStore;
 
-    public required ChatStore ChatStore { get; set; }
+    public AppSettings Settings => Profile.Settings;
+
+    public ChatStore ChatStore => Profile.ChatStore;
 
     /// <summary>Заготовки основного промпта. Тоже на профиль — как и сам основной промпт.</summary>
-    public required PromptLibrary Prompts { get; set; }
+    public PromptLibrary Prompts => Profile.Prompts;
 
     /// <summary>
-    /// Инструкции пользователя. Init-only, как и журнал трат: ссылку на библиотеку держат движок
-    /// чата и инструмент <c>read_instruction</c>, поэтому смена профиля переводит её на другую
-    /// папку, а не подменяет объект.
+    /// Инструкции пользователя. Ссылку на библиотеку держат движок чата и инструмент
+    /// <c>read_instruction</c>, поэтому смена профиля переводит её на другую папку, а не
+    /// подменяет объект.
     /// </summary>
-    public required InstructionLibrary Instructions { get; init; }
+    public InstructionLibrary Instructions => Profile.Instructions;
 
-    /// <summary>Ключи Venice активного профиля.</summary>
-    public required ApiKeyStore KeyStore { get; set; }
+    /// <summary>Ключи активного профиля.</summary>
+    public ApiKeyStore KeyStore => Profile.KeyStore;
 
     /// <summary>
-    /// Собственный журнал трат. Init-only: ссылка на него роздана всем копиям
-    /// <see cref="AgentOptions"/>, подменять надо корень внутри, а не сам объект.
+    /// Собственный журнал трат. Ссылка на него роздана всем копиям <see cref="AgentOptions"/>,
+    /// переводить надо корень внутри, а не сам объект.
     /// </summary>
-    public required SpendLedger Ledger { get; init; }
+    public SpendLedger Ledger => Profile.Ledger;
 
     /// <summary>
     /// Лимиты трат — тот же объект, что роздан копиям настроек. По умолчанию свой: тесты
@@ -42,13 +53,13 @@ internal sealed class AppServices : IDisposable
     /// <summary>
     /// Журнал аудита — тот же, что роздан копиям настроек. Null — не ведётся (тесты).
     /// </summary>
-    internal AuditLog? Audit => Options.Audit;
+    internal AuditLog? Audit => Profile.Audit;
 
     /// <summary>
     /// Ключ, которым платят прямо сейчас. Общий на программу и на все копии
-    /// <see cref="AgentOptions"/>, поэтому init-only: подменять надо содержимое, а не сам объект.
+    /// <see cref="AgentOptions"/>: подменять надо содержимое, а не сам объект.
     /// </summary>
-    public required ApiKeyProvider Keys { get; init; }
+    public ApiKeyProvider Keys => Profile.Keys;
 
     /// <summary>
     /// Остатки всех ключей. Одна книга на программу: её наполняют все клиенты, а складывает
@@ -82,17 +93,8 @@ internal sealed class AppServices : IDisposable
     /// </summary>
     internal PlanReviewQueue PlanReviews { get; init; } = new();
 
-    /// <summary>
-    /// Рецепты профиля (C7). По умолчанию — рядом с настройками: тесты собирают службы руками
-    /// во временной папке, и библиотека попадает туда же, а не в данные человека.
-    /// </summary>
-    internal RecipeLibrary Recipes
-    {
-        get => _recipes ??= new RecipeLibrary(Path.GetDirectoryName(SettingsStore.FilePath)!);
-        init => _recipes = value;
-    }
-
-    private RecipeLibrary? _recipes;
+    /// <summary>Рецепты профиля (C7).</summary>
+    internal RecipeLibrary Recipes => Profile.Recipes;
 
     /// <summary>
     /// Запуск рецептов. Без собранного в Program — отказ любой записи: исполнять инструменты
@@ -109,99 +111,23 @@ internal sealed class AppServices : IDisposable
     /// <summary>Запуск агента в обход чата — для задач по расписанию. Null — расписание не работает.</summary>
     internal IAgentHost? AgentHost { get; init; }
 
-    /// <summary>Задачи по расписанию (C3). По умолчанию — рядом с настройками, как и рецепты.</summary>
-    internal ScheduleBook Schedule
-    {
-        get => _schedule ??= new ScheduleBook(Path.GetDirectoryName(SettingsStore.FilePath)!);
-        init => _schedule = value;
-    }
-
-    private ScheduleBook? _schedule;
+    /// <summary>Задачи по расписанию (C3).</summary>
+    internal ScheduleBook Schedule => Profile.Schedule;
 
     /// <summary>Последний снимок «Состояния ПК» (C4).</summary>
-    internal HealthCache Health
-    {
-        get => _health ??= new HealthCache(Path.GetDirectoryName(SettingsStore.FilePath)!);
-        init => _health = value;
-    }
-
-    private HealthCache? _health;
+    internal HealthCache Health => Profile.Health;
 
     /// <summary>Удалённые машины профиля (C10).</summary>
-    internal MachineBook Machines
-    {
-        get => _machines ??= new MachineBook(Path.GetDirectoryName(SettingsStore.FilePath)!);
-        init => _machines = value;
-    }
-
-    private MachineBook? _machines;
+    internal MachineBook Machines => Profile.Machines;
 
     /// <summary>Текст всех чатов для поиска «по тексту» (D1). Переезжает с профилем вместе с хранилищем.</summary>
-    internal ChatTextIndex TextIndex
-    {
-        get
-        {
-            if (_textIndex is null)
-            {
-                _textIndex = new ChatTextIndex(Path.GetDirectoryName(SettingsStore.FilePath)!, () => Settings.EncryptChats);
-                WireTextIndex(ChatStore);
-            }
+    internal ChatTextIndex TextIndex => Profile.TextIndex;
 
-            return _textIndex;
-        }
-    }
+    /// <summary>Папки, теги и архив списка чатов (D5).</summary>
+    internal ChatOrganizer Organizer => Profile.Organizer;
 
-    private ChatTextIndex? _textIndex;
-
-    private void WireTextIndex(ChatStore store)
-    {
-        store.Saved += session => _textIndex?.Update(session);
-        store.Deleted += id => _textIndex?.Remove(id);
-    }
-
-    /// <summary>
-    /// Папки, теги и архив списка чатов (D5). Удалённый чат вычищается из раскладки событием
-    /// хранилища — какой бы путь его ни удалил.
-    /// </summary>
-    internal ChatOrganizer Organizer
-    {
-        get
-        {
-            if (_organizer is null)
-            {
-                _organizer = new ChatOrganizer(Path.GetDirectoryName(SettingsStore.FilePath)!);
-                WireOrganizer(ChatStore);
-            }
-
-            return _organizer;
-        }
-    }
-
-    private ChatOrganizer? _organizer;
-
-    private void WireOrganizer(ChatStore store) => store.Deleted += id =>
-    {
-        _organizer?.Forget(id);
-        _drafts?.Delete(id);
-    };
-
-    /// <summary>Черновики чатов (D12). Удалённый чат уносит и свой черновик — тем же событием.</summary>
-    internal DraftStore Drafts
-    {
-        get
-        {
-            if (_drafts is null)
-            {
-                _drafts = new DraftStore(Path.GetDirectoryName(SettingsStore.FilePath)!, () => Settings.EncryptChats);
-                // Удаление чата слушает раскладка (WireOrganizer) — она и заводится, если ещё нет.
-                _ = Organizer;
-            }
-
-            return _drafts;
-        }
-    }
-
-    private DraftStore? _drafts;
+    /// <summary>Черновики чатов (D12).</summary>
+    internal DraftStore Drafts => Profile.Drafts;
 
     /// <summary>Разбор фактов в отчёте о работе (D7): тем же клиентом и ключами, что и сводка.</summary>
     internal WorkReportWriter WorkReports => _workReports ??= new WorkReportWriter(Http, Options, () => Settings);
@@ -209,7 +135,7 @@ internal sealed class AppServices : IDisposable
     private WorkReportWriter? _workReports;
 
     /// <summary>Серверы MCP (C11). Null — не заводились (тесты): инструментов MCP нет.</summary>
-    internal McpHost? Mcp { get; init; }
+    internal McpHost? Mcp => Profile.Mcp;
 
     public string? StartupPrompt { get; init; }
 
@@ -229,154 +155,22 @@ internal sealed class AppServices : IDisposable
     public string? StartupAskPath { get; init; }
 
     /// <summary>Ключ из VENICE_API_KEY — он общий для всех профилей и не меняется на ходу.</summary>
-    public required string EnvironmentKey { get; init; }
+    public string EnvironmentKey => Profile.EnvironmentKey;
 
-    /// <summary>
-    /// То же для OPENROUTER_API_KEY. Без <c>required</c>: пустая строка — обычное положение
-    /// дел, эту переменную заводят единицы.
-    /// </summary>
-    public string OpenRouterEnvironmentKey { get; init; } = "";
+    /// <summary>То же для OPENROUTER_API_KEY.</summary>
+    public string OpenRouterEnvironmentKey => Profile.OpenRouterEnvironmentKey;
 
-    public void ReloadSettings() => Settings = SettingsStore.Load();
+    /// <inheritdoc cref="ProfileScope.ReloadSettings"/>
+    public void ReloadSettings() => Profile.ReloadSettings();
 
-    /// <summary>
-    /// Разовый перенос цен, уже записанных в переписках, в журнал трат.
-    /// </summary>
-    /// <remarks>
-    /// График показывает, сколько ушло с ключа, а не сколько лежит на диске: удалённая переписка
-    /// денег не возвращает. Живой учёт от чатов и не зависит — он пишет в <c>usage/</c> в момент
-    /// списания, — а вот этот перенос читает их файлы, и раньше его делала только страница
-    /// «Key &amp; Info» по первому заходу. Пока туда не зашли, цены старых ответов лежали лишь
-    /// в самих переписках, и удалённый до первого захода чат уносил свои деньги с графика
-    /// навсегда. Поэтому перенос делается на запуске, не дожидаясь, что человек откроет страницу.
-    /// <para>
-    /// Ходит по всем файлам чатов, поэтому зовётся из фонового потока. Отметка в журнале
-    /// закрывает эту дверь навсегда — обход случается ровно один раз за жизнь профиля.
-    /// </para>
-    /// </remarks>
-    public void BackfillSpendLedger()
-    {
-        // Отметка профиля, а не ключа: переписки общие, а какой ключ за них платил, в них не
-        // записано. Пока отметка стояла у ключа, каждый заведённый позже ключ забирал себе всю
-        // чужую историю, и графики двух ключей совпадали до цента.
-        if (Settings.SpendBackfilledAt is not null)
-        {
-            return;
-        }
+    /// <inheritdoc cref="ProfileScope.BackfillSpendLedger"/>
+    public void BackfillSpendLedger() => Profile.BackfillSpendLedger();
 
-        try
-        {
-            // Переписки отдаются ленивой последовательностью, а не списком: их бывают сотни,
-            // и файл чата бывает в мегабайты — собрать их все в память разом дороже, чем
-            // прочитать диск второй раз в единственном за всю жизнь профиля проходе.
-            Ledger.RepairDuplicateBackfills(ReadSavedSessions());
-            Ledger.Backfill(KeyStore.ActiveSecret(), ReadSavedSessions());
+    /// <inheritdoc cref="ProfileScope.ApplyActiveKey"/>
+    public void ApplyActiveKey() => Profile.ApplyActiveKey();
 
-            var stamp = DateTime.Now;
-            Settings.SpendBackfilledAt = stamp;
-
-            // Через Update, а не Save: зовут это из фонового потока, и записать сюда свою копию
-            // настроек целиком значило бы затереть то, что человек в это же время менял в окне.
-            SettingsStore.Update(settings => settings.SpendBackfilledAt = stamp);
-        }
-        catch (Exception exception) when (
-            exception is IOException or UnauthorizedAccessException)
-        {
-            // Перенос — удобство, а не обязанность: не вышло сейчас, попробуем при заходе
-            // на страницу трат.
-        }
-    }
-
-    private IEnumerable<ChatSession> ReadSavedSessions()
-    {
-        foreach (var entry in ChatStore.List())
-        {
-            if (ChatStore.TryLoad(entry.Id) is { } session)
-            {
-                yield return session;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Переносит выбор человека из хранилища в держатель ключа и заодно обновляет список
-    /// секретов, которые вырезаются из отчёта об аварии.
-    /// </summary>
-    /// <remarks>
-    /// Единственная точка, через которую проходят все три способа сменить выбранный ключ:
-    /// выбор кружком на странице, добавление (новый ключ сразу становится выбранным) и
-    /// удаление (выбранным становится следующий годный). Вместе с выбранным сюда же едет
-    /// и весь список: из него слоты моделей достают назначенные им ключи, и список обязан
-    /// смениться тем же присваиванием — иначе слот успел бы найти уже удалённый ключ.
-    /// <para>
-    /// Моделей эта смена больше не касается. До версии 1.23.0 активный ключ задавал провайдера
-    /// всем девяти слотам разом, и здесь же выбор прятался в тайник до возвращения прежнего
-    /// ключа. Теперь провайдер живёт в самом идентификаторе модели, у каждого слота свой,
-    /// и менять при смене ключа нечего.
-    /// </para>
-    /// </remarks>
-    public void ApplyActiveKey()
-    {
-        // Вместе с выбранным — ключ Venice: рисование картинок и чтение страниц умеет только он,
-        // и при выбранном ключе OpenRouter взять его больше неоткуда.
-        Keys.Use(KeyStore.ActiveCredential(), KeyStore.VeniceCredential(), KeyStore.Handles());
-        CrashHandler.Secrets = KeyStore.AllSecrets();
-    }
-
-    /// <summary>
-    /// Переводит хранилища настроек и чатов в папку другого профиля. Движок читает настройки через
-    /// тот же <c>Func&lt;AppSettings&gt;</c>, пересобирать больше ничего не нужно, — но текущий
-    /// чат вызывающий обязан сохранить раньше.
-    /// </summary>
-    public void UseProfile(string dataRoot)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
-
-        // Прежнее хранилище пишет в фоне, а через мгновение на него уже никто не сошлётся:
-        // всё, что оно не успело положить на диск, пропало бы вместе с ним.
-        ChatStore.Flush();
-
-        Directory.CreateDirectory(Path.Combine(dataRoot, "chats"));
-        SettingsStore = new AppSettingsStore(dataRoot);
-        // Перешифровка прежней папки теряет смысл: хранилище её больше не ведёт, а галочка
-        // шифрования теперь читается из настроек другого профиля.
-        ChatStore.StopReformat();
-        ChatStore = new ChatStore(dataRoot) { Encrypt = () => Settings.EncryptChats };
-        if (_textIndex is not null)
-        {
-            _textIndex.UseRoot(dataRoot, () => Settings.EncryptChats);
-            WireTextIndex(ChatStore);
-        }
-
-        _drafts?.UseRoot(dataRoot, () => Settings.EncryptChats);
-        if (_organizer is not null)
-        {
-            _organizer.UseRoot(dataRoot);
-            WireOrganizer(ChatStore);
-        }
-
-        Prompts = new PromptLibrary(dataRoot);
-        Instructions.UseRoot(dataRoot);
-        Recipes.UseRoot(dataRoot);
-        Schedule.UseRoot(dataRoot);
-        Health.UseRoot(dataRoot);
-        Machines.UseRoot(dataRoot);
-        Mcp?.UseRoot(dataRoot);
-        Mcp?.Refresh();
-        Settings = SettingsStore.Load();
-
-        // Ключи у профиля свои, поэтому вместе с настройками переезжает и хранилище: иначе
-        // человек, сменивший профиль, продолжал бы платить чужим ключом.
-        KeyStore = new ApiKeyStore(dataRoot, EnvironmentKey, OpenRouterEnvironmentKey);
-        KeyStore.Load();
-        Ledger.UseRoot(dataRoot);
-        Audit?.UseRoot(dataRoot);
-        ApplyActiveKey();
-
-        // Прерванная перешифровка или файлы, разложенные импортом, — привести к настройке
-        // этого профиля. В фоне и по первым байтам: обычно делать нечего.
-        Detached.Run(ChatStore.EnsureFormat(), "chat_reformat");
-    }
+    /// <inheritdoc cref="ProfileScope.UseProfile"/>
+    public void UseProfile(string dataRoot) => Profile.UseProfile(dataRoot);
 
     public void Dispose()
     {

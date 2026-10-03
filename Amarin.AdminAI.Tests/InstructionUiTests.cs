@@ -52,44 +52,16 @@ public sealed class InstructionUiTests : IDisposable
         Directory.CreateDirectory(Path.Combine(root, "chats"));
         _roots.Add(root);
 
-        var options = new AgentOptions
-        {
-            ApiKey = "test",
-            BaseUrl = "https://api.venice.ai/api/v1",
-            Model = "grok-4-6",
-            MaxToolRounds = 2
-        };
-
-        var http = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
-        var settingsStore = new AppSettingsStore(root);
-        var settings = settingsStore.Load();
-
-        return new AppServices
-        {
-            Options = options,
-            SettingsStore = settingsStore,
-            Settings = settings,
-            ChatStore = new ChatStore(root),
-            Prompts = new PromptLibrary(root),
-            Instructions = new InstructionLibrary(root),
-            KeyStore = new ApiKeyStore(root),
-            Ledger = new SpendLedger(root),
-            Keys = new ApiKeyProvider(),
-            EnvironmentKey = "",
-            Profiles = new ProfileStore(),
-            ProfileRegistry = new ProfileRegistry(),
-            Http = http,
-            DownloadHttp = download,
-            Venice = venice,
-            Models = new VeniceModelListCache(venice),
-            Balances = new BalanceBook(),
-            Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
-            Titles = new ChatTitleGenerator(http, options, () => settings),
-            Summaries = new ChatSummaryGenerator(http, options, () => settings),
-            Confirmations = new ConfirmationQueue(() => settings)
-        };
+        return UiServices.Build(
+            root,
+            new AgentOptions
+            {
+                ApiKey = "test",
+                BaseUrl = "https://api.venice.ai/api/v1",
+                Model = "grok-4-6",
+                MaxToolRounds = 2
+            },
+            new HttpClient { BaseAddress = new Uri("https://example.invalid/") });
     }
 
     private T WithWindow<T>(Func<MainWindow, T> body) => _wpf.Ui.Invoke(() =>

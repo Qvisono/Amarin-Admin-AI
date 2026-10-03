@@ -1,11 +1,10 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
+using Amarin.Composition;
 using Amarin.Core;
 using Amarin.Tools;
 using Amarin.UI;
-using Microsoft.Extensions.Configuration;
 
 internal static class Program
 {
@@ -115,54 +114,14 @@ internal static class Program
         // профиля. Без метки просто убирает залежавшуюся просьбу (см. PendingWipe).
         var wiped = PendingWipe.Run(AppPaths.Root, startup.WipeToken, DateTime.UtcNow);
 
-        var configuration = BuildConfiguration();
-        var downloadOptions = LoadDownloadOptions(configuration);
-
-        // По ключу на провайдера: человек мог завести оба, и решать за него, какой из них
-        // «настоящий», программа не вправе — выбор он делает на странице «Key & Info».
-        var apiKey = ReadEnvironmentKey(configuration, "VENICE_API_KEY");
-        var openRouterKey = ReadEnvironmentKey(configuration, "OPENROUTER_API_KEY");
+        var configuration = AppConfiguration.Read();
 
         // Ключи уезжают в заголовок Authorization и в сообщения HTTP-исключений, а отчёт об
         // аварии человек пересылает — вырезаем их из отчёта. Список пополнится ключами со
         // страницы «Key & Info», как только станет известен профиль.
-        CrashHandler.Secrets = [apiKey, openRouterKey];
-
-        // Держатель активного ключа. Заводится здесь, а наполняется ниже, когда выбран профиль:
-        // свои ключи у профиля свои, а AgentOptions раздаётся копиями и обязан смотреть на один
-        // общий объект, иначе смена ключа не дошла бы до агента и служебных генераторов.
-        var keys = new ApiKeyProvider(apiKey);
-
-        // Собственный журнал трат. Заводится здесь и перекореняется ниже, когда выбран профиль:
-        // в AgentOptions он должен попасть один раз, до того как настройки разойдутся копиями.
-        var ledger = new SpendLedger(AppPaths.Root);
-        var balances = new BalanceBook();
-
-        // Лимиты трат — туда же и по той же причине. Настройки он читает из служб, когда те
-        // соберутся; до того лимитов нет.
-        AppServices? spendServices = null;
-        var spendGuard = new SpendGuard(() => spendServices?.Settings, ledger);
-
-        // Журнал аудита — туда же, в AgentOptions, до того как настройки разойдутся копиями.
-        // Ключи из строк вычищаются тем же списком, что и из отчётов о сбоях.
-        var audit = new AuditLog(AppPaths.Root, () => CrashHandler.Secrets);
-
-        var options = new AgentOptions
-        {
-            ApiKey = apiKey,
-            Keys = keys,
-            SpendSink = ledger.Record,
-            SpendGate = spendGuard.CheckAsync,
-            BalanceSink = balances.Remember,
-            Audit = audit,
-            BaseUrl = configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
-            Model = configuration["Venice:Model"] ?? "grok-4-6",
-            MaxToolRounds = int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
-            WebSearch = configuration["Venice:WebSearch"] ?? "off",
-            EnableWebCitations = !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,
-            EnableXSearch = bool.TryParse(configuration["Venice:EnableXSearch"], out var xSearch) ? xSearch : null,
-            Download = downloadOptions
-        };
+        var secrets = new SecretRegistry();
+        secrets.Use([configuration.VeniceKey, configuration.OpenRouterKey]);
+        CrashHandler.UseSecrets(secrets);
 
         // Сперва профиль: от него зависит, из какой папки читаются настройки и чаты. Профиль по
         // умолчанию смотрит в корень данных, поэтому обновление не уносит старые переписки.
@@ -231,155 +190,19 @@ internal static class Program
                 dataRoot);
         }
 
-        // Только теперь известно, чей это профиль, — а ключи у каждого свои. До этой строки
-        // программа работает на ключе из окружения, и так же она работает дальше, если своих
-        // ключей человек не заводил.
-        ledger.UseRoot(dataRoot);
-        audit.UseRoot(dataRoot);
-        var keyStore = new ApiKeyStore(dataRoot, apiKey, openRouterKey);
-        keyStore.Load();
-        keys.Use(keyStore.ActiveCredential(), keyStore.VeniceCredential(), keyStore.Handles());
-        CrashHandler.Secrets = keyStore.AllSecrets();
         ThemeManager.FollowHighContrast = settings.FollowHighContrast;
         ThemeManager.Apply(settings.Theme);
         ChatFonts.Apply(settings);
         LanguageManager.Apply(settings.LanguageCode);
 
-        // Действующий белый список живёт в settings.json; appsettings.json его только засевает.
-        if (settings.DownloadAllowedDomains is null)
-        {
-            settings.DownloadAllowedDomains = [.. downloadOptions.AllowedDomains];
-            settingsStore.Save(settings);
-        }
-
-        DownloadValidator.ConfigureAllowedDomains(settings.DownloadAllowedDomains);
-
-        if (!string.IsNullOrWhiteSpace(startup.Model))
-        {
-            options.Model = startup.Model.Trim();
-            settings.ChatModelId = options.Model;
-            settingsStore.Save(settings);
-        }
-        else if (settingsStore.Exists &&
-                 !string.IsNullOrWhiteSpace(settings.ChatModelId) &&
-                 !settings.ChatModelId.Equals("auto", StringComparison.OrdinalIgnoreCase))
-        {
-            options.Model = settings.ChatModelId;
-        }
-
-        var http = HttpClients.Create(TimeSpan.FromMinutes(5));
-        var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15), browserIdentity: true);
-        var venice = new VeniceClient(http, options);
-        var models = new VeniceModelListCache(venice, keys);
-        venice.ResolveModelInfo = models.Find;
-
-        // Присваивается ниже. Всё, что читает настройки, ходит через сумку служб: смена профиля
-        // переводит хранилище и для движка, агента и генератора заголовков, а захваченный
-        // напрямую `settingsStore` навсегда привязал бы их к профилю, открытому при запуске.
-        AppServices? services = null;
-
-        // Шифрование — тоже через сумку служб, а не через локальную переменную настроек: после
-        // смены профиля это уже другой объект.
-        var chatStore = new ChatStore(dataRoot) { Encrypt = () => services?.Settings.EncryptChats == true };
-        audit.Encrypt = () => services?.Settings.EncryptChats == true;
-
-        AppSettings ReadSettings() => services?.SettingsStore.Load() ?? settingsStore.Load();
-
-        var confirmations = new ConfirmationQueue(ReadSettings);
-        // Общий на программу: реестр нужен и хосту (записаться), и движку чата (остановить или
-        // пересадить того, кто уже работает).
-        var runningAgents = new AgentRegistry();
-        // Инструкции пользователя — одна библиотека на программу: смена профиля переводит её
-        // на другую папку (AppServices.UseProfile), а движок, хост агентов и инструмент держат
-        // ту же ссылку.
-        var instructions = new InstructionLibrary(dataRoot);
-        var planReviews = new PlanReviewQueue();
-
-        // Серверы MCP (C11): свой HTTP-клиент — у них свои тайм-ауты и свои адресаты.
-        var mcp = new McpHost(dataRoot, HttpClients.Create(TimeSpan.FromMinutes(2)));
-        mcp.Refresh();
-        ToolGate.McpReadOnly = name => mcp.ReadOnlyNames.Contains(name);
-
-        // Инструменты рецептов — те же, что у агента, плюс файловые чата: рецепт сохраняют из
-        // журнала любого из них. Лениво и один раз — набор строится за заметное время, а рецепты
-        // запускают редко.
-        var recipeTools = new Lazy<ToolRegistry>(() => new ToolRegistry(
-        [
-            .. AgentTools.Create(
-                venice,
-                downloadHttp,
-                options.Download,
-                knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey)).All,
-            new ReadFileTool(),
-            new WriteFileTool()
-        ]));
-        var agentHost = new AgentHost(
-            options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
-            mcp.Tools);
-        var chatTools = new ToolRegistry(
-        [
-            new ReadFileTool(),
-            new WriteFileTool(),
-            new WebSearchTool((query, ct) =>
-                venice.SearchWebAsync(query, ModelSlots.WebSearch(ReadSettings()), ct)),
-            // Соотношение сторон у вызова инструмента выводится из размера в пикселях; особое
-            // просит только инфографика, а она зовёт клиент напрямую.
-            new GenerateImageTool((prompt, width, height, model, ct) =>
-                venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
-            new FetchImageTool(),
-            new YouTubeTranscriptTool(),
-            new InitAgentTool(new AgentSlotLimiter(), agentHost),
-            new ReadInstructionTool(instructions)
-        ]);
-        var engine = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations);
-        var titles = new ChatTitleGenerator(http, options, ReadSettings);
-        var summaries = new ChatSummaryGenerator(http, options, ReadSettings);
-
-        services = new AppServices
-        {
-            Options = options,
-            SettingsStore = settingsStore,
-            Settings = settings,
-            ChatStore = chatStore,
-            Prompts = new PromptLibrary(dataRoot),
-            Instructions = instructions,
-            KeyStore = keyStore,
-            Ledger = ledger,
-            SpendGuard = spendGuard,
-            Balances = balances,
-            Keys = keys,
-            EnvironmentKey = apiKey,
-            OpenRouterEnvironmentKey = openRouterKey,
-            Profiles = profileStore,
-            ProfileRegistry = registry,
-            Http = http,
-            DownloadHttp = downloadHttp,
-            Venice = venice,
-            Models = models,
-            Chat = engine,
-            Titles = titles,
-            Summaries = summaries,
-            Confirmations = confirmations,
-            PlanReviews = planReviews,
-            Recipes = new RecipeLibrary(dataRoot),
-            Schedule = new ScheduleBook(dataRoot),
-            Health = new HealthCache(dataRoot),
-            Machines = new MachineBook(dataRoot),
-            Mcp = mcp,
-            AgentHost = agentHost,
-            RecipeRunner = new RecipeRunner(
-                () => recipeTools.Value,
-                confirmations,
-                ReadSettings,
-                () => options.Audit),
-            StartupPrompt = startup.Prompt,
-            StartupSend = startup.ShouldSend,
-            StartupWipe = wiped,
-            StartupChatId = startup.OpenChatId,
-            StartupAction = startup.Action,
-            StartupAskPath = startup.AskPath
-        };
-        spendServices = services;
+        // Всё, что зависит от профиля, — одним вызовом корня композиции.
+        var services = AppComposition.Build(
+            configuration,
+            new StartupProfile(profileStore, registry, dataRoot, settingsStore, settings),
+            startup,
+            wiped,
+            secrets);
+        AppComposition.ApplyProcessWide(services);
 
         var disposable = services;
         app.Exit += (_, _) => disposable.Dispose();
@@ -406,41 +229,6 @@ internal static class Program
 
         startupTimer.Dispose();
         return app.Run(window);
-    }
-
-    /// <summary>
-    /// Ключ провайдера снаружи программы: переменная окружения, затем user-secrets. На диск
-    /// программы он не переписывается — человек сознательно держал его снаружи.
-    /// </summary>
-    private static string ReadEnvironmentKey(IConfiguration configuration, string name) =>
-        Environment.GetEnvironmentVariable(name) ?? configuration[name] ?? string.Empty;
-
-    private static IConfiguration BuildConfiguration() =>
-        new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true)
-            .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-    private static DownloadOptions LoadDownloadOptions(IConfiguration configuration)
-    {
-        var configuredDomains = configuration.GetSection("Download:AllowedDomains")
-            .GetChildren()
-            .Select(item => item.Value)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!)
-            .ToArray();
-
-        return new DownloadOptions
-        {
-            AllowedDomains = configuredDomains.Length > 0
-                ? configuredDomains
-                : new DownloadOptions().AllowedDomains,
-            MaxSizeBytes = long.TryParse(configuration["Download:MaxSizeMb"], out var maxMb)
-                ? maxMb * 1024L * 1024L
-                : new DownloadOptions().MaxSizeBytes
-        };
     }
 
     /// <param name="reportPath">

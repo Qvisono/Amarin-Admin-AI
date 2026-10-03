@@ -59,48 +59,17 @@ public sealed class SpendBackfillPerProfileTests : IDisposable
     private static decimal Total(SpendLedger ledger, string secret) =>
         SpendPeriods.Build(ledger.Read(secret), SpendPeriod.All, DateTime.Now, null).TotalUsd;
 
-    private AppServices Build(string root)
-    {
-        var options = new AgentOptions
-        {
-            ApiKey = KeyOne,
-            BaseUrl = "https://api.venice.ai/api/v1",
-            Model = "grok-4-6"
-        };
-
-        var http = new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
-        var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
-        var settingsStore = new AppSettingsStore(root);
-        var settings = settingsStore.Load();
-        var keyStore = new ApiKeyStore(root);
-        keyStore.Load();
-
-        return new AppServices
-        {
-            Options = options,
-            SettingsStore = settingsStore,
-            Settings = settings,
-            ChatStore = new ChatStore(root),
-            Prompts = new PromptLibrary(root),
-            Instructions = new InstructionLibrary(root),
-            KeyStore = keyStore,
-            Ledger = new SpendLedger(root),
-            Keys = new ApiKeyProvider(),
-            EnvironmentKey = "",
-            Profiles = new ProfileStore(),
-            ProfileRegistry = new ProfileRegistry(),
-            Http = http,
-            DownloadHttp = download,
-            Venice = venice,
-            Models = new VeniceModelListCache(venice),
-            Balances = new BalanceBook(),
-            Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
-            Titles = new ChatTitleGenerator(http, options, () => settings),
-            Summaries = new ChatSummaryGenerator(http, options, () => settings),
-            Confirmations = new ConfirmationQueue(() => settings)
-        };
-    }
+    private static AppServices Build(string root) =>
+        UiServices.Build(
+            root,
+            new AgentOptions
+            {
+                ApiKey = KeyOne,
+                BaseUrl = "https://api.venice.ai/api/v1",
+                Model = "grok-4-6"
+            },
+            new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") },
+            loadKeys: true);
 
     /// <summary>
     /// Тот самый случай из отчёта: завели второй ключ — и его график повторил траты первого.

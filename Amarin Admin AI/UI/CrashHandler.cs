@@ -21,16 +21,26 @@ internal static class CrashHandler
     private static bool _processWideInstalled;
     private static bool _showing;
 
+    private static SecretRegistry _secrets = new();
+
     /// <summary>
-    /// Ключи Venice. Они попадают в заголовок Authorization и в сообщения HTTP-исключений, а
+    /// Ключи провайдеров. Они попадают в заголовок Authorization и в сообщения HTTP-исключений, а
     /// отчёт человек пересылает — поэтому перед показом ключи вырезаются.
     /// </summary>
     /// <remarks>
     /// Список, а не одна строка: ключей у человека может быть несколько, и в стеке окажется
     /// тот, которым отправляли запрос, — не обязательно тот, что активен к моменту аварии.
-    /// Переписывается хранилищем ключей при каждом изменении списка.
+    /// Держит его <see cref="SecretRegistry"/> из корня композиции; перехватчик ставится раньше
+    /// всего остального, поэтому получает реестр отдельным вызовом (<see cref="UseSecrets"/>).
     /// </remarks>
-    public static IReadOnlyList<string?> Secrets { get; set; } = [];
+    public static IReadOnlyList<string?> Secrets => _secrets.Current;
+
+    /// <summary>Откуда брать секреты. Зовётся один раз, корнем композиции.</summary>
+    internal static void UseSecrets(SecretRegistry secrets)
+    {
+        ArgumentNullException.ThrowIfNull(secrets);
+        _secrets = secrets;
+    }
 
     /// <summary>Перехватчики, которым не нужен ни Application, ни UI-поток.</summary>
     public static void InstallProcessWide()

@@ -59,43 +59,15 @@ public sealed class SpendSurvivesChatDeletionTests : IDisposable
         Directory.CreateDirectory(Path.Combine(root, "chats"));
         _roots.Add(root);
 
-        var options = new AgentOptions
-        {
-            ApiKey = "vk-deletion-probe-0123456789",
-            BaseUrl = "https://api.venice.ai/api/v1",
-            Model = "grok-4-6"
-        };
-
-        var http = new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
-        var download = new HttpClient { BaseAddress = new Uri("https://example.invalid/") };
-        var venice = new VeniceClient(http, options);
-        var settingsStore = new AppSettingsStore(root);
-        var settings = settingsStore.Load();
-
-        return new AppServices
-        {
-            Options = options,
-            SettingsStore = settingsStore,
-            Settings = settings,
-            ChatStore = new ChatStore(root),
-            Prompts = new PromptLibrary(root),
-            Instructions = new InstructionLibrary(root),
-            KeyStore = new ApiKeyStore(root),
-            Ledger = new SpendLedger(root),
-            Keys = new ApiKeyProvider(),
-            EnvironmentKey = "",
-            Profiles = new ProfileStore(),
-            ProfileRegistry = new ProfileRegistry(),
-            Http = http,
-            DownloadHttp = download,
-            Venice = venice,
-            Models = new VeniceModelListCache(venice),
-            Balances = new BalanceBook(),
-            Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
-            Titles = new ChatTitleGenerator(http, options, () => settings),
-            Summaries = new ChatSummaryGenerator(http, options, () => settings),
-            Confirmations = new ConfirmationQueue(() => settings)
-        };
+        return UiServices.Build(
+            root,
+            new AgentOptions
+            {
+                ApiKey = "vk-deletion-probe-0123456789",
+                BaseUrl = "https://api.venice.ai/api/v1",
+                Model = "grok-4-6"
+            },
+            new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") });
     }
 
     private static decimal AllTime(AppServices services) =>

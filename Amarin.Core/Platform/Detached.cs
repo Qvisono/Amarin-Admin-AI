@@ -1,6 +1,4 @@
-using Amarin.Core;
-
-namespace Amarin.UI;
+namespace Amarin.Core;
 
 /// <summary>
 /// Запуск работы, которую никто не ждёт: обновить список, сходить за объяснением, проверить
@@ -20,7 +18,7 @@ internal static class Detached
         ArgumentNullException.ThrowIfNull(task);
 
         _ = task.ContinueWith(
-            finished => CrashLog.Write($"detached {what}: {finished.Exception!.GetBaseException()}"),
+            finished => CrashLog.Write($"detached {what}: {finished.Exception?.GetBaseException()}"),
             CancellationToken.None,
             TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
