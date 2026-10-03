@@ -18,6 +18,13 @@ internal static class SourceTree
     /// <summary>Папка проекта приложения («Amarin Admin AI»): окна, разметка, запуск.</summary>
     public static string ProjectDirectory => Path.Combine(RepositoryRoot, Projects[0]);
 
+    /// <summary>Папка сборки логики без WPF (<c>Amarin.Core</c>): папки по функциям и инструменты.</summary>
+    public static string CoreDirectory => Path.Combine(RepositoryRoot, Projects[1]);
+
+    /// <summary>Файлы .cs одной папки <c>Amarin.Core</c> (<c>Updates</c>, <c>Storage</c>…), без вложенных.</summary>
+    public static IReadOnlyList<string> CoreFolder(string folder) =>
+        [.. Directory.EnumerateFiles(Path.Combine(CoreDirectory, folder), "*.cs").Order(StringComparer.Ordinal)];
+
     /// <summary>Папка тестов.</summary>
     public static string TestsDirectory => Path.Combine(RepositoryRoot, "Amarin.AdminAI.Tests");
 

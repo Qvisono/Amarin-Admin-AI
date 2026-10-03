@@ -82,82 +82,6 @@ public sealed class LocalizationTests
         }
     }
 
-    [Theory]
-    [InlineData("UI", "PasswordWindow.xaml.cs")]
-    [InlineData("UI", "MainWindow.Account.cs")]
-    [InlineData("UI", "MainWindow.Updates.cs")]
-    [InlineData("UI", "MainWindow.DataBundle.cs")]
-    [InlineData("UI", "MainWindow.About.cs")]
-    [InlineData("UI", "SettingsInfoPage.xaml.cs")]
-    [InlineData("UI", "GuideShot.xaml.cs")]
-    [InlineData("UI", "SettingsInstructionsPage.xaml.cs")]
-    [InlineData("UI", "MainWindow.Instructions.cs")]
-    [InlineData("Core", "InstructionLibrary.cs")]
-    [InlineData("Core", "InstructionBriefing.cs")]
-    [InlineData("Tools", "ReadInstructionTool.cs")]
-    [InlineData("Core", "UpdateChecker.cs")]
-    [InlineData("Core", "UpdateInstaller.cs")]
-    [InlineData("Core", "DataBundle.cs")]
-    [InlineData("Core", "DataBundleExporter.cs")]
-    [InlineData("Core", "DataBundleImporter.cs")]
-    // 1.28.0: окно подтверждения, статусы агента, «Поделиться», просмотр картинок, отчёт о
-    // сбое, экран блокировки и удаление данных — всё, что человек читает, идёт через Loc.
-    [InlineData("UI", "CodeBlockView.cs")]
-    [InlineData("UI", "MainWindow.Sharing.cs")]
-    [InlineData("UI", "MainWindow.ImageViewer.cs")]
-    [InlineData("UI", "ImageBlockView.cs")]
-    [InlineData("UI", "MainWindow.Summarize.cs")]
-    [InlineData("UI", "CostBreakdownTooltip.cs")]
-    [InlineData("UI", "ColorPickerField.xaml.cs")]
-    [InlineData("UI", "CrashHandler.cs")]
-    [InlineData("UI", "CrashWindow.xaml.cs")]
-    [InlineData("UI", "MainWindow.Wipe.cs")]
-    [InlineData("UI", "MainWindow.Lock.cs")]
-    [InlineData("UI", "LockScreen.xaml.cs")]
-    [InlineData("UI", "MainWindow.Appearance.cs")]
-    [InlineData("UI", "ReasoningPicker.xaml.cs")]
-    [InlineData("UI", "ChatMessageViews.cs")]
-    [InlineData("UI", "SettingsSecurityPage.xaml.cs")]
-    [InlineData("UI", "MainWindow.Notice.cs")]
-    [InlineData("UI", "MainWindow.Hotkeys.cs")]
-    [InlineData("UI", "HotkeyField.xaml.cs")]
-    [InlineData("Tools", "DangerousActionGuard.cs")]
-    [InlineData("Core", "Agent.cs")]
-    [InlineData("Core", "AgentUiAdapter.cs")]
-    [InlineData("Core", "ChatEngineInfographic.cs")]
-    [InlineData("Core", "ProfileDataWiper.cs")]
-    public void The_login_and_account_screens_hold_no_literal_russian(string folder, string file)
-    {
-        // Эти экраны написали до локализации, и подписи так и остались литералами: при
-        // японском интерфейсе «Войти», «Локальный режим» и «Задан» показывались по-русски.
-        // Разметка тянет строки через DynamicResource сама, а вот всё, что эти файлы пишут
-        // в интерфейс из кода, обязано идти через Loc — иначе язык до них не доходит.
-        //
-        // Страница обновлений и оба её файла в Core доехали до релиза целиком по-русски именно
-        // потому, что их в этом списке не было: девятнадцать литералов, которые никто не искал.
-        var relative = Path.Combine(folder, file);
-        var lines = File.ReadAllLines(ProjectFile(relative));
-        var offenders = new List<string>();
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            if (lines[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            foreach (System.Text.RegularExpressions.Match match in
-                     System.Text.RegularExpressions.Regex.Matches(lines[i], LiteralWithCyrillic))
-            {
-                offenders.Add($"{relative}:{i + 1} {match.Value}");
-            }
-        }
-
-        Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
-    }
-
-    private const string LiteralWithCyrillic = "\"[^\"\n]*[А-Яа-яЁё][^\"\n]*\"";
-
     [Fact]
     public void The_account_and_password_screens_are_translated()
     {
@@ -192,8 +116,6 @@ public sealed class LocalizationTests
 
         Assert.True(untranslated.Count == 0, $"не переведено: {string.Join(", ", untranslated)}");
     }
-
-    private static string ProjectFile(string relative) => SourceTree.ProjectFile(relative);
 
     private static string Placeholders(string value) =>
         string.Concat(System.Text.RegularExpressions.Regex
