@@ -2947,7 +2947,11 @@ namespace Amarin.UI
             // несколько раз за секунду. Если состав списка не изменился, строки остаются на
             // месте, а признаки на них правятся поштучно.
             var signature = _chatListScratch.Clear();
-            AppendChatListSignature(signature, query, items, organize, sort);
+            ChatListSignature.Append(
+                signature,
+                new ChatListView(query, _searchByContent, (int)_contentSearchState, sort, _tagFilter, _archiveExpanded, DateTime.Today),
+                items,
+                organize);
             if (signature.Equals(_chatListSignature) && ChatListPanel.Children.Count > 0)
             {
                 RefreshChatRowStates();
@@ -3026,7 +3030,7 @@ namespace Amarin.UI
                 string.Equals(sessionId, _session.Id, StringComparison.Ordinal));
             Flip(row, ChatRowState.IsWorkingProperty, IsBusy(sessionId));
             Flip(row, ChatRowState.NeedsAttentionProperty, Turns.NeedsAttention(sessionId));
-            Flip(row, ChatRowState.IsSelectedProperty, _selectedChats.Contains(sessionId));
+            Flip(row, ChatRowState.IsSelectedProperty, _selection.Contains(sessionId));
         }
 
         /// <summary>
@@ -3049,59 +3053,6 @@ namespace Amarin.UI
                 if (child is Button { Tag: string id } row)
                 {
                     ApplyChatRowState(row, id);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Слепок состава списка. Открытый чат, идущие ходы и метки внимания в него намеренно
-        /// не входят: они правятся признаками на уже стоящих строках, а не пересборкой панели.
-        /// </summary>
-        private void AppendChatListSignature(
-            System.Text.StringBuilder builder,
-            string query,
-            IReadOnlyList<ChatIndexEntry> items,
-            ChatOrganizer.State organize,
-            ChatSort sort)
-        {
-            // День входит в слепок: после полуночи «Сегодня» обязано стать «Вчера» и без правок.
-            builder.Append(query)
-                .Append('|').Append(_searchByContent ? '1' : '0')
-                .Append('|').Append((int)_contentSearchState)
-                .Append('|').Append((int)sort)
-                .Append('|').Append(_tagFilter)
-                .Append('|').Append(_archiveExpanded ? '1' : '0')
-                .Append('|').Append(DateTime.Today.Ticks);
-            foreach (var folder in organize.Folders)
-            {
-                builder.Append("|f").Append(folder.Id).Append('~').Append(folder.Name).Append('~').Append(folder.Collapsed ? '1' : '0');
-            }
-
-            foreach (var tag in organize.Tags)
-            {
-                builder.Append("|t").Append(tag.Id).Append('~').Append(tag.Color);
-            }
-
-            foreach (var item in items)
-            {
-                builder.Append('|')
-                    .Append(item.Id).Append('~')
-                    .Append(item.Title).Append('~')
-                    .Append(item.UpdatedAt.Ticks).Append('~')
-                    .Append(item.IsPinned ? '1' : '0')
-
-                    // Цена — всегда, а не только при сортировке по ней: она стоит в подсказке строки (E3).
-                    .Append('~').Append(item.TotalCost);
-
-                if (organize.Chats.TryGetValue(item.Id, out var placement))
-                {
-                    builder.Append('~').Append(placement.FolderId).Append('~');
-                    foreach (var tag in placement.Tags)
-                    {
-                        builder.Append(tag).Append(',');
-                    }
-
-                    builder.Append('~').Append(placement.Archived ? '1' : '0');
                 }
             }
         }

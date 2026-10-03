@@ -89,6 +89,63 @@ internal static class ChatDrop
         return new ChatDropPlan(pin, unpin, move, folderId, archive, unarchive);
     }
 
+    /// <summary>
+    /// Разложить брошенные чаты: закрепление в описи, папка и архив в раскладке.
+    /// </summary>
+    /// <returns><c>false</c> — бросок ничего не меняет (чат уже там), и список трогать незачем.</returns>
+    /// <remarks>
+    /// До 1.30.0 это делал обработчик окна. Брошенное в свёрнутую папку пропало бы из вида, поэтому
+    /// папка раскрывается и показывает его.
+    /// </remarks>
+    public static bool Apply(ChatStore store, ChatOrganizer organizer, IReadOnlyList<string> ids, ChatDropTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(organizer);
+        ArgumentNullException.ThrowIfNull(ids);
+
+        var pinned = store.List()
+            .Where(entry => entry.IsPinned)
+            .Select(entry => entry.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var plan = Plan(ids.Select(id => new ChatDropSource(id, pinned.Contains(id), organizer.PlacementOf(id))), target);
+        if (plan.IsEmpty)
+        {
+            return false;
+        }
+
+        foreach (var id in plan.Unpin)
+        {
+            store.SetPinned(id, false);
+        }
+
+        foreach (var id in plan.Pin)
+        {
+            store.SetPinned(id, true);
+        }
+
+        if (plan.Unarchive.Count > 0)
+        {
+            organizer.SetArchived(plan.Unarchive, false);
+        }
+
+        if (plan.Archive.Count > 0)
+        {
+            organizer.SetArchived(plan.Archive, true);
+        }
+
+        if (plan.Move.Count > 0)
+        {
+            organizer.MoveToFolder(plan.Move, plan.FolderId);
+        }
+
+        if (plan.FolderId is { } folder)
+        {
+            organizer.SetCollapsed(folder, false);
+        }
+
+        return true;
+    }
+
     private static void AddIf(List<string> list, string id, bool condition)
     {
         if (condition)

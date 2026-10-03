@@ -257,7 +257,7 @@ namespace Amarin.UI
                 _services.ChatStore.Delete(id);
                 _services.Confirmations.ForgetSession(id);
                 ForgetAttention(id);
-                _selectedChats.Remove(id);
+                _selection.Remove([id]);
             }
 
             if (deletingOpen)

@@ -21,8 +21,8 @@ namespace Amarin.UI
     /// </remarks>
     public partial class MainWindow
     {
-        private readonly HashSet<string> _selectedChats = new(StringComparer.Ordinal);
-        private string? _selectionAnchor;
+        /// <summary>Выбранные строки и якорь Shift+щелчка (см. <see cref="ChatSelection"/>).</summary>
+        private readonly ChatSelection _selection = new();
         private bool _archiveExpanded;
         private string? _tagFilter;
         private ChatListDrag? _chatDrag;
@@ -37,7 +37,7 @@ namespace Amarin.UI
                 SideBarScrollViewer,
                 ChatDragLayer,
                 () => _chatListDroppable && !_sidebarCollapsed,
-                id => _selectedChats.Count > 1 && _selectedChats.Contains(id) ? SelectedChats() : [id],
+                _selection.DragSet,
                 DropChats);
             _chatDrag.Ended += () =>
             {
@@ -49,59 +49,15 @@ namespace Amarin.UI
             };
         }
 
-        /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop"/>.</summary>
+        /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop.Apply"/>.</summary>
         private void DropChats(IReadOnlyList<string> ids, ChatDropTarget target)
         {
-            if (_services is null)
+            if (_services is null || !ChatDrop.Apply(_services.ChatStore, _services.Organizer, ids, target))
             {
                 return;
             }
 
-            var pinned = _services.ChatStore.List()
-                .Where(entry => entry.IsPinned)
-                .Select(entry => entry.Id)
-                .ToHashSet(StringComparer.Ordinal);
-            var plan = ChatDrop.Plan(
-                ids.Select(id => new ChatDropSource(id, pinned.Contains(id), _services.Organizer.PlacementOf(id))),
-                target);
-            if (plan.IsEmpty)
-            {
-                return;
-            }
-
-            foreach (var id in plan.Unpin)
-            {
-                _services.ChatStore.SetPinned(id, false);
-            }
-
-            foreach (var id in plan.Pin)
-            {
-                _services.ChatStore.SetPinned(id, true);
-            }
-
-            if (plan.Unarchive.Count > 0)
-            {
-                _services.Organizer.SetArchived(plan.Unarchive, false);
-            }
-
-            if (plan.Archive.Count > 0)
-            {
-                _services.Organizer.SetArchived(plan.Archive, true);
-            }
-
-            if (plan.Move.Count > 0)
-            {
-                _services.Organizer.MoveToFolder(plan.Move, plan.FolderId);
-            }
-
-            // Брошенное в свёрнутую папку пропало бы из вида — папка раскрывается и показывает его.
-            if (plan.FolderId is { } folder)
-            {
-                _services.Organizer.SetCollapsed(folder, false);
-            }
-
-            _selectedChats.Clear();
-            _selectionAnchor = null;
+            _selection.Reset();
             RefreshChatList();
             UpdateBatchBar();
         }
@@ -137,8 +93,7 @@ namespace Amarin.UI
         /// <summary>Смена профиля: выбор, фильтр и раскрытый архив относились к прежнему.</summary>
         private void ResetChatListView()
         {
-            _selectedChats.Clear();
-            _selectionAnchor = null;
+            _selection.Reset();
             _tagFilter = null;
             _archiveExpanded = false;
             InvalidateChatListSignature();
@@ -436,12 +391,7 @@ namespace Amarin.UI
 
         private void ToggleChatSelection(string id)
         {
-            if (!_selectedChats.Add(id))
-            {
-                _selectedChats.Remove(id);
-            }
-
-            _selectionAnchor = id;
+            _selection.Toggle(id);
             RefreshChatRowStates();
             UpdateBatchBar();
         }
@@ -453,34 +403,18 @@ namespace Amarin.UI
                 .Select(button => button.Tag as string)
                 .OfType<string>()
                 .ToList();
-            var anchor = _selectionAnchor ?? _session.Id;
-            var from = visible.IndexOf(anchor);
-            var to = visible.IndexOf(id);
-            if (from < 0 || to < 0)
-            {
-                ToggleChatSelection(id);
-                return;
-            }
-
-            _selectedChats.Clear();
-            foreach (var chat in visible.Skip(Math.Min(from, to)).Take(Math.Abs(to - from) + 1))
-            {
-                _selectedChats.Add(chat);
-            }
-
+            _selection.SelectRange(id, visible, _session.Id);
             RefreshChatRowStates();
             UpdateBatchBar();
         }
 
         private void ClearChatSelection()
         {
-            if (_selectedChats.Count == 0)
+            if (!_selection.Clear())
             {
                 return;
             }
 
-            _selectedChats.Clear();
-            _selectionAnchor = null;
             RefreshChatRowStates();
             UpdateBatchBar();
         }
@@ -488,28 +422,27 @@ namespace Amarin.UI
         private void UpdateBatchBar()
         {
             // Выбранный чат мог исчезнуть (удалён из другого места, сменился профиль).
-            if (_services is not null && _selectedChats.Count > 0)
+            if (_services is not null && _selection.Count > 0)
             {
-                var alive = _services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal);
-                _selectedChats.RemoveWhere(id => !alive.Contains(id));
+                _selection.KeepOnly(_services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal));
             }
 
-            if (_selectedChats.Count == 0 || _sidebarCollapsed)
+            if (_selection.Count == 0 || _sidebarCollapsed)
             {
                 BatchBar.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            BatchCount.Text = Loc.Format("S.ChatList.Selected", _selectedChats.Count);
+            BatchCount.Text = Loc.Format("S.ChatList.Selected", _selection.Count);
             var allArchived = _services is not null &&
-                              _selectedChats.All(id => _services.Organizer.PlacementOf(id).Archived);
+                              _selection.Items.All(id => _services.Organizer.PlacementOf(id).Archived);
             var archiveKey = allArchived ? "S.ChatList.Unarchive" : "S.ChatList.Archive";
             BatchArchiveButton.SetResourceReference(ToolTipProperty, archiveKey);
             System.Windows.Automation.AutomationProperties.SetName(BatchArchiveButton, Loc.Get(archiveKey));
             BatchBar.Visibility = Visibility.Visible;
         }
 
-        private IReadOnlyList<string> SelectedChats() => [.. _selectedChats];
+        private IReadOnlyList<string> SelectedChats() => _selection.Items;
 
         private void BatchFolderButton_Click(object sender, RoutedEventArgs e) => OpenFolderPicker(BatchFolderButton, SelectedChats());
 
@@ -517,12 +450,12 @@ namespace Amarin.UI
 
         private void BatchArchiveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_services is null || _selectedChats.Count == 0)
+            if (_services is null || _selection.Count == 0)
             {
                 return;
             }
 
-            var allArchived = _selectedChats.All(id => _services.Organizer.PlacementOf(id).Archived);
+            var allArchived = _selection.Items.All(id => _services.Organizer.PlacementOf(id).Archived);
             ArchiveChats(SelectedChats(), !allArchived);
         }
 
@@ -546,7 +479,7 @@ namespace Amarin.UI
             // выбранными строки, которых не видно.
             if (archived && !_archiveExpanded)
             {
-                _selectedChats.ExceptWith(ids);
+                _selection.Remove(ids);
             }
 
             RefreshChatList();

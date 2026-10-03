@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
@@ -127,51 +126,4 @@ public sealed class ChatListRefreshTests
         Assert.Equal(Visibility.Collapsed, idle);
         Assert.Equal(Visibility.Visible, working);
     }
-
-    [Fact]
-    public void Switching_chats_is_not_in_the_signature()
-    {
-        // Слепок описывает состав списка. Открытый чат в него не входит — иначе переключение
-        // означало бы пересборку панели целиком ради переезда подсветки на соседнюю строку.
-        var same = _wpf.Ui.Invoke(() =>
-        {
-            var window = Window();
-            var append = typeof(MainWindow).GetMethod(
-                "AppendChatListSignature", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            var session = typeof(MainWindow).GetField(
-                "_session", BindingFlags.Instance | BindingFlags.NonPublic)!;
-
-            var items = new List<Amarin.Core.ChatIndexEntry>
-            {
-                new() { Id = "один", Title = "Первый", UpdatedAt = new DateTime(2026, 1, 1) },
-                new() { Id = "два", Title = "Второй", UpdatedAt = new DateTime(2026, 1, 2) }
-            };
-
-            var organize = new Amarin.Core.ChatOrganizer.State();
-
-            string Build()
-            {
-                var builder = new System.Text.StringBuilder();
-                append.Invoke(window, [builder, "", items, organize, Amarin.Core.ChatSort.Updated]);
-                return builder.ToString();
-            }
-
-            var original = session.GetValue(window);
-            try
-            {
-                session.SetValue(window, new Amarin.Core.ChatSession { Id = "один" });
-                var first = Build();
-
-                session.SetValue(window, new Amarin.Core.ChatSession { Id = "два" });
-                return first == Build();
-            }
-            finally
-            {
-                session.SetValue(window, original);
-            }
-        });
-
-        Assert.True(same);
-    }
-
 }
