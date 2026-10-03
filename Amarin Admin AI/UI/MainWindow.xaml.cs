@@ -118,6 +118,7 @@ namespace Amarin.UI
             PopupManager.Register(ModelPicker, ModelButton);
             PopupManager.Register(ActionsPopup, AttachButton);
             PopupManager.Register(ConfirmationAllowPopup, ConfirmationAllowToggle);
+            PopupManager.Register(UpdateBadgePopup, UpdateBadgeButton);
             InitializeQuotes();
 
             WindowMaximizeFix.Attach(this);

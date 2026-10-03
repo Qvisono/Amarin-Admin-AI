@@ -1853,6 +1853,7 @@
     <system:String x:Key="S.Updates.Beta" xml:space="preserve">Бета-версии</system:String>
     <system:String x:Key="S.Updates.BetaDesc" xml:space="preserve">Предлагать и предварительные выпуски. Они выходят раньше и могут содержать ошибки.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Не удалось открыть браузер: {0}</system:String>
+    <system:String x:Key="S.Updates.CancelDownload" xml:space="preserve">Отменить загрузку</system:String>
     <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Не удалось освободить файл программы: {0}</system:String>
     <system:String x:Key="S.Updates.Check" xml:space="preserve">Проверить обновления</system:String>
     <system:String x:Key="S.Updates.CheckFailed" xml:space="preserve">Проверить не удалось</system:String>
@@ -1860,6 +1861,7 @@
     <system:String x:Key="S.Updates.ConfirmText" xml:space="preserve">Установлена {0}, доступна {1}. Будет скачано {2} и записано на место текущей программы.</system:String>
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Обновить до версии {0}</system:String>
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Текущая версия</system:String>
+    <system:String x:Key="S.Updates.Details" xml:space="preserve">Подробнее</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Загрузка отменена.</system:String>
     <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Скачиваем версию {0} - {1} %</system:String>
     <system:String x:Key="S.Updates.DownloadingToInstall" xml:space="preserve">Скачиваем версию {0} - {1} %, затем установим и перезапустим</system:String>
@@ -1906,6 +1908,7 @@
     <system:String x:Key="S.Updates.Pill.Installing" xml:space="preserve">Установка</system:String>
     <system:String x:Key="S.Updates.Pill.Ready" xml:space="preserve">Готово к установке</system:String>
     <system:String x:Key="S.Updates.Pill.UpToDate" xml:space="preserve">Последняя версия</system:String>
+    <system:String x:Key="S.Updates.Postponed" xml:space="preserve">Доступна версия {0} - загрузка отменена до перезапуска программы</system:String>
     <system:String x:Key="S.Updates.PreviousUnknown" xml:space="preserve">прошлая версия</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка - после {0}.</system:String>
     <system:String x:Key="S.Updates.Ready" xml:space="preserve">Версия {0} скачана и встанет, когда вы закроете программу</system:String>

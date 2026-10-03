@@ -2,8 +2,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Amarin.Core;
+using Path = System.IO.Path;
 
 namespace Amarin.UI
 {
@@ -117,6 +120,7 @@ namespace Amarin.UI
             // навсегда осталась бы на языке, который стоял в тот момент.
             UpdateNowButton.Content = view.ActionLabel;
             UpdateNowButton.Visibility = view.Action == UpdateAction.None ? Visibility.Collapsed : Visibility.Visible;
+            UpdateCancelDownloadButton.Visibility = view.CanCancelDownload ? Visibility.Visible : Visibility.Collapsed;
             OpenReleaseButton.Visibility = view.ShowOpenRelease ? Visibility.Visible : Visibility.Collapsed;
             CheckUpdatesButton.IsEnabled = view.CanCheck;
 
@@ -131,6 +135,110 @@ namespace Amarin.UI
 
             SettingsVersionText.Text = view.SidebarText;
             SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, view.SidebarAccent ? "Accent.Fill" : "Text.Secondary");
+            RenderUpdateBadge(view);
+        }
+
+        // Значки в точках квадрата 18×18 с центром 9,9 — как кольцо загрузки вокруг них.
+        private const string BadgeArrowGlyph = "M9,5 L9,12.5 M5.8,9.3 L9,12.5 L12.2,9.3";
+        private const string BadgeReadyGlyph = "M5.5,9.5 L8,12 L12.5,6.5";
+        private const string BadgeFailedGlyph = "M9,4.5 L9,10.2 M9,13.1 L9,13.3";
+
+        /// <summary>
+        /// Значок обновления в шапке и его попап — из того же вида, что и плашка в настройках:
+        /// одно состояние, два места, и разойтись им нечем.
+        /// </summary>
+        private void RenderUpdateBadge(UpdateView view)
+        {
+            var ring = view.Badge is UpdateBadge.Downloading or UpdateBadge.Installing;
+            UpdateBadgeTrack.Visibility = ring ? Visibility.Visible : Visibility.Collapsed;
+            UpdateBadgeArc.Visibility = ring ? Visibility.Visible : Visibility.Collapsed;
+            if (view.Badge == UpdateBadge.Hidden)
+            {
+                UpdateBadgeButton.IsChecked = false;
+                UpdateBadgeButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            UpdateBadgeButton.Visibility = Visibility.Visible;
+            if (ring)
+            {
+                UpdateBadgeArc.Data = BadgeArc(view.Badge == UpdateBadge.Installing ? 1 : view.Progress ?? 0);
+            }
+
+            UpdateBadgeIcon.Data = Glyphs.Get(view.Badge switch
+            {
+                UpdateBadge.Ready => BadgeReadyGlyph,
+                UpdateBadge.Failed => BadgeFailedGlyph,
+                _ => BadgeArrowGlyph
+            });
+            UpdateBadgeIcon.SetResourceReference(Shape.StrokeProperty, view.Badge == UpdateBadge.Failed ? "Status.Warning" : "Accent.Fill");
+            UpdateBadgeButton.ToolTip = view.SidebarText;
+
+            UpdateBadgeVersion.Text = view.SidebarText;
+            UpdateBadgeStatus.Text = view.Status;
+            if (view.Progress is { } share)
+            {
+                var done = Math.Clamp(share, 0, 1);
+                UpdateBadgeProgressDone.Width = new GridLength(done, GridUnitType.Star);
+                UpdateBadgeProgressLeft.Width = new GridLength(1 - done, GridUnitType.Star);
+                UpdateBadgeProgress.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                UpdateBadgeProgress.Visibility = Visibility.Collapsed;
+            }
+
+            UpdateBadgeActionButton.Content = view.ActionLabel;
+            UpdateBadgeActionButton.Visibility = view.Action == UpdateAction.None ? Visibility.Collapsed : Visibility.Visible;
+            UpdateBadgeCancelButton.Visibility = view.CanCancelDownload ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Дуга кольца загрузки: от верха по часовой стрелке на долю скачанного. Радиус 8 при
+        /// толщине 2 — кольцо целиком в квадрате 18×18.
+        /// </summary>
+        internal static Geometry BadgeArc(double share)
+        {
+            const double center = 9;
+            const double radius = 8;
+            var part = Math.Clamp(share, 0, 1);
+            if (part >= 0.999)
+            {
+                return new EllipseGeometry(new Point(center, center), radius, radius);
+            }
+
+            var angle = part * 2 * Math.PI;
+            var start = new Point(center, center - radius);
+            var end = new Point(center + (radius * Math.Sin(angle)), center - (radius * Math.Cos(angle)));
+            var figure = new PathFigure { StartPoint = start, IsClosed = false };
+            figure.Segments.Add(new ArcSegment(end, new Size(radius, radius), 0, part > 0.5, SweepDirection.Clockwise, isStroked: true));
+            var arc = new PathGeometry([figure]);
+            arc.Freeze();
+            return arc;
+        }
+
+        /// <summary>
+        /// Главная кнопка попапа — та же, что на плашке. Попап закрывается: вопрос «Обновить до
+        /// версии…» встаёт на его место, а не под ним.
+        /// </summary>
+        private void UpdateBadgeActionButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateBadgeButton.IsChecked = false;
+            UpdateNowButton_Click(sender, e);
+        }
+
+        /// <summary>
+        /// Фоновую загрузку — до следующего запуска (<see cref="UpdateState.Postponed"/>). Одна
+        /// кнопка на два места: попап значка в шапке и карточка в настройках.
+        /// </summary>
+        private void UpdateBadgeCancelButton_Click(object sender, RoutedEventArgs e) => Updates.Cancel();
+
+        /// <summary>Настройки на странице данных — карточка обновлений там.</summary>
+        private void UpdateBadgeDetailsButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateBadgeButton.IsChecked = false;
+            OpenSettingsPage(NavData);
+            Dispatcher.BeginInvoke(() => UpdateVersionText.BringIntoView(), DispatcherPriority.Loaded);
         }
 
         private void AutoUpdateToggle_Changed(object sender, RoutedEventArgs e)

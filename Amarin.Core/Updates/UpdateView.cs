@@ -18,9 +18,34 @@ public enum UpdateAction
     Cancel
 }
 
+/// <summary>Что показывает значок обновления в шапке окна.</summary>
+public enum UpdateBadge
+{
+    /// <summary>
+    /// Значка нет: обновлять нечего. Неудачная проверка — тоже сюда: о ней говорит плашка в
+    /// настройках, а шапка не должна мигать из-за того, что не ответил GitHub.
+    /// </summary>
+    Hidden,
+
+    /// <summary>Есть новая версия.</summary>
+    Available,
+
+    /// <summary>Качается — значок с долей скачанного.</summary>
+    Downloading,
+
+    /// <summary>Скачана и ждёт установки.</summary>
+    Ready,
+
+    /// <summary>Ставится — до перезапуска.</summary>
+    Installing,
+
+    /// <summary>Загрузка, установка или перезапуск не удались.</summary>
+    Failed
+}
+
 /// <summary>
 /// Плашка обновлений, как её надо нарисовать: пилюля, строка, кнопки, полоса, метка в боковой
-/// колонке настроек. Окно только переносит это на контролы.
+/// колонке настроек и значок в шапке окна. Окно только переносит это на контролы.
 /// </summary>
 /// <param name="Progress">Доля скачанного; null — полосы нет.</param>
 /// <param name="SidebarAccent">Метку в боковой колонке красить акцентом: есть новая версия.</param>
@@ -35,6 +60,16 @@ public sealed record UpdateView(
     string SidebarText,
     bool SidebarAccent)
 {
+    /// <summary>
+    /// Фоновую загрузку можно отменить отдельной кнопкой. Главная кнопка у неё — «Обновить»
+    /// (присоединиться и поставить), и до 1.30.0 остановить такую загрузку было нечем, кроме
+    /// галки автообновления.
+    /// </summary>
+    public bool CanCancelDownload { get; init; }
+
+    /// <summary>Значок обновления в шапке окна.</summary>
+    public UpdateBadge Badge { get; init; }
+
     /// <summary>Подпись главной кнопки.</summary>
     public string ActionLabel => Action switch
     {
@@ -67,8 +102,27 @@ public sealed record UpdateView(
             CanCheck: !state.CheckRunning && !state.SwapDone && state.Installing is null && state.Download is not { Wanted: true },
             Progress: state.Download?.Share,
             sidebar,
-            sidebarAccent);
+            sidebarAccent)
+        {
+            CanCancelDownload = state.Download is { Wanted: false },
+            Badge = BadgeOf(state)
+        };
     }
+
+    /// <summary>
+    /// Значок в шапке — по фактам, в том же порядке важности, что и пилюля: идущая установка
+    /// важнее загрузки, загрузка — скачанного, скачанное — найденного.
+    /// </summary>
+    private static UpdateBadge BadgeOf(UpdateState state) => state switch
+    {
+        { RestartError: not null } => UpdateBadge.Failed,
+        { Installing: not null } or { SwapDone: true } => UpdateBadge.Installing,
+        { Download: not null } => UpdateBadge.Downloading,
+        { Failure: not null } => UpdateBadge.Failed,
+        { Staged: not null } => UpdateBadge.Ready,
+        { Latest: not null } => UpdateBadge.Available,
+        _ => UpdateBadge.Hidden
+    };
 
     private static (string Text, bool Accent) StatusOf(UpdateState state, UpdatePhase phase, string current)
     {
@@ -106,6 +160,11 @@ public sealed record UpdateView(
 
             // Без файла сборки кнопке нечего ставить — тогда строка прямо говорит, где взять
             // версию, а не оставляет человека гадать, куда делась кнопка.
+            // Загрузку этой версии отменили: строка говорит, что она вернётся сама, иначе «Доступна
+            // версия» читалась бы так, будто отмена не сработала.
+            case UpdatePhase.Found when state.Latest is { } latest && latest.Release == state.Postponed:
+                return (Loc.Format("S.Updates.Postponed", latest.Release), false);
+
             case UpdatePhase.Found when state.Latest is { } latest:
                 return (Loc.Format(
                     latest.WindowsBuild is null ? "S.Updates.AvailableNoBuild" : "S.Updates.Available",

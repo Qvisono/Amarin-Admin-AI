@@ -68,6 +68,17 @@ public static class UpdateMachine
         release.Release > context.Current &&
         (context.Declined is not { } declined || release.Release > declined);
 
+    /// <summary>
+    /// То же, но и с тем, что человек сказал в этом запуске: отложенную им версию сами не качаем
+    /// и при выходе не ставим (<see cref="UpdateState.Postponed"/>).
+    /// </summary>
+    public static bool WantedAutomatically(UpdateState state, ReleaseInfo release, UpdateContext context)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(release);
+        return WantedAutomatically(release, context) && release.Release != state.Postponed;
+    }
+
     private static UpdateTransition StartCheck(UpdateState state, bool manual)
     {
         // Вторая проверка поверх идущей ничего бы не прибавила: кнопка «Проверить» на это время
@@ -147,6 +158,7 @@ public static class UpdateMachine
             next.Download is null &&
             next.Installing is null &&
             !next.SwapDone &&
+            latest.Release != next.Postponed &&
             UpdateSchedule.ShouldAutoDownload(autoUpdate: true, latest, next.Staged?.Version, context.Declined))
         {
             var (started, start) = BeginDownload(next, latest, UpdateDownloadOrigin.Background, installRequested: false, allowUnverified: false, plan: null);
@@ -170,8 +182,9 @@ public static class UpdateMachine
             return UpdateTransition.Stay(state);
         }
 
+        // «Обновить» после отмены — человек передумал: отметка «до перезапуска» снимается.
         var version = confirmed.Release.Release;
-        var clean = state with { Notice = null, Failure = null };
+        var clean = state with { Notice = null, Failure = null, Postponed = null };
 
         // Автообновление могло принести этот самый файл в фоне. Качать его второй раз —
         // семьдесят восемь мегабайт впустую и лишняя минута ожидания.
@@ -208,10 +221,15 @@ public static class UpdateMachine
         return new(started, effects);
     }
 
+    /// <remarks>
+    /// Отменённая версия откладывается до следующего запуска (<see cref="UpdateState.Postponed"/>),
+    /// кто бы ни начал загрузку — фон или кнопка: иначе следующая проверка завела бы её снова, а
+    /// закрытие программы докачало бы и поставило то, от чего человек только что отказался.
+    /// </remarks>
     private static UpdateTransition Cancel(UpdateState state) =>
         state.Download is { } download
             ? new(
-                state with { Download = null, Notice = new(UpdateNoticeKind.DownloadCancelled) },
+                state with { Download = null, Notice = new(UpdateNoticeKind.DownloadCancelled), Postponed = download.Version },
                 [new UpdateEffect.CancelDownload(download.Generation)])
             : UpdateTransition.Stay(state);
 
@@ -318,7 +336,8 @@ public static class UpdateMachine
             Failure = null,
             Notice = null,
             LastCheckError = null,
-            CheckRunning = false
+            CheckRunning = false,
+            Postponed = null
         };
         var check = StartCheck(cleared, manual: true);
         return new(check.State, [.. effects, .. check.Effects]);
@@ -339,7 +358,7 @@ public static class UpdateMachine
     private static UpdateTransition RetryDownload(UpdateState state, UpdateContext context)
     {
         if (state.Download is not null || state.Installing is not null || state.SwapDone ||
-            state.Latest is not { } release || !WantedAutomatically(release, context) ||
+            state.Latest is not { } release || !WantedAutomatically(state, release, context) ||
             !UpdateSchedule.ShouldAutoDownload(context.AutoUpdate, release, state.Staged?.Version, context.Declined))
         {
             return UpdateTransition.Stay(state);

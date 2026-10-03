@@ -195,6 +195,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootHealth(window, folder);
             }
 
+            if (Wanted(only, "updates"))
+            {
+                await ShootUpdates(window, folder);
+            }
+
             if (Wanted(only, "dialogs"))
             {
                 await ShootDialogs(window, services, folder);
@@ -584,6 +589,96 @@ public sealed class UiShotTests : IDisposable
                 stack.Push(VisualTreeHelper.GetChild(node, i));
             }
         }
+    }
+
+    /// <summary>
+    /// Обновления во всех состояниях: значок в шапке, его попап и карточка на странице данных.
+    /// Состояние подаётся прямо в автомат — сеть и файлы не нужны.
+    /// </summary>
+    private static async Task ShootUpdates(MainWindow window, string folder)
+    {
+        var release = UpdateTestKit.Release("99.0.0");
+        var title = (FrameworkElement)((FrameworkElement)window.FindName("TitleText")).Parent;
+        var badge = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("UpdateBadgeButton");
+        var popup = (Popup)window.FindName("UpdateBadgePopup");
+        var states = new (string Name, UpdateState State)[]
+        {
+            ("none", UpdateState.Initial with { LastSuccessUtc = DateTime.UtcNow }),
+            ("found", UpdateState.Initial with { Latest = release }),
+            ("background", UpdateState.Initial with
+            {
+                Latest = release,
+                Download = new UpdateDownload(release, UpdateDownloadOrigin.Background, false, false, 0.42, 1, null),
+                DownloadGeneration = 1
+            }),
+            ("joined", UpdateState.Initial with
+            {
+                Latest = release,
+                Download = new UpdateDownload(release, UpdateDownloadOrigin.Background, true, false, 0.42, 1, null),
+                DownloadGeneration = 1
+            }),
+            ("postponed", UpdateState.Initial with { Latest = release, Postponed = release.Release }),
+            ("ready", UpdateState.Initial with { Latest = release, Staged = UpdateTestKit.Staged(release) }),
+            ("installing", UpdateState.Initial with { Latest = release, Installing = UpdateTestKit.Staged(release) }),
+            ("failed", UpdateState.Initial with { Latest = release, Failure = new(release.Release, "Контрольная сумма не совпала") })
+        };
+
+        try
+        {
+            foreach (var (name, state) in states)
+            {
+                window.Updates.Seed(_ => state);
+                await Settle(150);
+                Save(title, Path.Combine(folder, $"upd-title-{name}.png"), (Brush)window.FindResource("Bg.Window"),
+                    new Rect(Math.Max(0, title.ActualWidth - 240), 0, Math.Min(240, title.ActualWidth), title.ActualHeight));
+                if (badge.Visibility == Visibility.Visible)
+                {
+                    badge.IsChecked = true;
+                    await Settle(250);
+                    if (popup.Child is FrameworkElement card)
+                    {
+                        Save(card, Path.Combine(folder, $"upd-popup-{name}.png"), null);
+                    }
+
+                    badge.IsChecked = false;
+                    await Settle(100);
+                }
+            }
+
+            // Карточка в настройках — те же состояния.
+            Call(window, "SettingsButton_Click", window, new RoutedEventArgs());
+            ((RadioButton)window.FindName("NavData")).IsChecked = true;
+            await Settle(450);
+            var updateCard = Ancestor<Border>((DependencyObject)window.FindName("UpdateVersionText"), border => border.BorderThickness.Left >= 1);
+            foreach (var (name, state) in states)
+            {
+                window.Updates.Seed(_ => state);
+                await Settle(150);
+                if (updateCard is not null)
+                {
+                    Save(updateCard, Path.Combine(folder, $"upd-card-{name}.png"), (Brush)window.FindResource("Bg.Panel"));
+                }
+            }
+
+            Call(window, "SettingsCloseButton_Click", window, new RoutedEventArgs());
+        }
+        finally
+        {
+            window.Updates.Seed(_ => UpdateState.Initial);
+        }
+    }
+
+    private static T? Ancestor<T>(DependencyObject start, Func<T, bool> match) where T : DependencyObject
+    {
+        for (var node = VisualTreeHelper.GetParent(start); node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is T found && match(found))
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static void Save(FrameworkElement element, string path, Brush? background, Rect? region = null)

@@ -1701,6 +1701,78 @@
                     <TextBlock x:Name="TitleText" Style="{StaticResource TitleUrbanist}" Text="Amarin Admin AI" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Column="1">
                         <!--
+                            Обновление на главном экране. Значок есть, только когда есть что сказать:
+                            найдена новая версия, качается, скачана, ставится или не удалась (UpdateView.Badge).
+                            До 1.30.0 о новой версии знала одна страница настроек. Щелчок — компактный
+                            попап с той же кнопкой, что на плашке, и отменой фоновой загрузки.
+                        -->
+                        <ToggleButton x:Name="UpdateBadgeButton" Width="30" Height="30" Visibility="Collapsed"
+                                      Focusable="False" Cursor="Hand"
+                                      AutomationProperties.Name="{DynamicResource S.Updates.Title}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="border" Background="Transparent">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                            <Grid Width="18" Height="18">
+                                <!-- Кольцо загрузки: дорожка и дуга по доле скачанного. -->
+                                <Ellipse x:Name="UpdateBadgeTrack" Stroke="{DynamicResource Bg.Track}" StrokeThickness="2"
+                                         Visibility="Collapsed"/>
+                                <Path x:Name="UpdateBadgeArc" Stroke="{DynamicResource Accent.Fill}" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed"/>
+                                <!-- Значок в точках квадрата 18×18, без растяжения: центр — 9,9, как у кольца. -->
+                                <Path x:Name="UpdateBadgeIcon" Stretch="None"
+                                      StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Stroke="{DynamicResource Accent.Fill}"/>
+                            </Grid>
+                        </ToggleButton>
+                        <!-- Правым краем — по значку, на 6 ниже шапки; поля под тень — PopupShadow. -->
+                        <Popup x:Name="UpdateBadgePopup" PlacementTarget="{Binding ElementName=UpdateBadgeButton}"
+                               Placement="Bottom" HorizontalOffset="-264" VerticalOffset="-8"
+                               AllowsTransparency="True" StaysOpen="True" PopupAnimation="Fade"
+                               IsOpen="{Binding IsChecked, ElementName=UpdateBadgeButton, Mode=TwoWay}">
+                            <Border Width="280" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
+                                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
+                                    Padding="14,12" Effect="{x:Static local:PopupShadow.Effect}">
+                                <StackPanel>
+                                    <TextBlock x:Name="UpdateBadgeVersion" FontSize="12.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Text.Body}" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="UpdateBadgeStatus" FontSize="11.5" Margin="0,4,0,0"
+                                               Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"/>
+                                    <Grid x:Name="UpdateBadgeProgress" Height="4" Margin="0,10,0,0" Visibility="Collapsed">
+                                        <Border CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition x:Name="UpdateBadgeProgressDone" Width="0*"/>
+                                                <ColumnDefinition x:Name="UpdateBadgeProgressLeft" Width="1*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                                        </Grid>
+                                    </Grid>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button x:Name="UpdateBadgeActionButton" Style="{StaticResource DialogPrimaryButton}"
+                                                Margin="0,0,8,6" Click="UpdateBadgeActionButton_Click"/>
+                                        <Button x:Name="UpdateBadgeCancelButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Margin="0,0,8,6" Content="{DynamicResource S.Updates.CancelDownload}"
+                                                Click="UpdateBadgeCancelButton_Click"/>
+                                        <Button x:Name="UpdateBadgeDetailsButton" Style="{StaticResource DialogSecondaryButton}"
+                                                Margin="0,0,0,6" Content="{DynamicResource S.Updates.Details}"
+                                                Click="UpdateBadgeDetailsButton_Click"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                        <!--
                             Кнопка, а не значок: щелчок перезапускает программу от администратора (C9).
                             Вид и подсказка — ровно как в 1.27.1: без подсветки под курсором и с одной
                             строкой текста; о щелчке говорит курсор-рука.
@@ -3806,6 +3878,12 @@
                                                     Margin="0,0,6,0" Visibility="Collapsed"
                                                     Content="{DynamicResource S.Updates.Update}"
                                                     Click="UpdateNowButton_Click"/>
+                                            <!-- Фоновую загрузку «Обновить» не отменяет, а присоединяется к ней;
+                                                 остановить её — эта кнопка (до следующего запуска). -->
+                                            <Button x:Name="UpdateCancelDownloadButton" Style="{StaticResource SecondaryButton}"
+                                                    Margin="0,0,6,0" Visibility="Collapsed"
+                                                    Content="{DynamicResource S.Updates.CancelDownload}"
+                                                    Click="UpdateBadgeCancelButton_Click"/>
                                             <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
                                                     Margin="0,0,6,0" Visibility="Collapsed"
                                                     Content="{DynamicResource S.Updates.OpenRelease}"

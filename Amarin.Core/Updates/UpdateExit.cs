@@ -108,7 +108,7 @@ public sealed class UpdateExit
                    (state.CheckRunning ||
                     UpdateSchedule.CheckDueOnExit(context.NowUtc, state.LastSuccessUtc) ||
                     state.Download is not null ||
-                    (state.Latest is { WindowsBuild: not null } found && UpdateMachine.WantedAutomatically(found, context)));
+                    (state.Latest is { WindowsBuild: not null } found && UpdateMachine.WantedAutomatically(state, found, context)));
         }
     }
 

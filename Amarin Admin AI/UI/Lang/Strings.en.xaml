@@ -1853,6 +1853,7 @@
     <system:String x:Key="S.Updates.Beta" xml:space="preserve">Beta versions</system:String>
     <system:String x:Key="S.Updates.BetaDesc" xml:space="preserve">Offer pre-releases too. They come out earlier and may contain bugs.</system:String>
     <system:String x:Key="S.Updates.BrowserFailed" xml:space="preserve">Could not open the browser: {0}</system:String>
+    <system:String x:Key="S.Updates.CancelDownload" xml:space="preserve">Cancel download</system:String>
     <system:String x:Key="S.Updates.CannotFreeExe" xml:space="preserve">Could not release the program file: {0}</system:String>
     <system:String x:Key="S.Updates.Check" xml:space="preserve">Check for updates</system:String>
     <system:String x:Key="S.Updates.CheckFailed" xml:space="preserve">The check did not go through</system:String>
@@ -1860,6 +1861,7 @@
     <system:String x:Key="S.Updates.ConfirmText" xml:space="preserve">{0} is installed, {1} is available. {2} will be downloaded and written over the current program.</system:String>
     <system:String x:Key="S.Updates.ConfirmTitle" xml:space="preserve">Update to version {0}</system:String>
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Current version</system:String>
+    <system:String x:Key="S.Updates.Details" xml:space="preserve">Details</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
     <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Downloading version {0} - {1} %</system:String>
     <system:String x:Key="S.Updates.DownloadingToInstall" xml:space="preserve">Downloading version {0} - {1} %, then installing and restarting</system:String>
@@ -1906,6 +1908,7 @@
     <system:String x:Key="S.Updates.Pill.Installing" xml:space="preserve">Installing</system:String>
     <system:String x:Key="S.Updates.Pill.Ready" xml:space="preserve">Ready to install</system:String>
     <system:String x:Key="S.Updates.Pill.UpToDate" xml:space="preserve">Up to date</system:String>
+    <system:String x:Key="S.Updates.Postponed" xml:space="preserve">Version {0} is available - download postponed until the app restarts</system:String>
     <system:String x:Key="S.Updates.PreviousUnknown" xml:space="preserve">the previous version</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
     <system:String x:Key="S.Updates.Ready" xml:space="preserve">Version {0} is downloaded and will be installed when you close the app</system:String>
