@@ -3,17 +3,17 @@ using System.Text.Json;
 namespace Amarin.Core;
 
 /// <summary>
-/// Parsing and normalisation for the user-managed download allowlist.
-/// Shared by the settings page, the "add domain" dialog and the confirmation guard.
+/// Разбор и приведение белого списка загрузок. Общий для страницы настроек, окна «добавить домен»
+/// и проверки при подтверждении.
 /// </summary>
 public static class DomainList
 {
-    /// <summary>Prefix of the <c>download_file</c> error the UI recognises as a blocked host.</summary>
+    /// <summary>Начало ошибки <c>download_file</c>, по которому интерфейс узнаёт закрытый домен.</summary>
     public const string BlockedMarker = "DOMAIN_BLOCKED:";
 
     /// <summary>
-    /// Reduces free-form input to a bare host: strips scheme, credentials, path, query, port,
-    /// a trailing dot and a leading <c>www.</c>. Returns <c>null</c> when nothing usable is left.
+    /// Сводит свободный ввод к голому имени узла: снимает схему, учётные данные, путь, запрос, порт,
+    /// конечную точку и начальное <c>www.</c>. <c>null</c> — не осталось ничего годного.
     /// </summary>
     public static string? Normalize(string? input)
     {
@@ -57,7 +57,7 @@ public static class DomainList
         return IsValidHost(text) ? text : null;
     }
 
-    /// <summary>Adds a normalised host to <paramref name="list"/>, reporting why it was rejected.</summary>
+    /// <summary>Добавляет приведённый домен в <paramref name="list"/> или говорит, почему нельзя.</summary>
     public static bool TryAdd(IList<string> list, string? input, out string error)
     {
         ArgumentNullException.ThrowIfNull(list);
@@ -80,7 +80,7 @@ public static class DomainList
         return true;
     }
 
-    /// <summary>Reads the <c>url</c> argument of a <c>download_file</c> call and returns its host.</summary>
+    /// <summary>Читает аргумент <c>url</c> вызова <c>download_file</c> и возвращает его домен.</summary>
     public static bool TryGetHostFromToolArguments(string? argumentsJson, out string host)
     {
         host = string.Empty;

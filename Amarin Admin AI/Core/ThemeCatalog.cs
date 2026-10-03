@@ -1,22 +1,21 @@
 namespace Amarin.Core;
 
 /// <summary>
-/// One palette preset: which dictionary to load, whether icons and vendor logos should use
-/// their light or dark variant, and the three colours the settings card previews with.
+/// Готовая палитра: какой словарь грузить, светлые или тёмные варианты значков и логотипов, и три
+/// цвета для образца в настройках.
 /// </summary>
-/// <param name="Theme">The persisted enum value.</param>
-/// <param name="DisplayName">Label on the Appearance card.</param>
-/// <param name="PaletteName">File name under <c>UI/Theme</c>, without the extension.</param>
-/// <param name="IsLight">Icons, vendor logos and the system-theme hook follow this.</param>
-/// <param name="Surface">Preview: window background.</param>
-/// <param name="Raised">Preview: a panel on top of it.</param>
-/// <param name="Accent">Preview: the accent stripe.</param>
+/// <param name="Theme">Значение перечисления, которое сохраняется.</param>
+/// <param name="DisplayName">Подпись на карточке «Оформления».</param>
+/// <param name="PaletteName">Имя файла в <c>UI/Theme</c> без расширения.</param>
+/// <param name="IsLight">По нему выбираются значки, логотипы и поведение «как в Windows».</param>
+/// <param name="Surface">Образец: фон окна.</param>
+/// <param name="Raised">Образец: панель на нём.</param>
+/// <param name="Accent">Образец: полоса акцента.</param>
 /// <param name="Grain">
-/// How much matte grain the preset asks for, 0..1. Only the two Matte presets want any;
-/// everything else shipped before the grain layer existed and must look exactly as it did.
-/// A palette cannot carry this itself — a palette is 48 brushes and nothing else — so the
-/// wish lives here and <c>AppearanceSettings.Grain</c> overrides it once a person touches
-/// the slider.
+/// Сколько матового зерна просит тема, 0..1. Его хотят только две «матовые» темы; остальные вышли
+/// раньше слоя зерна и должны выглядеть как прежде. Палитра сама нести это не может — в ней только
+/// 48 кистей, — поэтому пожелание живёт здесь, а <c>AppearanceSettings.Grain</c> его перекрывает,
+/// как только человек тронет ползунок.
 /// </param>
 public readonly record struct ThemePresetInfo(
     AppTheme Theme,
@@ -29,8 +28,8 @@ public readonly record struct ThemePresetInfo(
     double Grain = 0);
 
 /// <summary>
-/// The palettes shipped with the app. <see cref="AppTheme.System"/> is not listed here —
-/// it resolves to <see cref="AppTheme.Light"/> or <see cref="AppTheme.Dark"/> at paint time.
+/// Палитры программы. <see cref="AppTheme.System"/> здесь нет — при отрисовке он становится
+/// <see cref="AppTheme.Light"/> или <see cref="AppTheme.Dark"/>.
 /// </summary>
 public static class ThemeCatalog
 {
@@ -108,9 +107,8 @@ public static class ThemeCatalog
     ];
 
     /// <summary>
-    /// Resolves <paramref name="theme"/> to the preset that should actually be painted.
-    /// <see cref="AppTheme.System"/> and unknown values fall back through
-    /// <paramref name="systemIsLight"/> to Light or Dark.
+    /// Сводит <paramref name="theme"/> к палитре, которую надо рисовать. <see cref="AppTheme.System"/>
+    /// и неизвестные значения через <paramref name="systemIsLight"/> становятся Light или Dark.
     /// </summary>
     public static ThemePresetInfo Resolve(AppTheme theme, bool systemIsLight)
     {

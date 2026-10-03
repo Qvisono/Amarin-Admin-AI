@@ -3,16 +3,15 @@ using Amarin.Tools;
 namespace Amarin.Core;
 
 /// <summary>
-/// Maps short handles like <c>amarin-image:6f2a91c4</c> to the picture they stand for.
+/// Сопоставляет короткие ссылки вида <c>amarin-image:6f2a91c4</c> с картинками.
 /// <para>
-/// A generated image is a megabyte of base64, which the model plainly cannot retype into its
-/// answer — but a handle it can. The tool hands one back, the model writes it as an ordinary
-/// markdown image wherever the picture belongs, and the renderer looks it up here. That is what
-/// lets the assistant place an illustration mid-paragraph rather than only at the end.
+/// Нарисованная картинка — мегабайт base64, перепечатать его в ответ модель не может, а ссылку —
+/// может. Инструмент отдаёт ссылку, модель пишет её обычной картинкой Markdown там, где ей место,
+/// а лента ищет её здесь. Так иллюстрация встаёт посреди абзаца, а не только в конце.
 /// </para>
 /// <para>
-/// Process-wide and in-memory only: the bytes themselves live on the chat record, and the
-/// registry is repopulated from there whenever a conversation is opened.
+/// Один на процесс и только в памяти: сами байты лежат в записи чата, и реестр наполняется оттуда
+/// при каждом открытии переписки.
 /// </para>
 /// </summary>
 public static class ChatImageRegistry
@@ -23,7 +22,7 @@ public static class ChatImageRegistry
     private static readonly Dictionary<string, ImageAttachment> Images = [];
     private static readonly Lock Gate = new();
 
-    /// <summary>Mints a handle for a freshly produced image and remembers it.</summary>
+    /// <summary>Заводит ссылку для только что сделанной картинки и запоминает её.</summary>
     public static string Register(ImageAttachment image)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -38,8 +37,8 @@ public static class ChatImageRegistry
     }
 
     /// <summary>
-    /// Re-registers an image under the handle it was already given. Used when a stored chat is
-    /// reopened, so links written in a previous run still resolve.
+    /// Регистрирует картинку под уже выданной ей ссылкой — при открытии сохранённого чата, чтобы
+    /// ссылки из прошлого запуска разрешались.
     /// </summary>
     public static void Restore(ImageAttachment image)
     {
@@ -54,7 +53,7 @@ public static class ChatImageRegistry
         }
     }
 
-    /// <summary>Re-registers every tool image in a conversation. Cheap and idempotent.</summary>
+    /// <summary>Регистрирует все картинки инструментов переписки. Дёшево, повтор безвреден.</summary>
     public static void RestoreAll(ChatSession? session)
     {
         if (session is null)

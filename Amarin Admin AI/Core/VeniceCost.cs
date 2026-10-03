@@ -19,10 +19,9 @@ public sealed class VeniceCost
     };
 
     /// <summary>
-    /// Takes a part out of a total — used to recover what the conversation itself cost once the
-    /// tool charges booked against the same client are removed. Clamped at zero: the parts are
-    /// reported separately by Venice and rounding could otherwise leave a negative remainder,
-    /// which would read as the model paying the user.
+    /// Вычитает часть из итога — так восстанавливается цена самого разговора за вычетом списаний
+    /// инструментов на том же клиенте. Не ниже нуля: части провайдер сообщает отдельно, и
+    /// округление могло бы дать отрицательный остаток — будто модель платит человеку.
     /// </summary>
     public VeniceCost Subtract(VeniceCost other) => new()
     {

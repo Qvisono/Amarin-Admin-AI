@@ -7,9 +7,9 @@ using Amarin.Tools;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Full-size view of a picture from the chat: attachments on a message, pending thumbnails
-    /// in the composer, and images the assistant produced. Lives inside the window rather than
-    /// in one of its own so it inherits the faked DPI that drives UI scaling.
+    /// Просмотр картинки из чата во весь размер: вложения сообщения, миниатюры в поле ввода и
+    /// картинки модели. Живёт внутри окна, а не в своём, — чтобы наследовать поддельный DPI
+    /// масштаба интерфейса.
     /// </summary>
     public partial class MainWindow
     {
@@ -33,9 +33,9 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Opens the viewer on a set of attachments, starting at <paramref name="index"/>.
-        /// Decodes at full resolution: the thumbnails on screen are decoded down to 112 or 192
-        /// pixels wide, and blowing one of those up is not "the enlarged version".
+        /// Открывает просмотр набора вложений с <paramref name="index"/>. Разбирает в полном
+        /// разрешении: миниатюры на экране разобраны до 112 или 192 точек в ширину, и их
+        /// увеличение — не «картинка крупно».
         /// </summary>
         internal void ShowAttachments(IReadOnlyList<ImageAttachment> attachments, int index)
         {
@@ -84,7 +84,7 @@ namespace Amarin.UI
             Chat.IsHitTestVisible = false;
             ShowCurrentViewerImage();
 
-            // Focus the overlay so the arrow keys and Escape land here rather than in the composer.
+            // Фокус — просмотру, чтобы стрелки и Escape приходили сюда, а не в поле ввода.
             Dispatcher.BeginInvoke(
                 new Action(() => ImageViewerOverlay.Focus()),
                 System.Windows.Threading.DispatcherPriority.Input);
@@ -106,7 +106,7 @@ namespace Amarin.UI
             ResetViewerFit();
         }
 
-        /// <summary>Rebuilds the pan/zoom state for the current stage size and picture.</summary>
+        /// <summary>Пересчитывает сдвиг и масштаб под нынешний размер сцены и картинку.</summary>
         private void ResetViewerFit()
         {
             if (ImageViewerImage.Source is not BitmapSource image ||
@@ -255,7 +255,7 @@ namespace Amarin.UI
             e.Handled = true;
         }
 
-        /// <summary>Double click flips between "whole picture" and actual pixels.</summary>
+        /// <summary>Двойной щелчок переключает «картинка целиком» и «пиксель в пиксель».</summary>
         private void ToggleViewerZoom(Point anchor)
         {
             if (_viewerPanZoom is not { } state)

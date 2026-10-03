@@ -5,8 +5,8 @@ namespace Amarin.Core;
 internal static class HttpClients
 {
     /// <summary>
-    /// Chrome on Windows 11. Without a User-Agent Cloudflare and most CDNs answer 403 — that alone
-    /// is why remote pictures never loaded. Kept here so every fetcher tells the same story.
+    /// Chrome на Windows 11. Без User-Agent Cloudflare и большинство CDN отвечают 403 — только
+    /// поэтому внешние картинки и не грузились. Здесь, чтобы все загрузчики представлялись одинаково.
     /// </summary>
     public const string BrowserUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -22,8 +22,8 @@ internal static class HttpClients
     public static readonly TimeSpan ServiceTimeout = TimeSpan.FromMinutes(1);
 
     /// <param name="browserIdentity">
-    /// Send browser-shaped default headers. Set it for anything that talks to ordinary websites;
-    /// the Venice API does not need the disguise and is left plain.
+    /// Слать заголовки как у браузера — для всего, что ходит на обычные сайты; API провайдера
+    /// маскировка не нужна.
     /// </param>
     public static HttpClient Create(TimeSpan timeout, bool browserIdentity = false)
     {

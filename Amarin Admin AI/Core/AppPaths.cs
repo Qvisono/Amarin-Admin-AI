@@ -10,8 +10,8 @@ internal static class AppPaths
             FolderName);
 
     /// <summary>
-    /// Last known Venice balance. A file of its own rather than a field in settings.json:
-    /// it changes after every single turn, and settings would be rewritten just as often.
+    /// Последние известные остатки ключей (<see cref="BalanceBook"/>). Своим файлом, а не полем
+    /// settings.json: меняется после каждого хода, и настройки переписывались бы так же часто.
     /// </summary>
     public static string BalanceFile => Path.Combine(Root, "balance.json");
 

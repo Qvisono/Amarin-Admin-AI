@@ -63,7 +63,7 @@ internal static class ConsoleEncoding
     {
         try
         {
-            // Recover from a previous crash while the alternate screen was active.
+            // Восстановление после сбоя, случившегося при включённом альтернативном экране.
             WriteAnsi("\x1b[?1049l");
             Console.ResetColor();
             Console.CursorVisible = true;

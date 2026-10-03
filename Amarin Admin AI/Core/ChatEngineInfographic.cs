@@ -3,10 +3,9 @@ using Amarin.Tools;
 namespace Amarin.Core;
 
 /// <summary>
-/// "Summarize video → Create infographic": subtitles, then a one-shot text call to boil them
-/// down, then one image call. Deliberately outside the tool loop — the model is never offered
-/// a tool and never decides anything here; the three steps run in a fixed order and the answer
-/// is a single picture.
+/// «Пересказ видео → Инфографика»: субтитры, один текстовый запрос, чтобы их ужать, и один запрос
+/// рисования. Намеренно вне цикла инструментов: модели не предлагают инструментов, решать ей
+/// нечего, три шага идут по порядку, а ответ — одна картинка.
 /// </summary>
 internal sealed partial class ChatEngine
 {
@@ -31,8 +30,8 @@ internal sealed partial class ChatEngine
         """;
 
     /// <summary>
-    /// Runs the whole chain and appends one assistant message holding the finished picture.
-    /// Progress is reported through the ordinary turn observer, so the UI needs no new plumbing.
+    /// Проходит всю цепочку и дописывает одно сообщение ассистента с готовой картинкой. Ход
+    /// сообщается обычным наблюдателем хода — интерфейсу ничего нового не нужно.
     /// </summary>
     public async Task RunVideoInfographicAsync(
         ChatSession session,
@@ -127,8 +126,8 @@ internal sealed partial class ChatEngine
             var image = new ImageAttachment(base64, "image/png", Loc.Get("S.Infographic.Alt"));
             var handle = ChatImageRegistry.Register(image);
 
-            // The body is nothing but the picture — the user asked for an infographic, not a
-            // retelling, and the transcript is already available through the other button.
+            // В ответе только картинка: просили инфографику, а не пересказ, а субтитры доступны
+            // другой кнопкой.
             assistant.Text = $"![{Loc.Get("S.Infographic.Alt")}]({handle})";
             assistant.Images = [image with { Label = handle }];
             assistant.Duration = clock.Elapsed;
@@ -176,9 +175,9 @@ internal sealed partial class ChatEngine
     }
 
     /// <summary>
-    /// One-shot call to a text model to compress the transcript into an image prompt. Uses the
-    /// chat's own model but goes through <see cref="VeniceClient.CreateChatCompletionAsync"/>
-    /// directly with no tools, so nothing here touches the tool loop or the session's history.
+    /// Один запрос к текстовой модели: ужать субтитры в запрос рисования. Модель — та же, что у
+    /// чата, но вызов идёт напрямую через <see cref="VeniceClient.CreateChatCompletionAsync"/> без
+    /// инструментов и не трогает ни цикл инструментов, ни историю сессии.
     /// </summary>
     private async Task<string> BuildInfographicPromptAsync(
         string model,

@@ -116,7 +116,7 @@ public sealed class AppSettingsStore
     internal static bool IsReadable(string text) =>
         JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options) is not null;
 
-    /// <summary>Former shipped personality texts. Matching AppData is cleared so the user writes their own.</summary>
+    /// <summary>Прежние заводские тексты характера. Совпавшие в настройках стираются — человек напишет свой.</summary>
     internal static readonly string[] LegacyPersonalityPrompts =
     [
         "Ты - Amarin, ассистент системного администратора.",
@@ -257,8 +257,8 @@ public sealed class AppSettingsStore
     }
 
     /// <summary>
-    /// Fills the download allowlist on settings files written before it existed.
-    /// Only <c>null</c> is seeded — an empty list means the user cleared it on purpose.
+    /// Заполняет белый список загрузок в настройках, записанных до его появления. Засевается только
+    /// <c>null</c>: пустой список значит, что человек очистил его сам.
     /// </summary>
     internal static bool SeedDownloadAllowedDomains(AppSettings settings)
     {

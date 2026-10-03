@@ -6,19 +6,18 @@ using Amarin.Tools;
 namespace Amarin.UI
 {
     /// <summary>
-    /// The body of the «требуется подтверждение» dialog: the model's own words, the code that is
-    /// about to run, and the technical breakdown.
+    /// Тело окна «требуется подтверждение»: слова самой модели, код, который сейчас запустится, и
+    /// технический разбор.
     /// </summary>
     /// <remarks>
-    /// Split out of <c>ShowNextConfirmation</c> because the three parts have different rules about
-    /// when they appear, and the dialog is the last place where a person can still say no — it is
-    /// worth keeping legible.
+    /// Вынесено из <c>ShowNextConfirmation</c>: у трёх частей разные правила показа, а это окно —
+    /// последнее место, где человек ещё может сказать «нет», и читаться оно должно ясно.
     /// </remarks>
     public partial class MainWindow
     {
         /// <summary>
-        /// A script in a dialog is read, not scrolled through for minutes; past this it is taller
-        /// than the buttons below it and the card starts fighting its own Viewbox.
+        /// Скрипт в окне читают, а не листают минутами; выше этого он перерастает кнопки под ним, и
+        /// карточка начинает спорить со своим Viewbox.
         /// </summary>
         private const double ConfirmationCodeMaxHeight = 220;
 
@@ -29,9 +28,9 @@ namespace Amarin.UI
         /// </summary>
         private void FillConfirmationBody(DangerousActionInfo info)
         {
-            // Explanation and details used to share one line, with Details as the fallback. That
-            // put a multi-line technical dump where a sentence belonged; now each has its place and
-            // the line simply disappears when the model said nothing.
+            // Пояснение и подробности делили одну строку, и подробности были запасным вариантом —
+            // на месте фразы оказывалась многострочная техническая выгрузка. Теперь у каждого своё
+            // место, а строка пропадает, если модель ничего не сказала.
             var explanation = info.Explanation?.Trim() ?? "";
             var hasExplanation = explanation.Length > 0 &&
                                  !explanation.Equals(info.ChangeSummary?.Trim(), StringComparison.Ordinal);
@@ -199,7 +198,7 @@ namespace Amarin.UI
                 return;
             }
 
-            // Expanded on open: the whole point is that nobody approves a script sight unseen.
+            // Раскрыто сразу: смысл в том, чтобы скрипт не одобряли не глядя.
             ConfirmationCodeHost.Content = BuildConfirmationExpander(
                 Loc.Format("S.Confirm.Code", CountLines(code)),
                 CodeBlockView.Create(this, code, string.IsNullOrWhiteSpace(info.CodeLanguage) ? null : info.CodeLanguage),
@@ -235,8 +234,8 @@ namespace Amarin.UI
             var headerText = new TextBlock { Text = header };
             headerText.SetResourceReference(StyleProperty, "ExpanderHeaderText");
 
-            // CodeBlockView sizes itself to its widest line, which on a long command runs past the
-            // card; the scroller is what keeps the dialog the shape the buttons were laid out for.
+            // CodeBlockView берёт ширину по самой длинной строке, и длинная команда вылезла бы за
+            // карточку; прокрутка держит окно той формы, под которую разложены кнопки.
             var scroller = new ScrollViewer
             {
                 Content = body,

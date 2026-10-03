@@ -7,7 +7,7 @@ internal sealed class AppServices : IDisposable
 {
     public required AgentOptions Options { get; init; }
 
-    // Settable, not init-only: switching profiles re-roots both stores in place.
+    // Не init-only: смена профиля переводит оба хранилища на месте.
     public required AppSettingsStore SettingsStore { get; set; }
 
     public required AppSettings Settings { get; set; }
@@ -324,9 +324,9 @@ internal sealed class AppServices : IDisposable
     }
 
     /// <summary>
-    /// Points the settings and chat stores at another profile's directory. The engine keeps
-    /// reading settings through the same <c>Func&lt;AppSettings&gt;</c>, so nothing else has
-    /// to be rebuilt — but the caller must persist the current chat first.
+    /// Переводит хранилища настроек и чатов в папку другого профиля. Движок читает настройки через
+    /// тот же <c>Func&lt;AppSettings&gt;</c>, пересобирать больше ничего не нужно, — но текущий
+    /// чат вызывающий обязан сохранить раньше.
     /// </summary>
     public void UseProfile(string dataRoot)
     {

@@ -1,18 +1,17 @@
 namespace Amarin.Core;
 
-/// <summary>A local account. Everything is on this machine; there is no server or sign-in.</summary>
+/// <summary>Локальная учётная запись. Всё на этой машине: ни сервера, ни входа в облако.</summary>
 public sealed class UserProfile
 {
     /// <summary>
-    /// The first profile is always <see cref="ProfileStore.DefaultProfileId"/> and its data
-    /// lives in the app root that shipped before profiles existed, so upgrading never moves
-    /// or hides an existing conversation.
+    /// Первый профиль — всегда <see cref="ProfileStore.DefaultProfileId"/>, и его данные лежат в
+    /// корне программы, как до появления профилей: обновление не переносит и не прячет переписки.
     /// </summary>
     public string Id { get; set; } = "";
 
     public string Name { get; set; } = "Гость";
 
-    /// <summary>File name inside the profile's own folder, not a full path.</summary>
+    /// <summary>Имя файла в папке профиля, а не полный путь.</summary>
     public string? AvatarFileName { get; set; }
 
     /// <summary>Base64 PBKDF2 key; null when no password is set.</summary>
@@ -20,14 +19,14 @@ public sealed class UserProfile
 
     public string? PasswordSalt { get; set; }
 
-    /// <summary>Ask for the password on launch. Meaningless without a password set.</summary>
+    /// <summary>Спрашивать пароль при запуске. Без пароля не имеет смысла.</summary>
     public bool LockOnStartup { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public bool HasPassword => !string.IsNullOrEmpty(PasswordHash) && !string.IsNullOrEmpty(PasswordSalt);
 
-    /// <summary>Locking only takes effect once a password actually exists.</summary>
+    /// <summary>Блокировка действует, только когда пароль действительно задан.</summary>
     public bool IsLocked => LockOnStartup && HasPassword;
 }
 

@@ -4,22 +4,21 @@ using System.Windows.Media;
 namespace Amarin.UI;
 
 /// <summary>
-/// Clips an element to a rounded rectangle.
+/// Обрезает элемент по скруглённому прямоугольнику.
 /// <para>
-/// <c>ClipToBounds</c> on a <see cref="System.Windows.Controls.Border"/> does not do this: it
-/// clips to the element's <em>rectangular</em> layout rect, while <c>CornerRadius</c> only
-/// affects what the Border paints itself — its own background and stroke. A child
-/// <c>Image</c> therefore paints square corners straight over the rounded background, which is
-/// why an avatar chip looks rounded until a photo is set and square immediately after.
+/// <c>ClipToBounds</c> у <see cref="System.Windows.Controls.Border"/> этого не делает: он режет по
+/// <em>прямоугольнику</em> раскладки, а <c>CornerRadius</c> влияет лишь на то, что рисует сам
+/// Border, — фон и обводку. Дочерний <c>Image</c> рисует квадратные углы прямо поверх скруглённого
+/// фона, и плашка аватара круглая, пока нет фото, и квадратная сразу после.
 /// </para>
 /// <para>
-/// The geometry is rebuilt on every size change rather than set once, because the app fakes DPI
-/// for UI scaling (see <see cref="UiScale"/>) and elements are re-measured when the scale moves.
+/// Геометрия пересобирается при каждой смене размера: масштаб интерфейса — поддельный DPI (см.
+/// <see cref="UiScale"/>), и при его смене элементы меряются заново.
 /// </para>
 /// </summary>
 public static class RoundedClip
 {
-    /// <summary>Corner radius to clip to. Match the container's <c>CornerRadius</c>.</summary>
+    /// <summary>Радиус обрезки. Должен совпадать с <c>CornerRadius</c> контейнера.</summary>
     public static readonly DependencyProperty RadiusProperty =
         DependencyProperty.RegisterAttached(
             "Radius",
@@ -64,12 +63,12 @@ public static class RoundedClip
         var size = element.RenderSize;
         if (size.Width <= 0 || size.Height <= 0)
         {
-            // Not laid out yet — the SizeChanged handler will come back once it is.
+            // Раскладки ещё нет — вернёмся по SizeChanged.
             element.Clip = null;
             return;
         }
 
-        // Never let the radius exceed half the shortest side, or WPF draws a pinched shape.
+        // Радиус не больше половины короткой стороны, иначе WPF рисует сплющенную фигуру.
         var limit = Math.Min(size.Width, size.Height) / 2;
         var corner = Math.Min(radius, limit);
 

@@ -303,8 +303,8 @@ namespace Amarin.UI
             _compact?.SetBusy(busy);
             _variantGate.IsOpen = !busy;
 
-            // Stays live while the chat answers: a second line is no longer refused, it is queued
-            // and folded into the context at the next round boundary.
+            // Остаётся живым, пока чат отвечает: вторую строку не отклоняем, а ставим в очередь и
+            // вплетаем в контекст на следующей границе раунда.
             SendButton.IsEnabled = true;
 
             // «Новый чат» и список больше не гаснут: открыть другой разговор и писать в нём

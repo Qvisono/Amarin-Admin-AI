@@ -108,8 +108,8 @@ public partial class ReasoningPicker : UserControl
     }
 
     /// <summary>
-    /// Chat and agent slots always send function tools. Title/router do not.
-    /// Effort chips that 400 next to tools are hidden when this is true.
+    /// Слоты чата и агентов всегда шлют инструменты, заголовок и маршрутизатор — нет. При true
+    /// прячутся уровни, которые рядом с инструментами дают 400.
     /// </summary>
     public void SetUsesTools(bool usesTools)
     {

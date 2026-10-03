@@ -131,10 +131,10 @@ public sealed class ChatStore
             throw new ArgumentException("Chat session id is required.", nameof(session));
         }
 
-        // UpdatedAt belongs to whoever actually changes the session — ChatEngine and
-        // ChatSessionEdit already stamp it on every append, edit and delete. Stamping it here as
-        // well made an ordinary save indistinguishable from an edit, so merely opening a chat
-        // (which saves the one being left) dragged that chat into today's sidebar group.
+        // UpdatedAt ставит тот, кто сессию меняет: ChatEngine и ChatSessionEdit уже ставят его при
+        // каждой дозаписи, правке и удалении. Отметка ещё и здесь делала обычное сохранение
+        // неотличимым от правки, и простое открытие чата (оно сохраняет покидаемый) утаскивало
+        // тот чат в «Сегодня».
         if (session.UpdatedAt == default)
         {
             session.UpdatedAt = session.CreatedAt == default ? DateTime.Now : session.CreatedAt;
@@ -254,8 +254,8 @@ public sealed class ChatStore
     }
 
     /// <summary>
-    /// Retitles a chat without touching <see cref="ChatSession.UpdatedAt"/> — renaming is
-    /// housekeeping, not a new message, so it must not reshuffle the sidebar.
+    /// Переименовывает чат, не трогая <see cref="ChatSession.UpdatedAt"/>: переименование — уборка,
+    /// а не новое сообщение, и боковую панель оно перетасовывать не должно.
     /// </summary>
     public bool Rename(string id, string title)
     {
@@ -276,7 +276,7 @@ public sealed class ChatStore
         return true;
     }
 
-    /// <summary>Pins or unpins a chat. Index-only, so the conversation file is untouched.</summary>
+    /// <summary>Закрепляет или открепляет чат. Только в описи — файл переписки не трогается.</summary>
     public bool SetPinned(string id, bool pinned)
     {
         if (string.IsNullOrWhiteSpace(id))

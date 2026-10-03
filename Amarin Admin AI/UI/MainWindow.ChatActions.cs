@@ -6,9 +6,9 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// The per-chat "⋯" menu in the sidebar: rename, pin, share, export and delete. The chat a
-    /// menu acts on is addressed by id and loaded on demand, so every action works whether or
-    /// not that chat is the one currently open.
+    /// Меню «⋯» чата в боковой панели: переименовать, закрепить, поделиться, экспорт, удалить. Чат
+    /// адресуется по id и загружается по требованию, поэтому каждое действие работает, открыт он
+    /// сейчас или нет.
     /// </summary>
     public partial class MainWindow
     {
@@ -145,8 +145,8 @@ namespace Amarin.UI
         private Separator Divider() => new() { Style = (Style)FindResource("AppMenuSeparator") };
 
         /// <summary>
-        /// Runs an action against a stored chat. The open session is passed through as-is rather
-        /// than re-read, so unsaved edits are included.
+        /// Выполняет действие над сохранённым чатом. Открытая сессия передаётся как есть, а не
+        /// перечитывается, — несохранённые правки тоже учитываются.
         /// </summary>
         private void WithChat(string id, Action<ChatSession> action)
         {
@@ -188,8 +188,8 @@ namespace Amarin.UI
 
                     if (id == _session.Id)
                     {
-                        // Keep the in-memory copy in step, or the next save would put the old
-                        // title straight back.
+                        // Копию в памяти обновляем тоже, иначе следующее сохранение вернуло бы
+                        // старый заголовок.
                         _session.Title = title.Trim();
                         _services.ChatStore.Save(_session);
                     }

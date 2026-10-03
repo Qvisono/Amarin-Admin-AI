@@ -3,9 +3,9 @@ namespace Amarin.Core;
 public sealed class DownloadOptions
 {
     /// <summary>
-    /// Seed for the user-managed allowlist in settings.json. Once seeded, this value is no longer
-    /// consulted — the effective list is <see cref="AppSettings.DownloadAllowedDomains"/> and it is
-    /// enforced: <c>download_file</c> refuses any host outside it.
+    /// Заготовка белого списка в settings.json. После засева больше не читается: действует
+    /// <see cref="AppSettings.DownloadAllowedDomains"/>, и <c>download_file</c> отказывает любому
+    /// домену вне его.
     /// </summary>
     public string[] AllowedDomains { get; init; } =
     [

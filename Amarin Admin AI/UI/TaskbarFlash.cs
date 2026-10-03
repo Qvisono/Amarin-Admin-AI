@@ -5,9 +5,8 @@ using System.Windows.Interop;
 namespace Amarin.UI;
 
 /// <summary>
-/// Flashes the window's taskbar button whenever the app is not the one in front. The corner
-/// toast is transient and easy to miss; this keeps blinking until the user comes back, so it
-/// is the cue that actually survives long enough to be noticed.
+/// Мигает кнопкой окна на панели задач, когда программа не впереди. Карточка в углу гаснет и
+/// легко пропускается, а мигание длится до возвращения человека — этот знак точно заметят.
 /// </summary>
 internal static class TaskbarFlash
 {
@@ -15,14 +14,14 @@ internal static class TaskbarFlash
     private const uint FlashwTray = 0x00000002;
     private const uint FlashwTimerNoFg = 0x0000000C;
 
-    /// <summary>Flash the taskbar button until the window is brought to the foreground.</summary>
+    /// <summary>Мигать кнопкой на панели задач, пока окно не выведут вперёд.</summary>
     public static void Flash(Window window)
     {
         ArgumentNullException.ThrowIfNull(window);
         Send(window, FlashwTray | FlashwTimerNoFg, uint.MaxValue);
     }
 
-    /// <summary>Clear the flash and restore the taskbar button to its resting state.</summary>
+    /// <summary>Погасить мигание и вернуть кнопке обычный вид.</summary>
     public static void Stop(Window window)
     {
         ArgumentNullException.ThrowIfNull(window);
@@ -52,7 +51,7 @@ internal static class TaskbarFlash
         }
         catch (EntryPointNotFoundException)
         {
-            // Not on Windows / unusual host — the sound cue still fires.
+            // Не Windows или необычный хозяин окна — звуковой сигнал всё равно прозвучит.
         }
     }
 

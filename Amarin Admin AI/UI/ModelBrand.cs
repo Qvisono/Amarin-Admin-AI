@@ -7,7 +7,7 @@ namespace Amarin.UI;
 
 internal static class ModelBrand
 {
-    /// <summary>Only Auto: inset inside the logo slot (does not grow the box).</summary>
+    /// <summary>Только для «Авто»: отступ внутри места логотипа (место не растёт).</summary>
     public static readonly Thickness AutoLogoMargin = new(2);
 
     private static readonly DependencyProperty LogoSlotSizeProperty =

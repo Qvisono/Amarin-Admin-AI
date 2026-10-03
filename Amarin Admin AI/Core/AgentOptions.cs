@@ -105,7 +105,7 @@ public sealed class AgentOptions
     public string Model { get; set; } = "grok-4-6";
     public int MaxToolRounds { get; init; } = 30;
 
-    /// <summary>Agent-only. The shared launch <see cref="AgentOptions"/> must stay off so chat cannot leak here.</summary>
+    /// <summary>Только для агента. У общих настроек запуска <see cref="AgentOptions"/> выключено, чтобы чат сюда не протёк.</summary>
     public bool DisableThinking { get; init; } = true;
 
     public string? ReasoningEffort { get; init; }
@@ -116,7 +116,7 @@ public sealed class AgentOptions
 
     public bool EnableWebCitations { get; init; } = true;
 
-    /// <summary>Native xAI search for SearchWebAsync on Grok models. Agent chat always disables it.</summary>
+    /// <summary>Встроенный поиск xAI для SearchWebAsync на моделях Grok. Чат агента его всегда выключает.</summary>
     public bool? EnableXSearch { get; init; }
 
     public DownloadOptions Download { get; init; } = new();

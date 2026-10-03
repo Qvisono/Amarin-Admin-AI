@@ -1,23 +1,23 @@
 namespace Amarin.Core;
 
 /// <summary>
-/// Explains one journal entry in plain language, using a model with nothing attached to it.
+/// Объясняет запись журнала простыми словами — моделью без всего лишнего.
 /// </summary>
 /// <remarks>
-/// Deliberately not routed through <see cref="ChatEngine"/>. That one always prepends the tech
-/// prompt and hands the model thirty-odd tools, which is exactly wrong here: the question is
-/// "what did this call do", and a model holding a registry editor is liable to answer it by going
-/// and looking. No system prompt, no tools, no chat history — one question, one answer.
+/// Намеренно не через <see cref="ChatEngine"/>: тот всегда ставит техпромпт и даёт модели три
+/// десятка инструментов, а вопрос здесь — «что сделал этот вызов», и модель с редактором реестра
+/// в руках норовит ответить, сходив посмотреть. Ни системного промпта, ни инструментов, ни истории —
+/// один вопрос, один ответ.
 /// </remarks>
 internal static class JournalExplainer
 {
     /// <summary>
-    /// Arguments and output are pasted in whole up to this; past it the answer stops being an
-    /// explanation and starts being a re-reading of the log.
+    /// Аргументы и вывод вставляются целиком до этого предела; дальше ответ из объяснения
+    /// превращается в пересказ журнала.
     /// </summary>
     private const int MaxQuoted = 2_000;
 
-    /// <summary>The question, with the entry quoted into it. Exposed for tests.</summary>
+    /// <summary>Вопрос с процитированной записью. Открыт для тестов.</summary>
     internal static string BuildPrompt(JournalEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -57,8 +57,8 @@ internal static class JournalExplainer
     }
 
     /// <summary>
-    /// Asks the model. Returns its answer, or a sentence a person can act on — a failed
-    /// explanation is an ordinary outcome here, not a crash.
+    /// Спрашивает модель. Возвращает её ответ или фразу, по которой человек может действовать:
+    /// неудавшееся объяснение здесь — обычный исход, а не авария.
     /// </summary>
     public static async Task<string> ExplainAsync(
         VeniceClient client,
@@ -92,9 +92,9 @@ internal static class JournalExplainer
         }
         catch (Exception)
         {
-            // Caught wholesale on purpose: this is called from an async void handler, so anything
-            // that escapes takes the window with it — and "объяснение не получилось" is an ordinary
-            // outcome of asking a remote model, not a crash.
+            // Ловим всё намеренно: зовут нас из async void обработчика, и любое вылетевшее
+            // исключение уронило бы окно, а «объяснение не получилось» — обычный исход вопроса к
+            // удалённой модели.
             return Loc.Get("S.Journal.AskFailed");
         }
     }

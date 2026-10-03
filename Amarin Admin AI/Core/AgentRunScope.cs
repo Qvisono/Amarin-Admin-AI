@@ -41,10 +41,9 @@ internal static class AgentRunScope
     public static AgentRunContext? Current => CurrentContext.Value;
 
     /// <summary>
-    /// Bills whatever the running tool just spent to that tool's own row. The scope is pushed
-    /// around every tool call and flows through the awaits inside it, so a client deep in the
-    /// call stack can attribute a charge without anything being threaded through by hand —
-    /// which matters because tool calls in a round run in parallel.
+    /// Записывает потраченное идущим инструментом на его же строку. Область ставится вокруг каждого
+    /// вызова и течёт через все await внутри, так что клиент глубоко в стеке относит списание куда
+    /// надо без ручной передачи — важно, потому что вызовы раунда идут параллельно.
     /// </summary>
     public static void Charge(VeniceCost cost)
     {

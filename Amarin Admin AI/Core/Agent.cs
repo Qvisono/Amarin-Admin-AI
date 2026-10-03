@@ -692,9 +692,9 @@ Paths on this machine - use these exact values, never wildcards:
 
     private static string? ExtractAssistantText(ChatMessage message, string? finishReason)
     {
-        // The agent runs unstreamed, so the whole answer arrives at once — chain of thought and
-        // all, for the models that inline it. The report is machine-read downstream, and tags in
-        // it would end up quoted back into the parent conversation.
+        // Агент работает без потока, и ответ приходит целиком — у моделей, вписывающих размышление
+        // в текст, вместе с ним. Отчёт дальше читает программа, и теги попали бы цитатой обратно
+        // в родительскую переписку.
         var text = ReasoningSplit.Split(ChatContent.ReadText(message.Content) ?? "").Answer;
         if (!string.IsNullOrWhiteSpace(text))
         {

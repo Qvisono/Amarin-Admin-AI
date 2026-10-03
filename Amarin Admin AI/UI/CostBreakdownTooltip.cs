@@ -6,21 +6,19 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// The itemised bill behind the single price in a message's meta row.
+/// Подробный счёт за единственной ценой в строке сведений сообщения.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The total covers the conversation with the model, every tool that charged for itself —
-/// drawing a picture, scraping a page — and every sub-agent the turn started. A turn that drew
-/// two pictures can cost twenty times what the text did, and with one number on screen there is
-/// no way to tell that from an expensive model.
+/// В итог входят разговор с моделью, каждый платный инструмент (рисование, чтение страниц) и
+/// каждый вложенный агент хода. Ход с двумя картинками может стоить в двадцать раз дороже текста,
+/// и по одному числу это не отличить от дорогой модели.
 /// </para>
 /// <para>
-/// Built in code rather than declared in XAML because the number of rows depends on the turn.
-/// The chrome copies the warning tooltip in <c>MainWindow.xaml</c>: a transparent
-/// <see cref="ToolTip"/> whose template draws an arrow and a themed card. UI scaling is applied
-/// by <c>UiScale</c> through a class handler on <see cref="ToolTip.OpenedEvent"/>, so nothing
-/// has to be registered here.
+/// Собирается в коде, а не в XAML: число строк зависит от хода. Оформление повторяет подсказку-
+/// предупреждение из <c>MainWindow.xaml</c>: прозрачный <see cref="ToolTip"/>, чей шаблон рисует
+/// стрелку и карточку темы. Масштаб интерфейса применяет <c>UiScale</c> обработчиком класса на
+/// <see cref="ToolTip.OpenedEvent"/>, так что регистрировать здесь ничего не нужно.
 /// </para>
 /// <para>
 /// Ту же форму описывает неявный стиль <c>ToolTip</c> в <c>Resources.xaml</c> — разметку XAML
@@ -184,8 +182,7 @@ internal static class CostBreakdownTooltip
             AddRow(rows, ref line, Loc.Get("S.Cost.Compact"), message.CompactCost, bold: false);
         }
 
-        // With a single line there is nothing to add up, and a total under it would just repeat
-        // the row above.
+        // Одна строка — складывать нечего, итог под ней лишь повторил бы её.
         if (line > 1)
         {
             AddRule(rows, ref line);
@@ -211,8 +208,8 @@ internal static class CostBreakdownTooltip
 
         var price = new TextBlock
         {
-            // A zero-cost line is still worth a row: it says the tool ran and charged nothing,
-            // which is different from it not having run.
+            // Нулевая цена — тоже строка: инструмент работал и ничего не взял, а это не то же,
+            // что «не работал».
             Text = ChatFormat.Cost(cost) is { Length: > 0 } value ? value : "$0",
             FontSize = 11.5,
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -287,8 +284,8 @@ internal static class CostBreakdownTooltip
     }
 
     /// <summary>
-    /// A bare template: the default one paints its own background and border around the card,
-    /// which would double the rim and put an opaque rectangle behind the arrow.
+    /// Пустой шаблон: штатный рисует вокруг карточки свои фон и рамку — рамка удвоилась бы, а за
+    /// стрелкой встал бы непрозрачный прямоугольник.
     /// </summary>
     private static ControlTemplate BuildTemplate()
     {

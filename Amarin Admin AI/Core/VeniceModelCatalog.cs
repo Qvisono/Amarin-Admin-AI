@@ -303,11 +303,11 @@ internal static class VeniceModelCatalog
     }
 
     /// <summary>
-    /// Model id fragment → logo key in AiLogos.*.xaml, most specific first.
+    /// Часть идентификатора модели → ключ логотипа в AiLogos.*.xaml, самые точные первыми.
     /// <para>
-    /// Order is load-bearing: "grok-imagine-image" must reach Grok before anything matches on
-    /// "image", and a vendor's own name has to lose to its model family — "qwen-image" is Qwen,
-    /// not Alibaba. Add new entries above the vendor fallbacks at the bottom.
+    /// Порядок несущий: «grok-imagine-image» должен дойти до Grok раньше, чем что-то совпадёт по
+    /// «image», а имя производителя проигрывает семейству модели — «qwen-image» это Qwen, а не
+    /// Alibaba. Новые строки — выше запасных по производителю в конце.
     /// </para>
     /// </summary>
     private static readonly (string Needle, string Key)[] LogoKeys =
@@ -339,7 +339,7 @@ internal static class VeniceModelCatalog
         ("cohere", "Cohere"),
         ("command-r", "Cohere"),
 
-        // Mistral's family names share no common substring.
+        // У семейств Mistral нет общей подстроки.
         ("mistral", "Mistral"),
         ("ministral", "Mistral"),
         ("magistral", "Mistral"),
@@ -355,8 +355,8 @@ internal static class VeniceModelCatalog
         // Image models
         ("nano-banana", "Google"),
         ("flux", "Flux"),
-        // ByteDance's own sub-brands must win over the plain "seed" family below them —
-        // "seedream-3-5".Contains("seed") is also true, and the loop returns the first hit.
+        // Свои марки ByteDance должны побеждать простое семейство «seed» ниже: «seedream-3-5»
+        // тоже содержит «seed», а цикл берёт первое совпадение.
         ("seedream", "ByteDance"),
         ("seedance", "ByteDance"),
         ("bytedance", "ByteDance"),
@@ -375,7 +375,7 @@ internal static class VeniceModelCatalog
         ("pika", "Pika"),
         ("vidu", "Vidu"),
 
-        // Vendor fallbacks for ids that name the maker rather than the model.
+        // Запасные по производителю — для идентификаторов, где назван он, а не модель.
         ("anthropic", "Anthropic"),
         ("google", "Google"),
         ("alibaba", "Alibaba"),

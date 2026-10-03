@@ -18,22 +18,21 @@ internal static class ChatSessionEdit
     }
 
     /// <summary>
-    /// Removes one turn — the question and the answer it produced — and leaves everything that
-    /// came after it in place.
+    /// Удаляет один ход — вопрос и его ответ — и оставляет всё после него на месте.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A turn cannot be cut out of <see cref="ChatSession.ApiMessages"/> message by message: one
-    /// visible answer expands into an interleaved run of <c>assistant(tool_calls)</c> and
-    /// <c>tool</c> entries, and breaking a <c>tool_call_id</c> pairing makes the API reject the
-    /// whole history. It can be cut out turn by turn, though: the list carries no system prompt
-    /// (<c>ChatEngine.BuildApiMessages</c> prepends that at send time), so every <c>user</c>
-    /// entry opens a turn and the range up to the next one is exactly one self-contained turn.
+    /// Из <see cref="ChatSession.ApiMessages"/> ход нельзя вырезать по сообщениям: один видимый
+    /// ответ разворачивается в перемежающиеся <c>assistant(tool_calls)</c> и <c>tool</c>, а
+    /// разорванная пара <c>tool_call_id</c> — и API отвергает всю историю. Зато можно по ходам:
+    /// системного промпта в списке нет (его ставит <c>ChatEngine.BuildApiMessages</c> при
+    /// отправке), поэтому каждое <c>user</c> открывает ход, и отрезок до следующего — ровно один
+    /// самодостаточный ход.
     /// </para>
     /// <para>
-    /// If the two lists have drifted out of step — a compressed history, a hand-edited file —
-    /// there is no safe mapping, and the old behaviour applies instead: keep the prefix and drop
-    /// the rest. Losing the tail is bad; sending a history the API refuses is worse.
+    /// Если списки разошлись (сжатая история, поправленный руками файл), надёжного соответствия
+    /// нет, и работает прежнее правило: начало оставить, остальное убрать. Потерять хвост плохо,
+    /// отправить историю, которую API отвергнет, — хуже.
     /// </para>
     /// </remarks>
     public static bool DeleteTurn(ChatSession session, string messageId)
@@ -231,10 +230,9 @@ internal static class ChatSessionEdit
         {
             if (ChatContent.IsTurnStart(session.ApiMessages[i]))
             {
-                // Rewriting the text must not silently drop what the user attached. Documents
-                // were being dropped here: the rebuild read Images only, so the card stayed in
-                // the transcript while the PDF itself vanished from the model's context. The
-                // shared builder carries images, documents and quotes alike.
+                // Правка текста не должна молча терять приложенное. Здесь терялись документы:
+                // пересборка читала только картинки, и карточка в ленте оставалась, а сам PDF
+                // пропадал из контекста модели. Общий сборщик несёт картинки, документы и цитаты.
                 session.ApiMessages[i] = new ChatMessage
                 {
                     Role = "user",

@@ -155,7 +155,7 @@ internal sealed class AgentHost : IAgentHost
 
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
-            // Agent-only prompt. Chat companion TechAiPrompt is never passed here.
+            // Промпт только агента; TechAiPrompt чата сюда не передаётся никогда.
             var techAgent = settings.TechAgentPrompt;
             var agent = new Agent(
                 venice,
@@ -305,10 +305,6 @@ internal sealed class AgentHost : IAgentHost
             .ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Tier to model. A switch rather than the ternary it replaced: with three tiers, "not heavy"
-    /// silently meant "lite", so a fast request would have quietly cost flagship money.
-    /// </summary>
     /// <summary>Слот, из которого этот ярус берёт модель, — а вместе с ней и ключ.</summary>
     private static ModelSlot SlotFor(string complexity) =>
         complexity.ToLowerInvariant() switch
@@ -318,6 +314,10 @@ internal sealed class AgentHost : IAgentHost
             _ => ModelSlot.AgentLite
         };
 
+    /// <summary>
+    /// Модель уровня. switch, а не прежний тернарный оператор: при трёх уровнях «не тяжёлый» молча
+    /// значил «лёгкий», и быстрый запрос тихо стоил бы денег флагмана.
+    /// </summary>
     private static string ResolveModel(string complexity, AppSettings settings)
     {
         var model = complexity.ToLowerInvariant() switch

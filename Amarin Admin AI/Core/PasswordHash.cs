@@ -4,12 +4,12 @@ using System.Text;
 namespace Amarin.Core;
 
 /// <summary>
-/// PBKDF2-SHA256 hashing for the local startup lock and the auto-lock screen.
+/// Хэш PBKDF2-SHA256 для пароля при запуске и экрана автоблокировки.
 ///
-/// This gates access to the app window only — it is NOT encryption, and the password is never
-/// used as a key. Chats on disk are encrypted only when <see cref="AppSettings.EncryptChats"/>
-/// is on, and then by DPAPI (<see cref="AtRestCipher"/>), not by this password; settings stay
-/// plain JSON. Do not present the password as protection of the data itself.
+/// Он закрывает только окно программы — это НЕ шифрование, и пароль ключом не служит никогда.
+/// Чаты на диске шифруются только при <see cref="AppSettings.EncryptChats"/>, и тогда DPAPI
+/// (<see cref="AtRestCipher"/>), а не этим паролем; настройки остаются открытым JSON. Выдавать
+/// пароль за защиту самих данных нельзя.
 /// </summary>
 internal static class PasswordHash
 {
@@ -43,7 +43,7 @@ internal static class PasswordHash
         }
         catch (FormatException)
         {
-            // Corrupted profiles.json — treat as "no match" rather than crashing the launch.
+            // Битый profiles.json — считаем «не совпало», а не роняем запуск.
             return false;
         }
     }

@@ -5,10 +5,10 @@ using Amarin.Tools;
 namespace Amarin.UI
 {
     /// <summary>
-    /// "Summarize video" in the composer's actions popup. The two modes work differently on
-    /// purpose: "Raw transcript" is an ordinary chat turn driven by the <c>youtube_transcript</c>
-    /// tool, while "Create infographic" runs a fixed chain in the engine with no tools at all —
-    /// see <see cref="Amarin.Core.ChatEngine.RunVideoInfographicAsync"/>.
+    /// «Пересказ видео» в меню действий поля ввода. Два режима устроены по-разному намеренно:
+    /// «Субтитры» — обычный ход чата с инструментом <c>youtube_transcript</c>, а «Инфографика» —
+    /// постоянная цепочка движка без инструментов вовсе, см.
+    /// <see cref="Amarin.Core.ChatEngine.RunVideoInfographicAsync"/>.
     /// </summary>
     public partial class MainWindow
     {
@@ -41,8 +41,8 @@ namespace Amarin.UI
             var infographic = InfographicOption.IsChecked == true;
             var canonical = $"https://www.youtube.com/watch?v={videoId}";
 
-            // Close the popup and reset it before the turn starts — it sits over the transcript
-            // the answer is about to appear in.
+            // Закрываем и сбрасываем меню до начала хода: оно лежит поверх ленты, где сейчас
+            // появится ответ.
             SummarizeError.Visibility = Visibility.Collapsed;
             YoutubeUrlBox.Clear();
             SummarizeToggle.IsChecked = false;
@@ -59,9 +59,9 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// The infographic runs its own fixed chain — subtitles, then one text call, then one
-        /// image call — rather than a chat turn. The model is offered no tools and decides
-        /// nothing; the deliverable is a picture, so there is nothing for it to narrate.
+        /// Инфографика идёт своей постоянной цепочкой — субтитры, текстовый запрос, рисование, — а
+        /// не ходом чата. Инструментов модели не дают, решать ей нечего: итог — картинка, и
+        /// рассказывать о ней нечего.
         /// </summary>
         private async Task RunInfographicAsync(string videoUrl)
         {

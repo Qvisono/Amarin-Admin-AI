@@ -30,13 +30,12 @@ internal enum TurnKind
 internal sealed class RunningTurn
 {
     /// <summary>
-    /// What the user typed while this turn was still working. The engine drains it on a round
-    /// boundary, which is why it is a queue and not a single slot — three quick lines in a row
-    /// must reach the model in the order they were written.
+    /// Что человек написал, пока ход ещё шёл. Движок забирает это на границе раунда, поэтому здесь
+    /// очередь, а не одно место: три быстрые строки подряд должны дойти до модели в том же порядке.
     /// </summary>
     /// <remarks>
-    /// Concurrent because the composer fills it on the UI thread while the engine empties it on
-    /// whichever thread the tool round finished on.
+    /// Потокобезопасная: поле ввода наполняет её на потоке интерфейса, а движок опустошает на том
+    /// потоке, где кончился раунд инструментов.
     /// </remarks>
     private readonly ConcurrentQueue<string> _queued = new();
 

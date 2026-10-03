@@ -28,12 +28,12 @@ internal static class ChatToolPreview
     }
 
     /// <summary>
-    /// The output as the journal shows it: whole, but capped.
+    /// Вывод, каким его показывает журнал: целиком, но с потолком.
     /// </summary>
     /// <remarks>
-    /// A chat file already carries base64 images; letting a directory listing of ten thousand
-    /// lines in beside them would make conversations that no longer open quickly. The cap is well
-    /// past anything a person reads in one sitting, and the summary above still says what happened.
+    /// Список папки на десять тысяч строк в файле чата сделал бы переписки, которые долго
+    /// открываются. Потолок далеко за пределами того, что человек прочтёт за раз, а краткий итог
+    /// выше всё равно говорит, что случилось.
     /// </remarks>
     public static string ForJournal(ToolResult result)
     {

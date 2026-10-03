@@ -63,8 +63,8 @@ internal sealed class ChatTurnRouter(
         turn.PendingText = assistant.Text;
         turn.RenderedText = "";
 
-        // A queued follow-up can start a second answer inside one turn, and the flag set by the
-        // first one would otherwise keep the live view from ever rebinding to this one.
+        // Дописанное в очередь может начать второй ответ внутри хода, и флаг первого иначе не дал
+        // бы живому виду переключиться на этот.
         turn.Finished = false;
         ui.TurnAssistantStarted(turn, assistant);
     }

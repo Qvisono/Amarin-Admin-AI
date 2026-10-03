@@ -4,8 +4,7 @@ using System.Globalization;
 namespace Amarin.Core;
 
 /// <summary>
-/// Opt-in timings for AMARIN_PERF_LOG.
-/// Enabled when the env var is 1/true/yes/on. Logs to stderr and
+/// Замеры времени по AMARIN_PERF_LOG. Включаются значением 1/true/yes/on; пишутся в stderr и
 /// %LOCALAPPDATA%\AmarinAdminAI\perf.log.
 /// </summary>
 internal static class PerfLog

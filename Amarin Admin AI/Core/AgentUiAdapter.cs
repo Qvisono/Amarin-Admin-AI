@@ -78,10 +78,10 @@ internal sealed class AgentUiAdapter : IAgentUi
             return;
         }
 
-        // ReportText stays: it is the agent's final answer, handed back to the caller as the
-        // tool result, and a test pins its round trip. But it is overwritten by every later
-        // round and never drawn, so the same text is also pinned to the round it belongs to -
-        // that is the copy the expander shows.
+        // ReportText остаётся: это итог агента, который уходит вызывающему результатом
+        // инструмента (его путь сторожит тест). Но каждый следующий раунд его перезаписывает, и
+        // он не рисуется, поэтому тот же текст закрепляется и на своём раунде — эту копию и
+        // показывает раскрывашка.
         _record.ReportText = text;
 
         var round = CurrentRound();
@@ -151,8 +151,8 @@ internal sealed class AgentUiAdapter : IAgentUi
         call.TruncatedForModel = ChatToolPreview.IsTruncatedForApi(result);
         call.SavedFiles = [.. result.GetFiles()];
 
-        // Measured from the record, not a stopwatch: the agent reports the result on whichever
-        // thread finished it, and there is no scope here that outlives the call.
+        // Меряется по записи, а не секундомером: агент сообщает итог с того потока, где закончил,
+        // и области, переживающей вызов, здесь нет.
         if (call.StartedAt != default)
         {
             call.Duration = DateTime.Now - call.StartedAt;

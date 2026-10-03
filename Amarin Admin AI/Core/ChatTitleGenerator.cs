@@ -77,8 +77,7 @@ internal sealed class ChatTitleGenerator
                     (_settings().TitleReasoning ?? new ReasoningSettings()).ToChoice())
                 .ConfigureAwait(false);
 
-            // A GLM-class model titles the chat by thinking out loud first, and the tags would
-            // end up in the sidebar.
+            // Модель класса GLM сначала думает вслух, и теги размышления попали бы в боковую панель.
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
             return new ChatTitleDraft(ChatTitle.Sanitize(reply), response.Cost?.ToCost());

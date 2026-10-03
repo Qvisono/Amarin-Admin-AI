@@ -1,6 +1,6 @@
 namespace Amarin.Core;
 
-/// <summary>A slash command typed into the chat box, already split into verb and argument.</summary>
+/// <summary>Команда через «/» из поля ввода, уже разделённая на имя и аргумент.</summary>
 internal readonly record struct ChatCommand(string Name, string Argument, string Complexity);
 
 /// <summary>Команда «/» для подсказки и справки (D9): имя, что писать после, что делает.</summary>
@@ -11,9 +11,8 @@ internal sealed record ChatCommandInfo(string Name, string? ArgumentKey, string 
 internal readonly record struct LocalCommand(string Name, string Argument);
 
 /// <summary>
-/// Parses the handful of slash commands the WPF chat box understands. Anything that does not
-/// match exactly is not a command and must be sent to the model as ordinary text — users write
-/// paths and code starting with "/" all the time.
+/// Разбирает немногие команды через «/», которые понимает поле ввода. Всё, что не совпало точно, —
+/// не команда и уходит модели обычным текстом: пути и код с «/» в начале люди пишут постоянно.
 /// </summary>
 internal static class ChatCommands
 {
@@ -133,9 +132,9 @@ internal static class ChatCommands
         ". Mention one only when it directly solves what the user asks about.";
 
     /// <summary>
-    /// Recognises <c>/agent &lt;prompt&gt;</c> (heavy by default), plus <c>/agent lite …</c>,
-    /// <c>/agent-lite …</c> and the same pair for <c>fast</c>. Returns null when the input is not a command,
-    /// including <c>/agent</c> with no prompt — there is nothing to run, so it stays plain text.
+    /// Узнаёт <c>/agent &lt;задача&gt;</c> (по умолчанию тяжёлый уровень), а также <c>/agent lite …</c>,
+    /// <c>/agent-lite …</c> и такую же пару для <c>fast</c>. Null — это не команда, в том числе
+    /// <c>/agent</c> без задачи: запускать нечего, и это остаётся текстом.
     /// </summary>
     public static ChatCommand? TryParse(string? input)
     {
@@ -164,8 +163,8 @@ internal static class ChatCommands
         }
         else if (verb.Equals(Agent, StringComparison.OrdinalIgnoreCase))
         {
-            // "/agent lite do the thing" — the modifier is only a modifier when a prompt follows,
-            // otherwise "lite" is the prompt itself.
+            // «/agent lite сделай»: уточнение — уточнение, только если за ним есть задача, иначе
+            // «lite» и есть задача.
             var (word, tail) = SplitFirstWord(rest);
             if (tail.Length > 0 &&
                 (word.Equals(Lite, StringComparison.OrdinalIgnoreCase) ||

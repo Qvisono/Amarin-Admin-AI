@@ -5,12 +5,11 @@ using Amarin.Tools;
 namespace Amarin.UI;
 
 /// <summary>
-/// Finds the window that owns a chat element and asks it to open the image viewer.
+/// Находит окно, которому принадлежит элемент чата, и просит его открыть просмотр картинки.
 /// <para>
-/// The view builders take their host as a plain <see cref="FrameworkElement"/> — they are also
-/// exercised from tests — so they cannot depend on
-/// <see cref="MainWindow"/> directly. Walking up to the owning window keeps the click wiring in
-/// one place and makes a missing viewer a no-op rather than a crash.
+/// Сборщики ленты получают хозяина простым <see cref="FrameworkElement"/> (их гоняют и тесты) и
+/// зависеть от <see cref="MainWindow"/> напрямую не могут. Подъём к окну держит обработку щелчка в
+/// одном месте, а отсутствие просмотра делает тихим ничем, а не аварией.
 /// </para>
 /// </summary>
 internal static class ImageViewerHost

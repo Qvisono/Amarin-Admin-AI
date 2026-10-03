@@ -3,36 +3,33 @@ using System.Text;
 namespace Amarin.Core;
 
 /// <summary>
-/// Separates a model's chain of thought from its actual answer when the two arrive in the same
-/// stream.
+/// Отделяет размышление модели от ответа, когда оба приходят одним потоком.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Well-behaved reasoning models put the thinking on <c>reasoning_content</c>, which never
-/// reaches the transcript. Several families — GLM above all, Kimi with its own bracket glyphs —
-/// wrap it in tags inside <c>content</c> instead, and Venice ignores
-/// <c>strip_thinking_response</c> for them (see <see cref="ChatMessageDelta.ReasoningContent"/>).
-/// The markup then goes straight through the markdown renderer, which is built with HTML
-/// disabled and prints <c>&lt;think&gt;</c> as literal text.
+/// Аккуратные рассуждающие модели шлют размышление в <c>reasoning_content</c>, и в ленту оно не
+/// попадает. Несколько семейств — прежде всего GLM, Kimi со своими скобками — заворачивают его в
+/// теги внутри <c>content</c>, а <c>strip_thinking_response</c> для них Venice не учитывает (см.
+/// <see cref="ChatMessageDelta.ReasoningContent"/>). Разметка тогда идёт прямо в Markdown, где HTML
+/// выключен, и <c>&lt;think&gt;</c> печатается как текст.
 /// </para>
 /// <para>
-/// The split runs on the accumulated text after every chunk, so it has to cope with a tag that
-/// is still open: everything past an unclosed opener counts as thinking, which keeps the answer
-/// from flickering into view and back out again as the closing tag arrives.
+/// Разбор идёт по накопленному тексту после каждого кусочка и должен переживать ещё открытый тег:
+/// всё после незакрытого открывающего считается размышлением — иначе ответ мелькал бы и исчезал
+/// с приходом закрывающего тега.
 /// </para>
 /// <para>
-/// The harder case is the opposite one, and it is what GLM actually does: its chat template
-/// pre-fills the opening tag into the assistant turn, so the reply arrives already inside the
-/// thinking block and carries only a closing tag. Nothing is wrapped in anything, and a parser
-/// looking for a pair sees plain prose. An unmatched closer is therefore read as the end of a
-/// block that began at the start of the message.
+/// Труднее обратный случай, и GLM делает именно так: шаблон чата заранее ставит открывающий тег в
+/// ход ассистента, и ответ приходит уже внутри блока размышления, с одним закрывающим тегом. Ничто
+/// ни во что не завёрнуто, и разбор, ищущий пару, увидит обычный текст. Поэтому закрывающий тег без
+/// пары читается как конец блока, начатого в начале сообщения.
 /// </para>
 /// </remarks>
 internal static class ReasoningSplit
 {
     /// <summary>
-    /// Opener/closer pairs, longest first so <c>&lt;thinking&gt;</c> is not read as
-    /// <c>&lt;think&gt;</c> followed by stray text. Matching is case-insensitive.
+    /// Пары открывающих и закрывающих тегов, длинные первыми, — чтобы <c>&lt;thinking&gt;</c> не
+    /// читался как <c>&lt;think&gt;</c> с лишним текстом. Регистр не важен.
     /// </summary>
     private static readonly (string Open, string Close)[] Markers =
     [
@@ -58,8 +55,8 @@ internal static class ReasoningSplit
         !string.IsNullOrEmpty(text) && text.IndexOfAny(MarkerStarts) >= 0;
 
     /// <summary>
-    /// Returns the chain of thought and the answer. Text with no markers comes back untouched
-    /// as the answer, which is the overwhelmingly common case and costs one scan.
+    /// Возвращает размышление и ответ. Текст без меток целиком становится ответом — это подавляющее
+    /// большинство случаев, и стоит он один проход.
     /// </summary>
     public static (string Reasoning, string Answer) Split(string text)
     {
@@ -82,10 +79,9 @@ internal static class ReasoningSplit
                 break;
             }
 
-            // A closer with no opener in front of it. The chat template of a GLM-class model
-            // pre-fills the opening tag into the assistant turn, so the reply comes back already
-            // inside the thinking block and the first tag in it is the closing one. Everything
-            // up to that point is deliberation, however much it reads like an answer.
+            // Закрывающий тег без открывающего: шаблон чата моделей класса GLM ставит открывающий
+            // заранее, и первый тег в ответе — закрывающий. Всё до него — размышление, как бы оно
+            // ни походило на ответ.
             if (isCloser)
             {
                 Append(reasoning, text.AsSpan(position, at - position));
@@ -99,8 +95,8 @@ internal static class ReasoningSplit
 
             if (end < 0)
             {
-                // Still streaming, or the model never closed the tag. Either way the rest is
-                // thinking: showing it as the answer is the exact bug this class exists to fix.
+                // Ещё идёт поток или модель тег так и не закрыла. В обоих случаях остаток —
+                // размышление: показать его ответом — ровно та ошибка, ради которой класс и есть.
                 Append(reasoning, text.AsSpan(bodyStart));
                 break;
             }

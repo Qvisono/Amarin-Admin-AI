@@ -27,12 +27,12 @@ internal interface IChatTurnObserver
     void OnError(string message);
 
     /// <summary>
-    /// Something the user typed after this turn started. Taken on a round boundary and folded
-    /// into the context, so the model can change course without losing the work already done.
+    /// Что человек написал после начала хода. Берётся на границе раунда и вплетается в контекст —
+    /// модель может сменить курс, не теряя сделанного.
     /// </summary>
     /// <remarks>
-    /// Default implementation so that observers which cannot receive anything mid-turn — the
-    /// silent ones in tests, above all — need not know this exists.
+    /// С реализацией по умолчанию: наблюдателям, которым посреди хода ничего не приходит (прежде
+    /// всего молчаливым в тестах), знать о нём незачем.
     /// </remarks>
     bool TryTakeQueuedMessage(out string text)
     {

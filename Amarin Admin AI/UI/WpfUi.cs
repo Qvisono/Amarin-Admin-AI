@@ -129,7 +129,7 @@ internal sealed class WpfUi : IDisposable
         }
     }
 
-    /// <summary>Runs <paramref name="action"/> on the UI thread. Used by tests to build windows.</summary>
+    /// <summary>Выполняет <paramref name="action"/> на потоке интерфейса; тесты так строят окна.</summary>
     internal T Invoke<T>(Func<T> action) => _application.Dispatcher.Invoke(action);
 
     internal string MainWindowTitle =>

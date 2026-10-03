@@ -4,11 +4,11 @@ using System.Windows.Controls;
 namespace Amarin.UI;
 
 /// <summary>
-/// A <see cref="double"/> attached property that writes through to <see cref="Border.CornerRadius"/>.
+/// Присоединённое свойство <see cref="double"/>, которое пишется в <see cref="Border.CornerRadius"/>.
 /// <para>
-/// WPF has no <c>CornerRadiusAnimation</c> and <see cref="CornerRadius"/> is a struct, so the only
-/// way to animate a rounding is to animate a double and project it. Shaped after
-/// <see cref="RoundedClip"/>, which solves the neighbouring problem the same way.
+/// <c>CornerRadiusAnimation</c> в WPF нет, а <see cref="CornerRadius"/> — структура, поэтому
+/// анимировать скругление можно лишь через число. Устроено как <see cref="RoundedClip"/>, который
+/// так же решает соседнюю задачу.
 /// </para>
 /// </summary>
 public static class AnimatableCorner
