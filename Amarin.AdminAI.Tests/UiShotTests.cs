@@ -195,11 +195,6 @@ public sealed class UiShotTests : IDisposable
                 await ShootHealth(window, folder);
             }
 
-            if (Wanted(only, "updates"))
-            {
-                await ShootUpdates(window, folder);
-            }
-
             if (Wanted(only, "dialogs"))
             {
                 await ShootDialogs(window, services, folder);
@@ -317,6 +312,12 @@ public sealed class UiShotTests : IDisposable
                         await Settle(250);
                     }
                 }
+            }
+
+            // Последними: съёмка подставляет автомату свои состояния, а настройки уже пройдены.
+            if (Wanted(only, "updates"))
+            {
+                await ShootUpdates(window, folder);
             }
         }
         finally
@@ -598,6 +599,7 @@ public sealed class UiShotTests : IDisposable
     private static async Task ShootUpdates(MainWindow window, string folder)
     {
         var release = UpdateTestKit.Release("99.0.0");
+        var before = window.Updates.State;
         var title = (FrameworkElement)((FrameworkElement)window.FindName("TitleText")).Parent;
         var badge = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("UpdateBadgeButton");
         var popup = (Popup)window.FindName("UpdateBadgePopup");
@@ -664,7 +666,7 @@ public sealed class UiShotTests : IDisposable
         }
         finally
         {
-            window.Updates.Seed(_ => UpdateState.Initial);
+            window.Updates.Seed(_ => before);
         }
     }
 
