@@ -46,7 +46,7 @@ internal sealed class ChatListDrag
     private bool _ownCaptureChange;
     private IReadOnlyList<string> _ids = [];
     private readonly List<(UIElement Element, double Opacity)> _dimmed = [];
-    private readonly List<Span> _spans = [];
+    private readonly List<RowExtent> _rows = [];
     private readonly List<ChatDropTarget?> _sources = [];
     private ChatDropTarget? _target;
     private bool _pinHot;
@@ -261,7 +261,7 @@ internal sealed class ChatListDrag
             _ownCaptureChange = false;
         }
 
-        CacheSpans();
+        CacheRows();
 
         foreach (var child in _list.Children.OfType<Button>())
         {
@@ -277,7 +277,7 @@ internal sealed class ChatListDrag
         _ghost.Width = Math.Max(80, row.ActualWidth - 8);
         _ghost.Height = Math.Max(24, row.ActualHeight);
         _indicator.Background = AccentWash();
-        _pinZone.Visibility = _spans.Any(span => span.Target?.Kind == ChatDropKind.Pinned) ? Visibility.Collapsed : Visibility.Visible;
+        _pinZone.Visibility = _rows.Any(extent => extent.Target?.Kind == ChatDropKind.Pinned) ? Visibility.Collapsed : Visibility.Visible;
         SetPinHot(false);
         _layer.Visibility = Visibility.Visible;
 
@@ -292,7 +292,7 @@ internal sealed class ChatListDrag
         _pressRow = null;
         _target = null;
         _ids = [];
-        _spans.Clear();
+        _rows.Clear();
         _sources.Clear();
 
         foreach (var (element, opacity) in _dimmed)
@@ -317,9 +317,9 @@ internal sealed class ChatListDrag
     /// Вертикальные полосы детей списка в его координатах. Полоса тянется до верха следующего
     /// ребёнка: курсор в зазоре между строками принадлежит строке над ним, а не «ничему».
     /// </summary>
-    private void CacheSpans()
+    private void CacheRows()
     {
-        _spans.Clear();
+        _rows.Clear();
         var children = _list.Children.OfType<FrameworkElement>().Where(child => child.IsVisible).ToList();
         for (var i = 0; i < children.Count; i++)
         {
@@ -328,7 +328,7 @@ internal sealed class ChatListDrag
             var bottom = i + 1 < children.Count
                 ? children[i + 1].TranslatePoint(default, _list).Y
                 : top + child.ActualHeight + child.Margin.Bottom;
-            _spans.Add(new Span(top, bottom, child.ActualHeight, ChatRowState.GetDropTarget(child)));
+            _rows.Add(new RowExtent(top, bottom, child.ActualHeight, ChatRowState.GetDropTarget(child)));
         }
     }
 
@@ -349,24 +349,24 @@ internal sealed class ChatListDrag
         }
         else
         {
-            var index = _spans.FindIndex(span => listPoint.Y >= span.Top && listPoint.Y < span.Bottom);
-            if (index >= 0 && _spans[index].Target is { } target && !AlreadyThere(target))
+            var index = _rows.FindIndex(extent => listPoint.Y >= extent.Top && listPoint.Y < extent.Bottom);
+            if (index >= 0 && _rows[index].Target is { } target && !AlreadyThere(target))
             {
                 _target = target;
                 var first = index;
                 var last = index;
-                while (first > 0 && _spans[first - 1].Target == target)
+                while (first > 0 && _rows[first - 1].Target == target)
                 {
                     first--;
                 }
 
-                while (last + 1 < _spans.Count && _spans[last + 1].Target == target)
+                while (last + 1 < _rows.Count && _rows[last + 1].Target == target)
                 {
                     last++;
                 }
 
-                var top = _spans[first].Top + listTop;
-                var bottom = _spans[last].Top + _spans[last].Height + listTop;
+                var top = _rows[first].Top + listTop;
+                var bottom = _rows[last].Top + _rows[last].Height + listTop;
                 region = new Rect(4, top - 2, Math.Max(0, _scroller.ViewportWidth - 8), bottom - top + 4);
             }
         }
@@ -522,5 +522,5 @@ internal sealed class ChatListDrag
         return wash;
     }
 
-    private readonly record struct Span(double Top, double Bottom, double Height, ChatDropTarget? Target);
+    private readonly record struct RowExtent(double Top, double Bottom, double Height, ChatDropTarget? Target);
 }
