@@ -136,9 +136,10 @@ public partial class ProviderKeyField : UserControl
 
         if (ChoicePopup.Child is FrameworkElement child)
         {
+            // Правый край карточки — по правому краю кнопки; правое поле под тень лежит за ней.
             child.UpdateLayout();
-            var width = child.ActualWidth > 0 ? child.ActualWidth : child.Width;
-            ChoicePopup.HorizontalOffset = OpenButton.ActualWidth - width;
+            var width = (child.ActualWidth > 0 ? child.ActualWidth : child.Width) + child.Margin.Left + child.Margin.Right;
+            ChoicePopup.HorizontalOffset = OpenButton.ActualWidth - width + PopupShadow.Margin.Right;
         }
     }
 

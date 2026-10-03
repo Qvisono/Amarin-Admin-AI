@@ -1,4 +1,4 @@
-﻿<Window x:Class="Amarin.UI.MainWindow"
+<Window x:Class="Amarin.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
@@ -756,15 +756,13 @@
                         формулы или блока кода, у которых нет позиции символа. Регистрируется в
                         PopupManager — клик мимо, колесо и Esc закрывают её сами.
                     -->
-                    <Popup x:Name="ReplyPill" Placement="MousePoint" HorizontalOffset="6" VerticalOffset="16"
+                    <!-- Поля под тень — общие (PopupShadow); смещение ставит плашку туда же, куда
+                         прежде: на 12 правее и на 20 ниже точки, где отпустили кнопку. -->
+                    <Popup x:Name="ReplyPill" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="6"
                            AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
-                        <!-- Поля под тень: она рисуется наружу и иначе обрежется. -->
-                        <Border Margin="6,4,10,12" Background="{DynamicResource Bg.Panel}"
+                        <Border Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
                                 BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                CornerRadius="9" Padding="3">
-                            <Border.Effect>
-                                <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="4" Opacity="0.4"/>
-                            </Border.Effect>
+                                CornerRadius="9" Padding="3" Effect="{x:Static local:PopupShadow.Effect}">
                             <Button x:Name="ReplyPillButton" Style="{StaticResource QuotePillButton}"
                                     Click="ReplyPillButton_Click">
                                 <StackPanel Orientation="Horizontal">
@@ -1163,16 +1161,16 @@
                                     остаётся в поле ввода, а стрелки, Enter и Tab разбирает
                                     MessageTextBox_PreviewKeyDown раньше отправки.
                                 -->
+                                <!-- Смещение держит карточку там же, где с прежними полями 6,12,10,4:
+                                     на 6 правее и на 4 выше якоря; поля под тень — PopupShadow. -->
                                 <Popup x:Name="QuoteSuggestPopup" PlacementTarget="{Binding ElementName=MessageTextBox}"
-                                       Placement="Top" AllowsTransparency="True" PopupAnimation="Fade"
+                                       Placement="Top" HorizontalOffset="-8" VerticalOffset="18"
+                                       AllowsTransparency="True" PopupAnimation="Fade"
                                        StaysOpen="True" Focusable="False">
-                                    <Border Margin="6,12,10,4" MinWidth="220" MaxWidth="380"
+                                    <Border Margin="{x:Static local:PopupShadow.Margin}" MinWidth="220" MaxWidth="380"
                                             Background="{DynamicResource Bg.Panel}"
                                             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                            CornerRadius="10" Padding="4">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.45"/>
-                                        </Border.Effect>
+                                            CornerRadius="10" Padding="4" Effect="{x:Static local:PopupShadow.Effect}">
                                         <StackPanel>
                                             <TextBlock Text="{DynamicResource S.Quote.SuggestTitle}" FontSize="11"
                                                        FontWeight="SemiBold" Margin="8,4,8,4"
@@ -1186,15 +1184,13 @@
                                     поле, стрелки, Tab и Enter разбирает MessageTextBox_PreviewKeyDown.
                                 -->
                                 <Popup x:Name="CommandSuggestPopup" PlacementTarget="{Binding ElementName=MessageTextBox}"
-                                       Placement="Top" AllowsTransparency="True" PopupAnimation="Fade"
+                                       Placement="Top" HorizontalOffset="-8" VerticalOffset="18"
+                                       AllowsTransparency="True" PopupAnimation="Fade"
                                        StaysOpen="True" Focusable="False">
-                                    <Border Margin="6,12,10,4" MinWidth="260" MaxWidth="420"
+                                    <Border Margin="{x:Static local:PopupShadow.Margin}" MinWidth="260" MaxWidth="420"
                                             Background="{DynamicResource Bg.Panel}"
                                             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                            CornerRadius="10" Padding="4">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.45"/>
-                                        </Border.Effect>
+                                            CornerRadius="10" Padding="4" Effect="{x:Static local:PopupShadow.Effect}">
                                         <StackPanel>
                                             <TextBlock Text="{DynamicResource S.Command.SuggestTitle}" FontSize="11"
                                                        FontWeight="SemiBold" Margin="8,4,8,4"
@@ -1261,19 +1257,20 @@
                                         </ControlTemplate>
                                     </ToggleButton.Template>
                                 </ToggleButton>
+                                <!-- Полей под тень не было вовсе, и она резалась со всех сторон. Поля —
+                                     PopupShadow; смещение держит карточку на 8 выше кнопки, как было. -->
                                 <Popup x:Name="ActionsPopup"
        PlacementTarget="{Binding ElementName=AttachButton}"
        Placement="Top"
-       VerticalOffset="-8"
+       HorizontalOffset="-14"
+       VerticalOffset="14"
        AllowsTransparency="True"
        StaysOpen="True"
        PopupAnimation="Fade"
        IsOpen="{Binding IsChecked, ElementName=AttachButton, Mode=TwoWay}">
-                                    <Border Width="300" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-            BorderThickness="1" CornerRadius="12" Padding="6">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
-                                        </Border.Effect>
+                                    <Border Width="300" Margin="{x:Static local:PopupShadow.Margin}"
+            Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+            BorderThickness="1" CornerRadius="12" Padding="6" Effect="{x:Static local:PopupShadow.Effect}">
                                         <StackPanel>
                                             <TextBlock Text="{DynamicResource S.Actions.Title}" FontSize="12.5" FontWeight="SemiBold"
                        Foreground="{DynamicResource Text.Muted}" Margin="8,6,8,4"/>
@@ -1415,10 +1412,13 @@
                                     </ToggleButton.Template>
                                 </ToggleButton>
 
+                                <!-- Поля под тень у самой плашки (ModelPickerPanel, PopupShadow);
+                                     смещение держит её на 8 выше кнопки, как было. -->
                                 <Popup x:Name="ModelPicker"
                                        PlacementTarget="{Binding ElementName=ModelButton}"
                                        Placement="Top"
-                                       VerticalOffset="-8"
+                                       HorizontalOffset="-14"
+                                       VerticalOffset="14"
                                        AllowsTransparency="True"
                                        StaysOpen="True"
                                        PopupAnimation="Fade"
@@ -4601,17 +4601,15 @@
                             <ToggleButton x:Name="ConfirmationAllowToggle" Content="{DynamicResource S.Confirm.Allow}"
                                           Style="{StaticResource DialogSecondaryToggle}"
                                           ToolTip="{DynamicResource S.Confirm.Allow.Tooltip}"/>
+                            <!-- Поля под тень — PopupShadow; смещение держит карточку на 6 выше кнопки, как было. -->
                             <Popup x:Name="ConfirmationAllowPopup"
                                    PlacementTarget="{Binding ElementName=ConfirmationAllowToggle}"
-                                   Placement="Top" VerticalOffset="-6" AllowsTransparency="True"
+                                   Placement="Top" HorizontalOffset="-14" VerticalOffset="16" AllowsTransparency="True"
                                    PopupAnimation="Fade"
                                    IsOpen="{Binding IsChecked, ElementName=ConfirmationAllowToggle, Mode=TwoWay}">
-                                <Border Width="280" Background="{DynamicResource Bg.Panel}"
+                                <Border Width="280" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
                                         BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                        CornerRadius="10" Padding="5">
-                                    <Border.Effect>
-                                        <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45"/>
-                                    </Border.Effect>
+                                        CornerRadius="10" Padding="5" Effect="{x:Static local:PopupShadow.Effect}">
                                     <StackPanel>
                                         <Button x:Name="ConfirmationAllowTurnButton" Style="{StaticResource DialogMenuItemButton}"
                                                 Click="ConfirmationAllowTurnButton_Click">

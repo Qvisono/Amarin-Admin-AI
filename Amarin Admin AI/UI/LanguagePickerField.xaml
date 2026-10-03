@@ -1,6 +1,7 @@
 <UserControl x:Class="Amarin.UI.LanguagePickerField"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI"
              MinWidth="170" Height="28">
     <UserControl.Resources>
         <!-- Пункт списка. Форма взята у ModelItem из пикера моделей, чтобы обе выпадашки
@@ -83,23 +84,22 @@
                    Margin="10,0,26,0" VerticalAlignment="Center"
                    TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
 
+        <!-- Поля под тень — PopupShadow; смещение держит карточку там же, где без них:
+             на 40 левее кнопки и на 4 ниже. -->
         <Popup x:Name="PickerPopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Bottom"
-               VerticalOffset="4"
-               HorizontalOffset="-40"
+               VerticalOffset="-10"
+               HorizontalOffset="-54"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
             <!-- Bg.Panel, а не Bg.Glass: у попапа своё окно, и сквозь «стекло» был бы виден
                  рабочий стол, а не фон приложения. -->
-            <Border Width="230" Background="{DynamicResource Bg.Panel}"
+            <Border Width="230" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
                     BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                    CornerRadius="10" Padding="6">
-                <Border.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                </Border.Effect>
+                    CornerRadius="10" Padding="6" Effect="{x:Static local:PopupShadow.Effect}">
                 <StackPanel>
                     <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">

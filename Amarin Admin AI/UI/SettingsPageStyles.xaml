@@ -612,19 +612,17 @@
                                           IsHitTestVisible="False"/>
                         <!-- Фон — Bg.Panel, как у всех попапов: у попапа своё окно, и «стекло»
                              (полупрозрачный Bg.Card) показывало бы сквозь список страницу и рабочий
-                             стол. Поля — место под тень; сдвиг влево их возвращает, и список встаёт
-                             ровно под полем. -->
+                             стол. Поля — место под тень (PopupShadow); смещение их возвращает, и
+                             список встаёт ровно под полем, на 4 ниже его края, как и раньше. -->
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
-                               VerticalOffset="2" HorizontalOffset="-10"
+                               VerticalOffset="-10" HorizontalOffset="-14"
                                AllowsTransparency="True" StaysOpen="False"
                                PopupAnimation="Fade">
-                            <Border Margin="10,2,10,14"
+                            <Border Margin="{x:Static local:PopupShadow.Margin}"
                                     Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
                                     BorderThickness="1" CornerRadius="8" Padding="0,3"
-                                    MinWidth="{TemplateBinding ActualWidth}" MaxHeight="220">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="4" Opacity="0.45"/>
-                                </Border.Effect>
+                                    MinWidth="{TemplateBinding ActualWidth}" MaxHeight="220"
+                                    Effect="{x:Static local:PopupShadow.Effect}">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                                               local:SmoothScroll.IsEnabled="True">
                                     <ItemsPresenter/>

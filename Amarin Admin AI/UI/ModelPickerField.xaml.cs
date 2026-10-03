@@ -128,9 +128,11 @@ public partial class ModelPickerField : UserControl
 
         if (PickerPopup.Child is FrameworkElement child)
         {
+            // Правый край карточки — по правому краю кнопки. Ширина попапа включает поля под
+            // тень, а правое из них лежит за карточкой, поэтому оно и возвращается.
             child.UpdateLayout();
             var width = child.ActualWidth > 0 ? child.ActualWidth : child.Width;
-            PickerPopup.HorizontalOffset = OpenButton.ActualWidth - width;
+            PickerPopup.HorizontalOffset = OpenButton.ActualWidth - width + PopupShadow.Margin.Right;
         }
     }
 

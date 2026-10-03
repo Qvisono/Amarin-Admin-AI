@@ -46,10 +46,12 @@
                        Visibility="Collapsed"/>
         </Grid>
 
+        <!-- Плашка держит поля под тень (PopupShadow): смещение их возвращает, и она встаёт на 4
+             ниже кнопки, как и раньше. Горизонталь считает код — по живой ширине. -->
         <Popup x:Name="PickerPopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Bottom"
-               VerticalOffset="4"
+               VerticalOffset="-10"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"

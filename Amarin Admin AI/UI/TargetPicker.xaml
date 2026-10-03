@@ -1,6 +1,7 @@
 <UserControl x:Class="Amarin.UI.TargetPicker"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
     <Grid>
         <ToggleButton x:Name="Toggle" Height="32" Cursor="Hand" Margin="6,0,0,0"
                       AutomationProperties.Name="{DynamicResource S.Remote.PickerTip}"
@@ -33,14 +34,14 @@
             </StackPanel>
         </ToggleButton>
 
-        <Popup x:Name="Popup" PlacementTarget="{Binding ElementName=Toggle}" Placement="Top" VerticalOffset="-8"
+        <!-- Поля под тень — PopupShadow; смещение держит карточку на 8 выше кнопки, как было. -->
+        <Popup x:Name="Popup" PlacementTarget="{Binding ElementName=Toggle}" Placement="Top"
+               HorizontalOffset="-14" VerticalOffset="14"
                AllowsTransparency="True" StaysOpen="True" PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=Toggle, Mode=TwoWay}">
-            <Border MinWidth="220" MaxWidth="320" Background="{DynamicResource Bg.Panel}"
-                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="12" Padding="6">
-                <Border.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45"/>
-                </Border.Effect>
+            <Border MinWidth="220" MaxWidth="320" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
+                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="12" Padding="6"
+                    Effect="{x:Static local:PopupShadow.Effect}">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource S.Remote.PickerTitle}" FontSize="12" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Muted}" Margin="8,5,8,4"/>

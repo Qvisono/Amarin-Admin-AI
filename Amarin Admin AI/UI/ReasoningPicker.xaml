@@ -1,6 +1,7 @@
 <UserControl x:Class="Amarin.UI.ReasoningPicker"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI"
              MinWidth="64" Height="28">
     <UserControl.Resources>
         <Style x:Key="ReasoningToggle" TargetType="CheckBox">
@@ -120,19 +121,19 @@
             </ToggleButton.Template>
         </ToggleButton>
 
+        <!-- Поля под тень — PopupShadow; смещение держит карточку на 8 выше кнопки, как было. -->
         <Popup x:Name="PickerPopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Top"
-               VerticalOffset="-8"
+               HorizontalOffset="-14"
+               VerticalOffset="14"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
-            <Border Width="240" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="10" Padding="12,10">
-                <Border.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                </Border.Effect>
+            <Border Width="240" Margin="{x:Static local:PopupShadow.Margin}"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="12,10" Effect="{x:Static local:PopupShadow.Effect}">
                 <StackPanel>
                     <!--
                         Тумблер положительный: включён — модель думает. Раньше он назывался

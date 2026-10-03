@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -961,22 +961,23 @@
          программы, а не как системное. HasDropShadow=True обязателен: без него Popup меню
          не получает AllowsTransparency, и скругление срежется по прямоугольнику. -->
 
+    <!-- Тень и поля под неё — общие (PopupShadow); смещение возвращает карточку туда, где она
+         вставала с прежними полями 10,6: на 10 правее и на 6 ниже точки, где открыли меню. -->
     <Style x:Key="AppContextMenu" TargetType="ContextMenu">
         <Setter Property="HasDropShadow" Value="True"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalOffset" Value="-4"/>
+        <Setter Property="VerticalOffset" Value="-8"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <!-- Поля под тень: она рисуется наружу и иначе обрежется. -->
-                    <Border Margin="10,6,10,12" MinWidth="180"
+                    <Border Margin="{x:Static local:PopupShadow.Margin}" MinWidth="180"
                             Background="{DynamicResource Bg.Panel}"
                             BorderBrush="{DynamicResource Border.Default}"
-                            BorderThickness="1" CornerRadius="10" Padding="6">
-                        <Border.Effect>
-                            <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                        </Border.Effect>
+                            BorderThickness="1" CornerRadius="10" Padding="6"
+                            Effect="{x:Static local:PopupShadow.Effect}">
                         <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
                     </Border>
                 </ControlTemplate>

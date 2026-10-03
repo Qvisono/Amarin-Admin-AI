@@ -77,20 +77,20 @@
             </ToggleButton.Template>
         </ToggleButton>
 
+        <!-- Поля под тень — PopupShadow; смещение держит карточку там же, где без них:
+             на 70 левее кнопки и на 4 ниже. -->
         <Popup x:Name="PickerPopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Bottom"
-               VerticalOffset="4"
-               HorizontalOffset="-70"
+               VerticalOffset="-10"
+               HorizontalOffset="-84"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
-            <Border Width="228" Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="10" Padding="10">
-                <Border.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.45"/>
-                </Border.Effect>
+            <Border Width="228" Margin="{x:Static local:PopupShadow.Margin}"
+                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="10" Padding="10" Effect="{x:Static local:PopupShadow.Effect}">
                 <StackPanel>
                     <Border Height="34" CornerRadius="6" Margin="0,0,0,9"
                             BorderBrush="{DynamicResource Border.Default}" BorderThickness="1">
