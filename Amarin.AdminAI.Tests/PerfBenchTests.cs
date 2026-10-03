@@ -61,7 +61,14 @@ public sealed class PerfBenchTests : IDisposable
         var label = Environment.GetEnvironmentVariable("AMARIN_PERF_LABEL") ?? "run";
         var lines = await _wpf.Ui.Invoke(async () =>
         {
-            var results = new List<(string Name, double Value, string Unit)>();
+            // Время по часам у всего, что ждёт кадра, зависит от экрана: при погашенном мониторе
+            // DWM почти не составляет кадров, и WPF на каждом изменении размера ждёт показа по
+            // две сотни миллисекунд даже у пустого окна. Поэтому рядом — время процессора потока
+            // окна (cpu): это работа самого окна, и её экран не искажает.
+            var results = new List<(string Name, double Value, string Unit)>
+            {
+                ("display refreshes per second (DWM)", DisplayRefreshesPerSecond(), "")
+            };
             for (var i = 0; i < 3; i++)
             {
                 var (construct, attach, firstFrame) = await StartWindow(i);
@@ -198,29 +205,37 @@ public sealed class PerfBenchTests : IDisposable
         frames.Start();
         _ = SendMessage(handle, WmEnterSizeMove, IntPtr.Zero, IntPtr.Zero);
         var steps = new List<double>();
+        var cpu = new List<double>();
         var counts = new List<int>();
         foreach (var width in widths)
         {
             layouts.Reset();
             var watch = Stopwatch.StartNew();
+            var cpuBefore = UiCpuMs();
             _ = SetWindowPos(handle, IntPtr.Zero, 0, 0, (int)Math.Round(width * scale), height, SwpNoMove | SwpNoZOrder | SwpNoActivate);
             window.UpdateLayout();
+            cpu.Add(UiCpuMs() - cpuBefore);
             await Dispatcher.Yield(DispatcherPriority.Background);
             steps.Add(watch.Elapsed.TotalMilliseconds);
             counts.Add(layouts.Count);
         }
 
         var released = Stopwatch.StartNew();
+        var releasedCpu = UiCpuMs();
         _ = SendMessage(handle, WmExitSizeMove, IntPtr.Zero, IntPtr.Zero);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         var settled = released.Elapsed.TotalMilliseconds;
+        var settledCpu = UiCpuMs() - releasedCpu;
         await Settle(1500);
         frames.Stop();
 
         results.Add(("resize step, average", steps.Average(), "ms"));
         results.Add(("resize step, slowest", steps.Max(), "ms"));
+        results.Add(("resize step cpu, average", cpu.Average(), "ms"));
+        results.Add(("resize step cpu, slowest", cpu.Max(), "ms"));
         results.Add(("documents laid out per resize step", counts.Average(), ""));
         results.Add(("resize: settled after release", settled, "ms"));
+        results.Add(("resize: settling cpu after release", settledCpu, "ms"));
         results.Add(("resize: max frame gap", frames.MaxGap, "ms"));
         results.Add(("resize: documents left at a stale width", layouts.Stale(), ""));
         layouts.Dispose();
@@ -244,10 +259,13 @@ public sealed class PerfBenchTests : IDisposable
             var frames = new FrameGaps();
             frames.Start();
             var watch = Stopwatch.StartNew();
+            var cpuBefore = UiCpuMs();
             window.WindowState = state;
             window.UpdateLayout();
+            var cpu = UiCpuMs() - cpuBefore;
             await Dispatcher.Yield(DispatcherPriority.Background);
             results.Add(($"{name}: first frame", watch.Elapsed.TotalMilliseconds, "ms"));
+            results.Add(($"{name}: cpu to lay it out", cpu, "ms"));
             results.Add(($"{name}: documents laid out for it", layouts.Count, ""));
             await Settle(2000);
             frames.Stop();
@@ -282,11 +300,14 @@ public sealed class PerfBenchTests : IDisposable
                  })
         {
             var times = new List<double>();
+            var cpu = new List<double>();
             for (var i = 0; i < 5; i++)
             {
                 var watch = Stopwatch.StartNew();
+                var cpuBefore = UiCpuMs();
                 Invoke(window, open);
                 window.UpdateLayout();
+                cpu.Add(UiCpuMs() - cpuBefore);
                 await Dispatcher.Yield(DispatcherPriority.Background);
                 times.Add(watch.Elapsed.TotalMilliseconds);
                 await Settle(300);
@@ -296,6 +317,8 @@ public sealed class PerfBenchTests : IDisposable
 
             results.Add(($"{name} open, first", times[0], "ms"));
             results.Add(($"{name} open, then average", times.Skip(1).Average(), "ms"));
+            results.Add(($"{name} open cpu, first", cpu[0], "ms"));
+            results.Add(($"{name} open cpu, then average", cpu.Skip(1).Average(), "ms"));
         }
 
         return results;
@@ -345,6 +368,7 @@ public sealed class PerfBenchTests : IDisposable
         var panel = (Panel)window.FindName("ChatListPanel")!;
         var target = folders[7].Id;
         var clicks = new List<double>();
+        var cpu = new List<double>();
         var gaps = new List<double>();
         for (var i = 0; i < 10; i++)
         {
@@ -352,8 +376,10 @@ public sealed class PerfBenchTests : IDisposable
             var frames = new FrameGaps();
             frames.Start();
             var watch = Stopwatch.StartNew();
+            var cpuBefore = UiCpuMs();
             header.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             window.UpdateLayout();
+            cpu.Add(UiCpuMs() - cpuBefore);
             await Dispatcher.Yield(DispatcherPriority.Background);
             clicks.Add(watch.Elapsed.TotalMilliseconds);
             await Settle(600);
@@ -363,6 +389,7 @@ public sealed class PerfBenchTests : IDisposable
 
         results.Add(("folder click to frame, average", clicks.Average(), "ms"));
         results.Add(("folder click to frame, slowest", clicks.Max(), "ms"));
+        results.Add(("folder click cpu, average", cpu.Average(), "ms"));
         results.Add(("folder click: max frame gap", gaps.Max(), "ms"));
 
         var write = Stopwatch.StartNew();
@@ -375,9 +402,11 @@ public sealed class PerfBenchTests : IDisposable
 
         // Переименование одного чата: состав списка тот же, поменялась одна строка.
         var rename = Stopwatch.StartNew();
+        var renameCpu = UiCpuMs();
         services.ChatStore.Rename(ids[200], "Новое имя");
         Invoke(window, "RefreshChatList");
         window.UpdateLayout();
+        results.Add(("chat list after a rename, cpu", UiCpuMs() - renameCpu, "ms"));
         await Dispatcher.Yield(DispatcherPriority.Background);
         results.Add(("chat list after a rename", rename.Elapsed.TotalMilliseconds, "ms"));
 
@@ -462,6 +491,47 @@ public sealed class PerfBenchTests : IDisposable
         _ = method.Invoke(window, method.GetParameters().Length == 0 ? [] : [null, null]);
     }
 
+    /// <summary>Время процессора, которое поток окна потратил с его запуска, в миллисекундах.</summary>
+    private static double UiCpuMs()
+    {
+        _ = GetThreadTimes(GetCurrentThread(), out _, out _, out var kernel, out var user);
+        return (kernel + user) / 10_000.0;
+    }
+
+    /// <summary>Сколько раз за секунду DWM обновил экран: при погашенном мониторе — единицы.</summary>
+    private static double DisplayRefreshesPerSecond()
+    {
+        var first = new DwmTimingInfo { Size = Marshal.SizeOf<DwmTimingInfo>(), Rest = new byte[248] };
+        var second = new DwmTimingInfo { Size = Marshal.SizeOf<DwmTimingInfo>(), Rest = new byte[248] };
+        if (DwmGetCompositionTimingInfo(IntPtr.Zero, ref first) != 0)
+        {
+            return double.NaN;
+        }
+
+        Thread.Sleep(1000);
+        return DwmGetCompositionTimingInfo(IntPtr.Zero, ref second) == 0 ? second.Refreshes - first.Refreshes : double.NaN;
+    }
+
+    /// <summary>
+    /// <c>DWM_TIMING_INFO</c> (pack 1, 292 байта): поля до счётчика обновлений и хвост. DWM
+    /// сверяет размер, поэтому хвост ровно до конца структуры.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct DwmTimingInfo
+    {
+        public int Size;
+        public uint RefreshNumerator;
+        public uint RefreshDenominator;
+        public ulong RefreshPeriod;
+        public uint ComposeNumerator;
+        public uint ComposeDenominator;
+        public ulong VBlank;
+        public ulong Refreshes;
+
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 248)]
+        public byte[] Rest;
+    }
+
     private const int WmEnterSizeMove = 0x0231;
     private const int WmExitSizeMove = 0x0232;
     private const int SwpNoMove = 0x0002;
@@ -473,6 +543,15 @@ public sealed class PerfBenchTests : IDisposable
 
     [DllImport("user32.dll")]
     private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, int flags);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentThread();
+
+    [DllImport("kernel32.dll")]
+    private static extern bool GetThreadTimes(IntPtr thread, out long creation, out long exit, out long kernel, out long user);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetCompositionTimingInfo(IntPtr hwnd, ref DwmTimingInfo info);
 
     /// <summary>Время процессора всех потоков за пять секунд простоя.</summary>
     private static async Task<double> IdleCpu()
