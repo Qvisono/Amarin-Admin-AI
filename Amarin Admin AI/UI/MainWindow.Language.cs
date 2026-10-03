@@ -235,12 +235,9 @@ namespace Amarin.UI
             LoadAccountUi();
 
             // Та же беда на странице обновлений: и статус, и подпись кнопки «Обновить» заполнены
-            // из кода, причём подпись перекрывает DynamicResource насовсем. Пока идёт загрузка,
-            // трогать её нельзя — на кнопке стоит «Отменить», и она там по делу.
-            if (_updateDownload is null && _autoDownload is null)
-            {
-                LoadUpdatesUi();
-            }
+            // из кода, причём подпись перекрывает DynamicResource насовсем. Плашку рисует автомат
+            // по своему состоянию, поэтому перерисовать её можно в любой момент — и посреди загрузки.
+            LoadUpdatesUi();
             if (ProfileOverlay.Visibility == Visibility.Visible)
             {
                 RefreshProfileList();

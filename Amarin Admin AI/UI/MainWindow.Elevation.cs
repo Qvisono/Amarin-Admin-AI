@@ -31,7 +31,7 @@ namespace Amarin.UI
 
         private async Task RestartElevatedAsync()
         {
-            if (_services is null || _exiting || Environment.ProcessPath is not { Length: > 0 } exe)
+            if (_services is null || Exit.Exiting || Environment.ProcessPath is not { Length: > 0 } exe)
             {
                 return;
             }

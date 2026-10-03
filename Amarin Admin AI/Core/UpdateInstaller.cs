@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace Amarin.Core;
@@ -98,9 +99,9 @@ public static class UpdateInstaller
     /// Где и как обновляться: программа должна быть обычным exe, а файл — куда-то скачаться.
     /// Недоступная на запись папка программы больше не отказ, а лишь повод спросить права.
     /// </summary>
-    public static bool TryPlan(ReleaseInfo release, string? exePath, out UpdatePlan plan, out string error)
+    public static bool TryPlan(ReleaseInfo release, string? exePath, [NotNullWhen(true)] out UpdatePlan? plan, out string error)
     {
-        plan = null!;
+        plan = null;
         error = "";
 
         if (release.WindowsBuild is not { } asset)

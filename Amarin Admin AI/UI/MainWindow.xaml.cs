@@ -192,7 +192,7 @@ namespace Amarin.UI
                 // Спрятанное ради обновления окно геометрию уже сохранило, а сейчас Windows
                 // отдала бы его состоянием «скрыто» — и «развёрнуто» потерялось бы. То же у
                 // спрятанного в трей: геометрию оно сохранило, прячась.
-                if (!_hiddenForExit && !_hiddenToTray)
+                if (!Exit.HiddenForExit && !_hiddenToTray)
                 {
                     SaveWindowGeometry();
                 }

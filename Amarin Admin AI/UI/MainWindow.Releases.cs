@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -60,13 +58,9 @@ namespace Amarin.UI
             _services.Settings.BetaChannel = BetaChannelToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
-            // Найденное по прежнему каналу забываем целиком — и скачанное тоже: иначе снятая
-            // галка беты всё равно поставила бы уже скачанную бету при закрытии.
-            _autoDownload?.Cancel();
-            _staged = null;
-            _latestRelease = null;
-            _releasePageUrl = null;
-            StartUpdateCheck(manual: true);
+            // Найденное по прежнему каналу автомат забывает целиком — и скачанное, и качающееся,
+            // кем бы оно ни было начато, — и проверяет заново.
+            Updates.ChangeChannel();
         }
 
         /// <summary>Заметки к релизу в окне подтверждения; нет заметок — блока нет.</summary>
@@ -92,11 +86,12 @@ namespace Amarin.UI
 
             if (AnyTurnRunning)
             {
-                ShowUpdateStatus(Loc.Get("S.Updates.WaitForTurns"), accent: false);
+                Updates.ShowNotice(UpdateNoticeKind.WaitForTurns);
                 return;
             }
 
-            if (_updateDownload is not null || _installTask is { IsCompleted: false })
+            // Обновление, которого ждёт человек, — не время для отката.
+            if (Updates.State is { Download.Wanted: true } or { Installing: not null })
             {
                 return;
             }
@@ -149,11 +144,10 @@ namespace Amarin.UI
             // Пока спрашивали, мог начаться ход — перезапуск оборвал бы его.
             if (AnyTurnRunning)
             {
-                ShowUpdateStatus(Loc.Get("S.Updates.WaitForTurns"), accent: false);
+                Updates.ShowNotice(UpdateNoticeKind.WaitForTurns);
                 return;
             }
 
-            ShowUpdateStatus(Loc.Get("S.Updates.RollingBack"), accent: false);
             RollbackButton.IsEnabled = false;
             try
             {
@@ -168,55 +162,32 @@ namespace Amarin.UI
                 _services.SettingsStore.Save(_services.Settings);
 
                 // Скачанное в фоне поставил бы выход — а выход здесь ради отката, не обновления.
-                _autoDownload?.Cancel();
-                _staged = null;
+                Updates.BeginRollback();
                 PersistCurrent();
 
                 var result = elevate
-                    ? await RollBackWithElevationAsync(exe)
+                    ? await ElevatedRun.RunAsync(exe, ["--rollback-update"])
                     : await Task.Run(() => UpdateInstaller.RollBack(exe));
 
                 if (!result.Ok)
                 {
-                    ShowUpdateStatus(Loc.Format("S.Updates.Failed", result.Error), accent: false);
-                    ShowUpdatePhase(UpdatePhase.Failed);
+                    Updates.FailRollback(result.Error ?? "");
                     return;
                 }
 
-                Restart(exe);
+                // Прошлая версия уже на месте: выход не должен принять её за недоведённое обновление.
+                Updates.CompleteRollback();
+                if (AppRelaunch.StartSuccessor(exe) is { } error)
+                {
+                    Updates.ReportRestartFailed(error);
+                    return;
+                }
+
+                RequestExit();
             }
             finally
             {
                 RollbackButton.IsEnabled = true;
-            }
-        }
-
-        /// <summary>Откат через UAC — тем же коротким повышенным запуском, что и подмена обновления.</summary>
-        private static async Task<UpdateStepResult> RollBackWithElevationAsync(string exe)
-        {
-            var start = new ProcessStartInfo { FileName = exe, UseShellExecute = true, Verb = "runas" };
-            start.ArgumentList.Add("--rollback-update");
-
-            try
-            {
-                using var elevated = Process.Start(start);
-                if (elevated is null)
-                {
-                    return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
-                }
-
-                await elevated.WaitForExitAsync();
-                return elevated.ExitCode == 0
-                    ? UpdateStepResult.Success
-                    : UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
-            }
-            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
-            {
-                return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationRefused"));
-            }
-            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
-            {
-                return UpdateStepResult.Failed(ex.Message);
             }
         }
 
@@ -259,7 +230,7 @@ namespace Amarin.UI
         {
             // Читать ресурс — на рабочем потоке: заметки к большому выпуску — это десятки килобайт.
             var notes = await Task.Run(WhatsNew.Embedded);
-            if (notes is null || _exiting)
+            if (notes is null || Exit.Exiting)
             {
                 return;
             }

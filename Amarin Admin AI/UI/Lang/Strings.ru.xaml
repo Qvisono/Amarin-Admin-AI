@@ -1862,6 +1862,7 @@
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Текущая версия</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Загрузка отменена.</system:String>
     <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Скачиваем версию {0} - {1} %</system:String>
+    <system:String x:Key="S.Updates.DownloadingToInstall" xml:space="preserve">Скачиваем версию {0} - {1} %, затем установим и перезапустим</system:String>
     <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Подмена файла от имени администратора не удалась.</system:String>
     <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Без прав администратора файл программы не заменить.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">Обновление не состоялось: {0}</system:String>
@@ -1902,12 +1903,14 @@
     <system:String x:Key="S.Updates.Pill.Checking" xml:space="preserve">Проверяем</system:String>
     <system:String x:Key="S.Updates.Pill.Downloading" xml:space="preserve">Скачивание</system:String>
     <system:String x:Key="S.Updates.Pill.Failed" xml:space="preserve">Не удалось</system:String>
+    <system:String x:Key="S.Updates.Pill.Installing" xml:space="preserve">Установка</system:String>
     <system:String x:Key="S.Updates.Pill.Ready" xml:space="preserve">Готово к установке</system:String>
     <system:String x:Key="S.Updates.Pill.UpToDate" xml:space="preserve">Последняя версия</system:String>
     <system:String x:Key="S.Updates.PreviousUnknown" xml:space="preserve">прошлая версия</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub больше не принимает проверки с этого адреса: лимит исчерпан. Следующая попытка - после {0}.</system:String>
     <system:String x:Key="S.Updates.Ready" xml:space="preserve">Версия {0} скачана и встанет, когда вы закроете программу</system:String>
     <system:String x:Key="S.Updates.ReadyAdmin" xml:space="preserve">Версия {0} скачана и встанет при закрытии программы - Windows спросит права администратора</system:String>
+    <system:String x:Key="S.Updates.ReadyAfterTurns" xml:space="preserve">Версия {0} скачана - установите её, когда закончатся ответы, или она встанет при закрытии</system:String>
     <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">Новая версия установлена, но запустить её не вышло: {0}</system:String>
     <system:String x:Key="S.Updates.Rollback" xml:space="preserve">Вернуть v{0}</system:String>
     <system:String x:Key="S.Updates.RollbackAdmin" xml:space="preserve">Папка программы защищена — Windows спросит права администратора.</system:String>
@@ -1921,6 +1924,7 @@
     <system:String x:Key="S.Updates.SidebarNewer" xml:space="preserve">v{0} · доступна v{1}</system:String>
     <system:String x:Key="S.Updates.SidebarStaged" xml:space="preserve">v{0} · v{1} готова к установке</system:String>
     <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">Размер не совпал: ждали {0} байт, получили {1}.</system:String>
+    <system:String x:Key="S.Updates.Stalled" xml:space="preserve">Загрузка остановилась: сеть не отвечает.</system:String>
     <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub ответил {0}.</system:String>
     <system:String x:Key="S.Updates.Timeout" xml:space="preserve">Проверка заняла слишком много времени.</system:String>
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Версия и обновления</system:String>

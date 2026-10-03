@@ -253,39 +253,42 @@ public sealed class UpdateUiTests
     }
 
     [Fact]
-    public void A_download_in_progress_names_the_version_and_its_button_says_cancel()
+    public void A_background_download_names_the_version_and_its_button_joins_it()
     {
-        // Фоновая загрузка оставляла на кнопке «Обновить», и нажатие молча отменяло скачивание:
-        // плашка застывала на «Скачивание 37 %».
-        var (pill, status, button, visible) = _wpf.Ui.Invoke(() =>
-        {
-            var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
-            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
-            var updateNow = (Button)window.FindName("UpdateNowButton")!;
-            using var download = new CancellationTokenSource();
-            try
+        // До 1.30.0 кнопка во время фоновой загрузки была подписана «Отмена» и отменяла её: человек
+        // хотел обновиться, а полоса пропадала, и нажимать приходилось ещё раз. Теперь «Обновить»
+        // присоединяется к загрузке.
+        var (pill, status, button, visible) = WithState(
+            state => state with
             {
-                window.LatestRelease = NewerRelease();
-                Set(window, "_autoDownload", download);
-                Set(window, "_downloadingVersion", (ReleaseVersion?)new ReleaseVersion(new Version(99, 0, 0), ""));
-                Set(window, "_downloadShare", 0.37);
-                window.LoadUpdatesUi();
-                return (pillText.Text, statusText.Text, updateNow.Content as string, updateNow.Visibility);
-            }
-            finally
-            {
-                Set(window, "_autoDownload", null);
-                Set(window, "_downloadingVersion", null);
-                window.LatestRelease = null;
-                window.LoadUpdatesUi();
-            }
-        });
+                Latest = NewerRelease(),
+                Download = new UpdateDownload(NewerRelease(), UpdateDownloadOrigin.Background, InstallRequested: false, AllowUnverified: false, Share: 0.37, Generation: 1)
+            },
+            window => (Named<TextBlock>(window, "UpdateStatePillText").Text,
+                       Named<TextBlock>(window, "UpdateStatusText").Text,
+                       Named<Button>(window, "UpdateNowButton").Content as string,
+                       Named<Button>(window, "UpdateNowButton").Visibility));
 
         Assert.Equal(Loc.Get("S.Updates.Pill.Downloading"), pill);
         Assert.Equal(Loc.Format("S.Updates.DownloadingVersion", "99.0.0", "37"), status);
-        Assert.Equal(Loc.Get("S.Common.Cancel"), button);
+        Assert.Equal(Loc.Get("S.Updates.Update"), button);
         Assert.Equal(Visibility.Visible, visible);
+    }
+
+    [Fact]
+    public void A_download_the_person_waits_for_says_it_installs_and_its_button_cancels()
+    {
+        var (status, button) = WithState(
+            state => state with
+            {
+                Latest = NewerRelease(),
+                Download = new UpdateDownload(NewerRelease(), UpdateDownloadOrigin.Background, InstallRequested: true, AllowUnverified: false, Share: 0.5, Generation: 1)
+            },
+            window => (Named<TextBlock>(window, "UpdateStatusText").Text,
+                       Named<Button>(window, "UpdateNowButton").Content as string));
+
+        Assert.Equal(Loc.Format("S.Updates.DownloadingToInstall", "99.0.0", "50"), status);
+        Assert.Equal(Loc.Get("S.Common.Cancel"), button);
     }
 
     [Fact]
@@ -302,7 +305,7 @@ public sealed class UpdateUiTests
             {
                 window.LatestRelease = NewerRelease();
                 window.LoadUpdatesUi();
-                Call(window, "ApplyUpdateResult", new UpdateCheckResult
+                FinishCheck(window, new UpdateCheckResult
                 {
                     Latest = NewerRelease() with { Assets = [] },
                     UpdateAvailable = true
@@ -311,8 +314,7 @@ public sealed class UpdateUiTests
             }
             finally
             {
-                window.LatestRelease = null;
-                window.LoadUpdatesUi();
+                Reset(window);
             }
         });
 
@@ -331,14 +333,12 @@ public sealed class UpdateUiTests
             try
             {
                 window.LatestRelease = NewerRelease();
-                Call(window, "ApplyUpdateResult", UpdateCheckResult.Failed("GitHub answered 503."));
+                FinishCheck(window, UpdateCheckResult.Failed("GitHub answered 503."));
                 return (pillText.Text, button.Visibility);
             }
             finally
             {
-                Set(window, "_lastCheckError", null);
-                window.LatestRelease = null;
-                window.LoadUpdatesUi();
+                Reset(window);
             }
         });
 
@@ -360,14 +360,13 @@ public sealed class UpdateUiTests
             try
             {
                 window.LatestRelease = null;
-                Call(window, "ApplyUpdateResult", UpdateCheckResult.Failed("GitHub answered 503."));
+                FinishCheck(window, UpdateCheckResult.Failed("GitHub answered 503."));
                 window.LoadUpdatesUi();
                 return (pillText.Text, statusText.Text, open.Visibility);
             }
             finally
             {
-                Set(window, "_lastCheckError", null);
-                window.LoadUpdatesUi();
+                Reset(window);
             }
         });
 
@@ -425,79 +424,40 @@ public sealed class UpdateUiTests
         Assert.False(pending.Item2);
     }
 
-    [Fact]
-    public void A_second_launch_during_the_background_update_brings_the_window_back()
+    /// <summary>
+    /// Плашка на подставленном состоянии автомата: состояние ставится, плашка перерисовывается,
+    /// замер снимается, состояние возвращается к начальному.
+    /// </summary>
+    private T WithState<T>(Func<UpdateState, UpdateState> change, Func<MainWindow, T> read) => _wpf.Ui.Invoke(() =>
     {
-        // Человек закрыл программу, пока докачивалось обновление, и тут же открыл снова.
-        // Второй запуск отдаёт запрос этому процессу, и тот обязан показать окно, а не молча
-        // выйти — иначе оба процесса исчезнут, и человек останется ни с чем.
-        var (revived, exiting, hidden, generation) = _wpf.Ui.Invoke(() =>
+        var window = Application.Current.Windows.OfType<MainWindow>().Single();
+        try
         {
-            var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var before = Get<int>(window, "_exitGeneration");
-            try
-            {
-                Set(window, "_hiddenForExit", true);
-                Set(window, "_exiting", true);
-                var result = Call<bool>(window, "ReviveFromBackgroundExit");
-                return (result, Get<bool>(window, "_exiting"), Get<bool>(window, "_hiddenForExit"),
-                    Get<int>(window, "_exitGeneration") - before);
-            }
-            finally
-            {
-                Set(window, "_hiddenForExit", false);
-                Set(window, "_exiting", false);
-                window.Show();
-            }
-        });
+            window.Updates.Seed(change);
+            window.LoadUpdatesUi();
+            return read(window);
+        }
+        finally
+        {
+            Reset(window);
+        }
+    });
 
-        Assert.True(revived);
-        Assert.False(exiting);
-        Assert.False(hidden);
-
-        // Новый номер попытки: прежний выход, дождавшись загрузки, обязан отступить.
-        Assert.Equal(1, generation);
+    /// <summary>Проверка кончилась с таким итогом — так, как её итог приходит в автомат.</summary>
+    private static void FinishCheck(MainWindow window, UpdateCheckResult result)
+    {
+        var generation = window.Updates.State.CheckGeneration + 1;
+        window.Updates.Seed(state => state with { CheckRunning = true, CheckGeneration = generation });
+        window.Updates.Dispatch(new UpdateEvent.CheckFinished(generation, result));
     }
 
-    [Fact]
-    public void A_second_launch_after_the_swap_began_asks_for_the_new_version()
+    private static void Reset(MainWindow window)
     {
-        var (revived, relaunch) = _wpf.Ui.Invoke(() =>
-        {
-            var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            try
-            {
-                Set(window, "_hiddenForExit", true);
-                Set(window, "_swapStarted", true);
-                var result = Call<bool>(window, "ReviveFromBackgroundExit");
-                return (result, Get<bool>(window, "_relaunchAfterExit"));
-            }
-            finally
-            {
-                Set(window, "_hiddenForExit", false);
-                Set(window, "_swapStarted", false);
-                Set(window, "_relaunchAfterExit", false);
-            }
-        });
-
-        Assert.False(revived);
-        Assert.True(relaunch);
+        window.Updates.Seed(_ => UpdateState.Initial);
+        window.LoadUpdatesUi();
     }
 
-    private const System.Reflection.BindingFlags Hidden =
-        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-
-    private static T Get<T>(object target, string field) =>
-        (T)target.GetType().GetField(field, Hidden)!.GetValue(target)!;
-
-    private static void Set(object target, string field, object? value) =>
-        target.GetType().GetField(field, Hidden)!.SetValue(target, value);
-
-    private static T Call<T>(object target, string method) =>
-        (T)target.GetType().GetMethod(method, Hidden)!.Invoke(target, null)!;
-
-    private static void Call(object target, string method, params object?[] arguments) =>
-        target.GetType().GetMethod(method, Hidden)!.Invoke(target, arguments);
+    private static T Named<T>(MainWindow window, string name) where T : class => (T)window.FindName(name)!;
 
     /// <summary>Сборка, будто бы уже скачанная и ждущая выхода. На диск ничего не кладётся.</summary>
     [Fact]

@@ -180,7 +180,7 @@ namespace Amarin.UI
 
         private void ApplyTray(WindowsIntegrationSettings settings)
         {
-            if (settings.ShowTrayIcon && _tray is null && !_exiting && IsRealApp)
+            if (settings.ShowTrayIcon && _tray is null && !Exit.Exiting && IsRealApp)
             {
                 try
                 {
@@ -258,7 +258,7 @@ namespace Amarin.UI
         /// <summary>Прячет окно в трей. Геометрия снимается до Hide: спрятанное Windows отдаёт как «скрыто».</summary>
         internal void HideToTray()
         {
-            if (_tray is not { IsShown: true } || _hiddenForExit)
+            if (_tray is not { IsShown: true } || Exit.HiddenForExit)
             {
                 return;
             }
@@ -303,7 +303,7 @@ namespace Amarin.UI
         /// Windows и не без значка — иначе окно стало бы недостижимым.
         /// </summary>
         private bool ShouldCloseToTray() =>
-            OwnsApplication && !_exiting && !_sessionEnding && !_hiddenForExit &&
+            OwnsApplication && !Exit.Exiting && !_sessionEnding && !Exit.HiddenForExit &&
             _tray is { IsShown: true } &&
             _services?.Settings.Windows is { CloseToTray: true };
 

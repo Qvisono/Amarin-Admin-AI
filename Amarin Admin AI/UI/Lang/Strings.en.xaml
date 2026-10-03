@@ -1862,6 +1862,7 @@
     <system:String x:Key="S.Updates.CurrentVersion" xml:space="preserve">Current version</system:String>
     <system:String x:Key="S.Updates.DownloadCancelled" xml:space="preserve">Download cancelled.</system:String>
     <system:String x:Key="S.Updates.DownloadingVersion" xml:space="preserve">Downloading version {0} - {1} %</system:String>
+    <system:String x:Key="S.Updates.DownloadingToInstall" xml:space="preserve">Downloading version {0} - {1} %, then installing and restarting</system:String>
     <system:String x:Key="S.Updates.ElevationFailed" xml:space="preserve">Replacing the file as administrator did not work.</system:String>
     <system:String x:Key="S.Updates.ElevationRefused" xml:space="preserve">Without administrator rights the program file cannot be replaced.</system:String>
     <system:String x:Key="S.Updates.Failed" xml:space="preserve">The update did not happen: {0}</system:String>
@@ -1902,12 +1903,14 @@
     <system:String x:Key="S.Updates.Pill.Checking" xml:space="preserve">Checking</system:String>
     <system:String x:Key="S.Updates.Pill.Downloading" xml:space="preserve">Downloading</system:String>
     <system:String x:Key="S.Updates.Pill.Failed" xml:space="preserve">Check failed</system:String>
+    <system:String x:Key="S.Updates.Pill.Installing" xml:space="preserve">Installing</system:String>
     <system:String x:Key="S.Updates.Pill.Ready" xml:space="preserve">Ready to install</system:String>
     <system:String x:Key="S.Updates.Pill.UpToDate" xml:space="preserve">Up to date</system:String>
     <system:String x:Key="S.Updates.PreviousUnknown" xml:space="preserve">the previous version</system:String>
     <system:String x:Key="S.Updates.RateLimited" xml:space="preserve">GitHub no longer accepts checks from this address: the limit is used up. Next attempt after {0}.</system:String>
     <system:String x:Key="S.Updates.Ready" xml:space="preserve">Version {0} is downloaded and will be installed when you close the app</system:String>
     <system:String x:Key="S.Updates.ReadyAdmin" xml:space="preserve">Version {0} is downloaded and will be installed when you close the app - Windows will ask for administrator rights</system:String>
+    <system:String x:Key="S.Updates.ReadyAfterTurns" xml:space="preserve">Version {0} is downloaded - install it once the replies finish, or it goes in when you close the app</system:String>
     <system:String x:Key="S.Updates.RestartFailed" xml:space="preserve">The new version is installed, but starting it did not work: {0}</system:String>
     <system:String x:Key="S.Updates.Rollback" xml:space="preserve">Go back to v{0}</system:String>
     <system:String x:Key="S.Updates.RollbackAdmin" xml:space="preserve">The program folder is protected — Windows will ask for administrator rights.</system:String>
@@ -1921,6 +1924,7 @@
     <system:String x:Key="S.Updates.SidebarNewer" xml:space="preserve">v{0} · v{1} available</system:String>
     <system:String x:Key="S.Updates.SidebarStaged" xml:space="preserve">v{0} · v{1} ready to install</system:String>
     <system:String x:Key="S.Updates.SizeMismatch" xml:space="preserve">The size did not match: expected {0} bytes, got {1}.</system:String>
+    <system:String x:Key="S.Updates.Stalled" xml:space="preserve">The download stalled: the network is not responding.</system:String>
     <system:String x:Key="S.Updates.Status" xml:space="preserve">GitHub answered {0}.</system:String>
     <system:String x:Key="S.Updates.Timeout" xml:space="preserve">The check took too long.</system:String>
     <system:String x:Key="S.Updates.Title" xml:space="preserve">Version and updates</system:String>

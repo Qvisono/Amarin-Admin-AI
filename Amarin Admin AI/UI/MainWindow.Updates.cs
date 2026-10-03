@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -8,157 +7,69 @@ using Amarin.Core;
 
 namespace Amarin.UI
 {
-    /// <summary>Скачанная сборка, которая ждёт закрытия программы, чтобы встать на её место.</summary>
-    internal sealed record StagedUpdate(UpdatePlan Plan, string File, ReleaseVersion Version);
-
     /// <summary>
-    /// Плашка обновлений на странице Data Controls и автообновление целиком: проверка при каждом
-    /// запуске и дальше по расписанию, фоновая загрузка найденной версии и подмена файла при
-    /// закрытии программы — уже после того, как окно исчезло.
+    /// Плашка обновлений на странице Data Controls и выход с обновлением.
     /// </summary>
     /// <remarks>
-    /// Всё это делается, только пока включена галка «Автообновление»; снятая означает, что
-    /// программа не ходит в сеть сама и ничего не ставит — остаётся кнопка на странице.
-    /// Скачанный файл сверяется по размеру и SHA-256 ещё до того, как его кто-то тронет
-    /// (<see cref="UpdateInstaller.DownloadAsync"/>), а подмена сохраняет путь и имя exe —
-    /// иначе слетели бы ярлыки и флаг «Запускать от имени администратора».
+    /// Решения здесь не принимаются: их принимает автомат (<see cref="UpdateMachine"/>), а
+    /// исполняет — <see cref="UpdateController"/> и <see cref="UpdateExit"/> в Core. Окно
+    /// переносит <see cref="UpdateView"/> на контролы, передаёт нажатия и даёт автомату то, что
+    /// есть только у окна: настройки, ходы, сохранение чатов, прятанье и показ.
     /// </remarks>
     public partial class MainWindow
     {
-        /// <summary>Отказ UAC: человек нажал «Нет». Обычный ответ, а не сбой.</summary>
-        private const int ErrorCancelled = 1223;
+        private UpdateController? _updates;
+        private UpdateExit? _exit;
+        private IUpdateFiles? _updateFiles;
 
-        /// <summary>Состояние обновлений одним словом — то, что показывает пилюля в плашке.</summary>
-        private enum UpdatePhase
-        {
-            UpToDate,
-            Checking,
-            Available,
-            Downloading,
-            Ready,
-            Failed
-        }
+        /// <summary>Вопрос «Обновить до версии…», открытый сейчас.</summary>
+        private UpdateOffer? _pendingOffer;
 
-        private string? _releasePageUrl;
-        private bool _updateCheckRunning;
-        private ReleaseInfo? _latestRelease;
+        /// <summary>Обновления этого окна. Заводятся при первом обращении — после разметки.</summary>
+        internal UpdateController Updates => _updates ??= CreateUpdates();
 
-        /// <summary>
-        /// Последний найденный релиз.
-        /// </summary>
-        /// <remarks>
-        /// Открыто наружу ради теста: убедиться, что открытие настроек больше не стирает
-        /// находку, можно только подсунув её и открыв страницу.
-        /// </remarks>
-        internal ReleaseInfo? LatestRelease
-        {
-            get => _latestRelease;
-            set => _latestRelease = value;
-        }
+        /// <summary>Выход с обновлением.</summary>
+        internal UpdateExit Exit => _exit ??= new UpdateExit(Updates, UpdateFiles, new WindowExitHost(this));
 
-        /// <summary>
-        /// Почему не удалась последняя проверка; <c>null</c> — удалась или ещё не шла.
-        /// </summary>
-        /// <remarks>
-        /// Без этого страница, открытая после неудачной проверки, говорила «Последняя версия» —
-        /// ровно то, чего программа как раз не знает.
-        /// </remarks>
-        private string? _lastCheckError;
-
-        /// <summary>Какая версия сейчас качается — для плашки, открытой посреди загрузки.</summary>
-        private ReleaseVersion? _downloadingVersion;
-
-        /// <summary>Доля уже скачанного у <see cref="_downloadingVersion"/>.</summary>
-        private double _downloadShare;
-
-        private UpdatePlan? _pendingUpdate;
-        private CancellationTokenSource? _updateDownload;
-
-        /// <summary>Фоновая загрузка автообновления; <c>null</c> — сейчас ничего не качается.</summary>
-        private CancellationTokenSource? _autoDownload;
-
-        private StagedUpdate? _staged;
-
-        /// <summary>
-        /// Скачанное обновление, ждущее выхода.
-        /// </summary>
-        /// <remarks>
-        /// Открыто наружу ради теста: проверить, что закрытие откладывается ровно один раз,
-        /// можно только подсунув сюда готовую сборку.
-        /// </remarks>
-        internal StagedUpdate? Staged
-        {
-            get => _staged;
-            set => _staged = value;
-        }
-
-        /// <summary>
-        /// Такт, который сверяет, не пора ли проверить обновления.
-        /// </summary>
-        /// <remarks>
-        /// Короткий такт, а не один тик на весь интервал: <see cref="DispatcherTimer"/> не
-        /// досчитывает время сна и гибернации, и единственный пятичасовой тик после пробуждения
-        /// сдвинулся бы ровно на столько, сколько машина спала.
-        /// </remarks>
-        private DispatcherTimer? _updateHeartbeat;
-
-        /// <summary>Когда автопроверке можно идти в сеть снова. UTC; в памяти, не на диске.</summary>
-        private DateTime _nextAutoCheckUtc;
-
-        /// <summary>Выход уже начат — второй раз его начинать нельзя.</summary>
-        private bool _exiting;
-
-        /// <summary>Идущая проверка обновлений — чтобы выход мог её дождаться.</summary>
-        private Task? _updateCheckTask;
-
-        /// <summary>
-        /// Когда в этом запуске GitHub в последний раз ответил. В памяти, а не в настройках: при
-        /// закрытии важно, что известно этому процессу, а не то, что было в прошлый раз.
-        /// </summary>
-        private DateTime? _lastSuccessfulCheckUtc;
-
-        /// <summary>Идущая фоновая загрузка — чтобы выход мог её дождаться.</summary>
-        private Task? _autoDownloadTask;
-
-        /// <summary>Идущая установка по кнопке «Обновить».</summary>
-        private Task? _installTask;
-
-        /// <summary>Окно спрятано, а процесс доводит обновление, прежде чем завершиться.</summary>
-        private bool _hiddenForExit;
-
-        /// <summary>Файл уже подменяется — вернуть окно нельзя, можно только перезапуститься.</summary>
-        private bool _swapStarted;
-
-        /// <summary>Во время фоновой подмены программу запустили снова — после неё поднять новую версию.</summary>
-        private bool _relaunchAfterExit;
-
-        /// <summary>
-        /// Номер попытки выхода. Возвращённое повторным запуском окно начинает новую попытку, и
-        /// прежняя, дождавшись своей загрузки, обязана тихо отступить — иначе файл подменили бы
-        /// дважды.
-        /// </summary>
-        private int _exitGeneration;
+        private IUpdateFiles UpdateFiles => _updateFiles ??= new InstallerUpdateFiles(() => _services?.DownloadHttp, Environment.ProcessPath);
 
         private static ReleaseVersion CurrentRelease => RuntimeContext.AppRelease;
 
-        /// <summary>Версия, от которой человек откатился (см. <see cref="AppSettings.DeclinedUpdate"/>).</summary>
-        private ReleaseVersion? DeclinedRelease => ReleaseVersion.Parse(_services?.Settings.DeclinedUpdate);
+        /// <summary>Последний найденный релиз. Открыто наружу ради тестов плашки.</summary>
+        internal ReleaseInfo? LatestRelease
+        {
+            get => Updates.State.Latest;
+            set => Updates.Seed(state => state with { Latest = value });
+        }
+
+        /// <summary>Скачанное обновление, ждущее выхода. Открыто наружу ради тестов выхода.</summary>
+        internal StagedUpdate? Staged
+        {
+            get => Updates.State.Staged;
+            set => Updates.Seed(state => state with { Staged = value });
+        }
+
+        private UpdateController CreateUpdates()
+        {
+            // Итоги сетевых шагов возвращаются очередью диспетчера: внутри одного приоритета
+            // она строгая, и итог не обгонит то, что встало в очередь раньше.
+            var controller = new UpdateController(
+                new GitHubUpdateSource(),
+                UpdateFiles,
+                new WindowUpdateApp(this),
+                CurrentRelease,
+                action => Dispatcher.InvokeAsync(action));
+            controller.Changed += RenderUpdates;
+            return controller;
+        }
 
         /// <summary>
-        /// Стоит ли этот выпуск доводить самим, без кнопки: новее установленной и не та версия,
-        /// от которой человек вернулся к прошлой.
-        /// </summary>
-        private bool WantedAutomatically(ReleaseInfo release) =>
-            release.Release > CurrentRelease && (DeclinedRelease is not { } declined || release.Release > declined);
-
-        /// <summary>
-        /// Приводит плашку обновлений в порядок при каждом открытии настроек.
+        /// Приводит плашку обновлений в порядок при каждом открытии настроек и смене языка.
         /// </summary>
         /// <remarks>
         /// Найденный релиз пересказывается заново, а не забывается. Раньше здесь безусловно
         /// гасли обе кнопки: автопроверка при запуске находила новую версию и показывала
-        /// «Обновить», человек шёл в настройки — и открытие страницы стирало находку. Обновиться
-        /// можно было, только нажав «Проверить» ещё раз, уже внутри открытой страницы.
+        /// «Обновить», человек шёл в настройки — и открытие страницы стирало находку.
         /// </remarks>
         internal void LoadUpdatesUi()
         {
@@ -170,65 +81,40 @@ namespace Amarin.UI
             UpdateVersionText.Text = "v" + RuntimeContext.AppVersion;
             ShowLastCheck();
             LoadReleaseExtrasUi();
-            ShowUpdateCard();
+
+            // Страница нарисована заново — «Загрузка отменена» и прочие ответы на прошлые
+            // нажатия уже не к месту.
+            Updates.DismissNotices();
+            RenderUpdates();
         }
 
-        /// <summary>
-        /// Рисует плашку по тому, что сейчас известно: качается, скачано, найдено, проверяется,
-        /// проверить не вышло или новее нет.
-        /// </summary>
-        /// <remarks>
-        /// Одно место на все случаи. Пока каждое событие красило плашку само, повторная проверка
-        /// поверх скачанной версии возвращала «Есть обновление» вместо «Готово к установке»,
-        /// страница, открытая посреди загрузки, писала «Доступна версия» над кнопкой «Отменить»,
-        /// а после неудачной проверки — «Последняя версия».
-        /// </remarks>
-        private void ShowUpdateCard()
+        /// <summary>Рисует плашку по тому, что сейчас известно. Одно место на все случаи.</summary>
+        private void RenderUpdates()
         {
-            if (_downloadingVersion is { } downloading && (_autoDownload is not null || _updateDownload is not null))
+            var view = UpdateView.From(Updates.State, RuntimeContext.AppVersion);
+
+            ShowUpdatePhase(view.Phase);
+            ShowUpdateStatus(view.Status, view.StatusAccent);
+
+            // Через словарь, а не обратно в DynamicResource: локальное значение уже перекрыло
+            // ссылку из разметки, и вернуть её нечем — иначе после первой же загрузки кнопка
+            // навсегда осталась бы на языке, который стоял в тот момент.
+            UpdateNowButton.Content = view.ActionLabel;
+            UpdateNowButton.Visibility = view.Action == UpdateAction.None ? Visibility.Collapsed : Visibility.Visible;
+            OpenReleaseButton.Visibility = view.ShowOpenRelease ? Visibility.Visible : Visibility.Collapsed;
+            CheckUpdatesButton.IsEnabled = view.CanCheck;
+
+            if (view.Progress is { } share)
             {
-                ShowDownloading(downloading, _downloadShare);
-                return;
+                ShowProgress(share);
+            }
+            else
+            {
+                UpdateProgress.Visibility = Visibility.Collapsed;
             }
 
-            if (_staged is not null)
-            {
-                ShowStagedUpdate();
-                return;
-            }
-
-            if (_latestRelease is { } found && found.Release > CurrentRelease)
-            {
-                ShowFoundRelease(found);
-                return;
-            }
-
-            UpdateNowButton.Visibility = Visibility.Collapsed;
-            SettingsVersionText.Text = "v" + RuntimeContext.AppVersion;
-            SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, "Text.Secondary");
-
-            if (_updateCheckRunning)
-            {
-                OpenReleaseButton.Visibility = Visibility.Collapsed;
-                ShowUpdateStatus(Loc.Get("S.Updates.Checking"), accent: false);
-                ShowUpdatePhase(UpdatePhase.Checking);
-                return;
-            }
-
-            if (_lastCheckError is { } error)
-            {
-                // Проверить не вышло — посмотреть руками человек может всегда.
-                OpenReleaseButton.Visibility = Visibility.Visible;
-                ShowUpdateStatus(error, accent: false);
-                ShowUpdatePhase(UpdatePhase.Failed);
-                return;
-            }
-
-            OpenReleaseButton.Visibility = Visibility.Collapsed;
-            ShowUpdateStatus(
-                Loc.Format(_lastSuccessfulCheckUtc is null ? "S.Updates.Installed" : "S.Updates.UpToDate", RuntimeContext.AppVersion),
-                accent: false);
-            ShowUpdatePhase(UpdatePhase.UpToDate);
+            SettingsVersionText.Text = view.SidebarText;
+            SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, view.SidebarAccent ? "Accent.Fill" : "Text.Secondary");
         }
 
         private void AutoUpdateToggle_Changed(object sender, RoutedEventArgs e)
@@ -241,91 +127,55 @@ namespace Amarin.UI
             var on = AutoUpdateToggle.IsChecked == true;
             _services.Settings.AutoCheckUpdates = on;
             _services.SettingsStore.Save(_services.Settings);
-
-            if (on)
-            {
-                ScheduleAutoUpdateCheck();
-                return;
-            }
-
-            // Снятая галка значит «ничего не делай сам»: и начатую загрузку бросаем, и уже
-            // скачанное забываем, иначе оно всё равно встало бы при закрытии.
-            _autoDownload?.Cancel();
-            _staged = null;
-            _updateHeartbeat?.Stop();
-
-            // «Встанет при закрытии» больше не правда — плашка возвращается к найденной версии.
-            ShowUpdateCard();
+            Updates.SetAutoUpdate(on);
         }
 
-        private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => StartUpdateCheck(manual: true);
-
-        private void StartUpdateCheck(bool manual)
-        {
-            if (_updateCheckRunning)
-            {
-                return;
-            }
-
-            _updateCheckTask = CheckUpdatesAsync(manual);
-            Detached.Run(_updateCheckTask, "check_updates");
-        }
+        private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => Updates.CheckNow();
 
         private void OpenReleaseButton_Click(object sender, RoutedEventArgs e)
         {
-            var url = _releasePageUrl ?? UpdateChecker.ReleasesPageUrl;
+            var url = Updates.State.Latest?.PageUrl ?? UpdateChecker.ReleasesPageUrl;
             try
             {
                 Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
             }
             catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
             {
-                ShowUpdateStatus(Loc.Format("S.Updates.BrowserFailed", ex.Message), accent: false);
+                Updates.ShowNotice(UpdateNoticeKind.BrowserFailed, ex.Message);
             }
         }
 
+        /// <summary>
+        /// Главная кнопка плашки. Что она делает, решает вид: «Отмена» отменяет загрузку, которую
+        /// ждёт человек; «Обновить» во время фоновой загрузки присоединяется к ней.
+        /// </summary>
         private void UpdateNowButton_Click(object sender, RoutedEventArgs e)
         {
-            // Во время любой загрузки — хоть ручной, хоть фоновой — та же кнопка её отменяет:
-            // под ней видна полоса, и другого способа остановить её у человека нет.
-            if (_updateDownload is { } running)
+            var action = UpdateView.From(Updates.State, RuntimeContext.AppVersion).Action;
+            if (action == UpdateAction.Cancel)
             {
-                running.Cancel();
+                Updates.Cancel();
                 return;
             }
 
-            if (_autoDownload is { } background)
+            if (action != UpdateAction.None && Updates.Prepare() is { } offer)
             {
-                background.Cancel();
-                return;
+                ShowUpdateConfirm(offer);
             }
+        }
 
-            if (_services is null || _latestRelease is null)
-            {
-                return;
-            }
-
-            // Тоже про всю программу: после установки она перезапустится и оборвёт все ходы.
-            if (AnyTurnRunning)
-            {
-                ShowUpdateStatus(Loc.Get("S.Updates.WaitForTurns"), accent: false);
-                return;
-            }
-
-            if (!UpdateInstaller.TryPlan(_latestRelease, Environment.ProcessPath, out var plan, out var error))
-            {
-                ShowUpdateFailed(_latestRelease.Release, error);
-                return;
-            }
-
-            _pendingUpdate = plan;
-            UpdateConfirmTitle.Text = Loc.Format("S.Updates.ConfirmTitle", _latestRelease.Release);
+        private void ShowUpdateConfirm(UpdateOffer offer)
+        {
+            var release = offer.Release;
+            var plan = offer.Plan;
+            _pendingOffer = offer;
+            UpdateConfirmTitle.Text = Loc.Format("S.Updates.ConfirmTitle", release.Release);
             UpdateConfirmText.Text = Loc.Format(
                 "S.Updates.ConfirmText",
                 RuntimeContext.AppVersion,
-                _latestRelease.Release,
+                release.Release,
                 DownloadSize(plan.Asset.Size));
-            ShowConfirmNotes(_latestRelease.Notes);
+            ShowConfirmNotes(release.Notes);
             UpdateConfirmFile.Text = Path.GetFileName(plan.ExePath);
             UpdateConfirmFolder.Text = plan.Folder;
             UpdateConfirmNote.Text = plan.NeedsElevation
@@ -348,16 +198,16 @@ namespace Amarin.UI
 
         private void UpdateConfirmUnverifiedButton_Click(object sender, RoutedEventArgs e)
         {
-            var plan = _pendingUpdate;
+            var offer = _pendingOffer;
             CloseUpdateConfirm();
-            if (plan is not null)
+            if (offer is not null)
             {
-                Detached.Run(ConfirmUnverifiedInstallAsync(plan), "install_unverified");
+                Detached.Run(ConfirmUnverifiedInstallAsync(offer), "install_unverified");
             }
         }
 
         /// <summary>Второй вопрос перед сборкой, которую нечем сверить.</summary>
-        private async Task ConfirmUnverifiedInstallAsync(UpdatePlan plan)
+        private async Task ConfirmUnverifiedInstallAsync(UpdateOffer offer)
         {
             var confirmed = await ShowNoticeAsync(
                 Loc.Get("S.Updates.UnverifiedTitle"),
@@ -367,218 +217,25 @@ namespace Amarin.UI
                 NoticeTone.Danger);
             if (confirmed)
             {
-                _installTask = InstallUpdateAsync(plan, allowUnverified: true);
-                Detached.Run(_installTask, "install_update");
+                Updates.Confirm(offer, allowUnverified: true);
             }
         }
 
         private void UpdateConfirmApplyButton_Click(object sender, RoutedEventArgs e)
         {
-            var plan = _pendingUpdate;
+            var offer = _pendingOffer;
             CloseUpdateConfirm();
-            if (plan is not null)
+            if (offer is not null)
             {
-                _installTask = InstallUpdateAsync(plan);
-                Detached.Run(_installTask, "install_update");
+                Updates.Confirm(offer);
             }
         }
 
         private void CloseUpdateConfirm()
         {
+            _pendingOffer = null;
             UpdateConfirmOverlay.Visibility = Visibility.Collapsed;
             Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
-        }
-
-        /// <summary>
-        /// Скачивает сборку, сверяет её и подменяет ею себя. Отмена возможна до самой подмены;
-        /// после неё остаётся только перезапуск — программа уже лежит на диске новой версией.
-        /// </summary>
-        /// <param name="allowUnverified">Человек дважды согласился поставить сборку без контрольной суммы.</param>
-        private async Task InstallUpdateAsync(UpdatePlan plan, bool allowUnverified = false)
-        {
-            if (_services is null || _updateDownload is not null || _autoDownload is not null ||
-                _latestRelease?.Release is not { } version)
-            {
-                return;
-            }
-
-            // Автообновление могло принести этот самый файл в фоне. Качать его второй раз —
-            // семьдесят восемь мегабайт впустую и лишняя минута ожидания.
-            var ready = _staged is { } staged && staged.Version == version
-                ? staged.File
-                : null;
-
-            using var cancellation = new CancellationTokenSource();
-            _updateDownload = cancellation;
-            UpdateNowButton.Content = Loc.Get("S.Common.Cancel");
-            CheckUpdatesButton.IsEnabled = false;
-            var cancelled = false;
-
-            try
-            {
-                var file = ready;
-                if (file is null)
-                {
-                    ShowDownloading(version, 0);
-
-                    var progress = new Progress<double>(share =>
-                    {
-                        // Отчёт о доле приходит очередью и может опоздать к концу загрузки.
-                        if (ReferenceEquals(_updateDownload, cancellation))
-                        {
-                            ShowDownloading(version, share);
-                        }
-                    });
-
-                    var (result, downloaded) = await UpdateInstaller.DownloadAsync(
-                        plan,
-                        _services.DownloadHttp,
-                        progress,
-                        cancellation.Token,
-                        allowUnverified);
-
-                    if (!result.Ok || downloaded is null)
-                    {
-                        ShowUpdateFailed(version, result.Error);
-                        return;
-                    }
-
-                    file = downloaded;
-                }
-
-                // Пока качали, человек закрыл программу: ставить и перезапускать уже нельзя —
-                // он просил закрыть. Скачанное откладывается, и его поставит сам выход.
-                if (_exiting)
-                {
-                    _staged = new StagedUpdate(plan, file, version);
-                    return;
-                }
-
-                ShowUpdateStatus(Loc.Format("S.Updates.InstallingVersion", version), accent: false);
-
-                // Чат сохраняем до подмены: дальше процесс уже завершается.
-                PersistCurrent();
-
-                var swap = plan.NeedsElevation
-                    ? await SwapWithElevationAsync(plan, file)
-                    : UpdateInstaller.Swap(file, plan.ExePath, plan.Asset.Sha256);
-
-                if (!swap.Ok)
-                {
-                    ShowUpdateFailed(version, swap.Error);
-                    return;
-                }
-
-                // Файл уже подменён — откладывать его на выход больше нечего.
-                _staged = null;
-                Restart(plan.ExePath);
-            }
-            catch (OperationCanceledException)
-            {
-                cancelled = true;
-            }
-            finally
-            {
-                _updateDownload = null;
-                _downloadingVersion = null;
-
-                // Через словарь, а не обратно в DynamicResource: локальное значение уже перекрыло
-                // ссылку из разметки, и вернуть её нечем — иначе после первой же загрузки кнопка
-                // навсегда осталась бы на языке, который стоял в тот момент.
-                UpdateNowButton.Content = Loc.Get(_staged is null ? "S.Updates.Update" : "S.Updates.Install");
-                CheckUpdatesButton.IsEnabled = true;
-                UpdateProgress.Visibility = Visibility.Collapsed;
-            }
-
-            // Отменённая загрузка возвращает плашку к найденной версии: кнопка «Обновить» снова
-            // на месте, а не пропадает до следующей проверки.
-            if (cancelled && !_exiting)
-            {
-                ShowUpdateCard();
-                ShowUpdateStatus(Loc.Get("S.Updates.DownloadCancelled"), accent: false);
-            }
-        }
-
-        /// <summary>
-        /// Просит права только на подмену файла и ждёт, пока она закончится.
-        /// </summary>
-        /// <remarks>
-        /// Через UAC поднимается отдельный короткий запуск той же программы: он переставляет файл
-        /// и выходит. Новую версию запускает потом этот, обычный процесс — иначе программа после
-        /// обновления осталась бы работать с правами администратора, о которых человек не просил.
-        /// Он для этого и жив: переименовать работающий exe Windows позволяет.
-        /// </remarks>
-        private static async Task<UpdateStepResult> SwapWithElevationAsync(UpdatePlan plan, string file)
-        {
-            var start = new ProcessStartInfo
-            {
-                FileName = plan.ExePath,
-                UseShellExecute = true,
-                Verb = "runas"
-            };
-            start.ArgumentList.Add("--apply-update");
-            start.ArgumentList.Add(file);
-            if (plan.Asset.Sha256 is { Length: 64 } sha)
-            {
-                start.ArgumentList.Add("--sha256");
-                start.ArgumentList.Add(sha);
-            }
-
-            try
-            {
-                using var elevated = Process.Start(start);
-                if (elevated is null)
-                {
-                    return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
-                }
-
-                await elevated.WaitForExitAsync();
-                return elevated.ExitCode == 0
-                    ? UpdateStepResult.Success
-                    : UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationFailed"));
-            }
-            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
-            {
-                return UpdateStepResult.Failed(Loc.Get("S.Updates.ElevationRefused"));
-            }
-            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
-            {
-                return UpdateStepResult.Failed(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Запускает новую версию и закрывается.
-        /// </summary>
-        /// <remarks>
-        /// <c>--await-exit</c> обязателен. Замок единственного экземпляра держится до конца
-        /// процесса, а закрыться раньше, чем запустить преемника, этот процесс не может: без
-        /// ожидания новый видит живого владельца, отдаёт ему запрос и выходит — оба процесса
-        /// исчезают, и человек остаётся без окна.
-        /// </remarks>
-        private void Restart(string exePath)
-        {
-            var start = new ProcessStartInfo { FileName = exePath, UseShellExecute = true };
-            start.ArgumentList.Add("--await-exit");
-            start.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
-
-            try
-            {
-                Process.Start(start);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
-            {
-                ShowUpdateStatus(
-                    Loc.Format("S.Updates.RestartFailed", ex.Message),
-                    accent: false);
-                return;
-            }
-
-            // Через общий выход, а не Shutdown напрямую: подменять файл второй раз уже незачем,
-            // и _exiting закрывает ворота в Closing. Отметка о подмене — чтобы выход не принял
-            // работающую ещё старую версию за недоведённое обновление и не качал его заново.
-            _swapStarted = true;
-            RequestExit();
         }
 
         private void ShowProgress(double share)
@@ -592,311 +249,11 @@ namespace Amarin.UI
         private static string DownloadSize(long bytes) =>
             bytes <= 0 ? Loc.Get("S.Updates.UnknownSize") : AttachmentTypes.FormatSize(bytes);
 
-        /// <summary>Заводит автопроверку: сразу и дальше по такту.</summary>
-        /// <remarks>
-        /// Сразу — при каждом запуске, а не по сроку от прошлой проверки. До 1.26.0 здесь
-        /// считалось пять часов от последней, и человек, открывавший программу раз в день,
-        /// узнавал о новой версии через запуск; обновление при закрытии поэтому часто просто
-        /// не успевало найтись. Один запрос к GitHub на запуск укладывается в его лимит с
-        /// большим запасом.
-        /// </remarks>
-        private void ScheduleAutoUpdateCheck()
-        {
-            if (_services is null)
-            {
-                return;
-            }
-
-            _nextAutoCheckUtc = DateTime.MinValue;
-
-            _updateHeartbeat ??= new DispatcherTimer(
-                UpdateSchedule.Heartbeat,
-                DispatcherPriority.Background,
-                (_, _) => MaybeAutoCheck(),
-                Dispatcher);
-            _updateHeartbeat.Start();
-
-            MaybeAutoCheck();
-        }
+        /// <summary>Заводит автопроверку: сразу и дальше по такту (<see cref="UpdateController.Start"/>).</summary>
+        private void ScheduleAutoUpdateCheck() => Updates.Start();
 
         /// <summary>Останавливает такт. Зовётся при закрытии окна.</summary>
-        internal void StopUpdateHeartbeat() => _updateHeartbeat?.Stop();
-
-        private void MaybeAutoCheck()
-        {
-            if (_services is null || !_services.Settings.AutoCheckUpdates || _exiting)
-            {
-                return;
-            }
-
-            if (DateTime.UtcNow < _nextAutoCheckUtc)
-            {
-                return;
-            }
-
-            StartUpdateCheck(manual: false);
-        }
-
-        private async Task CheckUpdatesAsync(bool manual)
-        {
-            if (_services is null || _updateCheckRunning)
-            {
-                return;
-            }
-
-            _updateCheckRunning = true;
-            CheckUpdatesButton.IsEnabled = false;
-            if (manual)
-            {
-                OpenReleaseButton.Visibility = Visibility.Collapsed;
-                ShowUpdateStatus(Loc.Get("S.Updates.Checking"), accent: false);
-                ShowUpdatePhase(UpdatePhase.Checking);
-            }
-
-            try
-            {
-                // Тридцать секунд, а не двадцать: из них API достаётся только десять
-                // (UpdateChecker.ApiTimeout), остальное — запасному пути через github.com.
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                UpdateCheckResult result;
-                try
-                {
-                    result = await UpdateChecker.CheckAsync(CurrentRelease, _services.Settings.BetaChannel, timeout.Token);
-                }
-                catch (OperationCanceledException) when (timeout.IsCancellationRequested)
-                {
-                    // Свой срок — обычный отказ, а не авария: без этого повтор через полчаса не
-                    // назначался, а выход не узнавал, что проверка кончилась.
-                    result = UpdateCheckResult.Failed(Loc.Get("S.Updates.Timeout"));
-                }
-
-                var now = DateTime.UtcNow;
-                if (result.Ok)
-                {
-                    _lastSuccessfulCheckUtc = now;
-                }
-
-                _services.Settings.LastUpdateCheckUtc = now;
-                _services.SettingsStore.Save(_services.Settings);
-
-                // Неудачную проверку повторяем заметно раньше удачной: обрыв связи не повод
-                // молчать пять часов, когда сеть вернулась через минуту.
-                _nextAutoCheckUtc = UpdateSchedule.NextAfter(now, result.Ok);
-                ShowLastCheck();
-
-                // Проверка кончилась до того, как плашка о ней рассказывает, — иначе та так и
-                // осталась бы на «Проверяем».
-                _updateCheckRunning = false;
-                ApplyUpdateResult(result);
-            }
-            finally
-            {
-                _updateCheckRunning = false;
-                CheckUpdatesButton.IsEnabled = true;
-            }
-        }
-
-        private void ApplyUpdateResult(UpdateCheckResult result)
-        {
-            // Неудачная повторная проверка уже найденную версию не стирает: её файл и сумма
-            // известны, и ставить её можно по-прежнему. Плашка про отказ говорит, только когда
-            // больше сказать нечего, — и говорит всегда, а не только после кнопки «Проверить».
-            if (!result.Ok || result.Latest is null)
-            {
-                _lastCheckError = result.Error ?? Loc.Get("S.Updates.CheckFailed");
-                ShowUpdateCard();
-                return;
-            }
-
-            _lastCheckError = null;
-            if (!result.UpdateAvailable)
-            {
-                ShowUpdateCard();
-                return;
-            }
-
-            // Тот же выпуск, найденный беднее (запасной путь без файла сумм), не затирает
-            // найденный через API: иначе кнопка «Обновить» пропадала посреди сеанса.
-            var latest = UpdateChecker.Richer(_latestRelease, result.Latest);
-            _latestRelease = latest;
-            _releasePageUrl = latest.PageUrl;
-            ShowUpdateCard();
-
-            if (_services is { } services &&
-                UpdateSchedule.ShouldAutoDownload(
-                    services.Settings.AutoCheckUpdates,
-                    latest,
-                    _staged?.Version,
-                    DeclinedRelease))
-            {
-                _autoDownloadTask = AutoDownloadAsync(latest);
-                Detached.Run(_autoDownloadTask, "auto_download_update");
-            }
-        }
-
-        /// <summary>
-        /// Молча скачивает найденную сборку и откладывает её до закрытия программы.
-        /// </summary>
-        /// <remarks>
-        /// Качаем сразу, а ставим при выходе: подмена обрывает работу, а загрузка — нет, и к
-        /// моменту, когда человек закроет окно, файл уже проверен и лежит рядом. Отказ здесь —
-        /// обычный ответ: следующий такт попробует снова.
-        /// </remarks>
-        private async Task AutoDownloadAsync(ReleaseInfo release)
-        {
-            if (_services is null || _updateDownload is not null || _autoDownload is not null)
-            {
-                return;
-            }
-
-            if (!UpdateInstaller.TryPlan(release, Environment.ProcessPath, out var plan, out var error))
-            {
-                ShowUpdateFailed(release.Release, error);
-                return;
-            }
-
-            using var cancellation = new CancellationTokenSource();
-            _autoDownload = cancellation;
-            ShowDownloading(release.Release, 0);
-            var cancelled = false;
-
-            try
-            {
-                var progress = new Progress<double>(share =>
-                {
-                    // Отчёт о доле приходит очередью и может опоздать к концу загрузки.
-                    if (ReferenceEquals(_autoDownload, cancellation))
-                    {
-                        ShowDownloading(release.Release, share);
-                    }
-                });
-
-                var (result, file) = await UpdateInstaller.DownloadAsync(
-                    plan,
-                    _services.DownloadHttp,
-                    progress,
-                    cancellation.Token);
-
-                if (!result.Ok || file is null)
-                {
-                    ShowUpdateFailed(release.Release, result.Error);
-                    return;
-                }
-
-                _staged = new StagedUpdate(plan, file, release.Release);
-            }
-            catch (OperationCanceledException)
-            {
-                cancelled = true;
-            }
-            finally
-            {
-                _autoDownload = null;
-                _downloadingVersion = null;
-                UpdateProgress.Visibility = Visibility.Collapsed;
-                UpdateNowButton.Content = Loc.Get(_staged is null ? "S.Updates.Update" : "S.Updates.Install");
-            }
-
-            // Отменяют эту загрузку выход, снятая галка, смена канала или кнопка «Отменить». При
-            // выходе сообщать некому, в остальных случаях плашка возвращается к тому, что известно,
-            // — с кнопкой «Обновить», а не застывшим «Скачиваю … %».
-            if (!cancelled)
-            {
-                ShowStagedUpdate();
-            }
-            else if (!_exiting)
-            {
-                ShowUpdateCard();
-            }
-        }
-
-        /// <summary>
-        /// Идёт загрузка — какой версии и сколько. Кнопка под ней отменяет загрузку и так и
-        /// подписана.
-        /// </summary>
-        /// <remarks>
-        /// До 1.28.5 фоновая загрузка оставляла на кнопке «Обновить», а нажатие на неё молча
-        /// отменяло скачивание: плашка застывала на «Скачивание 37 %», и обновление выглядело
-        /// сломанным. Номера версии в строке не было вовсе — «Есть обновление», а какое, не видно.
-        /// </remarks>
-        private void ShowDownloading(ReleaseVersion version, double share)
-        {
-            _downloadingVersion = version;
-            _downloadShare = share;
-            ShowUpdatePhase(UpdatePhase.Downloading);
-            ShowProgress(share);
-            ShowUpdateStatus(
-                Loc.Format("S.Updates.DownloadingVersion", version, (share * 100).ToString("0", CultureInfo.CurrentCulture)),
-                accent: false);
-            UpdateNowButton.Content = Loc.Get("S.Common.Cancel");
-            UpdateNowButton.Visibility = Visibility.Visible;
-            OpenReleaseButton.Visibility = Visibility.Visible;
-            ShowSidebarVersionBadge("S.Updates.SidebarNewer", version);
-        }
-
-        /// <summary>
-        /// Загрузка или подмена не удалась. Кнопка «Обновить» остаётся: попробовать ещё раз можно
-        /// сразу, а не после следующей проверки.
-        /// </summary>
-        private void ShowUpdateFailed(ReleaseVersion version, string? error)
-        {
-            ShowUpdateStatus(Loc.Format("S.Updates.FailedVersion", version, error), accent: false);
-            ShowUpdatePhase(UpdatePhase.Failed);
-            UpdateNowButton.Content = Loc.Get("S.Updates.Update");
-            UpdateNowButton.Visibility = Visibility.Visible;
-            OpenReleaseButton.Visibility = Visibility.Visible;
-        }
-
-        /// <summary>Показывает найденный релиз. Общее для проверки и для открытия настроек.</summary>
-        private void ShowFoundRelease(ReleaseInfo release)
-        {
-            _releasePageUrl ??= release.PageUrl;
-            OpenReleaseButton.Visibility = Visibility.Visible;
-            var build = release.WindowsBuild is not null;
-            UpdateNowButton.Content = Loc.Get("S.Updates.Update");
-            UpdateNowButton.Visibility = build ? Visibility.Visible : Visibility.Collapsed;
-            ShowUpdatePhase(UpdatePhase.Available);
-
-            // Без файла сборки кнопке нечего ставить — тогда строка прямо говорит, где взять версию,
-            // а не оставляет человека гадать, куда делась кнопка.
-            ShowUpdateStatus(
-                Loc.Format(build ? "S.Updates.Available" : "S.Updates.AvailableNoBuild", release.Release, RuntimeContext.AppVersion),
-                accent: true);
-
-            ShowSidebarVersionBadge("S.Updates.SidebarNewer", release.Release);
-        }
-
-        /// <summary>Показывает уже скачанную сборку, которая ждёт закрытия программы.</summary>
-        private void ShowStagedUpdate()
-        {
-            if (_staged is not { } staged)
-            {
-                return;
-            }
-
-            ShowUpdatePhase(UpdatePhase.Ready);
-            ShowUpdateStatus(
-                Loc.Format(
-                    staged.Plan.NeedsElevation ? "S.Updates.ReadyAdmin" : "S.Updates.Ready",
-                    staged.Version),
-                accent: true);
-
-            UpdateProgress.Visibility = Visibility.Collapsed;
-            UpdateNowButton.Content = Loc.Get("S.Updates.Install");
-            UpdateNowButton.Visibility = Visibility.Visible;
-            OpenReleaseButton.Visibility = Visibility.Visible;
-            ShowSidebarVersionBadge("S.Updates.SidebarStaged", staged.Version);
-        }
-
-        /// <summary>
-        /// Метка у номера версии в боковой колонке настроек: единственное место, где о новой
-        /// версии видно, не открывая эту страницу. Называет и установленную, и новую версию.
-        /// </summary>
-        private void ShowSidebarVersionBadge(string key, ReleaseVersion version)
-        {
-            SettingsVersionText.Text = Loc.Format(key, RuntimeContext.AppVersion, version);
-            SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
-        }
+        internal void StopUpdateHeartbeat() => _updates?.Stop();
 
         private void ShowLastCheck() =>
             UpdateLastCheckText.Text = UpdateSchedule.DescribeLastCheck(
@@ -919,9 +276,10 @@ namespace Amarin.UI
             var (key, background, foreground, border) = phase switch
             {
                 UpdatePhase.Checking => ("S.Updates.Pill.Checking", "Bg.Raised", "Text.Dim", "Border.Subtle"),
-                UpdatePhase.Available => ("S.Updates.Pill.Available", "Accent.Fill", "Text.OnAccent", "Accent.Fill"),
+                UpdatePhase.Found => ("S.Updates.Pill.Available", "Accent.Fill", "Text.OnAccent", "Accent.Fill"),
                 UpdatePhase.Downloading => ("S.Updates.Pill.Downloading", "Bg.Raised", "Text.Dim", "Border.Subtle"),
-                UpdatePhase.Ready => ("S.Updates.Pill.Ready", "Accent.Fill", "Text.OnAccent", "Accent.Fill"),
+                UpdatePhase.Downloaded => ("S.Updates.Pill.Ready", "Accent.Fill", "Text.OnAccent", "Accent.Fill"),
+                UpdatePhase.Installing => ("S.Updates.Pill.Installing", "Bg.Raised", "Text.Dim", "Border.Subtle"),
                 UpdatePhase.Failed => ("S.Updates.Pill.Failed", "Status.WarningSurface", "Status.Warning", "Status.WarningBorder"),
                 _ => ("S.Updates.Pill.UpToDate", "Bg.Raised", "Text.Secondary", "Accent.Fill")
             };
@@ -946,7 +304,7 @@ namespace Amarin.UI
         }
 
         /// <summary>Скачанное обновление ждёт выхода.</summary>
-        internal bool HasStagedUpdate => _staged is not null;
+        internal bool HasStagedUpdate => Updates.State.Staged is not null;
 
         /// <summary>
         /// Единственная точка выхода из программы.
@@ -959,7 +317,7 @@ namespace Amarin.UI
         /// </remarks>
         internal void RequestExit()
         {
-            if (_exiting)
+            if (Exit.Exiting)
             {
                 return;
             }
@@ -972,13 +330,11 @@ namespace Amarin.UI
                 return;
             }
 
-            _exiting = true;
-
             // Значок в трее уходит вместе с программой: пока выход доводит обновление без окна,
             // щелчок по нему вёл бы в никуда. Второй запуск вернёт и окно, и значок.
             _tray?.Dispose();
             _tray = null;
-            Detached.Run(FinishExitAsync(), "exit");
+            Detached.Run(Exit.BeginAsync(), "exit");
         }
 
         /// <summary>
@@ -987,40 +343,20 @@ namespace Amarin.UI
         /// <remarks>
         /// В программе окно одно, и так было всегда. Но оконные тесты поднимают свои окна рядом с
         /// общим, и закрытие такого окна при включённом автообновлении откладывалось ради проверки
-        /// версии, а через несколько секунд <see cref="FinishExitAsync"/> звал
-        /// <c>Application.Shutdown</c> — общий поток интерфейса гас посреди чужого теста, и три
-        /// сотни следующих падали одинаковым «A task was canceled».
+        /// версии, а через несколько секунд выход звал <c>Application.Shutdown</c> — общий поток
+        /// интерфейса гас посреди чужого теста, и три сотни следующих падали одинаковым «A task
+        /// was canceled».
         /// </remarks>
         private bool OwnsApplication =>
             Application.Current is not { } application ||
             application.MainWindow is null ||
             ReferenceEquals(application.MainWindow, this);
 
-        /// <summary>
-        /// Надо ли отложить закрытие окна ради обновления.
-        /// </summary>
-        /// <remarks>
-        /// Отдельно от <see cref="TryDeferCloseForUpdate"/>, потому что тому нечем ответить, не
-        /// начав выход: проверить решение, не погасив при этом всё приложение, можно только здесь.
-        /// </remarks>
-        internal bool ShouldDeferClose =>
-            OwnsApplication && !_exiting && (HasStagedUpdate || UpdatePendingForExit);
+        /// <summary>Надо ли отложить закрытие окна ради обновления (см. <see cref="UpdateExit.ShouldDeferClose"/>).</summary>
+        internal bool ShouldDeferClose => Exit.ShouldDeferClose;
 
-        /// <summary>
-        /// Обновление ещё не скачано, но его стоит довести после закрытия: идёт проверка или
-        /// загрузка, или найденная версия ждёт своей очереди.
-        /// </summary>
-        /// <remarks>
-        /// Только при включённом автообновлении: снятая галка значит «ничего не делай сам», и
-        /// процесс, оставшийся жить после закрытия окна, был бы именно этим.
-        /// </remarks>
-        internal bool UpdatePendingForExit =>
-            _services is { Settings.AutoCheckUpdates: true } &&
-            (_updateCheckRunning ||
-             UpdateSchedule.CheckDueOnExit(DateTime.UtcNow, _lastSuccessfulCheckUtc) ||
-             _autoDownload is not null ||
-             _updateDownload is not null ||
-             (_latestRelease is { WindowsBuild: not null } found && WantedAutomatically(found)));
+        /// <summary>Обновление стоит довести после закрытия (см. <see cref="UpdateExit.PendingForExit"/>).</summary>
+        internal bool UpdatePendingForExit => Exit.PendingForExit;
 
         /// <summary>
         /// Откладывает закрытие окна, если есть что поставить.
@@ -1038,130 +374,6 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Завершает программу, доводя обновление уже без окна.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Окно исчезает сразу: человек просил закрыть программу, и ждать загрузку или подмену
-        /// перед экраном он не должен. Дальше процесс без окна дожидается проверки, докачивает
-        /// найденную версию (сверка по размеру и SHA-256 — та же, что и всегда), подменяет файл
-        /// и выходит. Новая версия сама не запускается — её поднимет следующий запуск.
-        /// </para>
-        /// <para>
-        /// Потолок на всё — <see cref="UpdateSchedule.ExitLimit"/>: зависшая сеть не должна
-        /// оставлять невидимый процесс навсегда. Отказ на любом шаге выходу не мешает — следующий
-        /// запуск найдёт версию снова. Повторный запуск во время этой работы возвращает окно
-        /// (<see cref="ReviveFromBackgroundExit"/>), а если подмена уже шла — поднимает новую
-        /// версию после неё.
-        /// </para>
-        /// </remarks>
-        private async Task FinishExitAsync()
-        {
-            // Уступаем очередь прежде всего остального: зовут отсюда из самого Closing, и
-            // прятанье окна с завершением приложения обязаны случиться после того, как обработчик
-            // вернётся и его отмена закрытия вступит в силу.
-            await Dispatcher.Yield(DispatcherPriority.Background);
-
-            var generation = ++_exitGeneration;
-            _updateHeartbeat?.Stop();
-
-            // После ручной установки файл уже новый — доводить нечего.
-            // Выход ради стирания данных (и перезапуска от администратора) обновление не доводит: преемник ждёт этот процесс не
-            // дольше полуминуты, а загрузка без окна длилась бы до ExitLimit — преемник отдал бы
-            // запрос живому владельцу и вышел, и человек остался бы без окна и без стирания.
-            var finishUpdate = !_swapStarted && !_wipeRestart && !_elevationRestart && (_staged is not null || UpdatePendingForExit);
-            if (finishUpdate)
-            {
-                HideForBackgroundExit();
-            }
-
-            if (finishUpdate && _staged is null)
-            {
-                await BringUpdateToStageAsync();
-
-                // Пока ждали, программу открыли снова — этот выход отменён.
-                if (generation != _exitGeneration || !_exiting)
-                {
-                    return;
-                }
-            }
-
-            // Незаконченная загрузка уже не пригодится: всё, что успело, лежит в _staged.
-            _autoDownload?.Cancel();
-            _updateDownload?.Cancel();
-
-            if (finishUpdate && _staged is { } staged)
-            {
-                _swapStarted = true;
-                var swap = staged.Plan.NeedsElevation
-                    ? await SwapWithElevationAsync(staged.Plan, staged.File)
-                    : UpdateInstaller.Swap(staged.File, staged.Plan.ExePath, staged.Plan.Asset.Sha256);
-
-                if (!swap.Ok)
-                {
-                    PerfLog.Write("update_on_exit failed " + swap.Error);
-                }
-
-                _staged = null;
-
-                if (_relaunchAfterExit)
-                {
-                    StartSuccessor(staged.Plan.ExePath);
-                }
-            }
-
-            Application.Current?.Shutdown();
-        }
-
-        /// <summary>Ждёт проверку и загрузку, пока не наберётся готовая сборка или не выйдет срок.</summary>
-        private async Task BringUpdateToStageAsync()
-        {
-            using var limit = new CancellationTokenSource(UpdateSchedule.ExitLimit);
-            try
-            {
-                // Проверка при запуске сорвалась или была давно — спрашиваем GitHub ещё раз,
-                // уже без окна: ставить надо то, что лежит там сейчас.
-                if (!_updateCheckRunning &&
-                    UpdateSchedule.CheckDueOnExit(DateTime.UtcNow, _lastSuccessfulCheckUtc))
-                {
-                    StartUpdateCheck(manual: false);
-                }
-
-                if (_updateCheckTask is { IsCompleted: false } check)
-                {
-                    await check.WaitAsync(limit.Token);
-                }
-
-                // Загрузка по кнопке, увидев выход, сама откладывает скачанное в _staged.
-                if (_installTask is { IsCompleted: false } install)
-                {
-                    await install.WaitAsync(limit.Token);
-                }
-
-                if (_staged is null && _autoDownloadTask is { IsCompleted: false } download)
-                {
-                    await download.WaitAsync(limit.Token);
-                }
-
-                // Версия найдена, а загрузка не шла вовсе или сорвалась — пробуем ещё раз, теперь
-                // уже без окна.
-                if (_staged is null &&
-                    _autoDownload is null &&
-                    _latestRelease is { } release &&
-                    WantedAutomatically(release) &&
-                    UpdateSchedule.ShouldAutoDownload(autoUpdate: true, release, staged: null, DeclinedRelease))
-                {
-                    _autoDownloadTask = AutoDownloadAsync(release);
-                    await _autoDownloadTask.WaitAsync(limit.Token);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                PerfLog.Write("update_on_exit timed out");
-            }
-        }
-
-        /// <summary>
         /// Прячет окно на время фоновой работы: всё сохранено, ходы остановлены, попапы закрыты.
         /// </summary>
         /// <remarks>
@@ -1170,12 +382,6 @@ namespace Amarin.UI
         /// </remarks>
         private void HideForBackgroundExit()
         {
-            if (_hiddenForExit)
-            {
-                return;
-            }
-
-            _hiddenForExit = true;
             SaveWindowGeometry();
             FlushPendingPersists();
             FlushDraft();
@@ -1196,87 +402,82 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Программу запустили снова, пока она доводила обновление без окна.
+        /// Программу запустили снова, пока она доводила обновление без окна (см. <see cref="UpdateExit.Revive"/>).
         /// </summary>
-        /// <returns>
-        /// <c>true</c> — окно возвращено, выход отменён, загрузка продолжается обычной фоновой.
-        /// <c>false</c> — файл уже подменяется: вернуть прежнюю версию нельзя, и после подмены
-        /// поднимется новая.
-        /// </returns>
-        private bool ReviveFromBackgroundExit()
+        private bool ReviveFromBackgroundExit() => Exit.Revive();
+
+        /// <summary>Windows завершает сеанс: подменить уже скачанное, пока сеанс ждёт ответа.</summary>
+        private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e) => Exit.OnSessionEnding();
+
+        /// <summary>Настройки, ходы, сохранение и перезапуск — то, что автомату даёт окно.</summary>
+        private sealed class WindowUpdateApp(MainWindow window) : IUpdateApp
         {
-            if (!_hiddenForExit)
+            public bool AutoUpdate => window._services?.Settings.AutoCheckUpdates == true;
+
+            public bool Beta => window._services?.Settings.BetaChannel == true;
+
+            public ReleaseVersion? Declined => ReleaseVersion.Parse(window._services?.Settings.DeclinedUpdate);
+
+            public bool TurnsRunning => window.AnyTurnRunning;
+
+            public void RememberCheck(DateTime utc)
             {
-                return true;
+                if (window._services is { } services)
+                {
+                    services.Settings.LastUpdateCheckUtc = utc;
+                    services.SettingsStore.Save(services.Settings);
+                }
+
+                window.ShowLastCheck();
             }
 
-            if (_swapStarted)
-            {
-                _relaunchAfterExit = true;
-                return false;
-            }
+            public void BeforeSwap() => window.PersistCurrent();
 
-            _exitGeneration++;
-            _exiting = false;
-            _hiddenForExit = false;
-            Show();
-            _updateHeartbeat?.Start();
-            if (_services is { } services)
+            /// <remarks>
+            /// Через общий выход, а не Shutdown напрямую: подменять файл второй раз уже незачем
+            /// (автомат знает, что подмена была), а выход закрывает ворота в <c>Closing</c>.
+            /// </remarks>
+            public string? RestartInto(string exePath)
             {
-                ApplyTray(services.Settings.Windows);
-            }
+                if (AppRelaunch.StartSuccessor(exePath) is { } error)
+                {
+                    return error;
+                }
 
-            return true;
-        }
-
-        /// <summary>
-        /// Запускает подменённый exe после выхода этого процесса.
-        /// </summary>
-        /// <remarks>
-        /// <c>--await-exit</c> по той же причине, что и у <see cref="Restart"/>: замок единственного
-        /// экземпляра держится до конца этого процесса.
-        /// </remarks>
-        private static void StartSuccessor(string exePath)
-        {
-            var start = new ProcessStartInfo { FileName = exePath, UseShellExecute = true };
-            start.ArgumentList.Add("--await-exit");
-            start.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
-
-            try
-            {
-                Process.Start(start);
-            }
-            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
-            {
-                PerfLog.Write("update_on_exit relaunch failed " + ex.Message);
+                window.RequestExit();
+                return null;
             }
         }
 
-        /// <summary>
-        /// Windows завершает сеанс: ждать загрузку и окно UAC некогда.
-        /// </summary>
-        /// <remarks>
-        /// Ставится только уже скачанное и только без прав администратора — это два переименования,
-        /// доли секунды. Остальное доведёт следующий запуск.
-        /// </remarks>
-        private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e)
+        /// <summary>Окно вокруг выхода с обновлением.</summary>
+        private sealed class WindowExitHost(MainWindow window) : IExitHost
         {
-            _autoDownload?.Cancel();
-            _updateDownload?.Cancel();
+            public bool OwnsApplication => window.OwnsApplication;
 
-            if (_swapStarted || _staged is not { Plan.NeedsElevation: false } staged)
+            public bool UpdateForbidden => window._wipeRestart || window._elevationRestart;
+
+            public async Task YieldAsync() => await Dispatcher.Yield(DispatcherPriority.Background);
+
+            public void HideForBackgroundExit() => window.HideForBackgroundExit();
+
+            public void ShowAgain()
             {
-                return;
+                window.Show();
+                if (window._services is { } services)
+                {
+                    window.ApplyTray(services.Settings.Windows);
+                }
             }
 
-            _swapStarted = true;
-            var swap = UpdateInstaller.Swap(staged.File, staged.Plan.ExePath, staged.Plan.Asset.Sha256);
-            if (!swap.Ok)
+            public void StartSuccessor(string exePath)
             {
-                PerfLog.Write("update_on_session_end failed " + swap.Error);
+                if (AppRelaunch.StartSuccessor(exePath) is { } error)
+                {
+                    PerfLog.Write("update_on_exit relaunch failed " + error);
+                }
             }
 
-            _staged = null;
+            public void Shutdown() => Application.Current?.Shutdown();
         }
     }
 }
