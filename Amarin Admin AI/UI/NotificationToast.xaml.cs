@@ -1,24 +1,24 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
-using Amarin.Core;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Amarin.Core;
 
 namespace Amarin.UI;
 
 /// <summary>
-/// Bottom-right "response is ready" toast. A standalone top-most, non-activating window so it
-/// shows regardless of the main window's state — unfocused, minimized or hidden. The in-window
-/// overlay it replaced could only paint while the main window was actually on screen.
+/// Карточка «ответ готов» в правом нижнем углу. Отдельное окно поверх всех и без активации:
+/// видна, в каком бы состоянии ни было главное окно — без фокуса, свёрнутое или спрятанное.
+/// Слой внутри окна, который она заменила, рисовался лишь при окне на экране.
 /// </summary>
 public partial class NotificationToast : Window
 {
     /// <summary>
-    /// How long the card stays up. Five seconds was easy to miss in the corner of a large
-    /// screen while working in another app — the whole point is to be noticed.
+    /// Сколько карточка висит. Пять секунд в углу большого экрана, пока работаешь в другой
+    /// программе, легко пропустить, а её смысл — быть замеченной.
     /// </summary>
     private static readonly TimeSpan Dwell = TimeSpan.FromSeconds(15);
 
@@ -28,16 +28,15 @@ public partial class NotificationToast : Window
     private DateTime _shownAt = DateTime.UtcNow;
 
     /// <summary>
-    /// How long the card has been on screen. The main window uses this to tell a deliberate
-    /// "user came back to read it" activation from one that lands in the same breath as the
-    /// toast appearing, which would otherwise wipe the card out within a couple of frames.
+    /// Сколько карточка на экране. По этому главное окно отличает осознанное «вернулся прочитать»
+    /// от активации в тот же миг, что и появление карточки, — иначе она гасла бы через пару кадров.
     /// </summary>
     internal TimeSpan VisibleFor => DateTime.UtcNow - _shownAt;
 
-    /// <summary>Raised when the card body (not the close button) is clicked.</summary>
+    /// <summary>Щелчок по карточке — не по крестику.</summary>
     public event Action? CardClicked;
 
-    /// <summary>Monitor the toast should sit on, in device pixels; null means the primary one.</summary>
+    /// <summary>Рабочая область монитора для карточки, в пикселях устройства; null — основной монитор.</summary>
     private Rect? _workArea;
 
     public NotificationToast()
@@ -47,16 +46,16 @@ public partial class NotificationToast : Window
         _dismiss.Tick += (_, _) => Dismiss();
         Loaded += OnLoaded;
 
-        // SizeToContent resolves the window size across several passes, and the card is
-        // parked off-screen until then. Re-place it on every pass that can change the size.
+        // SizeToContent доводит размер за несколько проходов, а до тех пор карточка стоит за
+        // экраном. Ставим её на место на каждом проходе, который мог поменять размер.
         SizeChanged += (_, _) => PositionBottomRight();
         ContentRendered += (_, _) => PositionBottomRight();
     }
 
     /// <summary>
-    /// The palette lives in three Application-level dictionaries swapped by ThemeManager. If a
-    /// toast is ever built before that ran, every DynamicResource resolves to null and the card
-    /// paints as nothing on a transparent window — i.e. the toast silently "does not appear".
+    /// Палитру держат словари приложения, которые ставит ThemeManager. Собранная раньше него
+    /// карточка получила бы null из каждого DynamicResource и на прозрачном окне не нарисовалась
+    /// бы вовсе — уведомление молча «не появлялось» бы.
     /// </summary>
     private void ApplyFallbackBrushes()
     {
@@ -78,28 +77,28 @@ public partial class NotificationToast : Window
     {
         base.OnSourceInitialized(e);
 
-        // Not owned by the main window (owned windows hide when the owner is minimised),
-        // so mark it as a tool window to keep it out of Alt-Tab, and never-activate so it
-        // can't steal focus from the app the user is in.
+        // Владельца у окна нет (подчинённое прячется со свёрнутым владельцем), поэтому из Alt+Tab
+        // его убирает стиль «инструмент», а «без активации» не даёт отнять фокус у программы,
+        // в которой человек работает.
         var handle = new WindowInteropHelper(this).Handle;
         var ex = GetWindowLong(handle, GwlExStyle);
         SetWindowLong(handle, GwlExStyle, ex | WsExToolWindow | WsExNoActivate);
 
-        // Rough placement from the known card size, so the very first frame is already in the
-        // right corner instead of at 0,0. The exact position lands on the next layout pass.
+        // Примерное место по известному размеру карточки: первый кадр уже в углу, а не в 0,0.
+        // Точное место приедет со следующим проходом раскладки.
         var area = WorkAreaInDips();
         Left = area.Right - EstimatedWidth;
         Top = area.Bottom - EstimatedHeight;
     }
 
-    // Card is 330 wide inside a 30px shadow margin; height varies with the preview text.
+    // Карточка 330 в ширину плюс поля по 30 под тень; высота зависит от текста.
     private const double EstimatedWidth = 390;
     private const double EstimatedHeight = 170;
 
-    /// <summary>Builds, positions and shows the toast.</summary>
+    /// <summary>Собирает, ставит на место и показывает карточку.</summary>
     /// <param name="ownerHandle">
-    /// Main window handle, used only to pick the monitor. The toast is deliberately not owned —
-    /// an owned window hides whenever its owner is minimised, which is exactly when it is needed.
+    /// Хэндл главного окна — только чтобы выбрать монитор. Владельцем оно намеренно не ставится:
+    /// подчинённое окно прячется со свёрнутым владельцем, а нужна карточка именно тогда.
     /// </param>
     public static NotificationToast Show(
         string modelId,
@@ -131,7 +130,7 @@ public partial class NotificationToast : Window
         return toast;
     }
 
-    /// <summary>Fade the toast out and close it, unless that is already under way.</summary>
+    /// <summary>Гасит и закрывает карточку, если это уже не идёт.</summary>
     public void Dismiss()
     {
         if (_closing)
@@ -173,8 +172,8 @@ public partial class NotificationToast : Window
 
     private void PositionBottomRight()
     {
-        // ActualWidth is still 0 on the first Loaded pass under SizeToContent; DesiredSize is
-        // already filled by then, so fall back to it rather than leaving the card off-screen.
+        // При SizeToContent на первом Loaded ActualWidth ещё 0, а DesiredSize уже известен —
+        // берём его, чтобы карточка не осталась за экраном.
         var width = ActualWidth >= 1 ? ActualWidth : DesiredSize.Width;
         var height = ActualHeight >= 1 ? ActualHeight : DesiredSize.Height;
         if (width < 1 || height < 1)
@@ -188,8 +187,8 @@ public partial class NotificationToast : Window
     }
 
     /// <summary>
-    /// Work area of the main window's monitor, converted to WPF units. Falls back to
-    /// <see cref="SystemParameters.WorkArea"/> (primary monitor) when anything is unavailable.
+    /// Рабочая область монитора главного окна в единицах WPF; если её не узнать —
+    /// <see cref="SystemParameters.WorkArea"/> основного монитора.
     /// </summary>
     private Rect WorkAreaInDips()
     {
@@ -242,7 +241,7 @@ public partial class NotificationToast : Window
         }
     }
 
-    // Auto-dismiss must not fire while the user is reading or reaching for the toast.
+    // Пока карточку читают или тянутся к ней, сама она не гаснет.
     private void Card_MouseEnter(object sender, MouseEventArgs e) => _dismiss.Stop();
 
     private void Card_MouseLeave(object sender, MouseEventArgs e)
@@ -267,7 +266,7 @@ public partial class NotificationToast : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        // The click also bubbles to Card_MouseLeftButtonUp; keep it from counting as "open".
+        // Щелчок всплывёт и в Card_MouseLeftButtonUp — там он не должен считаться «открыть».
         _suppressCardClick = true;
         Dismiss();
     }

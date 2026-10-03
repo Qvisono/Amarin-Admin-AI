@@ -2,38 +2,35 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-// Почему псевдоним нужен — в csproj, рядом с убранными неявными using WPF.
+using Amarin.Core;
 using Path = System.Windows.Shapes.Path;
 using Shape = System.Windows.Shapes.Shape;
-using Amarin.Core;
 
 namespace Amarin.UI;
 
 /// <summary>
-/// How full the model's context window is, as a ring beside the balance plate.
+/// Заполненность окна контекста модели — кольцом рядом с плашкой остатка.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Built like <see cref="BalanceBadge"/>: the markup owns the shapes, this class only fills them.
-/// A UserControl would have carried its own template into a toolbar that already hand-rolls every
-/// other control, and the plate has to match the balance beside it pixel for pixel.
+/// Устроено как <see cref="BalanceBadge"/>: фигуры задаёт разметка, класс их только наполняет —
+/// плашка обязана совпадать с соседней до пикселя.
 /// </para>
 /// <para>
-/// Unlike the balance, this one does change colour. Running out of context is not something the
-/// user already knows — the model just quietly starts forgetting the beginning of the
-/// conversation, and by the time that shows in the answers the damage is done.
+/// В отличие от остатка, кольцо меняет цвет: о кончающемся контексте человек сам не знает —
+/// модель просто тихо забывает начало разговора, и когда это видно в ответах, уже поздно.
 /// </para>
 /// </remarks>
 internal sealed class ContextRing
 {
-    /// <summary>Amber from here: still fine, but worth knowing before starting a long task.</summary>
+    /// <summary>Отсюда жёлтое: ещё хватает, но перед длинной задачей это стоит знать.</summary>
     private const double WarnFraction = 0.80;
 
-    /// <summary>Red from here: the oldest messages are about to start falling out.</summary>
+    /// <summary>Отсюда красное: старые сообщения вот-вот начнут выпадать.</summary>
     private const double CriticalFraction = 0.95;
 
-    // One set of constants for the markup and the arc. The ring sits in an 18x18 box; the radius
-    // leaves room for the 2px stroke to stay inside it at both caps.
+    // Кольцо стоит в квадрате 18×18; радиус оставляет место, чтобы обводка в 2 точки не вылезала
+    // за него на концах.
     private const double CentreX = 9;
     private const double CentreY = 9;
     private const double Radius = 6.5;
@@ -54,16 +51,15 @@ internal sealed class ContextRing
 
         _track.Data = BuildArc(0, 359.999);
 
-        // Brushes come from swapped dictionaries, and the progress colour depends on the reading,
-        // so it is reassigned on every render rather than bound once.
+        // Кисти — из сменных словарей, а цвет дуги зависит от показания, поэтому он ставится на
+        // каждой отрисовке, а не привязывается раз и навсегда.
         ThemeManager.EffectiveThemeChanged += Render;
         Render();
     }
 
     /// <summary>
-    /// Called after every turn and whenever the open chat or model changes. An unknown reading
-    /// leaves the ring empty with a dash rather than blanking the plate: the toolbar keeps its
-    /// shape, and "not measured yet" is itself worth showing.
+    /// После каждого хода и при смене чата или модели. Неизвестное показание — пустое кольцо с
+    /// прочерком, а не пропавшая плашка: панель не меняет вид, а «ещё не измерено» — тоже ответ.
     /// </summary>
     public void Show(ContextUsage usage)
     {
@@ -87,8 +83,8 @@ internal sealed class ContextRing
                        VeniceModelCatalog.FormatContext(_usage.Max);
         _plate.ToolTip = BuildTooltip(_usage);
 
-        // At zero the arc degenerates to a point, where ArcSegment is undefined; below a degree
-        // it is invisible anyway, so the sliver is simply not drawn.
+        // У нуля дуга вырождается в точку, где ArcSegment не определён, а меньше градуса её и
+        // так не видно — не рисуем.
         var sweep = _usage.Fraction * 360;
         if (sweep < 1)
         {
@@ -108,7 +104,7 @@ internal sealed class ContextRing
         var accent = _plate.TryFindResource("Text.Muted") as Brush ?? Frozen(Colors.Gray);
         _amount.Foreground = accent;
 
-        // Same wash as the balance plate beside it, so the pair reads as one row of readouts.
+        // Та же подложка, что у плашки остатка: пара читается одним рядом показаний.
         var colour = accent is SolidColorBrush { Color: var value } ? value : Colors.Gray;
         _plate.Background = Frozen(Color.FromArgb(0x24, colour.R, colour.G, colour.B));
         _plate.BorderBrush = Frozen(Color.FromArgb(0x40, colour.R, colour.G, colour.B));
@@ -149,7 +145,7 @@ internal sealed class ContextRing
         return text;
     }
 
-    /// <summary>Arc from twelve o'clock, clockwise, in degrees.</summary>
+    /// <summary>Дуга от двенадцати часов по часовой стрелке, в градусах.</summary>
     internal static Geometry BuildArc(double fromAngle, double toAngle)
     {
         var figure = new PathFigure { StartPoint = PointOnRing(fromAngle), IsClosed = false };

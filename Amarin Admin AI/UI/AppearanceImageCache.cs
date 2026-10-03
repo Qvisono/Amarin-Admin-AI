@@ -7,27 +7,27 @@ using System.Windows.Media.Imaging;
 namespace Amarin.UI;
 
 /// <summary>
-/// Turns the chosen background picture into a frozen bitmap that is already dimmed-to-taste:
-/// saturation and blur are baked into the pixels once, off the UI thread.
+/// Готовит выбранную картинку фона: насыщенность и размытие один раз запекаются в пиксели вне
+/// потока интерфейса, а результат — замороженный битмап.
 /// <para>
-/// Baking the blur rather than hanging a <see cref="System.Windows.Media.Effects.BlurEffect"/> on
-/// the backdrop matters: an effect re-runs a full-window gaussian on every frame the backdrop
-/// animates, and its radius is in DIPs, so the app's fake-DPI UI scaling would multiply the cost
-/// again at 250 %. A blur is a low-pass filter, so we get it almost for free by working at a
-/// reduced resolution and letting the <see cref="ImageBrush"/> stretch the result back up
-/// (<c>BitmapScalingMode.HighQuality</c> is set window-wide by <see cref="WindowRenderDefaults"/>).
+/// Размытие именно запекается, а не вешается <see cref="System.Windows.Media.Effects.BlurEffect"/>:
+/// эффект пересчитывал бы гауссиан на всё окно в каждом кадре анимации фона, а его радиус в DIP,
+/// и поддельный DPI масштаба интерфейса умножал бы цену ещё раз на 250 %. Размытие — фильтр низких
+/// частот, поэтому оно почти даром выходит из работы в уменьшенном разрешении: растягивает обратно
+/// <see cref="ImageBrush"/> (<c>BitmapScalingMode.HighQuality</c> ставит на окно
+/// <see cref="WindowRenderDefaults"/>).
 /// </para>
-/// <para>Brightness is deliberately <em>not</em> baked — it stays an overlay so its slider is live.</para>
+/// <para>Яркость намеренно <em>не</em> запекается — она накладка, и её ползунок работает сразу.</para>
 /// </summary>
 internal static class AppearanceImageCache
 {
     /// <summary>
-    /// Wallpapers are routinely 4K+. Decoding at that size costs tens of megabytes for a picture
-    /// that is about to be dimmed and blurred, so cap the long edge.
+    /// Обои часто 4K и больше; разбирать их в полном размере — десятки мегабайт ради картинки,
+    /// которую тут же затемнят и размоют. Длинная сторона ограничена.
     /// </summary>
     private const int MaxEdge = 2560;
 
-    /// <summary>Below this the blur starts eating the picture's shape, not just its detail.</summary>
+    /// <summary>Мельче этого размытие съедает уже форму картинки, а не только детали.</summary>
     private const int MinEdge = 200;
 
     private const int CacheSize = 4;
@@ -54,12 +54,12 @@ internal static class AppearanceImageCache
     private static readonly List<(string Key, BitmapSource Image)> Cache = [];
 
     /// <summary>
-    /// Decodes and processes the picture on a worker thread. Returns <c>null</c> when the file is
-    /// missing, unreadable or not a picture. Never throws.
+    /// Разбирает и обрабатывает картинку в фоне. <c>null</c> — файла нет, он не читается или это
+    /// не картинка. Не бросает.
     /// </summary>
     /// <remarks>
-    /// The existence check happens on the worker too: a path on a disconnected network share
-    /// makes <see cref="File.Exists"/> block for the SMB timeout, and that must not be the UI thread.
+    /// Проверка существования — тоже в фоне: путь на отключённом сетевом ресурсе держит
+    /// <see cref="File.Exists"/> до тайм-аута SMB, и это не должен быть поток интерфейса.
     /// </remarks>
     /// <param name="cacheRoot">
     /// Папка профиля, куда кладётся готовый снимок. <c>null</c> — считать заново каждый раз;
@@ -124,7 +124,7 @@ internal static class AppearanceImageCache
         {
             foreach (var entry in Cache)
             {
-                // The stamp is unknown without touching the disk, so match on the prefix.
+                // Отметку без обращения к диску не узнать — сверяем по началу ключа.
                 if (entry.Key.StartsWith(key, StringComparison.Ordinal))
                 {
                     return entry.Image;
@@ -150,8 +150,8 @@ internal static class AppearanceImageCache
             return null;
         }
 
-        // Rounded: the sliders move in fine steps and a 1 % change is invisible, but every
-        // distinct value would otherwise be a separate cache entry and a separate pixel pass.
+        // С округлением: ползунки ходят мелкими шагами, процент разницы не виден, а каждое
+        // отдельное значение было бы своей записью кэша и своим проходом по пикселям.
         var sat = Round(saturation);
         var rad = Round(blur, radius: true);
 
@@ -216,8 +216,8 @@ internal static class AppearanceImageCache
         }
         catch
         {
-            // Corrupt, an unsupported codec, or a file another process holds exclusively —
-            // the caller falls back to the gradient backdrop.
+            // Файл битый, кодек не поддержан или файл занят другим процессом — вызывающий
+            // остаётся на градиенте.
             return null;
         }
     }
@@ -362,9 +362,9 @@ internal static class AppearanceImageCache
     }
 
     /// <summary>
-    /// Decodes straight to the working size. Dimensions come from the frame header
-    /// (<see cref="BitmapCreateOptions.DelayCreation"/> + <see cref="BitmapCacheOption.None"/>),
-    /// so the full-size pixels are never materialised just to be measured.
+    /// Разбирает сразу в рабочий размер. Размеры берутся из заголовка кадра
+    /// (<see cref="BitmapCreateOptions.DelayCreation"/> + <see cref="BitmapCacheOption.None"/>), так
+    /// что ради замера полноразмерные пиксели не создаются.
     /// </summary>
     private static BitmapSource Decode(string path, double blur)
     {
@@ -390,8 +390,8 @@ internal static class AppearanceImageCache
             throw new NotSupportedException("Decoder reported an empty frame.");
         }
 
-        // A stronger blur means fewer pixels have to survive: the downsample itself is the
-        // low-pass filter, and the brush stretches the result back over the window.
+        // Чем сильнее размытие, тем меньше пикселей нужно: уменьшение и есть фильтр низких
+        // частот, а кисть растягивает результат обратно на окно.
         var scale = 1.0 / (1.0 + (blur / 6.0));
         var longEdge = Math.Max(width, height);
         var target = (int)Math.Round(Math.Min(longEdge, MaxEdge) * scale);
@@ -403,8 +403,8 @@ internal static class AppearanceImageCache
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
 
-        // Set only one axis so the decoder keeps the aspect ratio, and pick it from the frame's
-        // own orientation — a rotated phone JPEG reports the already-oriented size here.
+        // Задаём одну ось — пропорции декодер сохранит сам; ось выбираем по ориентации кадра:
+        // повёрнутый JPEG с телефона отдаёт здесь уже повёрнутый размер.
         if (width >= height)
         {
             image.DecodePixelWidth = target;
@@ -444,9 +444,9 @@ internal static class AppearanceImageCache
 
         if (blur > 0)
         {
-            // The decode scale was itself derived from the blur, so in working pixels only a
-            // small, near-constant residual softening is left. Three box passes approximate a
-            // gaussian closely enough that no edge of the original detail survives.
+            // Масштаб разбора уже выведен из размытия, и в рабочих пикселях остаётся небольшое,
+            // почти постоянное смягчение. Три прохода коробчатым фильтром достаточно близки к
+            // гауссиану, чтобы от резких краёв не осталось следа.
             var radius = (int)Math.Clamp(Math.Round(2 + (blur / 20.0)), 1, 6);
             for (var pass = 0; pass < 3; pass++)
             {
@@ -460,8 +460,8 @@ internal static class AppearanceImageCache
     }
 
     /// <summary>
-    /// Pulls each pixel towards (0) or away from (&gt;1) its own luminance. Rec. 709 weights, so a
-    /// greyscale pass keeps the perceived brightness of the original.
+    /// Тянет каждый пиксель к его яркости (0) или от неё (&gt;1). Веса Rec. 709 — серая картинка
+    /// сохраняет видимую яркость оригинала.
     /// </summary>
     private static void Saturate(byte[] pixels, double amount)
     {
@@ -477,7 +477,7 @@ internal static class AppearanceImageCache
         }
     }
 
-    /// <summary>Separable box blur: a horizontal pass then a vertical one, alpha left alone.</summary>
+    /// <summary>Разделимое коробчатое размытие: проход по горизонтали, затем по вертикали; альфа не трогается.</summary>
     private static void BoxBlur(byte[] pixels, int width, int height, int radius)
     {
         var scratch = new byte[pixels.Length];

@@ -9,20 +9,18 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// The Appearance settings page: theme presets, the backdrop and glass customisation, the
-    /// interface knobs and the compact composer.
+    /// Страница «Оформление»: готовые темы, фон и стекло, настройки интерфейса и сжатое поле ввода.
     /// </summary>
     public partial class MainWindow
     {
         private const string BackgroundFileStem = "background";
 
         /// <summary>
-        /// Ready-made backdrops, so the feature looks good before anyone touches a slider. One per
-        /// shipped palette, in <see cref="ThemeCatalog.Presets"/> order: a deep glow band between
-        /// two near-black ends on the dark themes, a soft vaulted wash on the light ones. Every
-        /// stop stays inside the palette's own luminance range so the backdrop reads as an
-        /// extension of the window rather than a panel fighting it, and each hue span is kept
-        /// short to avoid the grey mud a purple-to-orange interpolation lands in.
+        /// Готовые фоны — чтобы всё выглядело хорошо до первого ползунка. По одному на каждую
+        /// палитру, в порядке <see cref="ThemeCatalog.Presets"/>: на тёмных темах — полоса свечения
+        /// между почти чёрными краями, на светлых — мягкий свод. Каждая точка в пределах яркости
+        /// своей палитры, чтобы фон читался продолжением окна, а не спорящей с ним панелью, а
+        /// разброс оттенков короткий — переход от фиолетового к оранжевому даёт серую грязь.
         /// </summary>
         private static readonly (string Name, string[] Colors, double Angle)[] GradientPresets =
         [
@@ -78,8 +76,8 @@ namespace Amarin.UI
         private ContextRing? _context;
 
         /// <summary>
-        /// Saturation needs a pixel pass over the whole picture, so dragging its slider is
-        /// debounced; every other slider applies on the frame.
+        /// Насыщенность — это проход по всем пикселям картинки, поэтому её ползунок ждёт паузы;
+        /// остальные применяются в том же кадре.
         /// </summary>
         private readonly DispatcherTimer _appearanceDebounce =
             new() { Interval = TimeSpan.FromMilliseconds(160) };
@@ -146,8 +144,8 @@ namespace Amarin.UI
         {
             ThemeCardsHost.Children.Clear();
 
-            // Resolved from the host, not the window: the style lives in the settings Grid's own
-            // Resources, which Window.FindResource does not see.
+            // Стиль ищется у хозяина, а не у окна: он лежит в ресурсах Grid настроек, которых
+            // Window.FindResource не видит.
             var style = (Style)ThemeCardsHost.FindResource("ThemeCard");
 
             foreach (var preset in ThemeCatalog.Presets)
@@ -165,8 +163,7 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// A miniature of the palette: the window ground, a panel on it and an accent bar. Shows
-        /// what a theme looks like without having to apply it.
+        /// Миниатюра палитры: фон окна, панель на нём и полоса акцента — тема видна без применения.
         /// </summary>
         private static UIElement ThemePreview(ThemePresetInfo preset)
         {
@@ -277,8 +274,8 @@ namespace Amarin.UI
             }
             else
             {
-                // Leaving "follow Windows" keeps whatever is on screen right now, rather than
-                // snapping back to a preset the user may never have picked.
+                // Уход из «как в Windows» оставляет то, что на экране, а не прыгает к теме, которую
+                // человек мог и не выбирать.
                 _services.Settings.Theme = ThemeManager.Current.Theme;
             }
 
@@ -293,7 +290,7 @@ namespace Amarin.UI
             ThemeFollowSystemToggle.IsChecked = following;
             ThemeCardsHost.IsEnabled = !following;
 
-            // While following Windows the grid still shows which palette is actually painted.
+            // И при «как в Windows» сетка показывает, какая палитра на самом деле на экране.
             var effective = following ? ThemeManager.Current.Theme : theme;
             foreach (var child in ThemeCardsHost.Children)
             {
@@ -311,8 +308,8 @@ namespace Amarin.UI
             GradientPresetsHost.Children.Clear();
             foreach (var (name, colors, angle) in GradientPresets)
             {
-                // Preview along the preset's own axis, matching how the backdrop is painted, so
-                // the swatch is an honest thumbnail rather than a fixed diagonal.
+                // Образец — по оси самой темы, как рисуется фон: честная миниатюра, а не
+                // одинаковая диагональ.
                 var (start, end) = PreviewAxis(angle);
                 var brush = new LinearGradientBrush { StartPoint = start, EndPoint = end };
                 for (var i = 0; i < colors.Length; i++)
@@ -353,8 +350,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Endpoints for a gradient angle inside the unit square, matching
-        /// <c>AppearanceManager.AxisFor</c> so the preset swatch previews the real backdrop.
+        /// Концы оси градиента в единичном квадрате — как в <c>AppearanceManager.AxisFor</c>,
+        /// чтобы образец темы совпадал с настоящим фоном.
         /// </summary>
         private static (Point Start, Point End) PreviewAxis(double degrees)
         {
@@ -413,8 +410,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Wires one slider: keeps its value label current and writes the value into settings.
-        /// <paramref name="debounce"/> is for the two sliders whose effect costs a pixel pass.
+        /// Подключает ползунок: обновляет подпись значения и пишет его в настройки.
+        /// <paramref name="debounce"/> — для двух ползунков, которым нужен проход по пикселям.
         /// </summary>
         private void Bind(
             Slider slider,
@@ -461,8 +458,8 @@ namespace Amarin.UI
 
             if (colors.Count < 2)
             {
-                // Normalize would pad this back out to two, but with colours the user never
-                // chose; better to ignore the edit until the second slot is filled again.
+                // Normalize добил бы до двух цветов, но не тех, что выбрал человек, — правку
+                // пропускаем, пока второй цвет не заполнят снова.
                 return;
             }
 
@@ -565,7 +562,7 @@ namespace Amarin.UI
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = Loc.Get("S.Appearance.BackgroundDialog"),
-                // Same codec caveat as the avatar picker: .webp is not decodable on every install.
+                // Как и у аватара: .webp разбирается не на каждой Windows.
                 Filter = $"{Loc.Get("S.Attach.FilterImages")}|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|{Loc.Get("S.Common.AllFiles")}|*.*"
             };
 
@@ -587,8 +584,8 @@ namespace Amarin.UI
 
             try
             {
-                // Copied into the profile, like the avatar: the backdrop then survives the
-                // original being moved or deleted, and travels with the profile folder.
+                // Копия в профиль, как у аватара: фон переживёт перенос или удаление оригинала и
+                // переедет вместе с папкой профиля.
                 var root = ProfileStore.DataRootFor(ActiveProfile.Id);
                 Directory.CreateDirectory(root);
 
@@ -624,7 +621,7 @@ namespace Amarin.UI
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // A locked file is no reason to keep pointing the settings at it.
+                // Занятый файл — не повод оставлять на него ссылку в настройках.
             }
 
             AppearanceImageCache.Clear();
@@ -678,7 +675,7 @@ namespace Amarin.UI
 
         // ───────────────────────── загрузка и применение ─────────────────────────
 
-        /// <summary>Pushes persisted values into every control without firing their handlers.</summary>
+        /// <summary>Ставит сохранённые значения в контролы, не поднимая их обработчиков.</summary>
         private void LoadAppearanceUi(AppSettings settings)
         {
             var appearance = settings.Appearance;
@@ -749,7 +746,7 @@ namespace Amarin.UI
             combo.SelectedIndex = 0;
         }
 
-        /// <summary>Repaints the window from the current settings, and optionally persists them.</summary>
+        /// <summary>Перекрашивает окно по текущим настройкам и, если просят, сохраняет их.</summary>
         private void ApplyAppearance(bool save)
         {
             if (_services is null)
@@ -777,8 +774,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// The two knobs that are plain properties rather than resources: the window font, which
-        /// every control inherits, and the width of the message column.
+        /// Две настройки, которые свойства, а не ресурсы: шрифт окна (его наследуют все контролы)
+        /// и ширина колонки сообщений.
         /// </summary>
         private void ApplyInterfaceOptions(AppearanceSettings appearance)
         {
@@ -797,8 +794,8 @@ namespace Amarin.UI
                 }
                 else
                 {
-                    // The families ship with the app as Resource-built TTFs; the trailing fallback
-                    // is what renders if a face ever fails to load.
+                    // Шрифты едут в программе ресурсами TTF; последний в списке рисует, если
+                    // начертание не загрузилось.
                     FontFamily = new FontFamily($"pack://application:,,,/Fonts/#{family}, Segoe UI");
                 }
             }

@@ -7,33 +7,32 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// An image the assistant put in its answer, rendered inline between paragraphs the way a code
-/// block is. Two sources are understood: a <c>data:</c> URI, which is what generated images
-/// arrive as, and an ordinary http(s) URL, fetched once in the background.
+/// Картинка из ответа модели — блоком между абзацами, как блок кода. Источника два: строка
+/// <c>data:</c> (так приходят нарисованные картинки) и обычный адрес http(s), который один раз
+/// скачивается в фоне.
 /// </summary>
 internal static class ImageBlockView
 {
-    /// <summary>Widest the picture is drawn. Beyond this it just crowds the text column.</summary>
+    /// <summary>Наибольшая ширина картинки: шире она только теснит текст.</summary>
     private const double MaxWidth = 460;
 
-    /// <summary>Ceiling on a fetched image, so a mistyped link cannot pull down a huge file.</summary>
+    /// <summary>Потолок скачиваемой картинки: ошибочная ссылка не утянет огромный файл.</summary>
     private const int MaxRemoteBytes = 12 * 1024 * 1024;
 
     private static readonly TimeSpan FetchTimeout = TimeSpan.FromSeconds(20);
 
-    // The live answer re-renders roughly twelve times a second, rebuilding the whole document
-    // each pass. Without this every image would be re-decoded — and every remote one re-fetched —
-    // on each tick. Keyed by URL; entries are frozen BitmapSources, so sharing them is safe.
-    // No lock: the document is only ever built on the UI thread.
+    // Идущий ответ перерисовывается около двенадцати раз в секунду, документ — заново целиком.
+    // Без кэша каждая картинка разбиралась бы, а внешняя ещё и скачивалась бы на каждом проходе.
+    // Ключ — адрес; значения — замороженные BitmapSource, делить их безопасно. Замка нет:
+    // документ строится только на потоке интерфейса.
     private const int CacheCapacity = 32;
     private static readonly Dictionary<string, BitmapSource> Cache = [];
     private static readonly Queue<string> CacheOrder = new();
 
     /// <summary>
-    /// Frames waiting on a URL that is already being fetched. A second render of the same answer
-    /// joins the queue instead of starting another request — and, importantly, still gets the
-    /// picture: updating only the frame that started the fetch would strand every later one on
-    /// "loading" when the live re-render replaced it mid-flight.
+    /// Рамки, ждущие уже скачиваемый адрес. Повторная отрисовка того же ответа встаёт в очередь,
+    /// а не шлёт второй запрос, — и картинку всё равно получает: обнови мы только рамку, начавшую
+    /// загрузку, все следующие так и висели бы на «загрузке», когда перерисовка её заменит.
     /// </summary>
     private static readonly Dictionary<string, List<Border>> Pending = [];
 
@@ -61,7 +60,7 @@ internal static class ImageBlockView
             return frame;
         }
 
-        // A handle the assistant wrote to place an image it just generated.
+        // Ссылка, которой модель ставит только что нарисованную картинку.
         if (ChatImageRegistry.IsHandle(url))
         {
             if (ChatImageRegistry.Find(url) is not { } attachment ||
@@ -87,8 +86,7 @@ internal static class ImageBlockView
 
         if (!IsFetchable(url, out var target))
         {
-            // Not something we can show — fall back to the caption, which at least keeps the
-            // author's words in the answer.
+            // Показать нечего — остаётся подпись, чтобы слова автора не пропали из ответа.
             frame.Child = BuildNotice(string.IsNullOrWhiteSpace(alt) ? url : alt!);
             return frame;
         }
@@ -100,9 +98,9 @@ internal static class ImageBlockView
     }
 
     /// <summary>
-    /// Fills the frame with the picture and makes it open full size on click. The bitmap is
-    /// stashed on the frame's Tag because <see cref="BeginFetch"/> replaces the child later —
-    /// a handler that closed over the element built here would show a stale image.
+    /// Ставит картинку в рамку; щелчок открывает её во весь размер. Битмап лежит в <c>Tag</c>
+    /// рамки, потому что <see cref="BeginFetch"/> позже меняет ребёнка, и обработчик, замкнутый
+    /// на построенный здесь элемент, показал бы устаревшую картинку.
     /// </summary>
     private static void Fill(Border frame, BitmapSource source, string? alt)
     {
@@ -112,7 +110,7 @@ internal static class ImageBlockView
             Stretch = Stretch.Uniform,
             StretchDirection = StretchDirection.DownOnly,
             HorizontalAlignment = HorizontalAlignment.Left,
-            // Keep focus out of the message body, the same way a code block does.
+            // Фокус в тело сообщения не берёт — как и блок кода.
             Focusable = false
         };
         frame.Tag = source;
@@ -121,8 +119,8 @@ internal static class ImageBlockView
 
     private static void AttachClick(FrameworkElement host, Border frame, string? alt)
     {
-        // The body is a RichTextBox, i.e. a text-selection surface: swallow the press so a
-        // drag across the picture is not read as selecting text.
+        // Тело сообщения — RichTextBox, то есть поверхность выделения: гасим нажатие, чтобы
+        // протяжка по картинке не выделяла текст.
         frame.PreviewMouseLeftButtonDown += (_, e) => e.Handled = true;
         frame.MouseLeftButtonUp += (_, e) =>
         {
@@ -148,8 +146,7 @@ internal static class ImageBlockView
     }
 
     /// <summary>
-    /// Fetches on a background thread and swaps the picture in when it lands. The frame is only
-    /// updated if it is still in the visual tree — a re-render may have replaced it meanwhile.
+    /// Скачивает в фоне и ставит картинку во все ждущие её рамки.
     /// </summary>
     private static void BeginFetch(FrameworkElement host, Border frame, Uri target, string url, string? alt)
     {
@@ -170,7 +167,7 @@ internal static class ImageBlockView
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or NotSupportedException or IOException)
             {
-                // Reported through the placeholder below.
+                // Сообщается заглушкой ниже.
             }
 
             Pending.Remove(url, out var frames);
@@ -223,7 +220,7 @@ internal static class ImageBlockView
         return Decode(buffer);
     }
 
-    /// <summary>Copies at most <see cref="MaxRemoteBytes"/>, for servers that send no length.</summary>
+    /// <summary>Копирует не больше <see cref="MaxRemoteBytes"/> — для серверов, не называющих длину.</summary>
     private static void CopyCapped(Stream source, Stream destination)
     {
         var chunk = new byte[81920];
@@ -248,9 +245,9 @@ internal static class ImageBlockView
         {
             var image = new BitmapImage();
             image.BeginInit();
-            // OnLoad so the stream can be closed straight after. Note: no IgnoreImageCache here —
-            // WPF's image cache is keyed by URI, and asking it to bypass a cache for a source
-            // that has no URI throws ArgumentNullException("key").
+            // OnLoad — чтобы поток можно было сразу закрыть. IgnoreImageCache здесь нельзя: кэш
+            // картинок WPF ведётся по адресу, и у источника без адреса просьба его обойти
+            // бросает ArgumentNullException("key").
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.StreamSource = stream;
             image.EndInit();
@@ -263,7 +260,7 @@ internal static class ImageBlockView
         }
     }
 
-    /// <summary>Decodes <c>data:image/...;base64,...</c>, which is how generated images arrive.</summary>
+    /// <summary>Разбирает <c>data:image/...;base64,...</c> — так приходят нарисованные картинки.</summary>
     private static BitmapSource? TryDecodeDataUri(string url)
     {
         const string Scheme = "data:";
@@ -301,8 +298,8 @@ internal static class ImageBlockView
     }
 
     /// <summary>
-    /// http(s) only — no file://, and nothing pointing back at this machine or the local network.
-    /// The URL comes out of a model's answer, so the rules live in one shared place.
+    /// Только http(s): ни file://, ни адресов этой машины и локальной сети. Адрес пришёл из ответа
+    /// модели, поэтому правила — в одном общем месте.
     /// </summary>
     private static bool IsFetchable(string url, out Uri target) =>
         RemoteImages.IsSafeTarget(url, out target);

@@ -9,26 +9,25 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Paints the window backdrop and pushes the derived "glass" palette into
-/// <see cref="ThemeManager.OverrideSlot"/>.
+/// Рисует фон окна и кладёт производную «стеклянную» палитру в <see cref="ThemeManager.OverrideSlot"/>.
 /// <para>
-/// The whole UI reads its colours through <c>DynamicResource</c>, and merged dictionaries resolve
-/// last-to-first, so writing alpha-adjusted copies of the <c>Bg.*</c> brushes into slot 3 makes
-/// every panel translucent at once without touching a line of the window's XAML.
+/// Интерфейс читает цвета через <c>DynamicResource</c>, а словари разбираются от последнего к
+/// первому, поэтому копии кистей <c>Bg.*</c> с прозрачностью в слоте 3 делают полупрозрачными
+/// сразу все панели, не трогая разметку окна.
 /// </para>
 /// </summary>
 internal sealed class AppearanceManager : IDisposable
 {
     /// <summary>
-    /// How much of the requested transparency each surface takes. 0 keeps a surface fully opaque.
+    /// Какую долю заданной прозрачности берёт каждая поверхность; 0 — остаётся непрозрачной.
     /// <para>
-    /// Two keys are deliberately absent. <c>Bg.Window</c> only fills the root Grid, which sits
-    /// <em>under</em> the backdrop, so thinning it would be invisible — and the window is
-    /// DWM-glass-framed, so a translucent root risks bleeding the desktop at the edge.
-    /// <c>Bg.Panel</c> backs the <c>AllowsTransparency</c> popups (attach menu, model picker,
-    /// combo drop-downs, context menus) and all six modal dialog bodies; those are separate
-    /// layered windows, so making them translucent shows the <em>desktop</em>, not the backdrop.
-    /// The composer uses <c>Bg.Glass</c> instead, which exists for exactly this reason.
+    /// Двух ключей нет намеренно. <c>Bg.Window</c> заливает только корневой Grid, который лежит
+    /// <em>под</em> фоном, — истончать его бесполезно, а у окна рамка DWM, и прозрачный корень
+    /// мог бы просвечивать рабочим столом по краю. <c>Bg.Panel</c> — фон попапов с
+    /// <c>AllowsTransparency</c> (меню вложений, выбор модели, выпадашки, контекстные меню) и тел
+    /// модальных окон; это отдельные окна, и сквозь прозрачный фон в них был бы виден
+    /// <em>рабочий стол</em>, а не фон программы. Поле ввода берёт <c>Bg.Glass</c> — ради этого
+    /// он и заведён.
     /// </para>
     /// </summary>
     private static readonly (string Key, double Factor)[] GlassSurfaces =
@@ -44,8 +43,8 @@ internal sealed class AppearanceManager : IDisposable
     ];
 
     /// <summary>
-    /// Muted greys were picked against an opaque palette. Over a photo they fall under 3:1, so
-    /// each tier is promoted one step brighter while a backdrop is up.
+    /// Приглушённые серые подбирались под непрозрачную палитру; над фото их контраст падает ниже
+    /// 3:1, поэтому при фоне каждая ступень поднимается на одну ярче.
     /// </summary>
     private static readonly (string Key, string Source)[] TextPromotions =
     [
@@ -95,19 +94,19 @@ internal sealed class AppearanceManager : IDisposable
         _window.IsVisibleChanged += OnVisibilityChanged;
     }
 
-    /// <summary>Whether a backdrop is actually painted, after the master switch and image checks.</summary>
+    /// <summary>Рисуется ли фон на самом деле — с учётом общего выключателя и проверки картинки.</summary>
     public bool BackdropActive { get; private set; }
 
     /// <summary>
-    /// Profile folder the background picture was copied into. Settings hold a bare file name so
-    /// the picture travels with the profile; this is what it is resolved against.
+    /// Папка профиля, куда скопирована картинка фона. В настройках — голое имя файла, чтобы
+    /// картинка переезжала с профилем; разрешается оно относительно этой папки.
     /// </summary>
     public string DataRoot { get; set; } = AppPaths.Root;
 
     /// <summary>
-    /// Alpha for one surface at the requested glass opacity. Pure and deterministic — the
-    /// invariant worth remembering is that <paramref name="glassOpacity"/> of 1 reproduces the
-    /// palette exactly, so "enabled but neutral" looks identical to the shipped theme.
+    /// Альфа поверхности при заданной непрозрачности стекла. Главный инвариант:
+    /// <paramref name="glassOpacity"/> = 1 воспроизводит палитру точно, и «включено, но
+    /// нейтрально» выглядит как заводская тема.
     /// </summary>
     public static double GlassAlpha(string key, double glassOpacity)
     {
@@ -122,7 +121,7 @@ internal sealed class AppearanceManager : IDisposable
         return 1.0;
     }
 
-    /// <summary>Surfaces that participate in the glass treatment, for tests and for the UI copy.</summary>
+    /// <summary>Поверхности, которые становятся стеклом, — для тестов и подписей в интерфейсе.</summary>
     public static IEnumerable<string> GlassKeys => GlassSurfaces.Select(s => s.Key);
 
     public void Apply(AppearanceSettings settings)
@@ -179,8 +178,8 @@ internal sealed class AppearanceManager : IDisposable
     {
         var light = ThemeManager.IsLight;
 
-        // An opaque floor under everything: with Fit or Tile the picture need not cover the
-        // window, and a gap here would composite against the DWM glass frame.
+        // Непрозрачная подложка: при «вписать» и «плиткой» картинка может не закрыть окно, и
+        // просвет смешался бы с рамкой DWM.
         _under.Fill = Resource("Bg.Window") is SolidColorBrush window
             ? new SolidColorBrush(window.Color)
             : Brushes.Black;
@@ -198,7 +197,7 @@ internal sealed class AppearanceManager : IDisposable
             _base.Fill = BuildGradientBrush();
         }
 
-        // Brightness as an overlay, not baked: the slider stays live and costs nothing.
+        // Яркость — накладкой, а не в пикселях: ползунок работает сразу и ничего не стоит.
         var brightness = _settings.ImageBrightness;
         if (mode != BackdropMode.Image)
         {
@@ -233,7 +232,7 @@ internal sealed class AppearanceManager : IDisposable
             _frost.Visibility = Visibility.Collapsed;
         }
 
-        // A white sheen vanishes on a light palette — flip it dark there.
+        // Белый отблеск на светлой палитре не виден — там он тёмный.
         if (_settings.GlassSheen)
         {
             var ink = light ? Colors.Black : Colors.White;
@@ -277,8 +276,8 @@ internal sealed class AppearanceManager : IDisposable
     }
 
     /// <summary>
-    /// Stops are laid out as a palindrome (c0…cn…c0) so that Aurora, which slides the brush along
-    /// its axis, never shows the seam a non-symmetric stop list produces where the ends meet.
+    /// Точки градиента идут палиндромом (c0…cn…c0): «Сияние» сдвигает кисть вдоль оси, и у
+    /// несимметричного списка на стыке концов был бы виден шов.
     /// </summary>
     private Brush BuildGradientBrush()
     {
@@ -313,17 +312,16 @@ internal sealed class AppearanceManager : IDisposable
         brush.StartPoint = start;
         brush.EndPoint = end;
 
-        // Left unfrozen on purpose: Drift and Aurora animate StartPoint/EndPoint.
+        // Не замораживается намеренно: «Дрейф» и «Сияние» анимируют StartPoint/EndPoint.
         return brush;
     }
 
     /// <summary>
-    /// Endpoints for an angle, on a circle around the centre of the unit square.
+    /// Концы оси под углом — на окружности вокруг центра единичного квадрата.
     /// <para>
-    /// Sweeping these directly is what Drift animates. Rotating the brush with a
-    /// <c>RelativeTransform</c> instead would be wrong twice over: the unit square is anisotropic
-    /// on a non-square window, so the axis would sweep at uneven speed, and the rotated endpoints
-    /// leave [0,1], which with the default Pad spread paints growing slabs of the end colours.
+    /// «Дрейф» двигает именно их. Поворот кисти через <c>RelativeTransform</c> ошибался бы дважды:
+    /// на неквадратном окне единичный квадрат растянут, и ось шла бы с неровной скоростью, а
+    /// повёрнутые концы выходят за [0,1], и заливка Pad рисует растущие полосы крайних цветов.
     /// </para>
     /// </summary>
     private static (Point Start, Point End) AxisFor(double degrees)
@@ -357,8 +355,8 @@ internal sealed class AppearanceManager : IDisposable
             return ImageBrushFor(ready);
         }
 
-        // Not processed yet. Show the gradient meanwhile and swap in when the worker lands,
-        // so picking a 4K wallpaper never stalls the UI thread.
+        // Картинка ещё не готова: пока — градиент, а готовая встанет, когда фон её досчитает.
+        // Выбор обоев 4K не останавливает поток интерфейса.
         var generation = _imageGeneration;
         var saturation = _settings.ImageSaturation;
         var blur = _settings.ImageBlur;
@@ -433,9 +431,9 @@ internal sealed class AppearanceManager : IDisposable
     // ───────────────────────── движение ─────────────────────────
 
     /// <summary>
-    /// An endless timeline keeps WPF's render thread awake, which on a chat window that stays
-    /// open all day is a real battery cost. Motion is therefore refused outright where it cannot
-    /// look good anyway, and paused whenever the window is not on screen.
+    /// Бесконечная анимация не даёт потоку отрисовки WPF уснуть, а окно чата открыто весь день —
+    /// это заметный расход батареи. Поэтому движение не включается там, где хорошо выглядеть
+    /// всё равно не будет, и стоит, пока окна не видно.
     /// </summary>
     private bool MotionAllowed()
     {
@@ -454,7 +452,7 @@ internal sealed class AppearanceManager : IDisposable
             return false;
         }
 
-        // Software rendering: every animated frame is a full CPU repaint of the window.
+        // Программная отрисовка: каждый кадр анимации — перерисовка всего окна процессором.
         return (RenderCapability.Tier >> 16) >= 1;
     }
 
@@ -477,7 +475,7 @@ internal sealed class AppearanceManager : IDisposable
                 AddAurora(storyboard, speed);
                 break;
 
-            // A photo cannot rotate its gradient axis; it gets a slow Ken Burns instead.
+            // У фото нет оси градиента — вместо поворота медленный наезд камеры.
             case BackdropMotion.Drift:
             case BackdropMotion.Aurora:
                 AddKenBurns(storyboard, speed);
@@ -525,8 +523,8 @@ internal sealed class AppearanceManager : IDisposable
         var start = new PointAnimationUsingKeyFrames { Duration = duration };
         var end = new PointAnimationUsingKeyFrames { Duration = duration };
 
-        // Sixteen samples around the circle: enough that the linear interpolation between them
-        // is indistinguishable from a true rotation, cheap enough to be free.
+        // Шестнадцать точек по кругу: линейный переход между ними не отличить от настоящего
+        // вращения, а стоят они ничего.
         const int steps = 16;
         for (var i = 0; i <= steps; i++)
         {
@@ -599,8 +597,7 @@ internal sealed class AppearanceManager : IDisposable
         _base.RenderTransformOrigin = new Point(0.5, 0.5);
         _base.RenderTransform = scale;
 
-        // A RenderTransform costs no layout, and the picture is already blurred, so the
-        // upscale is invisible.
+        // RenderTransform не трогает раскладку, а картинка и так размыта — увеличение не видно.
         foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
         {
             var animation = new DoubleAnimation
@@ -638,10 +635,9 @@ internal sealed class AppearanceManager : IDisposable
     // ───────────────────────── палитра ─────────────────────────
 
     /// <summary>
-    /// Rebuilds slot 3. Called directly rather than only from
-    /// <see cref="ThemeManager.EffectiveThemeChanged"/>, because
-    /// <see cref="ThemeManager.Apply"/> short-circuits — and skips the event — when the palette
-    /// is unchanged, which is exactly the startup case.
+    /// Пересобирает слот 3. Зовётся напрямую, а не только из
+    /// <see cref="ThemeManager.EffectiveThemeChanged"/>: при неизменной палитре
+    /// <see cref="ThemeManager.Apply"/> выходит сразу и события не поднимает — ровно так и на запуске.
     /// </summary>
     private void WriteOverrides()
     {
@@ -659,8 +655,8 @@ internal sealed class AppearanceManager : IDisposable
         {
             foreach (var (key, _) in GlassSurfaces)
             {
-                // Bg.Glass mirrors Bg.Panel in every palette; the split exists only so the
-                // composer can be frosted without dragging popups and dialogs with it.
+                // Bg.Glass в каждой палитре равен Bg.Panel; разведены они лишь затем, чтобы поле
+                // ввода становилось стеклом без попапов и диалогов.
                 var sourceKey = key == "Bg.Glass" ? "Bg.Panel" : key;
                 if (Resource(sourceKey) is not SolidColorBrush brush)
                 {
@@ -680,15 +676,15 @@ internal sealed class AppearanceManager : IDisposable
                 }
             }
 
-            // The scrim was tuned against an opaque window. Over a bright photo the shipped
-            // value no longer separates a modal dialog from what is behind it.
+            // Затемнение под модальным окном подбиралось под непрозрачное окно; над ярким фото
+            // заводское значение диалог от фона уже не отделяет.
             if (Resource("Overlay.Scrim") is SolidColorBrush scrim)
             {
                 var c = scrim.Color;
                 overrides["Overlay.Scrim"] = Frozen(Color.FromArgb(Math.Max(c.A, (byte)0xB8), c.R, c.G, c.B));
             }
 
-            // Fills go translucent, so the borders become the main edge cue.
+            // Заливки становятся прозрачными, и край держат рамки.
             if (Resource("Border.Default") is SolidColorBrush border)
             {
                 overrides["Border.Subtle"] = Frozen(border.Color);
@@ -746,8 +742,8 @@ internal sealed class AppearanceManager : IDisposable
     }
 
     /// <summary>
-    /// Reads from the base palette, never through the override slot: deriving a glass colour from
-    /// an already-thinned one would compound the alpha on every reapply.
+    /// Читает базовую палитру, а не слот надстроек: стекло из уже истончённого цвета копило бы
+    /// прозрачность при каждом применении.
     /// </summary>
     private static object? Resource(string key)
     {
@@ -774,7 +770,7 @@ internal sealed class AppearanceManager : IDisposable
             Convert.ToByte(normalized.Substring(5, 2), 16));
     }
 
-    /// <summary>Moves a colour towards white (positive) or black (negative).</summary>
+    /// <summary>Сдвигает цвет к белому (больше нуля) или к чёрному (меньше нуля).</summary>
     public static Color Shift(Color color, double amount)
     {
         static byte Mix(byte value, double amount) => amount >= 0
@@ -784,14 +780,14 @@ internal sealed class AppearanceManager : IDisposable
         return Color.FromRgb(Mix(color.R, amount), Mix(color.G, amount), Mix(color.B, amount));
     }
 
-    /// <summary>Rec. 709 relative luminance, 0..1 — used to pick black or white text on the accent.</summary>
+    /// <summary>Относительная яркость по Rec. 709, 0..1 — по ней выбирается чёрный или белый текст на акценте.</summary>
     public static double Luminance(Color color) =>
         ((0.2126 * color.R) + (0.7152 * color.G) + (0.0722 * color.B)) / 255.0;
 
     private void OnThemeChanged()
     {
-        // Synchronously: slot 3 currently holds colours derived from the palette that was just
-        // replaced, and being last it still wins. Deferring this would show a real flash.
+        // Синхронно: в слоте 3 лежат цвета от только что сменённой палитры, и как последний он
+        // всё ещё побеждает. Отложи пересборку — была бы видна вспышка.
         if (BackdropActive)
         {
             PaintBackdrop(_settings.BackdropMode);
@@ -819,7 +815,7 @@ internal sealed class AppearanceManager : IDisposable
             return;
         }
 
-        // Pause rather than Stop, so resuming does not jump the phase.
+        // Пауза, а не остановка: продолжение не перескакивает фазу.
         if (_window.WindowState == WindowState.Minimized || !_window.IsVisible)
         {
             _motion.Pause(_window);

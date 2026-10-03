@@ -8,21 +8,20 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Folds the composer into a pill while it is empty and unattended, and unfolds it the instant
-/// the user shows any interest. The point is to hand the freed rows back to the conversation.
+/// Сворачивает пустое и оставленное без внимания поле ввода в полоску и разворачивает его, как
+/// только человек к нему тянется: освободившиеся строки отдаются переписке.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The composer's own <c>Height</c> is never animated. An animation holds its value at the
-/// Animation precedence level for good, so a later <c>Height = double.NaN</c> to restore
-/// <c>Auto</c> sizing is silently ignored and attachments can no longer grow the box. Instead the
-/// layout is driven from the inside — the toolbar row's height, the input row's minimum and the
-/// paddings — and the composer keeps sizing itself to its children.
+/// Свою <c>Height</c> поле не анимирует никогда. Анимация держит значение на своём уровне
+/// приоритета навсегда, и последующее <c>Height = double.NaN</c> (вернуть <c>Auto</c>) молча
+/// игнорировалось бы — вложения перестали бы растить поле. Поэтому раскладку ведут изнутри:
+/// высота панели кнопок, минимум строки ввода и поля, — а размер поле берёт по детям.
 /// </para>
 /// <para>
-/// Every animated property is cleared with <c>BeginAnimation(prop, null)</c> before a local value
-/// is written, and each transition carries a generation number so a stale completion callback
-/// from an interrupted collapse cannot undo the expand that interrupted it.
+/// Перед записью локального значения анимация свойства снимается (<c>BeginAnimation(prop, null)</c>),
+/// а у каждого перехода свой номер поколения: запоздавшее завершение прерванного сворачивания не
+/// отменит разворот, который его прервал.
 /// </para>
 /// </remarks>
 internal sealed class ComposerCompactMode
@@ -50,9 +49,8 @@ internal sealed class ComposerCompactMode
     private readonly TextBox _input;
     private readonly DispatcherTimer _timer = new();
 
-    // Read off the markup once, at construction, before anything has been animated. Restoring an
-    // animated element to a literal written here — rather than to NaN or to a number repeated in
-    // this file — is what keeps a collapse/expand cycle from quietly resizing the composer.
+    // Снимаются с разметки один раз, до первой анимации. Возврат именно к ним, а не к NaN и не к
+    // числу, повторённому в этом файле, не даёт циклу «свернуть — развернуть» тихо менять размер поля.
     private readonly double _expandedToolbarHeight;
     private readonly double _expandedComposerMaxWidth;
     private readonly double _expandedRowMinHeight;
@@ -92,8 +90,7 @@ internal sealed class ComposerCompactMode
         {
             _timer.Stop();
 
-            // Re-checked rather than assumed: the idle period is long enough for the user to have
-            // moved the pointer back or started typing since the timer was armed.
+            // Проверяем заново: за время ожидания человек мог вернуть указатель или начать печатать.
             if (!_collapsed && WantsCollapse())
             {
                 Collapse(_settings.AnimationsEnabled);
@@ -119,38 +116,33 @@ internal sealed class ComposerCompactMode
         _window.Deactivated += (_, _) => SetPointerNear(false);
         _window.Activated += (_, _) => Evaluate();
 
-        // A drag has to unfold the composer before it reaches it: the pill is both narrower and
-        // shorter than the drop target the user is aiming at. Marking the window as a drop target
-        // is what makes drag events fire at all while the pointer is over the chat.
+        // Перетаскиваемый файл разворачивает поле раньше, чем долетит до него: полоска уже и ниже
+        // цели, в которую метят. AllowDrop на окне нужен, чтобы события перетаскивания вообще
+        // приходили, пока указатель над чатом.
         _window.AllowDrop = true;
         _window.PreviewDragEnter += OnDragOverWindow;
         _window.PreviewDragOver += OnDragOverWindow;
     }
 
-    /// <summary>Collapsed right now. Exposed for tests.</summary>
+    /// <summary>Свёрнуто ли поле сейчас. Для тестов.</summary>
     public bool IsCollapsed => _collapsed;
 
     /// <summary>
-    /// Pure decision function: everything that keeps the composer open, in one place, so the state
-    /// machine can be tested without a window.
+    /// Всё, что держит поле развёрнутым, в одном чистом решении — его проверяют без окна.
     /// </summary>
     /// <param name="toolbarFocused">
-    /// Keyboard focus is on the toolbar — the attach button, the model picker or send. Note that
-    /// focus in the <em>text box</em> deliberately does not hold the composer open: an empty,
-    /// merely-focused field is exactly the idle state worth folding away, and the text box stays
-    /// on screen inside the pill, so it keeps its focus and its caret across the transition.
-    /// The toolbar is different: collapsing hides it, which would throw focus out to the window
-    /// and close whatever popup it is driving.
+    /// Фокус на панели кнопок (вложение, выбор модели, отправка). Фокус в самом <em>поле</em>
+    /// развёрнутым его не держит намеренно: пустое поле с курсором — как раз тот простой, который
+    /// стоит свернуть, а поле остаётся внутри полоски и сохраняет фокус и каретку. Панель же при
+    /// сворачивании прячется — фокус вылетел бы в окно, а открытая ею выпадашка закрылась бы.
+    /// </param>
+    /// <param name="pointerReacts">
+    /// Полоска слушает мышь. Если нет, <paramref name="pointerNear"/> в решении не участвует.
     /// </param>
     /// <remarks>
-    /// A turn being in progress is deliberately <em>not</em> a reason to stay open. While the
-    /// model streams, the whole toolbar is disabled anyway and the answer is the thing growing on
-    /// screen — that is precisely when the freed rows are worth the most.
+    /// Идущий ход поводом держать поле открытым <em>не</em> считается: пока модель пишет, панель
+    /// всё равно выключена, а растёт на экране ответ — тут освобождённые строки нужнее всего.
     /// </remarks>
-    /// <param name="pointerReacts">
-    /// The pill listens to the mouse. Off means <paramref name="pointerNear"/> is not a reason to
-    /// stay open — the pointer is simply not part of the decision any more.
-    /// </param>
     public static bool ShouldCollapse(
         bool enabled,
         bool isEmpty,
@@ -176,7 +168,7 @@ internal sealed class ComposerCompactMode
         }
         else if (!_collapsed)
         {
-            // Picking up a corner-radius change while the composer is already open.
+            // Поле уже развёрнуто — подхватываем новый радиус углов.
             Animate(_composer, AnimatableCorner.RadiusProperty, CurrentRadius(), TargetRadius(), animate: false);
         }
 
@@ -184,9 +176,8 @@ internal sealed class ComposerCompactMode
     }
 
     /// <summary>
-    /// A turn started or finished. Being busy is not itself a reason to stay unfolded, but the
-    /// transition is a good moment to re-check: the send button losing focus as the turn starts
-    /// is often exactly what makes the composer foldable.
+    /// Ход начался или кончился. Сам по себе он поле не держит, но это повод перепроверить:
+    /// кнопка отправки, теряя фокус на старте хода, часто и делает поле сворачиваемым.
     /// </summary>
     public void SetBusy(bool busy) => Evaluate();
 
@@ -228,7 +219,7 @@ internal sealed class ComposerCompactMode
         _pointerNear,
         _settings.CompactHoverEnabled);
 
-    /// <summary>Re-reads every input and either schedules a collapse or expands immediately.</summary>
+    /// <summary>Перечитывает все условия: взводит отложенное сворачивание или сразу разворачивает.</summary>
     public void Evaluate()
     {
         if (!WantsCollapse())
@@ -247,8 +238,7 @@ internal sealed class ComposerCompactMode
             return;
         }
 
-        // Collapsing is always on a delay: folding the instant the pointer drifts off would make
-        // the composer feel twitchy.
+        // Сворачивание всегда с задержкой: складываясь в тот же миг, как указатель отошёл, поле дёргалось бы.
         _timer.Start();
     }
 
@@ -307,8 +297,7 @@ internal sealed class ComposerCompactMode
         _collapsed = true;
         var generation = ++_generation;
 
-        // The toolbar keeps its Visible flag until the animation lands, so it stays painted (and
-        // clipped by the shrinking border) instead of vanishing on the first frame.
+        // Панель остаётся видимой до конца анимации: её обрезает сжимающаяся рамка, а не гасит первый кадр.
         var width = TargetPillWidth();
 
         _placeholder.VerticalAlignment = VerticalAlignment.Center;
@@ -327,8 +316,7 @@ internal sealed class ComposerCompactMode
                 return;
             }
 
-            // Only now, at rest, is the toolbar taken out of the tree — collapsing it earlier
-            // would push keyboard focus out to the window mid-animation.
+            // Убираем панель только в покое: раньше фокус вылетел бы в окно посреди анимации.
             _toolbar.Visibility = Visibility.Collapsed;
         });
 
@@ -347,10 +335,9 @@ internal sealed class ComposerCompactMode
         _placeholder.VerticalAlignment = VerticalAlignment.Top;
         _input.VerticalContentAlignment = VerticalAlignment.Top;
 
-        // Back to the height the markup declares -- NOT to NaN. The toolbar is a fixed-height row
-        // by design; letting it size to content instead lands it on the tallest child (32 for the
-        // 32px buttons) and the whole strip loses four pixels for the rest of the session, which
-        // reads as the send button and its neighbours changing size after the first fold.
+        // К высоте из разметки, а НЕ к NaN: по содержимому панель встала бы по самой высокой
+        // кнопке (32) и потеряла четыре точки до конца сеанса — кнопки «меняли размер» после
+        // первого сворачивания.
         Animate(_toolbar, FrameworkElement.HeightProperty, _toolbar.ActualHeight, _expandedToolbarHeight, animate);
         Animate(_inputRowDef, RowDefinition.MinHeightProperty, _inputRowDef.MinHeight, ExpandedInputMinHeight, animate);
         AnimateThickness(_inputRow, FrameworkElement.MarginProperty, _inputRow.Margin, ExpandedInputMargin, animate);
@@ -376,8 +363,8 @@ internal sealed class ComposerCompactMode
     private double TargetRadius() => Math.Clamp(_settings.CornerRadius, 0, 20);
 
     /// <summary>
-    /// Starts from <paramref name="from"/> — read live from the element, never from the nominal
-    /// state — so interrupting a transition reverses it from where it actually is.
+    /// Начинает с <paramref name="from"/>, снятого с элемента вживую, а не с номинального
+    /// состояния: прерванный переход разворачивается оттуда, где он на самом деле.
     /// </summary>
     private static void Animate(
         DependencyObject target,

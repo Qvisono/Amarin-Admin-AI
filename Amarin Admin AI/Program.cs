@@ -164,18 +164,16 @@ internal static class Program
             Download = downloadOptions
         };
 
-        // Profiles first: the active one decides which directory settings and chats come from.
-        // The default profile maps to the original app root, so an upgrade never relocates
-        // an existing conversation.
+        // Сперва профиль: от него зависит, из какой папки читаются настройки и чаты. Профиль по
+        // умолчанию смотрит в корень данных, поэтому обновление не уносит старые переписки.
         var profileStore = new ProfileStore();
         var registry = profileStore.Load();
         var activeProfile = profileStore.Active(registry);
         var dataRoot = profileStore.DataRootFor(activeProfile.Id);
 
-        // Explicit shutdown until the real window exists. WPF hands Application.MainWindow to the
-        // first window created on this thread, which would be the lock screen — and under
-        // OnMainWindowClose, closing it on a *correct* password would shut the app down before
-        // MainWindow ever opened.
+        // Выход только явный, пока нет настоящего окна. WPF отдаёт Application.MainWindow первому
+        // окну этого потока — экрану входа, — и при OnMainWindowClose его закрытие после *верного*
+        // пароля гасило бы программу раньше, чем откроется главное окно.
         var app = new Application
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown
@@ -247,7 +245,7 @@ internal static class Program
         ChatFonts.Apply(settings);
         LanguageManager.Apply(settings.LanguageCode);
 
-        // The effective allowlist lives in settings.json; appsettings.json only seeded it.
+        // Действующий белый список живёт в settings.json; appsettings.json его только засевает.
         if (settings.DownloadAllowedDomains is null)
         {
             settings.DownloadAllowedDomains = [.. downloadOptions.AllowedDomains];
@@ -275,9 +273,9 @@ internal static class Program
         var models = new VeniceModelListCache(venice, keys);
         venice.ResolveModelInfo = models.Find;
 
-        // Assigned just below. Everything that reads settings goes through the services bag so
-        // that switching profiles re-roots the store for the engine, agent and title generator
-        // too — capturing `settingsStore` directly would pin them to the profile seen at launch.
+        // Присваивается ниже. Всё, что читает настройки, ходит через сумку служб: смена профиля
+        // переводит хранилище и для движка, агента и генератора заголовков, а захваченный
+        // напрямую `settingsStore` навсегда привязал бы их к профилю, открытому при запуске.
         AppServices? services = null;
 
         // Шифрование — тоже через сумку служб, а не через локальную переменную настроек: после
@@ -324,8 +322,8 @@ internal static class Program
             new WriteFileTool(),
             new WebSearchTool((query, ct) =>
                 venice.SearchWebAsync(query, ModelSlots.WebSearch(ReadSettings()), ct)),
-            // Aspect ratio is chosen from the pixel size for tool calls; only the infographic
-            // flow asks for a specific ratio, and it calls the client directly.
+            // Соотношение сторон у вызова инструмента выводится из размера в пикселях; особое
+            // просит только инфографика, а она зовёт клиент напрямую.
             new GenerateImageTool((prompt, width, height, model, ct) =>
                 venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
             new FetchImageTool(),
@@ -401,8 +399,8 @@ internal static class Program
             window.PrepareStartInTray();
         }
 
-        // Claim the slot the lock screen may have taken, then restore the normal close-to-exit
-        // behaviour now that the window it refers to is the one the user actually sees.
+        // Забираем место, которое мог занять экран входа, и возвращаем обычное «закрыл окно —
+        // вышел»: теперь главное окно — то, которое человек видит.
         app.MainWindow = window;
         app.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
