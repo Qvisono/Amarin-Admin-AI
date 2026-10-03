@@ -1143,7 +1143,6 @@
     <system:String x:Key="S.Data.Usage" xml:space="preserve">Disk usage</system:String>
     <system:String x:Key="S.Data.Usage.App" xml:space="preserve">The application itself</system:String>
     <system:String x:Key="S.Data.Usage.Appearance" xml:space="preserve">Avatar and backdrop</system:String>
-    <system:String x:Key="S.Data.Usage.Attachments" xml:space="preserve">attachments among them</system:String>
     <system:String x:Key="S.Data.Usage.Chats" xml:space="preserve">Chats</system:String>
     <system:String x:Key="S.Data.Usage.Counting" xml:space="preserve">Measuring…</system:String>
     <system:String x:Key="S.Data.Usage.Desc" xml:space="preserve">Application data and diagnostic logs</system:String>

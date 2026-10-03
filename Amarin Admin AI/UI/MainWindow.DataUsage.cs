@@ -23,9 +23,6 @@ namespace Amarin.UI
             GridLength Rest,
             Thickness Indent);
 
-        /// <summary>Отступ подстроки: вложения — часть чатов, а не соседняя категория.</summary>
-        private static readonly Thickness SubRowIndent = new(14, 0, 0, 7);
-
         private static readonly Thickness RowIndent = new(0, 0, 0, 7);
 
         private CancellationTokenSource? _usageScan;
@@ -107,18 +104,6 @@ namespace Amarin.UI
                     Loc.Format("S.Data.Usage.Files", entry.Files),
                     report.TotalBytes,
                     RowIndent));
-
-                // Вложения — не отдельная категория, а из чего состоят чаты: на диске они лежат
-                // внутри тех же файлов. Отсюда и подстрока со сдвигом, а не своё слагаемое суммы.
-                if (entry.LabelKey == DataUsage.ChatsKey && report.AttachmentBytes > 0)
-                {
-                    rows.Add(BuildUsageRow(
-                        Loc.Get(DataUsage.AttachmentsKey),
-                        report.AttachmentBytes,
-                        "",
-                        report.TotalBytes,
-                        SubRowIndent));
-                }
             }
 
             UsageList.ItemsSource = rows;

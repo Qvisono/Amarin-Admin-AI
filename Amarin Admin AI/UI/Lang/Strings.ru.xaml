@@ -1143,7 +1143,6 @@
     <system:String x:Key="S.Data.Usage" xml:space="preserve">Занято на диске</system:String>
     <system:String x:Key="S.Data.Usage.App" xml:space="preserve">Сама программа</system:String>
     <system:String x:Key="S.Data.Usage.Appearance" xml:space="preserve">Аватар и фон</system:String>
-    <system:String x:Key="S.Data.Usage.Attachments" xml:space="preserve">из них вложения</system:String>
     <system:String x:Key="S.Data.Usage.Chats" xml:space="preserve">Чаты</system:String>
     <system:String x:Key="S.Data.Usage.Counting" xml:space="preserve">Считаем…</system:String>
     <system:String x:Key="S.Data.Usage.Desc" xml:space="preserve">Данные программы и журналы диагностики</system:String>

@@ -1128,7 +1128,6 @@ internal static class StringsRu
             ["S.Data.Usage"] = "Занято на диске",
             ["S.Data.Usage.App"] = "Сама программа",
             ["S.Data.Usage.Appearance"] = "Аватар и фон",
-            ["S.Data.Usage.Attachments"] = "из них вложения",
             ["S.Data.Usage.Chats"] = "Чаты",
             ["S.Data.Usage.Counting"] = "Считаем…",
             ["S.Data.Usage.Desc"] = "Данные программы и журналы диагностики",

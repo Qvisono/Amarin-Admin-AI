@@ -40,7 +40,6 @@ public sealed record UsageReport(
 public static class DataUsage
 {
     public const string ChatsKey = "S.Data.Usage.Chats";
-    public const string AttachmentsKey = "S.Data.Usage.Attachments";
     public const string SettingsKey = "S.Data.Usage.Settings";
     public const string LanguagesKey = "S.Data.Usage.Languages";
     public const string AuditKey = "S.Data.Usage.Audit";
