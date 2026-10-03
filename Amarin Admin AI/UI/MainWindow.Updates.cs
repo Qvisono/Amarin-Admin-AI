@@ -207,7 +207,7 @@ namespace Amarin.UI
             UpdateConfirmApplyButton.Visibility = plan.Verified ? Visibility.Visible : Visibility.Collapsed;
             UpdateConfirmUnverifiedButton.Visibility = plan.Verified ? Visibility.Collapsed : Visibility.Visible;
             UpdateConfirmOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
         }
 
         private void UpdateConfirmCancelButton_Click(object sender, RoutedEventArgs e) => CloseUpdateConfirm();
@@ -251,7 +251,7 @@ namespace Amarin.UI
         {
             _pendingOffer = null;
             UpdateConfirmOverlay.Visibility = Visibility.Collapsed;
-            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+            ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
         }
 
         private void ShowProgress(double share)

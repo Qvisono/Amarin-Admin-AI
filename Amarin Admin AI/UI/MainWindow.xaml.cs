@@ -928,7 +928,7 @@ namespace Amarin.UI
             DomainError.Visibility = Visibility.Collapsed;
             DomainInput.Text = host ?? "";
             DomainOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
             Dispatcher.BeginInvoke(() =>
             {
                 DomainInput.Focus();
@@ -936,10 +936,25 @@ namespace Amarin.UI
             }, DispatcherPriority.Input);
         }
 
+        /// <summary>
+        /// Чат заслонён оверлеем: мышь не доходит ни до ленты, ни до композера.
+        /// </summary>
+        /// <remarks>
+        /// Заслонка (<c>ChatShield</c>), а не <c>IsHitTestVisible</c> у <c>Chat</c>: то свойство
+        /// наследуется, и каждое переключение обходило всё дерево ленты — на чате в 1200
+        /// сообщений по 45 мс, и вопрос об опасном действии, пришедший посреди ответа,
+        /// останавливал поток окна дважды.
+        /// </remarks>
+        internal bool ChatBlocked
+        {
+            get => ChatShield.Visibility == Visibility.Visible;
+            set => ChatShield.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         private void CloseDomainDialog()
         {
             DomainOverlay.Visibility = Visibility.Collapsed;
-            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+            ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
         }
 
         private void DomainCancelButton_Click(object sender, RoutedEventArgs e) => CloseDomainDialog();
@@ -1046,12 +1061,12 @@ namespace Amarin.UI
                 DownloadRequestText.Text = Loc.Get("S.Confirm.DownloadDesc");
                 DownloadRequestHost.Text = next.Host;
                 DownloadRequestOverlay.Visibility = Visibility.Visible;
-                Chat.IsHitTestVisible = false;
+                ChatBlocked = true;
                 return;
             }
 
             DownloadRequestOverlay.Visibility = Visibility.Collapsed;
-            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+            ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
         }
 
         private void CompleteDomainRequest(DomainRequest request, bool allowed)
@@ -3657,7 +3672,7 @@ namespace Amarin.UI
                 CancelConfirmationExplain();
                 CancelConfirmationWhatIf();
                 ConfirmationOverlay.Visibility = Visibility.Collapsed;
-                Chat.IsHitTestVisible = true;
+                ChatBlocked = false;
                 return;
             }
 
@@ -3679,7 +3694,7 @@ namespace Amarin.UI
             Detached.Run(ExplainConfirmationAsync(request), "confirmation_explain");
             Detached.Run(ProbeConfirmationAsync(request), "confirmation_whatif");
             ConfirmationOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
         }
 
         /// <summary>

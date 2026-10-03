@@ -26,13 +26,13 @@ namespace Amarin.UI
             {
                 PlanOverlay.Clear();
                 PlanOverlay.Visibility = Visibility.Collapsed;
-                Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+                ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
                 return;
             }
 
             PlanOverlay.Show(request);
             PlanOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
         }
 
         private void OnPlanDecided(PlanReviewRequest request, PlanDecision decision) =>

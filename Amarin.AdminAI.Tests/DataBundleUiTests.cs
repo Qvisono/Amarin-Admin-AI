@@ -54,7 +54,7 @@ public sealed class DataBundleUiTests
         var window = Window();
         Named<UIElement>(window, "DataExportOverlay").Visibility = Visibility.Collapsed;
         Named<UIElement>(window, "DataImportOverlay").Visibility = Visibility.Collapsed;
-        Named<UIElement>(window, "Chat").IsHitTestVisible = true;
+        window.ChatBlocked = false;
         return null;
     });
 
@@ -96,7 +96,7 @@ public sealed class DataBundleUiTests
                 return (
                     overlay.Visibility,
                     Panel.GetZIndex(overlay),
-                    Named<UIElement>(window, "Chat").IsHitTestVisible);
+                    IsHitTestVisible: !window.ChatBlocked);
             });
 
             Assert.Equal(Visibility.Visible, state.Visibility);
@@ -137,7 +137,7 @@ public sealed class DataBundleUiTests
                 });
 
                 window.UpdateLayout();
-                return (opened, overlay.Visibility, Named<UIElement>(window, "Chat").IsHitTestVisible);
+                return (opened, overlay.Visibility, !window.ChatBlocked);
             });
 
             Assert.Equal(Visibility.Visible, before);

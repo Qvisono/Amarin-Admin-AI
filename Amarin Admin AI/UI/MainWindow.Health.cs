@@ -18,7 +18,7 @@ namespace Amarin.UI
 
             HealthOverlay.Attach(_services.Health, () => ActiveDateFormat);
             HealthOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
             HealthOverlay.Open();
         }
 
@@ -26,8 +26,8 @@ namespace Amarin.UI
         {
             HealthOverlay.Cancel();
             HealthOverlay.Visibility = Visibility.Collapsed;
-            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible &&
-                                    PlanOverlay.Visibility != Visibility.Visible;
+            ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible ||
+                          PlanOverlay.Visibility == Visibility.Visible;
             FocusMessageInput();
         }
 

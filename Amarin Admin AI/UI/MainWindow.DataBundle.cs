@@ -812,14 +812,14 @@ namespace Amarin.UI
             overlay.Visibility = Visibility.Visible;
 
             // «Модальность» здесь руками: чат под затемнением не должен ловить мышь.
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
             Dispatcher.BeginInvoke(() => overlay.Focus(), DispatcherPriority.Input);
         }
 
         private void CloseOverlay(UIElement overlay)
         {
             overlay.Visibility = Visibility.Collapsed;
-            Chat.IsHitTestVisible = ConfirmationOverlay.Visibility != Visibility.Visible;
+            ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
         }
     }
 }

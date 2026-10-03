@@ -1682,6 +1682,15 @@
                             </Grid>
                         </Grid>
                     </Border>
+
+                    <!--
+                        Заслонка ленты и композера, пока поверх открыт оверлей (вопрос об опасном
+                        действии, уведомление, журнал…): мышь попадает в неё, а не в чат. До 1.30.0
+                        здесь переключали IsHitTestVisible у всего Chat — свойство наследуется, и WPF
+                        обходил каждый элемент ленты: на чате в 1200 сообщений по 45 мс на открытие
+                        и на закрытие. Видимость одной рамки — одно изменение. См. ChatBlocked.
+                    -->
+                    <Border x:Name="ChatShield" Grid.RowSpan="2" Background="Transparent" Visibility="Collapsed"/>
                 </Grid>
 
                 <Grid VerticalAlignment="Center" Height="30">

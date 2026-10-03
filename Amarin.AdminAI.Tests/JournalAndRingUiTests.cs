@@ -291,9 +291,9 @@ public sealed class JournalAndRingUiTests
         {
             var window = Window();
             Invoke(window, "OpenJournal");
-            var blocked = Named<Grid>(window, "Chat").IsHitTestVisible;
+            var blocked = !window.ChatBlocked;
             Invoke(window, "CloseJournal");
-            return (blocked, Named<Grid>(window, "Chat").IsHitTestVisible);
+            return (blocked, !window.ChatBlocked);
         });
 
         Assert.False(hitTestable.blocked);

@@ -86,7 +86,7 @@ namespace Amarin.UI
             NoticeSecondaryButton.Visibility = secondary is null ? Visibility.Collapsed : Visibility.Visible;
 
             NoticeOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
 
             // Фокус на основную кнопку, а не на поле ввода: Enter отвечает на вопрос, а не
             // отправляет сообщение, набранное под окном.
@@ -153,10 +153,10 @@ namespace Amarin.UI
 
             NoticeOverlay.Visibility = Visibility.Collapsed;
             NoticeExtra.Content = null;
-            Chat.IsHitTestVisible =
-                ConfirmationOverlay.Visibility != Visibility.Visible &&
-                DomainOverlay.Visibility != Visibility.Visible &&
-                JournalOverlay.Visibility != Visibility.Visible;
+            ChatBlocked =
+                ConfirmationOverlay.Visibility == Visibility.Visible ||
+                DomainOverlay.Visibility == Visibility.Visible ||
+                JournalOverlay.Visibility == Visibility.Visible;
 
             completion?.TrySetResult(confirmed);
         }

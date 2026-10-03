@@ -81,7 +81,7 @@ namespace Amarin.UI
             _viewerIndex = Math.Clamp(index, 0, images.Count - 1);
 
             ImageViewerOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
             ShowCurrentViewerImage();
 
             // Фокус — просмотру, чтобы стрелки и Escape приходили сюда, а не в поле ввода.
@@ -150,9 +150,9 @@ namespace Amarin.UI
             _viewerPanZoom = null;
             _viewerDragging = false;
 
-            Chat.IsHitTestVisible =
-                ConfirmationOverlay.Visibility != Visibility.Visible &&
-                DomainOverlay.Visibility != Visibility.Visible;
+            ChatBlocked =
+                ConfirmationOverlay.Visibility == Visibility.Visible ||
+                DomainOverlay.Visibility == Visibility.Visible;
             FocusMessageInput();
         }
 

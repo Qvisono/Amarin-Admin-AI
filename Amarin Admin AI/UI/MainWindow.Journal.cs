@@ -53,7 +53,7 @@ namespace Amarin.UI
         private void OpenJournal()
         {
             JournalOverlay.Visibility = Visibility.Visible;
-            Chat.IsHitTestVisible = false;
+            ChatBlocked = true;
             ShowJournalList();
             LoadJournal();
 
@@ -73,9 +73,9 @@ namespace Amarin.UI
             _journalRows = [];
             JournalList.ItemsSource = null;
 
-            Chat.IsHitTestVisible =
-                ConfirmationOverlay.Visibility != Visibility.Visible &&
-                DomainOverlay.Visibility != Visibility.Visible;
+            ChatBlocked =
+                ConfirmationOverlay.Visibility == Visibility.Visible ||
+                DomainOverlay.Visibility == Visibility.Visible;
             FocusMessageInput();
         }
 
