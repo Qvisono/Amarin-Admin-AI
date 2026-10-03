@@ -2175,6 +2175,10 @@ namespace Amarin.UI
             Detached.Run(SendAsync(), "send");
         }
 
+        /// <summary>
+        /// Отправка из поля ввода. Что делать — решает <see cref="SendPlanner.ForComposer"/>; окно
+        /// показывает отказ или запускает ход.
+        /// </summary>
         private async Task SendAsync()
         {
             if (_services is null)
@@ -2182,69 +2186,53 @@ namespace Amarin.UI
                 return;
             }
 
-            var text = MessageTextBox.Text.Trim();
-            // Вложения без текста — тоже сообщение: «посмотри» не нуждается в словах.
-            if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0 && _pendingFiles.Count == 0)
-            {
-                // А цитата без текста — нет: она говорит, о чём ответ, но не чего хотят. Движок
-                // молча выбросил бы такой ход, поэтому человек остаётся в поле — подсказка в нём
-                // уже просит ответ.
-                if (_pendingQuotes.Count > 0)
-                {
-                    FocusMessageInput();
-                }
-
-                return;
-            }
-
-            // Команды окна (D9) — до проверки ключа: новый чат или выгрузка денег не стоят.
-            if (ChatCommands.TryParseLocal(text) is { } local)
-            {
-                MessageTextBox.Clear();
-                CloseCommandSuggest();
-                RunLocalCommand(local);
-                return;
-            }
-
-            if (!HasUsableKey())
-            {
-                ShowNoKeyNotice();
-                return;
-            }
-
-            var command = ChatCommands.TryParse(text);
-
-            // Агент работает по текстовой постановке и вложений не берёт — отказываем, а не
-            // отправляем их в никуда.
-            if (command is not null && (_pendingImages.Count > 0 || _pendingFiles.Count > 0))
-            {
-                ShowAgentRefusal("S.Turn.AgentNoAttachments");
-                return;
-            }
-
-            // С цитатами так же: чата агент не видит, и цитата указывала бы на ответы, которых
-            // он не читал.
-            if (command is not null && _pendingQuotes.Count > 0)
-            {
-                ShowAgentRefusal("S.Turn.AgentNoQuotes");
-                return;
-            }
+            var services = _services;
+            var draft = new OutgoingDraft(MessageTextBox.Text, _pendingImages.Count, _pendingFiles.Count, _pendingQuotes.Count);
+            var targetGone = _session.TargetMachineId is { } targetId && services.Machines.Find(targetId) is null;
+            var plan = SendPlanner.ForComposer(draft, HasUsableKey(), IsBusy(_session.Id), targetGone);
 
             // Если ход кончился между проверкой и вызовом, QueueFollowUp так и скажет, и
             // сообщение уйдёт обычным, а не пропадёт.
-            if (IsBusy(_session.Id) && QueueFollowUp(text, command is not null))
+            if (plan.Verdict == SendVerdict.FollowUp && !QueueFollowUp(plan.Text, plan.Command is not null))
             {
-                return;
+                plan = SendPlanner.ForComposer(draft, HasUsableKey(), busy: false, targetGone);
             }
 
-            // Машину, на которую смотрит чат, удалили из списка: молча выполнить на этом ПК нельзя —
-            // человек думает, что команды уходят туда. Текст остаётся в поле.
-            if (_session.TargetMachineId is { } targetId && _services.Machines.Find(targetId) is null)
+            switch (plan.Verdict)
             {
-                await ShowNoticeAsync(Loc.Get("S.Remote.GoneTitle"), Loc.Get("S.Remote.GoneText"), Loc.Get("S.Common.Close"), null);
-                return;
+                case SendVerdict.Nothing:
+                case SendVerdict.FollowUp:
+                    return;
+
+                case SendVerdict.NeedsText:
+                    FocusMessageInput();
+                    return;
+
+                case SendVerdict.LocalCommand when plan.Local is { } local:
+                    MessageTextBox.Clear();
+                    CloseCommandSuggest();
+                    RunLocalCommand(local);
+                    return;
+
+                case SendVerdict.NoKey:
+                    ShowNoKeyNotice();
+                    return;
+
+                case SendVerdict.AgentNoAttachments:
+                    ShowAgentRefusal("S.Turn.AgentNoAttachments");
+                    return;
+
+                case SendVerdict.AgentNoQuotes:
+                    ShowAgentRefusal("S.Turn.AgentNoQuotes");
+                    return;
+
+                // Человек думает, что команды уходят на ту машину. Текст остаётся в поле.
+                case SendVerdict.TargetGone:
+                    await ShowNoticeAsync(Loc.Get("S.Remote.GoneTitle"), Loc.Get("S.Remote.GoneText"), Loc.Get("S.Common.Close"), null);
+                    return;
             }
 
+            var text = plan.Text;
             MessageTextBox.Clear();
             var images = _pendingImages.Count == 0 ? null : _pendingImages.ToArray();
             var files = _pendingFiles.Count == 0 ? null : _pendingFiles.ToArray();
@@ -2253,16 +2241,16 @@ namespace Amarin.UI
             ForgetDraft(_session);
 
             var session = _session;
-            if (command is { Name: ChatCommands.Agent } agent)
+            if (plan is { Verdict: SendVerdict.Agent, Command: { } agent })
             {
                 await RunTurnAsync(session, TurnKind.AgentCommand, (chat, observer, token) =>
-                    _services.Chat.RunAgentCommandAsync(
+                    services.Chat.RunAgentCommandAsync(
                         chat, text, agent.Argument, agent.Complexity, observer, token));
                 return;
             }
 
             await RunTurnAsync(session, TurnKind.Send, (chat, observer, token) =>
-                _services.Chat.RunTurnAsync(chat, text, images, files, quotes, observer, token));
+                services.Chat.RunTurnAsync(chat, text, images, files, quotes, observer, token));
         }
 
         private void StartNewSession(bool persist)
@@ -2468,32 +2456,31 @@ namespace Amarin.UI
                 return;
             }
 
-            // Все проверки — до развилки: отказ после неё оставил бы прежнюю ветку спрятанной,
-            // а на её месте — вопрос без ответа.
-            if (!HasUsableKey())
+            // Все проверки — до развилки (см. SendPlanner.ForRerun).
+            var plan = SendPlanner.ForRerun(
+                new OutgoingDraft(text, message.Images.Count, message.Files.Count, message.Quotes.Count),
+                HasUsableKey(),
+                Turns.HasRoom);
+            switch (plan.Verdict)
             {
-                ShowNoKeyNotice();
-                return;
+                case SendVerdict.NoKey:
+                    ShowNoKeyNotice();
+                    return;
+
+                case SendVerdict.AgentNoAttachments:
+                    ShowAgentRefusal("S.Turn.AgentNoAttachments");
+                    return;
+
+                case SendVerdict.AgentNoQuotes:
+                    ShowAgentRefusal("S.Turn.AgentNoQuotes");
+                    return;
+
+                case SendVerdict.LimitReached:
+                    ShowTurnLimitNotice();
+                    return;
             }
 
-            var command = ChatCommands.TryParse(text);
-            if (command is not null && (message.Images.Count > 0 || message.Files.Count > 0))
-            {
-                ShowAgentRefusal("S.Turn.AgentNoAttachments");
-                return;
-            }
-
-            if (command is not null && message.Quotes.Count > 0)
-            {
-                ShowAgentRefusal("S.Turn.AgentNoQuotes");
-                return;
-            }
-
-            if (!Turns.HasRoom)
-            {
-                ShowTurnLimitNotice();
-                return;
-            }
+            var command = plan.Command;
 
             var anchor = new ChatDisplayMessage
             {
