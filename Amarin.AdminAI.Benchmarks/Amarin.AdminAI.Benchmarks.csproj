@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Замеры горячих путей Core: поток ответа, запись чата, опись и поиск, настройки. В CI не идут
+    (шум общего раннера съел бы разницу) — их гоняют руками «до» и «после» рядом, на одной
+    машине. Запуск и ключи — в Program.cs. Окна не нужно, ОС любая: шифрование в замерах
+    выключено.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- Замерам незачем подсказки анализаторов: класс замера BenchmarkDotNet требует открытым. -->
+    <NoWarn>$(NoWarn);CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
+  </ItemGroup>
+
+</Project>

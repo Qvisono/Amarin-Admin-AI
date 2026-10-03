@@ -63,6 +63,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Amarin Admin AI" />
     <InternalsVisibleTo Include="Amarin.AdminAI.Tests" />
+    <InternalsVisibleTo Include="Amarin.AdminAI.Benchmarks" />
   </ItemGroup>
 
 </Project>
