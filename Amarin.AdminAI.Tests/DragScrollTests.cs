@@ -76,13 +76,20 @@ public sealed class DragScrollTests
         Assert.True(wheel);
     }
 
+    /// <remarks>
+    /// Жест признаётся в точке, где рука перешла порог сдвига, и от неё же отсчитывается — иначе
+    /// содержимое прыгало бы на величину порога. Поэтому движение здесь из двух шагов, как его и
+    /// приносит мышь: переход порога, затем сама тяга. Одним прыжком на 80 точек (так тест был
+    /// написан сначала) жест только признаётся, и ни одна сборка его не проходила.
+    /// </remarks>
     [Fact]
     public void Dragging_moves_the_content_with_the_hand()
     {
         var offset = WithPage(900, (host, page) =>
         {
             SmoothScroll.ArmDrag(page, new Point(100, 200));
-            var dragged = SmoothScroll.DragTo(page, new Point(100, 120));
+            var dragged = SmoothScroll.DragTo(page, new Point(100, 194));
+            dragged &= SmoothScroll.DragTo(page, new Point(100, 114));
             SmoothScroll.EndDrag(page, fling: false);
             host.UpdateLayout();
             return dragged ? page.VerticalOffset : double.NaN;
@@ -185,8 +192,10 @@ public sealed class DragScrollTests
     {
         var (offset, animating) = WithPage(900, (host, page) =>
         {
+            // Переход порога, затем тяга за верхний край (см. Dragging_moves_the_content_with_the_hand).
             SmoothScroll.ArmDrag(page, new Point(100, 100));
-            SmoothScroll.DragTo(page, new Point(100, 180));
+            SmoothScroll.DragTo(page, new Point(100, 106));
+            SmoothScroll.DragTo(page, new Point(100, 186));
             SmoothScroll.EndDrag(page, fling: false);
             host.UpdateLayout();
             return (page.VerticalOffset, SmoothScroll.IsAnimating(page));

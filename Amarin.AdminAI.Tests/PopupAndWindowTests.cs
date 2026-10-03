@@ -193,27 +193,31 @@ public sealed class MaximizedWindowTests
 
     public MaximizedWindowTests(WpfFixture wpf) => _wpf = wpf;
 
+    /// <remarks>
+    /// Меряется клиентская область — то, что видно. До 1.27.0 тест читал <c>ActualWidth</c> и
+    /// <c>Left</c>, и с переходом на обычное окно (<c>SingleBorderWindow</c>) он упал навсегда:
+    /// у развёрнутого обычного окна <c>ActualWidth</c> включает невидимую рамку (3456 при рабочей
+    /// области 3440), а <c>Left</c> и <c>Top</c> отдают место восстановленного окна. Видимое при
+    /// этом совпадало с рабочей областью до пикселя.
+    /// </remarks>
     [Fact]
     public void A_maximized_window_stays_inside_the_work_area()
     {
-        var (left, top, width, height, work) = _wpf.Ui.Invoke(() =>
+        var (rect, work) = _wpf.Ui.Invoke(() =>
         {
             var window = new MainWindow();
             window.Show();
             window.WindowState = WindowState.Maximized;
             window.UpdateLayout();
 
-            var bounds = (window.Left, window.Top, window.ActualWidth, window.ActualHeight);
-            var area = SystemParameters.WorkArea;
+            var handle = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+            var actual = ClientOnScreen(handle);
+            var area = WorkArea(handle);
             window.Close();
-            return (bounds.Left, bounds.Top, bounds.ActualWidth, bounds.ActualHeight, area);
+            return (actual, area);
         });
 
-        // Допуск в один пиксель: границы приходят из аппаратных пикселей через масштаб экрана.
-        Assert.True(left >= work.Left - 1, $"левый край {left} при рабочей области {work}");
-        Assert.True(top >= work.Top - 1, $"верхний край {top} при рабочей области {work}");
-        Assert.True(width <= work.Width + 1, $"ширина {width} при рабочей области {work}");
-        Assert.True(height <= work.Height + 1, $"высота {height} при рабочей области {work}");
+        Assert.Equal((work.left, work.top, work.right, work.bottom), (rect.left, rect.top, rect.right, rect.bottom));
     }
 
     [Fact]
