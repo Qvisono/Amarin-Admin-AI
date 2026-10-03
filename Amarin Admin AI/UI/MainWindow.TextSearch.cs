@@ -49,11 +49,83 @@ namespace Amarin.UI
             }), "text_index_build");
         }
 
+        /// <summary>Что сейчас нарисовано выдачей поиска по тексту: запрос, версия индекса, находки.</summary>
+        private (string Query, long Version, IReadOnlyList<TextSearchHit> Hits)? _textSearchShown;
+
+        private CancellationTokenSource? _textSearchCancel;
+
+        /// <summary>
+        /// Выдача поиска по тексту. Ищет на рабочем потоке, рисует, когда нашлось.
+        /// </summary>
+        /// <remarks>
+        /// До 1.30.0 поиск шёл здесь же, на потоке окна, и на каждую перерисовку списка — а её
+        /// зовут и набранная буква, и соседний чат, пока отвечает, по нескольку раз в секунду. На
+        /// сотнях переписок это задерживало ввод. Теперь: выдача, верная для этого запроса и этой
+        /// версии индекса, не ищется заново; иначе поиск уходит в фон, прежний отменяется, а
+        /// нарисованное остаётся на месте, пока новое не готово.
+        /// </remarks>
         private void RenderTextSearch(string query)
         {
-            InvalidateChatListSignature();
+            // Панель занята выдачей: следующая отрисовка списка обязана его пересобрать.
+            _chatListSignature.Clear();
+            var index = _services!.TextIndex;
+            var needle = query.Trim();
+            var version = index.Version;
+            if (_textSearchShown is { } shown && shown.Query == needle && shown.Version == version)
+            {
+                return;
+            }
+
+            _textSearchCancel?.Cancel();
+            if (needle.Length < 2)
+            {
+                _textSearchCancel = null;
+                ShowTextHits(query, []);
+                _textSearchShown = (needle, version, []);
+                return;
+            }
+
+            var cancel = _textSearchCancel = new CancellationTokenSource();
+            Detached.Run(SearchTextAsync(index, query, needle, version, cancel), "text_search");
+        }
+
+        private async Task SearchTextAsync(
+            ChatTextIndex index,
+            string query,
+            string needle,
+            long version,
+            CancellationTokenSource cancel)
+        {
+            IReadOnlyList<TextSearchHit> hits;
+            try
+            {
+                hits = await Task.Run(() => index.Search(needle, cancel.Token), cancel.Token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            // Пока искали, человек мог дописать запрос, выйти из режима или уйти со списка.
+            if (!ReferenceEquals(_textSearchCancel, cancel) || !_searchByText || SearchBox.Text.Trim() != needle)
+            {
+                return;
+            }
+
+            // Те же находки — та же выдача: перестраивать двести карточек незачем.
+            if (_textSearchShown is { } shown && shown.Query == needle && shown.Hits.SequenceEqual(hits))
+            {
+                _textSearchShown = (needle, version, shown.Hits);
+                return;
+            }
+
+            ShowTextHits(query, hits);
+            _textSearchShown = (needle, version, hits);
+        }
+
+        private void ShowTextHits(string query, IReadOnlyList<TextSearchHit> hits)
+        {
             ChatListPanel.Children.Clear();
-            var hits = _services!.TextIndex.Search(query);
             if (hits.Count == 0)
             {
                 var empty = new TextBlock

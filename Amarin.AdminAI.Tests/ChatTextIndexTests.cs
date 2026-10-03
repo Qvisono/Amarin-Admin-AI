@@ -141,6 +141,73 @@ public sealed class ChatTextIndexTests : IDisposable
     }
 
     [Fact]
+    public void The_file_keeps_russian_text_as_is_and_without_indents()
+    {
+        // Файл — кэш: с отступами и \uXXXX вместо кириллицы он был вшестеро больше и писался
+        // во столько же раз дольше.
+        var index = new ChatTextIndex(_root, () => false);
+        index.Update(Chat("ru", new DateTime(2026, 9, 30), "проверь драйвер"));
+        index.SaveNow();
+
+        var text = File.ReadAllText(Path.Combine(_root, "chats", ChatTextIndex.FileName));
+        Assert.Contains("проверь драйвер", text, StringComparison.Ordinal);
+        Assert.DoesNotContain('\n', text);
+    }
+
+    [Fact]
+    public void A_file_written_by_an_earlier_version_still_reads()
+    {
+        var updated = new DateTime(2026, 9, 30, 12, 0, 0);
+        File.WriteAllText(
+            Path.Combine(_root, "chats", ChatTextIndex.FileName),
+            "{\n  \"version\": 1,\n  \"chats\": [\n    {\n      \"chatId\": \"old\",\n      \"title\": \"\\u0427\\u0430\\u0442\",\n" +
+            "      \"updatedAt\": \"2026-09-30T12:00:00\",\n      \"lines\": [\n        {\n          \"messageId\": \"m1\",\n" +
+            "          \"created\": \"2026-09-30T12:00:00\",\n          \"text\": \"\\u0434\\u0440\\u0430\\u0439\\u0432\\u0435\\u0440\"\n        }\n      ]\n    }\n  ]\n}\n");
+
+        var index = new ChatTextIndex(_root, () => false);
+        var loaded = new List<string>();
+        index.Build([new ChatIndexEntry { Id = "old", UpdatedAt = updated }], id =>
+        {
+            loaded.Add(id);
+            return null;
+        }, CancellationToken.None);
+
+        Assert.Empty(loaded);
+        Assert.Equal("m1", Assert.Single(index.Search("драйвер")).MessageId);
+    }
+
+    [Fact]
+    public void Every_change_moves_the_version_and_a_search_reads_nothing()
+    {
+        // По версии окно узнаёт, что показанная выдача ещё верна.
+        var index = new ChatTextIndex(_root, () => false);
+        var start = index.Version;
+
+        index.Update(Chat("a", DateTime.Now, "alpha"));
+        var afterUpdate = index.Version;
+        index.Search("alpha");
+        Assert.Equal(afterUpdate, index.Version);
+
+        index.Remove("a");
+        index.Remove("never-there");
+        var afterRemove = index.Version;
+
+        Assert.True(afterUpdate > start);
+        Assert.Equal(afterUpdate + 1, afterRemove);
+    }
+
+    [Fact]
+    public void A_cancelled_search_stops()
+    {
+        var index = new ChatTextIndex(_root, () => false);
+        index.Update(Chat("a", DateTime.Now, "alpha"));
+        using var cancel = new CancellationTokenSource();
+        cancel.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => index.Search("alpha", cancel.Token));
+    }
+
+    [Fact]
     public void The_index_is_rebuilt_on_the_new_machine_not_carried() =>
         Assert.Equal(DataCategory.None, DataBundle.CategoryOf("chats/" + ChatTextIndex.FileName));
 

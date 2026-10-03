@@ -2913,7 +2913,12 @@ namespace Amarin.UI
         private System.Text.StringBuilder _chatListScratch = new();
 
         /// <summary>Следующий <see cref="RefreshChatList"/> пересоберёт панель, даже если состав не менялся.</summary>
-        private void InvalidateChatListSignature() => _chatListSignature.Clear();
+        /// <remarks>Выдачу поиска по тексту — тоже: её подписи (язык, даты) рисуются при сборке.</remarks>
+        private void InvalidateChatListSignature()
+        {
+            _chatListSignature.Clear();
+            _textSearchShown = null;
+        }
 
         private void RefreshChatList()
         {
@@ -2939,6 +2944,11 @@ namespace Amarin.UI
                 RenderTextSearch(query);
                 return;
             }
+
+            // Панель сейчас перерисуется списком: выдача по тексту, если была, больше не на экране.
+            _textSearchShown = null;
+            _textSearchCancel?.Cancel();
+            _textSearchCancel = null;
 
             var items = ChatListItems(query);
             var organize = OrganizeSnapshot();

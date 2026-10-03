@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Amarin.Core;
@@ -37,7 +38,19 @@ internal sealed class ChatTextIndex
 
     private const int SnippetRadius = 60;
 
+    /// <summary>
+    /// Как писать файл: без отступов и без <c>\uXXXX</c> вместо кириллицы. Файл — кэш, его не
+    /// читают глазами, а с настройками остальных файлов русский текст занимал вшестеро больше
+    /// места и сериализовался во столько же раз дольше. Читается файл любым разбором — и прежний.
+    /// </summary>
+    private static readonly JsonSerializerOptions FileOptions = new(AppJson.Options)
+    {
+        WriteIndented = false,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
+    private long _version;
     private readonly Lock _fileGate = new();
     private string _chatsDirectory;
     private Func<bool> _encrypt;
@@ -62,6 +75,12 @@ internal sealed class ChatTextIndex
 
     public int Count => _entries.Count;
 
+    /// <summary>
+    /// Растёт с каждой правкой содержимого. По нему окно узнаёт, что показанная выдача ещё
+    /// верна, и не ищет заново на каждую перерисовку списка, пока соседний чат отвечает.
+    /// </summary>
+    public long Version => Interlocked.Read(ref _version);
+
     /// <summary>Переводит индекс на другой профиль; прежний сохраняется, новый читается с диска.</summary>
     public void UseRoot(string root, Func<bool> encrypt)
     {
@@ -69,6 +88,7 @@ internal sealed class ChatTextIndex
         _entries.Clear();
         _chatsDirectory = Path.Combine(root, "chats");
         _encrypt = encrypt;
+        Interlocked.Increment(ref _version);
     }
 
     /// <summary>Чат сохранён — его текст в индексе обновляется.</summary>
@@ -80,6 +100,7 @@ internal sealed class ChatTextIndex
         }
 
         _entries[session.Id] = FromSession(session);
+        Interlocked.Increment(ref _version);
         ScheduleSave();
     }
 
@@ -87,6 +108,7 @@ internal sealed class ChatTextIndex
     {
         if (_entries.TryRemove(chatId, out _))
         {
+            Interlocked.Increment(ref _version);
             ScheduleSave();
         }
     }
@@ -122,6 +144,8 @@ internal sealed class ChatTextIndex
             _entries.TryRemove(id, out _);
         }
 
+        Interlocked.Increment(ref _version);
+
         var changed = false;
         foreach (var chat in chats)
         {
@@ -140,12 +164,18 @@ internal sealed class ChatTextIndex
 
         if (changed)
         {
+            Interlocked.Increment(ref _version);
             SaveNow();
         }
     }
 
     /// <summary>Находки по всем чатам, свежие первыми.</summary>
-    public IReadOnlyList<TextSearchHit> Search(string? query)
+    /// <remarks>
+    /// Можно звать с рабочего потока, пока индекс обновляется: записи не правятся на месте, а
+    /// подменяются целиком. Окно так и делает — на сотнях чатов просмотр всего текста занимает
+    /// заметное время, и на потоке окна он задерживал каждую набранную букву.
+    /// </remarks>
+    public IReadOnlyList<TextSearchHit> Search(string? query, CancellationToken cancellationToken = default)
     {
         var needle = query?.Trim() ?? "";
         var hits = new List<TextSearchHit>();
@@ -156,6 +186,7 @@ internal sealed class ChatTextIndex
 
         foreach (var entry in _entries.Values.OrderByDescending(entry => entry.UpdatedAt))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (var line in Enumerable.Reverse(entry.Lines))
             {
                 var at = line.Text.IndexOf(needle, StringComparison.CurrentCultureIgnoreCase);
@@ -233,8 +264,10 @@ internal sealed class ChatTextIndex
         {
             try
             {
-                var json = JsonSerializer.Serialize(new Stored { Chats = [.. _entries.Values] }, AppJson.Options);
-                var bytes = _encrypt() ? AtRestCipher.EncryptFile(json) : Encoding.UTF8.GetBytes(json);
+                var stored = new Stored { Chats = [.. _entries.Values] };
+                var bytes = _encrypt()
+                    ? AtRestCipher.EncryptFile(JsonSerializer.Serialize(stored, FileOptions))
+                    : JsonSerializer.SerializeToUtf8Bytes(stored, FileOptions);
                 if (bytes is null || !Directory.Exists(_chatsDirectory))
                 {
                     return;
