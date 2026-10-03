@@ -341,6 +341,6 @@ internal sealed class ProfileScope
     private void WireOrganizer(ChatStore store) => store.Deleted += id =>
     {
         _organizer?.Forget(id);
-        _drafts?.Delete(id);
+        _drafts?.Forget(id);
     };
 }

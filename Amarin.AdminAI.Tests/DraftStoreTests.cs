@@ -122,6 +122,54 @@ public sealed class DraftStoreTests : IDisposable
     }
 
     [Fact]
+    public void A_noted_draft_comes_back_before_the_disk_has_it()
+    {
+        // Открытие чата больше не ждёт очереди записи: отмеченное окном отдаётся из памяти.
+        var store = new DraftStore(_root, () => false);
+        var draft = new ChatDraftContent("ещё не на диске", [], [], []);
+
+        store.Note("chat1", draft);
+
+        Assert.False(File.Exists(Path.Combine(_root, "drafts", "chat1.json")));
+        Assert.Same(draft, store.TryLoad("chat1"));
+    }
+
+    [Fact]
+    public void A_late_write_of_an_older_draft_does_not_replace_the_noted_one()
+    {
+        // Очередь записи догоняет окно: старый черновик ложится на диск после того, как окно
+        // отметило новый, — открыть обязан новый.
+        var store = new DraftStore(_root, () => false);
+        var older = new ChatDraftContent("старый", [], [], []);
+        var newer = new ChatDraftContent("новый", [], [], []);
+
+        store.Note("chat1", older);
+        store.Note("chat1", newer);
+        store.Save("chat1", older);
+
+        Assert.Equal("новый", store.TryLoad("chat1")?.Text);
+    }
+
+    [Fact]
+    public void A_noted_removal_and_a_deleted_chat_leave_no_draft()
+    {
+        var store = new DraftStore(_root, () => false);
+        store.Save("chat1", new ChatDraftContent("на диске", [], [], []));
+
+        store.Note("chat1", null);
+        Assert.Null(store.TryLoad("chat1"));
+
+        store.Note("chat2", new ChatDraftContent("в памяти", [], [], []));
+        store.Forget("chat2");
+        Assert.Null(store.TryLoad("chat2"));
+
+        // Другой профиль — другие черновики: отметки прежнего не переезжают.
+        store.Note("chat3", new ChatDraftContent("прежний профиль", [], [], []));
+        store.UseRoot(Path.Combine(_root, "other"), () => false);
+        Assert.Null(store.TryLoad("chat3"));
+    }
+
+    [Fact]
     public void Drafts_do_not_travel_in_the_data_archive()
     {
         Assert.Equal(DataCategory.None, DataBundle.CategoryOf("drafts/chat1.json"));

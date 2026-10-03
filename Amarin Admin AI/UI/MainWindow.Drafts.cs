@@ -59,6 +59,7 @@ namespace Amarin.UI
             var store = _services.Drafts;
             var key = DraftKey(session);
             var draft = CaptureDraft();
+            store.Note(key, draft);
             _draftWrites = _draftWrites.ContinueWith(_ => store.Save(key, draft), TaskScheduler.Default);
         }
 
@@ -92,8 +93,7 @@ namespace Amarin.UI
                 return;
             }
 
-            // Запись этого же черновика могла ещё не доехать до диска — дождёмся её.
-            _draftWrites.Wait(TimeSpan.FromSeconds(2));
+            // Не дожидаясь очереди записи: недописанный черновик хранилище отдаёт из памяти.
             if (_services.Drafts.TryLoad(DraftKey(session)) is not { } draft)
             {
                 return;
@@ -130,6 +130,7 @@ namespace Amarin.UI
             var store = _services.Drafts;
             var key = DraftKey(session);
             // У нового чата ключ — общий ключ нового чата: он и очищается.
+            store.Note(key, null);
             _draftWrites = _draftWrites.ContinueWith(_ => store.Delete(key), TaskScheduler.Default);
         }
 

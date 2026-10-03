@@ -43,6 +43,19 @@ internal sealed class DraftStore
     private string _folder;
     private Func<bool> _encrypt;
 
+    /// <summary>
+    /// Последнее, что окно велело записать: ключ → черновик, null — «черновика нет».
+    /// </summary>
+    /// <remarks>
+    /// Запись идёт фоном по очереди, и до 1.30.0 открытие чата ждало её на потоке окна (до двух
+    /// секунд), а потом читало только что записанный файл обратно — с расшифровкой и вложениями.
+    /// Теперь открытие берёт черновик отсюда, а диск читает только для чатов, которых в этом
+    /// сеансе не трогали. Свой замок: под общим идёт запись файла, и отметка из окна не должна
+    /// ждать её.
+    /// </remarks>
+    private readonly Dictionary<string, ChatDraftContent?> _noted = new(StringComparer.Ordinal);
+    private readonly Lock _notedGate = new();
+
     public DraftStore(string root, Func<bool> encrypt)
     {
         _folder = Path.Combine(root, FolderName);
@@ -56,6 +69,43 @@ internal sealed class DraftStore
             _folder = Path.Combine(root, FolderName);
             _encrypt = encrypt;
         }
+
+        lock (_notedGate)
+        {
+            _noted.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Окно поставило запись (или удаление — <paramref name="draft"/> пуст или null) в очередь:
+    /// <see cref="TryLoad"/> вернёт это сразу, не дожидаясь диска.
+    /// </summary>
+    /// <remarks>
+    /// Сами <see cref="Save"/> и <see cref="Delete"/> отметку не трогают: их зовёт фоновая очередь,
+    /// и запоздавшая запись старого черновика затёрла бы отметку нового.
+    /// </remarks>
+    public void Note(string key, ChatDraftContent? draft)
+    {
+        if (!IsValidKey(key))
+        {
+            return;
+        }
+
+        lock (_notedGate)
+        {
+            _noted[key] = draft is { IsEmpty: false } ? draft : null;
+        }
+    }
+
+    /// <summary>Чат удалён: его черновика нет ни на диске, ни в отметках.</summary>
+    public void Forget(string key)
+    {
+        lock (_notedGate)
+        {
+            _noted.Remove(key);
+        }
+
+        Delete(key);
     }
 
     private sealed class Stored
@@ -157,6 +207,14 @@ internal sealed class DraftStore
             return null;
         }
 
+        lock (_notedGate)
+        {
+            if (_noted.TryGetValue(key, out var noted))
+            {
+                return noted;
+            }
+        }
+
         lock (_gate)
         {
             try
@@ -240,6 +298,10 @@ internal sealed class DraftStore
                     if (key != NewChatKey && !alive.Contains(key))
                     {
                         File.Delete(path);
+                        lock (_notedGate)
+                        {
+                            _noted.Remove(key);
+                        }
                     }
                 }
 
