@@ -15,8 +15,7 @@ namespace Amarin.Core;
 /// </remarks>
 internal static class LegacyTechPrompts
 {
-    /// <summary>Tech prompt from when the chat model still picked the agent tier itself;
-    /// migrate AppData only.</summary>
+    /// <summary>Техпромпт времён, когда модель чата сама выбирала уровень агента. Только для переноса настроек.</summary>
     internal const string V17 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -161,7 +160,7 @@ internal static class LegacyTechPrompts
         nothing and bills the user twice.
         """;
 
-    /// <summary>Tech prompt before the model briefing and the tier discipline; migrate AppData only.</summary>
+    /// <summary>Техпромпт до сводки моделей и правил уровней. Только для переноса настроек.</summary>
     internal const string V16 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -293,7 +292,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tech prompt before the attachments rules; migrate AppData only.</summary>
+    /// <summary>Техпромпт до правил о вложениях. Только для переноса настроек.</summary>
     internal const string V15 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -411,7 +410,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tech prompt before the follow-up rules; migrate AppData only.</summary>
+    /// <summary>Техпромпт до правил о дописанном посреди хода. Только для переноса настроек.</summary>
     internal const string V14 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -506,7 +505,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tech prompt before the fast agent tier; migrate AppData only.</summary>
+    /// <summary>Техпромпт до быстрого уровня агента. Только для переноса настроек.</summary>
     internal const string V13 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -598,7 +597,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tech prompt before the "one remark while tools run" rule; migrate AppData only.</summary>
+    /// <summary>Техпромпт до правила «одна реплика, пока идут инструменты». Только для переноса настроек.</summary>
     internal const string V12 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -683,7 +682,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tech prompt before the init_agent JSON/call rules; migrate AppData only.</summary>
+    /// <summary>Техпромпт до правил вызова init_agent. Только для переноса настроек.</summary>
     internal const string V11 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -771,7 +770,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Shipped tech prompt before the agent-has-no-memory rule; migrate AppData only.</summary>
+    /// <summary>Заводской техпромпт до правила «у агента нет памяти». Только для переноса настроек.</summary>
     internal const string V10 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -851,7 +850,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Pre-fix tooling prompt; used only to migrate AppData.</summary>
+    /// <summary>Промпт инструментов до исправления. Только для переноса настроек.</summary>
     internal const string V1 = """
         You are the chat assistant. You do NOT have the system-administration toolset.
         Your only tools: read_file, write_file, search_web, init_agent.
@@ -872,7 +871,7 @@ internal static class LegacyTechPrompts
         Reply to the user in Russian. Laconic, technical, no filler.
         """;
 
-    /// <summary>Personality-rewrite tech prompt before agent-report instruction.</summary>
+    /// <summary>Переписанный техпромпт до правила об отчёте агента.</summary>
     internal const string V2 = """
         These are tooling rules for the chat companion. They do not change your personality.
         You are talking to a person, not operating as a command-line utility.
@@ -899,7 +898,7 @@ internal static class LegacyTechPrompts
         Do not invent tool names. You cannot ask the user via a tool.
         """;
 
-    /// <summary>Tech prompt with agent-report rule but copyable lite examples.</summary>
+    /// <summary>Техпромпт с правилом об отчёте агента, но с образцами для копирования.</summary>
     internal const string V3 = """
         These are tooling rules for the chat companion. They do not change your personality.
         You are talking to a person, not operating as a command-line utility.
@@ -929,7 +928,7 @@ internal static class LegacyTechPrompts
         Do not invent tool names. You cannot ask the user via a tool.
         """;
 
-    /// <summary>Tech prompt before the never-refuse / agent-can rule.</summary>
+    /// <summary>Техпромпт до правила «не отказывать — агент может».</summary>
     internal const string V4 = """
         These are tooling rules for the chat companion. They do not change your personality.
         You are talking to a person, not operating as a command-line utility.
@@ -963,7 +962,7 @@ internal static class LegacyTechPrompts
         Do not invent tool names. You cannot ask the user via a tool.
         """;
 
-    /// <summary>Tech prompt that only banned the exact "I can't" phrasing.</summary>
+    /// <summary>Техпромпт, запрещавший лишь дословное «я не могу».</summary>
     internal const string V5 = """
         These are tooling rules for the chat companion. They do not change your personality.
         You are talking to a person, not operating as a command-line utility.
@@ -1003,8 +1002,8 @@ internal static class LegacyTechPrompts
         """;
 
     /// <summary>
-    /// Tooling prompt from the first fetch_image build, before finding and drawing were split
-    /// apart. Shipped briefly, so a settings file can still hold it; migration only.
+    /// Промпт инструментов первой сборки с fetch_image, до разделения поиска и рисования. Выходил
+    /// ненадолго, но может лежать в настройках; только для переноса.
     /// </summary>
     internal const string V9 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
@@ -1068,7 +1067,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Tooling prompt before fetch_image existed; used only to migrate AppData.</summary>
+    /// <summary>Промпт инструментов до появления fetch_image. Только для переноса настроек.</summary>
     internal const string V8 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small
@@ -1118,7 +1117,7 @@ internal static class LegacyTechPrompts
         and things read/write/search cover -> no agent
         """;
 
-    /// <summary>Pre-images tooling prompt; used only to migrate AppData.</summary>
+    /// <summary>Промпт инструментов до картинок. Только для переноса настроек.</summary>
     internal const string V7 = """
         You are a friendly, sharp chat companion running on the user's Windows PC.
         Talk like a real person: casual, warm, a bit playful. Short replies for small

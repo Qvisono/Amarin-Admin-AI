@@ -1,10 +1,10 @@
 namespace Amarin.Core;
 
-/// <summary>One thing the model did to this computer.</summary>
-/// <param name="ChatId">Chat the action happened in, so the journal can jump to it.</param>
-/// <param name="ChatTitle">Raw stored title - still the untranslated default marker for an
-/// unnamed chat, which only the UI knows how to show.</param>
-/// <param name="AgentName">Display name of the nested agent that ran it; null for the chat itself.</param>
+/// <summary>Одно действие модели на этом компьютере.</summary>
+/// <param name="ChatId">Чат, в котором это было, — журнал умеет в него перейти.</param>
+/// <param name="ChatTitle">Заголовок как на диске: у безымянного чата это непереведённый маркер,
+/// показать который умеет только интерфейс.</param>
+/// <param name="AgentName">Имя вложенного агента, который это сделал; null — сам чат.</param>
 public sealed record JournalEntry(
     string ChatId,
     string ChatTitle,
@@ -18,7 +18,7 @@ public sealed record JournalEntry(
     ToolCallStatus Status,
     string? AgentName)
 {
-    /// <summary>True when the time came from the owning message rather than the call itself.</summary>
+    /// <summary>True — время взято у сообщения, а не у самого вызова.</summary>
     public bool TimeIsApproximate { get; init; }
 
     /// <summary>
@@ -29,13 +29,14 @@ public sealed record JournalEntry(
 }
 
 /// <summary>
-/// Every tool call the model ever made, flattened out of the chats that hold them.
+/// Все вызовы инструментов, какие модель делала, — плоским списком из хранящих их чатов.
 /// </summary>
 /// <remarks>
-/// There is no separate log on disk, and deliberately so: the calls already live inside the
-/// conversations, and a second copy would be one more thing to keep in step and one more place a
-/// deleted chat could leak out of. The cost is that "all chats" means reading every chat file,
-/// which is why <see cref="Collect"/> is written to be called off the UI thread.
+/// Своего файла у этого журнала нет намеренно: вызовы уже лежат в переписках, а вторая копия —
+/// ещё одна вещь, которую надо держать в согласии, и ещё одно место, откуда утекал бы удалённый
+/// чат. (Журнал аудита — другое: он пишет записи в систему и отказы и удаление чатов переживает.)
+/// Плата — «все чаты» значит прочесть каждый файл чата, поэтому <see cref="Collect"/> зовут вне
+/// потока интерфейса.
 /// </remarks>
 internal static class ActionJournal
 {
@@ -52,8 +53,8 @@ internal static class ActionJournal
     }
 
     /// <summary>
-    /// Actions of every chat on disk, newest first. Skips chats it cannot read instead of
-    /// failing the lot: one corrupted file must not hide the rest of the history.
+    /// Действия всех чатов на диске, новые первыми. Нечитаемые чаты пропускаются, а не валят всё:
+    /// один битый файл не должен прятать остальную историю.
     /// </summary>
     public static IReadOnlyList<JournalEntry> Collect(ChatStore store, CancellationToken cancellationToken = default)
     {
@@ -105,8 +106,8 @@ internal static class ActionJournal
         bool hidden,
         List<JournalEntry> entries)
     {
-        // Calls recorded before the field existed have no clock of their own. The message they
-        // belong to does, and it is right to within one turn — good enough to keep the order.
+        // У старых вызовов своего времени нет. У их сообщения есть, и оно верно с точностью до
+        // хода — для порядка этого хватает.
         var approximate = call.StartedAt == default;
         entries.Add(new JournalEntry(
             chatId,
@@ -130,8 +131,8 @@ internal static class ActionJournal
             return;
         }
 
-        // An agent's own tool calls are the ones that touched the machine; the init_agent call
-        // that spawned it did nothing but delegate. Both are listed, the nested ones labelled.
+        // Машину трогали вызовы самого агента, а init_agent, который его запустил, только
+        // передал задачу. В списке оба, вложенные — с пометкой.
         var name = string.IsNullOrWhiteSpace(agent.DisplayName) ? agent.ModelId : agent.DisplayName;
         foreach (var round in agent.ToolRounds)
         {

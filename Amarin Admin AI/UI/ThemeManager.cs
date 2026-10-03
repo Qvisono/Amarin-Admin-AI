@@ -5,9 +5,9 @@ using Microsoft.Win32;
 namespace Amarin.UI;
 
 /// <summary>
-/// Swaps the application-level palette, icon and vendor-logo dictionaries.
-/// They live at index 0..2 of <see cref="Application.Resources"/> so that popups,
-/// tooltips and the model picker user controls resolve the same keys as the main window.
+/// Меняет словари приложения: палитру, значки и логотипы моделей. Они стоят на местах 0..2 в
+/// <see cref="Application.Resources"/>, чтобы попапы, подсказки и выбор модели находили те же
+/// ключи, что и главное окно.
 /// </summary>
 internal static class ThemeManager
 {
@@ -20,13 +20,13 @@ internal static class ThemeManager
     private static string _paletteName = "";
     private static string _iconSuffix = "";
 
-    /// <summary>Theme actually painted right now, after resolving <see cref="AppTheme.System"/>.</summary>
+    /// <summary>Тема, которая сейчас на экране, — с учётом <see cref="AppTheme.System"/>.</summary>
     public static bool IsLight { get; private set; }
 
-    /// <summary>The preset actually painted right now, after resolving <see cref="AppTheme.System"/>.</summary>
+    /// <summary>Готовая тема, которая сейчас на экране, — с учётом <see cref="AppTheme.System"/>.</summary>
     public static ThemePresetInfo Current { get; private set; } = ThemeCatalog.Find(AppTheme.Dark);
 
-    /// <summary>Raised on the UI thread after the dictionaries were swapped.</summary>
+    /// <summary>Поднимается на потоке интерфейса после смены словарей.</summary>
     public static event Action? EffectiveThemeChanged;
 
     /// <summary>
@@ -56,8 +56,8 @@ internal static class ThemeManager
     }
 
     /// <summary>
-    /// 0 palette, 1 icons, 2 vendor logos, 3 the appearance overrides written by
-    /// <see cref="AppearanceManager"/> — last dictionary wins, so 3 sits on top of 0.
+    /// 0 — палитра, 1 — значки, 2 — логотипы, 3 — надстройки оформления от
+    /// <see cref="AppearanceManager"/>. Побеждает последний словарь, поэтому 3 лежит поверх 0.
     /// </summary>
     internal const int OverrideSlot = 3;
 
@@ -91,7 +91,7 @@ internal static class ThemeManager
 
         EnsureSlots(_application);
 
-        // Skip the swap when nothing changes, but always run it the first time.
+        // Ничего не изменилось — не меняем, но в первый раз меняем всегда.
         var dictionaries = _application.Resources.MergedDictionaries;
         if (dictionaries[0].Count > 0 && preset.PaletteName == _paletteName)
         {
@@ -128,13 +128,13 @@ internal static class ThemeManager
             resources.EndInit();
         }
 
-        // Brushes follow through DynamicResource, but ImageSources assigned from code
-        // (model logos) hold the old object and must be re-fetched.
+        // Кисти следуют через DynamicResource, а ImageSource, присвоенные из кода (логотипы
+        // моделей), держат прежний объект — их надо перечитать.
         EffectiveThemeChanged?.Invoke();
     }
 
-    // Assembly-qualified: a bare "/UI/Theme/..." pack URI resolves against Application.ResourceAssembly,
-    // which is not this assembly when the app is hosted (test runner, designer).
+    // С именем сборки: голый pack URI «/UI/Theme/...» разрешается от Application.ResourceAssembly, а
+    // у программы в чужом процессе (тесты, конструктор) это не наша сборка.
     private static readonly string PackPrefix =
         "pack://application:,,,/" +
         Uri.EscapeDataString(typeof(ThemeManager).Assembly.GetName().Name ?? "") +

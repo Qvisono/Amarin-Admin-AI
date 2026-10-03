@@ -8,15 +8,15 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// A colour field: a swatch that opens a popup with ready-made colours, H/S/V sliders and a hex
-/// box. WPF ships no colour picker, and the Win32 common dialog is a modal grey box that would
-/// look nothing like the rest of the settings page.
+/// Поле цвета: образец, который открывает попап с готовыми цветами, ползунками H/S/V и полем hex.
+/// Своего выбора цвета у WPF нет, а системный диалог Win32 — серое модальное окно, не похожее на
+/// остальные настройки.
 /// </summary>
 public partial class ColorPickerField : UserControl
 {
     /// <summary>
-    /// A spread that stays usable as an accent in both light and dark palettes: nothing so pale
-    /// it disappears on white, nothing so dark it disappears on the dark surfaces.
+    /// Набор, пригодный для акцента в светлой и тёмной палитре: ничего настолько бледного, чтобы
+    /// пропасть на белом, и настолько тёмного, чтобы пропасть на тёмном.
     /// </summary>
     private static readonly string[] Presets =
     [
@@ -36,7 +36,7 @@ public partial class ColorPickerField : UserControl
         Render();
     }
 
-    /// <summary>Selected colour as <c>#RRGGBB</c>. Empty means "not set — use the theme's own".</summary>
+    /// <summary>Выбранный цвет, <c>#RRGGBB</c>. Пусто — «не задан, берётся цвет темы».</summary>
     public string Hex
     {
         get => _hex;
@@ -53,10 +53,10 @@ public partial class ColorPickerField : UserControl
         }
     }
 
-    /// <summary>Raised on every change the user makes, including clearing to empty.</summary>
+    /// <summary>Поднимается при каждой правке человеком, включая очистку.</summary>
     public event EventHandler<string>? ColorChanged;
 
-    /// <summary>Hides the "Сброс" button for fields where an empty value makes no sense.</summary>
+    /// <summary>Прячет кнопку «Сброс» там, где пустое значение не имеет смысла.</summary>
     public bool AllowClear
     {
         get => ClearButton.Visibility == Visibility.Visible;
@@ -114,7 +114,7 @@ public partial class ColorPickerField : UserControl
         ColorChanged?.Invoke(this, normalized);
     }
 
-    /// <summary>Pushes the current value into every part of the control without re-raising events.</summary>
+    /// <summary>Ставит текущее значение во все части контрола, не поднимая событий заново.</summary>
     private void Render()
     {
         if (_updating)
@@ -162,8 +162,8 @@ public partial class ColorPickerField : UserControl
     }
 
     /// <summary>
-    /// Fills each slider's groove with the range it actually spans, so the control reads as a
-    /// colour picker rather than three anonymous sliders.
+    /// Заливает дорожку каждого ползунка его диапазоном цветов — чтобы контрол читался как выбор
+    /// цвета, а не как три безымянных ползунка.
     /// </summary>
     private void PaintSliderTracks(double hue)
     {
@@ -214,7 +214,7 @@ public partial class ColorPickerField : UserControl
         var typed = AppearanceSettings.NormalizeHex(HexBox.Text);
         if (typed.Length == 0)
         {
-            // Unparseable: put the real value back rather than silently clearing the colour.
+            // Не разобрали — возвращаем настоящее значение, а не стираем цвет молча.
             HexBox.Text = _hex;
             return;
         }

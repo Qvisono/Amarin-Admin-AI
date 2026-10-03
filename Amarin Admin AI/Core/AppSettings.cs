@@ -56,13 +56,13 @@ public enum WindowCorners
 }
 
 /// <summary>
-/// Palette preset. The first three are the originals and keep their names in settings.json;
-/// the rest are the shipped colour presets. See <see cref="ThemeCatalog"/> for what each maps to.
+/// Готовая палитра. Первые три — исходные и сохраняют имена в settings.json, остальные — готовые
+/// цветовые темы. Что за каждой стоит — в <see cref="ThemeCatalog"/>.
 /// </summary>
 /// <remarks>
-/// The order here is free: <see cref="AppJson"/> serialises enums as camelCase strings, so a theme
-/// written into <c>settings.json</c> is found by name and not by position. What the grid in the
-/// settings looks like is decided by <see cref="ThemeCatalog.Presets"/>, not by this list.
+/// Порядок здесь свободный: <see cref="AppJson"/> пишет перечисления строками camelCase, и тема в
+/// <c>settings.json</c> находится по имени, а не по номеру. Вид сетки тем в настройках задаёт
+/// <see cref="ThemeCatalog.Presets"/>, а не этот список.
 /// </remarks>
 public enum AppTheme
 {
@@ -152,8 +152,8 @@ public sealed class AppSettings
     public WindowCorners WindowCorners { get; set; } = WindowCorners.Small;
 
     /// <summary>
-    /// Backdrop, glass and layout customisation on top of <see cref="Theme"/>.
-    /// Defaults reproduce the plain preset look, so this is inert until the user turns it on.
+    /// Фон, стекло и раскладка поверх <see cref="Theme"/>. Значения по умолчанию повторяют вид
+    /// темы как есть, так что ничего не меняется, пока человек это не включит.
     /// </summary>
     public AppearanceSettings Appearance { get; set; } = new();
 
@@ -184,22 +184,22 @@ public sealed class AppSettings
     /// </summary>
     public int AutoLockMinutes { get; set; }
 
-    /// <summary>Show the bottom-right toast when a turn finishes and the window is not focused.</summary>
+    /// <summary>Показывать карточку в правом нижнем углу, когда ход кончился, а окно не в фокусе.</summary>
     public bool NotifyOnResponseComplete { get; set; } = true;
 
-    /// <summary>Play a short system sound with that toast. Ignored when the toast is off.</summary>
+    /// <summary>Короткий системный звук с карточкой. Без карточки не учитывается.</summary>
     public bool NotifySound { get; set; } = true;
 
     /// <summary>
-    /// Show the "поделиться" and "экспорт" buttons under messages. Both produce unencrypted
-    /// payloads that carry the whole conversation, so the feature can be switched off entirely.
+    /// Кнопки «поделиться» и «экспорт» под сообщениями. Обе отдают всю переписку без шифрования,
+    /// поэтому их можно выключить совсем.
     /// </summary>
     public bool ChatSharingEnabled { get; set; } = true;
 
     /// <summary>
-    /// Hosts <c>download_file</c> may download from, subdomains included.
-    /// <c>null</c> means "not seeded yet" — the store fills it from the shipped defaults on first load.
-    /// An empty list is a deliberate choice and blocks every download.
+    /// Домены, с которых <c>download_file</c> может скачивать, вместе с поддоменами. <c>null</c> —
+    /// «ещё не засеяно»: при первом чтении хранилище заполнит список заводским. Пустой список —
+    /// осознанный выбор, он запрещает любые загрузки.
     /// </summary>
     public List<string>? DownloadAllowedDomains { get; set; }
 
@@ -308,9 +308,9 @@ public sealed class AppSettings
     public const string DefaultFastModelId = "deepseek-v4-flash-0731-fast";
 
     /// <summary>
-    /// The cheap tier, for work that does not need a flagship or that the user asked to hurry.
-    /// Thinking is off by default: the whole point of this slot is the answer arriving sooner,
-    /// and a reasoning pass would spend exactly what it saves.
+    /// Дешёвый уровень — для работы, которой не нужен флагман, или когда человек просит быстрее.
+    /// Размышление по умолчанию выключено: смысл слота — ответ раньше, а размышление съело бы
+    /// ровно то, что он экономит.
     /// </summary>
     public string AgentFastModelId { get; set; } = DefaultFastModelId;
 
@@ -447,7 +447,7 @@ public sealed class AppSettings
     /// <summary>Боковая панель свёрнута в полоску — запоминается между запусками (D5).</summary>
     public bool SidebarCollapsed { get; set; }
 
-    /// <summary>Optional personality. Empty means the chat companion uses only the tech prompt.</summary>
+    /// <summary>Необязательный характер. Пусто — чат работает только на техпромпте.</summary>
     public string MainPrompt { get; set; } = "";
 
     public string TechAiPrompt { get; set; } = "";

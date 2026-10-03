@@ -5,21 +5,20 @@ using System.Text.RegularExpressions;
 namespace Amarin.Core;
 
 /// <summary>
-/// Shared rules for pulling a picture off an arbitrary website. Both the chat renderer and the
-/// fetch_image tool go through here so a URL is vetted, disguised and resolved exactly once.
+/// Общие правила скачивания картинки с произвольного сайта. Через них идут и лента чата, и
+/// инструмент fetch_image — адрес проверяется, маскируется и разрешается в одном месте.
 /// </summary>
 internal static partial class RemoteImages
 {
-    /// <summary>Ceiling for a fetched picture, matching the chat renderer's own limit.</summary>
+    /// <summary>Потолок скачиваемой картинки — тот же, что у ленты чата.</summary>
     public const int MaxBytes = 12 * 1024 * 1024;
 
-    /// <summary>How much of an HTML page is read while hunting for its og:image tag.</summary>
+    /// <summary>Сколько HTML-страницы читается в поисках тега og:image.</summary>
     public const int MaxHtmlBytes = 512 * 1024;
 
     /// <summary>
-    /// http(s) only, and nothing that points back inside this machine or the local network. The
-    /// URL is chosen by the model, so an unfiltered fetch would be a server-side request forgery
-    /// primitive pointed at the user's own LAN.
+    /// Только http(s) и ничего, что указывает на эту машину или локальную сеть. Адрес выбирает
+    /// модель, и скачивание без фильтра стало бы подделкой запросов (SSRF) в домашнюю сеть человека.
     /// </summary>
     public static bool IsSafeTarget(string? url, out Uri target)
     {
@@ -60,7 +59,7 @@ internal static partial class RemoteImages
             return false;
         }
 
-        // A single-label name can only be an intranet host; a real site always has a dot.
+        // Имя без точки — только узел внутренней сети: у настоящего сайта точка есть всегда.
         return host.Contains('.');
     }
 
@@ -107,8 +106,8 @@ internal static partial class RemoteImages
     }
 
     /// <summary>
-    /// Makes the request look like a browser tab on the site itself. The Referer matters as much
-    /// as the User-Agent: hotlink protection on image CDNs turns away requests without it.
+    /// Делает запрос похожим на вкладку браузера на самом сайте. Referer важен не меньше
+    /// User-Agent: защита от чужих ссылок у CDN картинок без него отказывает.
     /// </summary>
     public static void ApplyBrowserHeaders(HttpRequestMessage request, Uri? referer = null)
     {
@@ -130,9 +129,9 @@ internal static partial class RemoteImages
     }
 
     /// <summary>
-    /// Finds the picture a page advertises about itself. A link a user pastes is almost always a
-    /// submission page rather than a file — FurAffinity, DeviantArt, Reddit and the rest all put
-    /// the real image URL in og:image, so following it once turns a page link into a picture.
+    /// Находит картинку, которую страница заявляет о себе. Ссылка от человека почти всегда ведёт
+    /// на страницу, а не на файл, — а сайты галерей кладут настоящий адрес картинки в og:image, и
+    /// один переход превращает ссылку на страницу в картинку.
     /// </summary>
     public static string? ResolveImageFromHtml(string html, Uri baseUri)
     {
@@ -212,15 +211,15 @@ internal static partial class RemoteImages
             text = baseUri.Scheme + ":" + text;
         }
 
-        // Only the shape is settled here. Whether the address may actually be fetched is the
-        // caller's call — it is the one holding the safety filter.
+        // Здесь решается только форма адреса. Можно ли его скачивать, решает вызывающий — у него
+        // фильтр безопасности.
         return Uri.TryCreate(baseUri, text, out var absolute) &&
                (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps)
             ? absolute.ToString()
             : null;
     }
 
-    /// <summary>Reads one attribute out of a raw tag body, quoted with " or ' or bare.</summary>
+    /// <summary>Достаёт атрибут из тела тега: в двойных, одинарных кавычках или без них.</summary>
     private static string? ReadAttribute(string attributes, string name)
     {
         var match = Regex.Match(

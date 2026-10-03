@@ -16,7 +16,7 @@ public sealed class VeniceClient
 
     public VeniceCost RequestCost { get; private set; } = VeniceCost.Zero;
 
-    /// <summary>Guards the running total: parallel tool calls share one client.</summary>
+    /// <summary>Охраняет накопленную сумму: параллельные вызовы инструментов делят один клиент.</summary>
     private readonly Lock _costGate = new();
 
     /// <summary>
@@ -76,8 +76,8 @@ public sealed class VeniceClient
     public event Action<string, string>? ModelFallback;
 
     /// <summary>
-    /// Looks up <c>/models</c> capabilities so fallback can drop <c>reasoning_effort</c> on
-    /// models that reject it (Grok). Null until the catalogue has been loaded.
+    /// Ищет возможности модели в <c>/models</c>, чтобы запасной путь снимал
+    /// <c>reasoning_effort</c> у моделей, которые его отвергают (Grok). Null, пока каталог не загружен.
     /// </summary>
     public Func<string, VeniceModelInfo?>? ResolveModelInfo { get; set; }
 
@@ -1014,8 +1014,8 @@ public sealed class VeniceClient
         }
         else if (hasTools && !ReasoningPolicy.AllowsEffortWithTools(info, model))
         {
-            // Callers that never set ReasoningChoice still 400 on GPT-5.6: the model
-            // defaults to medium, which is illegal next to function tools.
+            // Даже без ReasoningChoice GPT-5.6 отвечает 400: по умолчанию у неё medium, а рядом с
+            // инструментами он недопустим.
             effort = ReasoningPolicy.None;
         }
 
@@ -1615,28 +1615,27 @@ public sealed class VeniceClient
     }
 
     /// <summary>
-    /// Default image model — Google's "nano banana" through Venice. Costs more than a diffusion
-    /// model, but it is the one that renders legible text inside the picture, which is the whole
-    /// point for diagrams and infographics.
+    /// Рисующая модель по умолчанию — «nano banana» от Google через Venice. Дороже диффузионной,
+    /// но только она пишет на картинке читаемый текст, а для схем и инфографики в этом весь смысл.
     /// </summary>
     public const string DefaultImageModel = "nano-banana-pro";
 
-    /// <summary>True for the Gemini-backed line, which is sized by ratio rather than pixels.</summary>
+    /// <summary>True для линейки на Gemini: её размер задаётся соотношением сторон, а не пикселями.</summary>
     private static bool UsesAspectRatio(string model) =>
         model.StartsWith("nano-banana", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// A drawn picture costs far more than the text around it, and until this was priced the
-    /// message header showed only the chat tokens — a few hundredths of a cent for a turn that
-    /// really cost cents. Used only when Venice reports neither a cost nor a usable balance delta.
+    /// Картинка стоит куда дороже текста вокруг, и без этой цены шапка сообщения показывала только
+    /// токены чата — сотые цента за ход, стоивший центы. Берётся, лишь когда Venice не назвал ни
+    /// цены, ни пригодного изменения остатка.
     /// </summary>
     private const decimal FallbackImageUsd = 0.10m;
 
     /// <summary>
-    /// Generates one image and returns it as base64 PNG. Venice bills this per image, and the
-    /// charge is folded into <see cref="RequestCost"/> so it reaches the message header.
+    /// Рисует одну картинку и возвращает её base64 PNG. Venice берёт плату за картинку, и списание
+    /// входит в <see cref="RequestCost"/> — так оно попадает в шапку сообщения.
     /// </summary>
-    /// <param name="aspectRatio">e.g. "3:4" for a portrait infographic. Ignored by pixel-sized models.</param>
+    /// <param name="aspectRatio">Соотношение сторон, «3:4» для вертикальной инфографики. Модели с размером в пикселях его не учитывают.</param>
     public async Task<string> GenerateImageAsync(
         string prompt,
         int width = 1024,
@@ -1702,10 +1701,9 @@ public sealed class VeniceClient
     }
 
     /// <summary>
-    /// What the picture cost, best source first: the number Venice put in the body, else how much
-    /// the account balance moved across this one call, else a flat estimate. The balance reading
-    /// is only trusted when it moved by a plausible amount — a top-up or a parallel request in
-    /// flight would otherwise show up as a wild figure in the message header.
+    /// Цена картинки, лучший источник первым: число в теле ответа Venice, иначе изменение остатка
+    /// за этот вызов, иначе постоянная прикидка. Изменению остатка верим, только если оно правдоподобно:
+    /// пополнение или параллельный запрос дали бы в шапке сообщения дикое число.
     /// </summary>
     private static VeniceCost PriceImage(VeniceCostResponse? reported, decimal? before, decimal? after)
     {
@@ -1727,7 +1725,7 @@ public sealed class VeniceClient
         return new VeniceCost { Usd = FallbackImageUsd, HasData = true };
     }
 
-    /// <summary>Maps the caller's pixel intent onto the nearest ratio the ratio-based models take.</summary>
+    /// <summary>Переводит желаемый размер в пикселях в ближайшее соотношение, которое берут модели «по соотношению».</summary>
     private static string RatioFor(int width, int height)
     {
         if (width <= 0 || height <= 0)
@@ -1829,10 +1827,10 @@ public sealed class VeniceClient
                     new ChatMessage
                     {
                         Role = "system",
-                        // The links are the point, not decoration: the caller is a model that can
-                        // fetch a picture or read a page, but only if it is handed an address. The
-                        // old wording asked for "a summary with practical fixes" and got prose like
-                        // "on DeviantArt, search the furrywallpaper tag" — advice no tool can act on.
+                        // Ссылки — суть, а не украшение: вызывающий — модель, которая скачает
+                        // картинку или прочтёт страницу, только получив адрес. Прежняя просьба о
+                        // «сводке с практическими советами» давала прозу вроде «поищите тег на
+                        // таком-то сайте» — совет, по которому не сработает ни один инструмент.
                         Content = ChatContent.Text(
                             "You are a web research assistant. Search the web and answer concisely in the language of the question.\n" +
                             "ALWAYS end with a section 'Ссылки:' listing the full URLs you actually used, " +

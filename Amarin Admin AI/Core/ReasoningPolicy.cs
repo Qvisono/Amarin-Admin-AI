@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Amarin.Core;
 
-/// <summary>What the user asked for, before it is clamped to a specific model.</summary>
+/// <summary>Чего попросил человек — до подгонки под конкретную модель.</summary>
 public readonly record struct ReasoningChoice(bool DisableThinking, string? Effort)
 {
     public static ReasoningChoice Disabled { get; } = new(true, null);
@@ -30,8 +30,8 @@ public sealed class ReasoningSettings
 public sealed class ReasoningWire
 {
     /// <summary>
-    /// <c>venice_parameters.disable_thinking</c>. Venice's own switch for models that think
-    /// in <c>&lt;think&gt;</c> blocks (Qwen and similar). Grok/Claude ignore it.
+    /// <c>venice_parameters.disable_thinking</c> — выключатель Venice для моделей, думающих
+    /// блоками <c>&lt;think&gt;</c> (Qwen и подобные). Grok и Claude его не учитывают.
     /// </summary>
     public bool? DisableThinking { get; init; }
 
@@ -39,28 +39,28 @@ public sealed class ReasoningWire
 }
 
 /// <summary>
-/// Maps a model's <c>/models</c> capabilities onto UI options and the chat-completions body.
-/// Venice does not remap unsupported effort values — they 400 — so anything not listed for
-/// this model is dropped or replaced, never guessed upward.
+/// Переводит возможности модели из <c>/models</c> в варианты интерфейса и тело запроса чата.
+/// Неподдержанную силу размышления Venice не подменяет, а отвечает 400, поэтому всё, чего нет
+/// в списке модели, снимается или заменяется — и никогда не угадывается в большую сторону.
 /// </summary>
 internal static class ReasoningPolicy
 {
     public const string None = "none";
 
-    /// <summary>Widest overlapping set. Used only when the flag is on but the array is missing.</summary>
+    /// <summary>Самый широкий общий набор — только когда флаг есть, а списка нет.</summary>
     public static readonly string[] CommonEfforts = ["low", "medium", "high"];
 
     private static readonly string[] PreferredDefaults = ["medium", "low", "high"];
 
     /// <summary>
-    /// Model ids that 400'd on tools + non-none effort. Survives for the process so a second
-    /// turn does not offer the same broken chip.
+    /// Модели, ответившие 400 на инструменты вместе с силой размышления не none. Живёт до конца
+    /// процесса, чтобы следующий ход не предлагал тот же сломанный вариант.
     /// </summary>
     private static readonly ConcurrentDictionary<string, byte> ToolsEffortBlocked = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// GPT-5.4+ / GPT-5.6 / GPT-6 on Chat Completions reject function tools unless
-    /// <c>reasoning_effort</c> is <c>none</c>. Omitting the field still fails — they default to medium.
+    /// GPT-5.4+ / GPT-5.6 / GPT-6 в Chat Completions не принимают инструменты, если
+    /// <c>reasoning_effort</c> не <c>none</c>. Без поля тоже отказ — по умолчанию у них medium.
     /// </summary>
     private static readonly Regex ToolsEffortBlockedFamily = new(
         @"gpt-5[.-]?[456](?:$|[^0-9])|gpt-6(?:$|[^0-9])",
@@ -101,8 +101,8 @@ internal static class ReasoningPolicy
     }
 
     /// <summary>
-    /// Chat and agents always send function tools. Some models advertise effort but 400 when
-    /// tools and a non-none effort share <c>/chat/completions</c>.
+    /// Чат и агенты всегда шлют инструменты. Часть моделей заявляет силу размышления, но отвечает
+    /// 400, когда в <c>/chat/completions</c> она не none вместе с инструментами.
     /// </summary>
     public static bool AllowsEffortWithTools(VeniceModelInfo? model, string? modelId = null)
     {
@@ -149,8 +149,8 @@ internal static class ReasoningPolicy
     }
 
     /// <summary>
-    /// Levels shown in the plaque. <c>none</c> is the Disable thinking toggle, not a chip.
-    /// <paramref name="withTools"/> is true for chat and agents — those calls always carry tools.
+    /// Уровни на плашке. <c>none</c> — это переключатель «Без размышления», а не вариант.
+    /// <paramref name="withTools"/> — true для чата и агентов: их запросы всегда с инструментами.
     /// </summary>
     public static IReadOnlyList<string> VisibleEffortOptions(VeniceModelInfo? model, bool withTools = false)
     {
@@ -250,8 +250,8 @@ internal static class ReasoningPolicy
         bool withTools = false,
         string? modelId = null)
     {
-        // GPT-5.6-class models default to medium. Omitting reasoning_effort still 400s when
-        // tools are present — the only legal value on /chat/completions is none.
+        // У моделей класса GPT-5.6 по умолчанию medium, и без reasoning_effort при инструментах
+        // всё равно 400: в /chat/completions допустим только none.
         if (withTools && !AllowsEffortWithTools(model, modelId))
         {
             return new ReasoningWire
@@ -261,9 +261,9 @@ internal static class ReasoningPolicy
             };
         }
 
-        // Disable thinking is venice_parameters.disable_thinking — not reasoning.enabled
-        // (that field is not on the completions schema) and not effort "none" (only some
-        // GPT-class models accept it, and an unsupported value 400s).
+        // «Без размышления» — это venice_parameters.disable_thinking, а не reasoning.enabled (его
+        // нет в схеме запроса) и не сила «none» (её берут лишь некоторые модели класса GPT, а
+        // неподдержанное значение — это 400).
         if (choice is null || choice.Value.DisableThinking)
         {
             return new ReasoningWire { DisableThinking = true };

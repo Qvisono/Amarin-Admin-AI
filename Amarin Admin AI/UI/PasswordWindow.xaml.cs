@@ -8,8 +8,8 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Two jobs, one window: unlock a profile at launch, and set or change a password. Both are
-/// modal and return through <see cref="Password"/>.
+/// Одно окно на две задачи: открыть профиль при запуске и задать или сменить пароль. Оба режима
+/// модальные и возвращают результат через <see cref="Password"/>.
 /// </summary>
 public partial class PasswordWindow : Window
 {
@@ -40,7 +40,7 @@ public partial class PasswordWindow : Window
         Loaded += (_, _) => FirstBox.Focus();
     }
 
-    /// <summary>The accepted password; null when the dialog was cancelled.</summary>
+    /// <summary>Принятый пароль; null — окно закрыли без него.</summary>
     public string? Password { get; private set; }
 
     /// <summary>
@@ -49,7 +49,7 @@ public partial class PasswordWindow : Window
     /// </summary>
     public UserProfile? UnlockedProfile { get; private set; }
 
-    /// <summary>Launch-time unlock. Returns true when the right password was entered.</summary>
+    /// <summary>Вход при запуске. True — введён верный пароль.</summary>
     public static bool Unlock(UserProfile profile, Window? owner = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -69,7 +69,7 @@ public partial class PasswordWindow : Window
         return window.ShowDialog() == true;
     }
 
-    /// <summary>Asks for the current password before a change. Null result means cancelled.</summary>
+    /// <summary>Спрашивает нынешний пароль перед сменой. Null — отменили.</summary>
     public static bool Confirm(UserProfile profile, Window owner)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -86,7 +86,7 @@ public partial class PasswordWindow : Window
         return window.ShowDialog() == true;
     }
 
-    /// <summary>Sets a new password. Returns the plain text, or null if cancelled.</summary>
+    /// <summary>Задаёт новый пароль. Возвращает его текст или null, если отменили.</summary>
     public static string? SetNew(Window owner)
     {
         var window = new PasswordWindow(verifyAgainst: null, confirmTwice: true)
@@ -356,8 +356,8 @@ public partial class PasswordWindow : Window
             FirstBox.Clear();
             FirstBox.Focus();
 
-            // Not a security boundary — a local file is readable anyway — just a stop for
-            // idle guessing so the dialog cannot be hammered forever.
+            // Это не граница безопасности (локальный файл и так читается), а лишь преграда
+            // бесконечному перебору в окне.
             if (_attempts >= MaxAttempts)
             {
                 ShowError(Loc.Get("S.Password.TooManyAttempts"));
@@ -387,7 +387,7 @@ public partial class PasswordWindow : Window
 
     private void Card_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Borderless window: the card itself is the title bar.
+        // У окна без рамки заголовок — сама карточка.
         if (e.ButtonState == MouseButtonState.Pressed)
         {
             DragMove();
@@ -395,8 +395,8 @@ public partial class PasswordWindow : Window
     }
 
     /// <summary>
-    /// This window can open before ThemeManager has run (it gates startup), and then every
-    /// DynamicResource resolves to null on a transparent window — i.e. an invisible dialog.
+    /// Окно может открыться раньше ThemeManager (оно стоит на пути запуска), и тогда каждый
+    /// DynamicResource даст null на прозрачном окне — то есть невидимый диалог.
     /// </summary>
     private void ApplyFallbackBrushes()
     {

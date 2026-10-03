@@ -1,11 +1,11 @@
 namespace Amarin.Core;
 
 /// <summary>
-/// How full the model's context window is right now.
+/// Насколько заполнено окно контекста модели сейчас.
 /// </summary>
-/// <param name="Used">Tokens the next request would carry.</param>
-/// <param name="Max">What the model accepts; zero when the catalogue has not said yet.</param>
-/// <param name="IsEstimate">True when any part of <paramref name="Used"/> was guessed locally.</param>
+/// <param name="Used">Токенов в следующем запросе.</param>
+/// <param name="Max">Сколько модель принимает; ноль — каталог ещё не сказал.</param>
+/// <param name="IsEstimate">True — часть <paramref name="Used"/> прикинута своим подсчётом.</param>
 /// <param name="IsFloor">
 /// Потолок взят по худшему из нескольких возможных моделей — это случай «Авто».
 /// </param>
@@ -13,27 +13,27 @@ public readonly record struct ContextUsage(int Used, int Max, bool IsEstimate, b
 {
     public static ContextUsage Unknown => new(0, 0, true);
 
-    /// <summary>Zero when the ceiling is unknown — a ring with no scale must stay empty, not full.</summary>
+    /// <summary>Ноль, если потолок неизвестен: кольцо без шкалы должно быть пустым, а не полным.</summary>
     public double Fraction => Max <= 0 ? 0 : Math.Clamp(Used / (double)Max, 0, 1);
 
-    /// <summary>Nothing to draw until both halves of the ratio are real.</summary>
+    /// <summary>Рисовать нечего, пока обе части отношения не настоящие.</summary>
     public bool HasScale => Max > 0 && Used > 0;
 }
 
 /// <summary>
-/// Measures the context window against what the chat is about to send.
+/// Сравнивает окно контекста с тем, что чат собирается отправить.
 /// </summary>
 /// <remarks>
-/// Venice reports <c>prompt_tokens</c> only after it answers, so between turns the honest number
-/// is always one request behind. Rather than show a stale figure, the gauge anchors on the last
-/// reported count and estimates only the messages appended since — which is why
-/// <see cref="ChatSession.LastPromptTokensApiIndex"/> is stored next to the count itself.
+/// <c>prompt_tokens</c> провайдер сообщает только после ответа, и честное число между ходами
+/// всегда отстаёт на запрос. Вместо устаревшей цифры кольцо опирается на последний названный
+/// счёт и прикидывает только дописанное после него — поэтому рядом со счётом хранится
+/// <see cref="ChatSession.LastPromptTokensApiIndex"/>.
 /// </remarks>
 internal static class ContextGauge
 {
     /// <summary>
-    /// Characters per token. Deliberately crude: the estimate exists to keep the ring moving
-    /// between answers, and a tokeniser here would have to match whichever model is selected.
+    /// Знаков на токен. Грубо намеренно: прикидка лишь двигает кольцо между ответами, а
+    /// токенизатор здесь пришлось бы подбирать под каждую выбранную модель.
     /// </summary>
     private const double CharsPerToken = 4;
 
@@ -78,16 +78,16 @@ internal static class ContextGauge
         var anchor = session.LastPromptTokens;
         if (anchor <= 0)
         {
-            // Nothing measured yet: the whole conversation is a guess, system prompt included.
-            // A compacted chat sends its summary instead of the old part (D10) — weigh that.
+            // Замеров ещё нет: вся переписка — прикидка, вместе с системным промптом. Сжатый чат
+            // шлёт сводку вместо старой части (D10) — её и взвешиваем.
             var compacted = ContextCompaction.IsActive(session);
             var estimated = EstimateTokens(ContextCompaction.Tail(session), 0) + EstimateTokens(systemPrompt) +
                             (compacted ? EstimateTokens(session.CompactSummary) : 0);
             return new ContextUsage(estimated, Math.Max(max, 0), true, floor);
         }
 
-        // A reopened chat can have fewer messages than when the count was taken (messages get
-        // deleted, turns get rolled back); clamping keeps the tail estimate from reading backwards.
+        // В открытом заново чате сообщений может стать меньше, чем при замере (удалили, откатили
+        // ход); ограничение не даёт прикидке хвоста уйти в минус.
         var from = Math.Clamp(session.LastPromptTokensApiIndex, 0, session.ApiMessages.Count);
         var tail = EstimateTokens(session.ApiMessages, from);
         return new ContextUsage(anchor + tail, Math.Max(max, 0), tail > 0, floor);
@@ -101,7 +101,7 @@ internal static class ContextGauge
             var message = messages[i];
             chars += ChatContent.ReadText(message.Content)?.Length ?? 0;
 
-            // Tool calls are billed like any other text, and an agent turn is mostly this.
+            // Вызовы инструментов считаются как любой текст, а ход агента — в основном они.
             if (message.ToolCalls is { Count: > 0 } calls)
             {
                 foreach (var call in calls)

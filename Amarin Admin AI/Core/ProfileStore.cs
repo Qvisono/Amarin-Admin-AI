@@ -3,10 +3,10 @@ using System.Text.Json;
 namespace Amarin.Core;
 
 /// <summary>
-/// Reads and writes profiles.json and maps a profile to its data directory.
+/// Читает и пишет profiles.json и сопоставляет профиль с его папкой данных.
 ///
-/// The default profile deliberately points at the app root itself, which is where chats and
-/// settings have always lived. Adding profiles must never relocate an existing conversation.
+/// Профиль по умолчанию намеренно смотрит в сам корень программы — там всегда жили чаты и
+/// настройки. Новые профили не должны переносить ни одной существующей переписки.
 /// </summary>
 public sealed class ProfileStore
 {
@@ -23,7 +23,7 @@ public sealed class ProfileStore
 
     public string FilePath => _file;
 
-    /// <summary>Data directory for a profile: the app root for the default one, a subfolder otherwise.</summary>
+    /// <summary>Папка данных профиля: корень программы у профиля по умолчанию, иначе подпапка.</summary>
     public string DataRootFor(string profileId) =>
         IsDefault(profileId) ? _root : Path.Combine(_root, "profiles", Sanitize(profileId));
 
@@ -31,7 +31,7 @@ public sealed class ProfileStore
         string.IsNullOrWhiteSpace(profileId) ||
         profileId.Equals(DefaultProfileId, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Never throws: a damaged or missing file yields a fresh single-profile registry.</summary>
+    /// <summary>Не бросает: битый или отсутствующий файл даёт новый список с одним профилем.</summary>
     public ProfileRegistry Load()
     {
         ProfileRegistry? registry = null;
@@ -56,7 +56,7 @@ public sealed class ProfileStore
             registry.Profiles.Add(new UserProfile { Id = DefaultProfileId, Name = "Гость" });
         }
 
-        // Guarantee the default profile exists and that the active id resolves to something.
+        // Профиль по умолчанию есть всегда, а активный id указывает на существующий профиль.
         if (!registry.Profiles.Any(p => IsDefault(p.Id)))
         {
             registry.Profiles.Insert(0, new UserProfile { Id = DefaultProfileId, Name = "Гость" });
@@ -98,7 +98,7 @@ public sealed class ProfileStore
                ?? new UserProfile { Id = DefaultProfileId, Name = "Гость" };
     }
 
-    /// <summary>Creates a profile with its own empty data directory.</summary>
+    /// <summary>Заводит профиль со своей пустой папкой данных.</summary>
     public UserProfile Create(ProfileRegistry registry, string name)
     {
         ArgumentNullException.ThrowIfNull(registry);
@@ -116,8 +116,8 @@ public sealed class ProfileStore
     }
 
     /// <summary>
-    /// Removes a profile and its data. The default profile cannot be deleted — its directory is
-    /// the shared app root, so deleting it would take settings and every other profile with it.
+    /// Удаляет профиль с его данными. Профиль по умолчанию удалить нельзя: его папка — общий корень
+    /// программы, и вместе с ней ушли бы настройки и все остальные профили.
     /// </summary>
     public bool Delete(ProfileRegistry registry, string profileId)
     {
@@ -149,7 +149,7 @@ public sealed class ProfileStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // The registry entry is gone either way; a locked file is not worth failing over.
+            // Запись из списка убрана в любом случае; занятый файл — не повод для ошибки.
         }
 
         Save(registry);

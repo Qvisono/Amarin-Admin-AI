@@ -4,12 +4,12 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Sharing a chat as a pasteable code and exporting it as plain JSON. Both payloads are
-    /// unencrypted and contain the full conversation — the Data Controls toggle turns them off.
+    /// «Поделиться» кодом для вставки и экспорт в открытый JSON. Оба несут всю переписку без
+    /// шифрования, и переключатель на странице «Данные» их выключает.
     /// </summary>
     public partial class MainWindow
     {
-        /// <summary>Longer than this and the clipboard stops being a sensible transport.</summary>
+        /// <summary>Длиннее этого буфер обмена уже не годится для передачи.</summary>
         private const int ShareCodeFileThreshold = 4000;
 
         private bool SharingEnabled() => _services?.Settings.ChatSharingEnabled != false;
@@ -17,8 +17,8 @@ namespace Amarin.UI
         private void ShareMessage(ChatDisplayMessage message) => ShareSession(_session, message.Id);
 
         /// <summary>
-        /// Copies a share code for <paramref name="session"/>. A null <paramref name="upToMessageId"/>
-        /// shares the whole conversation, which is what the sidebar's chat menu asks for.
+        /// Копирует код для <paramref name="session"/>. <paramref name="upToMessageId"/> = null —
+        /// вся переписка; так просит меню чата в боковой панели.
         /// </summary>
         private void ShareSession(ChatSession session, string? upToMessageId)
         {
@@ -49,8 +49,8 @@ namespace Amarin.UI
                 : session.Messages.FindIndex(m => m.Id == upToMessageId) + 1;
             var note = Loc.Format("S.Share.CodeCopied", code.Length, upTo);
 
-            // A multi-thousand character clipboard payload does not survive every chat app,
-            // so hand over a file as well once it gets long.
+            // Многотысячная строка в буфере переживает не каждый мессенджер — длинный код
+            // отдаём ещё и файлом.
             if (code.Length > ShareCodeFileThreshold && TrySaveShareFile(code, session.Title) is { } path)
             {
                 note += "\n\n" + Loc.Format("S.Share.SavedToFile", path);
@@ -94,8 +94,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Opens a decoded chat as a normal local conversation, saved to this profile's store
-        /// so it behaves exactly like any other chat from then on.
+        /// Открывает разобранный чат как обычный свой, сохранённый в хранилище профиля, — дальше он
+        /// ведёт себя как любой другой.
         /// </summary>
         private void OpenSharedSession(ChatSession shared)
         {
@@ -123,8 +123,7 @@ namespace Amarin.UI
             _services.Settings.ChatSharingEnabled = ChatSharingToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
-            // The buttons are built per message, so redraw the transcript to apply the change —
-            // the same chat, so the zoom stays.
+            // Кнопки строятся у каждого сообщения — перерисовываем ленту; чат тот же, лупа остаётся.
             RebuildTranscript(resetZoom: false);
         }
 
@@ -152,7 +151,7 @@ namespace Amarin.UI
                 return;
             }
 
-            // One file dialog handles both formats: a share code and a plain JSON export.
+            // Одно окно выбора файла на оба формата: код «Поделиться» и открытый JSON.
             var session = ChatShareCodec.LooksLikeShareCode(content)
                 ? ChatShareCodec.TryDecode(content)
                 : ChatShareCodec.TryImportJson(content);
