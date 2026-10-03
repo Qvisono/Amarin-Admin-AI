@@ -44,7 +44,7 @@ public partial class GuideShot : UserControl
     /// Рамка шире <c>452</c> DIP не бывает (см. разметку), а масштаб интерфейса здесь ни при
     /// чём: он подделанный DPI, и ширина в DIP от него не меняется. Двойной запас оставлен под
     /// монитор с настоящим высоким DPI; дальше растягивает
-    /// <c>BitmapScalingMode.HighQuality</c>, который ставит на окно PerformanceOptimizer.
+    /// <c>BitmapScalingMode.HighQuality</c>, который ставит на окно WindowRenderDefaults.
     /// </remarks>
     private const int DecodeWidth = 904;
 

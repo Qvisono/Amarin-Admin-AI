@@ -108,7 +108,7 @@ namespace Amarin.UI
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
             TextOptions.SetTextHintingMode(this, TextHintingMode.Fixed);
 
-            new PerformanceOptimizer(this);
+            WindowRenderDefaults.Apply(this);
             InitializeAppearance();
 
             // Выпадашки чата — под тем же присмотром, что и пикеры в настройках: одна открытая
@@ -205,8 +205,8 @@ namespace Amarin.UI
                 FlushDraft();
                 _services?.ChatStore.Flush();
 
-            // Журнал трат пишется отложенно: без этого последние ответы сеанса до диска не дошли бы.
-            _services?.Ledger.Flush();
+                // Журнал трат пишется отложенно: без этого последние ответы сеанса до диска не дошли бы.
+                _services?.Ledger.Flush();
 
                 // Сбросы выше идут первыми и повторяются на втором проходе — они безобидны, а
                 // вот подмену файла делать до них нельзя. Отмена закрытия здесь работает только

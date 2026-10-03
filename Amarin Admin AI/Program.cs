@@ -104,6 +104,9 @@ internal static class Program
         // закрытия программы, и using отмерил бы весь сеанс вместо запуска.
         var startupTimer = PerfLog.Measure("app_start");
 
+        // Первым делом: профиль покрывает только то, что скомпилировано после этой строки.
+        StartupJit.Start(RuntimeContext.AppVersion);
+
         // До первого окна: OverrideMetadata внутри нельзя звать после того, как свойство
         // впервые прочитали.
         ToolTipDefaults.Apply();

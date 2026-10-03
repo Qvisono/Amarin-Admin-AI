@@ -15,7 +15,7 @@ namespace Amarin.UI;
 /// animates, and its radius is in DIPs, so the app's fake-DPI UI scaling would multiply the cost
 /// again at 250 %. A blur is a low-pass filter, so we get it almost for free by working at a
 /// reduced resolution and letting the <see cref="ImageBrush"/> stretch the result back up
-/// (<c>BitmapScalingMode.HighQuality</c> is set window-wide by <see cref="PerformanceOptimizer"/>).
+/// (<c>BitmapScalingMode.HighQuality</c> is set window-wide by <see cref="WindowRenderDefaults"/>).
 /// </para>
 /// <para>Brightness is deliberately <em>not</em> baked — it stays an overlay so its slider is live.</para>
 /// </summary>
