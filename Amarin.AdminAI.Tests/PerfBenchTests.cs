@@ -1,24 +1,31 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Amarin.Core;
+using Amarin.Tools;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Замер скорости: запуск окна, открытие большого чата, самые долгие остановки кадров, память и
-/// ЦП в простое. Не утверждение, а таблица для сравнения «до/после».
+/// Замер скорости: запуск окна, открытие большого чата, изменение размера и разворот окна с ним,
+/// открытие настроек, журнала и «Состояния ПК», раскрытие папок в длинном списке чатов, самые
+/// долгие остановки кадров, память и ЦП в простое. Не утверждение, а таблица для сравнения
+/// «до/после».
 /// </summary>
 /// <remarks>
 /// Работает только при <c>AMARIN_PERF_BENCH=&lt;файл&gt;</c> (строки дописываются в конец файла,
 /// <c>AMARIN_PERF_LABEL</c> подписывает прогон); обычный прогон сразу выходит. Числа имеют смысл
 /// в отдельном процессе и сборке Release: в общем прогоне код уже прогрет соседними тестами.
+/// Разворот показывает окно на экране — на время замера его будет видно.
 /// </remarks>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
@@ -64,6 +71,7 @@ public sealed class PerfBenchTests : IDisposable
             }
 
             results.AddRange(await OpenBigChat());
+            results.AddRange(await ToggleFolders());
             return results;
         });
 
@@ -79,7 +87,7 @@ public sealed class PerfBenchTests : IDisposable
 
     private async Task<(double Construct, double Attach, double FirstFrame)> StartWindow(int run)
     {
-        var services = UiServices.Build(Path.Combine(_root, "start" + run), "k", new HttpClientHandler());
+        var services = Services("start" + run);
 
         var watch = Stopwatch.StartNew();
         var window = NewWindow();
@@ -104,7 +112,7 @@ public sealed class PerfBenchTests : IDisposable
     private async Task<List<(string, double, string)>> OpenBigChat()
     {
         var results = new List<(string, double, string)>();
-        var services = UiServices.Build(Path.Combine(_root, "chat"), "k", new HttpClientHandler());
+        var services = Services("chat");
         var session = BigChat();
         services.ChatStore.Save(session);
         services.ChatStore.Flush();
@@ -159,10 +167,312 @@ public sealed class PerfBenchTests : IDisposable
         results.Add(("idle CPU over 5 s, big chat", await IdleCpu(), "ms"));
         results.Add(("idle UI wakeups over 5 s", idle.Stop(), ""));
 
+        results.AddRange(await DragEdge(window));
+        results.AddRange(await MaximizeAndRestore(window));
+        results.AddRange(await OpenOverlays(window));
+
         window.Close();
         await Settle(200);
         return results;
     }
+
+    /// <summary>
+    /// Окно с построенным большим чатом тянут за край: двадцать шагов ширины внутри
+    /// <c>WM_ENTERSIZEMOVE</c>/<c>WM_EXITSIZEMOVE</c>, как это делает Windows, пока держат мышь.
+    /// </summary>
+    private static async Task<List<(string, double, string)>> DragEdge(MainWindow window)
+    {
+        var results = new List<(string, double, string)>();
+        var handle = new WindowInteropHelper(window).Handle;
+        var scale = VisualTreeHelper.GetDpi(window).DpiScaleX;
+        var layouts = new DocumentLayouts(window);
+        var height = (int)Math.Round(window.ActualHeight * scale);
+
+        // 1280 → 900 и обратно: всё время уже колонки ленты (1070), то есть каждый шаг меняет
+        // ширину сообщений.
+        var widths = Enumerable.Range(1, 10).Select(i => 1280 - (38 * i))
+            .Concat(Enumerable.Range(1, 10).Select(i => 900 + (38 * i)))
+            .ToList();
+
+        var frames = new FrameGaps();
+        frames.Start();
+        _ = SendMessage(handle, WmEnterSizeMove, IntPtr.Zero, IntPtr.Zero);
+        var steps = new List<double>();
+        var counts = new List<int>();
+        foreach (var width in widths)
+        {
+            layouts.Reset();
+            var watch = Stopwatch.StartNew();
+            _ = SetWindowPos(handle, IntPtr.Zero, 0, 0, (int)Math.Round(width * scale), height, SwpNoMove | SwpNoZOrder | SwpNoActivate);
+            window.UpdateLayout();
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            steps.Add(watch.Elapsed.TotalMilliseconds);
+            counts.Add(layouts.Count);
+        }
+
+        var released = Stopwatch.StartNew();
+        _ = SendMessage(handle, WmExitSizeMove, IntPtr.Zero, IntPtr.Zero);
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        var settled = released.Elapsed.TotalMilliseconds;
+        await Settle(1500);
+        frames.Stop();
+
+        results.Add(("resize step, average", steps.Average(), "ms"));
+        results.Add(("resize step, slowest", steps.Max(), "ms"));
+        results.Add(("documents laid out per resize step", counts.Average(), ""));
+        results.Add(("resize: settled after release", settled, "ms"));
+        results.Add(("resize: max frame gap", frames.MaxGap, "ms"));
+        results.Add(("resize: documents left at a stale width", layouts.Stale(), ""));
+        layouts.Dispose();
+        return results;
+    }
+
+    /// <summary>Маленькое окно с большим чатом разворачивают на весь экран и возвращают.</summary>
+    private static async Task<List<(string, double, string)>> MaximizeAndRestore(MainWindow window)
+    {
+        var results = new List<(string, double, string)>();
+        var handle = new WindowInteropHelper(window).Handle;
+        var scale = VisualTreeHelper.GetDpi(window).DpiScaleX;
+        _ = SetWindowPos(handle, IntPtr.Zero, 0, 0, (int)Math.Round(900 * scale), (int)Math.Round(700 * scale), SwpNoMove | SwpNoZOrder | SwpNoActivate);
+        window.UpdateLayout();
+        await Settle(1500);
+
+        var layouts = new DocumentLayouts(window);
+        foreach (var (state, name) in new[] { (WindowState.Maximized, "maximize"), (WindowState.Normal, "restore") })
+        {
+            layouts.Reset();
+            var frames = new FrameGaps();
+            frames.Start();
+            var watch = Stopwatch.StartNew();
+            window.WindowState = state;
+            window.UpdateLayout();
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            results.Add(($"{name}: first frame", watch.Elapsed.TotalMilliseconds, "ms"));
+            results.Add(($"{name}: documents laid out for it", layouts.Count, ""));
+            await Settle(2000);
+            frames.Stop();
+            results.Add(($"{name}: max frame gap over 2 s", frames.MaxGap, "ms"));
+        }
+
+        results.Add(("maximize/restore: documents left at a stale width", layouts.Stale(), ""));
+        layouts.Dispose();
+        return results;
+    }
+
+    /// <summary>Настройки, журнал и «Состояние ПК»: сколько от щелчка до кадра с открытым.</summary>
+    private static async Task<List<(string, double, string)>> OpenOverlays(MainWindow window)
+    {
+        var results = new List<(string, double, string)>();
+        if (window.FindName("HealthOverlay") is HealthPanel health)
+        {
+            // Пробы на подставных ответах: замеряется окно, а не опрос системы.
+            health.Probes =
+            [
+                _ => Task.FromResult(HealthRules.System(new SystemHealth(59, 49, TimeSpan.FromDays(1.3)))),
+                _ => Task.FromResult(HealthRules.Stability(new EventHealth(0, 260, 0))),
+                _ => Task.FromResult(HealthRules.Updates(new UpdateHealth(false, 3)))
+            ];
+        }
+
+        foreach (var (name, open, close) in new[]
+                 {
+                     ("settings", "SettingsButton_Click", "SettingsCloseButton_Click"),
+                     ("journal", "OpenJournal", "CloseJournal"),
+                     ("health", "OpenHealth", "CloseHealth")
+                 })
+        {
+            var times = new List<double>();
+            for (var i = 0; i < 5; i++)
+            {
+                var watch = Stopwatch.StartNew();
+                Invoke(window, open);
+                window.UpdateLayout();
+                await Dispatcher.Yield(DispatcherPriority.Background);
+                times.Add(watch.Elapsed.TotalMilliseconds);
+                await Settle(300);
+                Invoke(window, close);
+                await Settle(200);
+            }
+
+            results.Add(($"{name} open, first", times[0], "ms"));
+            results.Add(($"{name} open, then average", times.Skip(1).Average(), "ms"));
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Длинный список чатов с папками: щелчок по папке до кадра, самая долгая остановка кадров
+    /// после него и запись раскладки на диск.
+    /// </summary>
+    private async Task<List<(string, double, string)>> ToggleFolders()
+    {
+        var results = new List<(string, double, string)>();
+        var services = Services("folders");
+        var ids = new List<string>();
+        for (var i = 0; i < 300; i++)
+        {
+            var session = new ChatSession
+            {
+                Id = "c" + i.ToString("000", CultureInfo.InvariantCulture),
+                Title = "Чат номер " + i.ToString(CultureInfo.InvariantCulture),
+                CreatedAt = DateTime.Now.AddHours(-i),
+                UpdatedAt = DateTime.Now.AddHours(-i)
+            };
+            session.Messages.Add(new ChatDisplayMessage { Id = "q", Role = "user", Text = "Вопрос " + i, CreatedAt = session.CreatedAt });
+            services.ChatStore.Save(session);
+            ids.Add(session.Id);
+        }
+
+        services.ChatStore.Flush();
+        var folders = new List<ChatFolder>();
+        for (var f = 0; f < 15; f++)
+        {
+            var folder = services.Organizer.CreateFolder("Папка " + f.ToString(CultureInfo.InvariantCulture));
+            services.Organizer.MoveToFolder(ids.Skip(f * 12).Take(12).ToList(), folder.Id);
+            folders.Add(folder);
+        }
+
+        var window = NewWindow();
+        window.AttachServices(services);
+        var rendered = new TaskCompletionSource();
+        window.ContentRendered += (_, _) => rendered.TrySetResult();
+        window.Show();
+        await rendered.Task;
+        Invoke(window, "RefreshChatList");
+        await Settle(500);
+
+        var panel = (Panel)window.FindName("ChatListPanel")!;
+        var target = folders[7].Id;
+        var clicks = new List<double>();
+        var gaps = new List<double>();
+        for (var i = 0; i < 10; i++)
+        {
+            var header = panel.Children.OfType<Button>().Single(button => button.Tag is ChatFolder folder && folder.Id == target);
+            var frames = new FrameGaps();
+            frames.Start();
+            var watch = Stopwatch.StartNew();
+            header.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            window.UpdateLayout();
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            clicks.Add(watch.Elapsed.TotalMilliseconds);
+            await Settle(600);
+            frames.Stop();
+            gaps.Add(frames.MaxGap);
+        }
+
+        results.Add(("folder click to frame, average", clicks.Average(), "ms"));
+        results.Add(("folder click to frame, slowest", clicks.Max(), "ms"));
+        results.Add(("folder click: max frame gap", gaps.Max(), "ms"));
+
+        var write = Stopwatch.StartNew();
+        for (var i = 0; i < 20; i++)
+        {
+            services.Organizer.SetCollapsed(target, i % 2 == 0);
+        }
+
+        results.Add(("organizer change on the UI thread", write.Elapsed.TotalMilliseconds / 20, "ms"));
+
+        // Переименование одного чата: состав списка тот же, поменялась одна строка.
+        var rename = Stopwatch.StartNew();
+        services.ChatStore.Rename(ids[200], "Новое имя");
+        Invoke(window, "RefreshChatList");
+        window.UpdateLayout();
+        await Dispatcher.Yield(DispatcherPriority.Background);
+        results.Add(("chat list after a rename", rename.Elapsed.TotalMilliseconds, "ms"));
+
+        window.Close();
+        await Settle(200);
+        return results;
+    }
+
+    private AppServices Services(string folder)
+    {
+        var services = UiServices.Build(Path.Combine(_root, folder), "k", new HttpClientHandler());
+
+        // Проверка обновлений сходила бы в GitHub посреди замера.
+        services.Settings.AutoCheckUpdates = false;
+        return services;
+    }
+
+    /// <summary>Считает раскладки документов сообщений: сколько <c>RichTextBox</c> поменяли ширину.</summary>
+    private sealed class DocumentLayouts : IDisposable
+    {
+        private readonly List<RichTextBox> _boxes;
+
+        public DocumentLayouts(MainWindow window)
+        {
+            _boxes = Descendants<RichTextBox>((DependencyObject)window.FindName("MessagesPanel")!).ToList();
+            foreach (var box in _boxes)
+            {
+                box.SizeChanged += OnSizeChanged;
+            }
+        }
+
+        public int Count { get; private set; }
+
+        public void Reset() => Count = 0;
+
+        /// <summary>Документы, чья ширина страницы так и не догнала ширину поля.</summary>
+        public int Stale() => _boxes.Count(box =>
+            box.IsVisible && !double.IsNaN(box.Document.PageWidth) && box.Width is double.NaN &&
+            Math.Abs(box.Document.PageWidth - box.ActualWidth) > 1);
+
+        public void Dispose()
+        {
+            foreach (var box in _boxes)
+            {
+                box.SizeChanged -= OnSizeChanged;
+            }
+        }
+
+        private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged)
+            {
+                Count++;
+            }
+        }
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        var stack = new Stack<DependencyObject>();
+        stack.Push(root);
+        while (stack.Count > 0)
+        {
+            var node = stack.Pop();
+            if (node is T match && !ReferenceEquals(node, root))
+            {
+                yield return match;
+            }
+
+            var count = VisualTreeHelper.GetChildrenCount(node);
+            for (var i = 0; i < count; i++)
+            {
+                stack.Push(VisualTreeHelper.GetChild(node, i));
+            }
+        }
+    }
+
+    private static void Invoke(MainWindow window, string name)
+    {
+        var method = typeof(MainWindow).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                     ?? throw new MissingMethodException(nameof(MainWindow), name);
+        _ = method.Invoke(window, method.GetParameters().Length == 0 ? [] : [null, null]);
+    }
+
+    private const int WmEnterSizeMove = 0x0231;
+    private const int WmExitSizeMove = 0x0232;
+    private const int SwpNoMove = 0x0002;
+    private const int SwpNoZOrder = 0x0004;
+    private const int SwpNoActivate = 0x0010;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, int flags);
 
     /// <summary>Время процессора всех потоков за пять секунд простоя.</summary>
     private static async Task<double> IdleCpu()
