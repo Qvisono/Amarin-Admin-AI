@@ -185,7 +185,7 @@ public sealed class DialogRedesignTests : IDisposable
     [Fact]
     public void The_main_window_never_shows_a_system_message_box()
     {
-        var ui = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Amarin Admin AI", "UI");
+        var ui = Path.Combine(SourceTree.ProjectDirectory, "UI");
         var offenders = Directory.GetFiles(ui, "*.cs")
             .Where(file => !file.EndsWith("MainWindow.Notice.cs", StringComparison.Ordinal))
             .Where(file => File.ReadAllText(file).Contains("MessageBox.Show(", StringComparison.Ordinal))

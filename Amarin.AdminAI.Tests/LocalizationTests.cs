@@ -193,22 +193,7 @@ public sealed class LocalizationTests
         Assert.True(untranslated.Count == 0, $"не переведено: {string.Join(", ", untranslated)}");
     }
 
-    private static string ProjectFile(string relative)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(directory.FullName, "Amarin Admin AI", relative);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException(relative);
-    }
+    private static string ProjectFile(string relative) => SourceTree.ProjectFile(relative);
 
     private static string Placeholders(string value) =>
         string.Concat(System.Text.RegularExpressions.Regex

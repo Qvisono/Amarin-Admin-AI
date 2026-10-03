@@ -166,22 +166,7 @@ public sealed class SettingsInfoPageTests
         Assert.All(names, name => Assert.Contains("`" + name + "`", readme, StringComparison.Ordinal));
     }
 
-    private static string ProjectFile(string relative)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(directory.FullName, "Amarin Admin AI", relative);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException(relative);
-    }
+    private static string ProjectFile(string relative) => SourceTree.ProjectFile(relative);
 
     private static T? Find<T>(DependencyObject root) where T : DependencyObject
     {
