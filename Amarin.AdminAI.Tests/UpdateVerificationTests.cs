@@ -6,20 +6,10 @@ using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
 
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class AuthenticodeCollection
-{
-    public const string Name = "Authenticode";
-}
-
 /// <summary>
 /// Обновление ставится только сверенным: сумма из SHA256SUMS, если GitHub её не прислал,
 /// ещё одна сверка прямо перед подменой и правило подписи.
 /// </summary>
-/// <remarks>
-/// В своей коллекции: часть проверок подменяет <see cref="AuthenticodeCheck.Inspector"/>, а он общий.
-/// </remarks>
-[Collection(AuthenticodeCollection.Name)]
 public sealed class UpdateVerificationTests : IDisposable
 {
     private const string BuildName = "Amarin-Admin-AI-v1.28.0-win-x64.exe";
@@ -169,22 +159,14 @@ public sealed class UpdateVerificationTests : IDisposable
         var payload = Encoding.UTF8.GetBytes("неподписанная версия");
         File.WriteAllBytes(downloaded, payload);
 
-        var saved = AuthenticodeCheck.Inspector;
-        try
-        {
-            AuthenticodeCheck.Inspector = path => path == exe
-                ? new SignatureInfo(true, true, "CN=Amarin")
-                : SignatureInfo.None;
+        var swap = UpdateInstaller.Swap(
+            downloaded,
+            exe,
+            Convert.ToHexString(SHA256.HashData(payload)),
+            inspect: path => path == exe ? new SignatureInfo(true, true, "CN=Amarin") : SignatureInfo.None);
 
-            var swap = UpdateInstaller.Swap(downloaded, exe, Convert.ToHexString(SHA256.HashData(payload)));
-
-            Assert.False(swap.Ok);
-            Assert.Equal("подписанная версия", File.ReadAllText(exe));
-        }
-        finally
-        {
-            AuthenticodeCheck.Inspector = saved;
-        }
+        Assert.False(swap.Ok);
+        Assert.Equal("подписанная версия", File.ReadAllText(exe));
     }
 
     private UpdatePlan Plan(long size, string? sha256)

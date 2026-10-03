@@ -150,17 +150,13 @@ internal sealed class ChatSummaryGenerator
 
         var settings = _settings();
         var model = ChatSummary.ResolveModel(settings, _options.Model);
-        var options = new AgentOptions
+        var options = _options with
         {
             ApiKey = _options.ApiKey,
-            Keys = _options.Keys,
 
             // Ключ слота, а не выбранный: заголовки чатов человек мог отдать бесплатной
             // модели другого провайдера, пока разговор идёт у своего.
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Summary)),
-            SpendSink = _options.SpendSink,
-            SpendGate = _options.SpendGate,
-            BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,
             EnableXSearch = false,

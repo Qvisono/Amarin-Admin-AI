@@ -351,21 +351,13 @@ internal sealed class AgentHost : IAgentHost
         string model,
         ReasoningSettings reasoning,
         string? keyId = null) =>
-        new()
+        source with
         {
+            // Ключ, каким он виден сейчас, а не поле за ним: так копии делались и до записи.
             ApiKey = source.ApiKey,
-            Keys = source.Keys,
             Binding = source.Keys?.CredentialFor(model, keyId),
-            SpendSink = source.SpendSink,
-            SpendGate = source.SpendGate,
-            Audit = source.Audit,
-            BaseUrl = source.BaseUrl,
             Model = model,
-            MaxToolRounds = source.MaxToolRounds,
-            WebSearch = source.WebSearch,
-            EnableWebCitations = source.EnableWebCitations,
             EnableXSearch = false,
-            Download = source.Download,
             DisableThinking = reasoning.DisableThinking,
             ReasoningEffort = reasoning.ReasoningEffort
         };

@@ -21,12 +21,13 @@ public sealed record SignatureInfo(bool Signed, bool Valid, string? Publisher)
 /// </remarks>
 public static class AuthenticodeCheck
 {
-    /// <summary>Подменяется в тестах: настоящая проверка ходит в Windows.</summary>
-    internal static Func<string, SignatureInfo> Inspector { get; set; } = InspectWithWindows;
-
-    public static SignatureInfo Inspect(string path) => Inspector(path);
-
-    private static SignatureInfo InspectWithWindows(string path)
+    /// <summary>Подпись файла по мнению Windows.</summary>
+    /// <remarks>
+    /// До 1.30.0 здесь стояло общее изменяемое <c>Inspector</c>, которое тесты подменяли на время
+    /// проверки, — и держали ради этого отдельную коллекцию. Теперь подмена — параметр
+    /// <see cref="UpdateInstaller.VerifyBeforeSwap"/>.
+    /// </remarks>
+    public static SignatureInfo Inspect(string path)
     {
         if (!OperatingSystem.IsWindows() || !File.Exists(path))
         {

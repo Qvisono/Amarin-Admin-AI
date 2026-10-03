@@ -1,6 +1,13 @@
 namespace Amarin.Core;
 
-public sealed class AgentOptions
+/// <summary>Настройки клиента провайдера: ключи, журналы трат, лимиты, модель и поиск.</summary>
+/// <remarks>
+/// Запись, а не класс: копии под слот, под прогон агента и под служебные генераторы собираются
+/// через <c>with</c> и наследуют каждое поле. До 1.30.0 их перечисляли руками в четырёх местах, и
+/// все четыре теряли <see cref="BalanceSink"/> — остаток из ответов агента, заголовков, сводок и
+/// отчётов до плашки не доходил. Так же забытый <see cref="SpendGate"/> пускал бы копию мимо лимитов.
+/// </remarks>
+public sealed record AgentOptions
 {
     private readonly string _apiKey = string.Empty;
 
@@ -102,6 +109,11 @@ public sealed class AgentOptions
     public ApiCredential Credential =>
         Binding ?? Keys?.Credential ?? new ApiCredential(LlmProvider.Venice, _apiKey);
 
+    /// <summary>Модель программы по умолчанию.</summary>
+    /// <remarks>
+    /// Единственное изменяемое поле: перегрузка модели у запроса без своего ключа сдвигает модель
+    /// программы на заменившую (<c>VeniceClient</c>), чтобы следующие запросы не начинали с упавшей.
+    /// </remarks>
     public string Model { get; set; } = "grok-4-6";
     public int MaxToolRounds { get; init; } = 30;
 
@@ -120,4 +132,7 @@ public sealed class AgentOptions
     public bool? EnableXSearch { get; init; }
 
     public DownloadOptions Download { get; init; } = new();
+
+    /// <summary>Без ключей: запись печатала бы все свойства, а <see cref="ApiKey"/> — секрет.</summary>
+    public override string ToString() => $"AgentOptions {{ Provider = {Provider}, Model = {Model}, BaseUrl = {BaseUrl} }}";
 }

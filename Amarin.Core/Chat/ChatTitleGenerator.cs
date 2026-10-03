@@ -38,17 +38,13 @@ internal sealed class ChatTitleGenerator
         var settings = _settings();
         var model = ChatTitle.ResolveModel(settings, _options.Model);
         var language = ChatTitle.LanguageName();
-        var options = new AgentOptions
+        var options = _options with
         {
             ApiKey = _options.ApiKey,
-            Keys = _options.Keys,
 
             // Ключ слота, а не выбранный: заголовки чатов человек мог отдать бесплатной
             // модели другого провайдера, пока разговор идёт у своего.
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Title)),
-            SpendSink = _options.SpendSink,
-            SpendGate = _options.SpendGate,
-            BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,
             EnableXSearch = false,

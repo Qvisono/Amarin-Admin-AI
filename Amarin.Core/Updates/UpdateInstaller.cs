@@ -239,8 +239,13 @@ public static class UpdateInstaller
     /// правами администратора это вообще единственная проверка — повышенный процесс файла не
     /// скачивал и ничему в нём не обязан верить.
     /// </remarks>
+    /// <param name="inspect">Чем читать подпись; null — спросить Windows. Подменяется в тестах.</param>
     /// <returns>Текст отказа; null — можно ставить.</returns>
-    public static string? VerifyBeforeSwap(string downloadedFile, string exePath, string? expectedSha256)
+    public static string? VerifyBeforeSwap(
+        string downloadedFile,
+        string exePath,
+        string? expectedSha256,
+        Func<string, SignatureInfo>? inspect = null)
     {
         if (expectedSha256 is { Length: > 0 })
         {
@@ -261,7 +266,8 @@ public static class UpdateInstaller
             }
         }
 
-        return AuthenticodeCheck.Refusal(AuthenticodeCheck.Inspect(exePath), AuthenticodeCheck.Inspect(downloadedFile));
+        inspect ??= AuthenticodeCheck.Inspect;
+        return AuthenticodeCheck.Refusal(inspect(exePath), inspect(downloadedFile));
     }
 
     /// <summary>
@@ -269,9 +275,14 @@ public static class UpdateInstaller
     /// прежний exe обратно — остаться без исполняемого файла программа не должна.
     /// </summary>
     /// <param name="expectedSha256">Сумма из релиза; null — обновление без проверки, с согласия.</param>
-    public static UpdateStepResult Swap(string downloadedFile, string exePath, string? expectedSha256 = null)
+    /// <param name="inspect">Чем читать подпись; null — спросить Windows.</param>
+    public static UpdateStepResult Swap(
+        string downloadedFile,
+        string exePath,
+        string? expectedSha256 = null,
+        Func<string, SignatureInfo>? inspect = null)
     {
-        if (VerifyBeforeSwap(downloadedFile, exePath, expectedSha256) is { } refusal)
+        if (VerifyBeforeSwap(downloadedFile, exePath, expectedSha256, inspect) is { } refusal)
         {
             return UpdateStepResult.Failed(refusal);
         }

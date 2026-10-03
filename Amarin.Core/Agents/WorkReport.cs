@@ -356,14 +356,10 @@ internal sealed class WorkReportWriter
         // Слот сводки: та же работа — прочитать записанное и изложить коротко.
         var settings = _settings();
         var model = ChatSummary.ResolveModel(settings, _options.Model);
-        var options = new AgentOptions
+        var options = _options with
         {
             ApiKey = _options.ApiKey,
-            Keys = _options.Keys,
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Summary)),
-            SpendSink = _options.SpendSink,
-            SpendGate = _options.SpendGate,
-            BaseUrl = _options.BaseUrl,
             Model = model,
             EnableWebCitations = false,
             EnableXSearch = false,
