@@ -769,7 +769,9 @@ namespace Amarin.UI
 
             if (save)
             {
-                _services.SettingsStore.Save(settings);
+                // Отложенно: ползунки оформления зовут это на каждый тик, а запись settings.json
+                // (и его копии) прямо на потоке окна заметно дёргала перетаскивание.
+                _services.SettingsStore.SaveDeferred(settings);
             }
         }
 

@@ -1,9 +1,13 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Amarin.Core;
 
 public sealed class AppSettingsStore
 {
+    /// <summary>Сколько ждать тишины, прежде чем записать отложенное (<see cref="SaveDeferred"/>).</summary>
+    public static readonly TimeSpan DeferDelay = TimeSpan.FromMilliseconds(400);
+
     private readonly string _file;
 
     private readonly Lock _gate = new();
@@ -29,11 +33,12 @@ public sealed class AppSettingsStore
 
     public string FilePath => _file;
 
-    public bool Exists => File.Exists(_file);
+    /// <summary>Есть ли файл — или запись, которая вот-вот его создаст.</summary>
+    public bool Exists => Writer.For(_file).Peek() is not null || File.Exists(_file);
 
     public AppSettings Load()
     {
-        if (!File.Exists(_file))
+        if (Writer.For(_file).Peek() is null && !File.Exists(_file))
         {
             return AppSettings.CreateDefault();
         }
@@ -89,6 +94,13 @@ public sealed class AppSettingsStore
     /// </remarks>
     private string? ReadCached()
     {
+        // Отложенное, ещё не записанное, — правда новее файла: иначе только что включённое
+        // «Только чтение» прошло бы мимо шлюза, пока ползунок оформления ждёт своей записи.
+        if (Writer.For(_file).Peek() is { } pending)
+        {
+            return pending;
+        }
+
         var stamp = File.GetLastWriteTimeUtc(_file);
         lock (_gate)
         {
@@ -280,8 +292,11 @@ public sealed class AppSettingsStore
     public void Save(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        var json = JsonSerializer.Serialize(settings, AppJson.Options) + Environment.NewLine;
-        GuardedJsonFile.Write(_file, json);
+        var json = Serialize(settings);
+
+        // Через писателя пути: он отменяет отложенную запись и не даёт ей, запоздав, лечь
+        // поверх этой.
+        Writer.For(_file).WriteNow(json);
 
         lock (_gate)
         {
@@ -290,11 +305,138 @@ public sealed class AppSettingsStore
         }
     }
 
+    /// <summary>
+    /// Сохранить чуть позже: сериализация — сейчас, на вызывающем потоке, запись — в фоне после
+    /// <see cref="DeferDelay"/> тишины. Для того, что меняется непрерывно: ползунки оформления
+    /// писали файл (и его копию) на каждый тик прямо на потоке окна.
+    /// </summary>
+    /// <remarks>
+    /// Писатель один на путь и общий для всех экземпляров хранилища, поэтому <see cref="Load"/>
+    /// и <see cref="Update"/> любого из них видят ещё не записанное, а <see cref="Save"/> отменяет
+    /// его и пишет своё. Всё, что читает <c>settings.json</c> мимо хранилища (архив данных,
+    /// резервная копия), сперва зовёт <see cref="FlushAll"/>; выход процесса — тоже.
+    /// </remarks>
+    public void SaveDeferred(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        Writer.For(_file).Defer(Serialize(settings));
+    }
+
+    /// <summary>Записать отложенное этого файла сейчас.</summary>
+    public void Flush() => Writer.For(_file).Flush();
+
+    /// <summary>Записать всё отложенное — перед выходом и перед чтением файлов мимо хранилища.</summary>
+    public static void FlushAll() => Writer.FlushAll();
+
+    private static string Serialize(AppSettings settings) =>
+        JsonSerializer.Serialize(settings, AppJson.Options) + Environment.NewLine;
+
     public void Update(Action<AppSettings> mutator)
     {
         ArgumentNullException.ThrowIfNull(mutator);
         var settings = Load();
         mutator(settings);
         Save(settings);
+    }
+
+    /// <summary>Единственный писатель одного <c>settings.json</c> в процессе.</summary>
+    /// <remarks>
+    /// Все записи пути — и немедленные, и отложенные — идут под его замком: иначе отложенная,
+    /// сработав посреди немедленной, легла бы поверх более новой.
+    /// </remarks>
+    private sealed class Writer
+    {
+        private static readonly ConcurrentDictionary<string, Writer> All = new(StringComparer.OrdinalIgnoreCase);
+
+        private readonly string _path;
+        private readonly Lock _gate = new();
+        private readonly Timer _timer;
+        private string? _pending;
+
+        static Writer()
+        {
+            // Последний тик ползунка не должен пропасть оттого, что программу закрыли раньше
+            // паузы. Окно сбрасывает и само, а это — на любой иной выход.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => FlushAll();
+        }
+
+        private Writer(string path)
+        {
+            _path = path;
+            _timer = new Timer(_ => FlushQuietly(), null, Timeout.Infinite, Timeout.Infinite);
+        }
+
+        public static Writer For(string path) => All.GetOrAdd(Path.GetFullPath(path), full => new Writer(full));
+
+        public static void FlushAll()
+        {
+            foreach (var writer in All.Values)
+            {
+                writer.FlushQuietly();
+            }
+        }
+
+        public string? Peek()
+        {
+            lock (_gate)
+            {
+                return _pending;
+            }
+        }
+
+        public void Defer(string text)
+        {
+            lock (_gate)
+            {
+                _pending = text;
+                _timer.Change(DeferDelay, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        public void WriteNow(string text)
+        {
+            lock (_gate)
+            {
+                _pending = null;
+                _timer.Change(Timeout.Infinite, Timeout.Infinite);
+                GuardedJsonFile.Write(_path, text);
+            }
+        }
+
+        public void Flush()
+        {
+            lock (_gate)
+            {
+                if (_pending is not { } text)
+                {
+                    return;
+                }
+
+                // Папку профиля могли удалить, пока запись ждала паузы: воскрешать её ради
+                // отложенного тика ползунка нельзя.
+                if (Path.GetDirectoryName(_path) is { } folder && !Directory.Exists(folder))
+                {
+                    _pending = null;
+                    return;
+                }
+
+                GuardedJsonFile.Write(_path, text);
+                _pending = null;
+            }
+        }
+
+        /// <summary>Из таймера и при выходе: исключение здесь уронило бы процесс.</summary>
+        private void FlushQuietly()
+        {
+            try
+            {
+                Flush();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Не записалось — осталось отложенным: следующий тик, сброс или выход попробуют снова.
+                CrashLog.Write($"settings: deferred write failed: {ex.Message}");
+            }
+        }
     }
 }

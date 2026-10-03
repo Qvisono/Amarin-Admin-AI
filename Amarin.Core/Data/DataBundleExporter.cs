@@ -79,6 +79,10 @@ public sealed class DataBundleExporter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(archivePath);
 
+        // Файлы читаются мимо хранилищ: отложенная запись настроек (ползунок оформления) иначе
+        // не попала бы в архив. Резервная копия идёт этим же путём.
+        AppSettingsStore.FlushAll();
+
         var sources = Collect(categories, cancellationToken);
         var manifest = new DataBundleManifest
         {

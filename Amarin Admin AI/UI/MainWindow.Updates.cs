@@ -387,6 +387,7 @@ namespace Amarin.UI
             FlushDraft();
             _services?.ChatStore.Flush();
             _services?.Ledger.Flush();
+            AppSettingsStore.FlushAll();
             CancelAllTurns();
             PopupManager.CloseAll();
 
@@ -407,7 +408,12 @@ namespace Amarin.UI
         private bool ReviveFromBackgroundExit() => Exit.Revive();
 
         /// <summary>Windows завершает сеанс: подменить уже скачанное, пока сеанс ждёт ответа.</summary>
-        private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e) => Exit.OnSessionEnding();
+        private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e)
+        {
+            // До выхода процесса дело может не дойти: Windows гасит его, как только ответили.
+            AppSettingsStore.FlushAll();
+            Exit.OnSessionEnding();
+        }
 
         /// <summary>Настройки, ходы, сохранение и перезапуск — то, что автомату даёт окно.</summary>
         private sealed class WindowUpdateApp(MainWindow window) : IUpdateApp

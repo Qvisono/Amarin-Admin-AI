@@ -33,4 +33,11 @@ public class SettingsBenchmarks
 
     [Benchmark]
     public void Save() => Ready.Store.Save(Ready.Settings);
+
+    /// <summary>
+    /// Тик ползунка с 1.30.0: на вызывающем потоке — только сериализация, запись — фоном после
+    /// паузы. Сравнивать с <see cref="Save"/> «до».
+    /// </summary>
+    [Benchmark]
+    public void SaveDeferred() => Ready.Store.SaveDeferred(Ready.Settings);
 }
