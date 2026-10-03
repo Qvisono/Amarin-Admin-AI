@@ -30,7 +30,7 @@ internal enum SendVerdict
     /// <summary>Машину, на которую смотрит чат, удалили: молча выполнить на этом ПК нельзя.</summary>
     TargetGone,
 
-    /// <summary>Одновременно идёт столько ходов, сколько можно.</summary>
+    /// <summary>Одновременно идёт столько ходов, сколько можно. Текст остаётся в поле.</summary>
     LimitReached,
 
     /// <summary>Команда <c>/agent</c>.</summary>
@@ -64,7 +64,12 @@ internal static class SendPlanner
     /// <summary>Отправка из поля ввода.</summary>
     /// <param name="busy">В этом чате идёт ход.</param>
     /// <param name="targetGone">Машину чата удалили из списка.</param>
-    public static SendPlan ForComposer(OutgoingDraft draft, bool hasUsableKey, bool busy, bool targetGone)
+    /// <param name="hasRoom">
+    /// Можно начать ещё один ход. Проверяется здесь, до того как окно очистит поле: до 1.30.0
+    /// отказ давал сам запуск хода, и сообщение, отправленное при трёх идущих ответах в других
+    /// чатах, пропадало вместе с вложениями — поле уже было пустым.
+    /// </param>
+    public static SendPlan ForComposer(OutgoingDraft draft, bool hasUsableKey, bool busy, bool targetGone, bool hasRoom)
     {
         var text = draft.Text.Trim();
 
@@ -93,6 +98,12 @@ internal static class SendPlanner
         if (targetGone)
         {
             return new SendPlan(SendVerdict.TargetGone, text, Command: command);
+        }
+
+        // Дописанное в идущий ход места не требует — оно не начинает нового.
+        if (!hasRoom)
+        {
+            return new SendPlan(SendVerdict.LimitReached, text, Command: command);
         }
 
         return new SendPlan(command is not null ? SendVerdict.Agent : SendVerdict.Send, text, Command: command);

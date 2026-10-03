@@ -70,6 +70,21 @@ public sealed class SendPlannerTests
     }
 
     [Fact]
+    public void A_fourth_turn_is_refused_before_the_composer_is_cleared()
+    {
+        // До 1.30.0 отказ давал сам запуск хода — уже после того, как окно очистило поле.
+        Assert.Equal(SendVerdict.LimitReached, Composer(new OutgoingDraft("вопрос", Images: 1), room: false).Verdict);
+        Assert.Equal(SendVerdict.LimitReached, Composer(new OutgoingDraft("/agent задача"), room: false).Verdict);
+
+        // Дописать в идущий ход и выполнить команду окна можно и тогда: нового хода они не начинают.
+        Assert.Equal(SendVerdict.FollowUp, Composer(new OutgoingDraft("и ещё"), busy: true, room: false).Verdict);
+        Assert.Equal(SendVerdict.LocalCommand, Composer(new OutgoingDraft("/new"), room: false).Verdict);
+
+        // Отказы раньше лимита: без ключа ждать свободного места бессмысленно.
+        Assert.Equal(SendVerdict.NoKey, Composer(new OutgoingDraft("вопрос"), key: false, room: false).Verdict);
+    }
+
+    [Fact]
     public void An_agent_command_is_parsed_once()
     {
         var plan = Composer(new OutgoingDraft("/agent проверь диск"));
@@ -89,8 +104,8 @@ public sealed class SendPlannerTests
         Assert.Equal(SendVerdict.Agent, Rerun(new OutgoingDraft("/agent задача")).Verdict);
     }
 
-    private static SendPlan Composer(OutgoingDraft draft, bool key = true, bool busy = false, bool targetGone = false) =>
-        SendPlanner.ForComposer(draft, key, busy, targetGone);
+    private static SendPlan Composer(OutgoingDraft draft, bool key = true, bool busy = false, bool targetGone = false, bool room = true) =>
+        SendPlanner.ForComposer(draft, key, busy, targetGone, room);
 
     private static SendPlan Rerun(OutgoingDraft draft, bool key = true, bool room = true) =>
         SendPlanner.ForRerun(draft, key, room);

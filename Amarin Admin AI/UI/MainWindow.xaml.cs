@@ -2179,7 +2179,7 @@ namespace Amarin.UI
         /// Отправка из поля ввода. Что делать — решает <see cref="SendPlanner.ForComposer"/>; окно
         /// показывает отказ или запускает ход.
         /// </summary>
-        private async Task SendAsync()
+        internal async Task SendAsync()
         {
             if (_services is null)
             {
@@ -2189,13 +2189,13 @@ namespace Amarin.UI
             var services = _services;
             var draft = new OutgoingDraft(MessageTextBox.Text, _pendingImages.Count, _pendingFiles.Count, _pendingQuotes.Count);
             var targetGone = _session.TargetMachineId is { } targetId && services.Machines.Find(targetId) is null;
-            var plan = SendPlanner.ForComposer(draft, HasUsableKey(), IsBusy(_session.Id), targetGone);
+            var plan = SendPlanner.ForComposer(draft, HasUsableKey(), IsBusy(_session.Id), targetGone, Turns.HasRoom);
 
             // Если ход кончился между проверкой и вызовом, QueueFollowUp так и скажет, и
             // сообщение уйдёт обычным, а не пропадёт.
             if (plan.Verdict == SendVerdict.FollowUp && !QueueFollowUp(plan.Text, plan.Command is not null))
             {
-                plan = SendPlanner.ForComposer(draft, HasUsableKey(), busy: false, targetGone);
+                plan = SendPlanner.ForComposer(draft, HasUsableKey(), busy: false, targetGone, Turns.HasRoom);
             }
 
             switch (plan.Verdict)
@@ -2224,6 +2224,10 @@ namespace Amarin.UI
 
                 case SendVerdict.AgentNoQuotes:
                     ShowAgentRefusal("S.Turn.AgentNoQuotes");
+                    return;
+
+                case SendVerdict.LimitReached:
+                    ShowTurnLimitNotice();
                     return;
 
                 // Человек думает, что команды уходят на ту машину. Текст остаётся в поле.

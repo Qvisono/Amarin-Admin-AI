@@ -453,6 +453,34 @@ public sealed class ParallelChatUiTests : IDisposable
     }
 
     [Fact]
+    public void A_message_sent_past_the_turn_limit_stays_in_the_composer()
+    {
+        // До 1.30.0 поле очищалось раньше, чем запуск хода отказывал, и сообщение пропадало.
+        var (text, started, notice) = With(
+            (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
+            harness =>
+            {
+                for (var i = 0; i < TurnRegistry.MaxParallel; i++)
+                {
+                    Register(harness.Window, Session("busy" + i));
+                }
+
+                var extra = Session("extra");
+                Set(harness.Window, "_session", extra);
+                var box = (TextBox)harness.Window.FindName("MessageTextBox")!;
+                box.Text = "не потеряй меня";
+                Pump(harness.Window.SendAsync());
+
+                var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
+                return (box.Text, harness.Window.IsBusy("extra"), warning.Text);
+            });
+
+        Assert.Equal("не потеряй меня", text);
+        Assert.False(started, "четвёртый ход всё-таки стартовал");
+        Assert.Contains("дождитесь", notice, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void The_promise_to_take_a_line_in_belongs_to_the_chat_it_was_typed_in()
     {
         // Строка под композером одна на окно, а чатов много: «отправлено, учту» из одного
