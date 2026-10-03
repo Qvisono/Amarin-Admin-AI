@@ -8,19 +8,18 @@ using Amarin.Tools;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Everything the model has done to this computer, in one list.
+    /// Всё, что модель сделала на этом компьютере, одним списком.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Opened from the chat and scoped to it, because that is the question people actually ask —
-    /// "what did it just do?" — but the scope switch widens it to every conversation on disk,
-    /// which is the only honest answer to "what has it ever done?".
+    /// Открывается из чата и показывает его — люди спрашивают именно «что оно сейчас сделало?», —
+    /// а переключатель расширяет список до всех переписок на диске: честный ответ на «что оно
+    /// вообще делало?».
     /// </para>
     /// <para>
-    /// Nothing here is cached between openings. Reading every chat costs a few hundred
-    /// milliseconds on a large history, and a cache would have to be invalidated by any running
-    /// turn, any rolled back message and any deleted chat — three ways to show a lie about what
-    /// the program did to someone's machine.
+    /// Между открытиями ничего не кэшируется. Чтение всех чатов стоит сотни миллисекунд на
+    /// большой истории, а кэш пришлось бы сбрасывать от любого идущего хода, отката и удалённого
+    /// чата — три способа соврать человеку о том, что программа сделала с его машиной.
     /// </para>
     /// </remarks>
     public partial class MainWindow
@@ -36,16 +35,16 @@ namespace Amarin.UI
         private JournalTab _journalTab = JournalTab.Actions;
         private bool _journalAllChats;
 
-        /// <summary>Rows with their search keys, rebuilt on every load and filtered in place.</summary>
+        /// <summary>Строки с ключами поиска: собираются при каждой загрузке, фильтруются на месте.</summary>
         private List<(JournalRow Row, string Key)> _journalRows = [];
 
-        /// <summary>Guards against a slow "all chats" read landing after the overlay was closed.</summary>
+        /// <summary>Чтобы медленное чтение «всех чатов» не приехало в уже закрытый журнал.</summary>
         private int _journalLoadToken;
 
-        /// <summary>The row whose details are on screen; null while the list is showing.</summary>
+        /// <summary>Строка, чьи подробности на экране; null — показан список.</summary>
         private JournalRow? _journalDetail;
 
-        /// <summary>Cancels an explanation still in flight when the user navigates away from it.</summary>
+        /// <summary>Отменяет ещё идущее объяснение, когда человек от него ушёл.</summary>
         private CancellationTokenSource? _journalAsk;
 
         /// <summary>Строка под списком сверх счётчика: «точки восстановления видны только админу».</summary>
@@ -58,14 +57,14 @@ namespace Amarin.UI
             ShowJournalList();
             LoadJournal();
 
-            // Focus goes to the overlay, not the search box: the window-level typing sink hands
-            // every keystroke to the composer otherwise, and Escape would never arrive here.
+            // Фокус — журналу, а не полю поиска: иначе окно отдаёт каждое нажатие полю ввода, и
+            // Escape сюда не дошёл бы.
             Dispatcher.BeginInvoke(() => JournalOverlay.Focus(), DispatcherPriority.Input);
         }
 
         private void CloseJournal()
         {
-            // Any load still in flight belongs to a journal that no longer exists.
+            // Идущая загрузка принадлежит журналу, которого уже нет.
             _journalLoadToken++;
 
             CancelJournalAsk();
@@ -110,9 +109,8 @@ namespace Amarin.UI
                 return;
             }
 
-            // Only the widest scope needs the store on disk; the open chat is already in memory,
-            // and while a turn is running it is the only copy that is current — reading it back
-            // off disk would show a frozen version.
+            // Диск нужен только для «всех чатов»: открытый чат уже в памяти, а пока идёт ход,
+            // свежая копия только там — с диска пришла бы застывшая.
             if (!_journalAllChats || _services is null)
             {
                 Publish(token, ActionJournal.FromSession(_session), showChat: false);
@@ -140,8 +138,8 @@ namespace Amarin.UI
                 {
                     var collected = ActionJournal.Collect(store).ToList();
 
-                    // The chat on screen may hold a turn that has not been saved yet, so its
-                    // entries are taken from memory and the stale copy from disk dropped.
+                    // В открытом чате может быть ещё не сохранённый ход — его записи берутся из
+                    // памяти, а копия с диска отбрасывается.
                     collected.RemoveAll(entry => entry.ChatId == open.Id);
                     collected.AddRange(ActionJournal.FromSession(open));
                     collected.Sort((left, right) => right.StartedAt.CompareTo(left.StartedAt));
@@ -450,8 +448,8 @@ namespace Amarin.UI
             JournalSearchBox.Visibility = Visibility.Visible;
             JournalFooter.Visibility = Visibility.Visible;
 
-            // The empty note belongs to the list, and only the filter knows whether it shows;
-            // re-running it is also what repopulates the list after a trip to the details screen.
+            // Надпись «пусто» — часть списка, и показывать ли её, знает только фильтр; его же
+            // повтор заново наполняет список после возврата из подробностей.
             ApplyJournalFilter();
         }
 
@@ -471,8 +469,8 @@ namespace Amarin.UI
                         ? JournalView.BuildMeta(point, ActiveDateFormat)
                         : row.Timestamp;
 
-            // A restore point is already fully described by the two lines above; there is nothing
-            // for a model to add, so the button that would promise an explanation is not offered.
+            // Точку восстановления полностью описывают две строки выше — модели добавить нечего,
+            // и кнопки, обещающей объяснение, нет.
             JournalAskButton.Visibility = row.Entry is null ? Visibility.Collapsed : Visibility.Visible;
             JournalAskButton.IsEnabled = true;
             JournalOpenChatButton.Visibility =
@@ -544,8 +542,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Re-indents the model's arguments. They arrive as whatever the model emitted — usually
-        /// one long line — and the point of the details screen is to be readable.
+        /// Переформатирует аргументы модели: приходят они как есть, обычно одной длинной строкой,
+        /// а экран подробностей должен читаться.
         /// </summary>
         private static string PrettyJson(string json)
         {
@@ -567,8 +565,8 @@ namespace Amarin.UI
             }
             catch (System.Text.Json.JsonException)
             {
-                // Models send malformed JSON often enough that ToolArguments exists for it. Here
-                // the raw text is still the honest answer to "what was passed".
+                // Битый JSON от моделей — дело обычное (ради него и есть ToolArguments). Здесь
+                // честный ответ на «что передали» — исходный текст.
                 return json;
             }
         }
@@ -621,7 +619,7 @@ namespace Amarin.UI
                 return;
             }
 
-            // The user may have gone back to the list, or opened another row, while this was out.
+            // Пока запрос шёл, человек мог вернуться к списку или открыть другую строку.
             if (cancellation.IsCancellationRequested || !ReferenceEquals(_journalAsk, cancellation))
             {
                 return;
@@ -757,8 +755,8 @@ namespace Amarin.UI
                     e.Handled = true;
                     break;
 
-                // Typing anywhere on the card goes to the search box, the way Ctrl+K dialogs
-                // behave: hunting for the field first is a step nobody wants.
+                // Набор где угодно на карточке уходит в поле поиска, как в окнах Ctrl+K: искать
+                // сначала само поле никому не хочется.
                 case Key.Down or Key.Up or Key.PageDown or Key.PageUp:
                     break;
 

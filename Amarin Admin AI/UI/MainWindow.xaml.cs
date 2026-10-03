@@ -43,14 +43,14 @@ namespace Amarin.UI
         private readonly Dictionary<string, ChatMessageHost> _messageViews = [];
 
         /// <summary>
-        /// A toast younger than this ignores window activation. Long enough to outlive the
-        /// activation storm around showing it, short enough that a real click-back still closes it.
+        /// Карточка моложе этого активацию окна не замечает: срок переживает шквал активаций вокруг
+        /// её показа, но настоящий возврат щелчком её всё же закрывает.
         /// </summary>
         private static readonly TimeSpan ActivationDismissGrace = TimeSpan.FromMilliseconds(700);
 
         private NotificationToast? _toast;
 
-        /// <summary>The completion card currently on screen, if any. For tests.</summary>
+        /// <summary>Карточка «ответ готов» на экране, если есть. Для тестов.</summary>
         internal NotificationToast? CurrentToast => _toast;
         private DateTime _workingStarted;
         private Image? _logoImage;
@@ -627,8 +627,8 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Re-fetches the ImageSources that were assigned from code — action icons and model
-        /// logos: those hold the previous theme's object and do not follow a DynamicResource.
+        /// Перечитывает ImageSource, присвоенные из кода (значки действий, логотипы моделей): они
+        /// держат объект прежней темы и за DynamicResource не следят.
         /// </summary>
         private void OnEffectiveThemeChanged()
         {
@@ -682,8 +682,8 @@ namespace Amarin.UI
                 return;
             }
 
-            // Only when the user is looking elsewhere. IsActive is not that test — it stays
-            // true while the window is merely covered by another app, which is the common case.
+            // Только когда человек смотрит не сюда. IsActive этого не проверяет: окно, закрытое
+            // другой программой (самый частый случай), остаётся активным.
             if (IsForeground() && WindowState != WindowState.Minimized)
             {
                 PerfLog.Write("toast skipped reason=window_in_foreground");
@@ -700,10 +700,9 @@ namespace Amarin.UI
 
             ShowCompletionToast(assistant);
 
-            // The toast goes away on its own; the taskbar button keeps blinking until the user
-            // comes back, so a missed card does not mean a missed answer. This runs whenever
-            // the window is not in front, not just when minimized — being buried behind another
-            // app is the ordinary case, and it was silently skipped before.
+            // Карточка гаснет сама, а кнопка на панели задач мигает до возвращения — пропущенная
+            // карточка не значит пропущенный ответ. Срабатывает всякий раз, когда окно не впереди,
+            // а не только свёрнутое: окно под другой программой — обычный случай.
             TaskbarFlash.Flash(this);
 
             if (_services.Settings.NotifySound)
@@ -720,13 +719,13 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// The user came back to the app. Clears the taskbar flash, and puts the toast away —
-        /// but only if it has been up long enough to have been a deliberate return.
+        /// Человек вернулся в программу: гасим мигание на панели задач и убираем карточку — если
+        /// она висела достаточно, чтобы возврат был осознанным.
         /// <para>
-        /// The toast is only ever shown while the window is *not* in front, so an activation can
-        /// arrive in the same breath as the toast for reasons that have nothing to do with the
-        /// user: focus moving inside the app, a modal opening, the window restoring. Dismissing
-        /// on those is what made the notification appear for a frame and vanish.
+        /// Карточка показывается, только когда окно *не* впереди, и активация может прийти
+        /// одновременно с ней по причинам, к человеку отношения не имеющим: фокус сдвинулся
+        /// внутри программы, открылось модальное окно, окно восстановилось. Закрытие по ним и
+        /// давало уведомление, которое мелькало на кадр и пропадало.
         /// </para>
         /// </summary>
         internal void OnWindowActivated()
@@ -740,7 +739,7 @@ namespace Amarin.UI
 
         internal void ShowCompletionToast(ChatDisplayMessage assistant)
         {
-            // Replace any toast still on screen outright — no fade, so the cards don't overlap.
+            // Прежнюю карточку убираем сразу, без угасания, — чтобы они не наложились.
             var modelId = assistant.ResolvedModelId ?? assistant.RequestedModelId ?? "";
             var id = assistant.Id;
             Notify(
@@ -779,7 +778,7 @@ namespace Amarin.UI
             }
         }
 
-        /// <summary>True when this window is the one the user is actually looking at.</summary>
+        /// <summary>Смотрит ли человек сейчас именно на это окно.</summary>
         private bool IsForeground()
         {
             var own = OwnHandle();
@@ -845,7 +844,7 @@ namespace Amarin.UI
             // месту нужной высоты.
             MaterializeHost(host);
 
-            // Stop autoscroll from yanking the view back to the bottom.
+            // Чтобы автопрокрутка не утащила ленту обратно вниз.
             _stickToBottom = false;
             Dispatcher.BeginInvoke(host.BringIntoView, DispatcherPriority.Loaded);
         }
@@ -868,7 +867,7 @@ namespace Amarin.UI
         private void RefreshAllowedDomainsUi()
         {
             var domains = AllowedDomains;
-            // List<string> raises no change notifications, so rebind rather than mutate in place.
+            // List<string> об изменениях не сообщает — перепривязываем, а не правим на месте.
             AllowedDomainsList.ItemsSource = null;
             AllowedDomainsList.ItemsSource = domains.ToList();
             AllowedDomainsEmpty.Visibility = domains.Count == 0
@@ -1245,8 +1244,8 @@ namespace Amarin.UI
             {
                 ModelSlots.WriteBinding(_services.Settings, ModelSlot.Chat, binding);
                 _services.SettingsStore.Save(_services.Settings);
-                // The per-chat model lives on the session, so write it out now rather than
-                // leaving it to ride along on whatever unrelated save happens next.
+                // Модель чата хранится в сессии — сохраняем сейчас, а не ждём случайного
+                // следующего сохранения.
                 PersistCurrent();
             }
 
@@ -1857,7 +1856,7 @@ namespace Amarin.UI
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // A pasted share code is not a search term — open the conversation it carries.
+            // Вставленный код «Поделиться» — не запрос поиска: открываем переписку из него.
             if (ChatShareCodec.LooksLikeShareCode(SearchBox.Text))
             {
                 var shared = ChatShareCodec.TryDecode(SearchBox.Text);
@@ -1880,10 +1879,9 @@ namespace Amarin.UI
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
         {
-            // Clicking the button leaves keyboard focus on it, which is both a worse place for
-            // the caret than the field the user is about to type in again, and — with the
-            // compact composer on — enough to hold the pill unfolded for the whole turn,
-            // because focus anywhere on the toolbar suppresses the collapse.
+            // После щелчка фокус остаётся на кнопке: каретке там хуже, чем в поле, куда человек
+            // сейчас снова будет печатать, а при сжатом поле ввода фокус на панели кнопок ещё и
+            // держал бы полоску развёрнутой весь ход.
             FocusMessageInput();
             Detached.Run(SendAsync(), "send");
         }
@@ -1912,10 +1910,9 @@ namespace Amarin.UI
                 return true;
             }
 
-            // Checked before anything reads the focused element, and without reading it: the
-            // overlay takes focus itself when it opens, but between that and the first click there
-            // is a moment with nothing focused at all, and the early return below would hand those
-            // keystrokes to the composer -- including the Escape meant to close the journal.
+            // До любого чтения элемента с фокусом и без него: журнал берёт фокус при открытии, но
+            // до первого щелчка бывает миг, когда фокуса нет ни у кого, и ранний выход ниже отдал
+            // бы эти нажатия полю ввода — вместе с Escape, который должен закрыть журнал.
             if (JournalOverlay.Visibility == Visibility.Visible || HealthOverlay.Visibility == Visibility.Visible ||
                 IsNoticeOpen)
             {
@@ -1942,8 +1939,7 @@ namespace Amarin.UI
                 return true;
             }
 
-            // The viewer owns the arrow keys and Escape while it is up; without this the
-            // window-level typing sink would push them into the composer instead.
+            // Пока открыт просмотр, стрелки и Escape — его; иначе окно отдало бы их полю ввода.
             if (ImageViewerOverlay.Visibility == Visibility.Visible)
             {
                 return true;
@@ -2142,8 +2138,8 @@ namespace Amarin.UI
                 return;
             }
 
-            // Ctrl+V attaches an image when the clipboard holds one; otherwise the TextBox
-            // handles the paste itself and text keeps working exactly as before.
+            // Ctrl+V прикладывает картинку, если она в буфере; иначе вставку делает само поле,
+            // и текст вставляется как обычно.
             if (e.Key == Key.V && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
             {
                 if (TryPasteAttachmentFromClipboard())
@@ -2176,12 +2172,12 @@ namespace Amarin.UI
             }
 
             var text = MessageTextBox.Text.Trim();
-            // Attachments alone are a valid message — "look at this" needs no words.
+            // Вложения без текста — тоже сообщение: «посмотри» не нуждается в словах.
             if (string.IsNullOrWhiteSpace(text) && _pendingImages.Count == 0 && _pendingFiles.Count == 0)
             {
-                // A quote alone is not: it says what the reply is about, not what is wanted.
-                // The engine would drop such a turn silently, so keep the person in the field —
-                // its placeholder already asks for the reply.
+                // А цитата без текста — нет: она говорит, о чём ответ, но не чего хотят. Движок
+                // молча выбросил бы такой ход, поэтому человек остаётся в поле — подсказка в нём
+                // уже просит ответ.
                 if (_pendingQuotes.Count > 0)
                 {
                     FocusMessageInput();
@@ -2207,24 +2203,24 @@ namespace Amarin.UI
 
             var command = ChatCommands.TryParse(text);
 
-            // The agent works from a text brief and takes no attachments of its own, so refuse
-            // rather than send them off into nothing.
+            // Агент работает по текстовой постановке и вложений не берёт — отказываем, а не
+            // отправляем их в никуда.
             if (command is not null && (_pendingImages.Count > 0 || _pendingFiles.Count > 0))
             {
                 ShowAgentRefusal("S.Turn.AgentNoAttachments");
                 return;
             }
 
-            // Same for quotes: the agent never sees the chat, so a quote handed to it would
-            // point at replies it has never read.
+            // С цитатами так же: чата агент не видит, и цитата указывала бы на ответы, которых
+            // он не читал.
             if (command is not null && _pendingQuotes.Count > 0)
             {
                 ShowAgentRefusal("S.Turn.AgentNoQuotes");
                 return;
             }
 
-            // If the turn finished in the moment between the check and the call, QueueFollowUp
-            // says so and the message goes out as an ordinary one instead of vanishing.
+            // Если ход кончился между проверкой и вызовом, QueueFollowUp так и скажет, и
+            // сообщение уйдёт обычным, а не пропадёт.
             if (IsBusy(_session.Id) && QueueFollowUp(text, command is not null))
             {
                 return;
@@ -2293,8 +2289,8 @@ namespace Amarin.UI
             ResetFindForChat();
             _session = session;
             RefreshTargetPicker();
-            // Image handles written into earlier answers only resolve while the pictures they
-            // name are registered, and the registry does not survive a restart.
+            // Ссылки на картинки в прежних ответах разрешаются, только пока картинки
+            // зарегистрированы, а реестр перезапуск не переживает.
             ChatImageRegistry.RestoreAll(session);
             RenderSession();
             UpdateModelButton();
@@ -2666,15 +2662,14 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Hands a line to the turn already running in this chat instead of refusing it.
+        /// Отдаёт строку уже идущему в этом чате ходу вместо отказа.
         /// </summary>
         /// <remarks>
-        /// The engine folds it into the context on the next round boundary, so the work in flight
-        /// — the tool that is running, the agents it started — is not disturbed. Drawn here rather
-        /// than by the engine: the person needs to see the line land the moment they press Enter,
-        /// and a round can take a minute.
+        /// Движок вплетает её в контекст на границе раунда, не мешая идущей работе — инструменту
+        /// и запущенным агентам. Рисуется строка здесь, а не движком: человек должен увидеть её
+        /// сразу по Enter, а раунд может идти минуту.
         /// </remarks>
-        /// <returns>False when there is no longer a turn to queue onto.</returns>
+        /// <returns>False — хода, к которому добавить, уже нет.</returns>
         private bool QueueFollowUp(string text, bool isCommand)
         {
             if (FindTurn(_session.Id) is not { } turn)
@@ -2682,16 +2677,16 @@ namespace Amarin.UI
                 return false;
             }
 
-            // A slash command picks its own kind of turn, and there is no second turn to pick.
-            // Folding "/agent …" in as plain text would silently mean something else.
+            // Команда через «/» выбирает вид хода, а второго хода здесь нет; «/agent …» обычным
+            // текстом молча значил бы другое.
             if (isCommand)
             {
                 ShowComposerNotice(Loc.Get("S.Turn.NoCommandWhileBusy"));
                 return true;
             }
 
-            // Attachments travel in a multipart message built when the turn starts; the context
-            // for this one was snapshotted rounds ago and there is nowhere to graft them on.
+            // Вложения едут в составном сообщении, которое собирается на старте хода; контекст
+            // этого хода снят раунды назад, и приложить их некуда.
             if (_pendingImages.Count > 0 || _pendingFiles.Count > 0)
             {
                 ShowComposerNotice(Loc.Get("S.Turn.NoAttachmentsWhileBusy"));
@@ -2700,8 +2695,8 @@ namespace Amarin.UI
 
             MessageTextBox.Clear();
 
-            // Quotes, unlike attachments, are plain text for the model, so they fold into the
-            // queued line itself: the block is built now, against the transcript as it stands.
+            // Цитаты, в отличие от вложений, для модели — текст и вплетаются в саму строку: блок
+            // собирается сейчас, по ленте в её нынешнем виде.
             var user = new ChatDisplayMessage
             {
                 Role = "user",
@@ -3180,11 +3175,10 @@ namespace Amarin.UI
                 _newChatPlus.Margin = collapsed ? new Thickness(0) : new Thickness(0, 0, 6, 0);
             }
 
-            // The collapsed rail is 42 wide and the button is 30, so a 6px margin on each side
-            // needs exactly 42 — nothing left for layout rounding at fractional UI scales, and
-            // WPF answers an overflow with a square layout clip that shears the right edge off
-            // the rounded hover plate. Collapsed, the horizontal margin goes away and centring
-            // places the button instead: same spot on screen, 12px of slack behind it.
+            // Свёрнутая колонка шириной 42, кнопка — 30, и поля по 6 съедают ровно 42: на округление
+            // при дробном масштабе не остаётся ничего, а переполнение WPF обрезает квадратом и
+            // срезает правый край скруглённой подсветки. В свёрнутой колонке полей нет, кнопку
+            // ставит центровка: то же место на экране и 12 точек запаса.
             SidebarLogoButton.HorizontalAlignment = collapsed
                 ? HorizontalAlignment.Center
                 : HorizontalAlignment.Left;
