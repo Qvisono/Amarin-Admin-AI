@@ -62,6 +62,9 @@ namespace Amarin.UI
         private System.Windows.Shapes.Path? _modelButtonLightning;
         private TextBlock? _modelButtonLetter;
         private bool _settingsUiLoading;
+
+        /// <summary>Окно закрыто: отложенная работа, догнавшая его после закрытия, отступает.</summary>
+        private bool _windowClosed;
         private bool _stickToBottom = true;
         private bool _autoScrolling;
 
@@ -225,6 +228,7 @@ namespace Amarin.UI
 
             Closed += (_, _) =>
             {
+                _windowClosed = true;
                 if (Application.Current is { } current)
                 {
                     current.SessionEnding -= OnSessionEnding;
@@ -344,8 +348,16 @@ namespace Amarin.UI
             // миллисекунд (девять плашек моделей, десять пикеров размышления, библиотека
             // заготовок, список доменов) и целиком уходит в то, чего на экране ещё нет.
             // Повторный вызов из SettingsButton_Click был здесь и раньше, так что открыть
-            // настройки раньше, чем фон догонит, безопасно.
-            Dispatcher.BeginInvoke(new Action(LoadSettingsUi), DispatcherPriority.Background);
+            // настройки раньше, чем фон догонит, безопасно. Окно, закрытое раньше, чем фон
+            // догнал, страницы не наполняет: углы окна просят дескриптор, а у закрытого окна его
+            // уже не создать — оконные тесты закрывают свои окна сразу и ловили здесь исключение.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!_windowClosed)
+                {
+                    LoadSettingsUi();
+                }
+            }), DispatcherPriority.Background);
 
             // Прошлый сеанс мог не дописать перешифровку чатов (закрыли посреди) — доводим в фоне.
             Detached.Run(_services.ChatStore.EnsureFormat(), "chat_reformat");
