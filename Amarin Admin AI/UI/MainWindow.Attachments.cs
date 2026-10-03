@@ -351,7 +351,7 @@ namespace Amarin.UI
 
             // Подпись хода живёт здесь же: строка под композером одна, и два источника,
             // независимо дёргающие её видимость, гасили друг друга.
-            if (_composerNotices.TryGetValue(_session.Id, out var notice) &&
+            if (Turns.NoticeFor(_session.Id) is { } notice &&
                 !string.IsNullOrWhiteSpace(notice))
             {
                 notes.Add(notice);

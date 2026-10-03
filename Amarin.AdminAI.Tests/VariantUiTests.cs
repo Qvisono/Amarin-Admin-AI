@@ -284,18 +284,12 @@ public sealed class VariantUiTests : IDisposable
             Open(harness.Window, session);
             var switcher = Switcher(harness.Window, "a1b");
 
-            var turns = Get<Dictionary<string, RunningTurn>>(harness.Window, "_turns");
-            turns[session.Id] = new RunningTurn
-            {
-                Session = session,
-                Cancellation = new CancellationTokenSource(),
-                Kind = TurnKind.Send,
-                StartedAt = DateTime.Now
-            };
+            var turn = harness.Window.Turns.TryStart(session, TurnKind.Send, DateTime.Now).Turn
+                       ?? throw new InvalidOperationException("ход не завёлся");
             Call(harness.Window, "UpdateComposerChrome");
             var enabledDuring = switcher.IsEnabled;
 
-            turns.Remove(session.Id);
+            harness.Window.Turns.Finish(turn);
             Call(harness.Window, "UpdateComposerChrome");
             return (enabledDuring, switcher.IsEnabled);
         });

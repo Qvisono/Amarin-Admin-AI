@@ -1,56 +1,45 @@
 using System.Runtime.Versioning;
 using System.Windows;
+using System.Windows.Threading;
 using Amarin.Core;
 
 namespace Amarin.UI
 {
     /// <summary>
-    /// Реестр идущих ходов: по одному на чат, несколько одновременно.
+    /// Ходы чатов в окне: старт, конец, отмена — и то, что из этого рисуется.
     /// </summary>
     /// <remarks>
-    /// Раньше ход был ровно один и жил полями окна (<c>_busy</c>, <c>_turnCts</c>), а переключение
-    /// чата его отменяло. Реестр живёт в окне, а не отдельным сервисом: и все точки старта, и все
-    /// точки финиша — методы окна, так что сервис пришлось бы связывать двусторонним интерфейсом
-    /// с единственным потребителем. Словарь читается и меняется только с потока диспетчера.
-    /// <para>
-    /// «По одному на чат» осталось в силе и после того, как в идущий ход разрешили дописывать:
-    /// новое сообщение не заводит второй <see cref="RunningTurn"/>, а встаёт в очередь этого же
-    /// (<see cref="RunningTurn.Enqueue"/>) и вливается в контекст на границе раунда. Стенограмма
-    /// <c>ApiMessages</c> от этого остаётся линейной — два хода вперемешку дали бы историю,
-    /// которую не прочитают ни человек, ни модель.
-    /// </para>
+    /// Состояние и решения — в <see cref="TurnRegistry"/> (Core): какие ходы идут, сколько можно
+    /// сразу, у каких чатов метка «ответ готов», чья подпись под композером. Окно рисует по нему и
+    /// подаёт нажатия; до 1.30.0 всё это было его полями, и проверить их можно было только
+    /// оконным тестом через отражение.
     /// </remarks>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow
     {
-        /// <summary>
-        /// Сколько ответов может идти одновременно.
-        /// </summary>
-        /// <remarks>
-        /// Не настройка и не «сколько угодно»: каждый ход способен поднять до четырёх агентов, а
-        /// <see cref="AgentSlotLimiter.MaxAgents"/> — общий на программу, и каждый агент гоняет
-        /// PowerShell по этой же машине. При неограниченном числе ходов очередь подтверждений
-        /// наполнялась бы вопросами из чатов, о которых человек уже забыл.
-        /// </remarks>
-        internal const int MaxParallelTurns = 3;
+        private TurnRegistry? _turnRegistry;
+        private ChatPersistQueue? _persistQueue;
 
-        private readonly Dictionary<string, RunningTurn> _turns = [];
-
-        /// <summary>Чаты, которые ждут отложенной записи на диск.</summary>
-        private readonly Dictionary<string, ChatSession> _dirtySessions = [];
+        /// <summary>Идущие ходы, метки «ответ готов», подписи под композером.</summary>
+        internal TurnRegistry Turns => _turnRegistry ??= new TurnRegistry(
+            () => _services?.Confirmations,
+            () => _services?.PlanReviews);
 
         /// <summary>
-        /// Чаты, в которых ответ доспел, пока смотрели другой.
+        /// Отложенная запись чатов идущих ходов. Срабатывание таймера возвращается фоновым
+        /// приоритетом — как у прежнего <c>DispatcherTimer</c>: запись не вклинивается перед
+        /// отрисовкой и вводом.
         /// </summary>
-        /// <remarks>
-        /// Полем окна, а не на самой строке списка: <see cref="RefreshChatList"/> пересобирает
-        /// панель целиком, и всё, что лежало бы на кнопке, пропадало бы при первой же перерисовке.
-        /// По той же причине набор входит в <see cref="BuildChatListSignature"/> — иначе панель
-        /// сочла бы, что ничего не изменилось, и не перерисовалась бы вовсе.
-        /// </remarks>
-        private readonly HashSet<string> _attention = new(StringComparer.Ordinal);
+        private ChatPersistQueue PersistQueue => _persistQueue ??= new ChatPersistQueue(
+            () => _services?.ChatStore,
+            RefreshChatList,
+            action => Dispatcher.InvokeAsync(action, DispatcherPriority.Background));
 
         /// <summary>Зажечь метку «ответ готов» — только если чат сейчас не на экране.</summary>
+        /// <remarks>
+        /// Набор входит в <see cref="BuildChatListSignature"/> — иначе панель сочла бы, что ничего не
+        /// изменилось, и не перерисовалась бы вовсе.
+        /// </remarks>
         private void MarkAttention(RunningTurn turn)
         {
             if (IsVisibleTurn(turn))
@@ -58,7 +47,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_attention.Add(turn.SessionId))
+            if (Turns.MarkAttention(turn.SessionId))
             {
                 RefreshChatList();
             }
@@ -68,29 +57,18 @@ namespace Amarin.UI
         /// Забыть метку удалённого чата. Без этого его идентификатор остался бы в наборе до
         /// перезапуска: список чатов фильтруется поиском, и вычистить набор по нему нельзя.
         /// </summary>
-        private void ForgetAttention(string sessionId) => _attention.Remove(sessionId);
-
-        /// <summary>
-        /// Короткая подпись под композером — по чату, в котором её вызвали.
-        /// </summary>
-        /// <remarks>
-        /// Подпись одна на окно, а чатов много: «отправлено, учту» из одного разговора висела над
-        /// всеми остальными и не гасла, потому что гасить её было некому. Здесь она привязана к
-        /// чату, показывается только в нём и снимается в тот момент, когда ход забрал сообщение.
-        /// </remarks>
-        private readonly Dictionary<string, string> _composerNotices = [];
+        private void ForgetAttention(string sessionId) => Turns.ForgetAttention(sessionId);
 
         /// <summary>Листаются ли варианты ответа в открытом чате: пока он отвечает — нет.</summary>
         private readonly VariantGate _variantGate = new();
 
         /// <summary>Идёт ли ход в этом чате. В одном чате больше одного хода не бывает.</summary>
-        internal bool IsBusy(string sessionId) => _turns.ContainsKey(sessionId);
+        internal bool IsBusy(string sessionId) => Turns.IsBusy(sessionId);
 
         /// <summary>Занята ли программа целиком — обновлением, сменой профиля.</summary>
-        internal bool AnyTurnRunning => _turns.Count > 0;
+        internal bool AnyTurnRunning => Turns.AnyRunning;
 
-        internal RunningTurn? FindTurn(string sessionId) =>
-            _turns.TryGetValue(sessionId, out var turn) ? turn : null;
+        internal RunningTurn? FindTurn(string sessionId) => Turns.Find(sessionId);
 
         private bool IsVisibleTurn(RunningTurn turn) =>
             string.Equals(turn.SessionId, _session.Id, StringComparison.Ordinal);
@@ -98,31 +76,28 @@ namespace Amarin.UI
         /// <summary>
         /// Общий каркас хода: проверки, регистрация, работа движка, снятие с учёта.
         /// </summary>
-        private async Task RunTurnAsync(
+        internal async Task RunTurnAsync(
             ChatSession session,
             TurnKind kind,
             Func<ChatSession, IChatTurnObserver, CancellationToken, Task> work)
         {
-            if (_services is null || IsBusy(session.Id))
+            if (_services is null)
             {
                 return;
             }
 
-            if (_turns.Count >= MaxParallelTurns)
+            var start = Turns.TryStart(session, kind, DateTime.Now);
+            if (start.Refusal == TurnRefusal.LimitReached)
             {
                 ShowTurnLimitNotice();
                 return;
             }
 
-            var turn = new RunningTurn
+            if (start.Turn is not { } turn)
             {
-                Session = session,
-                Cancellation = new CancellationTokenSource(),
-                Kind = kind,
-                StartedAt = DateTime.Now
-            };
+                return;
+            }
 
-            _turns[session.Id] = turn;
             UpdateComposerChrome();
             RefreshChatList();
 
@@ -134,13 +109,8 @@ namespace Amarin.UI
 
             try
             {
-                // Цель чата (C10) — на весь ход: её видят шлюз, агент, исполнитель PowerShell и аудит.
-                // «Только чтение» у этого чата (D9) — тем же ambient, что у прогонов по расписанию:
-                // его видят и шлюз чата, и агенты, запущенные из хода.
-                // Счётчик лимитов (E1) — тоже на весь ход: потолок хода считается вместе с агентами.
-                using (ExecutionTarget.Push(_services?.Machines.Find(session.TargetMachineId)))
-                using (session.ReadOnly ? ToolGate.ForceReadOnly() : null)
-                using (SpendScope.Push(new SpendMeter()))
+                // Цель чата, «только чтение» и счётчик лимитов — на весь ход (см. TurnScopes).
+                using (TurnScopes.Enter(session, _services?.Machines.Find(session.TargetMachineId)))
                 {
                     await work(session, router, turn.Cancellation.Token);
                 }
@@ -159,29 +129,21 @@ namespace Amarin.UI
             }
         }
 
-        /// <summary>Снимает ход с учёта. Единственное место, через которое проходит любой конец.</summary>
-        private void FinishTurn(RunningTurn turn)
+        /// <summary>
+        /// Снимает ход с учёта (<see cref="TurnRegistry.Finish"/>) и приводит окно в порядок.
+        /// Единственное место, через которое проходит любой конец.
+        /// </summary>
+        internal void FinishTurn(RunningTurn turn)
         {
-            if (!_turns.TryGetValue(turn.SessionId, out var registered) || !ReferenceEquals(registered, turn))
+            var hadNotice = Turns.NoticeFor(turn.SessionId) is not null;
+            if (!Turns.Finish(turn))
             {
                 return;
             }
 
-            _turns.Remove(turn.SessionId);
-            turn.Finished = true;
-
-            // «Разрешить до конца ответа» заканчивается вместе с ответом.
-            _services?.Confirmations.EndTurn(turn.SessionId);
-            RescueQueued(turn);
-            ClearComposerNotice(turn.SessionId);
-
-            try
+            if (hadNotice)
             {
-                turn.Cancellation.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Уже освобождён отменой — ничего страшного.
+                UpdateAttachmentWarning();
             }
 
             if (IsVisibleTurn(turn))
@@ -206,61 +168,9 @@ namespace Amarin.UI
             }
         }
 
-        /// <summary>
-        /// Дописанное, до чего ход не дожил, кладётся в стенограмму прямо здесь.
-        /// </summary>
-        /// <remarks>
-        /// Пузырь такого сообщения человек уже видит: он рисуется в момент отправки. Если ход
-        /// оборвали (отмена, сбой сети) раньше, чем движок забрал строку, она пропала бы только
-        /// из контекста — на экране осталась бы, и следующий ответ выглядел бы так, будто модель
-        /// её прочитала и пропустила мимо ушей.
-        /// </remarks>
-        private static void RescueQueued(RunningTurn turn)
-        {
-            while (turn.TryTakeQueued(out var text))
-            {
-                if (string.IsNullOrWhiteSpace(text))
-                {
-                    continue;
-                }
+        private void CancelTurn(string sessionId) => Turns.Cancel(sessionId);
 
-                turn.Session.ApiMessages.Add(new ChatMessage
-                {
-                    Role = "user",
-                    Content = ChatContent.Text(text.Trim())
-                });
-            }
-        }
-
-        private void CancelTurn(string sessionId)
-        {
-            if (!_turns.TryGetValue(sessionId, out var turn))
-            {
-                return;
-            }
-
-            try
-            {
-                turn.Cancellation.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ход мог завершиться сам и освободить CancellationTokenSource.
-            }
-
-            _services?.Confirmations.CancelForSession(sessionId);
-            _services?.PlanReviews.CancelForSession(sessionId);
-        }
-
-        private void CancelAllTurns()
-        {
-            foreach (var sessionId in _turns.Keys.ToArray())
-            {
-                CancelTurn(sessionId);
-            }
-
-            _services?.Confirmations.CancelAll();
-        }
+        private void CancelAllTurns() => Turns.CancelAll();
 
         /// <summary>
         /// Заполненность контекста открытого чата. Считается на месте, а не хранится: число
@@ -311,7 +221,7 @@ namespace Amarin.UI
         }
 
         private void ShowTurnLimitNotice() => ShowComposerNotice(
-            Loc.Format("S.Turn.LimitReached", MaxParallelTurns));
+            Loc.Format("S.Turn.LimitReached", TurnRegistry.MaxParallel));
 
         /// <summary>
         /// Короткое сообщение под полем ввода. Модалка здесь была бы перебором: это не ошибка,
@@ -319,14 +229,14 @@ namespace Amarin.UI
         /// </summary>
         private void ShowComposerNotice(string text)
         {
-            _composerNotices[_session.Id] = text;
+            Turns.ShowNotice(_session.Id, text);
             UpdateAttachmentWarning();
         }
 
         /// <summary>Снимает подпись того чата, которому она принадлежала.</summary>
         private void ClearComposerNotice(string sessionId)
         {
-            if (_composerNotices.Remove(sessionId))
+            if (Turns.ClearNotice(sessionId))
             {
                 UpdateAttachmentWarning();
             }
@@ -425,40 +335,13 @@ namespace Amarin.UI
             FocusMessageInput();
         }
 
-        private void Persist(ChatSession session)
-        {
-            if (_services is null || string.IsNullOrWhiteSpace(session.Id) || session.Messages.Count == 0)
-            {
-                return;
-            }
-
-            _dirtySessions.Remove(session.Id);
-
-            // Возвращается сразу: сериализация и диск живут в фоновой задаче хранилища. Прежде
-            // здесь же, на потоке диспетчера, весь чат с картинками сериализовался, вычитывался
-            // обратно ради сравнения и переписывался вместе с описью — по два раза в секунду,
-            // пока модель отвечает.
-            _services.ChatStore.Save(session);
-            RefreshChatList();
-        }
+        private void Persist(ChatSession session) => PersistQueue.Persist(session);
 
         private void PersistCurrent() => Persist(_session);
 
-        private void SchedulePersist(ChatSession session)
-        {
-            _dirtySessions[session.Id] = session;
-            _saveTimer.Stop();
-            _saveTimer.Start();
-        }
+        private void SchedulePersist(ChatSession session) => PersistQueue.Schedule(session);
 
         /// <summary>Пишет все накопившиеся чаты одним проходом, с потока диспетчера.</summary>
-        private void FlushPendingPersists()
-        {
-            _saveTimer.Stop();
-            foreach (var session in _dirtySessions.Values.ToArray())
-            {
-                Persist(session);
-            }
-        }
+        private void FlushPendingPersists() => PersistQueue.Flush();
     }
 }

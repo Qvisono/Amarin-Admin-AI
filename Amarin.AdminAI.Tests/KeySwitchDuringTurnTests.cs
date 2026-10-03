@@ -30,39 +30,26 @@ public sealed class KeySwitchDuringTurnTests
     private static MainWindow Window() =>
         Application.Current.Windows.OfType<MainWindow>().Single();
 
-    private static Dictionary<string, RunningTurn> Turns(MainWindow window) =>
-        (Dictionary<string, RunningTurn>)typeof(MainWindow)
-            .GetField("_turns", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(window)!;
-
     /// <summary>Заводит живой ход и убирает его, что бы ни случилось внутри.</summary>
     private T WithRunningTurn<T>(Func<MainWindow, T> body) => _wpf.Ui.Invoke(() =>
     {
         var window = Window();
-        var turns = Turns(window);
-        var turn = new RunningTurn
+        var session = new ChatSession
         {
-            Session = new ChatSession
-            {
-                Id = "turn-guard",
-                Title = "Чат",
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            },
-            Cancellation = new CancellationTokenSource(),
-            Kind = TurnKind.Send,
-            StartedAt = DateTime.Now
+            Id = "turn-guard",
+            Title = "Чат",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
-
-        turns["turn-guard"] = turn;
+        var turn = window.Turns.TryStart(session, TurnKind.Send, DateTime.Now).Turn
+                   ?? throw new InvalidOperationException("ход не завёлся");
         try
         {
             return body(window);
         }
         finally
         {
-            turns.Remove("turn-guard");
-            turn.Cancellation.Dispose();
+            window.Turns.Finish(turn);
         }
     });
 

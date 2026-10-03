@@ -176,15 +176,12 @@ public sealed class ChatRowAttentionTests
             };
             panel.Children.Add(row);
 
-            var attention = (HashSet<string>)typeof(MainWindow)
-                .GetField("_attention", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(window)!;
             var refresh = typeof(MainWindow).GetMethod(
                 "RefreshChatRowStates", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
             try
             {
-                attention.Add("чат-которого-нет");
+                window.Turns.MarkAttention("чат-которого-нет");
                 refresh.Invoke(window, null);
                 var lit = ChatRowState.GetNeedsAttention(row);
 
@@ -193,7 +190,7 @@ public sealed class ChatRowAttentionTests
             }
             finally
             {
-                attention.Remove("чат-которого-нет");
+                window.Turns.ForgetAttention("чат-которого-нет");
                 panel.Children.Remove(row);
             }
         });

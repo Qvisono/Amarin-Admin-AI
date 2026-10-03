@@ -130,9 +130,6 @@ public sealed class ParallelChatUiTests : IDisposable
             .Single(m => m.Name == method && m.GetParameters().Length == args.Length)
             .Invoke(window, args);
 
-    private static Dictionary<string, RunningTurn> Turns(MainWindow window) =>
-        Get<Dictionary<string, RunningTurn>>(window, "_turns");
-
     private static ChatSession Session(string id, string title = "Чат")
     {
         var session = new ChatSession
@@ -147,18 +144,9 @@ public sealed class ParallelChatUiTests : IDisposable
     }
 
     /// <summary>Регистрирует ход вручную — так проверяется UI, не поднимая движок.</summary>
-    private static RunningTurn Register(MainWindow window, ChatSession session, DateTime? startedAt = null)
-    {
-        var turn = new RunningTurn
-        {
-            Session = session,
-            Cancellation = new CancellationTokenSource(),
-            Kind = TurnKind.Send,
-            StartedAt = startedAt ?? DateTime.Now
-        };
-        Turns(window)[session.Id] = turn;
-        return turn;
-    }
+    private static RunningTurn Register(MainWindow window, ChatSession session, DateTime? startedAt = null) =>
+        window.Turns.TryStart(session, TurnKind.Send, startedAt ?? DateTime.Now).Turn
+        ?? throw new InvalidOperationException("ход не завёлся: " + session.Id);
 
     // ───────────────────────── тесты ─────────────────────────
 
@@ -177,9 +165,9 @@ public sealed class ParallelChatUiTests : IDisposable
                 var session = Session("s1");
                 Set(harness.Window, "_session", session);
 
-                var running = (Task)Call(harness.Window, "RunTurnAsync", session, TurnKind.Send,
+                var running = harness.Window.RunTurnAsync(session, TurnKind.Send,
                     (Func<ChatSession, IChatTurnObserver, CancellationToken, Task>)((chat, observer, token) =>
-                        harness.Services.Chat.RunTurnAsync(chat, "привет", observer, token)))!;
+                        harness.Services.Chat.RunTurnAsync(chat, "привет", observer, token)));
 
                 var during = harness.Window.IsBusy("s1");
                 release.SetResult();
@@ -349,7 +337,7 @@ public sealed class ParallelChatUiTests : IDisposable
                 var turn = Register(harness.Window, background);
 
                 var before = Get<AssistantMessageView?>(harness.Window, "_liveAssistant");
-                Call(harness.Window, "FinishTurn", turn);
+                harness.Window.FinishTurn(turn);
 
                 // Ход снят, но вьюшка открытого чата не тронута и каретку никто не дёргал.
                 return (harness.Window.IsBusy("s1"), ReferenceEquals(
@@ -426,9 +414,9 @@ public sealed class ParallelChatUiTests : IDisposable
                 Register(harness.Window, chat);
 
                 var before = chat.Messages.Count;
-                var task = (Task)Call(harness.Window, "RunTurnAsync", chat, TurnKind.Send,
+                var task = harness.Window.RunTurnAsync(chat, TurnKind.Send,
                     (Func<ChatSession, IChatTurnObserver, CancellationToken, Task>)((session, observer, token) =>
-                        harness.Services.Chat.RunTurnAsync(session, "ещё", observer, token)))!;
+                        harness.Services.Chat.RunTurnAsync(session, "ещё", observer, token)));
                 Pump(task);
 
                 return chat.Messages.Count - before;
@@ -444,16 +432,16 @@ public sealed class ParallelChatUiTests : IDisposable
             (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
             harness =>
             {
-                for (var i = 0; i < MainWindow.MaxParallelTurns; i++)
+                for (var i = 0; i < TurnRegistry.MaxParallel; i++)
                 {
                     Register(harness.Window, Session("busy" + i));
                 }
 
                 var extra = Session("extra");
                 Set(harness.Window, "_session", extra);
-                var task = (Task)Call(harness.Window, "RunTurnAsync", extra, TurnKind.Send,
+                var task = harness.Window.RunTurnAsync(extra, TurnKind.Send,
                     (Func<ChatSession, IChatTurnObserver, CancellationToken, Task>)((session, observer, token) =>
-                        harness.Services.Chat.RunTurnAsync(session, "привет", observer, token)))!;
+                        harness.Services.Chat.RunTurnAsync(session, "привет", observer, token)));
                 Pump(task);
 
                 var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
@@ -547,7 +535,7 @@ public sealed class ParallelChatUiTests : IDisposable
                 Call(harness.Window, "QueueFollowUp", "и ещё про диск D", false);
 
                 // Ход обрывается раньше, чем движок дошёл до границы раунда.
-                Call(harness.Window, "FinishTurn", turn);
+                harness.Window.FinishTurn(turn);
 
                 var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
                 return (chat.ApiMessages.Select(m => ChatContent.ReadText(m.Content)).ToList(), warning.Text);

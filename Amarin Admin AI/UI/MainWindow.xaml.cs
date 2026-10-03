@@ -16,12 +16,11 @@ namespace Amarin.UI
         private bool _sidebarCollapsed;
 
         /// <summary>
-        /// Вьюшка ответа в открытом чате. Состояние самого хода живёт в <c>_turns</c>: у окна
+        /// Вьюшка ответа в открытом чате. Состояние самого хода живёт в <see cref="Turns"/>: у окна
         /// один экран, а ходов может идти несколько.
         /// </summary>
         private AssistantMessageView? _liveAssistant;
         private readonly DispatcherTimer _workingTimer = new() { Interval = TimeSpan.FromSeconds(1) };
-        private readonly DispatcherTimer _saveTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
 
         // Разметку в живом ответе пересобираем по таймеру, а не на каждую дельту: полная
         // перестройка FlowDocument десятки раз в секунду съела бы UI-поток.
@@ -174,7 +173,6 @@ namespace Amarin.UI
 
             _workingTimer.Tick += (_, _) => UpdateWorkingClock();
             _streamRender.Tick += (_, _) => FlushStreamText();
-            _saveTimer.Tick += (_, _) => FlushPendingPersists();
 
             Loaded += OnWindowLoaded;
             Activated += (_, _) => OnWindowActivated();
@@ -236,6 +234,7 @@ namespace Amarin.UI
 
                 StopUpdateHeartbeat();
                 CancelAllTurns();
+                _persistQueue?.Dispose();
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
                 LanguageManager.LanguageChanged -= RelocalizeUi;
                 DownloadAccessBroker.SetHandler(null);
@@ -511,7 +510,7 @@ namespace Amarin.UI
 
             CancelAllTurns();
             _services.ChatStore.DeleteAll();
-            _attention.Clear();
+            Turns.ForgetAllAttention();
             StartNewSession(persist: false);
             RefreshChatList();
         }
@@ -2490,7 +2489,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_turns.Count >= MaxParallelTurns)
+            if (!Turns.HasRoom)
             {
                 ShowTurnLimitNotice();
                 return;
@@ -2770,7 +2769,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (_turns.Count >= MaxParallelTurns)
+            if (!Turns.HasRoom)
             {
                 ShowTurnLimitNotice();
                 return;
@@ -3039,7 +3038,7 @@ namespace Amarin.UI
             Flip(row, ChatRowState.IsActiveProperty,
                 string.Equals(sessionId, _session.Id, StringComparison.Ordinal));
             Flip(row, ChatRowState.IsWorkingProperty, IsBusy(sessionId));
-            Flip(row, ChatRowState.NeedsAttentionProperty, _attention.Contains(sessionId));
+            Flip(row, ChatRowState.NeedsAttentionProperty, Turns.NeedsAttention(sessionId));
             Flip(row, ChatRowState.IsSelectedProperty, _selectedChats.Contains(sessionId));
         }
 
@@ -3137,7 +3136,7 @@ namespace Amarin.UI
 
             // Метку «ответ готов» снимаем до загрузки: RefreshChatList ниже уже нарисует строку
             // без неё, и лишней перерисовки не будет.
-            _attention.Remove(id);
+            Turns.ForgetAttention(id);
 
             // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
             // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.

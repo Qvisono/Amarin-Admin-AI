@@ -196,7 +196,7 @@ namespace Amarin.UI
             timer.Tick += (_, _) =>
             {
                 timer.Stop();
-                if (_composerNotices.TryGetValue(sessionId, out var shown) && shown == text && !IsBusy(sessionId))
+                if (Turns.NoticeFor(sessionId) == text && !IsBusy(sessionId))
                 {
                     ClearComposerNotice(sessionId);
                 }

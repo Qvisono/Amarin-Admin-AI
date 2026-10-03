@@ -36,7 +36,7 @@ namespace Amarin.UI
                 return;
             }
 
-            var running = _turns.Count;
+            var running = Turns.Count;
             var text = Loc.Get("S.Elevation.Text");
             if (running > 0)
             {

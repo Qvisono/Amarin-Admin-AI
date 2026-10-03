@@ -229,7 +229,7 @@ namespace Amarin.UI
 
             var waiting = _services.Confirmations.PendingCount;
             var state = waiting > 0 ? TrayState.Waiting
-                : _turns.Count > 0 ? TrayState.Busy
+                : Turns.AnyRunning ? TrayState.Busy
                 : _trayError ? TrayState.Error
                 : TrayState.Idle;
             _tray.SetState(state, TrayTip());
@@ -239,7 +239,7 @@ namespace Amarin.UI
         {
             var waiting = _services?.Confirmations.PendingCount ?? 0;
             return waiting > 0 ? Loc.Format("S.Windows.TipWaiting", waiting)
-                : _turns.Count > 0 ? Loc.Format("S.Windows.TipBusy", _turns.Count)
+                : Turns.AnyRunning ? Loc.Format("S.Windows.TipBusy", Turns.Count)
                 : "Amarin Admin AI";
         }
 

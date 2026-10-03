@@ -39,7 +39,7 @@ namespace Amarin.UI
         /// <summary>Открытый чат и чаты, где идёт ход.</summary>
         private IReadOnlySet<string> BusyChatIds()
         {
-            var busy = new HashSet<string>(_turns.Keys, StringComparer.Ordinal) { _session.Id };
+            var busy = new HashSet<string>(Turns.RunningChatIds, StringComparer.Ordinal) { _session.Id };
             return busy;
         }
 
