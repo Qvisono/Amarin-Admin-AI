@@ -48,7 +48,12 @@ public sealed class ChatStore
     /// <summary>Набор вложений, записанный у чата последним: убирать сирот — только когда он сменился.</summary>
     private readonly Dictionary<string, string> _blobSets = new(StringComparer.Ordinal);
 
-    private string? _pendingIndex;
+    /// <summary>
+    /// Опись изменилась и ждёт записи. Флаг, а не готовый текст: сериализация описи (сотни
+    /// строк) шла в <see cref="Save"/>, то есть на потоке окна на каждое сохранение хода, —
+    /// теперь её делает фоновая запись, один раз на сколько угодно правок подряд.
+    /// </summary>
+    private bool _indexDirty;
     private bool _draining;
 
     /// <summary>
@@ -167,7 +172,7 @@ public sealed class ChatStore
             Task drain;
             lock (_gate)
             {
-                if (!_draining && _pendingChats.Count == 0 && _pendingIndex is null)
+                if (!_draining && _pendingChats.Count == 0 && !_indexDirty)
                 {
                     return;
                 }
@@ -189,6 +194,7 @@ public sealed class ChatStore
         {
             _index = null;
             _sorted = null;
+            _indexDirty = false;
             _written.Clear();
         }
     }
@@ -508,10 +514,17 @@ public sealed class ChatStore
 
     private void SaveIndexLocked(ChatIndex index)
     {
-        index.Items = [.. Sort(index.Items)];
         _index = index;
         _sorted = null;
-        _pendingIndex = JsonSerializer.Serialize(index, AppJson.Options) + Environment.NewLine;
+        _indexDirty = true;
+    }
+
+    /// <summary>Текст описи для записи — в порядке показа, как и прежде. Под замком хранилища.</summary>
+    private string SerializeIndexLocked()
+    {
+        var index = LoadIndexLocked();
+        index.Items = [.. Sort(index.Items)];
+        return JsonSerializer.Serialize(index, AppJson.Options) + Environment.NewLine;
     }
 
     private static List<ChatIndexEntry> Sort(IEnumerable<ChatIndexEntry> items) =>
@@ -525,7 +538,7 @@ public sealed class ChatStore
     {
         lock (_gate)
         {
-            if (_draining || (_pendingChats.Count == 0 && _pendingIndex is null))
+            if (_draining || (_pendingChats.Count == 0 && !_indexDirty))
             {
                 return;
             }
@@ -565,8 +578,8 @@ public sealed class ChatStore
 
             lock (_gate)
             {
-                indexJson = _pendingIndex;
-                _pendingIndex = null;
+                indexJson = _indexDirty ? SerializeIndexLocked() : null;
+                _indexDirty = false;
 
                 if (indexJson is null)
                 {

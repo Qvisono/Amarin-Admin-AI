@@ -107,6 +107,43 @@ public sealed class ChatStoreCacheTests
     }
 
     [Fact]
+    public void The_index_on_disk_is_the_last_one_and_in_display_order()
+    {
+        // С 1.30.0 опись сериализует фоновая запись, а не Save на потоке окна: на диск обязана
+        // лечь последняя правка и в том же порядке, что и прежде, — закреплённые, затем свежие.
+        var root = NewTempRoot();
+        try
+        {
+            var store = new ChatStore(root);
+            var old = Seed(store, "Старый");
+            old.UpdatedAt = new DateTime(2026, 1, 1);
+            store.Save(old);
+            var fresh = Seed(store, "Свежий");
+            fresh.UpdatedAt = new DateTime(2026, 9, 1);
+            store.Save(fresh);
+            var pinned = Seed(store, "Закреплённый");
+            pinned.UpdatedAt = new DateTime(2025, 1, 1);
+            store.Save(pinned);
+            store.SetPinned(pinned.Id, true);
+            fresh.Title = "Свежий, переименованный";
+            store.Save(fresh);
+            store.Flush();
+
+            var onDisk = System.Text.Json.JsonSerializer.Deserialize<ChatIndex>(
+                File.ReadAllText(Path.Combine(root, "chats", "index.json")), AppJson.Options);
+
+            Assert.NotNull(onDisk);
+            Assert.Equal([pinned.Id, fresh.Id, old.Id], onDisk.Items.Select(item => item.Id));
+            Assert.Equal("Свежий, переименованный", onDisk.Items[1].Title);
+            Assert.Equal(onDisk.Items.Select(item => item.Id), new ChatStore(root).List().Select(item => item.Id));
+        }
+        finally
+        {
+            Cleanup(root);
+        }
+    }
+
+    [Fact]
     public void A_chat_that_has_not_reached_the_disk_yet_still_loads()
     {
         var root = NewTempRoot();
