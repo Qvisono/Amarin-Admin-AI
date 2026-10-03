@@ -21,31 +21,19 @@ namespace Amarin.UI
             }
 
             services.SpendGuard.Ask = AskSpendAsync;
-            services.SpendGuard.Warned = breach => Ui(() => NotifyStatus(
-                Loc.Format("S.Limit.Warn", SpendRules.KindName(breach.Kind), SpendRules.Money(breach.Spent), SpendRules.Money(breach.Limit))));
+            services.SpendGuard.Warned = breach => Ui(() => NotifyStatus(SpendPrompts.Warning(breach)));
         }
 
         /// <summary>Остаток перешёл порог вниз (E4).</summary>
-        private void OnBalanceAlert(BalanceAlert alert)
-        {
-            var text = alert.KeyLabel is { } key
-                ? Loc.Format("S.Balance.AlertKey", key, SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold))
-                : Loc.Format(alert.Level == BalanceLevel.Critical ? "S.Balance.AlertCritical" : "S.Balance.AlertLow",
-                    SpendRules.Money(alert.Usd), SpendRules.Money(alert.Threshold));
-            NotifyStatus(text);
-        }
+        private void OnBalanceAlert(BalanceAlert alert) => NotifyStatus(SpendPrompts.BalanceAlert(alert));
 
         /// <summary>Вопрос человеку. True — продолжать ход.</summary>
         private Task<bool> AskSpendAsync(SpendQuestion question, CancellationToken cancellationToken) =>
             Dispatcher.InvokeAsync(() => AskSpendOnUiAsync(question, cancellationToken)).Task.Unwrap();
 
-        private async Task<bool> AskSpendOnUiAsync(SpendQuestion question, CancellationToken cancellationToken)
+        internal async Task<bool> AskSpendOnUiAsync(SpendQuestion question, CancellationToken cancellationToken)
         {
-            var breach = question.Breach;
-            var turn = breach.Kind == SpendLimitKind.Turn;
-            var text = turn
-                ? Loc.Format("S.Limit.TurnAsk", SpendRules.Money(question.TurnSpent), SpendRules.Money(breach.Limit))
-                : Loc.Format("S.Limit.PeriodAsk", SpendRules.KindName(breach.Kind), SpendRules.Money(breach.Limit), SpendRules.Money(breach.Spent));
+            var prompt = SpendPrompts.Question(question);
 
             // «Изменить лимиты» — ссылкой под текстом, а не третьей кнопкой: окно уведомлений
             // умеет две, а поднять лимит — не ответ на вопрос, а уход туда, где его решают.
@@ -57,8 +45,8 @@ namespace Amarin.UI
             };
 
             var answer = ShowNoticeAsync(
-                Loc.Get(turn ? "S.Limit.TurnTitle" : "S.Limit.PeriodTitle"),
-                text,
+                prompt.Title,
+                prompt.Text,
                 Loc.Get("S.Limit.Continue"),
                 Loc.Get("S.Limit.Stop"),
                 NoticeTone.Warning,

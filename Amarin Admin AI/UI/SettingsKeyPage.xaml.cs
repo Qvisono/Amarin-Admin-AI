@@ -124,7 +124,7 @@ public partial class SettingsKeyPage : UserControl
         Dispatcher.BeginInvoke(() => SettingsDrill.Open(LimitsSub), System.Windows.Threading.DispatcherPriority.Loaded);
 
     private void ShowLimitsSummary() =>
-        LimitsLinkRow.Tag = SpendLimitsBlock.Summary(_services?.Settings.SpendLimits);
+        LimitsLinkRow.Tag = SpendPrompts.LimitsSummary(_services?.Settings.SpendLimits);
 
     // ───────────────────────── траты ─────────────────────────
 

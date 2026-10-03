@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -82,7 +81,6 @@ public sealed class SpendLimitsUiTests : IDisposable
     public async Task The_question_answers_continue_and_change_limits_answers_no_and_opens_the_page()
     {
         var question = new SpendQuestion(new SpendBreach(SpendLimitKind.ProfileDay, 1m, 1.2m), 0.4m);
-        var method = typeof(MainWindow).GetMethod("AskSpendOnUiAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         MainWindow? window = null;
         try
         {
@@ -90,7 +88,7 @@ public sealed class SpendLimitsUiTests : IDisposable
             {
                 window = new MainWindow();
                 window.AttachServices(UiServices.Build(_root, "k", new HttpClientHandler()));
-                return (Task<bool>)method.Invoke(window, [question, CancellationToken.None])!;
+                return window.AskSpendOnUiAsync(question, CancellationToken.None);
             });
             _wpf.Ui.Invoke(() =>
             {
@@ -99,7 +97,7 @@ public sealed class SpendLimitsUiTests : IDisposable
             });
             Assert.True(await first.WaitAsync(TimeSpan.FromSeconds(10)));
 
-            var second = _wpf.Ui.Invoke(() => (Task<bool>)method.Invoke(window, [question, CancellationToken.None])!);
+            var second = _wpf.Ui.Invoke(() => window!.AskSpendOnUiAsync(question, CancellationToken.None));
             _wpf.Ui.Invoke(() =>
             {
                 var extra = (ContentControl)window!.FindName("NoticeExtra");
@@ -123,7 +121,6 @@ public sealed class SpendLimitsUiTests : IDisposable
     public async Task Stopping_the_turn_closes_an_open_question_as_no()
     {
         var question = new SpendQuestion(new SpendBreach(SpendLimitKind.Turn, 0.5m, 0.6m), 0.6m);
-        var method = typeof(MainWindow).GetMethod("AskSpendOnUiAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         using var stop = new CancellationTokenSource();
         MainWindow? window = null;
         try
@@ -132,7 +129,7 @@ public sealed class SpendLimitsUiTests : IDisposable
             {
                 window = new MainWindow();
                 window.AttachServices(UiServices.Build(_root, "k", new HttpClientHandler()));
-                return (Task<bool>)method.Invoke(window, [question, stop.Token])!;
+                return window.AskSpendOnUiAsync(question, stop.Token);
             });
 
             stop.Cancel();

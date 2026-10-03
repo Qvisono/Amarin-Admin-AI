@@ -10,33 +10,24 @@ namespace Amarin.UI;
 /// </summary>
 /// <remarks>
 /// Как у страниц настроек: правда в <see cref="AppSettings.SpendLimits"/>, поля только отражают её.
-/// Сохранение подменяет объект лимитов целиком, а не правит словарь на месте: его читает
-/// <see cref="SpendGuard"/> из потока хода, и словарь, меняющийся под чтением, мог бы бросить.
+/// Правила правки — в <see cref="SpendLimitsEditor"/>; здесь только поля и их подписи.
 /// </remarks>
 public partial class SpendLimitsBlock : UserControl
 {
-    private AppServices? _services;
+    private SpendLimitsEditor? _editor;
 
     public SpendLimitsBlock() => InitializeComponent();
 
     /// <summary>Лимит или порог поменялся — строка-ссылка на странице перечитывает своё значение.</summary>
     internal event Action? Changed;
 
-    /// <summary>Значение строки-ссылки: самый заметный из лимитов коротко, или «выключено».</summary>
-    internal static string Summary(SpendLimits? limits) =>
-        limits switch
-        {
-            { DayUsd: { } day } => Loc.Format("S.Limit.Short.Day", SpendReport.FormatUsd(day)),
-            { MonthUsd: { } month } => Loc.Format("S.Limit.Short.Month", SpendReport.FormatUsd(month)),
-            { TurnUsd: { } turn } => Loc.Format("S.Limit.Short.Turn", SpendReport.FormatUsd(turn)),
-            { Keys.Count: > 0 } => Loc.Get("S.Limit.Short.Keys"),
-            _ => Loc.Get("S.Common.Off")
-        };
-
     internal void Load(AppServices services)
     {
-        _services = services;
-        var limits = services.Settings.SpendLimits ?? new SpendLimits();
+        var editor = new SpendLimitsEditor(() => services.Settings, settings => services.SettingsStore.Save(settings));
+        editor.Changed += () => Changed?.Invoke();
+        _editor = editor;
+        var limits = editor.Limits;
+        var keys = SpendLimitsEditor.KeyRows(services.KeyStore.List());
 
         PeriodGrid.Children.Clear();
         PeriodGrid.RowDefinitions.Clear();
@@ -45,38 +36,30 @@ public partial class SpendLimitsBlock : UserControl
             PeriodGrid,
             null,
             Loc.Get("S.Limit.Profile"),
-            MoneyField(limits.DayUsd, value => Change(copy => copy.DayUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.Limit.PerDay")),
-            MoneyField(limits.MonthUsd, value => Change(copy => copy.MonthUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.Limit.PerMonth")));
+            MoneyField(limits.DayUsd, editor.SetProfileDay, Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.Limit.PerDay")),
+            MoneyField(limits.MonthUsd, editor.SetProfileMonth, Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.Limit.PerMonth")));
 
-        // По строке на секрет: ключ окружения и его копия в keys.json — один счёт.
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entry in services.KeyStore.List())
+        foreach (var key in keys)
         {
-            if (entry.IsBroken || !seen.Add(ApiKeyStore.Fingerprint(entry.Secret)))
-            {
-                continue;
-            }
-
-            var fingerprint = ApiKeyStore.Fingerprint(entry.Secret);
-            limits.Keys.TryGetValue(fingerprint, out var own);
-            var name = Loc.Format("S.Limit.KeyRow", entry.Label, ProviderSpec.For(entry.Provider).Name);
+            limits.Keys.TryGetValue(key.Fingerprint, out var own);
+            var name = KeyName(key);
             AddRow(
                 PeriodGrid,
-                fingerprint,
+                key.Fingerprint,
                 name,
-                MoneyField(own?.DayUsd, value => ChangeKey(fingerprint, key => key.DayUsd = value), name + " · " + Loc.Get("S.Limit.PerDay")),
-                MoneyField(own?.MonthUsd, value => ChangeKey(fingerprint, key => key.MonthUsd = value), name + " · " + Loc.Get("S.Limit.PerMonth")));
+                MoneyField(own?.DayUsd, value => editor.SetKeyDay(key.Fingerprint, value), name + " · " + Loc.Get("S.Limit.PerDay")),
+                MoneyField(own?.MonthUsd, value => editor.SetKeyMonth(key.Fingerprint, value), name + " · " + Loc.Get("S.Limit.PerMonth")));
         }
 
-        TurnSlot.Content = MoneyField(limits.TurnUsd, value => Change(copy => copy.TurnUsd = value), Loc.Get("S.Limit.TurnLabel"));
+        TurnSlot.Content = MoneyField(limits.TurnUsd, editor.SetTurn, Loc.Get("S.Limit.TurnLabel"));
         WarnBox.Text = limits.WarnPercent.ToString(CultureInfo.InvariantCulture);
-        LoadBalance(services);
+        LoadBalance(editor, keys);
     }
 
     /// <summary>Пороги остатка (E4): сумма по всем ключам — «мало» и «почти кончились», у ключа — «мало».</summary>
-    private void LoadBalance(AppServices services)
+    private void LoadBalance(SpendLimitsEditor editor, IReadOnlyList<SpendKeyRow> keys)
     {
-        var thresholds = services.Settings.BalanceThresholds ?? new BalanceThresholds();
+        var thresholds = editor.Thresholds;
         BalanceGrid.Children.Clear();
         BalanceGrid.RowDefinitions.Clear();
         AddRow(BalanceGrid, null, "", Loc.Get("S.BalanceLimit.Low"), Loc.Get("S.BalanceLimit.Critical"), header: true);
@@ -84,58 +67,24 @@ public partial class SpendLimitsBlock : UserControl
             BalanceGrid,
             null,
             Loc.Get("S.Limit.Profile"),
-            MoneyField(thresholds.LowUsd, value => ChangeBalance(copy => copy.LowUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Low")),
-            MoneyField(thresholds.CriticalUsd, value => ChangeBalance(copy => copy.CriticalUsd = value), Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Critical")));
+            MoneyField(thresholds.LowUsd, editor.SetBalanceLow, Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Low")),
+            MoneyField(thresholds.CriticalUsd, editor.SetBalanceCritical, Loc.Get("S.Limit.Profile") + " · " + Loc.Get("S.BalanceLimit.Critical")));
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var entry in services.KeyStore.List())
+        foreach (var key in keys)
         {
-            var fingerprint = ApiKeyStore.Fingerprint(entry.Secret);
-            if (entry.IsBroken || !seen.Add(fingerprint))
-            {
-                continue;
-            }
-
-            decimal? low = thresholds.Keys.TryGetValue(fingerprint, out var own) ? own : null;
-            var name = Loc.Format("S.Limit.KeyRow", entry.Label, ProviderSpec.For(entry.Provider).Name);
+            decimal? low = thresholds.Keys.TryGetValue(key.Fingerprint, out var own) ? own : null;
+            var name = KeyName(key);
             AddRow(
                 BalanceGrid,
-                fingerprint,
+                key.Fingerprint,
                 name,
-                MoneyField(low, value => ChangeBalance(copy =>
-                {
-                    if (value is { } set)
-                    {
-                        copy.Keys[fingerprint] = set;
-                    }
-                    else
-                    {
-                        copy.Keys.Remove(fingerprint);
-                    }
-                }), name + " · " + Loc.Get("S.BalanceLimit.Low")),
+                MoneyField(low, value => editor.SetKeyBalanceLow(key.Fingerprint, value), name + " · " + Loc.Get("S.BalanceLimit.Low")),
                 null);
         }
     }
 
-    private void ChangeBalance(Action<BalanceThresholds> change)
-    {
-        if (_services is null)
-        {
-            return;
-        }
-
-        var source = _services.Settings.BalanceThresholds ?? new BalanceThresholds();
-        var copy = new BalanceThresholds
-        {
-            LowUsd = source.LowUsd,
-            CriticalUsd = source.CriticalUsd,
-            Keys = new Dictionary<string, decimal>(source.Keys, StringComparer.Ordinal)
-        };
-        change(copy);
-        _services.Settings.BalanceThresholds = copy;
-        _services.SettingsStore.Save(_services.Settings);
-        Changed?.Invoke();
-    }
+    private static string KeyName(SpendKeyRow key) =>
+        Loc.Format("S.Limit.KeyRow", key.Label, ProviderSpec.For(key.Provider).Name);
 
     /// <summary>Строка таблицы: подпись и два поля (или две подписи колонок).</summary>
     private void AddRow(Grid grid, string? tag, string label, object day, object? month, bool header = false)
@@ -197,23 +146,15 @@ public partial class SpendLimitsBlock : UserControl
         placeholder.SetResourceReference(TextBlock.TextProperty, "S.Limit.None");
         box.TextChanged += (_, _) => placeholder.Visibility = box.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Непонятное число не сохраняется «как нет лимита» молча: поле возвращает прежнее значение.
         var current = value;
         box.LostFocus += (_, _) =>
         {
-            var text = box.Text.Trim();
-            var parsed = SpendRules.ParseUsd(text);
-            if (text.Length > 0 && parsed is null && !IsZero(text))
+            var edit = SpendLimitsEditor.AcceptMoney(box.Text, current);
+            box.Text = edit.Text;
+            if (edit.Changed)
             {
-                box.Text = SpendRules.FormatField(current);
-                return;
-            }
-
-            box.Text = SpendRules.FormatField(parsed);
-            if (parsed != current)
-            {
-                current = parsed;
-                save(parsed);
+                current = edit.Value;
+                save(edit.Value);
             }
         };
 
@@ -231,62 +172,13 @@ public partial class SpendLimitsBlock : UserControl
         return panel;
     }
 
-    /// <summary>«0» — осознанное «без лимита», а не опечатка.</summary>
-    private static bool IsZero(string text) =>
-        decimal.TryParse(text.TrimStart('$').Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var value) && value <= 0m;
-
     private void WarnBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        var percent = int.TryParse(WarnBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var value) && value is >= 1 and <= 99
-            ? value
-            : _services?.Settings.SpendLimits?.WarnPercent ?? 80;
-        WarnBox.Text = percent.ToString(CultureInfo.InvariantCulture);
-        if (_services?.Settings.SpendLimits?.WarnPercent != percent)
-        {
-            Change(copy => copy.WarnPercent = percent);
-        }
-    }
-
-    private void ChangeKey(string fingerprint, Action<KeySpendLimit> change) =>
-        Change(copy =>
-        {
-            var key = copy.Keys.TryGetValue(fingerprint, out var existing)
-                ? new KeySpendLimit { DayUsd = existing.DayUsd, MonthUsd = existing.MonthUsd }
-                : new KeySpendLimit();
-            change(key);
-            if (key.DayUsd is null && key.MonthUsd is null)
-            {
-                copy.Keys.Remove(fingerprint);
-            }
-            else
-            {
-                copy.Keys[fingerprint] = key;
-            }
-        });
-
-    private void Change(Action<SpendLimits> change)
-    {
-        if (_services is null)
+        if (_editor is not { } editor)
         {
             return;
         }
 
-        var copy = Copy(_services.Settings.SpendLimits ?? new SpendLimits());
-        change(copy);
-        _services.Settings.SpendLimits = copy;
-        _services.SettingsStore.Save(_services.Settings);
-        Changed?.Invoke();
+        WarnBox.Text = editor.SetWarnPercent(WarnBox.Text).ToString(CultureInfo.InvariantCulture);
     }
-
-    internal static SpendLimits Copy(SpendLimits source) => new()
-    {
-        DayUsd = source.DayUsd,
-        MonthUsd = source.MonthUsd,
-        TurnUsd = source.TurnUsd,
-        WarnPercent = source.WarnPercent,
-        Keys = source.Keys.ToDictionary(
-            pair => pair.Key,
-            pair => new KeySpendLimit { DayUsd = pair.Value.DayUsd, MonthUsd = pair.Value.MonthUsd },
-            StringComparer.Ordinal)
-    };
 }
