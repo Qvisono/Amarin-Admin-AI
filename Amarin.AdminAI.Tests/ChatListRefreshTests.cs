@@ -136,8 +136,8 @@ public sealed class ChatListRefreshTests
         var same = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var build = typeof(MainWindow).GetMethod(
-                "BuildChatListSignature", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var append = typeof(MainWindow).GetMethod(
+                "AppendChatListSignature", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var session = typeof(MainWindow).GetField(
                 "_session", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
@@ -148,14 +148,22 @@ public sealed class ChatListRefreshTests
             };
 
             var organize = new Amarin.Core.ChatOrganizer.State();
+
+            string Build()
+            {
+                var builder = new System.Text.StringBuilder();
+                append.Invoke(window, [builder, "", items, organize, Amarin.Core.ChatSort.Updated]);
+                return builder.ToString();
+            }
+
             var original = session.GetValue(window);
             try
             {
                 session.SetValue(window, new Amarin.Core.ChatSession { Id = "один" });
-                var first = (string)build.Invoke(window, ["", items, organize, Amarin.Core.ChatSort.Updated])!;
+                var first = Build();
 
                 session.SetValue(window, new Amarin.Core.ChatSession { Id = "два" });
-                return first == (string)build.Invoke(window, ["", items, organize, Amarin.Core.ChatSort.Updated])!;
+                return first == Build();
             }
             finally
             {

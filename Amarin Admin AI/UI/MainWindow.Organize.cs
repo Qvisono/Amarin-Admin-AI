@@ -106,6 +106,34 @@ namespace Amarin.UI
             UpdateBatchBar();
         }
 
+        private ChatOrganizer.State? _organizeSnapshot;
+        private ChatOrganizer? _organizeSnapshotSource;
+        private int _organizeSnapshotVersion;
+
+        /// <summary>
+        /// Снимок раскладки для списка чатов. Пока раскладка не менялась, окно держит свою копию:
+        /// снимок — это копия каждого назначения, а список обновляется по несколько раз в секунду.
+        /// Копию окно только читает, поэтому делить её между обновлениями безопасно.
+        /// </summary>
+        private ChatOrganizer.State OrganizeSnapshot()
+        {
+            var organizer = _services!.Organizer;
+
+            // Версию — до снимка: изменение между ними оставит версию старой, и следующий
+            // вызов снимет заново, а не потеряет правку.
+            var version = organizer.Version;
+            if (_organizeSnapshot is null ||
+                !ReferenceEquals(_organizeSnapshotSource, organizer) ||
+                _organizeSnapshotVersion != version)
+            {
+                _organizeSnapshot = organizer.Snapshot();
+                _organizeSnapshotSource = organizer;
+                _organizeSnapshotVersion = version;
+            }
+
+            return _organizeSnapshot;
+        }
+
         /// <summary>Смена профиля: выбор, фильтр и раскрытый архив относились к прежнему.</summary>
         private void ResetChatListView()
         {
@@ -113,7 +141,7 @@ namespace Amarin.UI
             _selectionAnchor = null;
             _tagFilter = null;
             _archiveExpanded = false;
-            _chatListSignature = "";
+            InvalidateChatListSignature();
         }
 
         // ───────────────────────── Отрисовка ─────────────────────────

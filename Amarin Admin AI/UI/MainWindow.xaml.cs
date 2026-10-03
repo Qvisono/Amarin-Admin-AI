@@ -2898,7 +2898,17 @@ namespace Amarin.UI
         }
 
         /// <summary>Слепок списка, по которому видно, изменилось ли в нём хоть что-нибудь.</summary>
-        private string _chatListSignature = "";
+        /// <remarks>
+        /// Два буфера, которые меняются местами, а не строка на каждый вызов: список обновляют по
+        /// несколько раз в секунду во время ответа, и на тысяче чатов слепок — это сотня килобайт
+        /// мусора за раз. Сравнение по содержимому (<see cref="System.Text.StringBuilder.Equals(System.Text.StringBuilder)"/>)
+        /// остаётся точным.
+        /// </remarks>
+        private System.Text.StringBuilder _chatListSignature = new();
+        private System.Text.StringBuilder _chatListScratch = new();
+
+        /// <summary>Следующий <see cref="RefreshChatList"/> пересоберёт панель, даже если состав не менялся.</summary>
+        private void InvalidateChatListSignature() => _chatListSignature.Clear();
 
         private void RefreshChatList()
         {
@@ -2926,7 +2936,7 @@ namespace Amarin.UI
             }
 
             var items = ChatListItems(query);
-            var organize = _services.Organizer.Snapshot();
+            var organize = OrganizeSnapshot();
             var sort = _services.Settings.ChatSort;
             if (_tagFilter is not null && organize.Tags.All(tag => tag.Id != _tagFilter))
             {
@@ -2938,8 +2948,9 @@ namespace Amarin.UI
             // Перерисовка стоит полной пересборки панели, а зовут её и фоновые ходы — по
             // несколько раз за секунду. Если состав списка не изменился, строки остаются на
             // месте, а признаки на них правятся поштучно.
-            var signature = BuildChatListSignature(query, items, organize, sort);
-            if (signature == _chatListSignature && ChatListPanel.Children.Count > 0)
+            var signature = _chatListScratch.Clear();
+            AppendChatListSignature(signature, query, items, organize, sort);
+            if (signature.Equals(_chatListSignature) && ChatListPanel.Children.Count > 0)
             {
                 RefreshChatRowStates();
                 return;
@@ -2952,7 +2963,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _chatListSignature = signature;
+            (_chatListSignature, _chatListScratch) = (signature, _chatListSignature);
             ChatListPanel.Children.Clear();
 
             IReadOnlyList<ChatListNode> nodes;
@@ -3048,14 +3059,15 @@ namespace Amarin.UI
         /// Слепок состава списка. Открытый чат, идущие ходы и метки внимания в него намеренно
         /// не входят: они правятся признаками на уже стоящих строках, а не пересборкой панели.
         /// </summary>
-        private string BuildChatListSignature(
+        private void AppendChatListSignature(
+            System.Text.StringBuilder builder,
             string query,
             IReadOnlyList<ChatIndexEntry> items,
             ChatOrganizer.State organize,
             ChatSort sort)
         {
             // День входит в слепок: после полуночи «Сегодня» обязано стать «Вчера» и без правок.
-            var builder = new System.Text.StringBuilder(query)
+            builder.Append(query)
                 .Append('|').Append(_searchByContent ? '1' : '0')
                 .Append('|').Append((int)_contentSearchState)
                 .Append('|').Append((int)sort)
@@ -3085,13 +3097,15 @@ namespace Amarin.UI
 
                 if (organize.Chats.TryGetValue(item.Id, out var placement))
                 {
-                    builder.Append('~').Append(placement.FolderId)
-                        .Append('~').Append(string.Join(',', placement.Tags))
-                        .Append('~').Append(placement.Archived ? '1' : '0');
+                    builder.Append('~').Append(placement.FolderId).Append('~');
+                    foreach (var tag in placement.Tags)
+                    {
+                        builder.Append(tag).Append(',');
+                    }
+
+                    builder.Append('~').Append(placement.Archived ? '1' : '0');
                 }
             }
-
-            return builder.ToString();
         }
 
         /// <summary>Открыть чат. Ход, идущий в нём или в прежнем, не прерывается.</summary>

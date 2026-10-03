@@ -51,7 +51,7 @@ namespace Amarin.UI
 
         private void RenderTextSearch(string query)
         {
-            _chatListSignature = "";
+            InvalidateChatListSignature();
             ChatListPanel.Children.Clear();
             var hits = _services!.TextIndex.Search(query);
             if (hits.Count == 0)

@@ -67,6 +67,7 @@ internal sealed class ChatOrganizer
     private readonly Lock _gate = new();
     private string _path;
     private State _state;
+    private int _version;
 
     public ChatOrganizer(string root)
     {
@@ -85,12 +86,19 @@ internal sealed class ChatOrganizer
 
     public event Action? Changed;
 
+    /// <summary>
+    /// Растёт с каждым изменением раскладки. По нему держатель снимка понимает, что его копия
+    /// ещё верна, и не снимает новую: список чатов обновляется по несколько раз в секунду.
+    /// </summary>
+    public int Version => Volatile.Read(ref _version);
+
     public void UseRoot(string root)
     {
         lock (_gate)
         {
             _path = Path.Combine(root, "chats", FileName);
             _state = Read(_path);
+            _version++;
         }
 
         Changed?.Invoke();
@@ -268,6 +276,7 @@ internal sealed class ChatOrganizer
         lock (_gate)
         {
             change(_state);
+            _version++;
             try
             {
                 AppDataFile.WriteAtomic(_path, JsonSerializer.Serialize(_state, AppJson.Options));

@@ -174,6 +174,30 @@ public sealed class ChatOrganizerTests : IDisposable
         Assert.Equal("f", organizer.Snapshot().Folders[0].Name);
     }
 
+    [Fact]
+    public void The_version_moves_with_every_change_and_only_then()
+    {
+        // По версии окно решает, верна ли ещё его копия раскладки. Не сдвинься она на правке —
+        // список чатов показывал бы старые папки; сдвигайся на чтении — копия снималась бы зря.
+        var organizer = new ChatOrganizer(_root);
+        var start = organizer.Version;
+
+        _ = organizer.Snapshot();
+        _ = organizer.PlacementOf("a");
+        Assert.Equal(start, organizer.Version);
+
+        var folder = organizer.CreateFolder("f");
+        var created = organizer.Version;
+        Assert.NotEqual(start, created);
+
+        organizer.MoveToFolder(["a"], folder.Id);
+        Assert.NotEqual(created, organizer.Version);
+
+        var moved = organizer.Version;
+        organizer.UseRoot(_root);
+        Assert.NotEqual(moved, organizer.Version);
+    }
+
     // ───────────────────────── раскладка списка ─────────────────────────
 
     [Fact]
