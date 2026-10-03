@@ -49,18 +49,34 @@ namespace Amarin.UI
             set => Updates.Seed(state => state with { Staged = value });
         }
 
-        private UpdateController CreateUpdates()
+        private UpdateController CreateUpdates() =>
+            CreateUpdates(new GitHubUpdateSource(), UpdateFiles, new WindowUpdateApp(this));
+
+        private UpdateController CreateUpdates(IUpdateSource source, IUpdateFiles files, IUpdateApp app)
         {
             // Итоги сетевых шагов возвращаются очередью диспетчера: внутри одного приоритета
             // она строгая, и итог не обгонит то, что встало в очередь раньше.
             var controller = new UpdateController(
-                new GitHubUpdateSource(),
-                UpdateFiles,
-                new WindowUpdateApp(this),
+                source,
+                files,
+                app,
                 CurrentRelease,
                 action => Dispatcher.InvokeAsync(action));
             controller.Changed += RenderUpdates;
             return controller;
+        }
+
+        /// <summary>
+        /// Обновления этого окна на подставных GitHub, файлах и программе — для тестов, которые
+        /// проходят плашку и её кнопки целиком, не трогая сети и не перезапуская процесс.
+        /// </summary>
+        internal void UseUpdatePorts(IUpdateSource source, IUpdateFiles files, IUpdateApp app)
+        {
+            _updates?.Dispose();
+            _exit = null;
+            _updateFiles = files;
+            _updates = CreateUpdates(source, files, app);
+            RenderUpdates();
         }
 
         /// <summary>
