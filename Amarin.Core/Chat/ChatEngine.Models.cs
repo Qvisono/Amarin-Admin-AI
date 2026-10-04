@@ -141,7 +141,7 @@ internal sealed partial class ChatEngine
             var heavy = ParseRouterComplexity(reply) == "heavy";
             return new RouterDecision(
                 heavy ? heavyId : liteId,
-                response.Cost?.ToCost(),
+                response.ReportedCost(),
                 ModelSlots.ReadKey(settings, heavy ? ModelSlot.Heavy : ModelSlot.Lite));
         }
         catch (OperationCanceledException)

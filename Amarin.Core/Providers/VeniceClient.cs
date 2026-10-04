@@ -589,17 +589,12 @@ public sealed partial class VeniceClient
             InlineReasoning = inlineReasoning,
             ToolCalls = choice?.Message.ToolCalls ?? [],
             FinishReason = choice?.FinishReason,
-            Cost = answer.Cost?.ToCost() ?? CostOf(answer.Usage),
+            Cost = answer.ReportedCost() ?? VeniceCost.Zero,
             PromptTokens = answer.Usage?.PromptTokens ?? 0,
             TotalTokens = answer.Usage?.TotalTokens ?? 0,
             Model = model
         };
     }
-
-    private static VeniceCost CostOf(VeniceUsage? usage) =>
-        usage?.Cost is { } usd and > 0m
-            ? new VeniceCost { Usd = usd, HasData = true }
-            : VeniceCost.Zero;
 
     private async Task<HttpResponseMessage> PostCompletionAsync(
         ChatCompletionRequest payload,

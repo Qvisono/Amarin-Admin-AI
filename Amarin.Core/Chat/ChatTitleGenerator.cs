@@ -76,7 +76,7 @@ internal sealed class ChatTitleGenerator
             // Модель класса GLM сначала думает вслух, и теги размышления попали бы в боковую панель.
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
-            return new ChatTitleDraft(ChatTitle.Sanitize(reply), response.Cost?.ToCost());
+            return new ChatTitleDraft(ChatTitle.Sanitize(reply), response.ReportedCost());
         }
         catch (OperationCanceledException)
         {

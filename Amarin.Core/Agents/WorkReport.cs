@@ -394,6 +394,6 @@ internal sealed class WorkReportWriter
         var reply = ReasoningSplit.Split(ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
         return new WorkReportDraft(
             string.IsNullOrWhiteSpace(reply) ? null : WorkReport.CleanAnalysis(reply),
-            response.Cost?.ToCost());
+            response.ReportedCost());
     }
 }

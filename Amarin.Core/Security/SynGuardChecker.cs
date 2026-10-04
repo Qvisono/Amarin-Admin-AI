@@ -80,7 +80,7 @@ internal sealed class SynGuardChecker
             var safe = SynGuard.ParseReport(reply, calls.Count, out var complete);
             return new SynGuardReport(
                 safe,
-                response.Cost?.ToCost(),
+                response.ReportedCost(),
                 complete ? SynGuardOutcome.Checked : SynGuardOutcome.Unparsed);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

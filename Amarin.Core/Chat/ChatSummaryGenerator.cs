@@ -188,7 +188,7 @@ internal sealed class ChatSummaryGenerator
             // Рассуждающая модель иначе положила бы ход своих мыслей прямо в сводку.
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
-            return (reply, response.Cost?.ToCost());
+            return (reply, response.ReportedCost());
         }
         catch (OperationCanceledException)
         {

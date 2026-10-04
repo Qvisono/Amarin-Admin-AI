@@ -182,7 +182,7 @@ internal static class AgentTierRouter
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
 
-            return new AgentTierDecision(ParseTier(reply), response.Cost?.ToCost());
+            return new AgentTierDecision(ParseTier(reply), response.ReportedCost());
         }
         catch (OperationCanceledException)
         {

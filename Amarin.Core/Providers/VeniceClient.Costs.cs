@@ -18,18 +18,11 @@ public sealed partial class VeniceClient
 
     private void RecordCost(ChatCompletionResponse result, string sku, ApiCredential credential)
     {
-        if (result.Cost is not null)
+        // По тому же правилу, по которому цену ответа читают побочные запросы для разбивки под
+        // сообщением: в журнале трат и в разбивке обязана стоять одна и та же сумма.
+        if (result.ReportedCost() is { } cost)
         {
-            AddCost(result.Cost.ToCost(), sku, credential);
-            return;
-        }
-
-        // Своего поля цены у OpenRouter нет — он кладёт её в usage, и только если просили
-        // (см. UsageAccounting). Без этой ветки деньги за ответ не попали бы в журнал трат
-        // вовсе, и график по ключу OpenRouter остался бы пустым.
-        if (result.Usage?.Cost is { } usd and > 0m)
-        {
-            AddCost(new VeniceCost { Usd = usd, HasData = true }, sku, credential);
+            AddCost(cost, sku, credential);
         }
     }
 

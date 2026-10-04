@@ -269,6 +269,23 @@ public sealed class ChatCompletionResponse
 
     [JsonPropertyName("error")]
     public VeniceError? Error { get; init; }
+
+    /// <summary>
+    /// Во что обошёлся ответ — так, как назвал провайдер. <c>null</c> — цены не назвали или
+    /// ответ бесплатный.
+    /// </summary>
+    /// <remarks>
+    /// Venice называет цену своим полем <c>cost</c>, OpenRouter — внутри <c>usage</c>, и только
+    /// если её просили (см. <c>UsageAccounting</c>). Правило одно на всех, кто читает цену ответа:
+    /// по нему клиент списывает деньги в журнал трат, и по нему же маршрутизатор, заголовок,
+    /// сводка, защитник и отчёт ставят свою строку в разбивку под сообщением. Прежде они читали
+    /// только <c>cost</c>, и у слотов на OpenRouter их строки пропадали из разбивки, хотя деньги
+    /// на график уходили.
+    /// </remarks>
+    public VeniceCost? ReportedCost() =>
+        Cost is not null ? Cost.ToCost()
+        : Usage?.Cost is { } usd and > 0m ? new VeniceCost { Usd = usd, HasData = true }
+        : null;
 }
 
 public sealed class ChatChoice
