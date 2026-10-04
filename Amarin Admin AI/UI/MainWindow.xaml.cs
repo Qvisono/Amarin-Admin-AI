@@ -123,6 +123,9 @@ namespace Amarin.UI
 
             WindowMaximizeFix.Attach(this);
 
+            // Окно показывается раньше, чем нарисовано: до первого кадра — цвет фона темы, а не белое.
+            WindowFirstPaint.Attach(this);
+
             // Позже WindowMaximizeFix: перехватчик, добавленный последним, слышит сообщение первым,
             // и лента успевает заморозиться до раскладки нового размера (см. MainWindow.Resize).
             WireTranscriptResize();
