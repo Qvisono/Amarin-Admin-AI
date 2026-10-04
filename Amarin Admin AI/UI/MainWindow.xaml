@@ -758,7 +758,7 @@
                     -->
                     <!-- Поля под тень — общие (PopupShadow); смещение ставит плашку туда же, куда
                          прежде: на 12 правее и на 20 ниже точки, где отпустили кнопку. -->
-                    <Popup x:Name="ReplyPill" Placement="MousePoint" HorizontalOffset="-2" VerticalOffset="6"
+                    <Popup x:Name="ReplyPill" Placement="MousePoint" HorizontalOffset="-4" VerticalOffset="4"
                            AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
                         <Border Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
                                 BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
@@ -1164,7 +1164,7 @@
                                 <!-- Смещение держит карточку там же, где с прежними полями 6,12,10,4:
                                      на 6 правее и на 4 выше якоря; поля под тень — PopupShadow. -->
                                 <Popup x:Name="QuoteSuggestPopup" PlacementTarget="{Binding ElementName=MessageTextBox}"
-                                       Placement="Top" HorizontalOffset="-8" VerticalOffset="18"
+                                       Placement="Top" HorizontalOffset="-10" VerticalOffset="20"
                                        AllowsTransparency="True" PopupAnimation="Fade"
                                        StaysOpen="True" Focusable="False">
                                     <Border Margin="{x:Static local:PopupShadow.Margin}" MinWidth="220" MaxWidth="380"
@@ -1184,7 +1184,7 @@
                                     поле, стрелки, Tab и Enter разбирает MessageTextBox_PreviewKeyDown.
                                 -->
                                 <Popup x:Name="CommandSuggestPopup" PlacementTarget="{Binding ElementName=MessageTextBox}"
-                                       Placement="Top" HorizontalOffset="-8" VerticalOffset="18"
+                                       Placement="Top" HorizontalOffset="-10" VerticalOffset="20"
                                        AllowsTransparency="True" PopupAnimation="Fade"
                                        StaysOpen="True" Focusable="False">
                                     <Border Margin="{x:Static local:PopupShadow.Margin}" MinWidth="260" MaxWidth="420"
@@ -1262,8 +1262,8 @@
                                 <Popup x:Name="ActionsPopup"
        PlacementTarget="{Binding ElementName=AttachButton}"
        Placement="Top"
-       HorizontalOffset="-14"
-       VerticalOffset="14"
+       HorizontalOffset="-16"
+       VerticalOffset="16"
        AllowsTransparency="True"
        StaysOpen="True"
        PopupAnimation="Fade"
@@ -1417,8 +1417,8 @@
                                 <Popup x:Name="ModelPicker"
                                        PlacementTarget="{Binding ElementName=ModelButton}"
                                        Placement="Top"
-                                       HorizontalOffset="-14"
-                                       VerticalOffset="14"
+                                       HorizontalOffset="-16"
+                                       VerticalOffset="16"
                                        AllowsTransparency="True"
                                        StaysOpen="True"
                                        PopupAnimation="Fade"
@@ -1738,7 +1738,7 @@
                         </ToggleButton>
                         <!-- Правым краем — по значку, на 6 ниже шапки; поля под тень — PopupShadow. -->
                         <Popup x:Name="UpdateBadgePopup" PlacementTarget="{Binding ElementName=UpdateBadgeButton}"
-                               Placement="Bottom" HorizontalOffset="-264" VerticalOffset="-8"
+                               Placement="Bottom" HorizontalOffset="-266" VerticalOffset="-10"
                                AllowsTransparency="True" StaysOpen="True" PopupAnimation="Fade"
                                IsOpen="{Binding IsChecked, ElementName=UpdateBadgeButton, Mode=TwoWay}">
                             <Border Width="280" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"
@@ -4682,7 +4682,7 @@
                             <!-- Поля под тень — PopupShadow; смещение держит карточку на 6 выше кнопки, как было. -->
                             <Popup x:Name="ConfirmationAllowPopup"
                                    PlacementTarget="{Binding ElementName=ConfirmationAllowToggle}"
-                                   Placement="Top" HorizontalOffset="-14" VerticalOffset="16" AllowsTransparency="True"
+                                   Placement="Top" HorizontalOffset="-16" VerticalOffset="18" AllowsTransparency="True"
                                    PopupAnimation="Fade"
                                    IsOpen="{Binding IsChecked, ElementName=ConfirmationAllowToggle, Mode=TwoWay}">
                                 <Border Width="280" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"

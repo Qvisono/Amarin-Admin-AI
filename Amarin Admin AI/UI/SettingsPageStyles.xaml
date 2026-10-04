@@ -615,7 +615,7 @@
                              стол. Поля — место под тень (PopupShadow); смещение их возвращает, и
                              список встаёт ровно под полем, на 4 ниже его края, как и раньше. -->
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
-                               VerticalOffset="-10" HorizontalOffset="-14"
+                               VerticalOffset="-12" HorizontalOffset="-16"
                                AllowsTransparency="True" StaysOpen="False"
                                PopupAnimation="Fade">
                             <Border Margin="{x:Static local:PopupShadow.Margin}"

@@ -111,7 +111,7 @@
         <Popup x:Name="ChoicePopup"
                PlacementTarget="{Binding ElementName=OpenButton}"
                Placement="Bottom"
-               VerticalOffset="-10"
+               VerticalOffset="-12"
                AllowsTransparency="True"
                StaysOpen="True"
                PopupAnimation="Fade"

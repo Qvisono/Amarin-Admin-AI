@@ -11,7 +11,7 @@ namespace Amarin.AdminAI.Tests;
 /// <summary>
 /// Тени всплывающих окон не обрезаются. У попапа своё прозрачное окно ровно по содержимому, и
 /// тень, нарисованная за край карточки, видна только в её полях: у меню поля стояли на глаз
-/// (10, 6, 10, 12) при тени, уходящей на 12 и 20 точек, а у части пикеров полей не было вовсе.
+/// (10, 6, 10, 12) при тени, уходящей на 14 и 22 точки, а у части пикеров полей не было вовсе.
 /// </summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
@@ -40,7 +40,7 @@ public sealed class PopupShadowTests
             return EdgeAlpha(new Grid { Children = { card } });
         });
 
-        Assert.True(edges <= 2, $"на краю поля тень плотностью {edges}/255");
+        Assert.True(edges == 0, $"на краю поля тень плотностью {edges}/255");
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class PopupShadowTests
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             var checks = new List<(string Name, int Edge)>();
-            foreach (var name in new[] { "ReplyPill", "QuoteSuggestPopup", "CommandSuggestPopup", "ActionsPopup", "ModelPicker", "ConfirmationAllowPopup" })
+            foreach (var name in new[] { "ReplyPill", "QuoteSuggestPopup", "CommandSuggestPopup", "ActionsPopup", "ModelPicker", "ConfirmationAllowPopup", "UpdateBadgePopup" })
             {
                 checks.Add((name, Detached((Popup)window.FindName(name)!)));
             }
@@ -82,7 +82,7 @@ public sealed class PopupShadowTests
             return checks;
         });
 
-        Assert.All(results, check => Assert.True(check.Edge <= 2, $"{check.Name}: на краю окна попапа тень плотностью {check.Edge}/255"));
+        Assert.All(results, check => Assert.True(check.Edge == 0, $"{check.Name}: на краю окна попапа тень плотностью {check.Edge}/255"));
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public sealed class PopupShadowTests
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             var cards = new Dictionary<string, (double X, double Y)>(StringComparer.Ordinal);
-            foreach (var name in new[] { "ReplyPill", "QuoteSuggestPopup", "CommandSuggestPopup", "ActionsPopup", "ModelPicker", "ConfirmationAllowPopup" })
+            foreach (var name in new[] { "ReplyPill", "QuoteSuggestPopup", "CommandSuggestPopup", "ActionsPopup", "ModelPicker", "ConfirmationAllowPopup", "UpdateBadgePopup" })
             {
                 cards[name] = Card((Popup)window.FindName(name)!);
             }
@@ -136,6 +136,9 @@ public sealed class PopupShadowTests
         Assert.Equal((0.0, -8.0), shifts["TargetPicker"]);
         Assert.Equal((10.0, 6.0), shifts["AppContextMenu"]);
         Assert.Equal((0.0, 4.0), shifts["DarkComboBox"]);
+
+        // Попап значка обновления — правым краем по значку (30 точек), на 6 ниже шапки.
+        Assert.Equal((-250.0, 6.0), shifts["UpdateBadgePopup"]);
     }
 
     /// <summary>
@@ -166,7 +169,7 @@ public sealed class PopupShadowTests
                     WindowStyle = WindowStyle.None,
                     Content = control
                 };
-                    host.Show();
+                host.Show();
                 try
                 {
                     var open = (ToggleButton)control.FindName(button)!;

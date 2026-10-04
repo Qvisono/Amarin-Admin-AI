@@ -36,7 +36,7 @@
 
         <!-- Поля под тень — PopupShadow; смещение держит карточку на 8 выше кнопки, как было. -->
         <Popup x:Name="Popup" PlacementTarget="{Binding ElementName=Toggle}" Placement="Top"
-               HorizontalOffset="-14" VerticalOffset="14"
+               HorizontalOffset="-16" VerticalOffset="16"
                AllowsTransparency="True" StaysOpen="True" PopupAnimation="Fade"
                IsOpen="{Binding IsChecked, ElementName=Toggle, Mode=TwoWay}">
             <Border MinWidth="220" MaxWidth="320" Margin="{x:Static local:PopupShadow.Margin}" Background="{DynamicResource Bg.Panel}"

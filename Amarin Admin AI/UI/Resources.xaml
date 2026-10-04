@@ -968,8 +968,8 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="HorizontalOffset" Value="-4"/>
-        <Setter Property="VerticalOffset" Value="-8"/>
+        <Setter Property="HorizontalOffset" Value="-6"/>
+        <Setter Property="VerticalOffset" Value="-10"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
