@@ -115,6 +115,64 @@ namespace Amarin.UI
         /// <summary>Заголовок папки и полоса, которую он получит, когда его строки досвернутся.</summary>
         private readonly List<(Button Header, FolderBand Band)> _foldingHeaders = [];
 
+        /// <summary>Сколько строк строит этот проход (см. <see cref="RefreshChatListFirstScreen"/>).</summary>
+        private int _chatListRowLimit = int.MaxValue;
+
+        /// <summary>Проход построил не весь список: хвост допишет следующий.</summary>
+        private bool _chatListCutShort;
+
+        /// <summary>
+        /// Список чатов к первому кадру запуска: только строки, которые видны в колонке.
+        /// </summary>
+        /// <remarks>
+        /// До первого кадра окно уже на экране, но ещё не нарисовано, и раскладка каждой строки
+        /// держит этот кадр: триста чатов в пятнадцати папках на холодном запуске — треть секунды,
+        /// под отладчиком — больше секунды. Строк ниже края колонки на первом кадре не видно. Их
+        /// дописывает обычный <see cref="RefreshChatList"/> сразу за кадром: подпись недостроенного
+        /// списка не запоминается, а сверка со снимком оставляет построенные строки на месте.
+        /// </remarks>
+        private void RefreshChatListFirstScreen()
+        {
+            _chatListRowLimit = FirstScreenRows();
+            _chatListCutShort = false;
+            try
+            {
+                RefreshChatList();
+            }
+            finally
+            {
+                _chatListRowLimit = int.MaxValue;
+            }
+
+            if (_chatListCutShort)
+            {
+                Dispatcher.BeginInvoke(
+                    () =>
+                    {
+                        if (!_windowClosed)
+                        {
+                            RefreshChatList();
+                        }
+                    },
+                    System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
+
+        /// <summary>
+        /// Сколько строк заведомо закроют колонку: её высота, делённая на высоту самой низкой
+        /// строки (подпись группы — около 32 точек), с запасом.
+        /// </summary>
+        private int FirstScreenRows()
+        {
+            var height = SideBarScrollViewer.ViewportHeight;
+            if (!(height > 0))
+            {
+                height = ActualHeight > 0 ? ActualHeight : SystemParameters.PrimaryScreenHeight;
+            }
+
+            return (int)Math.Ceiling(height / 28) + 2;
+        }
+
         /// <param name="droppable">
         /// Раскладка по разделам, а не выдача поиска: каждому элементу проставляется раздел, куда
         /// упадёт брошенный на него чат.

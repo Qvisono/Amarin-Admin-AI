@@ -2,8 +2,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
+using Amarin.Core;
 using Amarin.UI;
 
 namespace Amarin.AdminAI.Tests;
@@ -16,14 +19,26 @@ namespace Amarin.AdminAI.Tests;
 /// </summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
-public sealed class StartupFirstFrameTests
+public sealed class StartupFirstFrameTests : IDisposable
 {
     private const int WmEraseBkgnd = 0x0014;
     private const uint ClrInvalid = 0xFFFFFFFF;
 
     private readonly WpfFixture _wpf;
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "amarin-first-frame-" + Guid.NewGuid().ToString("N"));
 
     public StartupFirstFrameTests(WpfFixture wpf) => _wpf = wpf;
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+    }
 
     /// <summary>
     /// До первого кадра окно стирает фон цветом фона темы, а после — не трогает: иначе заливка
@@ -158,6 +173,69 @@ public sealed class StartupFirstFrameTests
         Assert.All(samples, pixel => Assert.True(
             Close(pixel, theme),
             $"на месте окна 0x{pixel:X6}, а фон темы 0x{theme:X6}"));
+    }
+
+    /// <summary>
+    /// К первому кадру построены только строки, которые видны в колонке, — их хватает, чтобы
+    /// заполнить её доверху; остальные дописываются сразу за кадром, а построенные остаются теми же
+    /// объектами.
+    /// </summary>
+    [Fact]
+    public async Task The_first_frame_lays_out_only_the_chats_in_view_and_the_rest_follow()
+    {
+        var outcome = await _wpf.Ui.Invoke(async () =>
+        {
+            var services = UiServices.Build(_root, "k", new HttpClientHandler());
+            services.Settings.AutoCheckUpdates = false;
+            for (var i = 0; i < 300; i++)
+            {
+                services.ChatStore.Save(new ChatSession
+                {
+                    Id = "c" + i.ToString("000", CultureInfo.InvariantCulture),
+                    Title = "Чат " + i.ToString(CultureInfo.InvariantCulture),
+                    CreatedAt = DateTime.Now.AddHours(-i),
+                    UpdatedAt = DateTime.Now.AddHours(-i)
+                });
+            }
+
+            services.ChatStore.Flush();
+            var window = new MainWindow
+            {
+                Left = -32000,
+                Top = 0,
+                Width = 1100,
+                Height = 700,
+                ShowActivated = false,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.Manual
+            };
+            try
+            {
+                window.AttachServices(services);
+                var panel = (Panel)window.FindName("ChatListPanel")!;
+                var scroller = (ScrollViewer)window.FindName("SideBarScrollViewer")!;
+
+                // Show() возвращается после первого кадра: Loaded и отрисовка идут внутри него.
+                window.Show();
+                var first = panel.Children.Cast<UIElement>().ToList();
+                var filled = scroller.ExtentHeight >= scroller.ViewportHeight;
+
+                await window.Dispatcher.InvokeAsync(() => { }, DispatcherPriority.ApplicationIdle);
+                var all = panel.Children.Cast<UIElement>().ToList();
+                var kept = first.Select((element, i) => i < all.Count && ReferenceEquals(all[i], element)).All(same => same);
+                var chats = all.OfType<Button>().Count(button => button.Tag is string);
+                return (First: first.Count, filled, kept, chats);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+        Assert.InRange(outcome.First, 1, 60);
+        Assert.True(outcome.filled, "первый экран короче колонки");
+        Assert.True(outcome.kept, "строки первого экрана построены заново");
+        Assert.Equal(300, outcome.chats);
     }
 
     private static bool Close(uint pixel, uint expected)

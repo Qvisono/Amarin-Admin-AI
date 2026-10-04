@@ -347,7 +347,7 @@ namespace Amarin.UI
             // Ширина и свёрнутость панели — до первого кадра: иначе список мигнул бы заводской ширины.
             SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
             RestoreDraft(_session);
-            RefreshChatList();
+            RefreshChatListFirstScreen();
             UpdateModelButton();
 
             // Главному окну нужен от настроек только аватар в углу — остальное живёт на
@@ -3026,6 +3026,15 @@ namespace Amarin.UI
             else
             {
                 nodes = ChatListLayout.Build(items, organize, sort, _tagFilter, _archiveExpanded, DateTime.Today);
+            }
+
+            // Первый кадр запуска строит только видимое (RefreshChatListFirstScreen). Подпись
+            // забывается: иначе следующая сверка сочла бы недостроенный список показанным.
+            if (nodes.Count > _chatListRowLimit)
+            {
+                nodes = nodes.Take(_chatListRowLimit).ToList();
+                _chatListSignature.Clear();
+                _chatListCutShort = true;
             }
 
             RenderChatListNodes(nodes, droppable: !searching);
