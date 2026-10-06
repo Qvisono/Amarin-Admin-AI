@@ -58,22 +58,19 @@ public sealed class UiShotTests : IDisposable
 
         var only = Environment.GetEnvironmentVariable("AMARIN_UI_SHOTS_ONLY");
 
-        // С фильтром снимается один вариант (английский, тёмный), если не попросили все три.
+        // С фильтром снимается один вариант (английский, тёмный), если не попросили все.
         var everyVariant = Environment.GetEnvironmentVariable("AMARIN_UI_SHOTS_ALL") == "1";
         await _wpf.Ui.Invoke(async () =>
         {
             var previousTheme = ThemeManager.Current.Theme;
             try
             {
-                foreach (var (language, theme) in new[]
-                         {
-                             ("en", AppTheme.Dark), ("ru", AppTheme.Dark), ("en", AppTheme.Light)
-                         })
+                foreach (var (language, theme, small) in Variants())
                 {
-                    var folder = Path.Combine(dir, language + "-" + theme.ToString().ToLowerInvariant());
+                    var folder = Path.Combine(dir, language + "-" + theme.ToString().ToLowerInvariant() + (small ? "-min" : ""));
                     Directory.CreateDirectory(folder);
-                    await ShootAll(folder, language, theme, only);
-                    if (!string.IsNullOrEmpty(only) && !everyVariant)
+                    await ShootAll(folder, language, theme, small, only);
+                    if (!string.IsNullOrEmpty(only) && !everyVariant && Palettes() is null)
                     {
                         break;
                     }
@@ -89,17 +86,66 @@ public sealed class UiShotTests : IDisposable
         });
     }
 
-    private async Task ShootAll(string folder, string language, AppTheme theme, string? only)
+    /// <summary>
+    /// Варианты съёмки: язык, тема и маленькое окно. По умолчанию — оба языка в тёмной и светлой
+    /// теме. <c>AMARIN_UI_SHOTS_THEMES=Contrast,EdgeAmber</c> (или <c>all</c> — все палитры)
+    /// снимает русский интерфейс в перечисленных палитрах, <c>AMARIN_UI_SHOTS_MIN=1</c> добавляет
+    /// окно минимального размера 850×535.
+    /// </summary>
+    private static IEnumerable<(string Language, AppTheme Theme, bool Small)> Variants()
     {
-        var services = UiServices.Build(Path.Combine(_root, language + theme), "k", new HttpClientHandler());
+        if (Palettes() is { } palettes)
+        {
+            foreach (var palette in palettes)
+            {
+                yield return ("ru", palette, false);
+            }
+
+            yield break;
+        }
+
+        yield return ("en", AppTheme.Dark, false);
+        yield return ("ru", AppTheme.Dark, false);
+        yield return ("en", AppTheme.Light, false);
+        yield return ("ru", AppTheme.Light, false);
+        if (Environment.GetEnvironmentVariable("AMARIN_UI_SHOTS_MIN") == "1")
+        {
+            yield return ("ru", AppTheme.Dark, true);
+            yield return ("en", AppTheme.Light, true);
+        }
+    }
+
+    private static IReadOnlyList<AppTheme>? Palettes()
+    {
+        var value = Environment.GetEnvironmentVariable("AMARIN_UI_SHOTS_THEMES");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim() == "all"
+            ? Enum.GetValues<AppTheme>().Where(theme => theme != AppTheme.System).ToList()
+            : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(name => Enum.Parse<AppTheme>(name, ignoreCase: true)).ToList();
+    }
+
+    private async Task ShootAll(string folder, string language, AppTheme theme, bool small, string? only)
+    {
+        var services = UiServices.Build(Path.Combine(_root, language + theme + (small ? "-min" : "")), "k", new HttpClientHandler());
         services.Settings.Theme = theme;
         services.Settings.LanguageCode = language;
+
+        // На диск, как у настоящей программы: открытие настроек перечитывает settings.json, и
+        // тема с языком, оставленные только в памяти, сменились бы на заводские.
+        services.SettingsStore.Save(services.Settings);
         Seed(services);
 
+        // Минимальный размер окна — тот, что держит MainWindow (MinWidth/MinHeight): на нём
+        // проверяется, что настройки и лента не ужимаются и не обрезаются.
         var window = new MainWindow
         {
-            Width = 1280,
-            Height = 860,
+            Width = small ? 850 : 1280,
+            Height = small ? 535 : 860,
             Left = -32000,
             Top = 0,
             ShowActivated = false,
@@ -113,6 +159,10 @@ public sealed class UiShotTests : IDisposable
         try
         {
             Call(window, "RefreshChatList");
+
+            // Открытый разговор: без него лента пустая, и снимок не показывает ни края ленты
+            // относительно поля ввода, ни кнопок под ответом, ни того, что висит над лентой.
+            Call(window, "OpenChat", "c7");
             await Settle(400);
 
             if (Wanted(only, "window"))
@@ -519,6 +569,7 @@ public sealed class UiShotTests : IDisposable
         Chat("e1", "Драйвер Wi-Fi после обновления", 6);
         Chat("e2", "New chat", 9);
         Chat("e3", "Почему тормозит браузер", 12);
+        services.ChatStore.Save(SampleConversation(now));
         services.ChatStore.Flush();
 
         var folder = services.Organizer.CreateFolder("77");
@@ -530,6 +581,61 @@ public sealed class UiShotTests : IDisposable
         var furry = services.Organizer.CreateTag("Фурри промпты", "Status.Warning");
         services.Organizer.ToggleTag(["y1"], furry.Id);
         services.Organizer.ToggleTag(["e1"], test.Id);
+    }
+
+    /// <summary>Вопрос человека и ответ модели с раундом инструментов и блоком кода.</summary>
+    private static ChatSession SampleConversation(DateTime now)
+    {
+        var session = new ChatSession
+        {
+            Id = "c7",
+            Title = "Установка 7-Zip",
+            CreatedAt = now.AddMinutes(-3),
+            UpdatedAt = now.AddMinutes(-2)
+        };
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "user",
+            Id = "u1",
+            CreatedAt = now.AddMinutes(-3),
+            Text = "Поставь 7-Zip и проверь, что архивы открываются"
+        });
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "assistant",
+            Id = "a1",
+            CreatedAt = now.AddMinutes(-2),
+            ResolvedModelId = "claude-sonnet-5",
+            Duration = TimeSpan.FromSeconds(96),
+            Cost = new VeniceCost { Usd = 0.0263m, HasData = true },
+            Status = AssistantStatus.Complete,
+            ToolRounds =
+            [
+                new ToolRound
+                {
+                    InfoLine = EngineLines.ToolsDone,
+                    Calls =
+                    [
+                        new ToolCallRecord { Id = "t1", Name = "download_file", ArgumentsJson = "{}", Success = true, Status = ToolCallStatus.Done },
+                        new ToolCallRecord { Id = "t2", Name = "run_powershell", ArgumentsJson = "{}", Success = true, Status = ToolCallStatus.Done },
+                        new ToolCallRecord { Id = "t3", Name = "run_powershell", ArgumentsJson = "{}", Success = true, Status = ToolCallStatus.Done }
+                    ]
+                }
+            ],
+            Text = """
+                   Готово — **7-Zip 25.01 (x64)** установлен, архивы `.7z` и `.zip` открываются.
+
+                   1. Скачал установщик с 7-zip.org, сверил сумму и поставил без окон в `C:\Program Files\7-Zip`.
+                   2. Проверил распаковку тестового архива:
+
+                   ```powershell
+                   PS> & "C:\Program Files\7-Zip\7z.exe" t .\test.7z
+                   Everything is Ok
+                   Files: 3    Size: 48 214
+                   ```
+                   """
+        });
+        return session;
     }
 
     private static ContextMenu? OpenMenu() =>

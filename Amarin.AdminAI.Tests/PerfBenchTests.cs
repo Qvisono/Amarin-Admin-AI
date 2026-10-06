@@ -77,6 +77,7 @@ public sealed class PerfBenchTests : IDisposable
                 results.Add(($"start#{i + 1} first frame", firstFrame, "ms"));
             }
 
+            results.AddRange(await SettingsAfterStart());
             results.AddRange(await OpenBigChat());
             results.AddRange(await ToggleFolders());
             return results;
@@ -114,6 +115,78 @@ public sealed class PerfBenchTests : IDisposable
         window.Close();
         await Settle(200);
         return (construct, attach, firstFrame);
+    }
+
+    /// <summary>
+    /// Настройки сразу после первого кадра (до всякого прогрева) и после трёх секунд простоя, а
+    /// между ними — самая долгая остановка потока окна: всё, что окно делает в простое после
+    /// запуска, ввод ждёт не дольше неё.
+    /// </summary>
+    private async Task<List<(string, double, string)>> SettingsAfterStart()
+    {
+        var results = new List<(string, double, string)>();
+        foreach (var (label, wait) in new[] { ("right after first frame", 0), ("after 3 s idle", 3000) })
+        {
+            var window = NewWindow();
+            window.AttachServices(Services("settings-" + wait));
+            var rendered = new TaskCompletionSource();
+            window.ContentRendered += (_, _) => rendered.TrySetResult();
+            window.Show();
+            await rendered.Task;
+            if (wait > 0)
+            {
+                var stalls = new UiStalls();
+                stalls.Start();
+                await Settle(wait);
+                results.Add(("max UI stall over 3 s after first frame", stalls.Stop(), "ms"));
+            }
+
+            var watch = Stopwatch.StartNew();
+            var cpu = UiCpuMs();
+            Invoke(window, "SettingsButton_Click");
+            window.UpdateLayout();
+            results.Add(($"settings open {label}, cpu", UiCpuMs() - cpu, "ms"));
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            results.Add(($"settings open {label}", watch.Elapsed.TotalMilliseconds, "ms"));
+            await Settle(300);
+            window.Close();
+            await Settle(200);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Самая долгая остановка потока окна: таймер на приоритете ввода тикает каждые 10 мс, и
+    /// пауза между тиками сверх них — время, которое нажатие клавиши ждало бы своей очереди.
+    /// </summary>
+    private sealed class UiStalls
+    {
+        private readonly Stopwatch _clock = new();
+        private readonly DispatcherTimer _timer = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(10) };
+        private double _last;
+        private double _max;
+
+        public void Start()
+        {
+            _timer.Tick += OnTick;
+            _clock.Start();
+            _timer.Start();
+        }
+
+        public double Stop()
+        {
+            _timer.Stop();
+            _timer.Tick -= OnTick;
+            return _max;
+        }
+
+        private void OnTick(object? sender, EventArgs e)
+        {
+            var now = _clock.Elapsed.TotalMilliseconds;
+            _max = Math.Max(_max, now - _last - 10);
+            _last = now;
+        }
     }
 
     private async Task<List<(string, double, string)>> OpenBigChat()
