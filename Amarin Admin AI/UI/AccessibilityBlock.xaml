@@ -14,8 +14,11 @@
         а не отдельным разделом «Специальные возможности»: человек ищет их рядом с размером
         интерфейса. Высокая контрастность (I2) живёт у темы, рядом с «Как в Windows».
     -->
+    <!-- Строки стоят внутри группы «Оформления» вслед за углами окна, поэтому каждая — с чертой
+         сверху и с полями строки группы. -->
     <StackPanel>
-        <Grid Margin="0,12,0,0">
+        <Border Style="{StaticResource GroupDivider}"/>
+        <Grid Style="{StaticResource GroupRow}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -32,7 +35,8 @@
             </ComboBox>
         </Grid>
 
-        <Grid Margin="0,12,0,0">
+        <Border Style="{StaticResource GroupDivider}"/>
+        <Grid Style="{StaticResource GroupRow}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>

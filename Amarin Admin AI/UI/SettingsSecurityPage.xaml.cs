@@ -246,12 +246,16 @@ public partial class SettingsSecurityPage : UserControl
     {
         for (var i = 0; i < tools.Count; i++)
         {
+            // Строки лежат в группе-карточке: черта — её, без полей, а воздух — у самих строк,
+            // иначе первая и последняя строка прижимались бы к краю карточки.
             if (i > 0)
             {
-                host.Children.Add(new Border { Style = (Style)FindResource("SettingsDivider"), Margin = new Thickness(0, 9, 0, 9) });
+                host.Children.Add(new Border { Style = (Style)FindResource("GroupDivider") });
             }
 
-            host.Children.Add(BuildRow(tools[i]));
+            var row = BuildRow(tools[i]);
+            row.Margin = new Thickness(0, 9, 0, 9);
+            host.Children.Add(row);
         }
     }
 

@@ -6,13 +6,58 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:local="clr-namespace:Amarin.UI">
-    <!-- Метрики 1.27.1: заголовок страницы с воздухом снизу, раздел — плотно к своим строкам. -->
+    <!-- Заголовок страницы крупнее заголовков разделов и диалогов: при 15 он не отличался от
+         них и не держал страницу. Начертание прежнее — SemiBold у всех заголовков программы.
+         Копии у Key, Info и Instructions повторяют размер: заголовок не должен прыгать между
+         страницами (SettingsRedesignTests). Раздел — плотно к своим строкам. -->
     <Style x:Key="PageTitle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="FontSize" Value="21"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+
+    <!--
+        Группа строк — карточка на подложке настроек. Раньше страница была одним списком через
+        черту во всю ширину, и где кончается «уведомления» и начинается «язык», было видно только
+        по смыслу. Цвета — те же ключи палитры, что везде: Bg.Panel поверх Bg.Window светлее в
+        обеих темах, так что приём работает во всех пресетах без новых ключей.
+    -->
+    <Style x:Key="SettingsGroup" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Bg.Panel}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border.Subtle}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,2"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+
+    <!-- Строка внутри группы и черта между строками: черта уже группы на её поля. -->
+    <Style x:Key="GroupRow" TargetType="Grid">
+        <Setter Property="Margin" Value="0,11"/>
+    </Style>
+
+    <!-- Строка списка моделей: их девять подряд, и с шагом обычной строки страница
+         вышла бы вдвое длиннее. -->
+    <Style x:Key="GroupRowDense" TargetType="Grid">
+        <Setter Property="Margin" Value="0,7"/>
+    </Style>
+
+    <!-- По пикселям экрана: при масштабе 150 % черта на полупикселе расплывалась в две
+         бледные, и соседние черты одной группы выходили разной толщины. -->
+    <Style x:Key="GroupDivider" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource Border.Subtle}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Подпись над группой: что в ней собрано. -->
+    <Style x:Key="GroupLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
+        <Setter Property="Margin" Value="4,4,0,7"/>
     </Style>
 
     <Style x:Key="SettingDesc" TargetType="TextBlock">
@@ -20,6 +65,11 @@
         <Setter Property="Foreground" Value="{DynamicResource Text.Dim}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="Margin" Value="0,3,0,0"/>
+    </Style>
+
+    <!-- Пояснение ко всей группе — под её подписью, а не повтором в каждой строке. -->
+    <Style x:Key="GroupNote" TargetType="TextBlock" BasedOn="{StaticResource SettingDesc}">
+        <Setter Property="Margin" Value="4,-3,0,8"/>
     </Style>
 
     <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -407,6 +457,20 @@
         <Setter Property="Margin" Value="0,12"/>
     </Style>
 
+    <!--
+        Вложенный блок из нескольких строк (настройки компактного поля ввода): гаснет вместе
+        с переключателем над ним, как и одиночная NestedRow. Без этого выключенные ползунки
+        и тумблер выглядели рабочими.
+    -->
+    <Style x:Key="NestedPanel" TargetType="StackPanel">
+        <Setter Property="Margin" Value="18,0,0,11"/>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- Вложенная строка: зависит от строки над ней (звук уведомления, «✕ прячет в трей»). -->
     <Style x:Key="NestedRow" TargetType="Grid">
         <Setter Property="Margin" Value="18,10,0,0"/>
@@ -488,7 +552,7 @@
                                   Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.6"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                   VerticalAlignment="Center" Margin="0,1,10,0"/>
-                            <TextBlock Text="{TemplateBinding Content}" FontSize="15" FontWeight="SemiBold"
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="19" FontWeight="SemiBold"
                                        Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"/>
                         </StackPanel>

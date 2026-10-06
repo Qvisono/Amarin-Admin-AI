@@ -81,10 +81,11 @@
         <!-- Прижата к верху, под кнопкой «Состояние ПК»: строки доезжают по одной, и панель по
              центру при каждой из них сдвигалась бы целиком, а так растёт только вниз. -->
         <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24,56,24,24" VerticalAlignment="Top">
+            <!-- Подложка — как у настроек (Bg.Window), разделы на ней — группами-карточками. -->
             <Border x:Name="Card" Width="440" MaxHeight="700"
                     HorizontalAlignment="Center" VerticalAlignment="Top"
-                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="10" Padding="20,16,20,18">
+                    Background="{DynamicResource Bg.Window}" BorderBrush="{DynamicResource Border.Default}"
+                    BorderThickness="1" CornerRadius="14" Padding="18,16,18,8">
                 <!-- Grid, а не StackPanel: список растёт в прокручиваемой строке «*». -->
                 <Grid>
                     <Grid.RowDefinitions>
@@ -134,10 +135,11 @@
                         <ItemsControl x:Name="Cards" Focusable="False" Margin="0,0,14,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel>
-                                        <Border Style="{StaticResource SettingsDivider}" Margin="0,10" Visibility="{Binding DividerVisibility}"/>
+                                    <!-- Раздел — подпись и группа строк под ней, как в настройках: черта
+                                         между разделами больше не нужна, их разделяет сама карточка. -->
+                                    <StackPanel Margin="0,0,0,10">
                                         <!-- Заголовок раздела; высота — по кнопке, чтобы разделы с ней и без неё шли ровно. -->
-                                        <Grid MinHeight="24" Margin="0,0,0,3">
+                                        <Grid MinHeight="24" Margin="4,0,0,6">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
@@ -148,10 +150,11 @@
                                                     Tag="{Binding Area}" Content="{DynamicResource S.Health.Ask}" Click="Ask_Click"
                                                     Visibility="{Binding AskVisibility}"/>
                                         </Grid>
+                                        <Border Style="{StaticResource SettingsGroup}" Margin="0" Padding="14,5">
                                         <ItemsControl ItemsSource="{Binding Items}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid Margin="0,3">
+                                                    <Grid Margin="0,5">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
                                                             <ColumnDefinition Width="*"/>
@@ -185,6 +188,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                        </Border>
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

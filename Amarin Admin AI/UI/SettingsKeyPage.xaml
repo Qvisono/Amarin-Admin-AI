@@ -13,7 +13,7 @@
             <ResourceDictionary Source="SettingsPageStyles.xaml"/>
         </ResourceDictionary.MergedDictionaries>
         <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="21"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -43,13 +43,11 @@
 
         <!-- ===== Своё для этой страницы ===== -->
 
-        <!-- Плашка с крупной цифрой: остаток в долларах и он же в кредитах -->
-        <Style x:Key="BalanceTile" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,9"/>
+        <!-- Плашка с крупной цифрой: остаток в долларах и он же в кредитах. Карточкой групп
+             настроек (SettingsGroup): Bg.Card на подложке Bg.Window в светлой теме проваливался. -->
+        <Style x:Key="BalanceTile" TargetType="Border" BasedOn="{StaticResource SettingsGroup}">
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Margin" Value="0"/>
         </Style>
         <Style x:Key="TileCaption" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
@@ -239,15 +237,14 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <Border Style="{StaticResource SettingsDivider}"/>
-
             <!-- ═══ График ═══ -->
-            <Grid Margin="0,0,0,8">
+            <!-- Разделы отделяет воздух и подпись, а не черта: карточки и так держат границы. -->
+            <Grid Margin="0,18,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,8,0" VerticalAlignment="Center"
+                <TextBlock Style="{StaticResource GroupLabel}" Margin="4,0,8,0" VerticalAlignment="Center"
                            Text="{DynamicResource S.Spend.Title}"/>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <!-- Выгрузка трат в CSV (E5): тот же период и тот же охват, что на графике. -->
@@ -289,8 +286,7 @@
                              Content="{DynamicResource S.Spend.Period.All}" Checked="Period_Checked"/>
             </WrapPanel>
 
-            <Border Background="{DynamicResource Bg.Card}" BorderBrush="{DynamicResource Border.Default}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+            <Border Style="{StaticResource SettingsGroup}" Padding="14,12" Margin="0">
                 <StackPanel>
                     <!--
                         Итог за период слева сверху, над самим полем графика: он же и есть ответ
@@ -309,29 +305,30 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource SettingsDivider}"/>
-
             <!-- ═══ Разбивка по моделям ═══ -->
-            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Spend.Models.Title}"/>
-            <TextBlock x:Name="ModelsEmpty" Style="{StaticResource SettingDesc}"
-                       Text="{DynamicResource S.Spend.Models.Empty}" Margin="0,0,0,4"/>
-            <!--
-                ItemsControl, а не ListBox: SmoothScroll сидит на туннелирующем PreviewMouseWheel,
-                и вложенный список забрал бы колесо у страницы.
-            -->
-            <ItemsControl x:Name="ModelRows"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
+            <TextBlock Style="{StaticResource GroupLabel}" Margin="4,18,0,7" Text="{DynamicResource S.Spend.Models.Title}"/>
+            <Border Style="{StaticResource SettingsGroup}" Padding="16,10,16,6">
+                <StackPanel>
+                    <TextBlock x:Name="ModelsEmpty" Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Spend.Models.Empty}" Margin="0,0,0,4"/>
+                    <!--
+                        ItemsControl, а не ListBox: SmoothScroll сидит на туннелирующем PreviewMouseWheel,
+                        и вложенный список забрал бы колесо у страницы.
+                    -->
+                    <ItemsControl x:Name="ModelRows"/>
+                </StackPanel>
+            </Border>
 
             <!-- ═══ Ключи ═══ -->
-            <Grid Margin="0,0,0,8">
+            <!-- Подпись раздела — та же, что у остальных; «Добавить» стоит на её строке справа. -->
+            <Grid Margin="0,6,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Key.Section}"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Key.Storage}"/>
+                <StackPanel VerticalAlignment="Center" Margin="4,0,8,0">
+                    <TextBlock Style="{StaticResource GroupLabel}" Margin="0" Text="{DynamicResource S.Key.Section}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Margin="0,2,0,0" Text="{DynamicResource S.Key.Storage}"/>
                 </StackPanel>
                 <Button x:Name="AddKeyButton" Grid.Column="1" VerticalAlignment="Center"
                         Style="{StaticResource AddKeyButton}"
@@ -351,15 +348,16 @@
                 Лимиты трат и пороги остатка (E1, E4) — подстраницей в конце: в 1.28.0 они
                 стояли между графиком и разбивкой по моделям и рвали рассказ «сколько и на что».
             -->
-            <Border Style="{StaticResource SettingsDivider}"/>
-            <Button x:Name="LimitsLinkRow" Style="{StaticResource SettingsLinkRow}"
-                    local:SettingsDrill.Opens="{Binding ElementName=LimitsSub}"
-                    AutomationProperties.Name="{DynamicResource S.Limit.Section}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.Section}"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.SectionDesc}"/>
-                </StackPanel>
-            </Button>
+            <Border Style="{StaticResource SettingsGroup}" Margin="0,12,0,0">
+                <Button x:Name="LimitsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                        local:SettingsDrill.Opens="{Binding ElementName=LimitsSub}"
+                        AutomationProperties.Name="{DynamicResource S.Limit.Section}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.Section}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.SectionDesc}"/>
+                    </StackPanel>
+                </Button>
+            </Border>
         </StackPanel>
 
         <StackPanel x:Name="LimitsSub" Margin="20,14,20,16" Visibility="Collapsed">

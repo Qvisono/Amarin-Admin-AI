@@ -811,18 +811,18 @@ public partial class SettingsKeyPage : UserControl
         var card = new Border
         {
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
+            CornerRadius = new CornerRadius(12),
             Padding = new Thickness(12, 9, 8, 9),
             Margin = new Thickness(0, 0, 0, 6),
             Child = grid
         };
 
         // Активный ключ виден рамкой и фоном посветлее: галочку в кружке легко пропустить,
-        // когда ключей несколько и все подписаны похоже.
+        // когда ключей несколько и все подписаны похоже. Остальные — карточкой групп настроек.
         card.SetResourceReference(
-            Border.BackgroundProperty, entry.IsActive ? "Bg.Selected" : "Bg.Card");
+            Border.BackgroundProperty, entry.IsActive ? "Bg.Selected" : "Bg.Panel");
         card.SetResourceReference(
-            Border.BorderBrushProperty, entry.IsActive ? "Accent.Fill" : "Border.Default");
+            Border.BorderBrushProperty, entry.IsActive ? "Accent.Fill" : "Border.Subtle");
         return card;
     }
 

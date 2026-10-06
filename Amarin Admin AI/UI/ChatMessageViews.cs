@@ -1380,15 +1380,8 @@ internal static class ChatMessageViews
         export.Click += (_, _) => actions?.Export?.Invoke(message, export);
         HideIf(export, !sharingOn);
         row.Children.Add(export);
-        var compress = IconAction(host, "Compress", Loc.Get("S.Message.Compress"));
-        compress.IsEnabled = false;
-        row.Children.Add(compress);
-        var expand = IconAction(host, "Expand", Loc.Get("S.Message.Expand"));
-        expand.IsEnabled = false;
-        row.Children.Add(expand);
-        var compose = IconAction(host, "Compose", Loc.Get("S.Common.Edit"));
-        compose.IsEnabled = false;
-        row.Children.Add(compose);
+        // «Сжать», «Расширить» и «Изменить» у ответа стояли здесь всегда выключенными: включить их
+        // нечем, и три серых значка из восьми были шумом. Вернутся — когда появится то, что они делают.
         var delete = IconAction(host, "Delete", Loc.Get("S.Common.Delete"));
         delete.Click += (_, _) => actions?.Delete?.Invoke(message);
         row.Children.Add(delete);

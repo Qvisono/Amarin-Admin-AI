@@ -14,61 +14,68 @@
         ползунками: лимит ставят числом «$5 в день», и ползунок с шагом в цент был бы мучением.
         Таблицы собираются в коде: ключей у человека сколько угодно, и у каждого своя пара полей.
     -->
+    <!-- Таблицы — каждая своей группой: шапка столбцов и строки ключей внутри одной карточки. -->
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,2" Text="{DynamicResource S.Limit.Title}"/>
-        <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,0,12" Text="{DynamicResource S.Limit.Desc}"/>
-        <Grid x:Name="PeriodGrid">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-        </Grid>
+        <TextBlock Style="{StaticResource GroupLabel}" Margin="4,0,0,7" Text="{DynamicResource S.Limit.Title}"/>
+        <TextBlock Style="{StaticResource GroupNote}" Text="{DynamicResource S.Limit.Desc}"/>
+        <Border Style="{StaticResource SettingsGroup}" Padding="16,10">
+            <Grid x:Name="PeriodGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </Border>
 
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.TurnLabel}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.TurnHint}"/>
-            </StackPanel>
-            <ContentControl x:Name="TurnSlot" Grid.Column="1" Focusable="False" VerticalAlignment="Center"/>
-        </Grid>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.TurnLabel}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.TurnHint}"/>
+                    </StackPanel>
+                    <ContentControl x:Name="TurnSlot" Grid.Column="1" Focusable="False" VerticalAlignment="Center"/>
+                </Grid>
 
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.WarnLabel}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.WarnHint}"/>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Limit.WarnLabel}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Limit.WarnHint}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Style="{StaticResource FieldFrame}" Height="28" Width="52">
+                            <TextBox x:Name="WarnBox" Style="{StaticResource FieldTextBox}" MaxLength="2"
+                                     HorizontalContentAlignment="Center" LostFocus="WarnBox_LostFocus"
+                                     AutomationProperties.Name="{DynamicResource S.Limit.WarnLabel}"/>
+                        </Border>
+                        <TextBlock Text="%" FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"
+                                   Foreground="{DynamicResource Text.Dim}"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Style="{StaticResource FieldFrame}" Height="28" Width="52">
-                    <TextBox x:Name="WarnBox" Style="{StaticResource FieldTextBox}" MaxLength="2"
-                             HorizontalContentAlignment="Center" LostFocus="WarnBox_LostFocus"
-                             AutomationProperties.Name="{DynamicResource S.Limit.WarnLabel}"/>
-                </Border>
-                <TextBlock Text="%" FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"
-                           Foreground="{DynamicResource Text.Dim}"/>
-            </StackPanel>
-        </Grid>
+        </Border>
 
         <!-- Пороги остатка (E4): когда плашка и уведомление говорят «мало» и «почти кончились». -->
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,4,0,2" Text="{DynamicResource S.BalanceLimit.Title}"/>
-        <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,0,12" Text="{DynamicResource S.BalanceLimit.Desc}"/>
-        <Grid x:Name="BalanceGrid">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-        </Grid>
+        <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.BalanceLimit.Title}"/>
+        <TextBlock Style="{StaticResource GroupNote}" Text="{DynamicResource S.BalanceLimit.Desc}"/>
+        <Border Style="{StaticResource SettingsGroup}" Padding="16,10">
+            <Grid x:Name="BalanceGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </Border>
     </StackPanel>
 </UserControl>

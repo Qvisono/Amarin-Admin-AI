@@ -98,14 +98,14 @@ public partial class DataCareBlock : UserControl
         CleanupRows.Children.Clear();
         foreach (var target in Targets)
         {
-            CleanupRows.Children.Add(CleanupRow(target, sizes[target]));
+            AddGroupRow(CleanupRows, CleanupRow(target, sizes[target]));
         }
 
         LargestRows.Children.Clear();
         var titles = chats.ToDictionary(chat => chat.Id, chat => chat.Title, StringComparer.Ordinal);
         foreach (var chat in largest)
         {
-            LargestRows.Children.Add(LargestRow(chat, titles.GetValueOrDefault(chat.Id) ?? chat.Id));
+            AddGroupRow(LargestRows, LargestRow(chat, titles.GetValueOrDefault(chat.Id) ?? chat.Id));
         }
 
         LargestEmpty.Text = Loc.Get("S.Care.LargestNone");
@@ -120,9 +120,23 @@ public partial class DataCareBlock : UserControl
         _ => "S.Care.BackgroundCache"
     };
 
+    /// <summary>
+    /// Строка в группе-карточке: черта между строками — группы, без полей, поэтому воздух
+    /// держат сами строки, а над первой черты нет.
+    /// </summary>
+    private void AddGroupRow(Panel host, FrameworkElement row)
+    {
+        if (host.Children.Count > 0)
+        {
+            host.Children.Add(new Border { Style = (Style)FindResource("GroupDivider") });
+        }
+
+        host.Children.Add(row);
+    }
+
     private FrameworkElement CleanupRow(CleanupTarget target, CleanupSize size)
     {
-        var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+        var grid = new Grid { Margin = new Thickness(0, 11, 0, 11) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
@@ -185,7 +199,7 @@ public partial class DataCareBlock : UserControl
             Content = name,
             Tag = AttachmentTypes.FormatSize(chat.Bytes),
             Style = (Style)FindResource("SettingsLinkRow"),
-            Margin = new Thickness(-8, -2, -8, 2)
+            Margin = new Thickness(-8, 5, -8, 5)
         };
         System.Windows.Automation.AutomationProperties.SetName(button, title);
         button.Click += (_, _) => OpenChat?.Invoke(chat.Id);

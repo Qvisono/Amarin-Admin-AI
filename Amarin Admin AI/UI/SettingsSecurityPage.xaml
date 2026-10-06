@@ -21,115 +21,128 @@
                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Security.Title}"/>
 
                 <!-- ═══════════ РЕЖИМ ДОСТУПА ═══════════ -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ModeLabel}"/>
-                        <TextBlock x:Name="ModeDesc" Style="{StaticResource SettingDesc}"/>
-                    </StackPanel>
-                    <ComboBox x:Name="ModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" SelectedIndex="0"
-                              AutomationProperties.Name="{DynamicResource S.Security.ModeLabel}"
-                              SelectionChanged="ModeCombo_SelectionChanged">
-                        <ComboBoxItem Tag="Normal" Content="{DynamicResource S.Access.Normal}"/>
-                        <ComboBoxItem Tag="AskAll" Content="{DynamicResource S.Access.AskAll}"/>
-                        <ComboBoxItem Tag="ReadOnly" Content="{DynamicResource S.Access.ReadOnly}"/>
-                        <ComboBoxItem Tag="AlwaysApprove" Content="{DynamicResource S.Access.AlwaysApprove}"/>
-                    </ComboBox>
-                </Grid>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ModeLabel}"/>
+                            <TextBlock x:Name="ModeDesc" Style="{StaticResource SettingDesc}"/>
+                        </StackPanel>
+                        <ComboBox x:Name="ModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" SelectedIndex="0"
+                                  AutomationProperties.Name="{DynamicResource S.Security.ModeLabel}"
+                                  SelectionChanged="ModeCombo_SelectionChanged">
+                            <ComboBoxItem Tag="Normal" Content="{DynamicResource S.Access.Normal}"/>
+                            <ComboBoxItem Tag="AskAll" Content="{DynamicResource S.Access.AskAll}"/>
+                            <ComboBoxItem Tag="ReadOnly" Content="{DynamicResource S.Access.ReadOnly}"/>
+                            <ComboBoxItem Tag="AlwaysApprove" Content="{DynamicResource S.Access.AlwaysApprove}"/>
+                        </ComboBox>
+                    </Grid>
+                </Border>
 
                 <!-- ═══════════ ПЛАН ПЕРЕД ИЗМЕНЕНИЯМИ ═══════════ -->
-                <Border Style="{StaticResource SettingsDivider}"/>
-                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,4,0,2" Text="{DynamicResource S.Security.PlanLabel}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,0,10" Text="{DynamicResource S.Security.PlanDesc}"/>
-                <Grid Margin="0,0,0,10">
-                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                               Text="{DynamicResource S.Customize.AgentLight}"/>
-                    <CheckBox x:Name="PlanLiteToggle" Tag="lite" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
-                              AutomationProperties.Name="{DynamicResource S.Customize.AgentLight}"
-                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                </Grid>
-                <Grid Margin="0,0,0,10">
-                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                               Text="{DynamicResource S.Customize.AgentFast}"/>
-                    <CheckBox x:Name="PlanFastToggle" Tag="fast" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
-                              AutomationProperties.Name="{DynamicResource S.Customize.AgentFast}"
-                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                </Grid>
-                <Grid>
-                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
-                               Text="{DynamicResource S.Customize.AgentHeavy}"/>
-                    <CheckBox x:Name="PlanHeavyToggle" Tag="heavy" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
-                              AutomationProperties.Name="{DynamicResource S.Customize.AgentHeavy}"
-                              Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
-                </Grid>
+                <!-- Пояснение одно на группу — под её подписью, а не в каждой из трёх строк. -->
+                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.PlanLabel}"/>
+                <TextBlock Style="{StaticResource GroupNote}" Text="{DynamicResource S.Security.PlanDesc}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                       Text="{DynamicResource S.Customize.AgentLight}"/>
+                            <CheckBox x:Name="PlanLiteToggle" Tag="lite" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                                      AutomationProperties.Name="{DynamicResource S.Customize.AgentLight}"
+                                      Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                       Text="{DynamicResource S.Customize.AgentFast}"/>
+                            <CheckBox x:Name="PlanFastToggle" Tag="fast" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                                      AutomationProperties.Name="{DynamicResource S.Customize.AgentFast}"
+                                      Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center"
+                                       Text="{DynamicResource S.Customize.AgentHeavy}"/>
+                            <CheckBox x:Name="PlanHeavyToggle" Tag="heavy" Style="{StaticResource SettingsToggle}" HorizontalAlignment="Right"
+                                      AutomationProperties.Name="{DynamicResource S.Customize.AgentHeavy}"
+                                      Checked="PlanTierToggle_Changed" Unchecked="PlanTierToggle_Changed"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
                 <!-- ═══════════ ПРИВАТНОСТЬ ═══════════ -->
-                <Border Style="{StaticResource SettingsDivider}"/>
-                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
+                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.DataLabel}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
+                                <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
+                                      AutomationProperties.Name="{DynamicResource S.Security.AutoLock}"
+                                      SelectionChanged="AutoLockCombo_SelectionChanged">
+                                <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
+                                <ComboBoxItem Tag="5"/>
+                                <ComboBoxItem Tag="15"/>
+                                <ComboBoxItem Tag="30"/>
+                                <ComboBoxItem Tag="60"/>
+                            </ComboBox>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                       Text="{DynamicResource S.Security.LockNowTitle}"/>
+                            <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
+                        </Grid>
                     </StackPanel>
-                    <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1"
-                              Style="{StaticResource SettingsToggle}"
-                              Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
-                </Grid>
-                <Border Style="{StaticResource SettingsDivider}"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
-                        <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
-                    </StackPanel>
-                    <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
-                              AutomationProperties.Name="{DynamicResource S.Security.AutoLock}"
-                              SelectionChanged="AutoLockCombo_SelectionChanged">
-                        <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
-                        <ComboBoxItem Tag="5"/>
-                        <ComboBoxItem Tag="15"/>
-                        <ComboBoxItem Tag="30"/>
-                        <ComboBoxItem Tag="60"/>
-                    </ComboBox>
-                </Grid>
-                <Border Style="{StaticResource SettingsDivider}"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                               Text="{DynamicResource S.Security.LockNowTitle}"/>
-                    <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                            Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
-                </Grid>
+                </Border>
 
                 <!-- ═══════════ ИНСТРУМЕНТЫ ═══════════ -->
-                <Border Style="{StaticResource SettingsDivider}"/>
-                <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}"
-                        local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
-                        AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ToolsLabel}"/>
-                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
-                    </StackPanel>
-                </Button>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                            local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
+                            AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ToolsLabel}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
+                        </StackPanel>
+                    </Button>
+                </Border>
             </StackPanel>
 
             <!-- ═══════════ ПОДСТРАНИЦА: ИНСТРУМЕНТЫ ═══════════ -->
+            <!-- Строки собирает код (AddRows) — черта между ними та же, что у групп. -->
             <StackPanel x:Name="ToolsSub" Margin="20,14,20,16" Visibility="Collapsed">
                 <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Security.ToolsLabel}"/>
-                <Grid Margin="0,0,0,4">
+                <Grid Margin="4,0,0,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -140,11 +153,15 @@
                             Content="{DynamicResource S.Security.EnableAll}" Click="EnableAllToolsButton_Click"/>
                 </Grid>
 
-                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,14,0,6" Text="{DynamicResource S.Security.ChatGroup}"/>
-                <StackPanel x:Name="ChatToolRows"/>
+                <TextBlock Style="{StaticResource GroupLabel}" Margin="4,14,0,7" Text="{DynamicResource S.Security.ChatGroup}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel x:Name="ChatToolRows"/>
+                </Border>
 
-                <TextBlock Style="{StaticResource SectionTitle}" Margin="0,14,0,6" Text="{DynamicResource S.Security.AgentGroup}"/>
-                <StackPanel x:Name="AgentToolRows"/>
+                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.AgentGroup}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel x:Name="AgentToolRows"/>
+                </Border>
             </StackPanel>
         </Grid>
     </ScrollViewer>

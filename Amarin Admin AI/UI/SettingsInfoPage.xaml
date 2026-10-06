@@ -10,7 +10,7 @@
     -->
     <UserControl.Resources>
         <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="21"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -106,12 +106,13 @@
         </Style>
 
 
+        <!-- Шаг гайда — карточкой групп настроек: Bg.Card на подложке Bg.Window проваливался. -->
         <Style x:Key="StepCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Bg.Card}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Border.Default}"/>
+            <Setter Property="Background" Value="{DynamicResource Bg.Panel}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border.Subtle}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,11,12,12"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14,12,14,13"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
 
@@ -417,7 +418,7 @@
             <!-- ═══ Безопасность ключа ═══ -->
             <Border Background="{DynamicResource Status.WarningSurface}"
                     BorderBrush="{DynamicResource Status.WarningBorder}"
-                    BorderThickness="1" CornerRadius="8" Padding="12,11" Margin="0,8,0,0">
+                    BorderThickness="1" CornerRadius="12" Padding="14,12" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>

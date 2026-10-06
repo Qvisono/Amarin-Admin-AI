@@ -11,66 +11,77 @@
 
     <!-- Подстраница «Хранение и очистка» (F3): старые чаты, лишние файлы, самые тяжёлые переписки. -->
     <StackPanel>
-        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,8" Text="{DynamicResource S.Care.Retention}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.RetentionLabel}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.RetentionHint}"/>
+        <TextBlock Style="{StaticResource GroupLabel}" Margin="4,0,0,7" Text="{DynamicResource S.Care.Retention}"/>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.RetentionLabel}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.RetentionHint}"/>
+                    </StackPanel>
+                    <ComboBox x:Name="ModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="160"
+                              AutomationProperties.Name="{DynamicResource S.Care.RetentionLabel}"
+                              SelectionChanged="ModeCombo_SelectionChanged">
+                        <ComboBoxItem Tag="Off" Content="{DynamicResource S.Care.ModeOff}"/>
+                        <ComboBoxItem Tag="Archive" Content="{DynamicResource S.Care.ModeArchive}"/>
+                        <ComboBoxItem Tag="Delete" Content="{DynamicResource S.Care.ModeDelete}"/>
+                    </ComboBox>
+                </Grid>
+                <Grid x:Name="DaysRow" Style="{StaticResource NestedRow}" Margin="18,-3,0,11">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                               Text="{DynamicResource S.Care.OlderThan}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Style="{StaticResource FieldFrame}" Height="28" Width="60">
+                            <TextBox x:Name="DaysBox" Style="{StaticResource FieldTextBox}" MaxLength="4"
+                                     HorizontalContentAlignment="Center" LostFocus="DaysBox_LostFocus"
+                                     AutomationProperties.Name="{DynamicResource S.Care.OlderThan}"/>
+                        </Border>
+                        <TextBlock Text="{DynamicResource S.Care.Days}" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Text.Dim}" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
-            <ComboBox x:Name="ModeCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="160"
-                      AutomationProperties.Name="{DynamicResource S.Care.RetentionLabel}"
-                      SelectionChanged="ModeCombo_SelectionChanged">
-                <ComboBoxItem Tag="Off" Content="{DynamicResource S.Care.ModeOff}"/>
-                <ComboBoxItem Tag="Archive" Content="{DynamicResource S.Care.ModeArchive}"/>
-                <ComboBoxItem Tag="Delete" Content="{DynamicResource S.Care.ModeDelete}"/>
-            </ComboBox>
-        </Grid>
-        <Grid x:Name="DaysRow" Style="{StaticResource NestedRow}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                       Text="{DynamicResource S.Care.OlderThan}"/>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Style="{StaticResource FieldFrame}" Height="28" Width="60">
-                    <TextBox x:Name="DaysBox" Style="{StaticResource FieldTextBox}" MaxLength="4"
-                             HorizontalContentAlignment="Center" LostFocus="DaysBox_LostFocus"
-                             AutomationProperties.Name="{DynamicResource S.Care.OlderThan}"/>
-                </Border>
-                <TextBlock Text="{DynamicResource S.Care.Days}" FontSize="12" VerticalAlignment="Center"
-                           Foreground="{DynamicResource Text.Dim}" Margin="8,0,0,0"/>
-            </StackPanel>
-        </Grid>
+        </Border>
 
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <TextBlock Style="{StaticResource SectionTitle}" Margin="0,4,0,2" Text="{DynamicResource S.Care.Cleanup}"/>
-        <TextBlock Style="{StaticResource SettingDesc}" Margin="0,0,0,10" Text="{DynamicResource S.Care.CleanupDesc}"/>
-        <StackPanel x:Name="CleanupRows"/>
+        <!-- Строки очистки и тяжёлых чатов собирает код: черты между ними ставит он же. -->
+        <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Care.Cleanup}"/>
+        <TextBlock Style="{StaticResource GroupNote}" Text="{DynamicResource S.Care.CleanupDesc}"/>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel x:Name="CleanupRows"/>
+        </Border>
 
         <!-- Вложения старых чатов (F4): вынести из файлов чатов прежних версий. -->
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Attachments}"/>
-                <TextBlock x:Name="AttachmentsText" Style="{StaticResource SettingDesc}"
-                           Text="{DynamicResource S.Care.AttachmentsDesc}"/>
-            </StackPanel>
-            <Button x:Name="RewriteButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
-                    Content="{DynamicResource S.Care.Rewrite}" Click="Rewrite_Click"/>
-        </Grid>
+        <Border Style="{StaticResource SettingsGroup}">
+            <Grid Style="{StaticResource GroupRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Attachments}"/>
+                    <TextBlock x:Name="AttachmentsText" Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Care.AttachmentsDesc}"/>
+                </StackPanel>
+                <Button x:Name="RewriteButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center"
+                        Content="{DynamicResource S.Care.Rewrite}" Click="Rewrite_Click"/>
+            </Grid>
+        </Border>
 
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Care.Largest}"/>
-        <TextBlock x:Name="LargestEmpty" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.Usage.Counting}"/>
-        <StackPanel x:Name="LargestRows"/>
+        <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Care.Largest}"/>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <TextBlock x:Name="LargestEmpty" Style="{StaticResource SettingDesc}" Margin="0,11"
+                           Text="{DynamicResource S.Data.Usage.Counting}"/>
+                <StackPanel x:Name="LargestRows"/>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

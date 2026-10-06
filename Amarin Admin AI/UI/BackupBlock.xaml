@@ -19,91 +19,97 @@
     </UserControl.Resources>
 
     <!-- Подстраница «Резервные копии» (F1): расписание, сколько хранить, папка, последняя копия. -->
+    <!-- Настройка копий — одной группой, последняя копия и «Сделать сейчас» — второй: это действие. -->
     <StackPanel>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Enabled}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.Desc}"/>
-            </StackPanel>
-            <CheckBox x:Name="EnabledToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
-                      Checked="EnabledToggle_Changed" Unchecked="EnabledToggle_Changed"
-                      AutomationProperties.Name="{DynamicResource S.Backup.Enabled}"/>
-        </Grid>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Enabled}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.Desc}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="EnabledToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                              Checked="EnabledToggle_Changed" Unchecked="EnabledToggle_Changed"
+                              AutomationProperties.Name="{DynamicResource S.Backup.Enabled}"/>
+                </Grid>
 
-        <StackPanel x:Name="Details" Style="{StaticResource DetailsPanel}">
-            <Border Style="{StaticResource SettingsDivider}"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                           Text="{DynamicResource S.Backup.Interval}"/>
-                <ComboBox x:Name="IntervalCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
-                          AutomationProperties.Name="{DynamicResource S.Backup.Interval}"
-                          SelectionChanged="IntervalCombo_SelectionChanged">
-                    <ComboBoxItem Tag="Daily" Content="{DynamicResource S.Backup.Daily}"/>
-                    <ComboBoxItem Tag="Weekly" Content="{DynamicResource S.Backup.Weekly}"/>
-                </ComboBox>
-            </Grid>
+                <StackPanel x:Name="Details" Style="{StaticResource DetailsPanel}">
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="{DynamicResource S.Backup.Interval}"/>
+                        <ComboBox x:Name="IntervalCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
+                                  AutomationProperties.Name="{DynamicResource S.Backup.Interval}"
+                                  SelectionChanged="IntervalCombo_SelectionChanged">
+                            <ComboBoxItem Tag="Daily" Content="{DynamicResource S.Backup.Daily}"/>
+                            <ComboBoxItem Tag="Weekly" Content="{DynamicResource S.Backup.Weekly}"/>
+                        </ComboBox>
+                    </Grid>
 
-            <Border Style="{StaticResource SettingsDivider}"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                           Text="{DynamicResource S.Backup.KeepLabel}"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Style="{StaticResource FieldFrame}" Height="28" Width="52">
-                        <TextBox x:Name="KeepBox" Style="{StaticResource FieldTextBox}" MaxLength="3"
-                                 HorizontalContentAlignment="Center" LostFocus="KeepBox_LostFocus"
-                                 AutomationProperties.Name="{DynamicResource S.Backup.KeepLabel}"/>
-                    </Border>
-                    <TextBlock Text="{DynamicResource S.Backup.KeepUnit}" FontSize="12" VerticalAlignment="Center"
-                               Foreground="{DynamicResource Text.Dim}" Margin="8,0,0,0"/>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="{DynamicResource S.Backup.KeepLabel}"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Style="{StaticResource FieldFrame}" Height="28" Width="52">
+                                <TextBox x:Name="KeepBox" Style="{StaticResource FieldTextBox}" MaxLength="3"
+                                         HorizontalContentAlignment="Center" LostFocus="KeepBox_LostFocus"
+                                         AutomationProperties.Name="{DynamicResource S.Backup.KeepLabel}"/>
+                            </Border>
+                            <TextBlock Text="{DynamicResource S.Backup.KeepUnit}" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Text.Dim}" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Folder}"/>
+                            <TextBlock x:Name="FolderText" Style="{StaticResource SettingDesc}" TextWrapping="NoWrap"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"
+                                    Content="{DynamicResource S.Common.Change}" Click="ChooseFolder_Click"/>
+                            <Button Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Common.Open}" Click="OpenFolder_Click"/>
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
-            </Grid>
+            </StackPanel>
+        </Border>
 
-            <Border Style="{StaticResource SettingsDivider}"/>
-            <Grid>
+        <Border Style="{StaticResource SettingsGroup}">
+            <Grid Style="{StaticResource GroupRow}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Folder}"/>
-                    <TextBlock x:Name="FolderText" Style="{StaticResource SettingDesc}" TextWrapping="NoWrap"
-                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.LastTitle}"/>
+                    <TextBlock x:Name="StatusText" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.Never}"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource SecondaryButton}" Margin="0,0,6,0"
-                            Content="{DynamicResource S.Common.Change}" Click="ChooseFolder_Click"/>
-                    <Button Style="{StaticResource SecondaryButton}"
-                            Content="{DynamicResource S.Common.Open}" Click="OpenFolder_Click"/>
-                </StackPanel>
+                <Button x:Name="RunNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                        Content="{DynamicResource S.Backup.RunNow}" Click="RunNow_Click"/>
             </Grid>
-        </StackPanel>
-
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.LastTitle}"/>
-                <TextBlock x:Name="StatusText" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.Never}"/>
-            </StackPanel>
-            <Button x:Name="RunNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                    Content="{DynamicResource S.Backup.RunNow}" Click="RunNow_Click"/>
-        </Grid>
+        </Border>
         <TextBlock x:Name="PlainWarning" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.Plain}"
-                   Margin="0,10,0,0" Foreground="{DynamicResource Status.Warning}" Visibility="Collapsed"/>
+                   Margin="4,-4,0,0" Foreground="{DynamicResource Status.Warning}" Visibility="Collapsed"/>
     </StackPanel>
 </UserControl>

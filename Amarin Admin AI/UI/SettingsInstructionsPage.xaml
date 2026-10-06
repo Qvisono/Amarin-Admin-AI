@@ -12,7 +12,7 @@
             <ResourceDictionary Source="SettingsPageStyles.xaml"/>
         </ResourceDictionary.MergedDictionaries>
         <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontSize" Value="21"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
@@ -238,7 +238,7 @@
 
         <!--
             Карточка инструкции. Кнопкой, как плитка заготовки: вся карточка открывает правку.
-            Шаблон — по форме карточек страницы Key: та же заливка Bg.Card и тонкая рамка, чуть
+            Шаблон — по форме групп настроек: та же заливка Bg.Panel и тонкая рамка, чуть
             больше воздуха внутри и мягкий подсвет рамки под курсором вместо смены заливки
             целиком.
         -->
@@ -249,9 +249,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
-                                BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                                CornerRadius="10" Padding="12,12,12,11">
+                        <Border x:Name="Bg" Background="{DynamicResource Bg.Panel}"
+                                BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                                CornerRadius="12" Padding="14,12,14,11">
                             <ContentPresenter/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -520,9 +520,9 @@
                            Text="{DynamicResource S.Common.NothingFound}" Visibility="Collapsed"/>
 
                 <!-- Пустое состояние: объясняет, зачем это, и сразу даёт начать. -->
-                <Border x:Name="EmptyState" Margin="0,18,0,0" Padding="24,26" CornerRadius="10"
-                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
-                        Background="{DynamicResource Bg.Card}" Visibility="Collapsed">
+                <Border x:Name="EmptyState" Margin="0,18,0,0" Padding="24,26" CornerRadius="12"
+                        BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1"
+                        Background="{DynamicResource Bg.Panel}" Visibility="Collapsed">
                     <StackPanel HorizontalAlignment="Center" MaxWidth="330">
                         <Border Width="40" Height="40" CornerRadius="20" HorizontalAlignment="Center"
                                 Background="{DynamicResource Bg.Selected}">
@@ -574,7 +574,8 @@
                         Click="Back_Click" ToolTip="{DynamicResource S.Settings.Nav.Instructions}">
                     <Path Style="{StaticResource IconGlyph}" Width="7" Data="M6,1 L1,6 L6,11"/>
                 </Button>
-                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}"
+                <!-- Редактор — уровень ниже страницы, со стрелкой «назад»: размер — как у SubPageBack. -->
+                <TextBlock x:Name="EditorTitle" Grid.Column="1" Style="{StaticResource PageTitle}" FontSize="19"
                            VerticalAlignment="Center" Text="{DynamicResource S.Instructions.NewTitle}"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{DynamicResource S.Instructions.EnabledLabel}" FontSize="11.5"

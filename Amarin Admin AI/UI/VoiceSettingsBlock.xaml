@@ -14,64 +14,67 @@
         языке. Под выбором — одна строка о том, что умеет этот ПК: без неё «Авто» и «На этом ПК»
         ничего не говорили бы человеку, у которого распознавателя Windows для его языка нет.
     -->
-    <StackPanel>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Engine}"/>
-                <TextBlock x:Name="LocalLanguagesText" Style="{StaticResource SettingDesc}"
-                           Text="{DynamicResource S.Voice.LocalNone}"/>
-            </StackPanel>
-            <ComboBox x:Name="EngineCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
-                      AutomationProperties.Name="{DynamicResource S.Voice.Engine}"
-                      SelectionChanged="EngineCombo_SelectionChanged">
-                <ComboBoxItem Tag="Auto" Content="{DynamicResource S.Voice.EngineAuto}"/>
-                <ComboBoxItem Tag="Local" Content="{DynamicResource S.Voice.EngineLocal}"/>
-                <ComboBoxItem Tag="Cloud" Content="{DynamicResource S.Voice.EngineCloud}"/>
-            </ComboBox>
-        </Grid>
-
-        <StackPanel x:Name="CloudRow">
-            <Border Style="{StaticResource SettingsDivider}"/>
-            <Grid>
+    <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+            <Grid Style="{StaticResource GroupRow}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Model}"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.ModelHint}"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Engine}"/>
+                    <TextBlock x:Name="LocalLanguagesText" Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Voice.LocalNone}"/>
+                </StackPanel>
+                <ComboBox x:Name="EngineCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
+                          AutomationProperties.Name="{DynamicResource S.Voice.Engine}"
+                          SelectionChanged="EngineCombo_SelectionChanged">
+                    <ComboBoxItem Tag="Auto" Content="{DynamicResource S.Voice.EngineAuto}"/>
+                    <ComboBoxItem Tag="Local" Content="{DynamicResource S.Voice.EngineLocal}"/>
+                    <ComboBoxItem Tag="Cloud" Content="{DynamicResource S.Voice.EngineCloud}"/>
+                </ComboBox>
+            </Grid>
+
+            <!-- Черта — вместе со строкой: прячется строка облака, прячется и её черта. -->
+            <StackPanel x:Name="CloudRow">
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Model}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.ModelHint}"/>
+                    </StackPanel>
+                    <Border Grid.Column="1" Style="{StaticResource FieldFrame}" Width="190" Height="28" Padding="10,0">
+                        <Grid>
+                            <TextBox x:Name="ModelBox" Style="{StaticResource FieldTextBox}" LostFocus="ModelBox_LostFocus"
+                                     AutomationProperties.Name="{DynamicResource S.Voice.Model}"/>
+                            <TextBlock x:Name="ModelPlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.ModelEmpty}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <Border Style="{StaticResource GroupDivider}"/>
+            <Grid Style="{StaticResource GroupRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Language}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.LanguageHint}"/>
                 </StackPanel>
                 <Border Grid.Column="1" Style="{StaticResource FieldFrame}" Width="190" Height="28" Padding="10,0">
                     <Grid>
-                        <TextBox x:Name="ModelBox" Style="{StaticResource FieldTextBox}" LostFocus="ModelBox_LostFocus"
-                                 AutomationProperties.Name="{DynamicResource S.Voice.Model}"/>
-                        <TextBlock x:Name="ModelPlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.ModelEmpty}"/>
+                        <TextBox x:Name="LanguageBox" Style="{StaticResource FieldTextBox}" LostFocus="LanguageBox_LostFocus"
+                                 AutomationProperties.Name="{DynamicResource S.Voice.Language}"/>
+                        <TextBlock x:Name="LanguagePlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.LanguageEmpty}"/>
                     </Grid>
                 </Border>
             </Grid>
         </StackPanel>
-
-        <Border Style="{StaticResource SettingsDivider}"/>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Language}"/>
-                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.LanguageHint}"/>
-            </StackPanel>
-            <Border Grid.Column="1" Style="{StaticResource FieldFrame}" Width="190" Height="28" Padding="10,0">
-                <Grid>
-                    <TextBox x:Name="LanguageBox" Style="{StaticResource FieldTextBox}" LostFocus="LanguageBox_LostFocus"
-                             AutomationProperties.Name="{DynamicResource S.Voice.Language}"/>
-                    <TextBlock x:Name="LanguagePlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.LanguageEmpty}"/>
-                </Grid>
-            </Border>
-        </Grid>
-    </StackPanel>
+    </Border>
 </UserControl>
