@@ -32,7 +32,11 @@ public partial class ColorPickerField : UserControl
     {
         InitializeComponent();
         PopupManager.Register(PickerPopup, OpenButton);
-        BuildSwatches();
+
+        // Образцы — при первом открытии: на странице «Оформление» полей пять, и их кнопки
+        // строились вместе со страницей, хотя открывают поля по одному и не каждый раз.
+        // Checked приходит раньше, чем привязка откроет попап.
+        OpenButton.Checked += (_, _) => BuildSwatches();
         Render();
 
         // Подпись «по теме» пишет код, и при смене языка на лету она оставалась на прежнем.
@@ -74,6 +78,11 @@ public partial class ColorPickerField : UserControl
 
     private void BuildSwatches()
     {
+        if (SwatchList.Items.Count > 0)
+        {
+            return;
+        }
+
         foreach (var preset in Presets)
         {
             var color = AppearanceManager.Parse(preset) ?? Colors.Gray;

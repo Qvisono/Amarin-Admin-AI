@@ -57,13 +57,7 @@
                PopupAnimation="Fade"
                Opened="PickerPopup_Opened"
                IsOpen="{Binding IsChecked, ElementName=OpenButton, Mode=TwoWay}">
-            <local:ModelPickerPanel x:Name="Panel"
-                                    AllowAuto="{Binding AllowAuto, RelativeSource={RelativeSource AncestorType=local:ModelPickerField}}"
-                                    AutoTipKey="{Binding AutoTipKey, RelativeSource={RelativeSource AncestorType=local:ModelPickerField}}"
-                                    ModelPicked="Panel_ModelPicked"
-                                    KeyPicked="Panel_KeyPicked"
-                                    AddKeyRequested="Panel_AddKeyRequested"
-                                    ProviderShown="Panel_ProviderShown"/>
+            <!-- Плашку (ModelPickerPanel) кладёт код при первом открытии — см. ModelPickerField.Panel. -->
         </Popup>
     </Grid>
 </UserControl>

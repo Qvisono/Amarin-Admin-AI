@@ -57,7 +57,7 @@ public sealed class PopupShadowTests
 
             foreach (var (name, control, popup) in new (string, FrameworkElement, string)[]
                      {
-                         ("ModelPickerField", new ModelPickerField(), "PickerPopup"),
+                         ("ModelPickerField", WithPanel(new ModelPickerField()), "PickerPopup"),
                          ("ProviderKeyField", new ProviderKeyField(), "ChoicePopup"),
                          ("ColorPickerField", new ColorPickerField(), "PickerPopup"),
                          ("LanguagePickerField", new LanguagePickerField(), "PickerPopup"),
@@ -233,6 +233,13 @@ public sealed class PopupShadowTests
         }["DarkComboBox"];
 
     /// <summary>Где видимая карточка встаёт относительно якоря попапа.</summary>
+    /// <summary>Плашку выбора модели поле строит при первом открытии — здесь её строят сразу.</summary>
+    private static ModelPickerField WithPanel(ModelPickerField field)
+    {
+        _ = field.Panel;
+        return field;
+    }
+
     private static (double X, double Y) Card(Popup popup)
     {
         var margin = PopupShadow.Margin;

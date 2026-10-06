@@ -79,7 +79,7 @@ public sealed class SettingsLazyTests : IDisposable
     [Fact]
     public async Task Idle_after_the_first_frame_builds_every_page_without_opening_them()
     {
-        var (atFirstFrame, pages, overlay) = await _wpf.Ui.Invoke(async () =>
+        var (atFirstFrame, pages, overlay, themes, hotkeys) = await _wpf.Ui.Invoke(async () =>
         {
             var window = OffScreen(Services("idle"));
             var rendered = new TaskCompletionSource<bool>();
@@ -89,12 +89,15 @@ public sealed class SettingsLazyTests : IDisposable
             {
                 var untouched = await rendered.Task;
                 var watch = Stopwatch.StartNew();
-                while ((View(window)?.BuiltPages.Count() ?? 0) < SettingsNavNames.All.Length && watch.Elapsed < TimeSpan.FromSeconds(20))
+                while (!Done(window) && watch.Elapsed < TimeSpan.FromSeconds(20))
                 {
                     await Task.Delay(50);
                 }
 
-                return (untouched, View(window)?.BuiltPages.Count() ?? 0, ((FrameworkElement)window.FindName("SettingsOverlay")!).Visibility);
+                var view = View(window);
+                return (untouched, view?.BuiltPages.Count() ?? 0, ((FrameworkElement)window.FindName("SettingsOverlay")!).Visibility,
+                    view?.Built<SettingsAppearancePage>()?.ThemeCardsHost.Children.Count ?? 0,
+                    view?.Built<SettingsGeneralPage>()?.HotkeyList.Children.Count ?? 0);
             }
             finally
             {
@@ -105,12 +108,16 @@ public sealed class SettingsLazyTests : IDisposable
         Assert.True(atFirstFrame, "к первому кадру настройки уже были построены");
         Assert.Equal(SettingsNavNames.All.Length, pages);
         Assert.Equal(Visibility.Collapsed, overlay);
+
+        // Тяжёлое содержимое подстраниц прогрев достраивает своими порциями.
+        Assert.Equal(ThemeCatalog.Presets.Count, themes);
+        Assert.Equal(HotkeyMap.All.Count, hotkeys);
     }
 
     [Fact]
     public void Ctrl_comma_right_after_start_opens_settings_with_only_their_first_page_built()
     {
-        var (visible, built, page, shown) = _wpf.Ui.Invoke(() =>
+        var (visible, built, page, shown, rowsBefore, rowsOnSub) = _wpf.Ui.Invoke(() =>
         {
             var window = new MainWindow();
             window.AttachServices(Services("hotkey"));
@@ -121,10 +128,17 @@ public sealed class SettingsLazyTests : IDisposable
                 run.Invoke(window, [HotkeyMap.OpenSettings]);
                 var view = View(window)!;
                 var current = view.CurrentPage!;
+                var general = view.Page<SettingsGeneralPage>();
+                var before = general.HotkeyList.Children.Count;
+
+                // Строки сочетаний — тринадцать полей записи — строит их подстраница, а не открытие.
+                SettingsDrill.Open(general.GeneralHotkeysSub, general.HotkeysLinkRow);
                 return (((FrameworkElement)window.FindName("SettingsOverlay")!).Visibility,
                     view.BuiltPages.Count(),
                     current.GetType(),
-                    current.Visibility);
+                    current.Visibility,
+                    before,
+                    general.HotkeyList.Children.Count);
             }
             finally
             {
@@ -136,6 +150,8 @@ public sealed class SettingsLazyTests : IDisposable
         Assert.Equal(1, built);
         Assert.Equal(typeof(SettingsGeneralPage), page);
         Assert.Equal(Visibility.Visible, shown);
+        Assert.Equal(0, rowsBefore);
+        Assert.Equal(HotkeyMap.All.Count, rowsOnSub);
     }
 
     [Fact]
@@ -304,6 +320,10 @@ public sealed class SettingsLazyTests : IDisposable
         window.AttachServices(services);
         return window;
     }
+
+    private static bool Done(MainWindow window) =>
+        View(window) is { AllBuilt: true } &&
+        ((Queue<Action>)typeof(MainWindow).GetField("_settingsDeferred", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!).Count == 0;
 
     private static SettingsView? View(MainWindow window) =>
         (SettingsView?)typeof(MainWindow).GetField("_settingsView", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window);

@@ -47,14 +47,9 @@ internal static class SettingsTestKit
         };
     }
 
-    /// <summary>Оболочка настроек окна со всеми построенными страницами.</summary>
+    /// <summary>Оболочка настроек окна со всеми построенными страницами и их отложенным содержимым.</summary>
     public static SettingsView BuildAll(MainWindow window)
     {
-        var view = window.SettingsUi;
-        while (view.BuildNext())
-        {
-        }
-
-        return view;
+        return window.CompleteSettingsBuild();
     }
 }

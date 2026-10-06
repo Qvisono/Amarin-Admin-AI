@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using Amarin.Core;
 
 namespace Amarin.UI;
@@ -25,10 +26,19 @@ public partial class ModelPickerField : UserControl
             typeof(ModelPickerField),
             new PropertyMetadata("S.Models.AutoTip"));
 
+    private ModelPickerPanel? _panel;
+    private IReadOnlyList<ApiKeyEntry> _keys = [];
+
+    /// <summary>Каталог провайдера, сказанный полю; <c>Models = null</c> — идёт загрузка.</summary>
+    private readonly Dictionary<LlmProvider, (IReadOnlyList<VeniceModelInfo>? Models, string? Error)> _catalogs = [];
+
     public ModelPickerField()
     {
         InitializeComponent();
         PopupManager.Register(PickerPopup, OpenButton);
+
+        // Раньше, чем попап откроется: Checked приходит до того, как привязка донесёт IsOpen.
+        OpenButton.Checked += (_, _) => _ = Panel;
     }
 
     public bool AllowAuto
@@ -55,29 +65,74 @@ public partial class ModelPickerField : UserControl
     /// <summary>Человек открыл столбец этого провайдера — хозяину пора подвезти каталог.</summary>
     public event EventHandler<LlmProvider>? ProviderShown;
 
+    /// <summary>Плашка выбора модели — создаётся при первом обращении, обычно при открытии.</summary>
+    /// <remarks>
+    /// Плашка втрое крупнее самого поля, а полей на странице «Модели» девять: собранные заранее,
+    /// они были половиной её постройки, хотя открывают их по одной и не каждый раз. До создания
+    /// поле помнит всё, что ему сказали (ключи, каталоги, выбор), и отдаёт плашке разом.
+    /// </remarks>
+    internal ModelPickerPanel Panel => _panel ?? CreatePanel();
+
+    private ModelPickerPanel CreatePanel()
+    {
+        var panel = new ModelPickerPanel();
+        panel.SetBinding(ModelPickerPanel.AllowAutoProperty, new Binding(nameof(AllowAuto)) { Source = this });
+        panel.SetBinding(ModelPickerPanel.AutoTipKeyProperty, new Binding(nameof(AutoTipKey)) { Source = this });
+        panel.ModelPicked += Panel_ModelPicked;
+        panel.KeyPicked += Panel_KeyPicked;
+        panel.AddKeyRequested += Panel_AddKeyRequested;
+        panel.ProviderShown += Panel_ProviderShown;
+        _panel = panel;
+
+        panel.SetKeys(_keys);
+        foreach (var (provider, catalog) in _catalogs)
+        {
+            if (catalog.Models is null)
+            {
+                panel.ShowLoading(provider);
+            }
+            else
+            {
+                panel.SetCatalog(provider, catalog.Models, catalog.Error);
+            }
+        }
+
+        panel.SetSelected(SelectedModelId, SelectedKeyId);
+        PickerPopup.Child = panel;
+        return panel;
+    }
+
     public void SetSelected(string modelId, string? keyId)
     {
         SelectedModelId = modelId ?? "";
         SelectedKeyId = keyId;
         ShowLabel();
-        Panel.SetSelected(SelectedModelId, SelectedKeyId);
+        _panel?.SetSelected(SelectedModelId, SelectedKeyId);
     }
 
     public void SetKeys(IReadOnlyList<ApiKeyEntry> keys)
     {
-        Panel.SetKeys(keys);
+        _keys = keys ?? [];
+        _panel?.SetKeys(_keys);
 
         // Имя ключа в подписи берётся отсюда же: список мог приехать после выбора модели.
         ShowLabel();
     }
 
-    public void ShowLoading(LlmProvider provider) => Panel.ShowLoading(provider);
+    public void ShowLoading(LlmProvider provider)
+    {
+        _catalogs[provider] = (null, null);
+        _panel?.ShowLoading(provider);
+    }
 
     public void SetCatalog(
         LlmProvider provider,
         IReadOnlyList<VeniceModelInfo> models,
-        string? error = null) =>
-        Panel.SetCatalog(provider, models, error);
+        string? error = null)
+    {
+        _catalogs[provider] = (models ?? [], error);
+        _panel?.SetCatalog(provider, models ?? [], error);
+    }
 
     /// <summary>
     /// Подпись поля: имя модели, а за ним бледно — имя ключа, если выбран не тот, что по
@@ -109,7 +164,16 @@ public partial class ModelPickerField : UserControl
             return null;
         }
 
-        return Panel.LabelOf(SelectedKeyId);
+        // Тем же правилом, что ModelPickerPanel.LabelOf, но без плашки: её может ещё не быть.
+        foreach (var key in _keys)
+        {
+            if (key.Id.Equals(SelectedKeyId, StringComparison.Ordinal))
+            {
+                return key.Label;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -136,7 +200,7 @@ public partial class ModelPickerField : UserControl
         }
     }
 
-    private void Panel_ModelPicked(object sender, ModelBinding binding)
+    private void Panel_ModelPicked(object? sender, ModelBinding binding)
     {
         OpenButton.IsChecked = false;
         SelectedModelId = binding.ModelId;
@@ -148,7 +212,7 @@ public partial class ModelPickerField : UserControl
     /// <summary>
     /// Ключ сменили — плашку не закрываем: человек обычно тут же выбирает под него модель.
     /// </summary>
-    private void Panel_KeyPicked(object sender, ModelBinding binding)
+    private void Panel_KeyPicked(object? sender, ModelBinding binding)
     {
         SelectedModelId = binding.ModelId;
         SelectedKeyId = binding.KeyId;
@@ -156,12 +220,12 @@ public partial class ModelPickerField : UserControl
         ModelPicked?.Invoke(this, binding);
     }
 
-    private void Panel_AddKeyRequested(object sender, EventArgs e)
+    private void Panel_AddKeyRequested(object? sender, EventArgs e)
     {
         OpenButton.IsChecked = false;
         AddKeyRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void Panel_ProviderShown(object sender, LlmProvider provider) =>
+    private void Panel_ProviderShown(object? sender, LlmProvider provider) =>
         ProviderShown?.Invoke(this, provider);
 }

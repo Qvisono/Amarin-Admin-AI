@@ -184,6 +184,35 @@ public sealed class SettingsModelFieldTests
         Assert.Equal("openrouter:google/gemini-2.5-flash", tip);
     }
 
+    /// <summary>
+    /// Плашка выбора строится при первом открытии, а всё, что поле узнало раньше — ключи и
+    /// выбор, — получает разом: подпись с именем ключа работает и без неё.
+    /// </summary>
+    [Fact]
+    public void The_picker_panel_is_built_on_first_open_with_what_the_field_was_told()
+    {
+        var (empty, keyLabel, selected, keyOfPanel, placed) = _wpf.Ui.Invoke(() =>
+        {
+            var field = new ModelPickerField();
+            field.SetKeys([new ApiKeyEntry("k2", "Work", "vk-second-key", ApiKeySource.Stored, false)]);
+            field.SetSelected("grok-4-6", "k2");
+            var popup = (Popup)field.FindName("PickerPopup")!;
+            var before = popup.Child is null;
+            var label = ((TextBlock)field.FindName("SelectedKeyLabel")!).Text;
+
+            // Тем же путём, что нажатие: Checked кнопки, но без настоящего открытия окна попапа.
+            ((ToggleButton)field.FindName("OpenButton")!).RaiseEvent(new RoutedEventArgs(ToggleButton.CheckedEvent));
+            var panel = popup.Child as ModelPickerPanel;
+            return (before, label, panel?.SelectedModelId, panel?.LabelOf("k2"), panel is not null && ReferenceEquals(panel, field.Panel));
+        });
+
+        Assert.True(empty, "плашка не должна строиться вместе с полем");
+        Assert.Equal("Work", keyLabel);
+        Assert.Equal("grok-4-6", selected);
+        Assert.Equal("Work", keyOfPanel);
+        Assert.True(placed);
+    }
+
     private static string Label(ModelPickerField field) =>
         ((TextBlock)field.FindName("SelectedLabel")!).Text;
 

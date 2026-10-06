@@ -47,6 +47,13 @@ namespace Amarin.UI
         /// <summary>Страницу создаёт прогрев: заполнение уходит в следующую порцию, а не в эту же.</summary>
         private bool _prewarmCreating;
 
+        /// <summary>
+        /// Тяжёлое содержимое подстраниц (карточки тем, строки сочетаний): своими порциями прогрева или
+        /// при первом заходе на подстраницу — что раньше. Со страницей одной порцией оно держало
+        /// поток окна дольше кадра.
+        /// </summary>
+        private readonly Queue<Action> _settingsDeferred = new();
+
         /// <summary>Оболочка настроек; создаётся при первом обращении.</summary>
         internal SettingsView SettingsUi => _settingsView ?? CreateSettingsView();
 
@@ -174,6 +181,13 @@ namespace Amarin.UI
                 return;
             }
 
+            if (_settingsDeferred.TryDequeue(out var deferred))
+            {
+                deferred();
+                ScheduleSettingsPrewarm();
+                return;
+            }
+
             _prewarmCreating = true;
             bool more;
             try
@@ -185,7 +199,7 @@ namespace Amarin.UI
                 _prewarmCreating = false;
             }
 
-            if (more || _staleSettingsPages.Count > 0)
+            if (more || _staleSettingsPages.Count > 0 || _settingsDeferred.Count > 0)
             {
                 ScheduleSettingsPrewarm();
             }
@@ -236,6 +250,8 @@ namespace Amarin.UI
                 case SettingsGeneralPage general:
                     Wire(general);
                     EnablePageScroll(general.GeneralPageScroll);
+                    SettingsDrill.AddOpenedHandler(general.GeneralHotkeysSub, (_, _) => EnsureHotkeyRows());
+                    _settingsDeferred.Enqueue(EnsureHotkeyRows);
                     general.WindowsSettings.Applied = ApplyWindowsIntegration;
                     general.WindowsSettings.Changed += RefreshBehaviorLinks;
                     general.VoiceSettings.Changed += RefreshBehaviorLinks;
@@ -249,7 +265,8 @@ namespace Amarin.UI
                 case SettingsAppearancePage appearance:
                     Wire(appearance);
                     EnablePageScroll(appearance.AppearancePageScroll);
-                    BuildThemeCards();
+                    SettingsDrill.AddOpenedHandler(appearance.AppearanceThemeSub, (_, _) => EnsureThemeCards());
+                    _settingsDeferred.Enqueue(EnsureThemeCards);
                     BuildGradientPresets();
                     WireAppearanceControls();
                     appearance.AccessibilitySettings.Changed ??= ApplyAccessibility;
@@ -323,6 +340,71 @@ namespace Amarin.UI
             SmoothScroll.SetDragScroll(scroll, true);
         }
 
+        /// <summary>Строки «Сочетаний клавиш» — тринадцать полей записи, если их ещё нет.</summary>
+        private void EnsureHotkeyRows()
+        {
+            if (_services is null || BuiltPage<SettingsGeneralPage>() is not { HotkeyList.Children.Count: 0 })
+            {
+                return;
+            }
+
+            var loading = _settingsUiLoading;
+            _settingsUiLoading = true;
+            try
+            {
+                LoadHotkeysUi(_services.Settings);
+            }
+            finally
+            {
+                _settingsUiLoading = loading;
+            }
+        }
+
+        /// <summary>Пятьдесят три карточки тем на подстранице «Тема», если их ещё нет.</summary>
+        private void EnsureThemeCards()
+        {
+            if (BuiltPage<SettingsAppearancePage>() is not { ThemeCardsHost.Children.Count: 0 })
+            {
+                return;
+            }
+
+            BuildThemeCards();
+            if (_services is null)
+            {
+                return;
+            }
+
+            var loading = _settingsUiLoading;
+            _settingsUiLoading = true;
+            try
+            {
+                SyncThemeCards(_services.Settings.Theme);
+            }
+            finally
+            {
+                _settingsUiLoading = loading;
+            }
+        }
+
+        /// <summary>
+        /// Достраивает настройки целиком, не дожидаясь простоя: все страницы и их отложенное
+        /// содержимое. Для тестов, которые обходят настройки так, будто прогрев уже прошёл.
+        /// </summary>
+        internal SettingsView CompleteSettingsBuild()
+        {
+            var view = SettingsUi;
+            while (view.BuildNext())
+            {
+            }
+
+            while (_settingsDeferred.TryDequeue(out var deferred))
+            {
+                deferred();
+            }
+
+            return view;
+        }
+
         /// <summary>
         /// Ставит в контролы страницы сохранённые значения, не поднимая их обработчиков.
         /// </summary>
@@ -353,7 +435,14 @@ namespace Amarin.UI
                         general.NotifySoundToggle.IsChecked = settings.NotifySound;
                         general.RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;
                         LoadIntegrationUi(_services);
-                        LoadHotkeysUi(settings);
+
+                        // Строки сочетаний строит их подстраница или прогрев (EnsureHotkeyRows);
+                        // построенные перечитываются вместе со страницей.
+                        if (general.HotkeyList.Children.Count > 0)
+                        {
+                            LoadHotkeysUi(settings);
+                        }
+
                         general.LanguagePicker.SetSelected(settings.LanguageCode);
                         UpdateTranslationEditButton();
                         SelectDateFormat(settings.DateFormat);
