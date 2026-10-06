@@ -1,4 +1,4 @@
-<!--
+﻿<!--
     Общие стили страниц настроек, вынесенные в UserControl. Стили SettingsOverlay.Resources
     главного окна страницам недоступны: StaticResource ищется по словарям разметки, а не по
     дереву. Прежде каждая страница несла свою копию; новые подключают этот словарь.
@@ -745,5 +745,364 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- ═══════ Стили страниц, жившие в ресурсах оверлея главного окна ═══════ -->
+
+    <!-- ===== Кнопка "Сохранить" для промптов ===== -->
+    <Style x:Key="SavePromptButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Accent.Fill}" CornerRadius="6"
+            Padding="{TemplateBinding Padding}">
+                        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path Data="M0,3.5 L3,6.5 L8,0" Stroke="{DynamicResource Text.OnAccent}" StrokeThickness="1.6"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                  Width="9" Height="7" Stretch="Uniform"
+                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S.Settings.SavePrompt}" FontSize="11.5"
+                       Foreground="{DynamicResource Text.OnAccent}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.FillPressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Elevated}"/>
+                            <Setter Property="Opacity" Value="0.6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        «+ Создать» у библиотеки заготовок. Своя копия SavePromptButton, потому что
+        там подпись и галочка зашиты в шаблон: у кнопки «сохранить» она одна на всю
+        программу, а здесь нужен плюс и своя надпись.
+    -->
+    <Style x:Key="PromptAddButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path Data="M4,0 L4,8 M0,4 L8,4" Stroke="{DynamicResource Accent.Fill}"
+                                  StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Width="9" Height="9" Stretch="Uniform"
+                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="11.5"
+                                       Foreground="{DynamicResource Text.Body}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Рамка и отступы теперь на карточке (PromptEditor), а не на самом поле:
+        кнопки «Сбросить» и «Сохранить» стоят внутри той же рамки, под текстом.
+        Пока они висели над полем, в столбик шли три одинаковые кнопки на три поля,
+        и какая к какому относится, приходилось угадывать.
+    -->
+    <Style x:Key="PromptTextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Text.Bright}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="MinHeight" Value="96"/>
+        <!--
+            Без потолка поле растёт вместе с текстом: системный промпт на сотню строк
+            растягивал страницу настроек, и до полей под ним приходилось прокручивать
+            весь его текст. Своя полоса прокрутки у поля была и раньше, но включалась
+            только когда упираться было не во что.
+        -->
+        <Setter Property="MaxHeight" Value="176"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Карточка промпта: подпись, поле, его кнопки снизу — всё в одной рамке.
+        Grid со строкой «*» под полем, а не StackPanel: тогда потолок высоты
+        карточки достаётся полю, а ряд кнопок остаётся на месте при любом тексте.
+        Вид — как у групп строк (SettingsGroup): та же карточка на подложке.
+    -->
+    <Style x:Key="PromptEditor" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Bg.Panel}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border.Subtle}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        «Сбросить» у технических промптов. Своя копия PromptAddButton: там плюс и
+        подпись от Content, здесь круговая стрелка и одна подпись на всю программу.
+        Только у технических — основной промпт человек пишет сам, и «заводского»
+        текста, к которому его возвращать, у него нет.
+    -->
+    <Style x:Key="ResetPromptButton" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent"
+                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Path x:Name="Glyph" Data="{DynamicResource Icon.Revert}"
+                                  Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.5"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Width="11" Height="11" Stretch="Uniform"
+                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="Label"
+                                       Text="{DynamicResource S.Settings.ResetPrompt}" FontSize="11.5"
+                                       Foreground="{DynamicResource Text.Dim}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                            <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource Text.Body}"/>
+                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Body}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Карточка темы. Содержимое — превью палитры, которое собирается кодом из
+        ThemeCatalog, поэтому здесь ContentPresenter, а не TextBlock: шаблон не может
+        принять три цвета через TemplateBinding.
+    -->
+    <Style x:Key="ThemeCard" TargetType="RadioButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="GroupName" Value="Theme"/>
+        <Setter Property="Margin" Value="0,0,8,8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bg" Width="98" Height="68" Background="{DynamicResource Bg.Card}"
+                    BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="8">
+                        <Grid>
+                            <ContentPresenter/>
+                            <Path x:Name="Check" Data="M0,3 L3,6 L8,0" Stroke="{DynamicResource Text.Bright}"
+                          StrokeThickness="1.6" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                          Width="9" Height="7" Stretch="Uniform" Visibility="Collapsed"
+                          HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,8,0"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Плитка заготовки основного промпта. Кнопка, а не RadioButton как у тем:
+        выбор ничего не запоминает, нажатие только предлагает подменить текст.
+        Карандаш и корзина проявляются по наведению - иначе две иконки на каждой
+        плитке забивают собой название, ради которого плитка и нужна.
+    -->
+    <Style x:Key="PromptCard" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Width" Value="152"/>
+        <Setter Property="Height" Value="62"/>
+        <Setter Property="Margin" Value="0,0,8,8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="8" Padding="10,8">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Карандаш и корзина внутри плитки. Кнопка внутри кнопки: нажатие гасится
+        в коде, иначе клик по корзине заодно предложил бы применить заготовку.
+    -->
+    <Style x:Key="PromptCardAction" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Width" Value="18"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="Margin" Value="2,0,0,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="4">
+                        <TextBlock x:Name="Glyph" Text="{TemplateBinding Content}"
+                                   FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Text.Faint}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Сегмент переключателя «Нет / Градиент / Изображение» -->
+    <Style x:Key="SettingsSegment" TargetType="RadioButton">
+        <Setter Property="GroupName" Value="BackdropMode"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bg" Background="{DynamicResource Bg.Raised}"
+                            BorderBrush="{DynamicResource Border.Default}"
+                            BorderThickness="1" CornerRadius="6" Padding="12,0">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <!-- Полужирная копия-невидимка держит ширину: выбранная подпись толще, и без неё
+                                 соседние кнопки сдвигались бы на пару точек при каждом переключении. -->
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="11.5" FontWeight="SemiBold" Visibility="Hidden"/>
+                            <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="11.5"
+                                       Foreground="{DynamicResource Text.Muted}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Accent.Fill}"/>
+                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.OnAccent}"/>
+                            <Setter TargetName="Label" Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Ползунок настройки: заполненная дорожка слева от бегунка -->
+    <Style x:Key="SettingsRangeSlider" TargetType="Slider">
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="IsMoveToPointEnabled" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid>
+                        <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                Background="{DynamicResource Bg.Track}"/>
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                                    Background="{DynamicResource Accent.Fill}"/>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="RepeatButton">
+                                            <Border Background="Transparent"/>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Ellipse Width="13" Height="13"
+                                                     Fill="{DynamicResource Accent.Fill}"
+                                                     Stroke="{DynamicResource Bg.Panel}" StrokeThickness="2"/>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SettingValue" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10.5"/>
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="Foreground" Value="{DynamicResource Text.Muted}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
     </Style>
 </ResourceDictionary>

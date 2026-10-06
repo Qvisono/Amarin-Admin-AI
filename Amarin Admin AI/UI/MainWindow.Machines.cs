@@ -51,7 +51,7 @@ namespace Amarin.UI
         /// <summary>«Управлять…» в выборе цели: настройки сразу на вкладке «Компьютеры».</summary>
         private void OpenMachinesSettings()
         {
-            OpenSettingsPage(NavAutomation);
+            OpenSettings(SettingsUi.NavAutomation);
             AutomationPage.ShowMachinesTab();
         }
 

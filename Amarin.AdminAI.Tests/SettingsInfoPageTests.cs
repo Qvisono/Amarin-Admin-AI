@@ -27,10 +27,10 @@ public sealed class SettingsInfoPageTests
         var (visible, isInfo) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
 
-            var nav = (RadioButton)window.FindName("NavAbout")!;
+            var nav = (RadioButton)window.FindSetting("NavAbout")!;
             nav.IsChecked = true;
             window.UpdateLayout();
 
@@ -47,7 +47,7 @@ public sealed class SettingsInfoPageTests
             var result = (shown.Count, shown.Count == 1 && shown[0] is SettingsInfoPage);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return result;
         });
 
@@ -65,11 +65,11 @@ public sealed class SettingsInfoPageTests
         var (cardWidth, columnWidth) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
 
-            var version = (TextBlock)window.FindName("SettingsVersionText")!;
-            var card = (FrameworkElement)window.FindName("SettingsAboutCard")!;
+            var version = (TextBlock)window.FindSetting("SettingsVersionText")!;
+            var card = (FrameworkElement)window.FindSetting("SettingsAboutCard")!;
             var restore = version.Text;
 
             version.Text = Loc.Format("S.Updates.SidebarNewer", "1.19.5", "1.20.0");

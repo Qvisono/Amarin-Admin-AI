@@ -23,17 +23,17 @@ namespace Amarin.UI
             }
 
             _dataCareWired = true;
-            DataCarePanel.Confirm = (title, text, yes) =>
+            DataPage.DataCarePanel.Confirm = (title, text, yes) =>
                 ShowNoticeAsync(title, text, yes, Loc.Get("S.Common.Cancel"), NoticeTone.Danger);
-            DataCarePanel.OpenChat = id =>
+            DataPage.DataCarePanel.OpenChat = id =>
             {
                 SettingsOverlay.Visibility = System.Windows.Visibility.Collapsed;
                 OpenChat(id);
             };
-            DataCarePanel.BusyChats = BusyChatIds;
-            DataCarePanel.Cleaned = () => Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
-            DataCarePanel.Changed += RefreshDataLinks;
-            BackupPanel.Changed += RefreshDataLinks;
+            DataPage.DataCarePanel.BusyChats = BusyChatIds;
+            DataPage.DataCarePanel.Cleaned = () => Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
+            DataPage.DataCarePanel.Changed += RefreshDataLinks;
+            DataPage.BackupPanel.Changed += RefreshDataLinks;
         }
 
         /// <summary>Открытый чат и чаты, где идёт ход.</summary>

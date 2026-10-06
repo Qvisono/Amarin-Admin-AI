@@ -12,7 +12,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.FollowHighContrast = HighContrastToggle.IsChecked == true;
+            _services.Settings.FollowHighContrast = AppearancePage.HighContrastToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
             ApplyAccessibility();
         }

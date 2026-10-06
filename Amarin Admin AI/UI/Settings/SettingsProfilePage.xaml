@@ -1,0 +1,142 @@
+﻿<UserControl x:Class="Amarin.UI.SettingsProfilePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
+    <!--
+        Страница настроек «Профиль». Обработчики её контролов — в тематических partial-файлах
+        главного окна: подписывает их MainWindow.SettingsHost.cs, когда страница создана.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- ═══════════ ПРОФИЛЬ ═══════════ -->
+    <!--
+        Кто вы и как закрыт вход. Автоблокировка и «Заблокировать» — здесь, у пароля: без
+        него они не работают, а на странице защиты пояснение отсылало на другую страницу.
+    -->
+    <ScrollViewer x:Name="ProfilePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+        <StackPanel Margin="20,14,20,16">
+            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Profile.Title}"/>
+
+            <!-- Карточка профиля — первой группой, той же карточкой, что строки ниже. -->
+            <Border Style="{StaticResource SettingsGroup}" Padding="14,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="36" Height="36" CornerRadius="8" Background="{DynamicResource Bg.Selected}"
+                            local:RoundedClip.Radius="8">
+                        <Grid>
+                            <TextBlock x:Name="AccountAvatarLetter" Text="Г" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Text.Secondary}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Image x:Name="AccountAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="AccountNameText" Text="{DynamicResource S.Account.Guest}" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Text.Body}"/>
+                        <TextBlock x:Name="AccountModeText" Text="{DynamicResource S.Account.LocalMode}" FontSize="11"
+                                   Foreground="{DynamicResource Text.Faint}"/>
+                    </StackPanel>
+                    <Button x:Name="SwitchAccountButton" Grid.Column="2" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.Account.SwitchProfile}"/>
+                </Grid>
+            </Border>
+
+            <!-- Как вас видно (картинка, имя) и как вход закрыт (пароль и блокировка) — две группы. -->
+            <Border Style="{StaticResource SettingsGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.Avatar}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="RemoveAvatarButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Common.Remove}" Margin="0,0,6,0"/>
+                            <Button x:Name="ChangeAvatarButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Common.Change}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <StackPanel Margin="0,0,120,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.UserName}"/>
+                            <TextBlock x:Name="AccountNameHint" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Account.Guest}"/>
+                        </StackPanel>
+                        <Button x:Name="ChangeNameButton" Style="{StaticResource SecondaryButton}"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Content="{DynamicResource S.Common.Change}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Profile.Group.Lock}"/>
+            <Border Style="{StaticResource SettingsGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <StackPanel Margin="0,0,180,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.Password}"/>
+                            <TextBlock x:Name="AccountPasswordHint" Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Account.PasswordNotSet}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="RemovePasswordButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Common.Delete}" Margin="0,0,6,0"/>
+                            <Button x:Name="ChangePasswordButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Common.Change}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Account.PasswordAtStartup}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Account.PasswordAtStartupDesc}"/>
+                        </StackPanel>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Account.PasswordAtStartup}" x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"/>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
+                            <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
+                        </StackPanel>
+                        <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
+                                  AutomationProperties.Name="{DynamicResource S.Security.AutoLock}">
+                            <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
+                            <ComboBoxItem Tag="5"/>
+                            <ComboBoxItem Tag="15"/>
+                            <ComboBoxItem Tag="30"/>
+                            <ComboBoxItem Tag="60"/>
+                        </ComboBox>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="{DynamicResource S.Security.LockNowTitle}"/>
+                        <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                Content="{DynamicResource S.Security.LockNow}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

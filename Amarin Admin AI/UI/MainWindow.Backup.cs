@@ -48,7 +48,7 @@ namespace Amarin.UI
             }
 
             _backupRunning = true;
-            BackupPanel.ShowStatus(backup, running: true);
+            BuiltPage<SettingsDataPage>()?.BackupPanel.ShowStatus(backup, running: true);
             var root = AppPaths.Root;
             var profileId = ActiveProfileId;
             var folder = Backups.FolderOf(backup);
@@ -74,7 +74,7 @@ namespace Amarin.UI
             {
                 _backupRunning = false;
                 services.SettingsStore.Save(services.Settings);
-                BackupPanel.ShowStatus(backup, running: false);
+                BuiltPage<SettingsDataPage>()?.BackupPanel.ShowStatus(backup, running: false);
             }
         }
     }

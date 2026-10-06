@@ -141,7 +141,7 @@ public sealed class PromptLibraryUiTests
         Application.Current.Windows.OfType<MainWindow>().Single();
 
     private T Find<T>(string name) where T : class =>
-        _wpf.Ui.Invoke(() => (T)Window().FindName(name));
+        _wpf.Ui.Invoke(() => (T)Window().FindSetting(name));
 
     [Fact]
     public void The_library_starts_with_its_empty_note_and_no_tiles()
@@ -149,8 +149,8 @@ public sealed class PromptLibraryUiTests
         var (tiles, emptyShown) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var host = (WrapPanel)window.FindName("PromptLibraryHost");
-            var empty = (FrameworkElement)window.FindName("PromptLibraryEmpty");
+            var host = (WrapPanel)window.FindSetting("PromptLibraryHost");
+            var empty = (FrameworkElement)window.FindSetting("PromptLibraryEmpty");
             return (host.Children.Count, empty.Visibility);
         });
 
@@ -165,8 +165,8 @@ public sealed class PromptLibraryUiTests
         var (editor, confirm) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            return (((FrameworkElement)window.FindName("PromptPresetOverlay")).Visibility,
-                    ((FrameworkElement)window.FindName("PromptApplyOverlay")).Visibility);
+            return (((FrameworkElement)window.FindSetting("PromptPresetOverlay")).Visibility,
+                    ((FrameworkElement)window.FindSetting("PromptApplyOverlay")).Visibility);
         });
 
         Assert.Equal(Visibility.Collapsed, editor);
@@ -183,8 +183,8 @@ public sealed class PromptLibraryUiTests
         var (editor, confirm) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            return (Panel.GetZIndex((UIElement)window.FindName("PromptPresetOverlay")),
-                    Panel.GetZIndex((UIElement)window.FindName("PromptApplyOverlay")));
+            return (Panel.GetZIndex((UIElement)window.FindSetting("PromptPresetOverlay")),
+                    Panel.GetZIndex((UIElement)window.FindSetting("PromptApplyOverlay")));
         });
 
         Assert.True(confirm > editor, $"подтверждение {confirm} должно быть выше правки {editor}");
@@ -199,7 +199,7 @@ public sealed class PromptLibraryUiTests
     {
         var (accepts, max) = _wpf.Ui.Invoke(() =>
         {
-            var box = (TextBox)Window().FindName("PromptPresetText");
+            var box = (TextBox)Window().FindSetting("PromptPresetText");
             return (box.AcceptsReturn, box.MaxHeight);
         });
 

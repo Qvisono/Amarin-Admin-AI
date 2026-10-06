@@ -1,0 +1,180 @@
+﻿<UserControl x:Class="Amarin.UI.SettingsAboutPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
+    <!--
+        Страница настроек «О программе». Обработчики её контролов — в тематических partial-файлах
+        главного окна: подписывает их MainWindow.SettingsHost.cs, когда страница создана.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- ═══════════ О ПРОГРАММЕ ═══════════ -->
+    <!--
+        Версия и обновления, гайд «Как начать работу ›» и помощь. Гайд — подстраницей: он длиннее
+        любой страницы настроек, а нужен один раз, при первом ключе.
+    -->
+    <ScrollViewer x:Name="AboutPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+        <Grid local:SettingsDrill.IsHost="True">
+        <StackPanel Margin="20,14,20,16">
+            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.About.Title}"/>
+
+            <!--
+                Плашка обновлений. Карточкой, а не плоскими строками общего
+                потока: версия, дата последней проверки, состояние и кнопки —
+                один предмет, и вразброс они читались как несвязанные настройки.
+            -->
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Updates.Title}"/>
+            <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Updates.CurrentVersion}"
+                                       Margin="0,0,0,1"/>
+                            <!--
+                                Заготовка для конструктора XAML: живое значение
+                                ставит LoadUpdatesUi из RuntimeContext.AppVersion,
+                                как и у подписи в боковой колонке.
+                            -->
+                            <TextBlock x:Name="UpdateVersionText" Text="v1.24.1"
+                                       FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Primary}"/>
+                        </StackPanel>
+                        <!--
+                            Пилюля состояния. Заливку, обводку и текст ставит
+                            код через SetResourceReference: цвет зависит от
+                            того, что сейчас происходит, а не от разметки.
+                        -->
+                        <Border x:Name="UpdateStatePill" Grid.Column="1"
+                                VerticalAlignment="Center"
+                                CornerRadius="6" Padding="10,4"
+                                Background="{DynamicResource Bg.Raised}"
+                                BorderBrush="{DynamicResource Accent.Fill}"
+                                BorderThickness="1.2">
+                            <TextBlock x:Name="UpdateStatePillText" FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Text.Secondary}"
+                                       Text="{DynamicResource S.Updates.Pill.UpToDate}"/>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock x:Name="UpdateStatusText" Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Updates.NeverChecked}"
+                               Margin="0,9,0,0"/>
+                    <TextBlock x:Name="UpdateLastCheckText" Style="{StaticResource SettingDesc}"
+                               Foreground="{DynamicResource Text.Faint}"
+                               Margin="0,2,0,0"/>
+
+                    <!-- Полоса загрузки обновления -->
+                    <Grid x:Name="UpdateProgress" Height="4" Margin="0,10,0,0" Visibility="Collapsed">
+                        <Border CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="UpdateProgressDone" Width="0*"/>
+                                <ColumnDefinition x:Name="UpdateProgressLeft" Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                        </Grid>
+                    </Grid>
+
+                    <WrapPanel Orientation="Horizontal" Margin="0,11,0,0">
+                        <Button x:Name="CheckUpdatesButton" Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,6,0"
+                                Content="{DynamicResource S.Updates.Check}"/>
+                        <Button x:Name="UpdateNowButton" Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,6,0" Visibility="Collapsed"
+                                Content="{DynamicResource S.Updates.Update}"/>
+                        <!-- Фоновую загрузку «Обновить» не отменяет, а присоединяется к ней;
+                             остановить её — эта кнопка (до следующего запуска). -->
+                        <Button x:Name="UpdateCancelDownloadButton" Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,6,0" Visibility="Collapsed"
+                                Content="{DynamicResource S.Updates.CancelDownload}"/>
+                        <Button x:Name="OpenReleaseButton" Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,6,0" Visibility="Collapsed"
+                                Content="{DynamicResource S.Updates.OpenRelease}"/>
+                        <!-- Прошлая версия лежит рядом (.previous) — вернуться к ней (H4). -->
+                        <Button x:Name="RollbackButton" Style="{StaticResource SecondaryButton}"
+                                Margin="0" Visibility="Collapsed"
+                                Content="{DynamicResource S.Updates.RollbackUnknown}"/>
+                    </WrapPanel>
+
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Auto}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Updates.AutoDesc}"/>
+                        </StackPanel>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Updates.Auto}" x:Name="AutoUpdateToggle" Grid.Column="1"
+                                  Style="{StaticResource SettingsToggle}"/>
+                    </Grid>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Updates.Beta}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Updates.BetaDesc}"/>
+                        </StackPanel>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Updates.Beta}" x:Name="BetaChannelToggle" Grid.Column="1"
+                                  Style="{StaticResource SettingsToggle}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource SettingsGroup}">
+                <Button x:Name="GuideLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                        local:SettingsDrill.Opens="{Binding ElementName=AboutGuideSub}"
+                        AutomationProperties.Name="{DynamicResource S.About.Guide}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.About.Guide}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.About.GuideDesc}"/>
+                    </StackPanel>
+                </Button>
+            </Border>
+
+            <!-- Помощь: документация, репозиторий, отчёт об ошибке и журналы — то, что было в конце гайда. -->
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.About.Help}"/>
+            <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SettingDesc}" Margin="0" Text="{DynamicResource S.Info.Links.Text}"/>
+                    <WrapPanel Margin="0,10,0,0">
+                        <Button x:Name="AboutDocsButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                Content="{DynamicResource S.Info.Links.Docs}"/>
+                        <Button x:Name="AboutRepoButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                Content="{DynamicResource S.Info.Links.Repo}"/>
+                        <Button x:Name="ReportBugButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                Content="{DynamicResource S.BugReport.Title}"/>
+                        <Button x:Name="OpenLogsButton" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8"
+                                Content="{DynamicResource S.Crash.OpenLogs}"/>
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource SettingDesc}" Margin="0,2,0,0" Text="{DynamicResource S.BugReport.Desc}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="AboutGuideSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.About.Guide}"/>
+            <local:SettingsInfoPage x:Name="GuidePage"/>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

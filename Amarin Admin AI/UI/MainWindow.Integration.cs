@@ -79,46 +79,30 @@ namespace Amarin.UI
         /// <summary>Спрятано ли окно в трей: список переходов и второй запуск возвращают его.</summary>
         internal bool IsHiddenToTray => _hiddenToTray;
 
-        private bool _integrationUiWired;
-
         /// <summary>
         /// «Общие»: подстраницы «Сочетания клавиш», «Интеграция с Windows» и «Голосовой ввод» и вид
         /// уведомлений. Строки-ссылки показывают справа, что внутри включено или изменено.
         /// </summary>
         private void LoadIntegrationUi(AppServices services)
         {
-            if (!_integrationUiWired)
-            {
-                _integrationUiWired = true;
-                WindowsSettings.Applied = ApplyWindowsIntegration;
-                WindowsSettings.Changed += RefreshBehaviorLinks;
-                VoiceSettings.Changed += RefreshBehaviorLinks;
-                GlobalHotkeysSettings.Applied = () =>
-                {
-                    ApplyWindowsIntegration();
-                    RefreshBehaviorLinks();
-                    return GlobalHotkeyProblems;
-                };
-            }
-
-            WindowsSettings.Load(services);
-            VoiceSettings.Load(services);
-            GlobalHotkeysSettings.Load(services);
-            GlobalHotkeysSettings.ShowProblems(GlobalHotkeyProblems);
-            NotifyStyleCombo.SelectedIndex = services.Settings.Windows?.Notifications == NotificationStyle.System ? 1 : 0;
+            GeneralPage.WindowsSettings.Load(services);
+            GeneralPage.VoiceSettings.Load(services);
+            GeneralPage.GlobalHotkeysSettings.Load(services);
+            GeneralPage.GlobalHotkeysSettings.ShowProblems(GlobalHotkeyProblems);
+            GeneralPage.NotifyStyleCombo.SelectedIndex = services.Settings.Windows?.Notifications == NotificationStyle.System ? 1 : 0;
             RefreshBehaviorLinks();
         }
 
         private void RefreshBehaviorLinks()
         {
-            if (_services is null)
+            if (_services is null || BuiltPage<SettingsGeneralPage>() is not { } general)
             {
                 return;
             }
 
-            HotkeysLinkRow.Tag = HotkeysSummary(_services.Settings);
-            WindowsLinkRow.Tag = WindowsIntegrationBlock.Summary(_services.Settings.Windows);
-            VoiceLinkRow.Tag = VoiceSettingsBlock.Summary(_services.Settings, IsVoiceAvailable());
+            general.HotkeysLinkRow.Tag = HotkeysSummary(_services.Settings);
+            general.WindowsLinkRow.Tag = WindowsIntegrationBlock.Summary(_services.Settings.Windows);
+            general.VoiceLinkRow.Tag = VoiceSettingsBlock.Summary(_services.Settings, IsVoiceAvailable());
         }
 
         /// <summary>
@@ -146,7 +130,7 @@ namespace Amarin.UI
             }
 
             var settings = _services.Settings.Windows ??= new WindowsIntegrationSettings();
-            settings.Notifications = NotifyStyleCombo.SelectedIndex == 1 ? NotificationStyle.System : NotificationStyle.Card;
+            settings.Notifications = GeneralPage.NotifyStyleCombo.SelectedIndex == 1 ? NotificationStyle.System : NotificationStyle.Card;
             _services.SettingsStore.Save(_services.Settings);
             ApplyWindowsIntegration();
         }

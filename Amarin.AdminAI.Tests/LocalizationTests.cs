@@ -251,7 +251,7 @@ public sealed class LocalizationTests
             var (russian, english) = _wpf.Ui.Invoke(() =>
             {
                 var window = Application.Current.Windows.OfType<MainWindow>().Single();
-                var nav = (ContentControl)window.FindName("NavGeneral")!;
+                var nav = (ContentControl)window.FindSetting("NavGeneral")!;
 
                 LanguageManager.Apply("ru");
                 window.UpdateLayout();
@@ -286,12 +286,12 @@ public sealed class LocalizationTests
             {
                 var window = Application.Current.Windows.OfType<MainWindow>().Single();
                 LanguageManager.Apply("en");
-                var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+                var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
                 overlay.Visibility = Visibility.Visible;
 
                 // Все страницы по очереди, а не та, что осталась открытой от соседнего теста:
                 // иначе проверка зависела от порядка прогона.
-                var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)window.FindName("NavGeneral")!);
+                var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)window.FindSetting("NavGeneral")!);
                 var pages = nav.Children.OfType<RadioButton>().ToList();
                 var previous = pages.FirstOrDefault(page => page.IsChecked == true);
                 var found = new List<string>();

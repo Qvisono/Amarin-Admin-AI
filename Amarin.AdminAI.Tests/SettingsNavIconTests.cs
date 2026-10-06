@@ -27,7 +27,7 @@ public sealed class SettingsNavIconTests
     public void Every_item_has_its_own_mark_on_the_24_grid()
     {
         var marks = _wpf.Ui.Invoke(() => SettingsNavNames.All
-            .Select(name => (Name: name, Geometry: ((RadioButton)Window().FindName(name)!).Tag as Geometry))
+            .Select(name => (Name: name, Geometry: ((RadioButton)Window().FindSetting(name)!).Tag as Geometry))
             .Select(item => (item.Name, Data: item.Geometry?.ToString(), Bounds: item.Geometry?.Bounds ?? Rect.Empty))
             .ToList());
 
@@ -43,7 +43,7 @@ public sealed class SettingsNavIconTests
     public void Every_tile_has_its_own_colour_and_the_white_mark_reads_on_it()
     {
         var colours = _wpf.Ui.Invoke(() => SettingsNavNames.All
-            .Select(name => (name, ((SolidColorBrush)((RadioButton)Window().FindName(name)!).Background).Color))
+            .Select(name => (name, ((SolidColorBrush)((RadioButton)Window().FindSetting(name)!).Background).Color))
             .ToList());
 
         Assert.Equal(colours.Count, colours.Select(item => item.Color).Distinct().Count());
@@ -73,7 +73,7 @@ public sealed class SettingsNavIconTests
         // Прежде навигация русского интерфейса была английской целиком: GENERAL, Account, Data Controls.
         var labels = _wpf.Ui.Invoke(() =>
         {
-            var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)Window().FindName("NavGeneral")!);
+            var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)Window().FindSetting("NavGeneral")!);
             return nav.Children.OfType<FrameworkElement>()
                 .Select(child => child switch
                 {

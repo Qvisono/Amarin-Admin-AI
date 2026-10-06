@@ -34,7 +34,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Версия берётся из csproj — там она живёт вместе с подписью в MainWindow.xaml, и
+      # Версия берётся из csproj — там она живёт вместе с подписью в UI/Settings/SettingsView.xaml, и
       # второй копии номера здесь быть не должно.
       - name: Read version
         id: version

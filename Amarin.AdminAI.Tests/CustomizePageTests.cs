@@ -23,7 +23,7 @@ public sealed class CustomizePageTests
         Application.Current.Windows.OfType<MainWindow>().Single();
 
     private static SettingsSecurityPage Security(MainWindow window) =>
-        (SettingsSecurityPage)window.FindName("SecurityPage")!;
+        (SettingsSecurityPage)window.FindSetting("SecurityPage")!;
 
     [Theory]
     [InlineData("MainPromptTextBox")]
@@ -36,18 +36,18 @@ public sealed class CustomizePageTests
         var (height, scrollable) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavPrompts")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavPrompts")!).IsChecked = true;
 
             // Технические промпты — на подстранице: поле меряется там, где его видит человек.
             var technical = name.StartsWith("Tech", StringComparison.Ordinal);
             if (technical)
             {
-                SettingsDrill.Open((FrameworkElement)window.FindName("PromptsTechSub")!);
+                SettingsDrill.Open((FrameworkElement)window.FindSetting("PromptsTechSub")!);
             }
 
-            var box = (TextBox)window.FindName(name)!;
+            var box = (TextBox)window.FindSetting(name)!;
             var restore = box.Text;
             box.Text = string.Join(Environment.NewLine, Enumerable.Range(0, 200).Select(i => $"строка промпта {i}"));
             window.UpdateLayout();
@@ -62,7 +62,7 @@ public sealed class CustomizePageTests
             }
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return result;
         });
 
@@ -78,20 +78,20 @@ public sealed class CustomizePageTests
         var order = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavModels")!).IsChecked = true;
             window.UpdateLayout();
 
             // Разделы опознаются по первому полю каждого: заголовки — безымянные TextBlock.
             var page = Page(window, "ModelsPageScroll");
-            var answer = IndexOf(page, (UIElement)window.FindName("LiteModelPicker")!);
-            var agent = IndexOf(page, (UIElement)window.FindName("AgentFastModelPicker")!);
-            var service = IndexOf(page, (UIElement)window.FindName("TitleModelPicker")!);
-            var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
+            var answer = IndexOf(page, (UIElement)window.FindSetting("LiteModelPicker")!);
+            var agent = IndexOf(page, (UIElement)window.FindSetting("AgentFastModelPicker")!);
+            var service = IndexOf(page, (UIElement)window.FindSetting("TitleModelPicker")!);
+            var prompts = IndexOf(page, (UIElement)window.FindSetting("MainPromptTextBox")!);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return (answer, agent, service, prompts);
         });
 
@@ -108,9 +108,9 @@ public sealed class CustomizePageTests
         var (folded, unfolded, label) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavSecurity")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavSecurity")!).IsChecked = true;
             window.UpdateLayout();
 
             var security = Security(window);
@@ -125,7 +125,7 @@ public sealed class CustomizePageTests
 
             toggle.IsChecked = false;
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return (before, after, name);
         });
 
@@ -144,9 +144,9 @@ public sealed class CustomizePageTests
         var order = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavSecurity")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavSecurity")!).IsChecked = true;
             window.UpdateLayout();
 
             // Корень страницы — первый ребёнок хоста подстраниц в её прокрутке.
@@ -164,7 +164,7 @@ public sealed class CustomizePageTests
                 ((CheckBox)security.FindName("EncryptChatsToggle")!).Style);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return (mode, guard, plan, shared);
         });
 
@@ -185,18 +185,18 @@ public sealed class CustomizePageTests
         var (sharesFrame, resetSharesFrame) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavPrompts")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavPrompts")!).IsChecked = true;
             window.UpdateLayout();
 
-            var frame = Frame((TextBox)window.FindName(box)!);
-            var withSave = ReferenceEquals(frame, Frame((FrameworkElement)window.FindName(save)!));
+            var frame = Frame((TextBox)window.FindSetting(box)!);
+            var withSave = ReferenceEquals(frame, Frame((FrameworkElement)window.FindSetting(save)!));
             var withReset = reset is null ||
-                            ReferenceEquals(frame, Frame((FrameworkElement)window.FindName(reset)!));
+                            ReferenceEquals(frame, Frame((FrameworkElement)window.FindSetting(reset)!));
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             return (withSave, withReset);
         });
 
@@ -210,9 +210,9 @@ public sealed class CustomizePageTests
         // У основного промпта заводского текста нет — его пишет сам человек, и возвращать
         // такое поле не к чему.
         var names = _wpf.Ui.Invoke(() => (
-            Main: Window().FindName("ResetMainPromptButton"),
-            Ai: Window().FindName("ResetTechAiPromptButton"),
-            Agent: Window().FindName("ResetTechAgentPromptButton")));
+            Main: Window().FindSetting("ResetMainPromptButton"),
+            Ai: Window().FindSetting("ResetTechAiPromptButton"),
+            Agent: Window().FindSetting("ResetTechAgentPromptButton")));
 
         Assert.Null(names.Main);
         Assert.NotNull(names.Ai);
@@ -243,7 +243,7 @@ public sealed class CustomizePageTests
     /// уже не страница.
     /// </remarks>
     private static Panel Page(MainWindow window, string scroll) =>
-        (Panel)((ScrollViewer)window.FindName(scroll)!).Content;
+        (Panel)((ScrollViewer)window.FindSetting(scroll)!).Content;
 
     /// <summary>Номер строки страницы, в которой лежит элемент; −1 — элемента на странице нет.</summary>
     private static int IndexOf(Panel page, UIElement element)

@@ -42,7 +42,7 @@ public sealed class DragScrollTests
             ];
 
             var onWindow = names.All(name =>
-                main.FindName(name) is ScrollViewer viewer && SmoothScroll.GetDragScroll(viewer));
+                main.FindSetting(name) is ScrollViewer viewer && SmoothScroll.GetDragScroll(viewer));
             var key = new SettingsKeyPage().FindName("KeyPageScroll") is ScrollViewer k && SmoothScroll.GetDragScroll(k);
             return (onWindow, key);
         });
@@ -58,7 +58,7 @@ public sealed class DragScrollTests
         var dragging = _wpf.Ui.Invoke(() =>
         {
             var main = Application.Current.Windows.OfType<MainWindow>().Single();
-            return SmoothScroll.GetDragScroll((ScrollViewer)main.FindName("ChatScrollViewer")!);
+            return SmoothScroll.GetDragScroll((ScrollViewer)main.FindSetting("ChatScrollViewer")!);
         });
 
         Assert.False(dragging);
@@ -71,7 +71,7 @@ public sealed class DragScrollTests
         var (dragging, wheel) = _wpf.Ui.Invoke(() =>
         {
             var main = Application.Current.Windows.OfType<MainWindow>().Single();
-            var sidebar = (ScrollViewer)main.FindName("SideBarScrollViewer")!;
+            var sidebar = (ScrollViewer)main.FindSetting("SideBarScrollViewer")!;
             return (SmoothScroll.GetDragScroll(sidebar), SmoothScroll.GetIsEnabled(sidebar));
         });
 
@@ -279,9 +279,9 @@ public sealed class DragScrollTests
             var original = field.GetValue(window);
             void Call(string name) => typeof(MainWindow).GetMethod(name, hidden)!.Invoke(window, null);
 
-            var top = (Button)window.FindName("ScrollTopButton")!;
-            var bottom = (Button)window.FindName("ScrollBottomButton")!;
-            var viewer = (ScrollViewer)window.FindName("ChatScrollViewer")!;
+            var top = (Button)window.FindSetting("ScrollTopButton")!;
+            var bottom = (Button)window.FindSetting("ScrollBottomButton")!;
+            var viewer = (ScrollViewer)window.FindSetting("ChatScrollViewer")!;
             (bool Top, bool Bottom) Shown()
             {
                 window.UpdateLayout();
@@ -337,8 +337,8 @@ public sealed class DragScrollTests
         var (gap, drift) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var button = (FrameworkElement)window.FindName("ScrollBottomButton")!;
-            var hint = (FrameworkElement)window.FindName("ScrollBottomHint")!;
+            var button = (FrameworkElement)window.FindSetting("ScrollBottomButton")!;
+            var hint = (FrameworkElement)window.FindSetting("ScrollBottomHint")!;
             window.UpdateLayout();
 
             // Сдвиг раскладки, без RenderTransform: кнопка проявляется подъёмом, и в середине

@@ -45,7 +45,7 @@ public sealed class SmoothScrollTests
             ];
 
             return names
-                .Where(name => window.FindName(name) is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer))
+                .Where(name => window.FindSetting(name) is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer))
                 .ToArray();
         });
 
@@ -63,7 +63,7 @@ public sealed class SmoothScrollTests
             var guide = new SettingsInfoPage();
             return (
                 Descendants<ScrollViewer>(guide).Any(),
-                window.FindName("AboutPageScroll") is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer));
+                window.FindSetting("AboutPageScroll") is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer));
         });
 
         Assert.False(ownScroll);
@@ -87,29 +87,51 @@ public sealed class SmoothScrollTests
     }
 
     [Fact]
-    public void The_prompt_boxes_scroll_smoothly()
+    public async Task The_prompt_boxes_scroll_smoothly()
     {
         // Поля промптов прокручиваются своим ScrollViewer из шаблона, и страница ему уступает —
         // а значит, плавность надо включать там же, иначе текст листается рывками.
-        var (enabled, animating) = _wpf.Ui.Invoke(() =>
+        var (enabled, animating) = await _wpf.Ui.Invoke(async () =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var box = (TextBox)window.FindName("MainPromptTextBox")!;
+            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var wasVisible = overlay.Visibility;
+            var previous = SettingsNavNames.All
+                .Select(name => (RadioButton)window.FindSetting(name))
+                .FirstOrDefault(button => button.IsChecked == true);
+            var box = (TextBox)window.FindSetting("MainPromptTextBox")!;
             var saved = box.Text;
+            ScrollViewer? host = null;
             try
             {
-                box.ApplyTemplate();
-                var host = (ScrollViewer)box.Template.FindName("PART_ContentHost", box)!;
-
+                // Колесо крутят над видимым полем, как человек: страницу, построенную в простое,
+                // WPF загружает (Loaded) только показанной, а шаблон поля — вместе с ней.
+                window.OpenSettings(window.SettingsUi.NavPrompts);
                 box.Text = string.Join(Environment.NewLine, Enumerable.Range(0, 60).Select(i => "строка " + i));
-                box.UpdateLayout();
+                window.UpdateLayout();
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                while (!box.IsLoaded && watch.Elapsed < TimeSpan.FromSeconds(5))
+                {
+                    await Task.Delay(20);
+                }
 
+                box.ApplyTemplate();
+                host = (ScrollViewer)box.Template.FindName("PART_ContentHost", box)!;
                 var took = RaiseWheel(host);
                 return (SmoothScroll.GetIsEnabled(host), took && SmoothScroll.IsAnimating(host));
             }
             finally
             {
+                // Инерция поля переживает тест: дойдя до края, она отдала бы колесо странице, и
+                // следующий тест застал бы страницу промптов сдвинутой.
+                if (host is not null)
+                {
+                    SmoothScroll.Cancel(host);
+                }
+
                 box.Text = saved;
+                previous?.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+                overlay.Visibility = wasVisible;
             }
         });
 
@@ -125,7 +147,7 @@ public sealed class SmoothScrollTests
         var enabled = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var combo = (ComboBox)window.FindName("UiScaleComboBox")!;
+            var combo = (ComboBox)window.FindSetting("UiScaleComboBox")!;
 
             // Раскрывать выпадашку не надо, и лучше не надо: раскрытая забирает мышь на себя,
             // а окно здесь одно на всю коллекцию тестов. Popup со своим содержимым создаётся

@@ -37,8 +37,8 @@ public sealed class UpdateBadgeUiTests : IDisposable
         var shown = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var badge = (ToggleButton)window.FindName("UpdateBadgeButton")!;
-            var track = (FrameworkElement)window.FindName("UpdateBadgeTrack")!;
+            var badge = (ToggleButton)window.FindSetting("UpdateBadgeButton")!;
+            var track = (FrameworkElement)window.FindSetting("UpdateBadgeTrack")!;
             var release = UpdateTestKit.Release("99.0.0");
             var states = new (string Name, Func<UpdateState, UpdateState> Change)[]
             {
@@ -96,7 +96,7 @@ public sealed class UpdateBadgeUiTests : IDisposable
             source.Answer(UpdateTestKit.Found(release));
             await Until(() => files.Downloads.Count == 1);
 
-            var cancel = (Button)window.FindName("UpdateBadgeCancelButton")!;
+            var cancel = (Button)window.FindSetting("UpdateBadgeCancelButton")!;
             var offered = cancel.Visibility;
             cancel.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             await Until(() => window.Updates.State.Download is null);
@@ -105,7 +105,7 @@ public sealed class UpdateBadgeUiTests : IDisposable
             source.Answer(UpdateTestKit.Found(release));
             await Until(() => !window.Updates.State.CheckRunning);
             return (offered, files.Downloads[0].Token.IsCancellationRequested, files.Downloads.Count,
-                window.Updates.State.Postponed, ((FrameworkElement)window.FindName("UpdateBadgeButton")!).Visibility,
+                window.Updates.State.Postponed, ((FrameworkElement)window.FindSetting("UpdateBadgeButton")!).Visibility,
                 cancel.Visibility);
         });
 
@@ -129,11 +129,11 @@ public sealed class UpdateBadgeUiTests : IDisposable
             source.Answer(UpdateTestKit.Found(release));
             await Until(() => files.Downloads.Count == 1);
 
-            var badge = (ToggleButton)window.FindName("UpdateBadgeButton")!;
+            var badge = (ToggleButton)window.FindSetting("UpdateBadgeButton")!;
             badge.IsChecked = true;
-            ((Button)window.FindName("UpdateBadgeActionButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            ((Button)window.FindSetting("UpdateBadgeActionButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             var popupClosed = badge.IsChecked != true;
-            ((Button)window.FindName("UpdateConfirmApplyButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+            ((Button)window.FindSetting("UpdateConfirmApplyButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             await Until(() => window.Updates.State.Download is { InstallRequested: true });
 
             files.Downloads[0].Finish();
@@ -157,7 +157,7 @@ public sealed class UpdateBadgeUiTests : IDisposable
         var shown = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var cancel = (FrameworkElement)window.FindName("UpdateCancelDownloadButton")!;
+            var cancel = (FrameworkElement)window.FindSetting("UpdateCancelDownloadButton")!;
             var release = UpdateTestKit.Release("99.0.0");
             try
             {

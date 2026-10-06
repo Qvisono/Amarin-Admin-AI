@@ -26,7 +26,7 @@ public sealed class ProviderKeyDialogTests
         Application.Current.Windows.OfType<MainWindow>().Single();
 
     private static T Part<T>(string name) where T : class =>
-        (T)Window().FindName(name)!;
+        (T)Window().FindSetting(name)!;
 
     /// <summary>
     /// Обе карточки собираются и берут общий стиль. Radio в одном контейнере — значит выбран
@@ -149,7 +149,7 @@ public sealed class SettingsModelFieldTests
         (ModelPickerField)Application.Current.Windows
             .OfType<MainWindow>()
             .Single()
-            .FindName("TitleModelPicker")!;
+            .FindSetting("TitleModelPicker")!;
 
     /// <summary>
     /// Поле показывает то, что ему сказали в последний раз, и берёт имя без приставки
@@ -210,7 +210,7 @@ public sealed class ProviderKeyRowTests
         (SettingsKeyPage)Application.Current.Windows
             .OfType<MainWindow>()
             .Single()
-            .FindName("KeyPage")!;
+            .FindSetting("KeyPage")!;
 
     /// <summary>
     /// Провайдер виден у каждой строки. Плашка не только у своих ключей: две строки окружения

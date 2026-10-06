@@ -132,21 +132,17 @@ namespace Amarin.UI
                 _appearanceDebouncePending = false;
                 ApplyAppearance(save: true);
             };
-
-            BuildThemeCards();
-            BuildGradientPresets();
-            WireAppearanceControls();
         }
 
         // ───────────────────────── карточки тем ─────────────────────────
 
         private void BuildThemeCards()
         {
-            ThemeCardsHost.Children.Clear();
+            AppearancePage.ThemeCardsHost.Children.Clear();
 
             // Стиль ищется у хозяина, а не у окна: он лежит в ресурсах Grid настроек, которых
             // Window.FindResource не видит.
-            var style = (Style)ThemeCardsHost.FindResource("ThemeCard");
+            var style = (Style)AppearancePage.ThemeCardsHost.FindResource("ThemeCard");
 
             foreach (var preset in ThemeCatalog.Presets)
             {
@@ -158,7 +154,7 @@ namespace Amarin.UI
                     Content = ThemePreview(preset)
                 };
                 card.Checked += ThemeCard_Checked;
-                ThemeCardsHost.Children.Add(card);
+                AppearancePage.ThemeCardsHost.Children.Add(card);
             }
         }
 
@@ -254,7 +250,7 @@ namespace Amarin.UI
             if (_services.Settings.Appearance.Grain is null)
             {
                 _settingsUiLoading = true;
-                GrainSlider.Value = GrainOverlay.Effective(_services.Settings.Appearance);
+                AppearancePage.GrainSlider.Value = GrainOverlay.Effective(_services.Settings.Appearance);
                 _settingsUiLoading = false;
             }
 
@@ -269,7 +265,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (ThemeFollowSystemToggle.IsChecked == true)
+            if (AppearancePage.ThemeFollowSystemToggle.IsChecked == true)
             {
                 _services.Settings.Theme = AppTheme.System;
             }
@@ -293,19 +289,19 @@ namespace Amarin.UI
         /// </summary>
         private void RefreshAppearanceLinks()
         {
-            if (_services is null)
+            if (_services is null || BuiltPage<SettingsAppearancePage>() is not { } page)
             {
                 return;
             }
 
             var settings = _services.Settings;
-            ThemeLinkRow.Tag = settings.Theme == AppTheme.System
+            page.ThemeLinkRow.Tag = settings.Theme == AppTheme.System
                 ? Loc.Get("S.Appearance.ThemeSystem")
                 : ThemeCatalog.Presets.Where(preset => preset.Theme == settings.Theme)
                     .Select(preset => preset.DisplayName).FirstOrDefault() ?? settings.Theme.ToString();
 
             var appearance = settings.Appearance;
-            BackdropLinkRow.Tag = !appearance.Enabled
+            page.BackdropLinkRow.Tag = !appearance.Enabled
                 ? Loc.Get("S.Common.Off")
                 : appearance.BackdropMode switch
                 {
@@ -318,12 +314,12 @@ namespace Amarin.UI
         private void SyncThemeCards(AppTheme theme)
         {
             var following = theme == AppTheme.System;
-            ThemeFollowSystemToggle.IsChecked = following;
-            ThemeCardsHost.IsEnabled = !following;
+            AppearancePage.ThemeFollowSystemToggle.IsChecked = following;
+            AppearancePage.ThemeCardsHost.IsEnabled = !following;
 
             // И при «как в Windows» сетка показывает, какая палитра на самом деле на экране.
             var effective = following ? ThemeManager.Current.Theme : theme;
-            foreach (var child in ThemeCardsHost.Children)
+            foreach (var child in AppearancePage.ThemeCardsHost.Children)
             {
                 if (child is RadioButton { Tag: AppTheme cardTheme } card)
                 {
@@ -336,7 +332,7 @@ namespace Amarin.UI
 
         private void BuildGradientPresets()
         {
-            GradientPresetsHost.Children.Clear();
+            AppearancePage.GradientPresetsHost.Children.Clear();
             foreach (var (name, colors, angle) in GradientPresets)
             {
                 // Образец — по оси самой темы, как рисуется фон: честная миниатюра, а не
@@ -376,7 +372,7 @@ namespace Amarin.UI
 
                 var captured = (colors, angle);
                 button.Click += (_, _) => ApplyGradientPreset(captured.colors, captured.angle);
-                GradientPresetsHost.Children.Add(button);
+                AppearancePage.GradientPresetsHost.Children.Add(button);
             }
         }
 
@@ -417,27 +413,27 @@ namespace Amarin.UI
 
         private void WireAppearanceControls()
         {
-            AccentPicker.ColorChanged += (_, hex) => Edit(a => a.AccentColor = hex);
+            AppearancePage.AccentPicker.ColorChanged += (_, hex) => Edit(a => a.AccentColor = hex);
 
-            GradientColor1.AllowClear = false;
-            GradientColor2.AllowClear = false;
-            GradientColor1.ColorChanged += (_, _) => CommitGradientColors();
-            GradientColor2.ColorChanged += (_, _) => CommitGradientColors();
-            GradientColor3.ColorChanged += (_, _) => CommitGradientColors();
-            GradientColor4.ColorChanged += (_, _) => CommitGradientColors();
+            AppearancePage.GradientColor1.AllowClear = false;
+            AppearancePage.GradientColor2.AllowClear = false;
+            AppearancePage.GradientColor1.ColorChanged += (_, _) => CommitGradientColors();
+            AppearancePage.GradientColor2.ColorChanged += (_, _) => CommitGradientColors();
+            AppearancePage.GradientColor3.ColorChanged += (_, _) => CommitGradientColors();
+            AppearancePage.GradientColor4.ColorChanged += (_, _) => CommitGradientColors();
 
-            Bind(GradientAngleSlider, GradientAngleValue, v => $"{v:0}°", (a, v) => a.GradientAngle = v);
-            Bind(MotionSpeedSlider, MotionSpeedValue, v => $"{v:0.00}×", (a, v) => a.MotionSpeed = v);
-            Bind(ImageBrightnessSlider, ImageBrightnessValue, v => $"{v * 100:0}%", (a, v) => a.ImageBrightness = v);
-            Bind(ImageSaturationSlider, ImageSaturationValue, v => $"{v * 100:0}%", (a, v) => a.ImageSaturation = v, debounce: true);
-            Bind(ImageBlurSlider, ImageBlurValue, v => $"{v:0}", (a, v) => a.ImageBlur = v, debounce: true);
-            Bind(GlassOpacitySlider, GlassOpacityValue, v => $"{v * 100:0}%", (a, v) => a.GlassOpacity = v);
-            Bind(GlassFrostSlider, GlassFrostValue, v => $"{v * 100:0}%", (a, v) => a.GlassFrost = v);
-            Bind(CornerRadiusSlider, CornerRadiusValue, v => $"{v:0}", (a, v) => a.CornerRadius = v);
-            Bind(GrainSlider, GrainValue, v => $"{v * 100:0}%", (a, v) => a.Grain = v);
-            Bind(CompactDelaySlider, CompactDelayValue, v => $"{v / 1000:0.0}{Loc.Get("S.Appearance.SecondsUnit")}", (a, v) => a.CompactDelayMs = (int)v);
-            Bind(CompactWidthSlider, CompactWidthValue, v => $"{v:0}%", (a, v) => a.CompactWidthPercent = v);
-            Bind(CompactHoverSlider, CompactHoverValue, v => $"{v:0}", (a, v) => a.CompactHoverRadius = v);
+            Bind(AppearancePage.GradientAngleSlider, AppearancePage.GradientAngleValue, v => $"{v:0}°", (a, v) => a.GradientAngle = v);
+            Bind(AppearancePage.MotionSpeedSlider, AppearancePage.MotionSpeedValue, v => $"{v:0.00}×", (a, v) => a.MotionSpeed = v);
+            Bind(AppearancePage.ImageBrightnessSlider, AppearancePage.ImageBrightnessValue, v => $"{v * 100:0}%", (a, v) => a.ImageBrightness = v);
+            Bind(AppearancePage.ImageSaturationSlider, AppearancePage.ImageSaturationValue, v => $"{v * 100:0}%", (a, v) => a.ImageSaturation = v, debounce: true);
+            Bind(AppearancePage.ImageBlurSlider, AppearancePage.ImageBlurValue, v => $"{v:0}", (a, v) => a.ImageBlur = v, debounce: true);
+            Bind(AppearancePage.GlassOpacitySlider, AppearancePage.GlassOpacityValue, v => $"{v * 100:0}%", (a, v) => a.GlassOpacity = v);
+            Bind(AppearancePage.GlassFrostSlider, AppearancePage.GlassFrostValue, v => $"{v * 100:0}%", (a, v) => a.GlassFrost = v);
+            Bind(AppearancePage.CornerRadiusSlider, AppearancePage.CornerRadiusValue, v => $"{v:0}", (a, v) => a.CornerRadius = v);
+            Bind(AppearancePage.GrainSlider, AppearancePage.GrainValue, v => $"{v * 100:0}%", (a, v) => a.Grain = v);
+            Bind(AppearancePage.CompactDelaySlider, AppearancePage.CompactDelayValue, v => $"{v / 1000:0.0}{Loc.Get("S.Appearance.SecondsUnit")}", (a, v) => a.CompactDelayMs = (int)v);
+            Bind(AppearancePage.CompactWidthSlider, AppearancePage.CompactWidthValue, v => $"{v:0}%", (a, v) => a.CompactWidthPercent = v);
+            Bind(AppearancePage.CompactHoverSlider, AppearancePage.CompactHoverValue, v => $"{v:0}", (a, v) => a.CompactHoverRadius = v);
         }
 
         /// <summary>
@@ -482,7 +478,7 @@ namespace Amarin.UI
 
             var colors = new[]
                 {
-                    GradientColor1.Hex, GradientColor2.Hex, GradientColor3.Hex, GradientColor4.Hex
+                    AppearancePage.GradientColor1.Hex, AppearancePage.GradientColor2.Hex, AppearancePage.GradientColor3.Hex, AppearancePage.GradientColor4.Hex
                 }
                 .Where(hex => hex.Length > 0)
                 .ToList();
@@ -512,7 +508,7 @@ namespace Amarin.UI
         // ───────────────────────── обработчики ─────────────────────────
 
         private void AppearanceEnabledToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.Enabled = AppearanceEnabledToggle.IsChecked == true);
+            Edit(a => a.Enabled = AppearancePage.AppearanceEnabledToggle.IsChecked == true);
 
         private void BackdropMode_Checked(object sender, RoutedEventArgs e)
         {
@@ -528,14 +524,14 @@ namespace Amarin.UI
 
         private void UpdateBackdropPanels(BackdropMode mode)
         {
-            GradientPanel.Visibility = mode == BackdropMode.Gradient ? Visibility.Visible : Visibility.Collapsed;
-            ImagePanel.Visibility = mode == BackdropMode.Image ? Visibility.Visible : Visibility.Collapsed;
-            GlassPanel.Visibility = mode == BackdropMode.None ? Visibility.Collapsed : Visibility.Visible;
+            AppearancePage.GradientPanel.Visibility = mode == BackdropMode.Gradient ? Visibility.Visible : Visibility.Collapsed;
+            AppearancePage.ImagePanel.Visibility = mode == BackdropMode.Image ? Visibility.Visible : Visibility.Collapsed;
+            AppearancePage.GlassPanel.Visibility = mode == BackdropMode.None ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void MotionCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (MotionCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
+            if (AppearancePage.MotionCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
                 Enum.TryParse(tag, ignoreCase: true, out BackdropMotion motion))
             {
                 Edit(a => a.GradientMotion = motion);
@@ -544,7 +540,7 @@ namespace Amarin.UI
 
         private void ImageFitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ImageFitCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
+            if (AppearancePage.ImageFitCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
                 Enum.TryParse(tag, ignoreCase: true, out BackdropFit fit))
             {
                 Edit(a => a.ImageFit = fit);
@@ -552,23 +548,23 @@ namespace Amarin.UI
         }
 
         private void GlassSheenToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.GlassSheen = GlassSheenToggle.IsChecked == true);
+            Edit(a => a.GlassSheen = AppearancePage.GlassSheenToggle.IsChecked == true);
 
         private void VignetteToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.Vignette = VignetteToggle.IsChecked == true);
+            Edit(a => a.Vignette = AppearancePage.VignetteToggle.IsChecked == true);
 
         private void AnimationsToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.AnimationsEnabled = AnimationsToggle.IsChecked == true);
+            Edit(a => a.AnimationsEnabled = AppearancePage.AnimationsToggle.IsChecked == true);
 
         private void CompactComposerToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.CompactComposer = CompactComposerToggle.IsChecked == true);
+            Edit(a => a.CompactComposer = AppearancePage.CompactComposerToggle.IsChecked == true);
 
         private void CompactHoverToggle_Changed(object sender, RoutedEventArgs e) =>
-            Edit(a => a.CompactHoverEnabled = CompactHoverToggle.IsChecked == true);
+            Edit(a => a.CompactHoverEnabled = AppearancePage.CompactHoverToggle.IsChecked == true);
 
         private void FontCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (FontCombo.SelectedItem is ComboBoxItem { Tag: string family })
+            if (AppearancePage.FontCombo.SelectedItem is ComboBoxItem { Tag: string family })
             {
                 Edit(a => a.FontFamily = family);
             }
@@ -576,7 +572,7 @@ namespace Amarin.UI
 
         private void ChatWidthCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ChatWidthCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
+            if (AppearancePage.ChatWidthCombo.SelectedItem is ComboBoxItem { Tag: string tag } &&
                 double.TryParse(tag, NumberStyles.Float, CultureInfo.InvariantCulture, out var width))
             {
                 Edit(a => a.ChatColumnWidth = width);
@@ -713,53 +709,52 @@ namespace Amarin.UI
 
             SyncThemeCards(settings.Theme);
 
-            AppearanceEnabledToggle.IsChecked = appearance.Enabled;
-            AccentPicker.Hex = appearance.AccentColor;
+            AppearancePage.AppearanceEnabledToggle.IsChecked = appearance.Enabled;
+            AppearancePage.AccentPicker.Hex = appearance.AccentColor;
 
-            BackdropNone.IsChecked = appearance.BackdropMode == BackdropMode.None;
-            BackdropGradient.IsChecked = appearance.BackdropMode == BackdropMode.Gradient;
-            BackdropImage.IsChecked = appearance.BackdropMode == BackdropMode.Image;
+            AppearancePage.BackdropNone.IsChecked = appearance.BackdropMode == BackdropMode.None;
+            AppearancePage.BackdropGradient.IsChecked = appearance.BackdropMode == BackdropMode.Gradient;
+            AppearancePage.BackdropImage.IsChecked = appearance.BackdropMode == BackdropMode.Image;
             UpdateBackdropPanels(appearance.BackdropMode);
 
             var colors = appearance.GradientColors;
-            GradientColor1.Hex = colors.Count > 0 ? colors[0] : "";
-            GradientColor2.Hex = colors.Count > 1 ? colors[1] : "";
-            GradientColor3.Hex = colors.Count > 2 ? colors[2] : "";
-            GradientColor4.Hex = colors.Count > 3 ? colors[3] : "";
+            AppearancePage.GradientColor1.Hex = colors.Count > 0 ? colors[0] : "";
+            AppearancePage.GradientColor2.Hex = colors.Count > 1 ? colors[1] : "";
+            AppearancePage.GradientColor3.Hex = colors.Count > 2 ? colors[2] : "";
+            AppearancePage.GradientColor4.Hex = colors.Count > 3 ? colors[3] : "";
 
-            GradientAngleSlider.Value = appearance.GradientAngle;
-            SelectByTag(MotionCombo, appearance.GradientMotion.ToString());
-            MotionSpeedSlider.Value = appearance.MotionSpeed;
+            AppearancePage.GradientAngleSlider.Value = appearance.GradientAngle;
+            SelectByTag(AppearancePage.MotionCombo, appearance.GradientMotion.ToString());
+            AppearancePage.MotionSpeedSlider.Value = appearance.MotionSpeed;
 
-            BackgroundImageName.Text = string.IsNullOrWhiteSpace(appearance.BackgroundImagePath)
+            AppearancePage.BackgroundImageName.Text = string.IsNullOrWhiteSpace(appearance.BackgroundImagePath)
                 ? Loc.Get("S.Common.NotChosen")
                 : appearance.BackgroundImagePath;
-            SelectByTag(ImageFitCombo, appearance.ImageFit.ToString());
-            ImageBrightnessSlider.Value = appearance.ImageBrightness;
-            ImageSaturationSlider.Value = appearance.ImageSaturation;
-            ImageBlurSlider.Value = appearance.ImageBlur;
+            SelectByTag(AppearancePage.ImageFitCombo, appearance.ImageFit.ToString());
+            AppearancePage.ImageBrightnessSlider.Value = appearance.ImageBrightness;
+            AppearancePage.ImageSaturationSlider.Value = appearance.ImageSaturation;
+            AppearancePage.ImageBlurSlider.Value = appearance.ImageBlur;
 
-            GlassOpacitySlider.Value = appearance.GlassOpacity;
-            GlassFrostSlider.Value = appearance.GlassFrost;
-            GlassSheenToggle.IsChecked = appearance.GlassSheen;
-            VignetteToggle.IsChecked = appearance.Vignette;
+            AppearancePage.GlassOpacitySlider.Value = appearance.GlassOpacity;
+            AppearancePage.GlassFrostSlider.Value = appearance.GlassFrost;
+            AppearancePage.GlassSheenToggle.IsChecked = appearance.GlassSheen;
+            AppearancePage.VignetteToggle.IsChecked = appearance.Vignette;
 
-            SelectByTag(FontCombo, appearance.FontFamily);
-            SelectByTag(ChatWidthCombo, appearance.ChatColumnWidth.ToString(CultureInfo.InvariantCulture));
-            CornerRadiusSlider.Value = appearance.CornerRadius;
+            SelectByTag(AppearancePage.FontCombo, appearance.FontFamily);
+            SelectByTag(AppearancePage.ChatWidthCombo, appearance.ChatColumnWidth.ToString(CultureInfo.InvariantCulture));
+            AppearancePage.CornerRadiusSlider.Value = appearance.CornerRadius;
 
             // Пустое значение означает «как хочет тема», и ползунку надо показать именно то,
             // что человек увидит на экране, а не ноль.
-            GrainSlider.Value = GrainOverlay.Effective(appearance);
-            AnimationsToggle.IsChecked = appearance.AnimationsEnabled;
+            AppearancePage.GrainSlider.Value = GrainOverlay.Effective(appearance);
+            AppearancePage.AnimationsToggle.IsChecked = appearance.AnimationsEnabled;
 
-            CompactComposerToggle.IsChecked = appearance.CompactComposer;
-            CompactHoverToggle.IsChecked = appearance.CompactHoverEnabled;
-            CompactDelaySlider.Value = appearance.CompactDelayMs;
-            CompactWidthSlider.Value = appearance.CompactWidthPercent;
-            CompactHoverSlider.Value = appearance.CompactHoverRadius;
-
-            ApplyAppearance(save: false);
+            AppearancePage.CompactComposerToggle.IsChecked = appearance.CompactComposer;
+            AppearancePage.CompactHoverToggle.IsChecked = appearance.CompactHoverEnabled;
+            AppearancePage.CompactDelaySlider.Value = appearance.CompactDelayMs;
+            AppearancePage.CompactWidthSlider.Value = appearance.CompactWidthPercent;
+            AppearancePage.CompactHoverSlider.Value = appearance.CompactHoverRadius;
+            RefreshAppearanceLinks();
         }
 
         private static void SelectByTag(ComboBox combo, string tag)

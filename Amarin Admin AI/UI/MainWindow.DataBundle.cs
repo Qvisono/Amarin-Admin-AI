@@ -578,12 +578,12 @@ namespace Amarin.UI
             ResetChatListView();
             RefreshChatList();
             LoadSettingsUi();
-            InstructionsPage.ResetForProfile();
+            BuiltPage<SettingsInstructionsPage>()?.ResetForProfile();
 
-            // LoadSettingsUi только выделяет язык в списке; применяет его LanguageManager.
+            // Страница «Общие» только выделяет язык в списке; применяет его LanguageManager.
             // force: архив мог принести другие строки под тем же кодом языка.
             LanguageManager.Apply(_services.Settings.LanguageCode, force: true);
-            LanguagePicker.Rebuild();
+            BuiltPage<SettingsGeneralPage>()?.LanguagePicker.Rebuild();
             ApplyAppearance(save: false);
             RefreshProfileList();
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");

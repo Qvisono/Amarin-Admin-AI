@@ -35,8 +35,8 @@ public sealed class ConfirmationAllowUiTests
         typeof(MainWindow)
             .GetMethod("ShowConfirmationAllow", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(window, [request]);
-        return (((ToggleButton)window.FindName("ConfirmationAllowToggle")).Visibility,
-                ((Button)window.FindName("ConfirmationAllowChatButton")).Visibility);
+        return (((ToggleButton)window.FindSetting("ConfirmationAllowToggle")).Visibility,
+                ((Button)window.FindSetting("ConfirmationAllowChatButton")).Visibility);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class ConfirmationAllowUiTests
     public void The_security_page_offers_all_four_access_modes()
     {
         var tags = _wpf.Ui.Invoke(() =>
-            ((SettingsSecurityPage)Window().FindName("SecurityPage")).ModeTags.ToList());
+            ((SettingsSecurityPage)Window().FindSetting("SecurityPage")).ModeTags.ToList());
 
         Assert.Equal(Enum.GetNames<ApprovalMode>().Order(), tags.Order());
     }

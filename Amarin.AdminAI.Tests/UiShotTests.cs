@@ -165,10 +165,10 @@ public sealed class UiShotTests : IDisposable
             if (Wanted(only, "window"))
             {
                 Save((FrameworkElement)window.Content, Path.Combine(folder, "00-window.png"), null);
-                if (window.FindName("SideBarScrollViewer") is FrameworkElement list)
+                if (window.FindSetting("SideBarScrollViewer") is FrameworkElement list)
                 {
                     // Открытый чат — внутри папки: так видно подсветку строки в карточке папки.
-                    var open = ((Panel)window.FindName("ChatListPanel")).Children.OfType<Button>()
+                    var open = ((Panel)window.FindSetting("ChatListPanel")).Children.OfType<Button>()
                         .FirstOrDefault(button => button.Tag as string == "f1");
                     if (open is not null)
                     {
@@ -203,7 +203,7 @@ public sealed class UiShotTests : IDisposable
                 }
 
                 // Меню «⋯» строки чата — со значками у каждого пункта.
-                var row = ((Panel)window.FindName("ChatListPanel")).Children.OfType<Button>()
+                var row = ((Panel)window.FindSetting("ChatListPanel")).Children.OfType<Button>()
                     .FirstOrDefault(button => button.Tag is string);
                 if (row is not null)
                 {
@@ -228,7 +228,7 @@ public sealed class UiShotTests : IDisposable
                 var tag = services.Organizer.Snapshot().Tags.First();
                 Call(window, "SetTagFilter", tag.Id);
                 await Settle(250);
-                if (window.FindName("SideBarScrollViewer") is FrameworkElement sidebar)
+                if (window.FindSetting("SideBarScrollViewer") is FrameworkElement sidebar)
                 {
                     Save(sidebar, Path.Combine(folder, "00-sidebar-filter.png"), (Brush)window.FindResource("Bg.Sidebar"));
                 }
@@ -249,12 +249,12 @@ public sealed class UiShotTests : IDisposable
 
             Call(window, "SettingsButton_Click", window, new RoutedEventArgs());
             await Settle(500);
-            var card = (FrameworkElement)window.FindName("SettingsCard");
+            var card = (FrameworkElement)window.FindSetting("SettingsCard");
             var index = 0;
             foreach (var name in NavItems)
             {
                 index++;
-                if (window.FindName(name) is not RadioButton nav || !Wanted(only, name))
+                if (window.FindSetting(name) is not RadioButton nav || !Wanted(only, name))
                 {
                     continue;
                 }
@@ -262,7 +262,7 @@ public sealed class UiShotTests : IDisposable
                 nav.IsChecked = true;
                 await Settle(450);
                 var prefix = $"{index:00}-{name[3..].ToLowerInvariant()}";
-                if (name == "NavKey" && window.FindName("KeyPage") is SettingsKeyPage keyPage)
+                if (name == "NavKey" && window.FindSetting("KeyPage") is SettingsKeyPage keyPage)
                 {
                     keyPage.ShowForShot(SampleReport(), SampleKeys());
                     await Settle(200);
@@ -285,7 +285,7 @@ public sealed class UiShotTests : IDisposable
                     await Settle(200);
                 }
 
-                if (name == "NavInstructions" && window.FindName("InstructionsPage") is SettingsInstructionsPage instructions)
+                if (name == "NavInstructions" && window.FindSetting("InstructionsPage") is SettingsInstructionsPage instructions)
                 {
                     Call(instructions, "OpenEditor", [null]);
                     await Settle(300);
@@ -323,7 +323,7 @@ public sealed class UiShotTests : IDisposable
                         }
                     }
 
-                    if (window.FindName("AutomationPage") is SettingsAutomationPage automation)
+                    if (window.FindSetting("AutomationPage") is SettingsAutomationPage automation)
                     {
                         if (Descendants<RadioButton>(card).FirstOrDefault(r => r.Name == "RecipesTab") is { } first)
                         {
@@ -397,7 +397,7 @@ public sealed class UiShotTests : IDisposable
 
     private async Task ShootHealth(MainWindow window, string folder)
     {
-        if (window.FindName("HealthOverlay") is not HealthPanel panel)
+        if (window.FindSetting("HealthOverlay") is not HealthPanel panel)
         {
             return;
         }
@@ -513,13 +513,13 @@ public sealed class UiShotTests : IDisposable
             },
             () => services.PlanReviews.CancelAll());
         await Shot("profile", () => { Call(window, "SwitchAccountButton_Click", window, args); return Task.CompletedTask; },
-            () => ((FrameworkElement)window.FindName("ProfileOverlay")).Visibility = Visibility.Collapsed);
+            () => ((FrameworkElement)window.FindSetting("ProfileOverlay")).Visibility = Visibility.Collapsed);
         await Shot("export", () => (Task)Call(window, "OpenExportAsync")!,
-            () => ((FrameworkElement)window.FindName("DataExportOverlay")).Visibility = Visibility.Collapsed);
+            () => ((FrameworkElement)window.FindSetting("DataExportOverlay")).Visibility = Visibility.Collapsed);
         await Shot("chat-settings", () => { window.OpenChatSettings(); return Task.CompletedTask; },
-            () => ((FrameworkElement)window.FindName("ChatSettings")!).Visibility = Visibility.Collapsed);
+            () => ((FrameworkElement)window.FindSetting("ChatSettings")!).Visibility = Visibility.Collapsed);
         await Shot("prompt-preset", () => { Call(window, "OpenPromptEditor", [null]); return Task.CompletedTask; },
-            () => ((FrameworkElement)window.FindName("PromptPresetOverlay")).Visibility = Visibility.Collapsed);
+            () => ((FrameworkElement)window.FindSetting("PromptPresetOverlay")).Visibility = Visibility.Collapsed);
 
         // Окно пароля — отдельное окно, а не слой: снимается его карточка.
         try
@@ -715,9 +715,9 @@ public sealed class UiShotTests : IDisposable
     {
         var release = UpdateTestKit.Release("99.0.0");
         var before = window.Updates.State;
-        var title = (FrameworkElement)((FrameworkElement)window.FindName("TitleText")).Parent;
-        var badge = (System.Windows.Controls.Primitives.ToggleButton)window.FindName("UpdateBadgeButton");
-        var popup = (Popup)window.FindName("UpdateBadgePopup");
+        var title = (FrameworkElement)((FrameworkElement)window.FindSetting("TitleText")).Parent;
+        var badge = (System.Windows.Controls.Primitives.ToggleButton)window.FindSetting("UpdateBadgeButton");
+        var popup = (Popup)window.FindSetting("UpdateBadgePopup");
         var states = new (string Name, UpdateState State)[]
         {
             ("none", UpdateState.Initial with { LastSuccessUtc = DateTime.UtcNow }),
@@ -764,9 +764,9 @@ public sealed class UiShotTests : IDisposable
 
             // Карточка в настройках — те же состояния.
             Call(window, "SettingsButton_Click", window, new RoutedEventArgs());
-            ((RadioButton)window.FindName("NavData")).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavData")).IsChecked = true;
             await Settle(450);
-            var updateCard = Ancestor<Border>((DependencyObject)window.FindName("UpdateVersionText"), border => border.BorderThickness.Left >= 1);
+            var updateCard = Ancestor<Border>((DependencyObject)window.FindSetting("UpdateVersionText"), border => border.BorderThickness.Left >= 1);
             foreach (var (name, state) in states)
             {
                 window.Updates.Seed(_ => state);
@@ -831,7 +831,7 @@ public sealed class UiShotTests : IDisposable
         var sheet = new StackPanel { Margin = new Thickness(16) };
         foreach (var name in NavItems)
         {
-            var nav = (RadioButton)window.FindName(name);
+            var nav = (RadioButton)window.FindSetting(name);
             var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
             row.Children.Add(Tile(nav, 80, 48, 1.3 * 4));
             row.Children.Add(Tile(nav, 20, 12, 1.3));

@@ -17,8 +17,8 @@ namespace Amarin.UI
         /// </summary>
         private void WireShortcuts() => HotkeySheet.EditRequested += () =>
         {
-            OpenSettingsPage(NavGeneral);
-            SettingsDrill.Open(GeneralHotkeysSub, HotkeysLinkRow);
+            OpenSettings(SettingsUi.NavGeneral);
+            SettingsDrill.Open(GeneralPage.GeneralHotkeysSub, GeneralPage.HotkeysLinkRow);
         };
 
         /// <summary>

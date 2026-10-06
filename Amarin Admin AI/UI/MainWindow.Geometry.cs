@@ -15,7 +15,7 @@ namespace Amarin.UI
                 return;
             }
 
-            var remember = RememberWindowSizeToggle.IsChecked == true;
+            var remember = GeneralPage.RememberWindowSizeToggle.IsChecked == true;
             _services.Settings.RememberWindowSize = remember;
 
             if (!remember)

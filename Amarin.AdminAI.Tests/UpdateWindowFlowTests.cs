@@ -55,19 +55,19 @@ public sealed class UpdateWindowFlowTests : IDisposable
                 source.Answer(UpdateTestKit.Found(release));
                 await Until(() => files.Downloads.Count == 1);
                 var background = files.Downloads[0];
-                var button = (Button)window.FindName("UpdateNowButton")!;
+                var button = (Button)window.FindSetting("UpdateNowButton")!;
                 var before = (string)button.Content;
 
                 button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
-                var asked = ((FrameworkElement)window.FindName("UpdateConfirmOverlay")!).Visibility;
-                ((Button)window.FindName("UpdateConfirmApplyButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                var asked = ((FrameworkElement)window.FindSetting("UpdateConfirmOverlay")!).Visibility;
+                ((Button)window.FindSetting("UpdateConfirmApplyButton")!).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 await Until(() => window.Updates.State.Download is { InstallRequested: true });
 
                 var joined = (
                     Cancelled: background.Token.IsCancellationRequested,
                     Downloads: files.Downloads.Count,
                     Label: (string)button.Content,
-                    Status: ((TextBlock)window.FindName("UpdateStatusText")!).Text);
+                    Status: ((TextBlock)window.FindSetting("UpdateStatusText")!).Text);
 
                 background.Finish();
                 await Until(() => app.Restarts.Count > 0);

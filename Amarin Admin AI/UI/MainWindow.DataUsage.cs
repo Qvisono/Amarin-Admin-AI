@@ -34,7 +34,9 @@ namespace Amarin.UI
         /// </summary>
         private async Task RefreshDataUsageAsync()
         {
-            if (_services is null)
+            // Разбивку некуда показать, пока страница «Данные» не построена: построенная, она посчитает её
+            // при заходе в «Хранение и очистку».
+            if (_services is null || BuiltPage<SettingsDataPage>() is null)
             {
                 return;
             }
@@ -47,8 +49,8 @@ namespace Amarin.UI
             var scan = new CancellationTokenSource();
             _usageScan = scan;
 
-            UsageSummaryText.Text = Loc.Get("S.Data.Usage.Counting");
-            UsageRefreshButton.IsEnabled = false;
+            DataPage.UsageSummaryText.Text = Loc.Get("S.Data.Usage.Counting");
+            DataPage.UsageRefreshButton.IsEnabled = false;
 
             var appRoot = AppPaths.Root;
             var localRoot = CrashLog.DefaultDirectory();
@@ -76,7 +78,7 @@ namespace Amarin.UI
                 if (ReferenceEquals(_usageScan, scan))
                 {
                     _usageScan = null;
-                    UsageRefreshButton.IsEnabled = true;
+                    DataPage.UsageRefreshButton.IsEnabled = true;
                 }
 
                 scan.Dispose();
@@ -87,13 +89,13 @@ namespace Amarin.UI
         {
             if (report.TotalBytes <= 0)
             {
-                UsageSummaryText.Text = Loc.Get("S.Data.Usage.Empty");
-                UsageList.ItemsSource = null;
-                UsageAppText.Text = "";
+                DataPage.UsageSummaryText.Text = Loc.Get("S.Data.Usage.Empty");
+                DataPage.UsageList.ItemsSource = null;
+                DataPage.UsageAppText.Text = "";
                 return;
             }
 
-            UsageSummaryText.Text = AttachmentTypes.FormatSize(report.TotalBytes);
+            DataPage.UsageSummaryText.Text = AttachmentTypes.FormatSize(report.TotalBytes);
 
             var rows = new List<UsageRow>();
             foreach (var entry in report.Entries)
@@ -106,8 +108,8 @@ namespace Amarin.UI
                     RowIndent));
             }
 
-            UsageList.ItemsSource = rows;
-            UsageAppText.Text = report.AppBytes > 0
+            DataPage.UsageList.ItemsSource = rows;
+            DataPage.UsageAppText.Text = report.AppBytes > 0
                 ? $"{Loc.Get(DataUsage.AppKey)} - {AttachmentTypes.FormatSize(report.AppBytes)}"
                 : "";
         }
@@ -128,24 +130,16 @@ namespace Amarin.UI
         private void UsageRefreshButton_Click(object sender, RoutedEventArgs e) =>
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
 
-        /// <summary>
-        /// Разбивка «Занято на диске» лежит наверху «Хранения и очистки» и считается, когда туда
-        /// заходят, а не на каждое открытие «Данных»: обход читает все файлы чатов, а смотрят
-        /// место там, где его освобождают.
-        /// </summary>
-        private void WireDataUsage() =>
-            CareLinkRow.Click += (_, _) => Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
-
         /// <summary>Человек перешёл на страницу «Данные»: наполняем подстраницы и значения строк «›».</summary>
         private void NavData_Checked(object sender, RoutedEventArgs e)
         {
             if (_services is not null)
             {
-                BackupPanel.RunNow ??= () => RunBackupAsync(manual: true);
-                BackupPanel.Load(_services);
-                BackupPanel.ShowStatus(_services.Settings.Backup ?? new BackupSettings(), _backupRunning);
+                DataPage.BackupPanel.RunNow ??= () => RunBackupAsync(manual: true);
+                DataPage.BackupPanel.Load(_services);
+                DataPage.BackupPanel.ShowStatus(_services.Settings.Backup ?? new BackupSettings(), _backupRunning);
                 WireDataCare();
-                DataCarePanel.Load(_services);
+                DataPage.DataCarePanel.Load(_services);
                 RefreshDataLinks();
             }
         }
@@ -158,8 +152,8 @@ namespace Amarin.UI
                 return;
             }
 
-            BackupLinkRow.Tag = BackupBlock.Summary(_services.Settings.Backup);
-            CareLinkRow.Tag = DataCareBlock.Summary(_services.Settings.Retention);
+            DataPage.BackupLinkRow.Tag = BackupBlock.Summary(_services.Settings.Backup);
+            DataPage.CareLinkRow.Tag = DataCareBlock.Summary(_services.Settings.Retention);
         }
     }
 }

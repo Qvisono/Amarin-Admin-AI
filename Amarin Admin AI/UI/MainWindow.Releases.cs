@@ -22,7 +22,7 @@ namespace Amarin.UI
                 _settingsUiLoading = true;
                 try
                 {
-                    BetaChannelToggle.IsChecked = _services.Settings.BetaChannel;
+                    AboutPage.BetaChannelToggle.IsChecked = _services.Settings.BetaChannel;
                 }
                 finally
                 {
@@ -38,14 +38,14 @@ namespace Amarin.UI
             var previous = UpdateInstaller.PreviousVersionPath(Environment.ProcessPath);
             if (previous is null || !OperatingSystem.IsWindows())
             {
-                RollbackButton.Visibility = Visibility.Collapsed;
+                AboutPage.RollbackButton.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            RollbackButton.Content = UpdateInstaller.FileVersionOf(previous) is { } version
+            AboutPage.RollbackButton.Content = UpdateInstaller.FileVersionOf(previous) is { } version
                 ? Loc.Format("S.Updates.Rollback", version)
                 : Loc.Get("S.Updates.RollbackUnknown");
-            RollbackButton.Visibility = Visibility.Visible;
+            AboutPage.RollbackButton.Visibility = Visibility.Visible;
         }
 
         private void BetaChannelToggle_Changed(object sender, RoutedEventArgs e)
@@ -55,7 +55,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.BetaChannel = BetaChannelToggle.IsChecked == true;
+            _services.Settings.BetaChannel = AboutPage.BetaChannelToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
             // Найденное по прежнему каналу автомат забывает целиком — и скачанное, и качающееся,
@@ -148,7 +148,7 @@ namespace Amarin.UI
                 return;
             }
 
-            RollbackButton.IsEnabled = false;
+            AboutPage.RollbackButton.IsEnabled = false;
             try
             {
                 // Вперёд (прошлая оказалась новее — после отката откатываются обратно) отказ
@@ -187,7 +187,7 @@ namespace Amarin.UI
             }
             finally
             {
-                RollbackButton.IsEnabled = true;
+                AboutPage.RollbackButton.IsEnabled = true;
             }
         }
 

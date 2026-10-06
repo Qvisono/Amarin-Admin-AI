@@ -20,11 +20,11 @@ namespace Amarin.UI
         /// <summary>Строит строки раздела «Hotkeys» и наполняет их из настроек.</summary>
         private void LoadHotkeysUi(AppSettings settings)
         {
-            if (HotkeyList.Children.Count == 0)
+            if (GeneralPage.HotkeyList.Children.Count == 0)
             {
                 foreach (var action in HotkeyMap.All)
                 {
-                    HotkeyList.Children.Add(BuildHotkeyRow(action));
+                    GeneralPage.HotkeyList.Children.Add(BuildHotkeyRow(action));
                 }
             }
 
@@ -38,7 +38,7 @@ namespace Amarin.UI
         }
 
         private IEnumerable<HotkeyField> HotkeyFields() =>
-            HotkeyList.Children.OfType<Grid>().Select(row => row.Children.OfType<HotkeyField>().First());
+            GeneralPage.HotkeyList.Children.OfType<Grid>().Select(row => row.Children.OfType<HotkeyField>().First());
 
         /// <summary>
         /// Помечает поля, чьё заводское сочетание занято явным назначением другого действия.
@@ -200,8 +200,7 @@ namespace Amarin.UI
                     SetSidebarCollapsed(!_sidebarCollapsed);
                     return true;
                 case HotkeyMap.OpenSettings:
-                    SettingsOverlay.Visibility = Visibility.Visible;
-                    LoadSettingsUi();
+                    OpenSettings();
                     return true;
                 case HotkeyMap.Health:
                     OpenHealth();

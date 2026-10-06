@@ -26,8 +26,8 @@ public sealed class UpdateUiTests
         var (first, second) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var button = (Button)window.FindName("UpdateNowButton")!;
-            var version = (TextBlock)window.FindName("SettingsVersionText")!;
+            var button = (Button)window.FindSetting("UpdateNowButton")!;
+            var version = (TextBlock)window.FindSetting("SettingsVersionText")!;
 
             try
             {
@@ -58,8 +58,8 @@ public sealed class UpdateUiTests
         var (visible, status) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var button = (Button)window.FindName("UpdateNowButton")!;
-            var text = (TextBlock)window.FindName("UpdateStatusText")!;
+            var button = (Button)window.FindSetting("UpdateNowButton")!;
+            var text = (TextBlock)window.FindSetting("UpdateStatusText")!;
 
             window.LatestRelease = null;
             window.LoadUpdatesUi();
@@ -79,8 +79,8 @@ public sealed class UpdateUiTests
         var (version, lastCheck) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var versionText = (TextBlock)window.FindName("UpdateVersionText")!;
-            var lastCheckText = (TextBlock)window.FindName("UpdateLastCheckText")!;
+            var versionText = (TextBlock)window.FindSetting("UpdateVersionText")!;
+            var lastCheckText = (TextBlock)window.FindSetting("UpdateLastCheckText")!;
 
             window.LatestRelease = null;
             window.LoadUpdatesUi();
@@ -99,9 +99,9 @@ public sealed class UpdateUiTests
         var (found, accented) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pill = (Border)window.FindName("UpdateStatePill")!;
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
-            var version = (TextBlock)window.FindName("SettingsVersionText")!;
+            var pill = (Border)window.FindSetting("UpdateStatePill")!;
+            var pillText = (TextBlock)window.FindSetting("UpdateStatePillText")!;
+            var version = (TextBlock)window.FindSetting("SettingsVersionText")!;
 
             try
             {
@@ -132,8 +132,8 @@ public sealed class UpdateUiTests
         var (surface, caption, outline, radius, thickness) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pill = (Border)window.FindName("UpdateStatePill")!;
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
+            var pill = (Border)window.FindSetting("UpdateStatePill")!;
+            var pillText = (TextBlock)window.FindSetting("UpdateStatePillText")!;
 
             window.LatestRelease = null;
             window.Staged = null;
@@ -202,8 +202,8 @@ public sealed class UpdateUiTests
         var (pill, badge) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
-            var version = (TextBlock)window.FindName("SettingsVersionText")!;
+            var pillText = (TextBlock)window.FindSetting("UpdateStatePillText")!;
+            var version = (TextBlock)window.FindSetting("SettingsVersionText")!;
 
             try
             {
@@ -233,8 +233,8 @@ public sealed class UpdateUiTests
         var (status, badge) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
-            var version = (TextBlock)window.FindName("SettingsVersionText")!;
+            var statusText = (TextBlock)window.FindSetting("UpdateStatusText")!;
+            var version = (TextBlock)window.FindSetting("SettingsVersionText")!;
             try
             {
                 window.LatestRelease = NewerRelease();
@@ -300,7 +300,7 @@ public sealed class UpdateUiTests
         var (visible, kept) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var button = (Button)window.FindName("UpdateNowButton")!;
+            var button = (Button)window.FindSetting("UpdateNowButton")!;
             try
             {
                 window.LatestRelease = NewerRelease();
@@ -328,8 +328,8 @@ public sealed class UpdateUiTests
         var (pill, visible) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
-            var button = (Button)window.FindName("UpdateNowButton")!;
+            var pillText = (TextBlock)window.FindSetting("UpdateStatePillText")!;
+            var button = (Button)window.FindSetting("UpdateNowButton")!;
             try
             {
                 window.LatestRelease = NewerRelease();
@@ -354,9 +354,9 @@ public sealed class UpdateUiTests
         var (pill, status, openRelease) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var pillText = (TextBlock)window.FindName("UpdateStatePillText")!;
-            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
-            var open = (Button)window.FindName("OpenReleaseButton")!;
+            var pillText = (TextBlock)window.FindSetting("UpdateStatePillText")!;
+            var statusText = (TextBlock)window.FindSetting("UpdateStatusText")!;
+            var open = (Button)window.FindSetting("OpenReleaseButton")!;
             try
             {
                 window.LatestRelease = null;
@@ -381,8 +381,8 @@ public sealed class UpdateUiTests
         var (status, visible) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var statusText = (TextBlock)window.FindName("UpdateStatusText")!;
-            var button = (Button)window.FindName("UpdateNowButton")!;
+            var statusText = (TextBlock)window.FindSetting("UpdateStatusText")!;
+            var button = (Button)window.FindSetting("UpdateNowButton")!;
             try
             {
                 window.LatestRelease = NewerRelease() with { Assets = [] };
@@ -457,7 +457,7 @@ public sealed class UpdateUiTests
         window.LoadUpdatesUi();
     }
 
-    private static T Named<T>(MainWindow window, string name) where T : class => (T)window.FindName(name)!;
+    private static T Named<T>(MainWindow window, string name) where T : class => (T)window.FindSetting(name)!;
 
     /// <summary>Сборка, будто бы уже скачанная и ждущая выхода. На диск ничего не кладётся.</summary>
     [Fact]
@@ -490,8 +490,8 @@ public sealed class UpdateUiTests
         var (shown, text, hidden) = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var panel = (FrameworkElement)window.FindName("UpdateConfirmNotesPanel")!;
-            var box = (RichTextBox)window.FindName("UpdateConfirmNotes")!;
+            var panel = (FrameworkElement)window.FindSetting("UpdateConfirmNotesPanel")!;
+            var box = (RichTextBox)window.FindSetting("UpdateConfirmNotes")!;
 
             window.ShowConfirmNotes("## Fixes\n\n- The tray menu closes on click");
             var visible = panel.Visibility;
@@ -514,8 +514,8 @@ public sealed class UpdateUiTests
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
             window.LatestRelease = null;
             window.LoadUpdatesUi();
-            return (((CheckBox)window.FindName("BetaChannelToggle")!).IsChecked,
-                    ((Button)window.FindName("RollbackButton")!).Visibility);
+            return (((CheckBox)window.FindSetting("BetaChannelToggle")!).IsChecked,
+                    ((Button)window.FindSetting("RollbackButton")!).Visibility);
         });
 
         Assert.False(beta);

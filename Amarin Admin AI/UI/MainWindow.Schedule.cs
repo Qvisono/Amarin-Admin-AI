@@ -146,9 +146,9 @@ namespace Amarin.UI
 
         private void OnScheduledJobCompleted(ScheduledJob job, ScheduleRunOutcome outcome)
         {
-            if (AutomationPage.IsVisible)
+            if (BuiltPage<SettingsAutomationPage>() is { IsVisible: true } automation)
             {
-                AutomationPage.RefreshSchedule();
+                automation.RefreshSchedule();
             }
 
             if (!ScheduleReport.Notable(outcome.Status) || outcome.ChatId is not { } chatId)

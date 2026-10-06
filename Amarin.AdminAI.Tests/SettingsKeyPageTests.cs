@@ -35,7 +35,7 @@ public sealed class SettingsKeyPageTests
         var order = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var nav = (Panel)VisualParentOf((UIElement)window.FindName("NavKey"));
+            var nav = (Panel)VisualParentOf((UIElement)window.FindSetting("NavKey"));
             return nav.Children.OfType<FrameworkElement>()
                 .Select(child => child.Name)
                 .Where(name => name.Length > 0)
@@ -60,23 +60,20 @@ public sealed class SettingsKeyPageTests
         var visible = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var nav = (RadioButton)window.FindName("NavKey");
+            var nav = (RadioButton)window.FindSetting("NavKey");
             var previous = SettingsNavNames.All
-                .Select(name => (RadioButton)window.FindName(name))
+                .Select(name => (RadioButton)window.FindSetting(name))
                 .FirstOrDefault(button => button.IsChecked == true);
 
             nav.IsChecked = true;
             window.UpdateLayout();
             try
             {
-                return new[]
-                {
-                    "AppearancePageScroll", "GeneralPageScroll", "ProfilePageScroll", "ModelsPageScroll", "PromptsPageScroll", "DataPageScroll"
-                }
-                .Select(name => ((FrameworkElement)window.FindName(name)).Visibility)
-                .Count(state => state == Visibility.Visible)
-                + (((FrameworkElement)window.FindName("KeyPage")).Visibility == Visibility.Visible ? 1 : 0)
-                + (((FrameworkElement)window.FindName("InstructionsPage")).Visibility == Visibility.Visible ? 1 : 0);
+                // Все одиннадцать страниц, а не выборка: видимость у страницы — у самого
+                // UserControl, и забытая страница легла бы поверх выбранной.
+                var pages = SettingsTestKit.BuildAll(window).BuiltPages.ToList();
+                Assert.Equal(SettingsNavNames.All.Length, pages.Count);
+                return pages.Count(page => page.Visibility == Visibility.Visible);
             }
             finally
             {
@@ -111,8 +108,8 @@ public sealed class SettingsKeyPageTests
         var (add, remove) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            return (((FrameworkElement)window.FindName("KeyOverlay")).Visibility,
-                    ((FrameworkElement)window.FindName("KeyRemoveOverlay")).Visibility);
+            return (((FrameworkElement)window.FindSetting("KeyOverlay")).Visibility,
+                    ((FrameworkElement)window.FindSetting("KeyRemoveOverlay")).Visibility);
         });
 
         Assert.Equal(Visibility.Collapsed, add);
@@ -126,9 +123,9 @@ public sealed class SettingsKeyPageTests
         var (add, remove, preset) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            return (Panel.GetZIndex((UIElement)window.FindName("KeyOverlay")),
-                    Panel.GetZIndex((UIElement)window.FindName("KeyRemoveOverlay")),
-                    Panel.GetZIndex((UIElement)window.FindName("PromptPresetOverlay")));
+            return (Panel.GetZIndex((UIElement)window.FindSetting("KeyOverlay")),
+                    Panel.GetZIndex((UIElement)window.FindSetting("KeyRemoveOverlay")),
+                    Panel.GetZIndex((UIElement)window.FindSetting("PromptPresetOverlay")));
         });
 
         Assert.True(add > preset);
@@ -178,7 +175,7 @@ public sealed class SettingsKeyPageTests
             var page = new SettingsKeyPage { Width = 520, Height = 900 };
 
             // В дерево окна: стили строк разрешаются по нему.
-            var host = (Panel)window.FindName("MessagesPanel");
+            var host = (Panel)window.FindSetting("MessagesPanel");
             host.Children.Add(page);
             try
             {
@@ -241,7 +238,7 @@ public sealed class SettingsKeyPageTests
         {
             var window = Window();
             var page = new SettingsKeyPage { Width = 520, Height = 900 };
-            var host = (Panel)window.FindName("MessagesPanel");
+            var host = (Panel)window.FindSetting("MessagesPanel");
             host.Children.Add(page);
             try
             {
@@ -289,9 +286,9 @@ public sealed class SettingsKeyPageTests
         var (visibility, rename, remove) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            return (((FrameworkElement)window.FindName("KeyRenameOverlay")).Visibility,
-                    Panel.GetZIndex((UIElement)window.FindName("KeyRenameOverlay")),
-                    Panel.GetZIndex((UIElement)window.FindName("KeyRemoveOverlay")));
+            return (((FrameworkElement)window.FindSetting("KeyRenameOverlay")).Visibility,
+                    Panel.GetZIndex((UIElement)window.FindSetting("KeyRenameOverlay")),
+                    Panel.GetZIndex((UIElement)window.FindSetting("KeyRemoveOverlay")));
         });
 
         Assert.Equal(Visibility.Collapsed, visibility);

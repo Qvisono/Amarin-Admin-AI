@@ -182,11 +182,12 @@ public sealed class DialogRedesignTests : IDisposable
     }
 
     /// <summary>Системных MessageBox в главном окне не осталось: только своё окно вопроса.</summary>
+    /// <remarks>Со всеми подпапками: страницы настроек живут в UI/Settings.</remarks>
     [Fact]
     public void The_main_window_never_shows_a_system_message_box()
     {
         var ui = Path.Combine(SourceTree.ProjectDirectory, "UI");
-        var offenders = Directory.GetFiles(ui, "*.cs")
+        var offenders = Directory.GetFiles(ui, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.EndsWith("MainWindow.Notice.cs", StringComparison.Ordinal))
             .Where(file => File.ReadAllText(file).Contains("MessageBox.Show(", StringComparison.Ordinal))
             .Select(Path.GetFileName)

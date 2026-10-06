@@ -47,7 +47,7 @@ namespace Amarin.UI
             }
 
             CloseJournal();
-            OpenSettingsPage(NavAutomation);
+            OpenSettings(SettingsUi.NavAutomation);
             AutomationPage.Attach(_services);
             AutomationPage.Edit(saved.Id);
         }

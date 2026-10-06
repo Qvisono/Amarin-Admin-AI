@@ -23,7 +23,7 @@ public sealed class AccessibilityTests
         var nameless = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             var found = new List<string>();
             try
             {
@@ -34,7 +34,7 @@ public sealed class AccessibilityTests
                 overlay.Visibility = Visibility.Visible;
                 foreach (var nav in new[] { "NavGeneral", "NavAppearance", "NavData", "NavKey", "NavAbout" })
                 {
-                    ((RadioButton)window.FindName(nav)!).IsChecked = true;
+                    ((RadioButton)window.FindSetting(nav)!).IsChecked = true;
                     window.UpdateLayout();
                     AccessibilityDefaults.ApplyTree(overlay);
                     Collect(overlay, found);
@@ -43,7 +43,7 @@ public sealed class AccessibilityTests
             finally
             {
                 overlay.Visibility = Visibility.Collapsed;
-                ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+                ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
             }
 
             return found.Distinct().ToList();

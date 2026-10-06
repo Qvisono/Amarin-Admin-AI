@@ -76,10 +76,8 @@ namespace Amarin.UI
 
             Title = $"Amarin Admin AI v{RuntimeContext.AppVersion}";
             TitleText.Text = Title;
-            SettingsVersionText.Text = $"v{RuntimeContext.AppVersion}";
 
             PlanOverlay.Decided += OnPlanDecided;
-            AutomationPage.AgentRequested += OnRecipeAgentRequested;
             HealthOverlay.AskRequested += OnHealthAskRequested;
             WireFind();
             WireWorkReport();
@@ -92,21 +90,12 @@ namespace Amarin.UI
             WireVoice();
             WireCostEstimate();
             WireWindowsIntegration();
-            WireSecurityPage();
-            WireDataUsage();
 
             // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).
             AccessibilityDefaults.Register();
             ChatTargetPicker.Picked += OnTargetPicked;
-            AutomationPage.Machines.MachinesChanged += OnMachinesChanged;
             ChatTargetPicker.ManageRequested += OpenMachinesSettings;
             HealthOverlay.CloseRequested += CloseHealth;
-            AutomationPage.Schedule.RunNow = RunScheduledJobNowAsync;
-            AutomationPage.Schedule.OpenChatRequested += chatId =>
-            {
-                SettingsOverlay.Visibility = Visibility.Collapsed;
-                OpenChat(chatId);
-            };
 
             TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
@@ -157,18 +146,6 @@ namespace Amarin.UI
             // Стрелки вверх и вниз на крайней строке поля ввода уводят каретку в начало или в
             // конец текста — как в Discord. См. TextCaretEdges.
             TextCaretEdges.Attach(MessageTextBox);
-
-            // Страницы настроек — тем же скроллом, что колонка и чат.
-            //
-            // И перетаскиванием — страницы настроек листают ещё и зажатой кнопкой, той же инерцией.
-            // В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
-            // перетаскиванием чатов по папкам.
-            foreach (var page in (ScrollViewer[])
-                     [AppearancePageScroll, GeneralPageScroll, ProfilePageScroll, ModelsPageScroll, PromptsPageScroll, DataPageScroll, AboutPageScroll])
-            {
-                SmoothScroll.SetIsEnabled(page, true);
-                SmoothScroll.SetDragScroll(page, true);
-            }
 
             // Тело вопроса о подтверждении: у него внутри свои прокрутки — блок кода и
             // подробности, — и SmoothScroll сам уступает им колесо, а на их краю забирает
@@ -323,20 +300,6 @@ namespace Amarin.UI
             _modelButtonLetter = ModelButton.Template.FindName("ModelButtonLetter", ModelButton) as TextBlock;
             UiScale.AttachCenteredBelowTooltip(Warn);
             ChatReasoningPicker.SetUsesTools(true);
-            LiteReasoningPicker.SetUsesTools(true);
-            HeavyReasoningPicker.SetUsesTools(true);
-            RouterReasoningPicker.SetUsesTools(false);
-            TitleReasoningPicker.SetUsesTools(false);
-            AgentFastReasoningPicker.SetUsesTools(true);
-            AgentLiteReasoningPicker.SetUsesTools(true);
-            AgentHeavyReasoningPicker.SetUsesTools(true);
-            // Защитник отвечает одним словом и инструментов не получает.
-            SecurityPage.SynGuardReasoningPicker.SetUsesTools(false);
-
-            // Подпись ставится здесь, а не только при открытии настроек: пустая строка со
-            // стрелкой рядом не объясняет, что за ней прячется.
-            ShowSynGuardModelName();
-
             if (_services is null)
             {
                 return;
@@ -354,20 +317,11 @@ namespace Amarin.UI
             // свёрнутых страницах.
             LoadAccountUi();
 
-            // Наполнение страниц настроек отложено за первый кадр. Оно стоит несколько сотен
-            // миллисекунд (девять плашек моделей, десять пикеров размышления, библиотека
-            // заготовок, список доменов) и целиком уходит в то, чего на экране ещё нет.
-            // Повторный вызов из SettingsButton_Click был здесь и раньше, так что открыть
-            // настройки раньше, чем фон догонит, безопасно. Окно, закрытое раньше, чем фон
-            // догнал, страницы не наполняет: углы окна просят дескриптор, а у закрытого окна его
-            // уже не создать — оконные тесты закрывают свои окна сразу и ловили здесь исключение.
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (!_windowClosed)
-                {
-                    LoadSettingsUi();
-                }
-            }), DispatcherPriority.Background);
+            // Настройки строятся за первым кадром: в простое, оболочка и по странице за порцию
+            // (MainWindow.SettingsHost). На первом кадре их не видно, а их разметка была больше
+            // половины разбора окна. Открыть раньше, чем прогрев догонит, можно — открытие
+            // достроит нужное само.
+            ScheduleSettingsPrewarm();
 
             // Прошлый сеанс мог не дописать перешифровку чатов (закрыли посреди) — доводим в фоне.
             Detached.Run(_services.ChatStore.EnsureFormat(), "chat_reformat");
@@ -530,11 +484,7 @@ namespace Amarin.UI
         {
             // Лупу здесь не сбрасываем: настройки лежат поверх ленты, и из них возвращаются к
             // тому же чату — приближение, которое человек выставил сам, должно его дождаться.
-
-            // Панель показываем первой: вся загрузка шла до этой строки, и человек несколько
-            // кадров смотрел на замерший интерфейс, прежде чем настройки вообще появлялись.
-            SettingsOverlay.Visibility = Visibility.Visible;
-            LoadSettingsUi();
+            OpenSettings();
         }
 
         private void AutoScrollToggle_Changed(object sender, RoutedEventArgs e)
@@ -544,7 +494,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.AutoScroll = AutoScrollToggle.IsChecked == true;
+            _services.Settings.AutoScroll = GeneralPage.AutoScrollToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -555,7 +505,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.CodeLineNumbers = CodeLineNumbersToggle.IsChecked == true;
+            _services.Settings.CodeLineNumbers = GeneralPage.CodeLineNumbersToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
             // Блоки кода уже построены — перестраиваем ленту, не трогая лупы.
@@ -605,47 +555,47 @@ namespace Amarin.UI
         }
 
         private WindowCorners ReadWindowCornersCombo() =>
-            WindowCornersComboBox.SelectedItem is ComboBoxItem item &&
+            AppearancePage.WindowCornersComboBox.SelectedItem is ComboBoxItem item &&
             Enum.TryParse<WindowCorners>(Convert.ToString(item.Tag), out var value)
                 ? value
                 : WindowCorners.Small;
 
         private void SelectWindowCorners(WindowCorners corners)
         {
-            for (var i = 0; i < WindowCornersComboBox.Items.Count; i++)
+            for (var i = 0; i < AppearancePage.WindowCornersComboBox.Items.Count; i++)
             {
-                if (WindowCornersComboBox.Items[i] is ComboBoxItem item &&
+                if (AppearancePage.WindowCornersComboBox.Items[i] is ComboBoxItem item &&
                     Enum.TryParse<WindowCorners>(Convert.ToString(item.Tag), out var value) &&
                     value == corners)
                 {
-                    WindowCornersComboBox.SelectedIndex = i;
+                    AppearancePage.WindowCornersComboBox.SelectedIndex = i;
                     return;
                 }
             }
 
-            WindowCornersComboBox.SelectedIndex = 0;
+            AppearancePage.WindowCornersComboBox.SelectedIndex = 0;
         }
 
         private DateFormat ReadDateFormatCombo() =>
-            DateFormatComboBox.SelectedItem is ComboBoxItem item &&
+            GeneralPage.DateFormatComboBox.SelectedItem is ComboBoxItem item &&
             Enum.TryParse<DateFormat>(Convert.ToString(item.Tag), out var value)
                 ? value
                 : DateFormat.DayMonthShort;
 
         private void SelectDateFormat(DateFormat format)
         {
-            for (var i = 0; i < DateFormatComboBox.Items.Count; i++)
+            for (var i = 0; i < GeneralPage.DateFormatComboBox.Items.Count; i++)
             {
-                if (DateFormatComboBox.Items[i] is ComboBoxItem item &&
+                if (GeneralPage.DateFormatComboBox.Items[i] is ComboBoxItem item &&
                     Enum.TryParse<DateFormat>(Convert.ToString(item.Tag), out var value) &&
                     value == format)
                 {
-                    DateFormatComboBox.SelectedIndex = i;
+                    GeneralPage.DateFormatComboBox.SelectedIndex = i;
                     return;
                 }
             }
 
-            DateFormatComboBox.SelectedIndex = 0;
+            GeneralPage.DateFormatComboBox.SelectedIndex = 0;
         }
 
         /// <summary>
@@ -676,7 +626,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.NotifyOnResponseComplete = NotifyOnCompleteToggle.IsChecked == true;
+            _services.Settings.NotifyOnResponseComplete = GeneralPage.NotifyOnCompleteToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
             if (!_services.Settings.NotifyOnResponseComplete)
             {
@@ -691,7 +641,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.NotifySound = NotifySoundToggle.IsChecked == true;
+            _services.Settings.NotifySound = GeneralPage.NotifySoundToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -887,35 +837,7 @@ namespace Amarin.UI
         }
 
         /// <summary>Список живёт на подстранице «Безопасность › Источники загрузки».</summary>
-        private void RefreshAllowedDomainsUi() => SecurityPage.ShowDomains(AllowedDomains);
-
-        /// <summary>
-        /// Подписка на контролы страницы «Безопасность», чья логика — у окна: SynGuard и его модель
-        /// (слоты моделей ведёт окно, как у остальных пикеров) и белый список загрузок (его же
-        /// дополняет вопрос «разрешить домен?» из чата). Атрибутами разметки этого не сделать:
-        /// страница — свой UserControl, и обработчики искались бы у неё.
-        /// </summary>
-        private void WireSecurityPage()
-        {
-            var page = SecurityPage;
-            page.SynGuardToggle.Checked += SynGuardToggle_Changed;
-            page.SynGuardToggle.Unchecked += SynGuardToggle_Changed;
-            page.SynGuardReasoningPicker.ChoiceChanged += SettingsReasoningChanged;
-            page.SynGuardModelPicker.ModelPicked += SettingsModelPicked;
-            page.SynGuardModelPicker.AddKeyRequested += SettingsPickerAddKeyRequested;
-            page.SynGuardModelPicker.ProviderShown += SettingsPickerProviderShown;
-            page.AddDomainRequested += (_, _) => OpenDomainDialog("");
-            page.RemoveDomainRequested += (_, domain) =>
-            {
-                if (_services is null)
-                {
-                    return;
-                }
-
-                AllowedDomains.RemoveAll(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase));
-                SaveAllowedDomains();
-            };
-        }
+        private void RefreshAllowedDomainsUi() => BuiltPage<SettingsSecurityPage>()?.ShowDomains(AllowedDomains);
 
         private void SaveAllowedDomains()
         {
@@ -1166,7 +1088,7 @@ namespace Amarin.UI
         /// Модель здесь не спрашивается: её подбирает <see cref="ModelSlots.WebSearch"/> под
         /// выбранного провайдера. Пустой провайдер — «как у модели хода», прежнее поведение.
         /// </remarks>
-        private void WebSearchTargetChanged(object sender, WebSearchTarget target)
+        private void WebSearchTargetChanged(object? sender, WebSearchTarget target)
         {
             if (_settingsUiLoading || _services is null)
             {
@@ -1209,47 +1131,49 @@ namespace Amarin.UI
             }
 
             var settings = _services.Settings;
-            if (ReferenceEquals(sender, LiteReasoningPicker))
+            var models = BuiltPage<SettingsModelsPage>();
+            var security = BuiltPage<SettingsSecurityPage>();
+            if (ReferenceEquals(sender, models?.LiteReasoningPicker))
             {
                 return settings.LiteReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, HeavyReasoningPicker))
+            if (ReferenceEquals(sender, models?.HeavyReasoningPicker))
             {
                 return settings.HeavyReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, RouterReasoningPicker))
+            if (ReferenceEquals(sender, models?.RouterReasoningPicker))
             {
                 return settings.RouterReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, TitleReasoningPicker))
+            if (ReferenceEquals(sender, models?.TitleReasoningPicker))
             {
                 return settings.TitleReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, AgentFastReasoningPicker))
+            if (ReferenceEquals(sender, models?.AgentFastReasoningPicker))
             {
                 return settings.AgentFastReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, AgentLiteReasoningPicker))
+            if (ReferenceEquals(sender, models?.AgentLiteReasoningPicker))
             {
                 return settings.AgentLiteReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, AgentHeavyReasoningPicker))
+            if (ReferenceEquals(sender, models?.AgentHeavyReasoningPicker))
             {
                 return settings.AgentHeavyReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, SecurityPage.SynGuardReasoningPicker))
+            if (ReferenceEquals(sender, security?.SynGuardReasoningPicker))
             {
                 return settings.SynGuardReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, SummaryReasoningPicker))
+            if (ReferenceEquals(sender, models?.SummaryReasoningPicker))
             {
                 return settings.SummaryReasoning ??= new ReasoningSettings();
             }
@@ -1274,10 +1198,15 @@ namespace Amarin.UI
         /// Подпись раскрывающегося пункта — голый идентификатор модели, а не человеческое имя:
         /// строка служебная, и в ней важно точно знать, что именно стоит в настройке.
         /// </summary>
-        private void ShowSynGuardModelName() =>
-            SecurityPage.SynGuardModelLabel.Text = _services is null
-                ? SynGuard.FallbackModelId
-                : SynGuard.ResolveModel(_services.Settings);
+        private void ShowSynGuardModelName()
+        {
+            if (BuiltPage<SettingsSecurityPage>() is { } security)
+            {
+                security.SynGuardModelLabel.Text = _services is null
+                    ? SynGuard.FallbackModelId
+                    : SynGuard.ResolveModel(_services.Settings);
+            }
+        }
 
         private void ChatModelPicker_ModelPicked(object sender, ModelBinding binding)
         {
@@ -1381,7 +1310,7 @@ namespace Amarin.UI
                 field.SetKeys(keys);
             }
 
-            WebSearchField.SetKeys(keys);
+            BuiltPage<SettingsModelsPage>()?.WebSearchField.SetKeys(keys);
         }
 
         /// <summary>
@@ -1599,7 +1528,7 @@ namespace Amarin.UI
                 field.SetSelected(binding.ModelId, binding.KeyId);
             }
 
-            WebSearchField.SetSelected(
+            BuiltPage<SettingsModelsPage>()?.WebSearchField.SetSelected(
                 _services.Settings.WebSearchProvider,
                 _services.Settings.WebSearchKeyId,
                 _services.Settings.WebSearchEngine,
@@ -1615,44 +1544,37 @@ namespace Amarin.UI
         /// Одной таблицей, а не цепочкой сравнений на каждый случай: слот, поле и размышление
         /// всегда ходят втроём, и разъехались бы они молча — при добавлении десятого слота.
         /// </remarks>
-        private (ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)[] SettingsSlots() =>
-        [
-            (ModelSlot.Lite, LiteModelPicker, LiteReasoningPicker),
-            (ModelSlot.Heavy, HeavyModelPicker, HeavyReasoningPicker),
-            (ModelSlot.Router, RouterModelPicker, RouterReasoningPicker),
-            (ModelSlot.Title, TitleModelPicker, TitleReasoningPicker),
-            (ModelSlot.AgentFast, AgentFastModelPicker, AgentFastReasoningPicker),
-            (ModelSlot.AgentLite, AgentLiteModelPicker, AgentLiteReasoningPicker),
-            (ModelSlot.AgentHeavy, AgentHeavyModelPicker, AgentHeavyReasoningPicker),
-            (ModelSlot.SynGuard, SecurityPage.SynGuardModelPicker, SecurityPage.SynGuardReasoningPicker),
-            (ModelSlot.Summary, SummaryModelPicker, SummaryReasoningPicker)
-        ];
+        private (ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)[] SettingsSlots()
+        {
+            // Только построенные страницы: таблицу читают и запуск, и доехавший каталог, а
+            // непостроенная страница, созданная позже, заполнится из настроек сама.
+            var slots = new List<(ModelSlot Slot, ModelPickerField Field, ReasoningPicker Reasoning)>();
+            if (BuiltPage<SettingsModelsPage>() is { } models)
+            {
+                slots.AddRange(
+                [
+                    (ModelSlot.Lite, models.LiteModelPicker, models.LiteReasoningPicker),
+                    (ModelSlot.Heavy, models.HeavyModelPicker, models.HeavyReasoningPicker),
+                    (ModelSlot.Router, models.RouterModelPicker, models.RouterReasoningPicker),
+                    (ModelSlot.Title, models.TitleModelPicker, models.TitleReasoningPicker),
+                    (ModelSlot.AgentFast, models.AgentFastModelPicker, models.AgentFastReasoningPicker),
+                    (ModelSlot.AgentLite, models.AgentLiteModelPicker, models.AgentLiteReasoningPicker),
+                    (ModelSlot.AgentHeavy, models.AgentHeavyModelPicker, models.AgentHeavyReasoningPicker),
+                    (ModelSlot.Summary, models.SummaryModelPicker, models.SummaryReasoningPicker)
+                ]);
+            }
 
-        private ModelPickerField[] SettingsPickers() =>
-        [
-            LiteModelPicker,
-            HeavyModelPicker,
-            RouterModelPicker,
-            TitleModelPicker,
-            AgentFastModelPicker,
-            AgentLiteModelPicker,
-            AgentHeavyModelPicker,
-            SecurityPage.SynGuardModelPicker,
-            SummaryModelPicker
-        ];
+            if (BuiltPage<SettingsSecurityPage>() is { } security)
+            {
+                slots.Add((ModelSlot.SynGuard, security.SynGuardModelPicker, security.SynGuardReasoningPicker));
+            }
 
-        private ReasoningPicker[] SettingsReasoningPickers() =>
-        [
-            LiteReasoningPicker,
-            HeavyReasoningPicker,
-            RouterReasoningPicker,
-            TitleReasoningPicker,
-            AgentFastReasoningPicker,
-            AgentLiteReasoningPicker,
-            AgentHeavyReasoningPicker,
-            SecurityPage.SynGuardReasoningPicker,
-            SummaryReasoningPicker
-        ];
+            return [.. slots];
+        }
+
+        private ModelPickerField[] SettingsPickers() => [.. SettingsSlots().Select(slot => slot.Field)];
+
+        private ReasoningPicker[] SettingsReasoningPickers() => [.. SettingsSlots().Select(slot => slot.Reasoning)];
 
         private void SaveMainPromptButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1661,7 +1583,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.MainPrompt = MainPromptTextBox.Text ?? "";
+            _services.Settings.MainPrompt = PromptsPage.MainPromptTextBox.Text ?? "";
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -1672,7 +1594,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.TechAiPrompt = TechAiPromptTextBox.Text ?? "";
+            _services.Settings.TechAiPrompt = PromptsPage.TechAiPromptTextBox.Text ?? "";
             _services.SettingsStore.Save(_services.Settings);
             RefreshPromptLinks();
         }
@@ -1684,7 +1606,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.TechAgentPrompt = TechAgentPromptTextBox.Text ?? "";
+            _services.Settings.TechAgentPrompt = PromptsPage.TechAgentPromptTextBox.Text ?? "";
             _services.SettingsStore.Save(_services.Settings);
             RefreshPromptLinks();
         }
@@ -1695,7 +1617,7 @@ namespace Amarin.UI
         /// </summary>
         private void RefreshPromptLinks()
         {
-            if (_services is null)
+            if (_services is null || BuiltPage<SettingsPromptsPage>() is not { } prompts)
             {
                 return;
             }
@@ -1703,7 +1625,7 @@ namespace Amarin.UI
             var settings = _services.Settings;
             var changed = Differs(settings.TechAiPrompt, ChatEngine.DefaultTechPrompt) ||
                           Differs(settings.TechAgentPrompt, Agent.BaseSystemPrompt);
-            TechPromptsLinkRow.Tag = Loc.Get(changed ? "S.Prompts.Tech.Changed" : "S.Prompts.Tech.Default");
+            prompts.TechPromptsLinkRow.Tag = Loc.Get(changed ? "S.Prompts.Tech.Changed" : "S.Prompts.Tech.Default");
 
             static bool Differs(string? saved, string factory) =>
                 !string.IsNullOrWhiteSpace(saved) && !string.Equals(saved.Trim(), factory.Trim(), StringComparison.Ordinal);
@@ -1727,7 +1649,7 @@ namespace Amarin.UI
 
             _services.Settings.TechAiPrompt = "";
             _services.SettingsStore.Save(_services.Settings);
-            TechAiPromptTextBox.Text = ChatEngine.DefaultTechPrompt;
+            PromptsPage.TechAiPromptTextBox.Text = ChatEngine.DefaultTechPrompt;
             RefreshPromptLinks();
         }
 
@@ -1741,10 +1663,19 @@ namespace Amarin.UI
 
             _services.Settings.TechAgentPrompt = "";
             _services.SettingsStore.Save(_services.Settings);
-            TechAgentPromptTextBox.Text = Agent.BaseSystemPrompt;
+            PromptsPage.TechAgentPromptTextBox.Text = Agent.BaseSystemPrompt;
             RefreshPromptLinks();
         }
 
+        /// <summary>
+        /// Перечитывает настройки и применяет к окну то, что в них про окно; страницы настроек —
+        /// перечитанными: видимую сразу, остальные — когда их покажут.
+        /// </summary>
+        /// <remarks>
+        /// Сюда приходят открытие настроек, смена профиля и импорт архива: у другого профиля
+        /// тема, оформление, углы и масштаб могут быть другими. Непостроенным страницам
+        /// перечитывать нечего — построенные позже заполнятся из того же <see cref="AppSettings"/>.
+        /// </remarks>
         private void LoadSettingsUi()
         {
             if (_services is null)
@@ -1754,76 +1685,36 @@ namespace Amarin.UI
 
             using var timer = PerfLog.Measure("settings_open");
 
-            _settingsUiLoading = true;
-            try
+            _services.ReloadSettings();
+            var settings = _services.Settings;
+            ThemeManager.Apply(settings.Theme);
+            ApplyAppearance(save: false);
+            WindowCornerStyle.Apply(this, settings.WindowCorners);
+            ApplyUiScaleFromSettings();
+
+            // Имя и аватар в боковой колонке — у другого профиля свои.
+            LoadAccountUi();
+
+            if (_settingsView is null)
             {
-                _services.ReloadSettings();
-                var settings = _services.Settings;
-                AutoScrollToggle.IsChecked = settings.AutoScroll;
-                CodeLineNumbersToggle.IsChecked = settings.CodeLineNumbers;
-                if (_services is not null)
-                {
-                    LoadIntegrationUi(_services);
-                    AccessibilitySettings.Changed ??= ApplyAccessibility;
-                    AccessibilitySettings.Load(_services);
-                    HighContrastToggle.IsChecked = _services.Settings.FollowHighContrast;
-                }
-                NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
-                NotifySoundToggle.IsChecked = settings.NotifySound;
-                RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;
-                ThemeManager.Apply(settings.Theme);
-                LoadAppearanceUi(settings);
-                SelectUiScale(settings.UiScalePercent);
-                SelectDateFormat(settings.DateFormat);
-                SelectWindowCorners(settings.WindowCorners);
-
-                // Здесь же, а не только при запуске: сюда приходят и смена профиля, и импорт
-                // архива — у другого профиля углы могут быть другими.
-                WindowCornerStyle.Apply(this, settings.WindowCorners);
-                ApplyUiScaleFromSettings();
-                // Страница «Безопасность» наполняется при заходе на неё; открыта сейчас — значит,
-                // сюда пришли смена профиля или импорт, и показать надо уже новые настройки.
-                if (NavSecurity.IsChecked == true && _services is not null)
-                {
-                    SecurityPage.Attach(_services);
-                    SecurityPage.Load(settings);
-                }
-
-                LoadHotkeysUi(settings);
-                ChatSharingToggle.IsChecked = settings.ChatSharingEnabled;
-            LanguagePicker.SetSelected(settings.LanguageCode);
-            UpdateTranslationEditButton();
-                LoadAccountUi();
-                LoadUpdatesUi();
-                RefreshAllowedDomainsUi();
-
-                // Ключи до выбора моделей: без них правый столбец плашки пуст, а в подписи
-                // поля вместо имени ключа осталась бы пустота.
-                PushKeysToPickers();
-                ShowSettingsModelSelections();
-                SecurityPage.SynGuardToggle.IsChecked = settings.SynGuardEnabled;
-                BindSettingsReasoningPickers();
-
-                MainPromptTextBox.Text = settings.MainPrompt ?? "";
-                LoadPromptLibrary();
-                TechAiPromptTextBox.Text = string.IsNullOrWhiteSpace(settings.TechAiPrompt)
-                    ? ChatEngine.DefaultTechPrompt
-                    : settings.TechAiPrompt;
-                TechAgentPromptTextBox.Text = string.IsNullOrWhiteSpace(settings.TechAgentPrompt)
-                    ? Agent.BaseSystemPrompt
-                    : settings.TechAgentPrompt;
-                RefreshPromptLinks();
-            }
-            finally
-            {
-                _settingsUiLoading = false;
+                return;
             }
 
-            // Обход диска — только когда открыта сама «Хранение и очистка» (WireDataUsage). Считать
-            // при каждом заходе в настройки значило читать все файлы чатов ради разбивки, которую
-            // человек чаще всего и не смотрит. Флаг снят и вызов вне try: обход асинхронный, и
-            // держать на нём _settingsUiLoading значило бы глушить обработчики остальных настроек.
-            if (NavData.IsChecked == true && DataCareSub.IsVisible)
+            foreach (var page in _settingsView.BuiltPages)
+            {
+                _staleSettingsPages.Add(page);
+            }
+
+            if (_settingsView.CurrentPage is { } current && _staleSettingsPages.Remove(current))
+            {
+                LoadSettingsPage(current);
+            }
+
+            // Обход диска — только когда открыта сама «Хранение и очистка». Считать при каждом
+            // заходе в настройки значило читать все файлы чатов ради разбивки, которую человек
+            // чаще всего и не смотрит. Вне флага загрузки: обход асинхронный, и держать на нём
+            // _settingsUiLoading значило бы глушить обработчики остальных настроек.
+            if (BuiltPage<SettingsDataPage>() is { DataCareSub.IsVisible: true })
             {
                 Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
             }
@@ -1855,23 +1746,23 @@ namespace Amarin.UI
         private void SelectUiScale(int percent)
         {
             percent = UiScale.Normalize(percent);
-            for (var i = 0; i < UiScaleComboBox.Items.Count; i++)
+            for (var i = 0; i < AppearancePage.UiScaleComboBox.Items.Count; i++)
             {
-                if (UiScaleComboBox.Items[i] is ComboBoxItem item &&
+                if (AppearancePage.UiScaleComboBox.Items[i] is ComboBoxItem item &&
                     int.TryParse(Convert.ToString(item.Tag), out var value) &&
                     value == percent)
                 {
-                    UiScaleComboBox.SelectedIndex = i;
+                    AppearancePage.UiScaleComboBox.SelectedIndex = i;
                     return;
                 }
             }
 
-            UiScaleComboBox.SelectedIndex = 2;
+            AppearancePage.UiScaleComboBox.SelectedIndex = 2;
         }
 
         private int ReadUiScaleCombo()
         {
-            if (UiScaleComboBox.SelectedItem is ComboBoxItem item &&
+            if (AppearancePage.UiScaleComboBox.SelectedItem is ComboBoxItem item &&
                 int.TryParse(Convert.ToString(item.Tag), out var percent))
             {
                 return UiScale.Normalize(percent);
@@ -3287,15 +3178,22 @@ namespace Amarin.UI
             }
 
             var settings = _services.Settings;
-            BindSlot(LiteReasoningPicker, settings.LiteModelId, settings.LiteReasoning);
-            BindSlot(HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
-            BindSlot(RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);
-            BindSlot(TitleReasoningPicker, settings.TitleModelId, settings.TitleReasoning);
-            BindSlot(AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
-            BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
-            BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
-            BindSlot(SecurityPage.SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
-            BindSlot(SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
+            if (BuiltPage<SettingsModelsPage>() is { } models)
+            {
+                BindSlot(models.LiteReasoningPicker, settings.LiteModelId, settings.LiteReasoning);
+                BindSlot(models.HeavyReasoningPicker, settings.HeavyModelId, settings.HeavyReasoning);
+                BindSlot(models.RouterReasoningPicker, settings.RouterModelId, settings.RouterReasoning);
+                BindSlot(models.TitleReasoningPicker, settings.TitleModelId, settings.TitleReasoning);
+                BindSlot(models.AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
+                BindSlot(models.AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
+                BindSlot(models.AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
+                BindSlot(models.SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
+            }
+
+            if (BuiltPage<SettingsSecurityPage>() is { } security)
+            {
+                BindSlot(security.SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
+            }
         }
 
         private static void BindSlot(ReasoningPicker picker, string modelId, ReasoningSettings? slot)

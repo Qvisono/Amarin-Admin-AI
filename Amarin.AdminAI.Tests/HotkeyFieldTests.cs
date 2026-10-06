@@ -29,9 +29,9 @@ public sealed class HotkeyFieldTests
         var (rows, shown) = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
+            ((RadioButton)window.FindSetting("NavGeneral")!).IsChecked = true;
 
             // Ровно то, что делает заход в настройки: строки раздела строятся кодом по
             // HotkeyMap.All, а не лежат в разметке. Службы окну в тестах не выдаются, поэтому
@@ -41,7 +41,7 @@ public sealed class HotkeyFieldTests
                 .Invoke(window, [new AppSettings()]);
             window.UpdateLayout();
 
-            var list = (Panel)window.FindName("HotkeyList")!;
+            var list = (Panel)window.FindSetting("HotkeyList")!;
             var fields = list.Children.OfType<Grid>()
                 .SelectMany(row => row.Children.OfType<HotkeyField>())
                 .ToList();

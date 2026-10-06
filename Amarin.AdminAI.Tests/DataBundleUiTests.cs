@@ -31,7 +31,7 @@ public sealed class DataBundleUiTests
 
     private static MainWindow Window() => Application.Current.Windows.OfType<MainWindow>().Single();
 
-    private static T Named<T>(MainWindow window, string name) where T : class => (T)window.FindName(name)!;
+    private static T Named<T>(MainWindow window, string name) where T : class => (T)window.FindSetting(name)!;
 
     private static void Call(MainWindow window, string method) =>
         typeof(MainWindow).GetMethod(method, Hidden)!.Invoke(window, []);

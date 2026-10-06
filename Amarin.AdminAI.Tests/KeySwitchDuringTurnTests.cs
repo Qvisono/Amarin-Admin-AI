@@ -107,7 +107,7 @@ public sealed class KeySwitchDuringTurnTests
     /// <summary>Собирает строку ключа и говорит, доступен ли в ней кружок выбора.</summary>
     private static bool ChoiceEnabled()
     {
-        var page = (SettingsKeyPage)Window().FindName("KeyPage")!;
+        var page = (SettingsKeyPage)Window().FindSetting("KeyPage")!;
         var row = typeof(SettingsKeyPage)
             .GetMethod("BuildKeyRow", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(page, [new ApiKeyEntry(
@@ -135,10 +135,10 @@ public sealed class KeySwitchDuringTurnTests
     private static Visibility AskedToConfirmRemoval()
     {
         var window = Window();
-        var overlay = (Grid)window.FindName("KeyRemoveOverlay")!;
+        var overlay = (Grid)window.FindSetting("KeyRemoveOverlay")!;
         overlay.Visibility = Visibility.Collapsed;
 
-        var page = (SettingsKeyPage)window.FindName("KeyPage")!;
+        var page = (SettingsKeyPage)window.FindSetting("KeyPage")!;
         typeof(SettingsKeyPage)
             .GetMethod("RemoveKey", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(page, [new ApiKeyEntry(

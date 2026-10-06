@@ -117,7 +117,7 @@ public sealed class ReasoningToggleTests
         var without = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var security = (SettingsSecurityPage)window.FindName("SecurityPage")!;
+            var security = (SettingsSecurityPage)window.FindSetting("SecurityPage")!;
             string[] names =
             [
                 "LiteReasoningPicker", "HeavyReasoningPicker", "RouterReasoningPicker",
@@ -126,7 +126,7 @@ public sealed class ReasoningToggleTests
             ];
 
             return names
-                .Select(name => (name, picker: (ReasoningPicker)window.FindName(name)!))
+                .Select(name => (name, picker: (ReasoningPicker)window.FindSetting(name)!))
                 .Append((name: "SynGuardReasoningPicker", picker: (ReasoningPicker)security.FindName("SynGuardReasoningPicker")!))
                 .Where(item => !item.picker.ShowGaugeIcon)
                 .Select(item => item.name)

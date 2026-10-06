@@ -92,14 +92,17 @@ namespace Amarin.UI
         /// </remarks>
         internal void LoadUpdatesUi()
         {
-            if (_services is not null)
+            if (BuiltPage<SettingsAboutPage>() is { } about)
             {
-                AutoUpdateToggle.IsChecked = _services.Settings.AutoCheckUpdates;
-            }
+                if (_services is not null)
+                {
+                    about.AutoUpdateToggle.IsChecked = _services.Settings.AutoCheckUpdates;
+                }
 
-            UpdateVersionText.Text = "v" + RuntimeContext.AppVersion;
-            ShowLastCheck();
-            LoadReleaseExtrasUi();
+                about.UpdateVersionText.Text = "v" + RuntimeContext.AppVersion;
+                ShowLastCheck();
+                LoadReleaseExtrasUi();
+            }
 
             // Страница нарисована заново — «Загрузка отменена» и прочие ответы на прошлые
             // нажатия уже не к месту.
@@ -108,33 +111,43 @@ namespace Amarin.UI
         }
 
         /// <summary>Рисует плашку по тому, что сейчас известно. Одно место на все случаи.</summary>
+        /// <remarks>
+        /// Значок в шапке — всегда, плашку и версию в настройках — только построенные: созданные
+        /// позже, они нарисуются сами (<see cref="LoadUpdatesUi"/> и создание оболочки).
+        /// </remarks>
         private void RenderUpdates()
         {
             var view = UpdateView.From(Updates.State, RuntimeContext.AppVersion);
-
-            ShowUpdatePhase(view.Phase);
-            ShowUpdateStatus(view.Status, view.StatusAccent);
-
-            // Через словарь, а не обратно в DynamicResource: локальное значение уже перекрыло
-            // ссылку из разметки, и вернуть её нечем — иначе после первой же загрузки кнопка
-            // навсегда осталась бы на языке, который стоял в тот момент.
-            UpdateNowButton.Content = view.ActionLabel;
-            UpdateNowButton.Visibility = view.Action == UpdateAction.None ? Visibility.Collapsed : Visibility.Visible;
-            UpdateCancelDownloadButton.Visibility = view.CanCancelDownload ? Visibility.Visible : Visibility.Collapsed;
-            OpenReleaseButton.Visibility = view.ShowOpenRelease ? Visibility.Visible : Visibility.Collapsed;
-            CheckUpdatesButton.IsEnabled = view.CanCheck;
-
-            if (view.Progress is { } share)
+            if (_settingsView is { } shell)
             {
-                ShowProgress(share);
-            }
-            else
-            {
-                UpdateProgress.Visibility = Visibility.Collapsed;
+                shell.SettingsVersionText.Text = view.SidebarText;
+                shell.SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, view.SidebarAccent ? "Accent.Fill" : "Text.Secondary");
             }
 
-            SettingsVersionText.Text = view.SidebarText;
-            SettingsVersionText.SetResourceReference(TextBlock.ForegroundProperty, view.SidebarAccent ? "Accent.Fill" : "Text.Secondary");
+            if (BuiltPage<SettingsAboutPage>() is { } about)
+            {
+                ShowUpdatePhase(about, view.Phase);
+                ShowUpdateStatus(about, view.Status, view.StatusAccent);
+
+                // Через словарь, а не обратно в DynamicResource: локальное значение уже перекрыло
+                // ссылку из разметки, и вернуть её нечем — иначе после первой же загрузки кнопка
+                // навсегда осталась бы на языке, который стоял в тот момент.
+                about.UpdateNowButton.Content = view.ActionLabel;
+                about.UpdateNowButton.Visibility = view.Action == UpdateAction.None ? Visibility.Collapsed : Visibility.Visible;
+                about.UpdateCancelDownloadButton.Visibility = view.CanCancelDownload ? Visibility.Visible : Visibility.Collapsed;
+                about.OpenReleaseButton.Visibility = view.ShowOpenRelease ? Visibility.Visible : Visibility.Collapsed;
+                about.CheckUpdatesButton.IsEnabled = view.CanCheck;
+
+                if (view.Progress is { } share)
+                {
+                    ShowProgress(about, share);
+                }
+                else
+                {
+                    about.UpdateProgress.Visibility = Visibility.Collapsed;
+                }
+            }
+
             RenderUpdateBadge(view);
         }
 
@@ -237,8 +250,8 @@ namespace Amarin.UI
         private void UpdateBadgeDetailsButton_Click(object sender, RoutedEventArgs e)
         {
             UpdateBadgeButton.IsChecked = false;
-            OpenSettingsPage(NavAbout);
-            Dispatcher.BeginInvoke(() => UpdateVersionText.BringIntoView(), DispatcherPriority.Loaded);
+            OpenSettings(SettingsUi.NavAbout);
+            Dispatcher.BeginInvoke(() => AboutPage.UpdateVersionText.BringIntoView(), DispatcherPriority.Loaded);
         }
 
         private void AutoUpdateToggle_Changed(object sender, RoutedEventArgs e)
@@ -248,7 +261,7 @@ namespace Amarin.UI
                 return;
             }
 
-            var on = AutoUpdateToggle.IsChecked == true;
+            var on = AboutPage.AutoUpdateToggle.IsChecked == true;
             _services.Settings.AutoCheckUpdates = on;
             _services.SettingsStore.Save(_services.Settings);
             Updates.SetAutoUpdate(on);
@@ -362,12 +375,12 @@ namespace Amarin.UI
             ChatBlocked = ConfirmationOverlay.Visibility == Visibility.Visible;
         }
 
-        private void ShowProgress(double share)
+        private static void ShowProgress(SettingsAboutPage about, double share)
         {
             var done = Math.Clamp(share, 0, 1);
-            UpdateProgress.Visibility = Visibility.Visible;
-            UpdateProgressDone.Width = new GridLength(done, GridUnitType.Star);
-            UpdateProgressLeft.Width = new GridLength(1 - done, GridUnitType.Star);
+            about.UpdateProgress.Visibility = Visibility.Visible;
+            about.UpdateProgressDone.Width = new GridLength(done, GridUnitType.Star);
+            about.UpdateProgressLeft.Width = new GridLength(1 - done, GridUnitType.Star);
         }
 
         private static string DownloadSize(long bytes) =>
@@ -379,10 +392,15 @@ namespace Amarin.UI
         /// <summary>Останавливает такт. Зовётся при закрытии окна.</summary>
         internal void StopUpdateHeartbeat() => _updates?.Stop();
 
-        private void ShowLastCheck() =>
-            UpdateLastCheckText.Text = UpdateSchedule.DescribeLastCheck(
-                _services?.Settings.LastUpdateCheckUtc,
-                DateTime.UtcNow);
+        private void ShowLastCheck()
+        {
+            if (BuiltPage<SettingsAboutPage>() is { } about)
+            {
+                about.UpdateLastCheckText.Text = UpdateSchedule.DescribeLastCheck(
+                    _services?.Settings.LastUpdateCheckUtc,
+                    DateTime.UtcNow);
+            }
+        }
 
         /// <summary>
         /// Красит пилюлю состояния.
@@ -395,7 +413,7 @@ namespace Amarin.UI
         /// На большинстве палитр надпись пропадала (~1.3:1), и зелёный ещё и не следовал акценту
         /// темы. Обводку тоже ставит код: иначе акцент остался бы на пилюле «есть обновление».
         /// </remarks>
-        private void ShowUpdatePhase(UpdatePhase phase)
+        private static void ShowUpdatePhase(SettingsAboutPage about, UpdatePhase phase)
         {
             var (key, background, foreground, border) = phase switch
             {
@@ -408,22 +426,22 @@ namespace Amarin.UI
                 _ => ("S.Updates.Pill.UpToDate", "Bg.Raised", "Text.Secondary", "Accent.Fill")
             };
 
-            UpdateStatePillText.Text = Loc.Get(key);
-            UpdateStatePill.SetResourceReference(Border.BackgroundProperty, background);
-            UpdateStatePill.SetResourceReference(Border.BorderBrushProperty, border);
-            UpdateStatePillText.SetResourceReference(TextBlock.ForegroundProperty, foreground);
+            about.UpdateStatePillText.Text = Loc.Get(key);
+            about.UpdateStatePill.SetResourceReference(Border.BackgroundProperty, background);
+            about.UpdateStatePill.SetResourceReference(Border.BorderBrushProperty, border);
+            about.UpdateStatePillText.SetResourceReference(TextBlock.ForegroundProperty, foreground);
         }
 
-        private void ShowUpdateStatus(string text, bool accent)
+        private static void ShowUpdateStatus(SettingsAboutPage about, string text, bool accent)
         {
-            UpdateStatusText.Text = text;
+            about.UpdateStatusText.Text = text;
             if (accent)
             {
-                UpdateStatusText.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
+                about.UpdateStatusText.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
             }
             else
             {
-                UpdateStatusText.ClearValue(TextBlock.ForegroundProperty);
+                about.UpdateStatusText.ClearValue(TextBlock.ForegroundProperty);
             }
         }
 

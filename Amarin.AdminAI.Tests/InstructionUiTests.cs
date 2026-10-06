@@ -114,7 +114,7 @@ public sealed class InstructionUiTests : IDisposable
         var (before, after) = WithWindow(window =>
         {
             var before = Field<ChatSession>(window, "_session");
-            Click((Button)window.FindName("SidebarLogoButton"));
+            Click((Button)window.FindSetting("SidebarLogoButton"));
             return (before, Field<ChatSession>(window, "_session"));
         });
 
@@ -128,7 +128,7 @@ public sealed class InstructionUiTests : IDisposable
         var (sameChat, folded, tipFolded, tipOpen) = WithWindow(window =>
         {
             Call(window, "SetSidebarCollapsed", true);
-            var logo = (Button)window.FindName("SidebarLogoButton");
+            var logo = (Button)window.FindSetting("SidebarLogoButton");
             var tipFolded = logo.ToolTip as string;
             var before = Field<ChatSession>(window, "_session");
 
@@ -153,7 +153,7 @@ public sealed class InstructionUiTests : IDisposable
     {
         var order = _wpf.Ui.Invoke(() =>
         {
-            var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)SharedWindow().FindName("NavInstructions"));
+            var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)SharedWindow().FindSetting("NavInstructions"));
             return nav.Children.OfType<FrameworkElement>()
                 .Select(child => child.Name)
                 .Where(name => name.Length > 0)
@@ -175,10 +175,10 @@ public sealed class InstructionUiTests : IDisposable
         var (itemBottom, cardTop) = _wpf.Ui.Invoke(() =>
         {
             var window = SharedWindow();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
-            var version = (TextBlock)window.FindName("SettingsVersionText");
-            var card = (FrameworkElement)window.FindName("SettingsAboutCard");
-            var last = (FrameworkElement)window.FindName("NavAbout");
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay");
+            var version = (TextBlock)window.FindSetting("SettingsVersionText");
+            var card = (FrameworkElement)window.FindSetting("SettingsAboutCard");
+            var last = (FrameworkElement)window.FindSetting("NavAbout");
             var restore = version.Text;
 
             overlay.Visibility = Visibility.Visible;
@@ -363,11 +363,11 @@ public sealed class InstructionUiTests : IDisposable
         var (toggle, close) = _wpf.Ui.Invoke(() =>
         {
             var window = SharedWindow();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
-            var nav = (RadioButton)window.FindName("NavInstructions");
-            var behavior = (RadioButton)window.FindName("NavGeneral");
-            var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
-            var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay");
+            var nav = (RadioButton)window.FindSetting("NavInstructions");
+            var behavior = (RadioButton)window.FindSetting("NavGeneral");
+            var page = (SettingsInstructionsPage)window.FindSetting("InstructionsPage");
+            var closeButton = (FrameworkElement)window.FindSetting("SettingsCloseButton");
 
             overlay.Visibility = Visibility.Visible;
             nav.IsChecked = true;
@@ -428,11 +428,11 @@ public sealed class InstructionUiTests : IDisposable
         var (agent, title, close) = _wpf.Ui.Invoke(() =>
         {
             var window = SharedWindow();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
-            var nav = (RadioButton)window.FindName("NavInstructions");
-            var behavior = (RadioButton)window.FindName("NavGeneral");
-            var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
-            var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay");
+            var nav = (RadioButton)window.FindSetting("NavInstructions");
+            var behavior = (RadioButton)window.FindSetting("NavGeneral");
+            var page = (SettingsInstructionsPage)window.FindSetting("InstructionsPage");
+            var closeButton = (FrameworkElement)window.FindSetting("SettingsCloseButton");
 
             overlay.Visibility = Visibility.Visible;
             nav.IsChecked = true;

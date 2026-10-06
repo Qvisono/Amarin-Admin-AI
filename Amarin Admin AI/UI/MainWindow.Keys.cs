@@ -259,7 +259,7 @@ namespace Amarin.UI
             _services.ApplyActiveKey();
             OnActiveKeyChanged(provider);
             KeyOverlay.Visibility = Visibility.Collapsed;
-            KeyPage.OnKeyAdded();
+            BuiltPage<SettingsKeyPage>()?.OnKeyAdded();
         }
 
         private void ShowKeyDialogError(string text)

@@ -41,15 +41,9 @@ namespace Amarin.UI
                 return;
             }
 
-            if (SettingsOverlay.Visibility != Visibility.Visible)
-            {
-                SettingsOverlay.Visibility = Visibility.Visible;
-                LoadSettingsUi();
-            }
-
             // Checked заводит и наполняет страницу; если она уже выбрана, событие не придёт,
             // но страница и так привязана.
-            NavInstructions.IsChecked = true;
+            OpenSettings(SettingsUi.NavInstructions);
             InstructionsPage.Attach(_services);
             InstructionsPage.OpenInstruction(id);
         }

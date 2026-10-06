@@ -33,11 +33,16 @@ namespace Amarin.UI
         }
 
         /// <summary>«Править перевод» — только у языка, переведённого моделью: встроенные правят в коде.</summary>
-        private void UpdateTranslationEditButton() =>
-            EditTranslationButton.Visibility = LanguageManager.IsBuiltIn(LanguageManager.Current) ||
-                                               !UserLanguageStore.Exists(LanguageManager.Current)
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+        private void UpdateTranslationEditButton()
+        {
+            if (BuiltPage<SettingsGeneralPage>() is { } general)
+            {
+                general.EditTranslationButton.Visibility =
+                    LanguageManager.IsBuiltIn(LanguageManager.Current) || !UserLanguageStore.Exists(LanguageManager.Current)
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
+            }
+        }
 
         private void EditTranslationButton_Click(object sender, RoutedEventArgs e)
         {
@@ -116,7 +121,7 @@ namespace Amarin.UI
 
             if (!UserLanguageStore.Delete(language.Code))
             {
-                LanguagePicker.ShowProgress(Loc.Get("S.Language.DeleteFailed"));
+                GeneralPage.LanguagePicker.ShowProgress(Loc.Get("S.Language.DeleteFailed"));
                 return;
             }
 
@@ -130,8 +135,8 @@ namespace Amarin.UI
                 LanguageManager.Apply(LanguageManager.DefaultCode);
             }
 
-            LanguagePicker.ShowProgress(null);
-            LanguagePicker.Rebuild();
+            GeneralPage.LanguagePicker.ShowProgress(null);
+            GeneralPage.LanguagePicker.Rebuild();
         }
 
         private void LanguagePicker_NewLanguageRequested(object? sender, EventArgs e)
@@ -159,7 +164,7 @@ namespace Amarin.UI
 
             if (string.IsNullOrWhiteSpace(_services.Options.ApiKey))
             {
-                LanguagePicker.ShowProgress(Loc.Get("S.Turn.NoApiKey"));
+                GeneralPage.LanguagePicker.ShowProgress(Loc.Get("S.Turn.NoApiKey"));
                 return;
             }
 
@@ -168,7 +173,7 @@ namespace Amarin.UI
             var token = _translationCts.Token;
 
             var translator = new LanguageTranslator(_services.Venice, () => _services.Models.Cached);
-            LanguagePicker.ShowProgress(Loc.Format("S.Language.Progress", 0, 1));
+            GeneralPage.LanguagePicker.ShowProgress(Loc.Format("S.Language.Progress", 0, 1));
 
             // Язык уже переводили: поправленное руками (I4) модели не отправляется и остаётся как есть.
             var existing = UserLanguageStore.ReadMap(LanguageTranslator.CodeFor(languageName));
@@ -178,13 +183,13 @@ namespace Amarin.UI
                 var result = await translator.TranslateAsync(
                     TranslationEdits.ToTranslate(StringsRu.Values, existing),
                     languageName.Trim(),
-                    step => Ui(() => LanguagePicker.ShowProgress(
+                    step => Ui(() => GeneralPage.LanguagePicker.ShowProgress(
                         Loc.Format("S.Language.Progress", step.Done, step.Total))),
                     token);
 
                 if (!result.Success)
                 {
-                    LanguagePicker.ShowProgress(Loc.Format("S.Language.Failed", result.Error ?? ""));
+                    GeneralPage.LanguagePicker.ShowProgress(Loc.Format("S.Language.Failed", result.Error ?? ""));
                     return;
                 }
 
@@ -201,17 +206,17 @@ namespace Amarin.UI
                 // force: перевод мог лечь поверх того же кода, и по одному коду словарь
                 // выглядел бы прежним — а строки в нём уже новые.
                 LanguageManager.Apply(code, force: true);
-                LanguagePicker.Rebuild();
+                GeneralPage.LanguagePicker.Rebuild();
                 UpdateTranslationEditButton();
-                LanguagePicker.ShowProgress(Loc.Get("S.Language.Done"));
+                GeneralPage.LanguagePicker.ShowProgress(Loc.Get("S.Language.Done"));
             }
             catch (OperationCanceledException)
             {
-                LanguagePicker.ShowProgress(null);
+                GeneralPage.LanguagePicker.ShowProgress(null);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                LanguagePicker.ShowProgress(Loc.Format("S.Language.Failed", ex.Message));
+                GeneralPage.LanguagePicker.ShowProgress(Loc.Format("S.Language.Failed", ex.Message));
             }
         }
 
@@ -225,7 +230,7 @@ namespace Amarin.UI
                 return;
             }
 
-            LanguagePicker.SetSelected(LanguageManager.Current);
+            BuiltPage<SettingsGeneralPage>()?.LanguagePicker.SetSelected(LanguageManager.Current);
             UpdateTranslationEditButton();
             UpdateModelButton();
             UpdateReasoningPicker();

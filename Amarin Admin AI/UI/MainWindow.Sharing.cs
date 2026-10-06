@@ -120,7 +120,7 @@ namespace Amarin.UI
                 return;
             }
 
-            _services.Settings.ChatSharingEnabled = ChatSharingToggle.IsChecked == true;
+            _services.Settings.ChatSharingEnabled = DataPage.ChatSharingToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
 
             // Кнопки строятся у каждого сообщения — перерисовываем ленту; чат тот же, лупа остаётся.

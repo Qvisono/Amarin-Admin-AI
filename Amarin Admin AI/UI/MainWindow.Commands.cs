@@ -141,7 +141,7 @@ namespace Amarin.UI
                 ShowTransientNotice(_session.Id, Loc.Format("S.Command.NoInstruction", name));
             }
 
-            OpenSettingsPage(NavInstructions);
+            OpenSettings(SettingsUi.NavInstructions);
         }
 
         private void OpenRecipeByName(string name)
@@ -154,7 +154,7 @@ namespace Amarin.UI
             var all = _services.Recipes.All();
             var found = all.FirstOrDefault(item => item.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
                         ?? all.FirstOrDefault(item => name.Length > 0 && item.Name.Contains(name, StringComparison.CurrentCultureIgnoreCase));
-            OpenSettingsPage(NavAutomation);
+            OpenSettings(SettingsUi.NavAutomation);
             if (found is not null)
             {
                 AutomationPage.Run(found.Id);

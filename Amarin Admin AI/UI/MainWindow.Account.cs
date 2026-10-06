@@ -34,6 +34,9 @@ namespace Amarin.UI
 
         private UserProfile ActiveProfile => ProfileStore.Active(_services!.ProfileRegistry);
 
+        /// <summary>
+        /// Имя и аватар в боковой колонке и, если страница «Профиль» построена, её строки.
+        /// </summary>
         private void LoadAccountUi()
         {
             if (_services is null)
@@ -42,24 +45,28 @@ namespace Amarin.UI
             }
 
             var profile = ActiveProfile;
-            AccountNameText.Text = profile.Name;
-            AccountNameHint.Text = profile.Name;
             var isDefault = ProfileStore.IsDefault(profile.Id);
-            AccountModeText.Text = Loc.Get(isDefault ? "S.Account.ModeMain" : "S.Account.ModeExtra");
             SidebarAccountName.Text = profile.Name;
             SidebarAccountMode.Text = Loc.Get(
                 isDefault ? "S.Account.LocalMode" : "S.Account.ExtraProfileShort");
-
-            AccountPasswordHint.Text = Loc.Get(
-                profile.HasPassword ? "S.Account.PasswordSet" : "S.Account.PasswordNotSet");
-            RemovePasswordButton.IsEnabled = profile.HasPassword;
-            ChangePasswordButton.Content = Loc.Get(
-                profile.HasPassword ? "S.Common.Change" : "S.Account.SetPassword");
-            LockOnStartupToggle.IsChecked = profile.LockOnStartup;
-            LockOnStartupToggle.IsEnabled = profile.HasPassword;
-            LoadAutoLock(profile.HasPassword);
-
             ApplyAvatar(profile);
+
+            if (BuiltPage<SettingsProfilePage>() is not { } page)
+            {
+                return;
+            }
+
+            page.AccountNameText.Text = profile.Name;
+            page.AccountNameHint.Text = profile.Name;
+            page.AccountModeText.Text = Loc.Get(isDefault ? "S.Account.ModeMain" : "S.Account.ModeExtra");
+            page.AccountPasswordHint.Text = Loc.Get(
+                profile.HasPassword ? "S.Account.PasswordSet" : "S.Account.PasswordNotSet");
+            page.RemovePasswordButton.IsEnabled = profile.HasPassword;
+            page.ChangePasswordButton.Content = Loc.Get(
+                profile.HasPassword ? "S.Common.Change" : "S.Account.SetPassword");
+            page.LockOnStartupToggle.IsChecked = profile.LockOnStartup;
+            page.LockOnStartupToggle.IsEnabled = profile.HasPassword;
+            LoadAutoLock(page, profile.HasPassword);
         }
 
         /// <summary>
@@ -71,14 +78,14 @@ namespace Amarin.UI
         /// <see cref="LoadAccountUi"/>, то есть и после смены пароля: пока строки жили на другой
         /// странице, заданный пароль оставлял их погашенными до следующего открытия настроек.
         /// </remarks>
-        private void LoadAutoLock(bool hasPassword)
+        private void LoadAutoLock(SettingsProfilePage page, bool hasPassword)
         {
             var wasLoading = _settingsUiLoading;
             _settingsUiLoading = true;
             try
             {
                 var minutes = AutoLock.Normalize(_services!.Settings.AutoLockMinutes);
-                foreach (var item in AutoLockCombo.Items.OfType<ComboBoxItem>())
+                foreach (var item in page.AutoLockCombo.Items.OfType<ComboBoxItem>())
                 {
                     var value = int.Parse((string)item.Tag, CultureInfo.InvariantCulture);
                     if (value > 0)
@@ -88,7 +95,7 @@ namespace Amarin.UI
 
                     if (value == minutes)
                     {
-                        AutoLockCombo.SelectedItem = item;
+                        page.AutoLockCombo.SelectedItem = item;
                     }
                 }
             }
@@ -97,16 +104,16 @@ namespace Amarin.UI
                 _settingsUiLoading = wasLoading;
             }
 
-            AutoLockCombo.IsEnabled = hasPassword;
-            LockNowButton.IsEnabled = hasPassword;
-            AutoLockDesc.SetResourceReference(TextBlock.TextProperty,
+            page.AutoLockCombo.IsEnabled = hasPassword;
+            page.LockNowButton.IsEnabled = hasPassword;
+            page.AutoLockDesc.SetResourceReference(TextBlock.TextProperty,
                 hasPassword ? "S.Security.AutoLockDesc" : "S.Security.AutoLockNeedsPassword");
-            AutoLockDesc.SetResourceReference(TextBlock.ForegroundProperty, hasPassword ? "Text.Dim" : "Status.Warning");
+            page.AutoLockDesc.SetResourceReference(TextBlock.ForegroundProperty, hasPassword ? "Text.Dim" : "Status.Warning");
         }
 
         private void AutoLockCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_settingsUiLoading || _services is null || AutoLockCombo.SelectedItem is not ComboBoxItem { Tag: string tag })
+            if (_settingsUiLoading || _services is null || ProfilePage.AutoLockCombo.SelectedItem is not ComboBoxItem { Tag: string tag })
             {
                 return;
             }
@@ -127,20 +134,13 @@ namespace Amarin.UI
             var path = AvatarPath(profile);
             var source = path is not null && File.Exists(path) ? LoadAvatar(path) : null;
 
-            if (source is not null)
+            if (BuiltPage<SettingsProfilePage>() is { } page)
             {
-                AccountAvatarImage.Source = source;
-                AccountAvatarImage.Visibility = Visibility.Visible;
-                AccountAvatarLetter.Visibility = Visibility.Collapsed;
-                RemoveAvatarButton.IsEnabled = true;
-            }
-            else
-            {
-                AccountAvatarImage.Source = null;
-                AccountAvatarImage.Visibility = Visibility.Collapsed;
-                AccountAvatarLetter.Visibility = Visibility.Visible;
-                AccountAvatarLetter.Text = FirstLetter(profile.Name);
-                RemoveAvatarButton.IsEnabled = false;
+                page.AccountAvatarImage.Source = source;
+                page.AccountAvatarImage.Visibility = source is null ? Visibility.Collapsed : Visibility.Visible;
+                page.AccountAvatarLetter.Visibility = source is null ? Visibility.Visible : Visibility.Collapsed;
+                page.AccountAvatarLetter.Text = FirstLetter(profile.Name);
+                page.RemoveAvatarButton.IsEnabled = source is not null;
             }
 
             ApplySidebarAvatar(profile, source);
@@ -474,11 +474,11 @@ namespace Amarin.UI
             }
 
             var profile = ActiveProfile;
-            var wanted = LockOnStartupToggle.IsChecked == true;
+            var wanted = ProfilePage.LockOnStartupToggle.IsChecked == true;
             if (wanted && !profile.HasPassword)
             {
                 // Сверять не с чем — возвращаем переключатель и объясняем почему.
-                LockOnStartupToggle.IsChecked = false;
+                ProfilePage.LockOnStartupToggle.IsChecked = false;
                 Inform(Loc.Get("S.Account.SetPasswordFirstTitle"), Loc.Get("S.Account.SetPasswordFirst"));
                 return;
             }
@@ -701,7 +701,7 @@ namespace Amarin.UI
             RestoreDraft(_session);
             RefreshChatList();
             LoadSettingsUi();
-            InstructionsPage.ResetForProfile();
+            BuiltPage<SettingsInstructionsPage>()?.ResetForProfile();
         }
 
         private void SaveProfiles() => ProfileStore.Save(_services!.ProfileRegistry);

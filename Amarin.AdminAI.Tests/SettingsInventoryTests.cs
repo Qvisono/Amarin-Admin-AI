@@ -98,12 +98,12 @@ public sealed class SettingsInventoryTests
         var problems = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
-            var content = LogicalTreeHelper.GetParent((DependencyObject)window.FindName("SettingsCloseButton")!)!;
-            var security = (FrameworkElement)window.FindName("SecurityPage")!;
-            var key = (FrameworkElement)window.FindName("KeyPage")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
+            var content = LogicalTreeHelper.GetParent((DependencyObject)window.FindSetting("SettingsCloseButton")!)!;
+            var security = (FrameworkElement)window.FindSetting("SecurityPage")!;
+            var key = (FrameworkElement)window.FindSetting("KeyPage")!;
             var wasVisible = overlay.Visibility;
-            var wasChecked = SettingsNavNames.All.Select(name => (RadioButton)window.FindName(name)!)
+            var wasChecked = SettingsNavNames.All.Select(name => (RadioButton)window.FindSetting(name)!)
                 .FirstOrDefault(radio => radio.IsChecked == true);
             var found = new List<string>();
             overlay.Visibility = Visibility.Visible;
@@ -111,7 +111,7 @@ public sealed class SettingsInventoryTests
             {
                 foreach (var (nav, names) in Inventory)
                 {
-                    ((RadioButton)window.FindName(nav)!).IsChecked = true;
+                    ((RadioButton)window.FindSetting(nav)!).IsChecked = true;
                     window.UpdateLayout();
                     foreach (var entry in names)
                     {
@@ -119,7 +119,7 @@ public sealed class SettingsInventoryTests
                         {
                             _ when entry.StartsWith("Security:", StringComparison.Ordinal) => security.FindName(entry[9..]),
                             _ when entry.StartsWith("Key:", StringComparison.Ordinal) => key.FindName(entry[4..]),
-                            _ => window.FindName(entry)
+                            _ => window.FindSetting(entry)
                         } as DependencyObject;
                         if (element is null)
                         {

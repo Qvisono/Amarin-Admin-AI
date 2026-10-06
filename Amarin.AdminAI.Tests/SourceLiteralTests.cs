@@ -50,6 +50,8 @@ public sealed partial class SourceLiteralTests
     [InlineData("UI", "MainWindow.Notice.cs")]
     [InlineData("UI", "MainWindow.Hotkeys.cs")]
     [InlineData("UI", "HotkeyField.xaml.cs")]
+    [InlineData("UI", "MainWindow.SettingsHost.cs")]
+    [InlineData("UI/Settings", "SettingsView.xaml.cs")]
     [InlineData("Tools", "DangerousActionGuard.cs")]
     [InlineData("Agents", "Agent.cs")]
     [InlineData("Agents", "AgentUiAdapter.cs")]

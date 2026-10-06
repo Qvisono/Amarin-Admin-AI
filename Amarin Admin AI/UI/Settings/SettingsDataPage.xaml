@@ -1,0 +1,222 @@
+﻿<UserControl x:Class="Amarin.UI.SettingsDataPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
+    <!--
+        Страница настроек «Данные». Обработчики её контролов — в тематических partial-файлах
+        главного окна: подписывает их MainWindow.SettingsHost.cs, когда страница создана.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- ═══════════ ДАННЫЕ ═══════════ -->
+    <!--
+        Чаты, перенос и копии, в конце отдельно — необратимое. Разбивка «Занято на диске» —
+        наверху «Хранения и очистки»: место смотрят там, где его освобождают. Обновления —
+        на «О программе», белый список загрузок — на «Безопасности».
+    -->
+    <ScrollViewer x:Name="DataPageScroll" VerticalScrollBarVisibility="Auto"
+                  local:UiMotion.FadeOnShow="True">
+        <Grid local:SettingsDrill.IsHost="True">
+        <StackPanel Margin="20,14,20,16">
+            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Data.Title}"/>
+
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Chats}"/>
+            <Border Style="{StaticResource SettingsGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Sharing}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Data.SharingDesc}"/>
+                        </StackPanel>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Data.Sharing}" x:Name="ChatSharingToggle" Grid.Column="1"
+                                  Style="{StaticResource SettingsToggle}"/>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Import}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Data.ImportDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="ImportChatButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                Content="{DynamicResource S.Data.OpenFile}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Transfer}"/>
+            <Border Style="{StaticResource SettingsGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Bundle.Row}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Bundle.RowDesc}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="DataExportButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Bundle.Export}" Margin="0,0,6,0"/>
+                            <Button x:Name="DataImportButton" Style="{StaticResource SecondaryButton}"
+                                    Content="{DynamicResource S.Bundle.Import}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Button x:Name="BackupLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                            local:SettingsDrill.Opens="{Binding ElementName=DataBackupSub}"
+                            AutomationProperties.Name="{DynamicResource S.Backup.Title}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.LinkDesc}"/>
+                        </StackPanel>
+                    </Button>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Button x:Name="CareLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                            local:SettingsDrill.Opens="{Binding ElementName=DataCareSub}"
+                            AutomationProperties.Name="{DynamicResource S.Care.Title}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Title}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LinkDesc}"/>
+                        </StackPanel>
+                    </Button>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.AppFiles}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AppFilesDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                Content="{DynamicResource S.Common.Open}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Необратимое — последней группой, отдельно от всего, что можно вернуть. -->
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Danger}"/>
+            <Border Style="{StaticResource SettingsGroup}">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteChats}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.DeleteChatsDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="DeleteAllChatsButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                Content="{DynamicResource S.Common.Delete}"/>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteAll}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Data.DeleteAllDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="DeleteAllDataButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                Content="{DynamicResource S.Common.Delete}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="DataBackupSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Backup.Title}"/>
+            <local:BackupBlock x:Name="BackupPanel"/>
+        </StackPanel>
+
+        <StackPanel x:Name="DataCareSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Care.Title}"/>
+            <!-- Занято на диске — своей группой: заголовок, разбивка, сама программа. -->
+            <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Usage}"/>
+                            <TextBlock x:Name="UsageSummaryText" Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Data.Usage.Desc}"/>
+                        </StackPanel>
+                        <Button x:Name="UsageRefreshButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                Content="{DynamicResource S.Data.Usage.Refresh}"/>
+                    </Grid>
+                    <!--
+                        Строки разбивки собираются кодом: их состав зависит от того,
+                        что у человека реально лежит на диске, и пустая категория в
+                        списке была бы шумом. Полоска доли — Bg.Track под Accent.Fill,
+                        ширина звёздными колонками, как у полосы загрузки обновления.
+                    -->
+                    <ItemsControl x:Name="UsageList" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="{Binding Indent}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Label}" FontSize="12.5"
+                                                   Foreground="{DynamicResource Text.Tertiary}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <Grid Height="4" Margin="0,4,0,0">
+                                            <Border CornerRadius="2" Background="{DynamicResource Bg.Track}"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="{Binding Share}"/>
+                                                    <ColumnDefinition Width="{Binding Rest}"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border CornerRadius="2" Background="{DynamicResource Accent.Fill}"/>
+                                            </Grid>
+                                        </Grid>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Size}" FontSize="12.5"
+                                                   HorizontalAlignment="Right"
+                                                   Foreground="{DynamicResource Text.Secondary}"/>
+                                        <TextBlock Text="{Binding Files}" FontSize="11"
+                                                   HorizontalAlignment="Right" Margin="0,1,0,0"
+                                                   Foreground="{DynamicResource Text.Faint}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="UsageAppText" FontSize="12"
+                               Margin="0,2,0,0"
+                               Foreground="{DynamicResource Text.Faint}"/>
+                </StackPanel>
+            </Border>
+            <local:DataCareBlock x:Name="DataCarePanel"/>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

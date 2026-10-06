@@ -71,7 +71,7 @@ namespace Amarin.UI
             var go = await answer.ConfigureAwait(true);
             if (editing)
             {
-                OpenSettingsPage(NavKey);
+                OpenSettings(SettingsUi.NavKey);
                 KeyPage.ShowLimits();
             }
 

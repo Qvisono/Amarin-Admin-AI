@@ -125,21 +125,8 @@ namespace Amarin.UI
                 Loc.Get("S.Common.Close"));
             if (open)
             {
-                OpenSettingsPage(NavKey);
+                OpenSettings(SettingsUi.NavKey);
             }
-        }
-
-        /// <summary>Открывает настройки на нужной странице.</summary>
-        private void OpenSettingsPage(System.Windows.Controls.RadioButton page)
-        {
-            if (SettingsOverlay.Visibility != Visibility.Visible)
-            {
-                SettingsOverlay.Visibility = Visibility.Visible;
-                LoadSettingsUi();
-            }
-
-            // Checked заводит и наполняет страницу.
-            page.IsChecked = true;
         }
 
         private void NoticePrimaryButton_Click(object sender, RoutedEventArgs e) => CloseNotice(true);

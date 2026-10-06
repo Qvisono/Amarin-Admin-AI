@@ -38,7 +38,7 @@ public sealed class SecurityPageUiTests : IDisposable
         window.AttachServices(services);
         try
         {
-            var page = (SettingsSecurityPage)window.FindName("SecurityPage")!;
+            var page = (SettingsSecurityPage)window.FindSetting("SecurityPage")!;
             page.Attach(services);
             page.Load(services.Settings);
             return body(window, page, services);

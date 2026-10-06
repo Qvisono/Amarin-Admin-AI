@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using Amarin.Core;
 using Amarin.UI;
 
@@ -55,7 +56,7 @@ public sealed class SettingsRedesignTests : IDisposable
     });
 
     private static Button? Row(MainWindow window, string id) =>
-        ((Panel)window.FindName("ChatListPanel")!).Children.OfType<Button>().FirstOrDefault(button => button.Tag as string == id);
+        ((Panel)window.FindSetting("ChatListPanel")!).Children.OfType<Button>().FirstOrDefault(button => button.Tag as string == id);
 
     private static void Save(AppServices services, string id)
     {
@@ -72,12 +73,12 @@ public sealed class SettingsRedesignTests : IDisposable
         var (nav, machines, mcp, size) = _wpf.Ui.Invoke(() =>
         {
             var window = Shared();
-            var automation = (SettingsAutomationPage)window.FindName("AutomationPage")!;
+            var automation = (SettingsAutomationPage)window.FindSetting("AutomationPage")!;
             return (
-                window.FindName("NavConnections"),
+                window.FindSetting("NavConnections"),
                 automation.FindName("MachinesTab"),
                 automation.FindName("McpTab"),
-                new Size(((FrameworkElement)window.FindName("SettingsCard")!).Width, ((FrameworkElement)window.FindName("SettingsCard")!).Height));
+                new Size(((FrameworkElement)window.FindSetting("SettingsCard")!).Width, ((FrameworkElement)window.FindSetting("SettingsCard")!).Height));
         });
 
         Assert.Null(nav);
@@ -96,14 +97,14 @@ public sealed class SettingsRedesignTests : IDisposable
         var (opened, rootHidden, back, reset) = _wpf.Ui.Invoke(() =>
         {
             var window = Shared();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
-            var general = (RadioButton)window.FindName("NavGeneral")!;
-            var profile = (RadioButton)window.FindName("NavProfile")!;
-            var link = (Button)window.FindName("WindowsLinkRow")!;
-            var sub = (FrameworkElement)window.FindName("GeneralWindowsSub")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
+            var general = (RadioButton)window.FindSetting("NavGeneral")!;
+            var profile = (RadioButton)window.FindSetting("NavProfile")!;
+            var link = (Button)window.FindSetting("WindowsLinkRow")!;
+            var sub = (FrameworkElement)window.FindSetting("GeneralWindowsSub")!;
             var wasVisible = overlay.Visibility;
             var wasChecked = SettingsNavNames.All
-                .Select(name => (RadioButton)window.FindName(name)!)
+                .Select(name => (RadioButton)window.FindSetting(name)!)
                 .FirstOrDefault(radio => radio.IsChecked == true);
             overlay.Visibility = Visibility.Visible;
             general.IsChecked = true;
@@ -152,12 +153,12 @@ public sealed class SettingsRedesignTests : IDisposable
         var (widths, tops) = _wpf.Ui.Invoke(() =>
         {
             var window = Shared();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
-            var nav = (RadioButton)window.FindName("NavAutomation")!;
-            var page = (SettingsAutomationPage)window.FindName("AutomationPage")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
+            var nav = (RadioButton)window.FindSetting("NavAutomation")!;
+            var page = (SettingsAutomationPage)window.FindSetting("AutomationPage")!;
             var tabs = new[] { "RecipesTab", "ScheduleTab", "MachinesTab", "McpTab" }.Select(name => (RadioButton)page.FindName(name)!).ToList();
             var wasVisible = overlay.Visibility;
-            var wasChecked = window.FindName("NavGeneral") as RadioButton;
+            var wasChecked = window.FindSetting("NavGeneral") as RadioButton;
             overlay.Visibility = Visibility.Visible;
             nav.IsChecked = true;
             var widthSets = new List<double[]>();
@@ -199,26 +200,26 @@ public sealed class SettingsRedesignTests : IDisposable
         var titles = _wpf.Ui.Invoke(() =>
         {
             var window = Shared();
-            var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
-            var card = (FrameworkElement)window.FindName("SettingsCard")!;
+            var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
+            var card = (FrameworkElement)window.FindSetting("SettingsCard")!;
             var wasVisible = overlay.Visibility;
             var names = SettingsNavNames.All;
-            var wasChecked = names.Select(name => (RadioButton)window.FindName(name)!).FirstOrDefault(radio => radio.IsChecked == true);
+            var wasChecked = names.Select(name => (RadioButton)window.FindSetting(name)!).FirstOrDefault(radio => radio.IsChecked == true);
             overlay.Visibility = Visibility.Visible;
             var found = new Dictionary<string, Point>();
             try
             {
                 foreach (var name in names)
                 {
-                    ((RadioButton)window.FindName(name)!).IsChecked = true;
+                    ((RadioButton)window.FindSetting(name)!).IsChecked = true;
                     window.UpdateLayout();
                     var title = Descendants<TextBlock>(card)
                         .Where(text => text.IsVisible && text.FontSize >= 15 && text.FontWeight == FontWeights.SemiBold)
-                        .OrderBy(text => text.TranslatePoint(new Point(0, 0), card).Y)
+                        .OrderBy(text => LaidOutAt(text, card).Y)
                         .FirstOrDefault();
                     if (title is not null)
                     {
-                        var at = title.TranslatePoint(new Point(0, 0), card);
+                        var at = LaidOutAt(title, card);
                         found[name + " «" + title.Text + "»"] = new Point(Math.Round(at.X, 1), Math.Round(at.Y, 1));
                     }
                 }
@@ -239,6 +240,22 @@ public sealed class SettingsRedesignTests : IDisposable
         // Фикстура держит русский язык: в 1.30 восемь заголовков из одиннадцати были английскими.
         var latin = titles.Keys.Where(key => System.Text.RegularExpressions.Regex.IsMatch(key[(key.IndexOf('«') + 1)..], "[A-Za-z]")).ToList();
         Assert.True(latin.Count == 0, "по-английски: " + string.Join("; ", latin));
+    }
+
+    /// <summary>
+    /// Где элемент стоит по раскладке, без RenderTransform: показанная страница проявляется
+    /// сдвигом (UiMotion), и замер посреди проявления разошёлся бы с раскладкой на доли точки.
+    /// Страница, которую уже показывали, проявляется, а ещё не загруженная — нет.
+    /// </summary>
+    private static Point LaidOutAt(Visual element, Visual ancestor)
+    {
+        var at = new Vector();
+        for (DependencyObject? node = element; node is Visual visual && !ReferenceEquals(visual, ancestor); node = VisualTreeHelper.GetParent(node))
+        {
+            at += VisualTreeHelper.GetOffset(visual);
+        }
+
+        return new Point(at.X, at.Y);
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
@@ -307,7 +324,7 @@ public sealed class SettingsRedesignTests : IDisposable
             Call(window, "RefreshChatList");
 
             // Окно не показано, и раскладки у него нет — список меряется сам, шириной колонки.
-            var panel = (Panel)window.FindName("ChatListPanel")!;
+            var panel = (Panel)window.FindSetting("ChatListPanel")!;
             panel.Measure(new Size(260, double.PositiveInfinity));
             panel.Arrange(new Rect(0, 0, 260, panel.DesiredSize.Height));
             var headers = panel.Children.OfType<Button>().Where(button => button.Tag is ChatFolder).ToList();
@@ -370,7 +387,7 @@ public sealed class SettingsRedesignTests : IDisposable
             Rect Header()
             {
                 Call(window, "RefreshChatList");
-                var panel = (Panel)window.FindName("ChatListPanel")!;
+                var panel = (Panel)window.FindSetting("ChatListPanel")!;
                 panel.Measure(new Size(260, double.PositiveInfinity));
                 panel.Arrange(new Rect(0, 0, 260, panel.DesiredSize.Height));
                 var header = panel.Children.OfType<Button>().Single(button => button.Tag is ChatFolder);
@@ -404,13 +421,13 @@ public sealed class SettingsRedesignTests : IDisposable
             services.Organizer.ToggleTag(["tagged"], tag.Id);
             Call(window, "RefreshChatList");
 
-            var pill = (FrameworkElement)window.FindName("TagFilterPill")!;
+            var pill = (FrameworkElement)window.FindSetting("TagFilterPill")!;
             Call(window, "SetTagFilter", tag.Id);
             var visible = pill.Visibility;
             var onlyTagged = Row(window, "plain") is null && Row(window, "tagged") is not null;
 
             Call(window, "TagFilterClear_Click", window, new RoutedEventArgs());
-            return (window.FindName("TagFilterRow") is null, visible, onlyTagged, pill.Visibility, Row(window, "plain") is not null);
+            return (window.FindSetting("TagFilterRow") is null, visible, onlyTagged, pill.Visibility, Row(window, "plain") is not null);
         });
 
         Assert.True(noRow);
@@ -424,7 +441,7 @@ public sealed class SettingsRedesignTests : IDisposable
     [Fact]
     public void New_chat_has_no_template_dropdown()
     {
-        var found = _wpf.Ui.Invoke(() => Shared().FindName("TemplatesButton"));
+        var found = _wpf.Ui.Invoke(() => Shared().FindSetting("TemplatesButton"));
 
         Assert.Null(found);
         Assert.Null(typeof(AppServices).GetProperty("Templates", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public));

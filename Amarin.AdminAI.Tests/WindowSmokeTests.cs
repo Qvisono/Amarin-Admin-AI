@@ -81,7 +81,7 @@ public sealed class WindowSmokeTests
                 "ConfirmationCodeHost", "ConfirmationDetailsHost",
                 "ProfileList", "NameInput", "NameSaveButton", "ProfileOverlay", "NameOverlay"
             ];
-            return names.Where(name => window.FindName(name) is null).ToList();
+            return names.Where(name => window.FindSetting(name) is null).ToList();
         });
 
         Assert.Empty(missing);

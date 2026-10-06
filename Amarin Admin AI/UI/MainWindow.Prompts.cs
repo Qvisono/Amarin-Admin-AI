@@ -38,12 +38,12 @@ namespace Amarin.UI
 
         private void RefreshPromptLibrary()
         {
-            PromptLibraryHost.Children.Clear();
-            PromptLibraryEmpty.Visibility = _presets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            PromptsPage.PromptLibraryHost.Children.Clear();
+            PromptsPage.PromptLibraryEmpty.Visibility = _presets.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
             foreach (var preset in _presets)
             {
-                PromptLibraryHost.Children.Add(BuildPromptCard(preset));
+                PromptsPage.PromptLibraryHost.Children.Add(BuildPromptCard(preset));
             }
         }
 
@@ -53,7 +53,7 @@ namespace Amarin.UI
             // Window.FindResource не достаёт.
             var card = new Button
             {
-                Style = (Style)PromptLibraryHost.FindResource("PromptCard"),
+                Style = (Style)PromptsPage.PromptLibraryHost.FindResource("PromptCard"),
                 Tag = preset.Id,
                 ToolTip = PromptLibrary.Preview(preset.Text, 400)
             };
@@ -78,7 +78,7 @@ namespace Amarin.UI
             };
             preview.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
 
-            var actionStyle = (Style)PromptLibraryHost.FindResource("PromptCardAction");
+            var actionStyle = (Style)PromptsPage.PromptLibraryHost.FindResource("PromptCardAction");
             var edit = new Button { Style = actionStyle, Content = "✎" };
             var remove = new Button { Style = actionStyle, Content = "🗑" };
 
@@ -134,7 +134,7 @@ namespace Amarin.UI
         {
             _editingPreset = preset;
             _editingOriginal = preset is null
-                ? ("", MainPromptTextBox.Text ?? "")
+                ? ("", PromptsPage.MainPromptTextBox.Text ?? "")
                 : (preset.Name, preset.Text);
 
             PromptPresetTitle.Text = Loc.Get(
@@ -281,7 +281,7 @@ namespace Amarin.UI
                 return;
             }
 
-            MainPromptTextBox.Text = preset.Text;
+            PromptsPage.MainPromptTextBox.Text = preset.Text;
             _services.Settings.MainPrompt = preset.Text;
             _services.SettingsStore.Save(_services.Settings);
         }

@@ -1,0 +1,128 @@
+﻿<UserControl x:Class="Amarin.UI.SettingsPromptsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
+    <!--
+        Страница настроек «Промпты». Обработчики её контролов — в тематических partial-файлах
+        главного окна: подписывает их MainWindow.SettingsHost.cs, когда страница создана.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!-- ═══════════ ПРОМПТЫ ═══════════ -->
+    <!-- Основной промпт и библиотека заготовок; технические — подстраницей: их меняют раз в жизни. -->
+    <ScrollViewer x:Name="PromptsPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+        <Grid local:SettingsDrill.IsHost="True">
+        <StackPanel Margin="20,14,20,16">
+            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Prompts.Title}"/>
+
+            <!-- Основной промпт ИИ. Подпись — внутри карточки, как у строк групп. -->
+            <Border Style="{StaticResource PromptEditor}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}"
+                               Text="{DynamicResource S.Customize.MainPrompt}" Margin="0,0,0,8"/>
+                    <TextBox x:Name="MainPromptTextBox" Grid.Row="1" Style="{StaticResource PromptTextBox}"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button x:Name="SaveMainPromptButton" Style="{StaticResource SavePromptButton}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!--
+                Библиотека заготовок - только у основного промпта.
+                У технических её нет намеренно: их меняют раз в жизни, и
+                держать наготове несколько вариантов незачем.
+            -->
+            <Border Style="{StaticResource SettingsGroup}" Padding="16,2,16,4">
+                <StackPanel>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}"
+                                       Text="{DynamicResource S.Customize.PromptLibrary}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}"
+                                       Text="{DynamicResource S.Customize.PromptLibraryDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="PromptCreateButton" Grid.Column="1" VerticalAlignment="Center"
+                                Style="{StaticResource PromptAddButton}"
+                                Content="{DynamicResource S.Customize.PromptCreate}"/>
+                    </Grid>
+                    <TextBlock x:Name="PromptLibraryEmpty" Style="{StaticResource SettingDesc}"
+                               Text="{DynamicResource S.Customize.PromptEmpty}"
+                               TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <!-- Плитки строятся кодом из prompts.json -->
+                    <WrapPanel x:Name="PromptLibraryHost" Margin="0,0,0,4"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource SettingsGroup}">
+                <Button x:Name="TechPromptsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                        local:SettingsDrill.Opens="{Binding ElementName=PromptsTechSub}"
+                        AutomationProperties.Name="{DynamicResource S.Prompts.Tech}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Prompts.Tech}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Prompts.TechDesc}"/>
+                    </StackPanel>
+                </Button>
+            </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="PromptsTechSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Prompts.Tech}"/>
+            <!-- Технический промпт ИИ -->
+            <Border Style="{StaticResource PromptEditor}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}"
+                               Text="{DynamicResource S.Customize.TechPrompt}" Margin="0,0,0,8"/>
+                    <TextBox x:Name="TechAiPromptTextBox" Grid.Row="1" Style="{StaticResource PromptTextBox}"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button x:Name="ResetTechAiPromptButton" Style="{StaticResource ResetPromptButton}"
+                                Margin="0,0,8,0"/>
+                        <Button x:Name="SaveTechAiPromptButton" Style="{StaticResource SavePromptButton}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Технический промпт агента -->
+            <Border Style="{StaticResource PromptEditor}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}"
+                               Text="{DynamicResource S.Customize.AgentPrompt}" Margin="0,0,0,8"/>
+                    <TextBox x:Name="TechAgentPromptTextBox" Grid.Row="1" Style="{StaticResource PromptTextBox}"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal"
+                                HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button x:Name="ResetTechAgentPromptButton" Style="{StaticResource ResetPromptButton}"
+                                Margin="0,0,8,0"/>
+                        <Button x:Name="SaveTechAgentPromptButton" Style="{StaticResource SavePromptButton}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
