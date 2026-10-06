@@ -32,7 +32,9 @@ public sealed class DragScrollTests
             [
                 "AppearancePageScroll",
                 "GeneralPageScroll",
-                "CustomizePageScroll",
+                "ProfilePageScroll",
+                "ModelsPageScroll",
+                "PromptsPageScroll",
                 "DataPageScroll"
             ];
 

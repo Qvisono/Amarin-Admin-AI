@@ -239,8 +239,11 @@ namespace Amarin.UI
             // по своему состоянию, поэтому перерисовать её можно в любой момент — и посреди загрузки.
             LoadUpdatesUi();
 
-            // Значения справа у строк «›» («Трей», «Заводские») тоже пишет код.
+            // Значения справа у строк «›» («Трей», «Заводские», «Градиент») тоже пишет код.
             RefreshBehaviorLinks();
+            RefreshAppearanceLinks();
+            RefreshPromptLinks();
+            RefreshAllowedDomainsUi();
             if (ProfileOverlay.Visibility == Visibility.Visible)
             {
                 RefreshProfileList();

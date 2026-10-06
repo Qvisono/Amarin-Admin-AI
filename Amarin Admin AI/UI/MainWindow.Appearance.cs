@@ -258,6 +258,7 @@ namespace Amarin.UI
                 _settingsUiLoading = false;
             }
 
+            RefreshAppearanceLinks();
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -281,7 +282,37 @@ namespace Amarin.UI
 
             ThemeManager.Apply(_services.Settings.Theme);
             SyncThemeCards(_services.Settings.Theme);
+            RefreshAppearanceLinks();
             _services.SettingsStore.Save(_services.Settings);
+        }
+
+        /// <summary>
+        /// Значения справа у строк «Тема ›» и «Фон и акцент ›»: имя палитры и что включено в фоне.
+        /// Сетка тем и блоки фона ушли на подстраницы, и без значения человек не видел бы, что там
+        /// выбрано, не заходя внутрь.
+        /// </summary>
+        private void RefreshAppearanceLinks()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var settings = _services.Settings;
+            ThemeLinkRow.Tag = settings.Theme == AppTheme.System
+                ? Loc.Get("S.Appearance.ThemeSystem")
+                : ThemeCatalog.Presets.Where(preset => preset.Theme == settings.Theme)
+                    .Select(preset => preset.DisplayName).FirstOrDefault() ?? settings.Theme.ToString();
+
+            var appearance = settings.Appearance;
+            BackdropLinkRow.Tag = !appearance.Enabled
+                ? Loc.Get("S.Common.Off")
+                : appearance.BackdropMode switch
+                {
+                    BackdropMode.Gradient => Loc.Get("S.Appearance.Gradient"),
+                    BackdropMode.Image => Loc.Get("S.Appearance.Image"),
+                    _ => Loc.Get("S.Appearance.AccentOnly")
+                };
         }
 
         private void SyncThemeCards(AppTheme theme)
@@ -766,6 +797,7 @@ namespace Amarin.UI
             ApplyInterfaceOptions(settings.Appearance);
             _grain?.Apply(settings.Appearance);
             _compact?.Apply(settings.Appearance);
+            RefreshAppearanceLinks();
 
             if (save)
             {

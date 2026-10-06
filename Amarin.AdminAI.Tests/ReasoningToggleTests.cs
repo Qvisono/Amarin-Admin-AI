@@ -109,23 +109,27 @@ public sealed class ReasoningToggleTests
     }
 
     [Fact]
-    public void The_customize_page_shows_the_gauge_on_every_reasoning_field()
+    public void The_settings_show_the_gauge_on_every_reasoning_field()
     {
         // Спидометр — единственная картинка, по которой уровень виден, не открывая попап.
-        // В Customize таких полей семь подряд, и он там был выключен у всех.
+        // На «Моделях» таких полей восемь подряд, и он был выключен у всех; у модели защиты —
+        // на «Безопасности».
         var without = _wpf.Ui.Invoke(() =>
         {
             var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var security = (SettingsSecurityPage)window.FindName("SecurityPage")!;
             string[] names =
             [
                 "LiteReasoningPicker", "HeavyReasoningPicker", "RouterReasoningPicker",
-                "TitleReasoningPicker", "AgentFastReasoningPicker",
-                "AgentLiteReasoningPicker", "AgentHeavyReasoningPicker",
-                "SynGuardReasoningPicker"
+                "TitleReasoningPicker", "SummaryReasoningPicker", "AgentFastReasoningPicker",
+                "AgentLiteReasoningPicker", "AgentHeavyReasoningPicker"
             ];
 
             return names
-                .Where(name => !((ReasoningPicker)window.FindName(name)!).ShowGaugeIcon)
+                .Select(name => (name, picker: (ReasoningPicker)window.FindName(name)!))
+                .Append((name: "SynGuardReasoningPicker", picker: (ReasoningPicker)security.FindName("SynGuardReasoningPicker")!))
+                .Where(item => !item.picker.ShowGaugeIcon)
+                .Select(item => item.name)
                 .ToList();
         });
 

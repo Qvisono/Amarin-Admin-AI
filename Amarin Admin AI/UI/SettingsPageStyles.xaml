@@ -703,4 +703,47 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- ===== Мелкий раскрывающийся пункт (модель SynGuard) =====
+         Тот же приём с шевроном, что у ActionExpanderToggle, но по размеру подписи:
+         тот занимает строку целиком и уводит шеврон к правому краю, а здесь стрелка
+         обязана стоять сразу за текстом, иначе непонятно, что раскрывает. -->
+    <Style x:Key="InlineExpanderToggle" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,3">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                            <Path x:Name="Chevron" Data="M0,0 L4,4 L8,0"
+                                  Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.4"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Width="9" Height="5" Stretch="Uniform"
+                                  VerticalAlignment="Center" Margin="7,1,0,0"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform Angle="0"/>
+                                </Path.RenderTransform>
+                            </Path>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                            <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chevron" Property="RenderTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="180"/>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

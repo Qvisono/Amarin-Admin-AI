@@ -71,7 +71,7 @@ public sealed class SettingsKeyPageTests
             {
                 return new[]
                 {
-                    "AppearancePageScroll", "GeneralPageScroll", "CustomizePageScroll", "DataPageScroll"
+                    "AppearancePageScroll", "GeneralPageScroll", "ProfilePageScroll", "ModelsPageScroll", "PromptsPageScroll", "DataPageScroll"
                 }
                 .Select(name => ((FrameworkElement)window.FindName(name)).Visibility)
                 .Count(state => state == Visibility.Visible)

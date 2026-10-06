@@ -61,7 +61,7 @@
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Password at startup</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Locks access to the app. Encrypting chats on disk is turned on in the Security page</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Not set</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">It locks the app but does not encrypt chats. Encryption and auto-lock are on the Security page.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">It locks the app but does not encrypt chats. Encryption is on the Security page; auto-lock is right here, under the password.</system:String>
     <system:String x:Key="S.Account.PasswordSavedTitle" xml:space="preserve">Password saved</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Set</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">current</system:String>
@@ -123,10 +123,12 @@
     <system:String x:Key="S.AgentRun.TruncatedByTokens" xml:space="preserve">[Reply cut short by the model's token limit]</system:String>
     <system:String x:Key="S.Appearance.Accent" xml:space="preserve">Accent colour</system:String>
     <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Fill of the main buttons. "From theme" uses the palette colour</system:String>
+    <system:String x:Key="S.Appearance.AccentOnly" xml:space="preserve">Accent only</system:String>
     <system:String x:Key="S.Appearance.Angle" xml:space="preserve">Angle</system:String>
     <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Animations</system:String>
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Backdrop motion and folding of the input box</system:String>
     <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Backdrop</system:String>
+    <system:String x:Key="S.Appearance.BackdropAccent" xml:space="preserve">Background and accent</system:String>
     <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">The data archive does not carry this image format. Use one of: {0}</system:String>
     <system:String x:Key="S.Appearance.BackgroundDialog" xml:space="preserve">Background image</system:String>
     <system:String x:Key="S.Appearance.BackgroundFailedTitle" xml:space="preserve">Can't use this background</system:String>
@@ -187,6 +189,7 @@
     <system:String x:Key="S.Appearance.StripWidth" xml:space="preserve">Strip width</system:String>
     <system:String x:Key="S.Appearance.Theme" xml:space="preserve">Theme</system:String>
     <system:String x:Key="S.Appearance.ThemeDesc" xml:space="preserve">Colour palette of the app</system:String>
+    <system:String x:Key="S.Appearance.ThemeSystem" xml:space="preserve">As in Windows</system:String>
     <system:String x:Key="S.Appearance.UiScale" xml:space="preserve">Interface scale</system:String>
     <system:String x:Key="S.Appearance.UiScaleDesc" xml:space="preserve">Size of controls and text</system:String>
     <system:String x:Key="S.Appearance.Vignette" xml:space="preserve">Vignette</system:String>
@@ -630,7 +633,7 @@
     <system:String x:Key="S.General.Group.Language" xml:space="preserve">Language and format</system:String>
     <system:String x:Key="S.General.Group.Notifications" xml:space="preserve">Notifications</system:String>
     <system:String x:Key="S.Guard.Action" xml:space="preserve">Action: {0}</system:String>
-    <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Add the domain in Settings → Data Controls → Allowed download sources.</system:String>
+    <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Add the domain in Settings → Security → Download sources.</system:String>
     <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Warning: the volume may become unavailable; the system volume may need a restart.</system:String>
     <system:String x:Key="S.Guard.CleanupCategories" xml:space="preserve">Cleanup categories (fixed paths only):</system:String>
     <system:String x:Key="S.Guard.CleanupPathIgnored" xml:space="preserve">The path parameter does NOT affect cleanup - arbitrary paths are never deleted.</system:String>
@@ -839,7 +842,7 @@
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Loading image…</system:String>
     <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Image unavailable: {0}</system:String>
     <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (image unavailable)</system:String>
-    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">Key &amp; Info → Add key with OpenRouter selected</system:String>
+    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">Keys &amp; spending → Add key with OpenRouter selected</system:String>
     <system:String x:Key="S.Info.Or.Shot.Credits" xml:space="preserve">The Credits section: topping up</system:String>
     <system:String x:Key="S.Info.Or.Shot.Keys" xml:space="preserve">OpenRouter's keys page</system:String>
     <system:String x:Key="S.Info.Or.Shot.Models" xml:space="preserve">The model picker with the OpenRouter column</system:String>
@@ -850,10 +853,10 @@
     <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Models are paid from your account balance; top it up in the Credits section. The app shows an estimate for the next answer next to the context ring.</system:String>
     <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Add credits</system:String>
     <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Open OpenRouter keys</system:String>
-    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">You can give the key a spending limit on OpenRouter's side, a second safeguard next to the app's own limits on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">You can give the key a spending limit on OpenRouter's side, a second safeguard next to the app's own limits on the Keys &amp; spending page.</system:String>
     <system:String x:Key="S.Info.Or.Step3.Text" xml:space="preserve">On the keys page, create a new key and copy it right away.</system:String>
     <system:String x:Key="S.Info.Or.Step3.Title" xml:space="preserve">Create a key</system:String>
-    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">On the Key &amp; Info page press Add key, choose OpenRouter and paste the key; it is stored encrypted by Windows. The OPENROUTER_API_KEY environment variable also works, and then the app keeps no copy.</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">On the Keys &amp; spending page press Add key, choose OpenRouter and paste the key; it is stored encrypted by Windows. The OPENROUTER_API_KEY environment variable also works, and then the app keeps no copy.</system:String>
     <system:String x:Key="S.Info.Or.Step4.Title" xml:space="preserve">Add the key to the app</system:String>
     <system:String x:Key="S.Info.Or.Step5.Text" xml:space="preserve">The model picker gets an OpenRouter column. Every model slot has its own provider and key. Variants marked :batch cost half as much but answer through a queue, which takes minutes.</system:String>
     <system:String x:Key="S.Info.Or.Step5.Title" xml:space="preserve">Pick models</system:String>
@@ -919,7 +922,7 @@
     <system:String x:Key="S.Limit.PeriodAsk" xml:space="preserve">Reached {0}: {1}, spent {2}. Continue this turn? Until it ends, requests go through without asking.</system:String>
     <system:String x:Key="S.Limit.PeriodTitle" xml:space="preserve">Spending limit reached</system:String>
     <system:String x:Key="S.Limit.Profile" xml:space="preserve">All keys</system:String>
-    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Reached {0} ({1}, spent {2}). The request was not sent; retrying will not help — limits are changed in Settings, on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Reached {0} ({1}, spent {2}). The request was not sent; retrying will not help — limits are changed in Settings, on the Keys &amp; spending page.</system:String>
     <system:String x:Key="S.Limit.Section" xml:space="preserve">Limits and alerts</system:String>
     <system:String x:Key="S.Limit.SectionDesc" xml:space="preserve">How much to spend and when to warn you</system:String>
     <system:String x:Key="S.Limit.Short.Day" xml:space="preserve">{0} a day</system:String>
@@ -1015,9 +1018,13 @@
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Version {0} of {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Next version</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
+    <system:String x:Key="S.Models.Fast" xml:space="preserve">Fast tasks</system:String>
+    <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Agent</system:String>
+    <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Chat answers</system:String>
+    <system:String x:Key="S.Models.Group.Service" xml:space="preserve">Service tasks</system:String>
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">The /agent command</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">An API key is needed</system:String>
-    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Open Key &amp; Info</system:String>
+    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Open Keys &amp; spending</system:String>
     <system:String x:Key="S.Password.Label" xml:space="preserve">Password</system:String>
     <system:String x:Key="S.Password.Repeat" xml:space="preserve">Repeat it</system:String>
     <system:String x:Key="S.Plan.Amend" xml:space="preserve">Revise</system:String>
@@ -1041,6 +1048,11 @@
     <system:String x:Key="S.Plan.VerdictExecute" xml:space="preserve">approved</system:String>
     <system:String x:Key="S.Plan.VerdictPending" xml:space="preserve">awaiting a decision</system:String>
     <system:String x:Key="S.Plan.WriteRefused" xml:space="preserve">This is the planning phase: nothing may be changed before approval. Put this action into the plan with submit_plan.</system:String>
+    <system:String x:Key="S.Profile.Group.Lock" xml:space="preserve">Password and lock</system:String>
+    <system:String x:Key="S.Prompts.Tech" xml:space="preserve">Technical prompts</system:String>
+    <system:String x:Key="S.Prompts.Tech.Changed" xml:space="preserve">Changed</system:String>
+    <system:String x:Key="S.Prompts.Tech.Default" xml:space="preserve">Defaults</system:String>
+    <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">The working rules the app gives the chat and the agent</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
     <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice returned an empty reply without an image.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Reply</system:String>
@@ -1098,7 +1110,6 @@
     <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Agent - heavy tasks</system:String>
     <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Agent - light tasks</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Technical agent prompt</system:String>
-    <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Answer models</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Chat titles</system:String>
     <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Checks every script and every action the agent takes before it runs, and stops whatever carries a malicious intent: stealing passwords, sending data off the machine, persisting, or evading defences.</system:String>
     <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Protection model</system:String>
@@ -1122,9 +1133,7 @@
     <system:String x:Key="S.Customize.Protection" xml:space="preserve">Protection</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Router</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Reads the request and picks one of the models above</system:String>
-    <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Service models</system:String>
     <system:String x:Key="S.Customize.Summary" xml:space="preserve">Chat summary</system:String>
-    <system:String x:Key="S.Customize.SystemPrompts" xml:space="preserve">System prompts</system:String>
     <system:String x:Key="S.Customize.TechPrompt" xml:space="preserve">Technical AI prompt</system:String>
 
     <system:String x:Key="S.Customize.WebSearch" xml:space="preserve">Web search</system:String>
@@ -1165,7 +1174,7 @@
     <system:String x:Key="S.Domain.Title" xml:space="preserve">Allow downloads from a site</system:String>
 
     <system:String x:Key="S.Download.Allow" xml:space="preserve">Allow</system:String>
-    <system:String x:Key="S.Download.Desc" xml:space="preserve">The permission is saved, subdomains included. You can remove it in Data Controls.</system:String>
+    <system:String x:Key="S.Download.Desc" xml:space="preserve">The permission is saved, subdomains included. You can remove it in Settings: Security → Download sources.</system:String>
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Don't allow</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Download from this site?</system:String>
 
@@ -1181,9 +1190,9 @@
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Confirming dangerous actions</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Above every answer you can see what it cost, and next to the input box are what is left on the Venice balance and how full the context is. The badge changes colour as the money runs low, so the credits will not quietly run out mid-task.</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Cost and balance</system:String>
-    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Conversations, settings and attachments live in the profile folder on this computer and go nowhere else. The neighbouring Data Controls page shows how much space they take; the same page exports everything as a single archive and restores it back.</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Conversations, settings and attachments live in the profile folder on this computer and go nowhere else. The Data page exports everything as a single archive and restores it back; Storage and cleanup there shows how much space they take.</system:String>
     <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Where the data lives</system:String>
-    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">The model is chosen in the row under the input box, and so is the reasoning strength. “Auto” picks the model for the task itself: a simple question goes to a cheap one, heavy analysis to a strong one. The service models behind chat titles and the agent's internal tasks are configured separately, on the Customize page.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">The model is chosen in the row under the input box, and so is the reasoning strength. “Auto” picks the model for the task itself: a simple question goes to a cheap one, heavy analysis to a strong one. The service models behind chat titles and the agent's internal tasks are configured separately, on the Models page.</system:String>
     <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Model and reasoning level</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Profiles keep conversations and settings apart for several people sharing one computer, and a profile can be locked with a password. The Appearance page holds themes, a custom accent colour, the backdrop, the glass effect and the interface scale.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Profiles and appearance</system:String>
@@ -1196,7 +1205,7 @@
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">The Venice documentation answers questions about keys, limits and models. Questions about the app itself, bugs you find and suggestions belong in the project repository.</system:String>
     <system:String x:Key="S.Info.Links.Title" xml:space="preserve">If something does not add up</system:String>
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Do not paste the key into the chat: the message goes to the model and then stays in the conversation history on disk.</system:String>
-    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file that anyone who reaches the folder can read. Keys from the Key &amp; Info page live elsewhere and are encrypted.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Do not put the key into appsettings.json next to the program: it is a plain text file that anyone who reaches the folder can read. Keys from the Keys &amp; spending page live elsewhere and are encrypted.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Crash reports have the key stripped out on their own, so a report is safe to forward.</system:String>
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">If the key does leak, revoke it on venice.ai and create a new one - that is a single button.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Create the variable for the current user, not for the whole system: a system variable is visible to every account on the computer.</system:String>
@@ -1225,8 +1234,8 @@
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Create an API key</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">If you would rather not let the program keep the key, set an environment variable instead - it is read at startup and never stored:</system:String>
-    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">The program has to be restarted after that: environment variables are read once, at startup. A key pasted on the Key &amp; Info page works right away.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Paste the key into Settings - Key &amp; Info. It goes to disk encrypted by Windows, so only your account can read it back. You can keep several keys and switch between them right there.</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">The program has to be restarted after that: environment variables are read once, at startup. A key pasted on the Keys &amp; spending page works right away.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Paste the key into Settings - Keys &amp; spending. It goes to disk encrypted by Windows, so only your account can read it back. You can keep several keys and switch between them right there.</system:String>
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Hand the key to the program</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Start the app and send any message. If an answer comes back, the key is in place. The line about a missing key means the variable never arrived: check that it was created for the user rather than the system, and that the app has been restarted. And if Venice answers that funds are insufficient while the account does have money, then the spend limit sits on the key itself; it is changed in the same API section.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Check that it works</system:String>
@@ -1426,7 +1435,7 @@
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Profiles</system:String>
 
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In “Auto” the reasoning is taken from the light and heavy models - set those on the Customize page</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In “Auto” the reasoning is taken from the light and heavy models - set those on the Models page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning strength</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
@@ -1625,7 +1634,7 @@
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Agent</system:String>
     <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Auto-lock</system:String>
     <system:String x:Key="S.Security.AutoLockDesc" xml:space="preserve">When the window is idle. Replies keep running.</system:String>
-    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">Needs a profile password — set one on the Account page</system:String>
+    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">Set a profile password first</system:String>
     <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Off</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Chat</system:String>
     <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Privacy</system:String>
@@ -1639,21 +1648,23 @@
     <system:String x:Key="S.Security.PlanDesc" xml:space="preserve">The agent sends a plan first and waits for your go-ahead.</system:String>
     <system:String x:Key="S.Security.PlanLabel" xml:space="preserve">Plan before changes</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">chat and agent</system:String>
+    <system:String x:Key="S.Security.SourcesCount" xml:space="preserve">Sites: {0}</system:String>
+    <system:String x:Key="S.Security.SourcesDesc" xml:space="preserve">Where the agent may download files from</system:String>
+    <system:String x:Key="S.Security.SourcesLabel" xml:space="preserve">Download sources</system:String>
     <system:String x:Key="S.Security.Title" xml:space="preserve">Security</system:String>
     <system:String x:Key="S.Security.ToolsAllOn" xml:space="preserve">All on</system:String>
     <system:String x:Key="S.Security.ToolsDesc" xml:space="preserve">What the model can use</system:String>
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">The model can't see a tool that is off.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
-    <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
-    <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data</system:String>
     <system:String x:Key="S.Settings.General.Title" xml:space="preserve">General</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Instructions</system:String>
-    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Key and spending</system:String>
+    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Keys and spending</system:String>
+    <system:String x:Key="S.Settings.Models.Title" xml:space="preserve">Models</system:String>
     <system:String x:Key="S.Settings.Nav.About" xml:space="preserve">About</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
@@ -1668,6 +1679,8 @@
     <system:String x:Key="S.Settings.NavGroup.Main" xml:space="preserve">GENERAL</system:String>
     <system:String x:Key="S.Settings.NavGroup.Model" xml:space="preserve">MODEL</system:String>
     <system:String x:Key="S.Settings.NavGroup.SecurityData" xml:space="preserve">SECURITY &amp; DATA</system:String>
+    <system:String x:Key="S.Settings.Profile.Title" xml:space="preserve">Profile</system:String>
+    <system:String x:Key="S.Settings.Prompts.Title" xml:space="preserve">Prompts</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 
@@ -1839,7 +1852,7 @@
     <system:String x:Key="S.Turn.CutByTokens" xml:space="preserve">The reply was cut short by the token limit ({0}). Try again or simplify the question.</system:String>
     <system:String x:Key="S.Turn.ErrorTitle" xml:space="preserve">No answer</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">{0} answers are already running - wait for one of them.</system:String>
-    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No API key — add a Venice or OpenRouter key on the Key &amp; Info page</system:String>
+    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">No API key — add a Venice or OpenRouter key on the Keys &amp; spending page</system:String>
 
     <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Attachments cannot join an answer already in progress - wait for it to finish.</system:String>
     <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">A command cannot join an answer already in progress - wait for it to finish.</system:String>
@@ -1972,7 +1985,7 @@
     <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Not set</system:String>
     <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">Add openrouter: to use OpenRouter</system:String>
     <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Windows has no recogniser for “{0}”, and no cloud model is set.</system:String>
-    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">There is no key for the recognition model's provider. Add one on the Key &amp; Info page.</system:String>
+    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">There is no key for the recognition model's provider. Add one on the Keys &amp; spending page.</system:String>
     <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">Windows has no recogniser for “{0}”. Installed: {1}.</system:String>
     <system:String x:Key="S.Voice.NoMic" xml:space="preserve">No microphone found, or access to it is blocked in Windows settings.</system:String>
     <system:String x:Key="S.Voice.NotSetUp" xml:space="preserve">Not set up</system:String>

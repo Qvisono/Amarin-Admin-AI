@@ -60,7 +60,6 @@ namespace Amarin.UI
             LockOverlay.MinimizeRequested += (_, _) => WindowState = WindowState.Minimized;
             LockOverlay.MaximizeRequested += (_, _) => MaximizeButton_Click(this, new RoutedEventArgs());
             LockOverlay.CloseRequested += (_, _) => RequestExit();
-            SecurityPage.LockRequested += (_, _) => LockNow();
 
             _lockTimer.Start();
             Closed += (_, _) => _lockTimer.Stop();

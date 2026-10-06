@@ -42,6 +42,68 @@
                     </Grid>
                 </Border>
 
+                <!--
+                    ═══════════ ЗАЩИТА: SYNGUARD ═══════════
+                    Переехал сюда с «Моделей»: это защита, а не выбор модели. События тумблера и пикеров
+                    подписывает главное окно (WireSecurityPage) — логика слотов моделей живёт там.
+                -->
+                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Customize.Protection}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <!-- Имя защитника не переводится: это название, а не подпись. -->
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="SynGuard"/>
+                                <TextBlock Style="{StaticResource SettingDesc}"
+                                           Text="{DynamicResource S.Customize.GuardDesc}"/>
+                                <!-- Модель защитника: голым ID и мелко — она нужна редко. -->
+                                <ToggleButton x:Name="SynGuardModelToggle" Style="{StaticResource InlineExpanderToggle}"
+                                              HorizontalAlignment="Left" Margin="0,6,0,0">
+                                    <TextBlock x:Name="SynGuardModelLabel" FontSize="11"
+                                               Foreground="{DynamicResource Text.Faint}"
+                                               VerticalAlignment="Center"/>
+                                </ToggleButton>
+                            </StackPanel>
+                            <CheckBox x:Name="SynGuardToggle" AutomationProperties.Name="SynGuard" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"/>
+                        </Grid>
+
+                        <!-- Раскрытый выбор — ещё одной строкой той же группы, а не рамкой в рамке. -->
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=SynGuardModelToggle}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <Border Style="{StaticResource GroupDivider}"/>
+                            <Grid Style="{StaticResource GroupRowDense}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource SettingTitle}" TextWrapping="Wrap"
+                                           Margin="0,0,8,0" VerticalAlignment="Center"
+                                           Text="{DynamicResource S.Customize.GuardModel}"/>
+                                <local:ReasoningPicker x:Name="SynGuardReasoningPicker" Grid.Column="1"
+                                                       Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                       Margin="8,0" VerticalAlignment="Center"/>
+                                <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2"
+                                                        VerticalAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- ═══════════ ПЛАН ПЕРЕД ИЗМЕНЕНИЯМИ ═══════════ -->
                 <!-- Пояснение одно на группу — под её подписью, а не в каждой из трёх строк. -->
                 <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.PlanLabel}"/>
@@ -91,50 +153,33 @@
                                       Style="{StaticResource SettingsToggle}"
                                       Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
                         </Grid>
-                        <Border Style="{StaticResource GroupDivider}"/>
-                        <Grid Style="{StaticResource GroupRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
-                                <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
-                            </StackPanel>
-                            <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
-                                      AutomationProperties.Name="{DynamicResource S.Security.AutoLock}"
-                                      SelectionChanged="AutoLockCombo_SelectionChanged">
-                                <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
-                                <ComboBoxItem Tag="5"/>
-                                <ComboBoxItem Tag="15"/>
-                                <ComboBoxItem Tag="30"/>
-                                <ComboBoxItem Tag="60"/>
-                            </ComboBox>
-                        </Grid>
-                        <Border Style="{StaticResource GroupDivider}"/>
-                        <Grid Style="{StaticResource GroupRow}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                                       Text="{DynamicResource S.Security.LockNowTitle}"/>
-                            <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                    Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
-                        </Grid>
                     </StackPanel>
                 </Border>
 
-                <!-- ═══════════ ИНСТРУМЕНТЫ ═══════════ -->
+                <!--
+                    ═══════════ ИНСТРУМЕНТЫ И ИСТОЧНИКИ ЗАГРУЗКИ ═══════════
+                    Белый список загрузок — здесь, а не в «Данных»: он решает, откуда агенту качать файлы.
+                -->
                 <Border Style="{StaticResource SettingsGroup}">
-                    <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
-                            local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
-                            AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ToolsLabel}"/>
-                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel>
+                        <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
+                                AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.ToolsLabel}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ToolsDesc}"/>
+                            </StackPanel>
+                        </Button>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Button x:Name="SourcesLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                local:SettingsDrill.Opens="{Binding ElementName=SourcesSub}"
+                                AutomationProperties.Name="{DynamicResource S.Security.SourcesLabel}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.SourcesLabel}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.SourcesDesc}"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </Border>
             </StackPanel>
 
@@ -161,6 +206,56 @@
                 <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.AgentGroup}"/>
                 <Border Style="{StaticResource SettingsGroup}">
                     <StackPanel x:Name="AgentToolRows"/>
+                </Border>
+            </StackPanel>
+
+            <!--
+                ═══════════ ПОДСТРАНИЦА: ИСТОЧНИКИ ЗАГРУЗКИ ═══════════
+                Своей прокрутки у списка нет: на подстранице ему некого теснить, а вложенный список
+                забирал бы колесо у страницы. Диалог добавления и запись — у главного окна.
+            -->
+            <StackPanel x:Name="SourcesSub" Margin="20,14,20,16" Visibility="Collapsed">
+                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Security.SourcesLabel}"/>
+                <!-- Разрешённые сайты: заголовок строкой группы, список — под чертой в ней же. -->
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,34,0">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Allowlist}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AllowlistDesc}"/>
+                            </StackPanel>
+                            <Button x:Name="AddDomainButton" Style="{StaticResource SecondaryButton}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    Content="+" Width="26" Padding="0" FontSize="14"
+                                    AutomationProperties.Name="{DynamicResource S.Data.Allowlist}"
+                                    Click="AddDomainButton_Click"/>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <!-- Поля строк списка (8) — внутрь группы, чтобы адрес стоял по краю подписи. -->
+                        <Grid Margin="-8,4,-8,4">
+                            <TextBlock x:Name="AllowedDomainsEmpty" Margin="8,7"
+                                       Text="{DynamicResource S.Data.AllowlistEmpty}"
+                                       FontSize="12" Foreground="{DynamicResource Text.Faint}"
+                                       Visibility="Collapsed"/>
+                            <ItemsControl x:Name="AllowedDomainsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="8,5">
+                                            <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                                       Foreground="{DynamicResource Text.Tertiary}"
+                                                       VerticalAlignment="Center" Margin="0,0,30,0"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
+                                                    Content="–" Width="22" Height="22" Padding="0"
+                                                    Tag="{Binding}" ToolTip="{DynamicResource S.Data.AllowlistRemove}"
+                                                    AutomationProperties.Name="{DynamicResource S.Data.AllowlistRemove}"
+                                                    Click="RemoveDomainButton_Click"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Grid>

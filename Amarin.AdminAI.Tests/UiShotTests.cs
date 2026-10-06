@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Amarin.Core;
@@ -352,6 +353,11 @@ public sealed class UiShotTests : IDisposable
                         subIndex++;
                         link.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, link));
                         await Settle(350);
+
+                        // Подстраница переводит фокус на «назад», и без настоящего щелчка мышью WPF
+                        // рисует вокруг неё рамку клавиатурного фокуса — у человека её нет.
+                        Keyboard.ClearFocus();
+                        await Settle(50);
                         Save(card, Path.Combine(folder, $"{prefix}-sub{subIndex}.png"), null);
                         ShootFull(page, Path.Combine(folder, $"{prefix}-sub{subIndex}-full.png"));
                         SettingsDrillBack(card);

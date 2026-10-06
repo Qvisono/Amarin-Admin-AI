@@ -34,6 +34,15 @@ public partial class ColorPickerField : UserControl
         PopupManager.Register(PickerPopup, OpenButton);
         BuildSwatches();
         Render();
+
+        // Подпись «по теме» пишет код, и при смене языка на лету она оставалась на прежнем.
+        // Событие статическое — подписка только пока поле в дереве, иначе оно жило бы вечно.
+        Loaded += (_, _) =>
+        {
+            LanguageManager.LanguageChanged -= Render;
+            LanguageManager.LanguageChanged += Render;
+        };
+        Unloaded += (_, _) => LanguageManager.LanguageChanged -= Render;
     }
 
     /// <summary>Выбранный цвет, <c>#RRGGBB</c>. Пусто — «не задан, берётся цвет темы».</summary>

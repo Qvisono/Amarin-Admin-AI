@@ -8,7 +8,8 @@ using Amarin.UI;
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Страница Customize: порядок разделов и потолок у полей системных промптов.
+/// Бывшая страница Customize, разнесённая на «Модели», «Промпты» и защиту на «Безопасности»:
+/// порядок разделов и потолок у полей системных промптов.
 /// </summary>
 [Collection(WpfCollection.Name)]
 [Trait(WpfCollection.Category, WpfCollection.Trait)]
@@ -20,6 +21,9 @@ public sealed class CustomizePageTests
 
     private static MainWindow Window() =>
         Application.Current.Windows.OfType<MainWindow>().Single();
+
+    private static SettingsSecurityPage Security(MainWindow window) =>
+        (SettingsSecurityPage)window.FindName("SecurityPage")!;
 
     [Theory]
     [InlineData("MainPromptTextBox")]
@@ -34,7 +38,14 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavPrompts")!).IsChecked = true;
+
+            // Технические промпты — на подстранице: поле меряется там, где его видит человек.
+            var technical = name.StartsWith("Tech", StringComparison.Ordinal);
+            if (technical)
+            {
+                SettingsDrill.Open((FrameworkElement)window.FindName("PromptsTechSub")!);
+            }
 
             var box = (TextBox)window.FindName(name)!;
             var restore = box.Text;
@@ -45,6 +56,11 @@ public sealed class CustomizePageTests
             var result = (box.ActualHeight, host.ScrollableHeight);
 
             box.Text = restore;
+            if (technical)
+            {
+                SettingsDrill.TryBackIn(overlay);
+            }
+
             overlay.Visibility = Visibility.Collapsed;
             ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return result;
@@ -55,9 +71,10 @@ public sealed class CustomizePageTests
     }
 
     [Fact]
-    public void Service_models_come_before_the_system_prompts()
+    public void Models_go_answer_then_agent_then_service_and_the_prompts_live_apart()
     {
-        // Порядок задан только разметкой, перепутать его правкой соседней строки легко.
+        // Порядок задан только разметкой, перепутать его правкой соседней строки легко. Промпты —
+        // своей страницей: три больших редактора стояли под десятью строками моделей.
         var order = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
@@ -67,18 +84,20 @@ public sealed class CustomizePageTests
             window.UpdateLayout();
 
             // Разделы опознаются по первому полю каждого: заголовки — безымянные TextBlock.
-            var page = Page(window);
+            var page = Page(window, "ModelsPageScroll");
             var answer = IndexOf(page, (UIElement)window.FindName("LiteModelPicker")!);
+            var agent = IndexOf(page, (UIElement)window.FindName("AgentFastModelPicker")!);
             var service = IndexOf(page, (UIElement)window.FindName("TitleModelPicker")!);
             var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
 
             overlay.Visibility = Visibility.Collapsed;
             ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
-            return (answer, service, prompts);
+            return (answer, agent, service, prompts);
         });
 
-        Assert.True(order.answer < order.service, "«Служебные модели» оказались выше «Моделей ответа»");
-        Assert.True(order.service < order.prompts, "«Служебные модели» оказались ниже системных промптов");
+        Assert.True(order.answer >= 0 && order.answer < order.agent, "«Агент» оказался выше «Ответа в чате»");
+        Assert.True(order.agent < order.service, "«Служебные задачи» оказались выше «Агента»");
+        Assert.Equal(-1, order.prompts);
     }
 
     [Fact]
@@ -91,12 +110,13 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavSecurity")!).IsChecked = true;
             window.UpdateLayout();
 
-            var toggle = (ToggleButton)window.FindName("SynGuardModelToggle")!;
-            var picker = (FrameworkElement)window.FindName("SynGuardModelPicker")!;
-            var name = ((TextBlock)window.FindName("SynGuardModelLabel")!).Text;
+            var security = Security(window);
+            var toggle = (ToggleButton)security.FindName("SynGuardModelToggle")!;
+            var picker = (FrameworkElement)security.FindName("SynGuardModelPicker")!;
+            var name = ((TextBlock)security.FindName("SynGuardModelLabel")!).Text;
 
             var before = picker.IsVisible;
             toggle.IsChecked = true;
@@ -117,35 +137,39 @@ public sealed class CustomizePageTests
     }
 
     [Fact]
-    public void The_guard_sits_between_the_service_models_and_the_system_prompts()
+    public void The_guard_sits_on_the_security_page_right_after_the_access_mode()
     {
-        // Порядок задан только разметкой, и защите место рядом с моделями, которые она проверяет,
-        // а не среди системных промптов.
+        // SynGuard — защита, а не выбор модели: он на «Безопасности», сразу за режимом доступа и
+        // перед планом агента. Порядок задан только разметкой.
         var order = _wpf.Ui.Invoke(() =>
         {
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavSecurity")!).IsChecked = true;
             window.UpdateLayout();
 
-            var page = Page(window);
-            var service = IndexOf(page, (UIElement)window.FindName("AgentHeavyModelPicker")!);
-            var guard = IndexOf(page, (UIElement)window.FindName("SynGuardToggle")!);
-            var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
+            // Корень страницы — первый ребёнок хоста подстраниц в её прокрутке.
+            var security = Security(window);
+            var host = (Panel)((ScrollViewer)security.FindName("PageScroll")!).Content;
+            var page = (Panel)host.Children[0];
+
+            var mode = IndexOf(page, (UIElement)security.FindName("ModeCombo")!);
+            var guard = IndexOf(page, (UIElement)security.FindName("SynGuardToggle")!);
+            var plan = IndexOf(page, (UIElement)security.FindName("PlanLiteToggle")!);
 
             // Тумблер — тот же, что у всех остальных переключателей настроек.
             var shared = ReferenceEquals(
-                ((CheckBox)window.FindName("SynGuardToggle")!).Style,
-                ((CheckBox)window.FindName("AutoScrollToggle")!).Style);
+                ((CheckBox)security.FindName("SynGuardToggle")!).Style,
+                ((CheckBox)security.FindName("EncryptChatsToggle")!).Style);
 
             overlay.Visibility = Visibility.Collapsed;
             ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
-            return (service, guard, prompts, shared);
+            return (mode, guard, plan, shared);
         });
 
-        Assert.True(order.service < order.guard, "SynGuard оказался выше служебных моделей");
-        Assert.True(order.guard < order.prompts, "SynGuard оказался ниже системных промптов");
+        Assert.True(order.mode >= 0 && order.mode < order.guard, "SynGuard оказался выше режима доступа");
+        Assert.True(order.guard < order.plan, "SynGuard оказался ниже плана перед изменениями");
         Assert.True(order.shared, "у тумблера защиты свой стиль вместо общего SettingsToggle");
     }
 
@@ -163,7 +187,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavPrompts")!).IsChecked = true;
             window.UpdateLayout();
 
             var frame = Frame((TextBox)window.FindName(box)!);
@@ -212,16 +236,16 @@ public sealed class CustomizePageTests
     }
 
     /// <summary>
-    /// Столбец страницы Customize.
+    /// Столбец страницы настроек — содержимое её прокрутки.
     /// </summary>
     /// <remarks>
-    /// От прокрутки, а не от родителя поля промпта: поля переехали внутрь карточек со своими
-    /// кнопками, и их прямой родитель — уже не страница.
+    /// От прокрутки, а не от родителя поля: поля лежат внутри карточек, и их прямой родитель —
+    /// уже не страница.
     /// </remarks>
-    private static Panel Page(MainWindow window) =>
-        (Panel)((ScrollViewer)window.FindName("CustomizePageScroll")!).Content;
+    private static Panel Page(MainWindow window, string scroll) =>
+        (Panel)((ScrollViewer)window.FindName(scroll)!).Content;
 
-    /// <summary>Номер строки страницы, в которой лежит элемент.</summary>
+    /// <summary>Номер строки страницы, в которой лежит элемент; −1 — элемента на странице нет.</summary>
     private static int IndexOf(Panel page, UIElement element)
     {
         DependencyObject? node = element;
@@ -230,6 +254,6 @@ public sealed class CustomizePageTests
             node = VisualTreeHelper.GetParent(node);
         }
 
-        return page.Children.IndexOf(node as UIElement);
+        return node is null ? -1 : page.Children.IndexOf(node as UIElement);
     }
 }

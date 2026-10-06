@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
@@ -56,9 +57,65 @@ namespace Amarin.UI
                 profile.HasPassword ? "S.Common.Change" : "S.Account.SetPassword");
             LockOnStartupToggle.IsChecked = profile.LockOnStartup;
             LockOnStartupToggle.IsEnabled = profile.HasPassword;
+            LoadAutoLock(profile.HasPassword);
 
             ApplyAvatar(profile);
         }
+
+        /// <summary>
+        /// Автоблокировка и «Заблокировать» — только у профиля с паролем.
+        /// </summary>
+        /// <remarks>
+        /// Без пароля снимать блокировку нечем. Сохранённый выбор при этом не стирается: заведёт
+        /// человек пароль — блокировка заработает так, как он её уже настроил. Зовётся из
+        /// <see cref="LoadAccountUi"/>, то есть и после смены пароля: пока строки жили на другой
+        /// странице, заданный пароль оставлял их погашенными до следующего открытия настроек.
+        /// </remarks>
+        private void LoadAutoLock(bool hasPassword)
+        {
+            var wasLoading = _settingsUiLoading;
+            _settingsUiLoading = true;
+            try
+            {
+                var minutes = AutoLock.Normalize(_services!.Settings.AutoLockMinutes);
+                foreach (var item in AutoLockCombo.Items.OfType<ComboBoxItem>())
+                {
+                    var value = int.Parse((string)item.Tag, CultureInfo.InvariantCulture);
+                    if (value > 0)
+                    {
+                        item.Content = Loc.Format("S.Security.Minutes", value);
+                    }
+
+                    if (value == minutes)
+                    {
+                        AutoLockCombo.SelectedItem = item;
+                    }
+                }
+            }
+            finally
+            {
+                _settingsUiLoading = wasLoading;
+            }
+
+            AutoLockCombo.IsEnabled = hasPassword;
+            LockNowButton.IsEnabled = hasPassword;
+            AutoLockDesc.SetResourceReference(TextBlock.TextProperty,
+                hasPassword ? "S.Security.AutoLockDesc" : "S.Security.AutoLockNeedsPassword");
+            AutoLockDesc.SetResourceReference(TextBlock.ForegroundProperty, hasPassword ? "Text.Dim" : "Status.Warning");
+        }
+
+        private void AutoLockCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null || AutoLockCombo.SelectedItem is not ComboBoxItem { Tag: string tag })
+            {
+                return;
+            }
+
+            _services.Settings.AutoLockMinutes = int.Parse(tag, CultureInfo.InvariantCulture);
+            _services.SettingsStore.Save(_services.Settings);
+        }
+
+        private void LockNowButton_Click(object sender, RoutedEventArgs e) => LockNow();
 
         /// <summary>
         /// Перерисовывает аватар в обоих местах. Все пути смены картинки — вкладка настроек,

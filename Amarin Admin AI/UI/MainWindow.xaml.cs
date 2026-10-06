@@ -92,6 +92,7 @@ namespace Amarin.UI
             WireVoice();
             WireCostEstimate();
             WireWindowsIntegration();
+            WireSecurityPage();
 
             // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).
             AccessibilityDefaults.Register();
@@ -156,15 +157,13 @@ namespace Amarin.UI
             // конец текста — как в Discord. См. TextCaretEdges.
             TextCaretEdges.Attach(MessageTextBox);
 
-            // Страницы настроек — тем же скроллом, что колонка и чат. Список разрешённых
-            // источников вложен в страницу данных: докрутив его до края, колесо уходит наружу,
-            // за это отвечает сам SmoothScroll.
+            // Страницы настроек — тем же скроллом, что колонка и чат.
             //
             // И перетаскиванием — страницы настроек листают ещё и зажатой кнопкой, той же инерцией.
             // В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
             // перетаскиванием чатов по папкам.
             foreach (var page in (ScrollViewer[])
-                     [AppearancePageScroll, GeneralPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
+                     [AppearancePageScroll, GeneralPageScroll, ProfilePageScroll, ModelsPageScroll, PromptsPageScroll, DataPageScroll])
             {
                 SmoothScroll.SetIsEnabled(page, true);
                 SmoothScroll.SetDragScroll(page, true);
@@ -331,7 +330,7 @@ namespace Amarin.UI
             AgentLiteReasoningPicker.SetUsesTools(true);
             AgentHeavyReasoningPicker.SetUsesTools(true);
             // Защитник отвечает одним словом и инструментов не получает.
-            SynGuardReasoningPicker.SetUsesTools(false);
+            SecurityPage.SynGuardReasoningPicker.SetUsesTools(false);
 
             // Подпись ставится здесь, а не только при открытии настроек: пустая строка со
             // стрелкой рядом не объясняет, что за ней прячется.
@@ -886,15 +885,35 @@ namespace Amarin.UI
             }
         }
 
-        private void RefreshAllowedDomainsUi()
+        /// <summary>Список живёт на подстранице «Безопасность › Источники загрузки».</summary>
+        private void RefreshAllowedDomainsUi() => SecurityPage.ShowDomains(AllowedDomains);
+
+        /// <summary>
+        /// Подписка на контролы страницы «Безопасность», чья логика — у окна: SynGuard и его модель
+        /// (слоты моделей ведёт окно, как у остальных пикеров) и белый список загрузок (его же
+        /// дополняет вопрос «разрешить домен?» из чата). Атрибутами разметки этого не сделать:
+        /// страница — свой UserControl, и обработчики искались бы у неё.
+        /// </summary>
+        private void WireSecurityPage()
         {
-            var domains = AllowedDomains;
-            // List<string> об изменениях не сообщает — перепривязываем, а не правим на месте.
-            AllowedDomainsList.ItemsSource = null;
-            AllowedDomainsList.ItemsSource = domains.ToList();
-            AllowedDomainsEmpty.Visibility = domains.Count == 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            var page = SecurityPage;
+            page.SynGuardToggle.Checked += SynGuardToggle_Changed;
+            page.SynGuardToggle.Unchecked += SynGuardToggle_Changed;
+            page.SynGuardReasoningPicker.ChoiceChanged += SettingsReasoningChanged;
+            page.SynGuardModelPicker.ModelPicked += SettingsModelPicked;
+            page.SynGuardModelPicker.AddKeyRequested += SettingsPickerAddKeyRequested;
+            page.SynGuardModelPicker.ProviderShown += SettingsPickerProviderShown;
+            page.AddDomainRequested += (_, _) => OpenDomainDialog("");
+            page.RemoveDomainRequested += (_, domain) =>
+            {
+                if (_services is null)
+                {
+                    return;
+                }
+
+                AllowedDomains.RemoveAll(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase));
+                SaveAllowedDomains();
+            };
         }
 
         private void SaveAllowedDomains()
@@ -907,19 +926,6 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
             DownloadValidator.ConfigureAllowedDomains(_services.Settings.DownloadAllowedDomains);
             RefreshAllowedDomainsUi();
-        }
-
-        private void AddDomainButton_Click(object sender, RoutedEventArgs e) => OpenDomainDialog("");
-
-        private void RemoveDomainButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_services is null || sender is not Button { Tag: string domain })
-            {
-                return;
-            }
-
-            AllowedDomains.RemoveAll(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase));
-            SaveAllowedDomains();
         }
 
         private void OpenDomainDialog(string host)
@@ -1121,7 +1127,7 @@ namespace Amarin.UI
             SecurityPage.Load(_services.Settings);
         }
 
-        private void SettingsModelPicked(object sender, ModelBinding binding)
+        private void SettingsModelPicked(object? sender, ModelBinding binding)
         {
             if (_settingsUiLoading || _services is null || string.IsNullOrWhiteSpace(binding.ModelId))
             {
@@ -1150,7 +1156,7 @@ namespace Amarin.UI
             }
         }
 
-        private void SettingsPickerAddKeyRequested(object sender, EventArgs e) => OpenKeyDialog();
+        private void SettingsPickerAddKeyRequested(object? sender, EventArgs e) => OpenKeyDialog();
 
         /// <summary>
         /// Человек выбрал, через кого и каким ключом искать в интернете.
@@ -1173,10 +1179,10 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
         }
 
-        private void SettingsPickerProviderShown(object sender, LlmProvider provider) =>
+        private void SettingsPickerProviderShown(object? sender, LlmProvider provider) =>
             Detached.Run(LoadProviderCatalogAsync(provider), "load_model_catalog");
 
-        private void SettingsReasoningChanged(object sender, ReasoningChoiceChangedEventArgs e)
+        private void SettingsReasoningChanged(object? sender, ReasoningChoiceChangedEventArgs e)
         {
             if (_settingsUiLoading || _services is null)
             {
@@ -1194,7 +1200,7 @@ namespace Amarin.UI
             _services.SettingsStore.Save(_services.Settings);
         }
 
-        private ReasoningSettings? SlotForReasoningPicker(object sender)
+        private ReasoningSettings? SlotForReasoningPicker(object? sender)
         {
             if (_services is null)
             {
@@ -1237,7 +1243,7 @@ namespace Amarin.UI
                 return settings.AgentHeavyReasoning ??= new ReasoningSettings();
             }
 
-            if (ReferenceEquals(sender, SynGuardReasoningPicker))
+            if (ReferenceEquals(sender, SecurityPage.SynGuardReasoningPicker))
             {
                 return settings.SynGuardReasoning ??= new ReasoningSettings();
             }
@@ -1259,7 +1265,7 @@ namespace Amarin.UI
 
             // Ни предупреждения, ни подтверждения: выключить защиту — осознанный выбор человека,
             // и переспрашивать о нём — то же самое, что не давать её выключить.
-            _services.Settings.SynGuardEnabled = SynGuardToggle.IsChecked == true;
+            _services.Settings.SynGuardEnabled = SecurityPage.SynGuardToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -1268,7 +1274,7 @@ namespace Amarin.UI
         /// строка служебная, и в ней важно точно знать, что именно стоит в настройке.
         /// </summary>
         private void ShowSynGuardModelName() =>
-            SynGuardModelLabel.Text = _services is null
+            SecurityPage.SynGuardModelLabel.Text = _services is null
                 ? SynGuard.FallbackModelId
                 : SynGuard.ResolveModel(_services.Settings);
 
@@ -1617,7 +1623,7 @@ namespace Amarin.UI
             (ModelSlot.AgentFast, AgentFastModelPicker, AgentFastReasoningPicker),
             (ModelSlot.AgentLite, AgentLiteModelPicker, AgentLiteReasoningPicker),
             (ModelSlot.AgentHeavy, AgentHeavyModelPicker, AgentHeavyReasoningPicker),
-            (ModelSlot.SynGuard, SynGuardModelPicker, SynGuardReasoningPicker),
+            (ModelSlot.SynGuard, SecurityPage.SynGuardModelPicker, SecurityPage.SynGuardReasoningPicker),
             (ModelSlot.Summary, SummaryModelPicker, SummaryReasoningPicker)
         ];
 
@@ -1630,7 +1636,7 @@ namespace Amarin.UI
             AgentFastModelPicker,
             AgentLiteModelPicker,
             AgentHeavyModelPicker,
-            SynGuardModelPicker,
+            SecurityPage.SynGuardModelPicker,
             SummaryModelPicker
         ];
 
@@ -1643,7 +1649,7 @@ namespace Amarin.UI
             AgentFastReasoningPicker,
             AgentLiteReasoningPicker,
             AgentHeavyReasoningPicker,
-            SynGuardReasoningPicker,
+            SecurityPage.SynGuardReasoningPicker,
             SummaryReasoningPicker
         ];
 
@@ -1667,6 +1673,7 @@ namespace Amarin.UI
 
             _services.Settings.TechAiPrompt = TechAiPromptTextBox.Text ?? "";
             _services.SettingsStore.Save(_services.Settings);
+            RefreshPromptLinks();
         }
 
         private void SaveTechAgentPromptButton_Click(object sender, RoutedEventArgs e)
@@ -1678,6 +1685,27 @@ namespace Amarin.UI
 
             _services.Settings.TechAgentPrompt = TechAgentPromptTextBox.Text ?? "";
             _services.SettingsStore.Save(_services.Settings);
+            RefreshPromptLinks();
+        }
+
+        /// <summary>
+        /// Значение у строки «Технические промпты ›»: заводские или изменены. Нетронутая копия
+        /// нынешнего заводского текста — тоже заводская: «Сохранить» кладёт текст целиком.
+        /// </summary>
+        private void RefreshPromptLinks()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            var settings = _services.Settings;
+            var changed = Differs(settings.TechAiPrompt, ChatEngine.DefaultTechPrompt) ||
+                          Differs(settings.TechAgentPrompt, Agent.BaseSystemPrompt);
+            TechPromptsLinkRow.Tag = Loc.Get(changed ? "S.Prompts.Tech.Changed" : "S.Prompts.Tech.Default");
+
+            static bool Differs(string? saved, string factory) =>
+                !string.IsNullOrWhiteSpace(saved) && !string.Equals(saved.Trim(), factory.Trim(), StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -1699,6 +1727,7 @@ namespace Amarin.UI
             _services.Settings.TechAiPrompt = "";
             _services.SettingsStore.Save(_services.Settings);
             TechAiPromptTextBox.Text = ChatEngine.DefaultTechPrompt;
+            RefreshPromptLinks();
         }
 
         /// <inheritdoc cref="ResetTechAiPromptButton_Click"/>
@@ -1712,6 +1741,7 @@ namespace Amarin.UI
             _services.Settings.TechAgentPrompt = "";
             _services.SettingsStore.Save(_services.Settings);
             TechAgentPromptTextBox.Text = Agent.BaseSystemPrompt;
+            RefreshPromptLinks();
         }
 
         private void LoadSettingsUi()
@@ -1770,7 +1800,7 @@ namespace Amarin.UI
                 // поля вместо имени ключа осталась бы пустота.
                 PushKeysToPickers();
                 ShowSettingsModelSelections();
-                SynGuardToggle.IsChecked = settings.SynGuardEnabled;
+                SecurityPage.SynGuardToggle.IsChecked = settings.SynGuardEnabled;
                 BindSettingsReasoningPickers();
 
                 MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -1781,6 +1811,7 @@ namespace Amarin.UI
                 TechAgentPromptTextBox.Text = string.IsNullOrWhiteSpace(settings.TechAgentPrompt)
                     ? Agent.BaseSystemPrompt
                     : settings.TechAgentPrompt;
+                RefreshPromptLinks();
             }
             finally
             {
@@ -3262,7 +3293,7 @@ namespace Amarin.UI
             BindSlot(AgentFastReasoningPicker, settings.AgentFastModelId, settings.AgentFastReasoning);
             BindSlot(AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
             BindSlot(AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
-            BindSlot(SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
+            BindSlot(SecurityPage.SynGuardReasoningPicker, settings.SynGuardModelId, settings.SynGuardReasoning);
             BindSlot(SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
         }
 

@@ -6,7 +6,8 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Страница «Безопасность»: режим доступа и выключатели инструментов.
+/// Страница «Безопасность»: режим доступа, SynGuard, план агента, шифрование, выключатели
+/// инструментов и разрешённые источники загрузки.
 /// </summary>
 /// <remarks>
 /// Отдельным <see cref="UserControl"/>, как Key, Info и Instructions: разметка главного окна и так
@@ -37,8 +38,33 @@ public partial class SettingsSecurityPage : UserControl
     /// <summary>Ставится главным окном, когда службы уже собраны.</summary>
     internal void Attach(AppServices services) => _services = services;
 
-    /// <summary>«Заблокировать сейчас»: закрывает окно сам хозяин — экран блокировки его.</summary>
-    internal event EventHandler? LockRequested;
+    /// <summary>«+» у разрешённых источников: диалог домена — у главного окна.</summary>
+    internal event EventHandler? AddDomainRequested;
+
+    /// <summary>«–» у строки источника — домен этой строки.</summary>
+    internal event EventHandler<string>? RemoveDomainRequested;
+
+    /// <summary>
+    /// Показывает разрешённые источники и их число справа у строки «Источники загрузки ›».
+    /// Список ведёт главное окно: его же дополняет вопрос «разрешить домен?» из чата.
+    /// </summary>
+    internal void ShowDomains(IReadOnlyList<string> domains)
+    {
+        AllowedDomainsList.ItemsSource = null;
+        AllowedDomainsList.ItemsSource = domains.ToList();
+        AllowedDomainsEmpty.Visibility = domains.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SourcesLinkRow.Tag = Loc.Format("S.Security.SourcesCount", domains.Count);
+    }
+
+    private void AddDomainButton_Click(object sender, RoutedEventArgs e) => AddDomainRequested?.Invoke(this, EventArgs.Empty);
+
+    private void RemoveDomainButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string domain })
+        {
+            RemoveDomainRequested?.Invoke(this, domain);
+        }
+    }
 
     /// <summary>Наполняет страницу из настроек. Зовётся из <c>LoadSettingsUi</c>.</summary>
     internal void Load(AppSettings settings)
@@ -66,48 +92,12 @@ public partial class SettingsSecurityPage : UserControl
             }
 
             EncryptChatsToggle.IsChecked = settings.EncryptChats;
-            LoadAutoLock(settings);
         }
         finally
         {
             _loading = false;
         }
     }
-
-    /// <summary>
-    /// Автоблокировка: выбор минут и кнопка «Заблокировать сейчас» — только у профиля с паролем.
-    /// </summary>
-    /// <remarks>
-    /// Без пароля снимать блокировку нечем. Сохранённый выбор при этом не стирается: заведёт
-    /// человек пароль — блокировка заработает так, как он её уже настроил.
-    /// </remarks>
-    private void LoadAutoLock(AppSettings settings)
-    {
-        var hasPassword = HasPassword;
-        var minutes = AutoLock.Normalize(settings.AutoLockMinutes);
-        foreach (var item in AutoLockCombo.Items.OfType<ComboBoxItem>())
-        {
-            var value = int.Parse((string)item.Tag, System.Globalization.CultureInfo.InvariantCulture);
-            if (value > 0)
-            {
-                item.Content = Loc.Format("S.Security.Minutes", value);
-            }
-
-            if (value == minutes)
-            {
-                AutoLockCombo.SelectedItem = item;
-            }
-        }
-
-        AutoLockCombo.IsEnabled = hasPassword;
-        LockNowButton.IsEnabled = hasPassword;
-        AutoLockDesc.SetResourceReference(TextBlock.TextProperty,
-            hasPassword ? "S.Security.AutoLockDesc" : "S.Security.AutoLockNeedsPassword");
-        AutoLockDesc.SetResourceReference(TextBlock.ForegroundProperty, hasPassword ? "Text.Dim" : "Status.Warning");
-    }
-
-    private bool HasPassword =>
-        _services is not null && _services.Profiles.Active(_services.ProfileRegistry).HasPassword;
 
     private void EncryptChatsToggle_Changed(object sender, RoutedEventArgs e)
     {
@@ -126,17 +116,6 @@ public partial class SettingsSecurityPage : UserControl
         _services.TextIndex.SaveNow();
     }
 
-    private void AutoLockCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_loading || _services is null || AutoLockCombo.SelectedItem is not ComboBoxItem { Tag: string tag })
-        {
-            return;
-        }
-
-        _services.Settings.AutoLockMinutes = int.Parse(tag, System.Globalization.CultureInfo.InvariantCulture);
-        _services.SettingsStore.Save(_services.Settings);
-    }
-
     private IEnumerable<CheckBox> PlanToggles => [PlanLiteToggle, PlanFastToggle, PlanHeavyToggle];
 
     private void PlanTierToggle_Changed(object sender, RoutedEventArgs e)
@@ -149,8 +128,6 @@ public partial class SettingsSecurityPage : UserControl
         AgentPlanSettings.Set(_services.Settings, tier, toggle.IsChecked == true);
         _services.SettingsStore.Save(_services.Settings);
     }
-
-    private void LockNowButton_Click(object sender, RoutedEventArgs e) => LockRequested?.Invoke(this, EventArgs.Empty);
 
     private IEnumerable<ComboBoxItem> ModeItems => ModeCombo.Items.OfType<ComboBoxItem>();
 

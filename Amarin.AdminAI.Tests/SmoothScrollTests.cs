@@ -37,9 +37,10 @@ public sealed class SmoothScrollTests
                 "ChatScrollViewer",
                 "AppearancePageScroll",
                 "GeneralPageScroll",
-                "CustomizePageScroll",
-                "DataPageScroll",
-                "AllowedDomainsScroll"
+                "ProfilePageScroll",
+                "ModelsPageScroll",
+                "PromptsPageScroll",
+                "DataPageScroll"
             ];
 
             return names
@@ -47,7 +48,7 @@ public sealed class SmoothScrollTests
                 .ToArray();
         });
 
-        Assert.Equal(7, enabled.Length);
+        Assert.Equal(8, enabled.Length);
     }
 
     [Fact]

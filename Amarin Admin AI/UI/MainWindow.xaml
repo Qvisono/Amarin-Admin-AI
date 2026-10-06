@@ -2005,53 +2005,6 @@
                     <Setter Property="Margin" Value="18,12,8,4"/>
                 </Style>
 
-
-                <!-- ===== Мелкий раскрывающийся пункт (модель SynGuard) =====
-                     Тот же приём с шевроном, что у ActionExpanderToggle, но по размеру подписи:
-                     тот занимает строку целиком и уводит шеврон к правому краю, а здесь стрелка
-                     обязана стоять сразу за текстом, иначе непонятно, что раскрывает. -->
-                <Style x:Key="InlineExpanderToggle" TargetType="ToggleButton">
-                    <Setter Property="Cursor" Value="Hand"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ToggleButton">
-                                <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="6,3">
-                                    <StackPanel Orientation="Horizontal">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                        <Path x:Name="Chevron" Data="M0,0 L4,4 L8,0"
-                                              Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.4"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                              Width="9" Height="5" Stretch="Uniform"
-                                              VerticalAlignment="Center" Margin="7,1,0,0"
-                                              RenderTransformOrigin="0.5,0.5">
-                                            <Path.RenderTransform>
-                                                <RotateTransform Angle="0"/>
-                                            </Path.RenderTransform>
-                                        </Path>
-                                    </StackPanel>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
-                                        <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
-                                    </Trigger>
-                                    <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Chevron" Property="RenderTransform">
-                                            <Setter.Value>
-                                                <RotateTransform Angle="180"/>
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Text.Tertiary}"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-
-
-
-
                 <!--
                     Нижняя половина плашки «версия и репозиторий». Своим шаблоном, а не Hyperlink:
                     Hyperlink живёт только внутри текстового потока и тянет собственное
@@ -2516,8 +2469,12 @@
                             </Button.Template>
                         </Button>
 
-                        <!-- ═══════════ ACCOUNT ═══════════ -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+                        <!-- ═══════════ ПРОФИЛЬ ═══════════ -->
+                        <!--
+                            Кто вы и как закрыт вход. Автоблокировка и «Заблокировать» — здесь, у пароля: без
+                            него они не работают, а на странице защиты пояснение отсылало на другую страницу.
+                        -->
+                        <ScrollViewer x:Name="ProfilePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -2529,9 +2486,9 @@
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Account.Title}"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Profile.Title}"/>
 
-                                <!-- Карточка аккаунта — первой группой, той же карточкой, что строки ниже. -->
+                                <!-- Карточка профиля — первой группой, той же карточкой, что строки ниже. -->
                                 <Border Style="{StaticResource SettingsGroup}" Padding="14,10">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -2559,7 +2516,7 @@
                                     </Grid>
                                 </Border>
 
-                                <!-- Как вас видно (картинка, имя) и как вход закрыт (пароль) — две группы. -->
+                                <!-- Как вас видно (картинка, имя) и как вход закрыт (пароль и блокировка) — две группы. -->
                                 <Border Style="{StaticResource SettingsGroup}">
                                     <StackPanel>
                                         <Grid Style="{StaticResource GroupRow}">
@@ -2584,6 +2541,7 @@
                                     </StackPanel>
                                 </Border>
 
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Profile.Group.Lock}"/>
                                 <Border Style="{StaticResource SettingsGroup}">
                                     <StackPanel>
                                         <Grid Style="{StaticResource GroupRow}">
@@ -2613,12 +2571,47 @@
                                             <CheckBox AutomationProperties.Name="{DynamicResource S.Account.PasswordAtStartup}" x:Name="LockOnStartupToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
                                                       Checked="LockOnStartupToggle_Changed" Unchecked="LockOnStartupToggle_Changed"/>
                                         </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AutoLock}"/>
+                                                <TextBlock x:Name="AutoLockDesc" Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AutoLockDesc}"/>
+                                            </StackPanel>
+                                            <ComboBox x:Name="AutoLockCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="140"
+                                                      AutomationProperties.Name="{DynamicResource S.Security.AutoLock}"
+                                                      SelectionChanged="AutoLockCombo_SelectionChanged">
+                                                <ComboBoxItem Tag="0" Content="{DynamicResource S.Security.AutoLockOff}"/>
+                                                <ComboBoxItem Tag="5"/>
+                                                <ComboBoxItem Tag="15"/>
+                                                <ComboBoxItem Tag="30"/>
+                                                <ComboBoxItem Tag="60"/>
+                                            </ComboBox>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                                       Text="{DynamicResource S.Security.LockNowTitle}"/>
+                                            <Button x:Name="LockNowButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                                    Content="{DynamicResource S.Security.LockNow}" Click="LockNowButton_Click"/>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <!-- ═══════════ APPEARANCE ═══════════ -->
+                        <!-- ═══════════ ОФОРМЛЕНИЕ ═══════════ -->
+                        <!--
+                            Тема (сетка из 53 карточек, 14 рядов) и фон с акцентом — подстраницами «›»: на одной
+                            странице они закапывали всё остальное. На первом уровне — интерфейс и компактное поле.
+                        -->
                         <ScrollViewer x:Name="AppearancePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
@@ -2630,11 +2623,29 @@
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
+                            <Grid local:SettingsDrill.IsHost="True">
                             <StackPanel Margin="20,14,20,16">
                                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Appearance.Title}"/>
 
-                                <!-- Размеры и форматы — одной группой; размер текста ленты и шрифт кода (I3)
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Button x:Name="ThemeLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                                local:SettingsDrill.Opens="{Binding ElementName=AppearanceThemeSub}"
+                                                AutomationProperties.Name="{DynamicResource S.Appearance.Theme}">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Theme}"/>
+                                        </Button>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Button x:Name="BackdropLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                                local:SettingsDrill.Opens="{Binding ElementName=AppearanceBackdropSub}"
+                                                AutomationProperties.Name="{DynamicResource S.Appearance.BackdropAccent}">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.BackdropAccent}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Размеры, шрифты и углы — одной группой; размер текста ленты и шрифт кода (I3)
                                      дописывает в неё AccessibilityBlock своими строками. -->
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Appearance.Interface}"/>
                                 <Border Style="{StaticResource SettingsGroup}">
                                     <StackPanel>
                                         <Grid Style="{StaticResource GroupRow}">
@@ -2662,6 +2673,48 @@
                                             </ComboBox>
                                         </Grid>
                                         <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Font}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Appearance.FontDesc}"/>
+                                            </StackPanel>
+                                            <ComboBox x:Name="FontCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                                      MinWidth="130" VerticalAlignment="Center"
+                                                      SelectionChanged="FontCombo_SelectionChanged">
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.FontSystem}" Tag=""/>
+                                                <ComboBoxItem Content="Urbanist" Tag="Urbanist"/>
+                                                <ComboBoxItem Content="Outfit" Tag="Outfit"/>
+                                                <ComboBoxItem Content="Rubik" Tag="Rubik"/>
+                                                <ComboBoxItem Content="Arimo" Tag="Arimo"/>
+                                            </ComboBox>
+                                        </Grid>
+                                        <local:AccessibilityBlock x:Name="AccessibilitySettings"/>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ChatWidth}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Appearance.ChatWidthDesc}"/>
+                                            </StackPanel>
+                                            <ComboBox x:Name="ChatWidthCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                                      MinWidth="130" VerticalAlignment="Center"
+                                                      SelectionChanged="ChatWidthCombo_SelectionChanged">
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNarrow}" Tag="760"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNormal}" Tag="1070"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthWide}" Tag="1400"/>
+                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthFull}" Tag="100000"/>
+                                            </ComboBox>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
                                         <!-- Углы окна рисует Windows 11, и видов у неё ровно три — см. WindowCornerStyle. -->
                                         <Grid Style="{StaticResource GroupRow}">
                                             <Grid.ColumnDefinitions>
@@ -2680,11 +2733,154 @@
                                                 <ComboBoxItem Content="{DynamicResource S.Appearance.CornersSquare}" Tag="Square"/>
                                             </ComboBox>
                                         </Grid>
-                                        <local:AccessibilityBlock x:Name="AccessibilitySettings"/>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="140"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="46"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.InputRadius}"
+                                                       VerticalAlignment="Center"/>
+                                            <Slider x:Name="CornerRadiusSlider" Grid.Column="1"
+                                                    Style="{StaticResource SettingsRangeSlider}"
+                                                    Minimum="0" Maximum="20" SmallChange="1" LargeChange="2"/>
+                                            <TextBlock x:Name="CornerRadiusValue" Grid.Column="2"
+                                                       Style="{StaticResource SettingValue}"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Grain}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Appearance.GrainDesc}"/>
+                                            </StackPanel>
+                                            <Grid Grid.Column="1" Width="176" VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="46"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Slider x:Name="GrainSlider"
+                                                        Style="{StaticResource SettingsRangeSlider}"
+                                                        Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"/>
+                                                <TextBlock x:Name="GrainValue" Grid.Column="1"
+                                                           Style="{StaticResource SettingValue}"/>
+                                            </Grid>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Animations}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Appearance.AnimationsDesc}"/>
+                                            </StackPanel>
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Animations}" x:Name="AnimationsToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="AnimationsToggle_Changed" Unchecked="AnimationsToggle_Changed"/>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
 
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Appearance.Theme}"/>
+                                <!-- Компактное поле ввода: переключатель и его настройки — одной группой. -->
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource GroupRow}" Margin="0,11,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.CompactComposer}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                           Text="{DynamicResource S.Appearance.CompactComposerDesc}"/>
+                                            </StackPanel>
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.CompactComposer}" x:Name="CompactComposerToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="CompactComposerToggle_Changed"
+                                                      Unchecked="CompactComposerToggle_Changed"/>
+                                        </Grid>
+
+                                        <StackPanel x:Name="CompactBody" Style="{StaticResource NestedPanel}"
+                                                    IsEnabled="{Binding IsChecked, ElementName=CompactComposerToggle}">
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.MouseReaction}"/>
+                                                    <TextBlock Style="{StaticResource SettingDesc}"
+                                                               Text="{DynamicResource S.Appearance.MouseReactionDesc}"/>
+                                                </StackPanel>
+                                                <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.MouseReaction}" x:Name="CompactHoverToggle" Grid.Column="1"
+                                                          Style="{StaticResource SettingsToggle}"
+                                                          Checked="CompactHoverToggle_Changed"
+                                                          Unchecked="CompactHoverToggle_Changed"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="46"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Delay}"
+                                                           VerticalAlignment="Center"/>
+                                                <Slider x:Name="CompactDelaySlider" Grid.Column="1"
+                                                        Style="{StaticResource SettingsRangeSlider}"
+                                                        Minimum="300" Maximum="5000" SmallChange="50" LargeChange="250"/>
+                                                <TextBlock x:Name="CompactDelayValue" Grid.Column="2"
+                                                           Style="{StaticResource SettingValue}"/>
+                                            </Grid>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="46"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.StripWidth}"
+                                                           VerticalAlignment="Center"/>
+                                                <Slider x:Name="CompactWidthSlider" Grid.Column="1"
+                                                        Style="{StaticResource SettingsRangeSlider}"
+                                                        Minimum="30" Maximum="100" SmallChange="1" LargeChange="5"/>
+                                                <TextBlock x:Name="CompactWidthValue" Grid.Column="2"
+                                                           Style="{StaticResource SettingValue}"/>
+                                            </Grid>
+                                            <Grid IsEnabled="{Binding IsChecked, ElementName=CompactHoverToggle}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="140"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="46"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ReactionRadius}"/>
+                                                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.ReactionRadiusDesc}"/>
+                                                </StackPanel>
+                                                <Slider x:Name="CompactHoverSlider" Grid.Column="1"
+                                                        Style="{StaticResource SettingsRangeSlider}"
+                                                        Minimum="25" Maximum="400" SmallChange="5" LargeChange="20"/>
+                                                <TextBlock x:Name="CompactHoverValue" Grid.Column="2"
+                                                           Style="{StaticResource SettingValue}"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Button x:Name="ResetAppearanceButton" Style="{StaticResource SecondaryButton}"
+                                        HorizontalAlignment="Left" Margin="0,4,0,0" Content="{DynamicResource S.Appearance.Reset}"
+                                        Click="ResetAppearanceButton_Click"/>
+                            </StackPanel>
+
+                            <!-- Тема: сетка карточек из ThemeCatalog и «как в Windows» — одной группой, как в концепте. -->
+                            <StackPanel x:Name="AppearanceThemeSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Appearance.Theme}"/>
                                 <Border Style="{StaticResource SettingsGroup}" Padding="14,14,14,2">
                                     <StackPanel>
                                         <!-- Карточки строятся кодом из ThemeCatalog.Presets: новая тема = одна строка в каталоге -->
@@ -2723,7 +2919,11 @@
                                         </Grid>
                                     </StackPanel>
                                 </Border>
+                            </StackPanel>
 
+                            <!-- Фон и акцент: главный переключатель с акцентом, под ним фон и стекло — гаснут вместе с ним. -->
+                            <StackPanel x:Name="AppearanceBackdropSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Appearance.BackdropAccent}"/>
                                 <!--
                                     Оформление: главный переключатель и акцент — одна группа, фон и стекло —
                                     свои, под подписями. Всё ниже переключателя гаснет вместе с ним.
@@ -2995,194 +3195,8 @@
                                         </Border>
                                     </StackPanel>
                                 </StackPanel>
-
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Appearance.Interface}"/>
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Font}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Appearance.FontDesc}"/>
-                                            </StackPanel>
-                                            <ComboBox x:Name="FontCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                                      MinWidth="130" VerticalAlignment="Center"
-                                                      SelectionChanged="FontCombo_SelectionChanged">
-                                                <ComboBoxItem Content="{DynamicResource S.Appearance.FontSystem}" Tag=""/>
-                                                <ComboBoxItem Content="Urbanist" Tag="Urbanist"/>
-                                                <ComboBoxItem Content="Outfit" Tag="Outfit"/>
-                                                <ComboBoxItem Content="Rubik" Tag="Rubik"/>
-                                                <ComboBoxItem Content="Arimo" Tag="Arimo"/>
-                                            </ComboBox>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ChatWidth}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Appearance.ChatWidthDesc}"/>
-                                            </StackPanel>
-                                            <ComboBox x:Name="ChatWidthCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
-                                                      MinWidth="130" VerticalAlignment="Center"
-                                                      SelectionChanged="ChatWidthCombo_SelectionChanged">
-                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNarrow}" Tag="760"/>
-                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthNormal}" Tag="1070"/>
-                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthWide}" Tag="1400"/>
-                                                <ComboBoxItem Content="{DynamicResource S.Appearance.WidthFull}" Tag="100000"/>
-                                            </ComboBox>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="140"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="46"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.InputRadius}"
-                                                       VerticalAlignment="Center"/>
-                                            <Slider x:Name="CornerRadiusSlider" Grid.Column="1"
-                                                    Style="{StaticResource SettingsRangeSlider}"
-                                                    Minimum="0" Maximum="20" SmallChange="1" LargeChange="2"/>
-                                            <TextBlock x:Name="CornerRadiusValue" Grid.Column="2"
-                                                       Style="{StaticResource SettingValue}"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Grain}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Appearance.GrainDesc}"/>
-                                            </StackPanel>
-                                            <Grid Grid.Column="1" Width="176" VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="46"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Slider x:Name="GrainSlider"
-                                                        Style="{StaticResource SettingsRangeSlider}"
-                                                        Minimum="0" Maximum="1" SmallChange="0.01" LargeChange="0.1"/>
-                                                <TextBlock x:Name="GrainValue" Grid.Column="1"
-                                                           Style="{StaticResource SettingValue}"/>
-                                            </Grid>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Animations}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Appearance.AnimationsDesc}"/>
-                                            </StackPanel>
-                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.Animations}" x:Name="AnimationsToggle" Grid.Column="1"
-                                                      Style="{StaticResource SettingsToggle}"
-                                                      Checked="AnimationsToggle_Changed" Unchecked="AnimationsToggle_Changed"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Компактное поле ввода: переключатель и его настройки — одной группой. -->
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}" Margin="0,11,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.CompactComposer}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Appearance.CompactComposerDesc}"/>
-                                            </StackPanel>
-                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.CompactComposer}" x:Name="CompactComposerToggle" Grid.Column="1"
-                                                      Style="{StaticResource SettingsToggle}"
-                                                      Checked="CompactComposerToggle_Changed"
-                                                      Unchecked="CompactComposerToggle_Changed"/>
-                                        </Grid>
-
-                                        <StackPanel x:Name="CompactBody" Style="{StaticResource NestedPanel}"
-                                                    IsEnabled="{Binding IsChecked, ElementName=CompactComposerToggle}">
-                                            <Grid Margin="0,0,0,10">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.MouseReaction}"/>
-                                                    <TextBlock Style="{StaticResource SettingDesc}"
-                                                               Text="{DynamicResource S.Appearance.MouseReactionDesc}"/>
-                                                </StackPanel>
-                                                <CheckBox AutomationProperties.Name="{DynamicResource S.Appearance.MouseReaction}" x:Name="CompactHoverToggle" Grid.Column="1"
-                                                          Style="{StaticResource SettingsToggle}"
-                                                          Checked="CompactHoverToggle_Changed"
-                                                          Unchecked="CompactHoverToggle_Changed"/>
-                                            </Grid>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="140"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="46"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.Delay}"
-                                                           VerticalAlignment="Center"/>
-                                                <Slider x:Name="CompactDelaySlider" Grid.Column="1"
-                                                        Style="{StaticResource SettingsRangeSlider}"
-                                                        Minimum="300" Maximum="5000" SmallChange="50" LargeChange="250"/>
-                                                <TextBlock x:Name="CompactDelayValue" Grid.Column="2"
-                                                           Style="{StaticResource SettingValue}"/>
-                                            </Grid>
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="140"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="46"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.StripWidth}"
-                                                           VerticalAlignment="Center"/>
-                                                <Slider x:Name="CompactWidthSlider" Grid.Column="1"
-                                                        Style="{StaticResource SettingsRangeSlider}"
-                                                        Minimum="30" Maximum="100" SmallChange="1" LargeChange="5"/>
-                                                <TextBlock x:Name="CompactWidthValue" Grid.Column="2"
-                                                           Style="{StaticResource SettingValue}"/>
-                                            </Grid>
-                                            <Grid IsEnabled="{Binding IsChecked, ElementName=CompactHoverToggle}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="140"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="46"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Appearance.ReactionRadius}"/>
-                                                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Appearance.ReactionRadiusDesc}"/>
-                                                </StackPanel>
-                                                <Slider x:Name="CompactHoverSlider" Grid.Column="1"
-                                                        Style="{StaticResource SettingsRangeSlider}"
-                                                        Minimum="25" Maximum="400" SmallChange="5" LargeChange="20"/>
-                                                <TextBlock x:Name="CompactHoverValue" Grid.Column="2"
-                                                           Style="{StaticResource SettingValue}"/>
-                                            </Grid>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-
-                                <Button x:Name="ResetAppearanceButton" Style="{StaticResource SecondaryButton}"
-                                        HorizontalAlignment="Left" Margin="0,4,0,0" Content="{DynamicResource S.Appearance.Reset}"
-                                        Click="ResetAppearanceButton_Click"/>
                             </StackPanel>
+                            </Grid>
                         </ScrollViewer>
 
                         <!-- ═══════════ ОБЩИЕ ═══════════ -->
@@ -3401,8 +3415,13 @@
                             </Grid>
                         </ScrollViewer>
 
-                        <!-- ═══════════ CUSTOMIZE ═══════════ -->
-                        <ScrollViewer x:Name="CustomizePageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+                        <!-- ═══════════ МОДЕЛИ ═══════════ -->
+                        <!--
+                            Три группы: ответ в чате, агент, служебные задачи. Строка — подпись, размышление, модель.
+                            Приставка «Агент -» ушла в подпись группы; SynGuard — на «Безопасности», промпты — своей
+                            страницей: три больших редактора стояли под десятью строками моделей.
+                        -->
+                        <ScrollViewer x:Name="ModelsPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -3410,17 +3429,13 @@
                                         <DataTrigger Binding="{Binding IsChecked, ElementName=NavModels}" Value="True">
                                             <Setter Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavPrompts}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
                             <StackPanel Margin="20,14,20,16">
-                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Customize.Title}"/>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Models.Title}"/>
 
-                                <!-- Разделы — группами с подписью над ними; строка — подпись, размышление, модель. -->
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Customize.AnswerModels}"/>
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Models.Group.Answer}"/>
                                 <Border Style="{StaticResource SettingsGroup}">
                                     <StackPanel>
                                         <Grid Style="{StaticResource GroupRowDense}">
@@ -3477,7 +3492,60 @@
                                     </StackPanel>
                                 </Border>
 
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Customize.ServiceModels}"/>
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Models.Group.Agent}"/>
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource GroupRowDense}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Models.Fast}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                                   Margin="8,0" VerticalAlignment="Center"
+                                                                   ChoiceChanged="SettingsReasoningChanged"/>
+                                            <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2"
+                                                      ModelPicked="SettingsModelPicked"
+                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
+                                                      ProviderShown="SettingsPickerProviderShown"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRowDense}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Light}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                                   Margin="8,0" VerticalAlignment="Center"
+                                                                   ChoiceChanged="SettingsReasoningChanged"/>
+                                            <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2"
+                                                      ModelPicked="SettingsModelPicked"
+                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
+                                                      ProviderShown="SettingsPickerProviderShown"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRowDense}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.Heavy}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                                                   Margin="8,0" VerticalAlignment="Center"
+                                                                   ChoiceChanged="SettingsReasoningChanged"/>
+                                            <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2"
+                                                      ModelPicked="SettingsModelPicked"
+                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
+                                                      ProviderShown="SettingsPickerProviderShown"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Models.Group.Service}"/>
                                 <Border Style="{StaticResource SettingsGroup}">
                                     <StackPanel>
                                         <Grid Style="{StaticResource GroupRowDense}">
@@ -3529,122 +3597,27 @@
                                                       Changed="WebSearchTargetChanged"
                                                       AddKeyRequested="SettingsPickerAddKeyRequested"/>
                                         </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRowDense}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentFast}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <local:ReasoningPicker x:Name="AgentFastReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
-                                                                   Margin="8,0" VerticalAlignment="Center"
-                                                                   ChoiceChanged="SettingsReasoningChanged"/>
-                                            <local:ModelPickerField x:Name="AgentFastModelPicker" Grid.Column="2"
-                                                      ModelPicked="SettingsModelPicked"
-                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
-                                                      ProviderShown="SettingsPickerProviderShown"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRowDense}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentLight}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <local:ReasoningPicker x:Name="AgentLiteReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
-                                                                   Margin="8,0" VerticalAlignment="Center"
-                                                                   ChoiceChanged="SettingsReasoningChanged"/>
-                                            <local:ModelPickerField x:Name="AgentLiteModelPicker" Grid.Column="2"
-                                                      ModelPicked="SettingsModelPicked"
-                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
-                                                      ProviderShown="SettingsPickerProviderShown"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRowDense}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Customize.AgentHeavy}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <local:ReasoningPicker x:Name="AgentHeavyReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
-                                                                   Margin="8,0" VerticalAlignment="Center"
-                                                                   ChoiceChanged="SettingsReasoningChanged"/>
-                                            <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2"
-                                                      ModelPicked="SettingsModelPicked"
-                                                      AddKeyRequested="SettingsPickerAddKeyRequested"
-                                                      ProviderShown="SettingsPickerProviderShown"/>
-                                        </Grid>
                                     </StackPanel>
                                 </Border>
+                            </StackPanel>
+                        </ScrollViewer>
 
-                                <!-- ═══ SynGuard ═══ -->
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Customize.Protection}"/>
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <!-- Имя защитника не переводится: это название, а не подпись. -->
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="SynGuard"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                           Text="{DynamicResource S.Customize.GuardDesc}"/>
-                                                <!-- Модель защитника: голым ID и мелко — она нужна редко, а места
-                                                     под три модели агента рядом уже нет. -->
-                                                <ToggleButton x:Name="SynGuardModelToggle" Style="{StaticResource InlineExpanderToggle}"
-                                                              HorizontalAlignment="Left" Margin="0,6,0,0">
-                                                    <TextBlock x:Name="SynGuardModelLabel" FontSize="11"
-                                                               Foreground="{DynamicResource Text.Faint}"
-                                                               VerticalAlignment="Center"/>
-                                                </ToggleButton>
-                                            </StackPanel>
-                                            <CheckBox x:Name="SynGuardToggle" AutomationProperties.Name="SynGuard" Grid.Column="1"
-                                                      Style="{StaticResource SettingsToggle}"
-                                                      Checked="SynGuardToggle_Changed" Unchecked="SynGuardToggle_Changed"/>
-                                        </Grid>
-
-                                        <!-- Раскрытый выбор — ещё одной строкой той же группы, а не рамкой в рамке. -->
-                                        <StackPanel>
-                                            <StackPanel.Style>
-                                                <Style TargetType="StackPanel">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsChecked, ElementName=SynGuardModelToggle}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </StackPanel.Style>
-                                            <Border Style="{StaticResource GroupDivider}"/>
-                                            <Grid Style="{StaticResource GroupRowDense}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource SettingTitle}" TextWrapping="Wrap"
-                                                           Margin="0,0,8,0" VerticalAlignment="Center"
-                                                           Text="{DynamicResource S.Customize.GuardModel}"/>
-                                                <local:ReasoningPicker x:Name="SynGuardReasoningPicker" Grid.Column="1"
-                                                                       Height="28" MinWidth="72" ShowGaugeIcon="True"
-                                                                       Margin="8,0" VerticalAlignment="Center"
-                                                                       ChoiceChanged="SettingsReasoningChanged"/>
-                                                <local:ModelPickerField x:Name="SynGuardModelPicker" Grid.Column="2"
-                                                          VerticalAlignment="Center"
-                                                          ModelPicked="SettingsModelPicked"
-                                                          AddKeyRequested="SettingsPickerAddKeyRequested"
-                                                          ProviderShown="SettingsPickerProviderShown"/>
-                                            </Grid>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-
-                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Customize.SystemPrompts}"/>
+                        <!-- ═══════════ ПРОМПТЫ ═══════════ -->
+                        <!-- Основной промпт и библиотека заготовок; технические — подстраницей: их меняют раз в жизни. -->
+                        <ScrollViewer x:Name="PromptsPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavPrompts}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <Grid local:SettingsDrill.IsHost="True">
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Prompts.Title}"/>
 
                                 <!-- Основной промпт ИИ. Подпись — внутри карточки, как у строк групп. -->
                                 <Border Style="{StaticResource PromptEditor}">
@@ -3696,6 +3669,20 @@
                                     </StackPanel>
                                 </Border>
 
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <Button x:Name="TechPromptsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                            local:SettingsDrill.Opens="{Binding ElementName=PromptsTechSub}"
+                                            AutomationProperties.Name="{DynamicResource S.Prompts.Tech}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Prompts.Tech}"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Prompts.TechDesc}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel x:Name="PromptsTechSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Prompts.Tech}"/>
                                 <!-- Технический промпт ИИ -->
                                 <Border Style="{StaticResource PromptEditor}">
                                     <Grid>
@@ -3738,6 +3725,7 @@
                                     </Grid>
                                 </Border>
                             </StackPanel>
+                            </Grid>
                         </ScrollViewer>
 
                         <!-- ═══════════ DATA CONTROLS ═══════════ -->
@@ -4042,48 +4030,6 @@
                                                       Style="{StaticResource SettingsToggle}"
                                                       Checked="BetaChannelToggle_Changed"
                                                       Unchecked="BetaChannelToggle_Changed"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Разрешённые сайты: заголовок строкой группы, список — под чертой в ней же. -->
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <StackPanel VerticalAlignment="Center" Margin="0,0,34,0">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Allowlist}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AllowlistDesc}"/>
-                                            </StackPanel>
-                                            <Button x:Name="AddDomainButton" Style="{StaticResource SecondaryButton}"
-                                                    HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                    Content="+" Width="26" Padding="0" FontSize="14"
-                                                    Click="AddDomainButton_Click"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <!-- Поля строк списка (8) — внутрь группы, чтобы адрес стоял по краю подписи. -->
-                                        <Grid Margin="-8,4,-8,4">
-                                            <TextBlock x:Name="AllowedDomainsEmpty" Margin="8,7"
-                                                       Text="{DynamicResource S.Data.AllowlistEmpty}"
-                                                       FontSize="12" Foreground="{DynamicResource Text.Faint}"
-                                                       Visibility="Collapsed"/>
-                                            <ScrollViewer x:Name="AllowedDomainsScroll" MaxHeight="152" VerticalScrollBarVisibility="Auto">
-                                                <ItemsControl x:Name="AllowedDomainsList">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Grid Margin="8,5">
-                                                                <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
-                                                                           Foreground="{DynamicResource Text.Tertiary}"
-                                                                           VerticalAlignment="Center" Margin="0,0,30,0"
-                                                                           TextTrimming="CharacterEllipsis"/>
-                                                                <Button Style="{StaticResource SecondaryButton}" HorizontalAlignment="Right"
-                                                                        Content="–" Width="22" Height="22" Padding="0"
-                                                                        Tag="{Binding}" ToolTip="{DynamicResource S.Data.AllowlistRemove}"
-                                                                        Click="RemoveDomainButton_Click"/>
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </ScrollViewer>
                                         </Grid>
                                     </StackPanel>
                                 </Border>

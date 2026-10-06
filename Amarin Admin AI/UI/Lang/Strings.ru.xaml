@@ -61,7 +61,7 @@
     <system:String x:Key="S.Account.PasswordAtStartup" xml:space="preserve">Пароль при запуске</system:String>
     <system:String x:Key="S.Account.PasswordAtStartupDesc" xml:space="preserve">Блокирует вход в приложение. Шифрование чатов на диске включается на странице «Безопасность»</system:String>
     <system:String x:Key="S.Account.PasswordNotSet" xml:space="preserve">Не задан</system:String>
-    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Он закрывает вход в программу, но не шифрует чаты. Шифрование и автоблокировка — на странице Security.</system:String>
+    <system:String x:Key="S.Account.PasswordSaved" xml:space="preserve">Он закрывает вход в программу, но не шифрует чаты. Шифрование — на странице «Безопасность», автоблокировка — здесь же, под паролем.</system:String>
     <system:String x:Key="S.Account.PasswordSavedTitle" xml:space="preserve">Пароль сохранён</system:String>
     <system:String x:Key="S.Account.PasswordSet" xml:space="preserve">Задан</system:String>
     <system:String x:Key="S.Account.ProfileCurrent" xml:space="preserve">текущий</system:String>
@@ -123,10 +123,12 @@
     <system:String x:Key="S.AgentRun.TruncatedByTokens" xml:space="preserve">[Ответ обрезан лимитом токенов модели]</system:String>
     <system:String x:Key="S.Appearance.Accent" xml:space="preserve">Акцентный цвет</system:String>
     <system:String x:Key="S.Appearance.AccentDesc" xml:space="preserve">Заливка основных кнопок. «По теме» - цвет из палитры</system:String>
+    <system:String x:Key="S.Appearance.AccentOnly" xml:space="preserve">Только акцент</system:String>
     <system:String x:Key="S.Appearance.Angle" xml:space="preserve">Наклон</system:String>
     <system:String x:Key="S.Appearance.Animations" xml:space="preserve">Анимации</system:String>
     <system:String x:Key="S.Appearance.AnimationsDesc" xml:space="preserve">Движение фона и сворачивание поля ввода</system:String>
     <system:String x:Key="S.Appearance.Backdrop" xml:space="preserve">Фон</system:String>
+    <system:String x:Key="S.Appearance.BackdropAccent" xml:space="preserve">Фон и акцент</system:String>
     <system:String x:Key="S.Appearance.BackgroundBadFormat" xml:space="preserve">Такой формат картинки программа не переносит в архив данных. Подойдут: {0}</system:String>
     <system:String x:Key="S.Appearance.BackgroundDialog" xml:space="preserve">Фоновое изображение</system:String>
     <system:String x:Key="S.Appearance.BackgroundFailedTitle" xml:space="preserve">Фон не поставить</system:String>
@@ -187,6 +189,7 @@
     <system:String x:Key="S.Appearance.StripWidth" xml:space="preserve">Ширина полоски</system:String>
     <system:String x:Key="S.Appearance.Theme" xml:space="preserve">Тема</system:String>
     <system:String x:Key="S.Appearance.ThemeDesc" xml:space="preserve">Цветовая палитра приложения</system:String>
+    <system:String x:Key="S.Appearance.ThemeSystem" xml:space="preserve">Как в Windows</system:String>
     <system:String x:Key="S.Appearance.UiScale" xml:space="preserve">Масштаб интерфейса</system:String>
     <system:String x:Key="S.Appearance.UiScaleDesc" xml:space="preserve">Размер элементов и текста</system:String>
     <system:String x:Key="S.Appearance.Vignette" xml:space="preserve">Виньетка</system:String>
@@ -630,7 +633,7 @@
     <system:String x:Key="S.General.Group.Language" xml:space="preserve">Язык и формат</system:String>
     <system:String x:Key="S.General.Group.Notifications" xml:space="preserve">Уведомления</system:String>
     <system:String x:Key="S.Guard.Action" xml:space="preserve">Действие: {0}</system:String>
-    <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.</system:String>
+    <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Добавьте домен в Настройки → Безопасность → Источники загрузки.</system:String>
     <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.</system:String>
     <system:String x:Key="S.Guard.CleanupCategories" xml:space="preserve">Категории очистки (только фиксированные пути):</system:String>
     <system:String x:Key="S.Guard.CleanupPathIgnored" xml:space="preserve">Параметр path на cleanup НЕ влияет - произвольные пути не удаляются.</system:String>
@@ -839,7 +842,7 @@
     <system:String x:Key="S.Image.Loading" xml:space="preserve">Загрузка изображения…</system:String>
     <system:String x:Key="S.Image.Unavailable" xml:space="preserve">Изображение недоступно: {0}</system:String>
     <system:String x:Key="S.Image.UnavailableAlt" xml:space="preserve">{0} (изображение недоступно)</system:String>
-    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">«Key &amp; Info» → «Добавить ключ» с выбранным OpenRouter</system:String>
+    <system:String x:Key="S.Info.Or.Shot.AddKey" xml:space="preserve">«Ключи и траты» → «Добавить ключ» с выбранным OpenRouter</system:String>
     <system:String x:Key="S.Info.Or.Shot.Credits" xml:space="preserve">Раздел Credits: пополнение баланса</system:String>
     <system:String x:Key="S.Info.Or.Shot.Keys" xml:space="preserve">Страница ключей OpenRouter</system:String>
     <system:String x:Key="S.Info.Or.Shot.Models" xml:space="preserve">Выбор модели со столбцом OpenRouter</system:String>
@@ -850,10 +853,10 @@
     <system:String x:Key="S.Info.Or.Step2.Text" xml:space="preserve">Модели оплачиваются с баланса учётной записи — пополните его в разделе Credits. Оценку цены следующего ответа программа показывает рядом с кольцом контекста.</system:String>
     <system:String x:Key="S.Info.Or.Step2.Title" xml:space="preserve">Пополните баланс</system:String>
     <system:String x:Key="S.Info.Or.Step3.Button" xml:space="preserve">Открыть ключи OpenRouter</system:String>
-    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">Ключу можно задать лимит трат на стороне OpenRouter — вторая страховка к лимитам программы на странице «Key &amp; Info».</system:String>
+    <system:String x:Key="S.Info.Or.Step3.Limit" xml:space="preserve">Ключу можно задать лимит трат на стороне OpenRouter — вторая страховка к лимитам программы на странице «Ключи и траты».</system:String>
     <system:String x:Key="S.Info.Or.Step3.Text" xml:space="preserve">На странице ключей создайте новый ключ и сразу скопируйте его.</system:String>
     <system:String x:Key="S.Info.Or.Step3.Title" xml:space="preserve">Создайте ключ</system:String>
-    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">На странице «Key &amp; Info» нажмите «Добавить ключ», выберите OpenRouter и вставьте ключ — он хранится зашифрованным средствами Windows. Можно и переменной окружения OPENROUTER_API_KEY: тогда программа ключ не хранит.</system:String>
+    <system:String x:Key="S.Info.Or.Step4.Text" xml:space="preserve">На странице «Ключи и траты» нажмите «Добавить ключ», выберите OpenRouter и вставьте ключ — он хранится зашифрованным средствами Windows. Можно и переменной окружения OPENROUTER_API_KEY: тогда программа ключ не хранит.</system:String>
     <system:String x:Key="S.Info.Or.Step4.Title" xml:space="preserve">Добавьте ключ в программу</system:String>
     <system:String x:Key="S.Info.Or.Step5.Text" xml:space="preserve">В выборе модели появится столбец OpenRouter. У каждого слота моделей свой провайдер и свой ключ. Варианты с пометкой :batch вдвое дешевле, но отвечают через очередь — минутами.</system:String>
     <system:String x:Key="S.Info.Or.Step5.Title" xml:space="preserve">Выберите модели</system:String>
@@ -919,7 +922,7 @@
     <system:String x:Key="S.Limit.PeriodAsk" xml:space="preserve">Достигнут {0}: {1}, потрачено {2}. Продолжить этот ход? До его конца запросы пойдут без вопроса.</system:String>
     <system:String x:Key="S.Limit.PeriodTitle" xml:space="preserve">Лимит трат достигнут</system:String>
     <system:String x:Key="S.Limit.Profile" xml:space="preserve">Все ключи</system:String>
-    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Достигнут {0} ({1}, потрачено {2}). Запрос не отправлен; повтор не поможет — лимиты меняют в настройках, на странице Key &amp; Info.</system:String>
+    <system:String x:Key="S.Limit.Reached" xml:space="preserve">Достигнут {0} ({1}, потрачено {2}). Запрос не отправлен; повтор не поможет — лимиты меняют в настройках, на странице «Ключи и траты».</system:String>
     <system:String x:Key="S.Limit.Section" xml:space="preserve">Лимиты и оповещения</system:String>
     <system:String x:Key="S.Limit.SectionDesc" xml:space="preserve">Сколько можно тратить и когда предупреждать</system:String>
     <system:String x:Key="S.Limit.Short.Day" xml:space="preserve">{0} в день</system:String>
@@ -1015,9 +1018,13 @@
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
+    <system:String x:Key="S.Models.Fast" xml:space="preserve">Быстрые задачи</system:String>
+    <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Агент</system:String>
+    <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Ответ в чате</system:String>
+    <system:String x:Key="S.Models.Group.Service" xml:space="preserve">Служебные задачи</system:String>
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">Команда /agent</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">Нужен ключ API</system:String>
-    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Открыть Key &amp; Info</system:String>
+    <system:String x:Key="S.Notice.OpenKeyInfo" xml:space="preserve">Открыть «Ключи и траты»</system:String>
     <system:String x:Key="S.Password.Label" xml:space="preserve">Пароль</system:String>
     <system:String x:Key="S.Password.Repeat" xml:space="preserve">Ещё раз</system:String>
     <system:String x:Key="S.Plan.Amend" xml:space="preserve">Поправить</system:String>
@@ -1041,6 +1048,11 @@
     <system:String x:Key="S.Plan.VerdictExecute" xml:space="preserve">одобрен</system:String>
     <system:String x:Key="S.Plan.VerdictPending" xml:space="preserve">ждёт решения</system:String>
     <system:String x:Key="S.Plan.WriteRefused" xml:space="preserve">Сейчас фаза плана: изменения запрещены до одобрения. Включи это действие в план через submit_plan.</system:String>
+    <system:String x:Key="S.Profile.Group.Lock" xml:space="preserve">Пароль и блокировка</system:String>
+    <system:String x:Key="S.Prompts.Tech" xml:space="preserve">Технические промпты</system:String>
+    <system:String x:Key="S.Prompts.Tech.Changed" xml:space="preserve">Изменены</system:String>
+    <system:String x:Key="S.Prompts.Tech.Default" xml:space="preserve">Заводские</system:String>
+    <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">Правила работы, которые программа даёт чату и агенту</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
     <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice вернул пустой ответ без изображения.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
@@ -1098,7 +1110,6 @@
     <system:String x:Key="S.Customize.AgentHeavy" xml:space="preserve">Агент - тяжёлые задачи</system:String>
     <system:String x:Key="S.Customize.AgentLight" xml:space="preserve">Агент - лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
-    <system:String x:Key="S.Customize.AnswerModels" xml:space="preserve">Модели ответа</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Заголовки чатов</system:String>
     <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Проверяет каждый скрипт и каждое действие агента до запуска и обрывает то, в чём распознан вредоносный замысел: кража паролей, отправка данных наружу, закрепление в системе, обход защиты.</system:String>
     <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Модель защиты</system:String>
@@ -1122,9 +1133,7 @@
     <system:String x:Key="S.Customize.Protection" xml:space="preserve">Защита</system:String>
     <system:String x:Key="S.Customize.Router" xml:space="preserve">Маршрутизатор</system:String>
     <system:String x:Key="S.Customize.RouterDesc" xml:space="preserve">Анализирует запрос и выбирает одну из моделей выше</system:String>
-    <system:String x:Key="S.Customize.ServiceModels" xml:space="preserve">Служебные модели</system:String>
     <system:String x:Key="S.Customize.Summary" xml:space="preserve">Сводка чата</system:String>
-    <system:String x:Key="S.Customize.SystemPrompts" xml:space="preserve">System-промпты</system:String>
     <system:String x:Key="S.Customize.TechPrompt" xml:space="preserve">Технический промпт ИИ</system:String>
 
     <system:String x:Key="S.Customize.WebSearch" xml:space="preserve">Поиск в интернете</system:String>
@@ -1165,7 +1174,7 @@
     <system:String x:Key="S.Domain.Title" xml:space="preserve">Разрешить загрузки с сайта</system:String>
 
     <system:String x:Key="S.Download.Allow" xml:space="preserve">Разрешить</system:String>
-    <system:String x:Key="S.Download.Desc" xml:space="preserve">Разрешение сохранится вместе с поддоменами. Убрать его можно в Data Controls.</system:String>
+    <system:String x:Key="S.Download.Desc" xml:space="preserve">Разрешение сохранится вместе с поддоменами. Убрать его можно в настройках: Безопасность → Источники загрузки.</system:String>
     <system:String x:Key="S.Download.Refuse" xml:space="preserve">Не разрешать</system:String>
     <system:String x:Key="S.Download.Title" xml:space="preserve">Скачать с этого сайта?</system:String>
 
@@ -1181,11 +1190,11 @@
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Подтверждение опасных действий</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Text" xml:space="preserve">Над каждым ответом видно, сколько он стоил, а рядом с полем ввода - остаток на балансе Venice и заполненность контекста. Плашка меняет цвет, когда денег остаётся мало, так что кредиты не кончатся посреди работы незаметно.</system:String>
     <system:String x:Key="S.Info.Basics.Cost.Title" xml:space="preserve">Стоимость и баланс</system:String>
-    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере - никуда больше они не уходят. На соседней странице Data Controls видно, сколько места они занимают; оттуда же всё выгружается одним архивом и возвращается обратно.</system:String>
+    <system:String x:Key="S.Info.Basics.Data.Text" xml:space="preserve">Переписки, настройки и вложения лежат в папке профиля на этом компьютере - никуда больше они не уходят. На странице «Данные» всё выгружается одним архивом и возвращается обратно, а в «Хранении и очистке» видно, сколько места они занимают.</system:String>
     <system:String x:Key="S.Info.Basics.Data.Title" xml:space="preserve">Где лежат данные</system:String>
-    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в строке под полем ввода, там же - сила размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор - на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице Customize.</system:String>
+    <system:String x:Key="S.Info.Basics.Models.Text" xml:space="preserve">Модель выбирается в строке под полем ввода, там же - сила размышления. Режим «Авто» подбирает модель под задачу сам: простой вопрос уходит на дешёвую, тяжёлый разбор - на сильную. Служебные модели для заголовков чатов и внутренних задач агента настраиваются отдельно, на странице «Модели».</system:String>
     <system:String x:Key="S.Info.Basics.Models.Title" xml:space="preserve">Модель и уровень размышления</system:String>
-    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице Appearance - темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
+    <system:String x:Key="S.Info.Basics.Profiles.Text" xml:space="preserve">Профили разделяют переписки и настройки между несколькими людьми за одним компьютером; профиль можно закрыть паролем. На странице «Оформление» - темы, свой цвет акцента, фон, стекло и масштаб интерфейса.</system:String>
     <system:String x:Key="S.Info.Basics.Profiles.Title" xml:space="preserve">Профили и оформление</system:String>
     <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Как пользоваться программой</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Модель не просто отвечает: она читает и пишет файлы, запускает PowerShell, смотрит журналы Windows, ищет в интернете. Отчёт о каждом вызове инструмента виден прямо в переписке - его можно развернуть и посмотреть, что именно было сделано.</system:String>
@@ -1196,7 +1205,7 @@
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения - в репозиторий проекта.</system:String>
     <system:String x:Key="S.Info.Links.Title" xml:space="preserve">Если что-то не сходится</system:String>
     <system:String x:Key="S.Info.Safety.Chat" xml:space="preserve">Не присылайте ключ в чат: сообщение уходит модели, а потом остаётся в истории переписки на диске.</system:String>
-    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки. Ключи со страницы Key &amp; Info лежат не там и зашифрованы.</system:String>
+    <system:String x:Key="S.Info.Safety.Config" xml:space="preserve">Не вписывайте ключ в appsettings.json рядом с программой: это обычный текстовый файл, и его прочитает любой, кто доберётся до папки. Ключи со страницы «Ключи и траты» лежат не там и зашифрованы.</system:String>
     <system:String x:Key="S.Info.Safety.Crash" xml:space="preserve">Из отчёта об аварии ключ вырезается сам, так что отчёт можно пересылать спокойно.</system:String>
     <system:String x:Key="S.Info.Safety.Revoke" xml:space="preserve">Если ключ всё-таки утёк - отзовите его на venice.ai и создайте новый, это одна кнопка.</system:String>
     <system:String x:Key="S.Info.Safety.Scope" xml:space="preserve">Заводите переменную для текущего пользователя, а не для всей системы: системную видит любая учётная запись на компьютере.</system:String>
@@ -1225,8 +1234,8 @@
     <system:String x:Key="S.Info.Step3.Title" xml:space="preserve">Создайте API-ключ</system:String>
     <system:String x:Key="S.Info.Step4.Cmd" xml:space="preserve">[Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'сюда-ваш-ключ', 'User')</system:String>
     <system:String x:Key="S.Info.Step4.CmdHint" xml:space="preserve">Если отдавать ключ программе на хранение не хочется, заведите переменную окружения - её программа прочитает при старте и хранить не станет:</system:String>
-    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте. Ключ, вставленный на странице Key &amp; Info, работает сразу.</system:String>
-    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Вставьте ключ в Настройки - Key &amp; Info. Он ляжет на диск зашифрованным средствами Windows: прочитать его сможет только ваша учётная запись. Ключей можно держать несколько и переключаться между ними прямо там же.</system:String>
+    <system:String x:Key="S.Info.Step4.Restart" xml:space="preserve">После этого программу надо перезапустить: переменные окружения читаются один раз, при старте. Ключ, вставленный на странице «Ключи и траты», работает сразу.</system:String>
+    <system:String x:Key="S.Info.Step4.Text" xml:space="preserve">Вставьте ключ в Настройки - «Ключи и траты». Он ляжет на диск зашифрованным средствами Windows: прочитать его сможет только ваша учётная запись. Ключей можно держать несколько и переключаться между ними прямо там же.</system:String>
     <system:String x:Key="S.Info.Step4.Title" xml:space="preserve">Отдайте ключ программе</system:String>
     <system:String x:Key="S.Info.Step5.Text" xml:space="preserve">Запустите программу и отправьте любое сообщение. Пошёл ответ - ключ на месте. Строка про незаданный ключ значит, что переменная не дошла: проверьте, что она создана для пользователя, а не для системы, и что программа перезапущена. А если Venice отвечает, что средств не хватает, хотя деньги на счёте есть, - значит, лимит трат выставлен у самого ключа; он меняется там же, в разделе API.</system:String>
     <system:String x:Key="S.Info.Step5.Title" xml:space="preserve">Проверьте</system:String>
@@ -1426,7 +1435,7 @@
     <system:String x:Key="S.Profiles.Title" xml:space="preserve">Профили</system:String>
 
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
-    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся от лёгкой и тяжёлой модели - их настраивают на странице Customize</system:String>
+    <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся от лёгкой и тяжёлой модели - их настраивают на странице «Модели»</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Сила размышления</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
@@ -1625,7 +1634,7 @@
     <system:String x:Key="S.Security.AgentGroup" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Security.AutoLock" xml:space="preserve">Автоблокировка</system:String>
     <system:String x:Key="S.Security.AutoLockDesc" xml:space="preserve">Если окном не пользуются. Ответы продолжаются.</system:String>
-    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">Нужен пароль профиля — задайте его на странице Account</system:String>
+    <system:String x:Key="S.Security.AutoLockNeedsPassword" xml:space="preserve">Сначала задайте пароль профиля</system:String>
     <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Выключена</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Приватность</system:String>
@@ -1639,21 +1648,23 @@
     <system:String x:Key="S.Security.PlanDesc" xml:space="preserve">Агент сначала присылает план и ждёт вашего согласия.</system:String>
     <system:String x:Key="S.Security.PlanLabel" xml:space="preserve">План перед изменениями</system:String>
     <system:String x:Key="S.Security.Shared" xml:space="preserve">чат и агент</system:String>
-    <system:String x:Key="S.Security.Title" xml:space="preserve">Security</system:String>
+    <system:String x:Key="S.Security.SourcesCount" xml:space="preserve">Сайтов: {0}</system:String>
+    <system:String x:Key="S.Security.SourcesDesc" xml:space="preserve">Откуда агенту можно скачивать файлы</system:String>
+    <system:String x:Key="S.Security.SourcesLabel" xml:space="preserve">Источники загрузки</system:String>
+    <system:String x:Key="S.Security.Title" xml:space="preserve">Безопасность</system:String>
     <system:String x:Key="S.Security.ToolsAllOn" xml:space="preserve">Все включены</system:String>
     <system:String x:Key="S.Security.ToolsDesc" xml:space="preserve">Что модель может вызывать</system:String>
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
-    <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
-    <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
+    <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
-    <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Данные</system:String>
     <system:String x:Key="S.Settings.General.Title" xml:space="preserve">Общие</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Инструкции</system:String>
-    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключ и траты</system:String>
+    <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключи и траты</system:String>
+    <system:String x:Key="S.Settings.Models.Title" xml:space="preserve">Модели</system:String>
     <system:String x:Key="S.Settings.Nav.About" xml:space="preserve">О программе</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Оформление</system:String>
     <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Автоматизация</system:String>
@@ -1668,6 +1679,8 @@
     <system:String x:Key="S.Settings.NavGroup.Main" xml:space="preserve">ОСНОВНОЕ</system:String>
     <system:String x:Key="S.Settings.NavGroup.Model" xml:space="preserve">МОДЕЛЬ</system:String>
     <system:String x:Key="S.Settings.NavGroup.SecurityData" xml:space="preserve">ЗАЩИТА И ДАННЫЕ</system:String>
+    <system:String x:Key="S.Settings.Profile.Title" xml:space="preserve">Профиль</system:String>
+    <system:String x:Key="S.Settings.Prompts.Title" xml:space="preserve">Промпты</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 
@@ -1839,7 +1852,7 @@
     <system:String x:Key="S.Turn.CutByTokens" xml:space="preserve">Ответ обрезан лимитом токенов ({0}). Повторите запрос или упростите вопрос.</system:String>
     <system:String x:Key="S.Turn.ErrorTitle" xml:space="preserve">Ответ не получен</system:String>
     <system:String x:Key="S.Turn.LimitReached" xml:space="preserve">Уже идут {0} ответа - дождитесь одного из них.</system:String>
-    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Нет ключа API — добавьте ключ Venice или OpenRouter на странице Key &amp; Info</system:String>
+    <system:String x:Key="S.Turn.NoApiKey" xml:space="preserve">Нет ключа API — добавьте ключ Venice или OpenRouter на странице «Ключи и траты»</system:String>
 
     <system:String x:Key="S.Turn.NoAttachmentsWhileBusy" xml:space="preserve">Вложения нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
     <system:String x:Key="S.Turn.NoCommandWhileBusy" xml:space="preserve">Команду нельзя добавить к уже идущему ответу - дождитесь его окончания.</system:String>
@@ -1972,7 +1985,7 @@
     <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Не выбрана</system:String>
     <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">С приставкой openrouter: — через OpenRouter</system:String>
     <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Для языка «{0}» в Windows нет распознавателя, а модель в облаке не выбрана.</system:String>
-    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">Нет ключа для провайдера модели распознавания. Добавьте его на странице Key &amp; Info.</system:String>
+    <system:String x:Key="S.Voice.NoKey" xml:space="preserve">Нет ключа для провайдера модели распознавания. Добавьте его на странице «Ключи и траты».</system:String>
     <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">В Windows нет распознавателя для языка «{0}». Установлены: {1}.</system:String>
     <system:String x:Key="S.Voice.NoMic" xml:space="preserve">Микрофон не найден или доступ к нему закрыт в параметрах Windows.</system:String>
     <system:String x:Key="S.Voice.NotSetUp" xml:space="preserve">Не настроен</system:String>
