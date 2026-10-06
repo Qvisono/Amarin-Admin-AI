@@ -25,9 +25,11 @@ public sealed class DragScrollTests
     [Fact]
     public void Every_settings_page_scrolls_by_dragging()
     {
-        var (window, keyPage, infoPage) = _wpf.Ui.Invoke(() =>
+        var (window, keyPage) = _wpf.Ui.Invoke(() =>
         {
             var main = Application.Current.Windows.OfType<MainWindow>().Single();
+
+            // Гайд «Как начать работу» листает страница «О программе»: своей прокрутки у него нет.
             string[] names =
             [
                 "AppearancePageScroll",
@@ -35,19 +37,18 @@ public sealed class DragScrollTests
                 "ProfilePageScroll",
                 "ModelsPageScroll",
                 "PromptsPageScroll",
-                "DataPageScroll"
+                "DataPageScroll",
+                "AboutPageScroll"
             ];
 
             var onWindow = names.All(name =>
                 main.FindName(name) is ScrollViewer viewer && SmoothScroll.GetDragScroll(viewer));
             var key = new SettingsKeyPage().FindName("KeyPageScroll") is ScrollViewer k && SmoothScroll.GetDragScroll(k);
-            var info = new SettingsInfoPage().FindName("InfoPageScroll") is ScrollViewer i && SmoothScroll.GetDragScroll(i);
-            return (onWindow, key, info);
+            return (onWindow, key);
         });
 
         Assert.True(window);
         Assert.True(keyPage);
-        Assert.True(infoPage);
     }
 
     [Fact]

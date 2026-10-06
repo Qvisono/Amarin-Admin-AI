@@ -5,10 +5,11 @@ using Amarin.Core;
 namespace Amarin.UI;
 
 /// <summary>
-/// Страница «Info» в настройках: как подключить Venice.ai или OpenRouter и как устроена сама программа.
+/// Гайд «Как начать работу» (подстраница «О программе»): как подключить Venice.ai или OpenRouter и
+/// как устроена сама программа.
 /// </summary>
 /// <remarks>
-/// Ключ задаётся на странице «Key &amp; Info» и хранится зашифрованным средствами Windows
+/// Ключ задаётся на странице «Ключи и траты» и хранится зашифрованным средствами Windows
 /// (см. <c>ApiKeyStore</c>). Переменная окружения <c>VENICE_API_KEY</c> осталась как способ
 /// вообще не отдавать ключ программе на хранение, и эта страница объясняет оба пути:
 /// до неё программа без ключа просто молчала.
@@ -27,27 +28,22 @@ public partial class SettingsInfoPage : UserControl
     /// <remarks>Тот же адрес, что docs.venice.ai даёт ссылкой «Venice API Settings».</remarks>
     private const string ApiKeysUrl = "https://venice.ai/settings/api";
 
-    private const string DocsUrl = "https://docs.venice.ai";
+    /// <summary>Документация Venice — и для кнопки «Помощи» на «О программе».</summary>
+    internal const string DocsUrl = "https://docs.venice.ai";
 
     private const string OpenRouterUrl = "https://openrouter.ai";
 
-    public SettingsInfoPage()
-    {
-        InitializeComponent();
-
-        // Та же плавная прокрутка, что у боковой колонки и ленты чата: страница настроек
-        // не должна рывками отличаться от остальной программы.
-        SmoothScroll.SetIsEnabled(InfoPageScroll, true);
-        SmoothScroll.SetDragScroll(InfoPageScroll, true);
-    }
+    /// <remarks>
+    /// Своей прокрутки у гайда нет: он — подстраница «О программе», и листает его страница. Там
+    /// же плавная прокрутка и перетаскивание, как у остальных страниц настроек.
+    /// </remarks>
+    public SettingsInfoPage() => InitializeComponent();
 
     private void OpenVeniceButton_Click(object sender, RoutedEventArgs e) => Open(VeniceUrl);
 
     private void OpenPricingButton_Click(object sender, RoutedEventArgs e) => Open(PricingUrl);
 
     private void OpenApiKeysButton_Click(object sender, RoutedEventArgs e) => Open(ApiKeysUrl);
-
-    private void OpenDocsButton_Click(object sender, RoutedEventArgs e) => Open(DocsUrl);
 
     private void OpenOpenRouterButton_Click(object sender, RoutedEventArgs e) => Open(OpenRouterUrl);
 
@@ -70,19 +66,6 @@ public partial class SettingsInfoPage : UserControl
         VeniceGuide.Visibility = openRouter ? Visibility.Collapsed : Visibility.Visible;
         OpenRouterGuide.Visibility = openRouter ? Visibility.Visible : Visibility.Collapsed;
     }
-
-    private void OpenRepoButton_Click(object sender, RoutedEventArgs e) => Open(UpdateChecker.RepositoryUrl);
-
-    private void ReportBugButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (Window.GetWindow(this) is MainWindow owner)
-        {
-            Detached.Run(owner.ReportBugAsync(), "report_bug");
-        }
-    }
-
-    private void OpenLogsButton_Click(object sender, RoutedEventArgs e) =>
-        (Window.GetWindow(this) as MainWindow)?.OpenLogsFolder();
 
     /// <remarks>
     /// Через главное окно, а не своим Process.Start: там уже есть перехват отказа оболочки и

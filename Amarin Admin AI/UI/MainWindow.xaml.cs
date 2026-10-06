@@ -93,6 +93,7 @@ namespace Amarin.UI
             WireCostEstimate();
             WireWindowsIntegration();
             WireSecurityPage();
+            WireDataUsage();
 
             // Имя для диктора и рамка фокуса — всем кнопкам и полям, у которых их нет (I1).
             AccessibilityDefaults.Register();
@@ -163,7 +164,7 @@ namespace Amarin.UI
             // В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
             // перетаскиванием чатов по папкам.
             foreach (var page in (ScrollViewer[])
-                     [AppearancePageScroll, GeneralPageScroll, ProfilePageScroll, ModelsPageScroll, PromptsPageScroll, DataPageScroll])
+                     [AppearancePageScroll, GeneralPageScroll, ProfilePageScroll, ModelsPageScroll, PromptsPageScroll, DataPageScroll, AboutPageScroll])
             {
                 SmoothScroll.SetIsEnabled(page, true);
                 SmoothScroll.SetDragScroll(page, true);
@@ -1818,11 +1819,11 @@ namespace Amarin.UI
                 _settingsUiLoading = false;
             }
 
-            // Обход диска — только когда открыта его собственная страница. Считать при каждом
-            // заходе в настройки значило читать все файлы чатов ради разбивки, которую человек
-            // чаще всего и не смотрит. Флаг снят и вызов вне try: обход асинхронный, и держать на
-            // нём _settingsUiLoading значило бы глушить обработчики всех остальных настроек.
-            if (NavData.IsChecked == true)
+            // Обход диска — только когда открыта сама «Хранение и очистка» (WireDataUsage). Считать
+            // при каждом заходе в настройки значило читать все файлы чатов ради разбивки, которую
+            // человек чаще всего и не смотрит. Флаг снят и вызов вне try: обход асинхронный, и
+            // держать на нём _settingsUiLoading значило бы глушить обработчики остальных настроек.
+            if (NavData.IsChecked == true && DataCareSub.IsVisible)
             {
                 Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
             }

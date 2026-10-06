@@ -9,6 +9,10 @@
         здесь один в один — иначе страница выпадет из общего вида настроек.
     -->
     <UserControl.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="SettingsPageStyles.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="21"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -148,11 +152,15 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <ScrollViewer x:Name="InfoPageScroll" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="20,14,20,18">
-            <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Info.Title}"/>
+    <!--
+        Гайд — содержимое подстраницы «О программе › Как начать работу ›»: своей прокрутки и заголовка
+        у него нет, их даёт страница. Помощь (документация, отчёт об ошибке, журналы) — на самой
+        «О программе».
+    -->
+        <StackPanel x:Name="GuideRoot">
             <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Intro}" Margin="0,0,0,16"/>
 
             <!-- ═══ Подключение Venice ═══ -->
@@ -438,68 +446,35 @@
                 </Grid>
             </Border>
 
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <!-- ═══ Как пользоваться ═══ -->
-            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Info.Basics.Section}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Chat.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Chat.Text}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Tools.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Tools.Text}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Confirm.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Confirm.Text}"/>
-            <local:GuideShot FileName="app-02-confirm.png"
-                             Caption="{DynamicResource S.Info.Shot.Confirm}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Models.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Models.Text}"/>
-            <local:GuideShot FileName="app-03-models.png"
-                             Caption="{DynamicResource S.Info.Shot.Models}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Cost.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Cost.Text}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Profiles.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Profiles.Text}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Data.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Data.Text}"/>
-
-            <Border Style="{StaticResource SettingsDivider}"/>
-
-            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Links.Title}"/>
-            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Links.Text}"/>
-            <WrapPanel Orientation="Horizontal">
-                <Button Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
-                        Content="{DynamicResource S.Info.Links.Docs}"
-                        Click="OpenDocsButton_Click"/>
-                <Button Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
-                        Content="{DynamicResource S.Info.Links.Repo}"
-                        Click="OpenRepoButton_Click"/>
-                <Button x:Name="ReportBugButton" Style="{StaticResource SecondaryButton}" Margin="0,9,8,0"
-                        Content="{DynamicResource S.BugReport.Title}"
-                        Click="ReportBugButton_Click"/>
-                <Button x:Name="OpenLogsButton" Style="{StaticResource SecondaryButton}" Margin="0,9,0,0"
-                        Content="{DynamicResource S.Crash.OpenLogs}"
-                        Click="OpenLogsButton_Click"/>
-            </WrapPanel>
-            <TextBlock Style="{StaticResource SettingDesc}" Margin="0,8,0,0"
-                       Text="{DynamicResource S.BugReport.Desc}"/>
+            <!-- ═══ Как пользоваться: темы одной карточкой, между ними — черта группы. ═══ -->
+            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource S.Info.Basics.Section}" Margin="4,16,0,8"/>
+            <Border Style="{StaticResource StepCard}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Chat.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Chat.Text}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Tools.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Tools.Text}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Confirm.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Confirm.Text}"/>
+                    <local:GuideShot FileName="app-02-confirm.png"
+                                     Caption="{DynamicResource S.Info.Shot.Confirm}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Models.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Models.Text}"/>
+                    <local:GuideShot FileName="app-03-models.png"
+                                     Caption="{DynamicResource S.Info.Shot.Models}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Cost.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Cost.Text}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Profiles.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Profiles.Text}"/>
+                    <Border Style="{StaticResource GroupDivider}" Margin="0,12"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Basics.Data.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Basics.Data.Text}"/>
+                </StackPanel>
+            </Border>
         </StackPanel>
-    </ScrollViewer>
 </UserControl>

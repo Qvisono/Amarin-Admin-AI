@@ -27,6 +27,9 @@
     <system:String x:Key="S.A11y.Settings" xml:space="preserve">Settings</system:String>
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Open the project page on GitHub</system:String>
+    <system:String x:Key="S.About.Guide" xml:space="preserve">Getting started</system:String>
+    <system:String x:Key="S.About.GuideDesc" xml:space="preserve">A Venice or OpenRouter key in five steps, and the basics</system:String>
+    <system:String x:Key="S.About.Help" xml:space="preserve">Help</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Don't ask</system:String>
     <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">No questions except SynGuard's. Only if you are sure of every request.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Ask about everything</system:String>
@@ -577,6 +580,9 @@
     <system:String x:Key="S.Crash.Source.Task" xml:space="preserve">unobserved task</system:String>
     <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">UI thread</system:String>
     <system:String x:Key="S.Crash.WindowTitle" xml:space="preserve">Amarin Admin AI - crash</system:String>
+    <system:String x:Key="S.Data.Group.Chats" xml:space="preserve">Chats</system:String>
+    <system:String x:Key="S.Data.Group.Danger" xml:space="preserve">Irreversible</system:String>
+    <system:String x:Key="S.Data.Group.Transfer" xml:space="preserve">Transfer and backups</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Audit log</system:String>
     <system:String x:Key="S.DataSafety.KeptAt" xml:space="preserve">The damaged file was kept at {0}</system:String>
     <system:String x:Key="S.DataSafety.Reset" xml:space="preserve">{0} was damaged, and its backup was missing or damaged too, so the defaults are used.</system:String>
@@ -1657,11 +1663,11 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">The model can't see a tool that is off.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Tools</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Off: {0}</system:String>
+    <system:String x:Key="S.Settings.About.Title" xml:space="preserve">About</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data</system:String>
     <system:String x:Key="S.Settings.General.Title" xml:space="preserve">General</system:String>
-    <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Instructions</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Keys and spending</system:String>
     <system:String x:Key="S.Settings.Models.Title" xml:space="preserve">Models</system:String>

@@ -27,6 +27,9 @@
     <system:String x:Key="S.A11y.Settings" xml:space="preserve">Настройки</system:String>
     <system:String x:Key="S.About.Github" xml:space="preserve">Github</system:String>
     <system:String x:Key="S.About.GithubHint" xml:space="preserve">Открыть страницу проекта на GitHub</system:String>
+    <system:String x:Key="S.About.Guide" xml:space="preserve">Как начать работу</system:String>
+    <system:String x:Key="S.About.GuideDesc" xml:space="preserve">Ключ Venice или OpenRouter за пять шагов и основы работы</system:String>
+    <system:String x:Key="S.About.Help" xml:space="preserve">Помощь</system:String>
     <system:String x:Key="S.Access.AlwaysApprove" xml:space="preserve">Не спрашивать</system:String>
     <system:String x:Key="S.Access.AlwaysApproveDesc" xml:space="preserve">Без вопросов, кроме SynGuard. Только если вы уверены в каждой просьбе.</system:String>
     <system:String x:Key="S.Access.AskAll" xml:space="preserve">Спрашивать всё</system:String>
@@ -577,6 +580,9 @@
     <system:String x:Key="S.Crash.Source.Task" xml:space="preserve">несобранная задача</system:String>
     <system:String x:Key="S.Crash.Source.UiThread" xml:space="preserve">поток интерфейса</system:String>
     <system:String x:Key="S.Crash.WindowTitle" xml:space="preserve">Amarin Admin AI - сбой</system:String>
+    <system:String x:Key="S.Data.Group.Chats" xml:space="preserve">Чаты</system:String>
+    <system:String x:Key="S.Data.Group.Danger" xml:space="preserve">Необратимо</system:String>
+    <system:String x:Key="S.Data.Group.Transfer" xml:space="preserve">Перенос и копии</system:String>
     <system:String x:Key="S.Data.Usage.Audit" xml:space="preserve">Журнал аудита</system:String>
     <system:String x:Key="S.DataSafety.KeptAt" xml:space="preserve">Повреждённый файл сохранён: {0}</system:String>
     <system:String x:Key="S.DataSafety.Reset" xml:space="preserve">Файл {0} оказался повреждён, а запасной копии не было или она тоже повреждена — используются заводские значения.</system:String>
@@ -1657,11 +1663,11 @@
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
     <system:String x:Key="S.Security.ToolsLabel" xml:space="preserve">Инструменты</system:String>
     <system:String x:Key="S.Security.ToolsOff" xml:space="preserve">Выключено: {0}</system:String>
+    <system:String x:Key="S.Settings.About.Title" xml:space="preserve">О программе</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Оформление</system:String>
-    <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
+    <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Автоматизация</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Данные</system:String>
     <system:String x:Key="S.Settings.General.Title" xml:space="preserve">Общие</system:String>
-    <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Инструкции</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключи и траты</system:String>
     <system:String x:Key="S.Settings.Models.Title" xml:space="preserve">Модели</system:String>

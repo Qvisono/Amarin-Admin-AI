@@ -40,7 +40,8 @@ public sealed class SmoothScrollTests
                 "ProfilePageScroll",
                 "ModelsPageScroll",
                 "PromptsPageScroll",
-                "DataPageScroll"
+                "DataPageScroll",
+                "AboutPageScroll"
             ];
 
             return names
@@ -48,20 +49,41 @@ public sealed class SmoothScrollTests
                 .ToArray();
         });
 
-        Assert.Equal(8, enabled.Length);
+        Assert.Equal(9, enabled.Length);
     }
 
     [Fact]
-    public void The_info_page_scrolls_smoothly_too()
+    public void The_guide_scrolls_smoothly_with_its_page()
     {
-        // Отдельный UserControl со своим кодом — включается у себя, а не из главного окна.
-        var enabled = _wpf.Ui.Invoke(() =>
+        // Гайд — подстраница «О программе»: листает его прокрутка страницы, а своя внутри неё
+        // забирала бы колесо и прокручивала бы кусок гайда вместо страницы.
+        var (ownScroll, page) = _wpf.Ui.Invoke(() =>
         {
-            var page = new SettingsInfoPage();
-            return page.FindName("InfoPageScroll") is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer);
+            var window = Application.Current.Windows.OfType<MainWindow>().Single();
+            var guide = new SettingsInfoPage();
+            return (
+                Descendants<ScrollViewer>(guide).Any(),
+                window.FindName("AboutPageScroll") is ScrollViewer viewer && SmoothScroll.GetIsEnabled(viewer));
         });
 
-        Assert.True(enabled);
+        Assert.False(ownScroll);
+        Assert.True(page);
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in Descendants<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     [Fact]

@@ -233,11 +233,11 @@ namespace Amarin.UI
         /// </summary>
         private void UpdateBadgeCancelButton_Click(object sender, RoutedEventArgs e) => Updates.Cancel();
 
-        /// <summary>Настройки на странице данных — карточка обновлений там.</summary>
+        /// <summary>Настройки на странице «О программе» — карточка обновлений там.</summary>
         private void UpdateBadgeDetailsButton_Click(object sender, RoutedEventArgs e)
         {
             UpdateBadgeButton.IsChecked = false;
-            OpenSettingsPage(NavData);
+            OpenSettingsPage(NavAbout);
             Dispatcher.BeginInvoke(() => UpdateVersionText.BringIntoView(), DispatcherPriority.Loaded);
         }
 

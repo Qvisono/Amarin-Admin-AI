@@ -3728,7 +3728,12 @@
                             </Grid>
                         </ScrollViewer>
 
-                        <!-- ═══════════ DATA CONTROLS ═══════════ -->
+                        <!-- ═══════════ ДАННЫЕ ═══════════ -->
+                        <!--
+                            Чаты, перенос и копии, в конце отдельно — необратимое. Разбивка «Занято на диске» —
+                            наверху «Хранения и очистки»: место смотрят там, где его освобождают. Обновления —
+                            на «О программе», белый список загрузок — на «Безопасности».
+                        -->
                         <ScrollViewer x:Name="DataPageScroll" VerticalScrollBarVisibility="Auto"
                                       local:UiMotion.FadeOnShow="True">
                             <ScrollViewer.Style>
@@ -3745,6 +3750,137 @@
                             <StackPanel Margin="20,14,20,16">
                                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Data.Title}"/>
 
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Chats}"/>
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Sharing}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Data.SharingDesc}"/>
+                                            </StackPanel>
+                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Data.Sharing}" x:Name="ChatSharingToggle" Grid.Column="1"
+                                                      Style="{StaticResource SettingsToggle}"
+                                                      Checked="ChatSharingToggle_Changed"
+                                                      Unchecked="ChatSharingToggle_Changed"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Import}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Data.ImportDesc}"/>
+                                            </StackPanel>
+                                            <Button x:Name="ImportChatButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                                    Content="{DynamicResource S.Data.OpenFile}" Click="ImportChatButton_Click"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Transfer}"/>
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Bundle.Row}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Bundle.RowDesc}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="DataExportButton" Style="{StaticResource SecondaryButton}"
+                                                        Content="{DynamicResource S.Bundle.Export}" Margin="0,0,6,0"
+                                                        Click="DataExportButton_Click"/>
+                                                <Button x:Name="DataImportButton" Style="{StaticResource SecondaryButton}"
+                                                        Content="{DynamicResource S.Bundle.Import}"
+                                                        Click="DataImportButton_Click"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Button x:Name="BackupLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                                local:SettingsDrill.Opens="{Binding ElementName=DataBackupSub}"
+                                                AutomationProperties.Name="{DynamicResource S.Backup.Title}">
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Title}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.LinkDesc}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Button x:Name="CareLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                                local:SettingsDrill.Opens="{Binding ElementName=DataCareSub}"
+                                                AutomationProperties.Name="{DynamicResource S.Care.Title}">
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Title}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LinkDesc}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.AppFiles}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AppFilesDesc}"/>
+                                            </StackPanel>
+                                            <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                                    Content="{DynamicResource S.Common.Open}" Click="OpenAppFilesButton_Click"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Необратимое — последней группой, отдельно от всего, что можно вернуть. -->
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Data.Group.Danger}"/>
+                                <Border Style="{StaticResource SettingsGroup}">
+                                    <StackPanel>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteChats}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.DeleteChatsDesc}"/>
+                                            </StackPanel>
+                                            <Button x:Name="DeleteAllChatsButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                                    Content="{DynamicResource S.Common.Delete}" Click="DeleteAllChatsButton_Click"/>
+                                        </Grid>
+                                        <Border Style="{StaticResource GroupDivider}"/>
+                                        <Grid Style="{StaticResource GroupRow}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteAll}"/>
+                                                <TextBlock Style="{StaticResource SettingDesc}"
+                                                   Text="{DynamicResource S.Data.DeleteAllDesc}"/>
+                                            </StackPanel>
+                                            <Button x:Name="DeleteAllDataButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                                                    Content="{DynamicResource S.Common.Delete}" Click="DeleteAllDataButton_Click"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel x:Name="DataBackupSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Backup.Title}"/>
+                                <local:BackupBlock x:Name="BackupPanel"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="DataCareSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Care.Title}"/>
                                 <!-- Занято на диске — своей группой: заголовок, разбивка, сама программа. -->
                                 <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
                                     <StackPanel>
@@ -3807,107 +3943,99 @@
                                                    Foreground="{DynamicResource Text.Faint}"/>
                                     </StackPanel>
                                 </Border>
+                                <local:DataCareBlock x:Name="DataCarePanel"/>
+                            </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
 
-                                <!-- Перенос переписки: ссылкой, одним чатом из файла, всеми данными. -->
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Sharing}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="{DynamicResource S.Data.SharingDesc}"/>
-                                            </StackPanel>
-                                            <CheckBox AutomationProperties.Name="{DynamicResource S.Data.Sharing}" x:Name="ChatSharingToggle" Grid.Column="1"
-                                                      Style="{StaticResource SettingsToggle}"
-                                                      Checked="ChatSharingToggle_Changed"
-                                                      Unchecked="ChatSharingToggle_Changed"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.Import}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="{DynamicResource S.Data.ImportDesc}"/>
-                                            </StackPanel>
-                                            <Button x:Name="ImportChatButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                                    Content="{DynamicResource S.Data.OpenFile}" Click="ImportChatButton_Click"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
+                        <!-- ═══════════ KEY AND INFO ═══════════ -->
+                        <!--
+                            Тоже отдельным UserControl: остаток, график трат, разбивка по моделям
+                            и список ключей - страница длиннее любой из соседних. Стиль с триггером
+                            остаётся здесь, потому что ElementName=NavKey ищется в области имён
+                            этого файла.
+                        -->
+                        <local:SettingsKeyPage x:Name="KeyPage" local:UiMotion.FadeOnShow="True">
+                            <local:SettingsKeyPage.Style>
+                                <Style TargetType="local:SettingsKeyPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavKey}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsKeyPage.Style>
+                        </local:SettingsKeyPage>
 
-                                        <!--
-                                            Экспорт и импорт всех данных. Стоит рядом с импортом одного
-                                            чата: две соседние задачи, и человек, пришедший «перенести
-                                            переписку», видит обе сразу. Две кнопки в ряд — как у
-                                            обновлений ниже.
-                                        -->
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Bundle.Row}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Bundle.RowDesc}"/>
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Button x:Name="DataExportButton" Style="{StaticResource SecondaryButton}"
-                                                        Content="{DynamicResource S.Bundle.Export}" Margin="0,0,6,0"
-                                                        Click="DataExportButton_Click"/>
-                                                <Button x:Name="DataImportButton" Style="{StaticResource SecondaryButton}"
-                                                        Content="{DynamicResource S.Bundle.Import}"
-                                                        Click="DataImportButton_Click"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                        <!-- ═══════════ SECURITY ═══════════ -->
+                        <!-- Отдельным UserControl, как Key и Instructions: режим доступа и инструменты. -->
+                        <local:SettingsSecurityPage x:Name="SecurityPage" local:UiMotion.FadeOnShow="True">
+                            <local:SettingsSecurityPage.Style>
+                                <Style TargetType="local:SettingsSecurityPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavSecurity}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsSecurityPage.Style>
+                        </local:SettingsSecurityPage>
 
-                                <!--
-                                    Резервные копии (F1) и хранение с очисткой (F3) — подстраницами:
-                                    в 1.28.0 два блока по экрану высотой стояли посреди страницы, и до
-                                    обновлений и удаления данных было не долистать.
-                                -->
-                                <Border Style="{StaticResource SettingsGroup}">
-                                    <StackPanel>
-                                        <Button x:Name="BackupLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
-                                                local:SettingsDrill.Opens="{Binding ElementName=DataBackupSub}"
-                                                AutomationProperties.Name="{DynamicResource S.Backup.Title}">
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Backup.Title}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Backup.LinkDesc}"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Button x:Name="CareLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
-                                                local:SettingsDrill.Opens="{Binding ElementName=DataCareSub}"
-                                                AutomationProperties.Name="{DynamicResource S.Care.Title}">
-                                            <StackPanel>
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Care.Title}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Care.LinkDesc}"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.AppFiles}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.AppFilesDesc}"/>
-                                            </StackPanel>
-                                            <Button x:Name="OpenAppFilesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
-                                                    Content="{DynamicResource S.Common.Open}" Click="OpenAppFilesButton_Click"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
+                        <!-- ═══════════ INSTRUCTIONS ═══════════ -->
+                        <!--
+                            Отдельным UserControl, как Key и Info: список и редактор инструкций.
+                            Стиль с триггером остаётся здесь, потому что ElementName=NavInstructions
+                            ищется в области имён этого файла.
+                        -->
+                        <local:SettingsInstructionsPage x:Name="InstructionsPage" local:UiMotion.FadeOnShow="True">
+                            <local:SettingsInstructionsPage.Style>
+                                <Style TargetType="local:SettingsInstructionsPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavInstructions}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsInstructionsPage.Style>
+                        </local:SettingsInstructionsPage>
+
+                        <!-- ═══════════ AUTOMATION ═══════════ -->
+                        <!-- Отдельным UserControl: рецепты (C7), расписание, удалённые компьютеры (C10) и MCP (C11). -->
+                        <local:SettingsAutomationPage x:Name="AutomationPage" local:UiMotion.FadeOnShow="True">
+                            <local:SettingsAutomationPage.Style>
+                                <Style TargetType="local:SettingsAutomationPage">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAutomation}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </local:SettingsAutomationPage.Style>
+                        </local:SettingsAutomationPage>
+
+                        <!-- ═══════════ О ПРОГРАММЕ ═══════════ -->
+                        <!--
+                            Версия и обновления, гайд «Как начать работу ›» и помощь. Гайд — подстраницей: он длиннее
+                            любой страницы настроек, а нужен один раз, при первом ключе.
+                        -->
+                        <ScrollViewer x:Name="AboutPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAbout}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ScrollViewer.Style>
+                            <Grid local:SettingsDrill.IsHost="True">
+                            <StackPanel Margin="20,14,20,16">
+                                <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.About.Title}"/>
 
                                 <!--
                                     Плашка обновлений. Карточкой, а не плоскими строками общего
@@ -4034,139 +4162,43 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Необратимое — последней группой, отдельно от всего, что можно вернуть. -->
                                 <Border Style="{StaticResource SettingsGroup}">
+                                    <Button x:Name="GuideLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                            local:SettingsDrill.Opens="{Binding ElementName=AboutGuideSub}"
+                                            AutomationProperties.Name="{DynamicResource S.About.Guide}">
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.About.Guide}"/>
+                                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.About.GuideDesc}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Border>
+
+                                <!-- Помощь: документация, репозиторий, отчёт об ошибке и журналы — то, что было в конце гайда. -->
+                                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.About.Help}"/>
+                                <Border Style="{StaticResource SettingsGroup}" Padding="16,12">
                                     <StackPanel>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteChats}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Data.DeleteChatsDesc}"/>
-                                            </StackPanel>
-                                            <Button x:Name="DeleteAllChatsButton" Grid.Column="1" Style="{StaticResource DangerButton}"
-                                                    Content="{DynamicResource S.Common.Delete}" Click="DeleteAllChatsButton_Click"/>
-                                        </Grid>
-                                        <Border Style="{StaticResource GroupDivider}"/>
-                                        <Grid Style="{StaticResource GroupRow}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Data.DeleteAll}"/>
-                                                <TextBlock Style="{StaticResource SettingDesc}"
-                                                   Text="{DynamicResource S.Data.DeleteAllDesc}"/>
-                                            </StackPanel>
-                                            <Button x:Name="DeleteAllDataButton" Grid.Column="1" Style="{StaticResource DangerButton}"
-                                                    Content="{DynamicResource S.Common.Delete}" Click="DeleteAllDataButton_Click"/>
-                                        </Grid>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Margin="0" Text="{DynamicResource S.Info.Links.Text}"/>
+                                        <WrapPanel Margin="0,10,0,0">
+                                            <Button x:Name="AboutDocsButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                                    Content="{DynamicResource S.Info.Links.Docs}" Click="AboutDocsButton_Click"/>
+                                            <Button x:Name="AboutRepoButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                                    Content="{DynamicResource S.Info.Links.Repo}" Click="AboutRepoButton_Click"/>
+                                            <Button x:Name="ReportBugButton" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8"
+                                                    Content="{DynamicResource S.BugReport.Title}" Click="ReportBugButton_Click"/>
+                                            <Button x:Name="OpenLogsButton" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8"
+                                                    Content="{DynamicResource S.Crash.OpenLogs}" Click="OpenLogsButton_Click"/>
+                                        </WrapPanel>
+                                        <TextBlock Style="{StaticResource SettingDesc}" Margin="0,2,0,0" Text="{DynamicResource S.BugReport.Desc}"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
 
-                            <StackPanel x:Name="DataBackupSub" Margin="20,14,20,16" Visibility="Collapsed">
-                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Backup.Title}"/>
-                                <local:BackupBlock x:Name="BackupPanel"/>
-                            </StackPanel>
-
-                            <StackPanel x:Name="DataCareSub" Margin="20,14,20,16" Visibility="Collapsed">
-                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Care.Title}"/>
-                                <local:DataCareBlock x:Name="DataCarePanel"/>
+                            <StackPanel x:Name="AboutGuideSub" Margin="20,14,20,16" Visibility="Collapsed">
+                                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.About.Guide}"/>
+                                <local:SettingsInfoPage x:Name="GuidePage"/>
                             </StackPanel>
                             </Grid>
                         </ScrollViewer>
-
-                        <!-- ═══════════ KEY AND INFO ═══════════ -->
-                        <!--
-                            Тоже отдельным UserControl: остаток, график трат, разбивка по моделям
-                            и список ключей - страница длиннее любой из соседних. Стиль с триггером
-                            остаётся здесь, потому что ElementName=NavKey ищется в области имён
-                            этого файла.
-                        -->
-                        <local:SettingsKeyPage x:Name="KeyPage" local:UiMotion.FadeOnShow="True">
-                            <local:SettingsKeyPage.Style>
-                                <Style TargetType="local:SettingsKeyPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavKey}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsKeyPage.Style>
-                        </local:SettingsKeyPage>
-
-                        <!-- ═══════════ SECURITY ═══════════ -->
-                        <!-- Отдельным UserControl, как Key и Instructions: режим доступа и инструменты. -->
-                        <local:SettingsSecurityPage x:Name="SecurityPage" local:UiMotion.FadeOnShow="True">
-                            <local:SettingsSecurityPage.Style>
-                                <Style TargetType="local:SettingsSecurityPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavSecurity}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsSecurityPage.Style>
-                        </local:SettingsSecurityPage>
-
-                        <!-- ═══════════ INSTRUCTIONS ═══════════ -->
-                        <!--
-                            Отдельным UserControl, как Key и Info: список и редактор инструкций.
-                            Стиль с триггером остаётся здесь, потому что ElementName=NavInstructions
-                            ищется в области имён этого файла.
-                        -->
-                        <local:SettingsInstructionsPage x:Name="InstructionsPage" local:UiMotion.FadeOnShow="True">
-                            <local:SettingsInstructionsPage.Style>
-                                <Style TargetType="local:SettingsInstructionsPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavInstructions}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsInstructionsPage.Style>
-                        </local:SettingsInstructionsPage>
-
-                        <!-- ═══════════ AUTOMATION ═══════════ -->
-                        <!-- Отдельным UserControl: рецепты (C7), расписание, удалённые компьютеры (C10) и MCP (C11). -->
-                        <local:SettingsAutomationPage x:Name="AutomationPage" local:UiMotion.FadeOnShow="True">
-                            <local:SettingsAutomationPage.Style>
-                                <Style TargetType="local:SettingsAutomationPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAutomation}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsAutomationPage.Style>
-                        </local:SettingsAutomationPage>
-
-                        <!-- ═══════════ INFO ═══════════ -->
-                        <!--
-                            Отдельным UserControl, а не шестым ScrollViewer в этой разметке: гайд
-                            со скриншотами длиннее любой из соседних страниц, а в MainWindow.xaml
-                            и так три тысячи строк. Стиль с триггером остаётся здесь, потому что
-                            ElementName=NavAbout ищется в области имён этого файла.
-                        -->
-                        <local:SettingsInfoPage local:UiMotion.FadeOnShow="True">
-                            <local:SettingsInfoPage.Style>
-                                <Style TargetType="local:SettingsInfoPage">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsChecked, ElementName=NavAbout}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </local:SettingsInfoPage.Style>
-                        </local:SettingsInfoPage>
 
                     </Grid>
                 </Grid>

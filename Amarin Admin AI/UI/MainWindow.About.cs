@@ -5,7 +5,8 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Плашка «версия и репозиторий» внизу настроек и открытие внешних ссылок со страницы Info.
+    /// Плашка «версия и репозиторий» внизу настроек, группа «Помощь» на «О программе» и открытие
+    /// внешних ссылок из гайда.
     /// </summary>
     /// <remarks>
     /// Ссылки живут одним методом, а не по <see cref="Process"/> в каждом обработчике: браузера
@@ -15,6 +16,17 @@ namespace Amarin.UI
     {
         private void GithubLinkButton_Click(object sender, RoutedEventArgs e) =>
             OpenExternalLink(UpdateChecker.RepositoryUrl);
+
+        private void AboutDocsButton_Click(object sender, RoutedEventArgs e) =>
+            OpenExternalLink(SettingsInfoPage.DocsUrl);
+
+        private void AboutRepoButton_Click(object sender, RoutedEventArgs e) =>
+            OpenExternalLink(UpdateChecker.RepositoryUrl);
+
+        private void ReportBugButton_Click(object sender, RoutedEventArgs e) =>
+            Detached.Run(ReportBugAsync(), "report_bug");
+
+        private void OpenLogsButton_Click(object sender, RoutedEventArgs e) => OpenLogsFolder();
 
         /// <summary>Открывает адрес в браузере пользователя.</summary>
         /// <remarks>

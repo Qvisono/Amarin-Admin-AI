@@ -69,7 +69,7 @@ public sealed class SettingsRedesignTests : IDisposable
     [Fact]
     public void Connections_are_tabs_of_automation_and_the_window_is_compact_again()
     {
-        var (nav, machines, mcp, height) = _wpf.Ui.Invoke(() =>
+        var (nav, machines, mcp, size) = _wpf.Ui.Invoke(() =>
         {
             var window = Shared();
             var automation = (SettingsAutomationPage)window.FindName("AutomationPage")!;
@@ -77,13 +77,13 @@ public sealed class SettingsRedesignTests : IDisposable
                 window.FindName("NavConnections"),
                 automation.FindName("MachinesTab"),
                 automation.FindName("McpTab"),
-                ((FrameworkElement)window.FindName("SettingsCard")!).Height);
+                new Size(((FrameworkElement)window.FindName("SettingsCard")!).Width, ((FrameworkElement)window.FindName("SettingsCard")!).Height));
         });
 
         Assert.Null(nav);
         Assert.NotNull(machines);
         Assert.NotNull(mcp);
-        Assert.Equal(520, height);
+        Assert.Equal(new Size(720, 520), size);
     }
 
     /// <summary>
@@ -235,6 +235,10 @@ public sealed class SettingsRedesignTests : IDisposable
         Assert.Equal(SettingsNavNames.All.Length, titles.Count);
         var first = titles.Values.First();
         Assert.True(titles.Values.All(point => point == first), string.Join("; ", titles.Select(pair => pair.Key + " " + pair.Value)));
+
+        // Фикстура держит русский язык: в 1.30 восемь заголовков из одиннадцати были английскими.
+        var latin = titles.Keys.Where(key => System.Text.RegularExpressions.Regex.IsMatch(key[(key.IndexOf('«') + 1)..], "[A-Za-z]")).ToList();
+        Assert.True(latin.Count == 0, "по-английски: " + string.Join("; ", latin));
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

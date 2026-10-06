@@ -129,10 +129,14 @@ namespace Amarin.UI
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
 
         /// <summary>
-        /// Человек перешёл на страницу «Файлы приложения». Считаем здесь, а не при открытии
-        /// настроек: страница запоминается между открытиями, так что вернувшийся на неё увидит
-        /// свежий счёт, а остальные за него не платят.
+        /// Разбивка «Занято на диске» лежит наверху «Хранения и очистки» и считается, когда туда
+        /// заходят, а не на каждое открытие «Данных»: обход читает все файлы чатов, а смотрят
+        /// место там, где его освобождают.
         /// </summary>
+        private void WireDataUsage() =>
+            CareLinkRow.Click += (_, _) => Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
+
+        /// <summary>Человек перешёл на страницу «Данные»: наполняем подстраницы и значения строк «›».</summary>
         private void NavData_Checked(object sender, RoutedEventArgs e)
         {
             if (_services is not null)
@@ -144,8 +148,6 @@ namespace Amarin.UI
                 DataCarePanel.Load(_services);
                 RefreshDataLinks();
             }
-
-            Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
         }
 
         /// <summary>Значения строк «Резервные копии ›» и «Хранение и очистка ›».</summary>
