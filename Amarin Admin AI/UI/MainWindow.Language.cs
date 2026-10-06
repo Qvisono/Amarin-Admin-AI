@@ -238,6 +238,9 @@ namespace Amarin.UI
             // из кода, причём подпись перекрывает DynamicResource насовсем. Плашку рисует автомат
             // по своему состоянию, поэтому перерисовать её можно в любой момент — и посреди загрузки.
             LoadUpdatesUi();
+
+            // Значения справа у строк «›» («Трей», «Заводские») тоже пишет код.
+            RefreshBehaviorLinks();
             if (ProfileOverlay.Visibility == Visibility.Visible)
             {
                 RefreshProfileList();

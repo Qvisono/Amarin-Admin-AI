@@ -27,10 +27,10 @@ public sealed class SettingsKeyPageTests
         Application.Current.Windows.OfType<MainWindow>().Single();
 
     /// <summary>
-    /// Раздел «Key» стоит между «Model» и «Data & Info» — там, где его и ждут.
+    /// «Ключи и траты» стоят в группе защиты и данных: сразу после «Безопасности», перед «Данными».
     /// </summary>
     [Fact]
-    public void The_key_section_sits_below_the_model_one()
+    public void The_keys_page_sits_between_security_and_data()
     {
         var order = _wpf.Ui.Invoke(() =>
         {
@@ -42,12 +42,12 @@ public sealed class SettingsKeyPageTests
                 .ToList();
         });
 
-        var customize = order.IndexOf("NavCustomize");
+        var security = order.IndexOf("NavSecurity");
         var key = order.IndexOf("NavKey");
         var data = order.IndexOf("NavData");
 
-        Assert.True(customize < key, "раздел Key обязан идти после Customize");
-        Assert.True(key < data, "раздел Key обязан идти до Data Controls");
+        Assert.True(security >= 0 && key == security + 1, "«Ключи и траты» обязаны идти сразу после «Безопасности»");
+        Assert.Equal(key + 1, data);
     }
 
     private static DependencyObject VisualParentOf(UIElement element) =>
@@ -61,7 +61,7 @@ public sealed class SettingsKeyPageTests
         {
             var window = Window();
             var nav = (RadioButton)window.FindName("NavKey");
-            var previous = new[] { "NavAccount", "NavAppearance", "NavBehavior", "NavCustomize", "NavInstructions", "NavData", "NavInfo" }
+            var previous = SettingsNavNames.All
                 .Select(name => (RadioButton)window.FindName(name))
                 .FirstOrDefault(button => button.IsChecked == true);
 
@@ -71,7 +71,7 @@ public sealed class SettingsKeyPageTests
             {
                 return new[]
                 {
-                    "AppearancePageScroll", "BehaviorPageScroll", "CustomizePageScroll", "DataPageScroll"
+                    "AppearancePageScroll", "GeneralPageScroll", "CustomizePageScroll", "DataPageScroll"
                 }
                 .Select(name => ((FrameworkElement)window.FindName(name)).Visibility)
                 .Count(state => state == Visibility.Visible)

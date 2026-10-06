@@ -31,7 +31,7 @@ public sealed class DragScrollTests
             string[] names =
             [
                 "AppearancePageScroll",
-                "BehaviorPageScroll",
+                "GeneralPageScroll",
                 "CustomizePageScroll",
                 "DataPageScroll"
             ];

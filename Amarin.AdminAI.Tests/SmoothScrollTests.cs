@@ -36,7 +36,7 @@ public sealed class SmoothScrollTests
                 "SideBarScrollViewer",
                 "ChatScrollViewer",
                 "AppearancePageScroll",
-                "BehaviorPageScroll",
+                "GeneralPageScroll",
                 "CustomizePageScroll",
                 "DataPageScroll",
                 "AllowedDomainsScroll"

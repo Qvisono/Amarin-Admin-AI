@@ -30,7 +30,7 @@ public sealed class SettingsInfoPageTests
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
 
-            var nav = (RadioButton)window.FindName("NavInfo")!;
+            var nav = (RadioButton)window.FindName("NavAbout")!;
             nav.IsChecked = true;
             window.UpdateLayout();
 
@@ -47,7 +47,7 @@ public sealed class SettingsInfoPageTests
             var result = (shown.Count, shown.Count == 1 && shown[0] is SettingsInfoPage);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return result;
         });
 

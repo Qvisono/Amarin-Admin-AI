@@ -251,8 +251,8 @@ namespace Amarin.UI
                 NoticeTone.Info);
             if (open)
             {
-                OpenSettingsPage(NavBehavior);
-                SettingsDrill.Open(BehaviorVoiceSub);
+                OpenSettingsPage(NavGeneral);
+                SettingsDrill.Open(GeneralVoiceSub, VoiceLinkRow);
             }
         }
 

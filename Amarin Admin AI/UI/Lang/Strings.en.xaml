@@ -284,7 +284,6 @@
     <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Could not read the OpenRouter batch queue's reply ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Chat auto-scroll</system:String>
     <system:String x:Key="S.Behavior.CodeLineNumbers" xml:space="preserve">Line numbers in code blocks</system:String>
-    <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Notify when the answer is done</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">When the window is in the background</system:String>
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Notification sound</system:String>
@@ -627,6 +626,9 @@
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Writing from the chat is unavailable: there is no one to confirm it. Do not repeat the call.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Read-only mode is on: the app does nothing that changes the system, so the {0} call was not run. Do not repeat it and do not try to do the same with another tool, PowerShell included; tell the user that this needs a different access mode in Settings (Security).</system:String>
     <system:String x:Key="S.Gate.ReadOnlyRun" xml:space="preserve">This run is read-only (a scheduled task): the call {0} was not made. Don't repeat it or try the same with another tool; describe in the report what should be done and why.</system:String>
+    <system:String x:Key="S.General.Group.ChatWindow" xml:space="preserve">Chat and window</system:String>
+    <system:String x:Key="S.General.Group.Language" xml:space="preserve">Language and format</system:String>
+    <system:String x:Key="S.General.Group.Notifications" xml:space="preserve">Notifications</system:String>
     <system:String x:Key="S.Guard.Action" xml:space="preserve">Action: {0}</system:String>
     <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Add the domain in Settings → Data Controls → Allowed download sources.</system:String>
     <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Warning: the volume may become unavailable; the system volume may need a restart.</system:String>
@@ -823,10 +825,13 @@
     <system:String x:Key="S.Hotkeys.SearchChatsDesc" xml:space="preserve">The search box in the chat list; a collapsed panel opens.</system:String>
     <system:String x:Key="S.Hotkeys.Send" xml:space="preserve">Send the message</system:String>
     <system:String x:Key="S.Hotkeys.SheetEdit" xml:space="preserve">Change…</system:String>
-    <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Change them in Settings, on the Behavior page.</system:String>
+    <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Change them in Settings: General › Keyboard shortcuts.</system:String>
     <system:String x:Key="S.Hotkeys.SheetTitle" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Hotkeys.Stop" xml:space="preserve">Stop the answer (empty field)</system:String>
+    <system:String x:Key="S.Hotkeys.Summary.Custom" xml:space="preserve">Changed: {0}</system:String>
+    <system:String x:Key="S.Hotkeys.Summary.Default" xml:space="preserve">Defaults</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Not in effect: you assigned this shortcut to another action. Record a different one here</system:String>
+    <system:String x:Key="S.Hotkeys.Title" xml:space="preserve">Keyboard shortcuts</system:String>
     <system:String x:Key="S.Hotkeys.ToggleSidebar" xml:space="preserve">Toggle the chat panel</system:String>
     <system:String x:Key="S.Hotkeys.ToggleSidebarDesc" xml:space="preserve">Collapse the side panel to a strip or open it again.</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">The image is no longer available.</system:String>
@@ -1643,26 +1648,26 @@
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.General.Title" xml:space="preserve">General</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Instructions</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Key and spending</system:String>
-    <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
+    <system:String x:Key="S.Settings.Nav.About" xml:space="preserve">About</system:String>
     <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
-    <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
-    <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
-    <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
-    <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
-    <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
+    <system:String x:Key="S.Settings.Nav.Data" xml:space="preserve">Data</system:String>
+    <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">General</system:String>
     <system:String x:Key="S.Settings.Nav.Instructions" xml:space="preserve">Instructions</system:String>
-    <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
-    <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
-    <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.Nav.Keys" xml:space="preserve">Keys &amp; spending</system:String>
+    <system:String x:Key="S.Settings.Nav.Models" xml:space="preserve">Models</system:String>
+    <system:String x:Key="S.Settings.Nav.Profile" xml:space="preserve">Profile</system:String>
+    <system:String x:Key="S.Settings.Nav.Prompts" xml:space="preserve">Prompts</system:String>
     <system:String x:Key="S.Settings.Nav.Security" xml:space="preserve">Security</system:String>
+    <system:String x:Key="S.Settings.NavGroup.Main" xml:space="preserve">GENERAL</system:String>
+    <system:String x:Key="S.Settings.NavGroup.Model" xml:space="preserve">MODEL</system:String>
+    <system:String x:Key="S.Settings.NavGroup.SecurityData" xml:space="preserve">SECURITY &amp; DATA</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Reset</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Save</system:String>
 

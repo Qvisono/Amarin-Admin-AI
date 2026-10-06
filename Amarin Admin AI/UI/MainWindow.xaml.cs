@@ -164,7 +164,7 @@ namespace Amarin.UI
             // В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
             // перетаскиванием чатов по папкам.
             foreach (var page in (ScrollViewer[])
-                     [AppearancePageScroll, BehaviorPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
+                     [AppearancePageScroll, GeneralPageScroll, CustomizePageScroll, DataPageScroll, AllowedDomainsScroll])
             {
                 SmoothScroll.SetIsEnabled(page, true);
                 SmoothScroll.SetDragScroll(page, true);

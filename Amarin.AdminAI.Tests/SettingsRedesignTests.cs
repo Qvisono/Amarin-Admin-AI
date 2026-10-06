@@ -65,7 +65,7 @@ public sealed class SettingsRedesignTests : IDisposable
 
     // ───────────────────────── настройки ─────────────────────────
 
-    /// <summary>Подключения переехали вкладками в Automation: окно снова 690×520 с десятью пунктами.</summary>
+    /// <summary>Подключения — вкладками в Automation, а не пунктом навигации; окно 720×520.</summary>
     [Fact]
     public void Connections_are_tabs_of_automation_and_the_window_is_compact_again()
     {
@@ -97,16 +97,16 @@ public sealed class SettingsRedesignTests : IDisposable
         {
             var window = Shared();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
-            var behavior = (RadioButton)window.FindName("NavBehavior")!;
-            var account = (RadioButton)window.FindName("NavAccount")!;
+            var general = (RadioButton)window.FindName("NavGeneral")!;
+            var profile = (RadioButton)window.FindName("NavProfile")!;
             var link = (Button)window.FindName("WindowsLinkRow")!;
-            var sub = (FrameworkElement)window.FindName("BehaviorWindowsSub")!;
+            var sub = (FrameworkElement)window.FindName("GeneralWindowsSub")!;
             var wasVisible = overlay.Visibility;
-            var wasChecked = new[] { "NavAccount", "NavAppearance", "NavBehavior", "NavSecurity", "NavCustomize", "NavInstructions", "NavAutomation", "NavKey", "NavData", "NavInfo" }
+            var wasChecked = SettingsNavNames.All
                 .Select(name => (RadioButton)window.FindName(name)!)
                 .FirstOrDefault(radio => radio.IsChecked == true);
             overlay.Visibility = Visibility.Visible;
-            behavior.IsChecked = true;
+            general.IsChecked = true;
             window.UpdateLayout();
             try
             {
@@ -119,7 +119,7 @@ public sealed class SettingsRedesignTests : IDisposable
                 var wentBack = SettingsDrill.TryBackIn(overlay) && sub.Visibility == Visibility.Collapsed && root.Visibility == Visibility.Visible;
 
                 link.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, link));
-                account.IsChecked = true;
+                profile.IsChecked = true;
                 window.UpdateLayout();
                 var wasReset = sub.Visibility == Visibility.Collapsed && root.Visibility == Visibility.Visible;
                 return (isOpen, rootCollapsed, wentBack, wasReset);
@@ -157,7 +157,7 @@ public sealed class SettingsRedesignTests : IDisposable
             var page = (SettingsAutomationPage)window.FindName("AutomationPage")!;
             var tabs = new[] { "RecipesTab", "ScheduleTab", "MachinesTab", "McpTab" }.Select(name => (RadioButton)page.FindName(name)!).ToList();
             var wasVisible = overlay.Visibility;
-            var wasChecked = window.FindName("NavBehavior") as RadioButton;
+            var wasChecked = window.FindName("NavGeneral") as RadioButton;
             overlay.Visibility = Visibility.Visible;
             nav.IsChecked = true;
             var widthSets = new List<double[]>();
@@ -190,7 +190,7 @@ public sealed class SettingsRedesignTests : IDisposable
     }
 
     /// <summary>
-    /// Заголовок страницы стоит в одной точке на всех десяти страницах: иначе при переходе по
+    /// Заголовок страницы стоит в одной точке на всех страницах: иначе при переходе по
     /// пунктам навигации он прыгал бы.
     /// </summary>
     [Fact]
@@ -202,7 +202,7 @@ public sealed class SettingsRedesignTests : IDisposable
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             var card = (FrameworkElement)window.FindName("SettingsCard")!;
             var wasVisible = overlay.Visibility;
-            var names = new[] { "NavAccount", "NavAppearance", "NavBehavior", "NavSecurity", "NavCustomize", "NavInstructions", "NavAutomation", "NavKey", "NavData", "NavInfo" };
+            var names = SettingsNavNames.All;
             var wasChecked = names.Select(name => (RadioButton)window.FindName(name)!).FirstOrDefault(radio => radio.IsChecked == true);
             overlay.Visibility = Visibility.Visible;
             var found = new Dictionary<string, Point>();
@@ -232,7 +232,7 @@ public sealed class SettingsRedesignTests : IDisposable
             return found;
         });
 
-        Assert.Equal(10, titles.Count);
+        Assert.Equal(SettingsNavNames.All.Length, titles.Count);
         var first = titles.Values.First();
         Assert.True(titles.Values.All(point => point == first), string.Join("; ", titles.Select(pair => pair.Key + " " + pair.Value)));
     }

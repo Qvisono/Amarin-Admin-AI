@@ -22,7 +22,7 @@ public sealed class HotkeyFieldTests
     private static MainWindow Window() => Application.Current.Windows.OfType<MainWindow>().Single();
 
     [Fact]
-    public void The_behavior_page_ends_with_a_row_per_action()
+    public void The_shortcuts_subpage_has_a_row_per_action()
     {
         // Строки строятся кодом по HotkeyMap.All: вторая их копия в разметке разошлась бы с
         // ним молча — новое действие просто не показалось бы.
@@ -31,7 +31,7 @@ public sealed class HotkeyFieldTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
 
             // Ровно то, что делает заход в настройки: строки раздела строятся кодом по
             // HotkeyMap.All, а не лежат в разметке. Службы окну в тестах не выдаются, поэтому

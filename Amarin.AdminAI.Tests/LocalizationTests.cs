@@ -251,7 +251,7 @@ public sealed class LocalizationTests
             var (russian, english) = _wpf.Ui.Invoke(() =>
             {
                 var window = Application.Current.Windows.OfType<MainWindow>().Single();
-                var nav = (ContentControl)window.FindName("NavBehavior")!;
+                var nav = (ContentControl)window.FindName("NavGeneral")!;
 
                 LanguageManager.Apply("ru");
                 window.UpdateLayout();
@@ -262,8 +262,8 @@ public sealed class LocalizationTests
                 return (ru, (string)nav.Content);
             });
 
-            Assert.Equal("Behavior", russian);
-            Assert.Equal("Behavior", english);
+            Assert.Equal("Общие", russian);
+            Assert.Equal("General", english);
         }
         finally
         {
@@ -291,7 +291,7 @@ public sealed class LocalizationTests
 
                 // Все страницы по очереди, а не та, что осталась открытой от соседнего теста:
                 // иначе проверка зависела от порядка прогона.
-                var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)window.FindName("NavAccount")!);
+                var nav = (Panel)LogicalTreeHelper.GetParent((DependencyObject)window.FindName("NavGeneral")!);
                 var pages = nav.Children.OfType<RadioButton>().ToList();
                 var previous = pages.FirstOrDefault(page => page.IsChecked == true);
                 var found = new List<string>();

@@ -284,7 +284,6 @@
     <system:String x:Key="S.Batch.Unreadable" xml:space="preserve">Ответ пакетной очереди OpenRouter не разобрать ({0}). Body: {1}</system:String>
     <system:String x:Key="S.Behavior.AutoScroll" xml:space="preserve">Автопрокрутка чата</system:String>
     <system:String x:Key="S.Behavior.CodeLineNumbers" xml:space="preserve">Номера строк в блоках кода</system:String>
-    <system:String x:Key="S.Behavior.Hotkeys" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Behavior.NotifyOnComplete" xml:space="preserve">Уведомлять о завершении ответа</system:String>
     <system:String x:Key="S.Behavior.NotifyOnCompleteDesc" xml:space="preserve">Когда окно в фоне</system:String>
     <system:String x:Key="S.Behavior.NotifySound" xml:space="preserve">Звук уведомления</system:String>
@@ -627,6 +626,9 @@
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
     <system:String x:Key="S.Gate.ReadOnlyRun" xml:space="preserve">Этот прогон идёт только на чтение (задача по расписанию): вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом; опиши в отчёте, что нужно сделать и почему.</system:String>
+    <system:String x:Key="S.General.Group.ChatWindow" xml:space="preserve">Чат и окно</system:String>
+    <system:String x:Key="S.General.Group.Language" xml:space="preserve">Язык и формат</system:String>
+    <system:String x:Key="S.General.Group.Notifications" xml:space="preserve">Уведомления</system:String>
     <system:String x:Key="S.Guard.Action" xml:space="preserve">Действие: {0}</system:String>
     <system:String x:Key="S.Guard.AddDomainHint" xml:space="preserve">Добавьте домен в Настройки → Data Controls → Разрешённые источники загрузки.</system:String>
     <system:String x:Key="S.Guard.ChkdskWarn" xml:space="preserve">Внимание: том может стать недоступен; для системного тома может потребоваться перезагрузка.</system:String>
@@ -823,10 +825,13 @@
     <system:String x:Key="S.Hotkeys.SearchChatsDesc" xml:space="preserve">Поле поиска в списке чатов; свёрнутая панель раскрывается.</system:String>
     <system:String x:Key="S.Hotkeys.Send" xml:space="preserve">Отправить сообщение</system:String>
     <system:String x:Key="S.Hotkeys.SheetEdit" xml:space="preserve">Изменить…</system:String>
-    <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Назначения меняются в настройках, на странице Behavior.</system:String>
+    <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Назначения меняются в настройках: Общие › Сочетания клавиш.</system:String>
     <system:String x:Key="S.Hotkeys.SheetTitle" xml:space="preserve">Горячие клавиши</system:String>
     <system:String x:Key="S.Hotkeys.Stop" xml:space="preserve">Остановить ответ (поле пустое)</system:String>
+    <system:String x:Key="S.Hotkeys.Summary.Custom" xml:space="preserve">Изменено: {0}</system:String>
+    <system:String x:Key="S.Hotkeys.Summary.Default" xml:space="preserve">Заводские</system:String>
     <system:String x:Key="S.Hotkeys.Taken" xml:space="preserve">Не действует: это сочетание вы назначили другому действию. Запишите здесь своё</system:String>
+    <system:String x:Key="S.Hotkeys.Title" xml:space="preserve">Сочетания клавиш</system:String>
     <system:String x:Key="S.Hotkeys.ToggleSidebar" xml:space="preserve">Свернуть панель чатов</system:String>
     <system:String x:Key="S.Hotkeys.ToggleSidebarDesc" xml:space="preserve">Свернуть боковую панель в полоску или развернуть обратно.</system:String>
     <system:String x:Key="S.Image.Gone" xml:space="preserve">Изображение больше недоступно.</system:String>
@@ -1643,26 +1648,26 @@
     <system:String x:Key="S.Settings.Account.Title" xml:space="preserve">Account</system:String>
     <system:String x:Key="S.Settings.Appearance.Title" xml:space="preserve">Appearance</system:String>
     <system:String x:Key="S.Settings.Automation.Title" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Behavior.Title" xml:space="preserve">Behavior</system:String>
     <system:String x:Key="S.Settings.Customize.Title" xml:space="preserve">Customize</system:String>
     <system:String x:Key="S.Settings.Data.Title" xml:space="preserve">Data Controls</system:String>
+    <system:String x:Key="S.Settings.General.Title" xml:space="preserve">Общие</system:String>
     <system:String x:Key="S.Settings.Info.Title" xml:space="preserve">Info</system:String>
     <system:String x:Key="S.Settings.Instructions.Title" xml:space="preserve">Инструкции</system:String>
     <system:String x:Key="S.Settings.Key.Title" xml:space="preserve">Ключ и траты</system:String>
-    <system:String x:Key="S.Settings.Nav.Account" xml:space="preserve">Account</system:String>
-    <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Appearance</system:String>
-    <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Automation</system:String>
-    <system:String x:Key="S.Settings.Nav.Behavior" xml:space="preserve">Behavior</system:String>
-    <system:String x:Key="S.Settings.Nav.Customize" xml:space="preserve">Customize</system:String>
-    <system:String x:Key="S.Settings.Nav.DataAndInfo" xml:space="preserve">DATA &amp; INFO</system:String>
-    <system:String x:Key="S.Settings.Nav.DataControls" xml:space="preserve">Data Controls</system:String>
-    <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">GENERAL</system:String>
-    <system:String x:Key="S.Settings.Nav.Info" xml:space="preserve">Info</system:String>
-    <system:String x:Key="S.Settings.Nav.Instructions" xml:space="preserve">Instructions</system:String>
-    <system:String x:Key="S.Settings.Nav.Key" xml:space="preserve">KEY</system:String>
-    <system:String x:Key="S.Settings.Nav.KeyInfo" xml:space="preserve">Key &amp; Info</system:String>
-    <system:String x:Key="S.Settings.Nav.Model" xml:space="preserve">MODEL</system:String>
-    <system:String x:Key="S.Settings.Nav.Security" xml:space="preserve">Security</system:String>
+    <system:String x:Key="S.Settings.Nav.About" xml:space="preserve">О программе</system:String>
+    <system:String x:Key="S.Settings.Nav.Appearance" xml:space="preserve">Оформление</system:String>
+    <system:String x:Key="S.Settings.Nav.Automation" xml:space="preserve">Автоматизация</system:String>
+    <system:String x:Key="S.Settings.Nav.Data" xml:space="preserve">Данные</system:String>
+    <system:String x:Key="S.Settings.Nav.General" xml:space="preserve">Общие</system:String>
+    <system:String x:Key="S.Settings.Nav.Instructions" xml:space="preserve">Инструкции</system:String>
+    <system:String x:Key="S.Settings.Nav.Keys" xml:space="preserve">Ключи и траты</system:String>
+    <system:String x:Key="S.Settings.Nav.Models" xml:space="preserve">Модели</system:String>
+    <system:String x:Key="S.Settings.Nav.Profile" xml:space="preserve">Профиль</system:String>
+    <system:String x:Key="S.Settings.Nav.Prompts" xml:space="preserve">Промпты</system:String>
+    <system:String x:Key="S.Settings.Nav.Security" xml:space="preserve">Безопасность</system:String>
+    <system:String x:Key="S.Settings.NavGroup.Main" xml:space="preserve">ОСНОВНОЕ</system:String>
+    <system:String x:Key="S.Settings.NavGroup.Model" xml:space="preserve">МОДЕЛЬ</system:String>
+    <system:String x:Key="S.Settings.NavGroup.SecurityData" xml:space="preserve">ЗАЩИТА И ДАННЫЕ</system:String>
     <system:String x:Key="S.Settings.ResetPrompt" xml:space="preserve">Сбросить</system:String>
     <system:String x:Key="S.Settings.SavePrompt" xml:space="preserve">Сохранить</system:String>
 

@@ -41,11 +41,7 @@ public sealed class UiShotTests : IDisposable
         }
     }
 
-    private static readonly string[] NavItems =
-    [
-        "NavAccount", "NavAppearance", "NavBehavior", "NavSecurity", "NavCustomize", "NavInstructions",
-        "NavAutomation", "NavKey", "NavData", "NavInfo"
-    ];
+    private static readonly string[] NavItems = SettingsNavNames.All;
 
     [Fact]
     public async Task Shots()
@@ -274,7 +270,7 @@ public sealed class UiShotTests : IDisposable
                 Save(card, Path.Combine(folder, prefix + ".png"), null);
 
                 // Раскрытая выпадашка: у неё своё окно, снимок страницы её не видит.
-                if (name == "NavBehavior" &&
+                if (name == "NavGeneral" &&
                     Descendants<ComboBox>(card).FirstOrDefault(combo => combo.IsVisible) is { } dropdown)
                 {
                     dropdown.IsDropDownOpen = true;
@@ -362,6 +358,11 @@ public sealed class UiShotTests : IDisposable
                         await Settle(250);
                     }
                 }
+            }
+
+            if (Wanted(only, "icons"))
+            {
+                ShootIcons(window, folder);
             }
 
             // Последними: съёмка подставляет автомату свои состояния, а настройки уже пройдены.
@@ -665,7 +666,9 @@ public sealed class UiShotTests : IDisposable
         // Длинная страница — кусками по 900 точек: картинку в несколько тысяч точек высотой
         // при просмотре ужимают так, что текст уже не прочесть.
         const double Slice = 900;
-        var background = (Brush)page.FindResource("Bg.Panel");
+        // Подложка — та же, на которой страница лежит в окне настроек: карточки групп (Bg.Panel)
+        // на ней видны так же, как на экране.
+        var background = (Brush)page.FindResource("Bg.Window");
         if (content.ActualHeight <= Slice * 1.3)
         {
             Save(content, path, background);
@@ -789,7 +792,64 @@ public sealed class UiShotTests : IDisposable
         return null;
     }
 
-    private static void Save(FrameworkElement element, string path, Brush? background, Rect? region = null)
+    /// <summary>
+    /// Лист значков навигации: каждый крупно (×4) и в настоящем размере — тем же пером и на той
+    /// же плитке, что у пункта, — при 100 % и 150 %, на подложке окна настроек этой палитры. На
+    /// нём видно то, чего не видно в колонке: слипшиеся в пятно штрихи и знак не по центру.
+    /// </summary>
+    private static void ShootIcons(MainWindow window, string folder)
+    {
+        static Border Tile(RadioButton nav, double tile, double icon, double pen) => new()
+        {
+            Width = tile,
+            Height = tile,
+            CornerRadius = new CornerRadius(tile / 2),
+            Background = nav.Background,
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new System.Windows.Shapes.Path
+            {
+                Data = (Geometry)nav.Tag,
+                Width = icon,
+                Height = icon,
+                Stretch = Stretch.Uniform,
+                Stroke = Brushes.White,
+                StrokeThickness = pen,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+
+        var sheet = new StackPanel { Margin = new Thickness(16) };
+        foreach (var name in NavItems)
+        {
+            var nav = (RadioButton)window.FindName(name);
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+            row.Children.Add(Tile(nav, 80, 48, 1.3 * 4));
+            row.Children.Add(Tile(nav, 20, 12, 1.3));
+            ((FrameworkElement)row.Children[1]).Margin = new Thickness(20, 0, 12, 0);
+            row.Children.Add(new TextBlock
+            {
+                Text = nav.Content as string,
+                FontSize = 12.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)window.FindResource("Text.Secondary")
+            });
+            sheet.Children.Add(row);
+        }
+
+        var background = (Brush)window.FindResource("Bg.Window");
+        var host = new Border { Child = sheet, Background = background };
+        host.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        host.Arrange(new Rect(host.DesiredSize));
+        host.UpdateLayout();
+        Save(host, Path.Combine(folder, "icons-150.png"), background);
+        Save(host, Path.Combine(folder, "icons-100.png"), background, scale: 1.0);
+    }
+
+    private static void Save(FrameworkElement element, string path, Brush? background, Rect? region = null, double scale = Scale)
     {
         var source = region ?? new Rect(0, 0, element.ActualWidth, element.ActualHeight);
         var width = source.Width;
@@ -826,7 +886,7 @@ public sealed class UiShotTests : IDisposable
         }
 
         var bitmap = new RenderTargetBitmap(
-            (int)Math.Ceiling(width * Scale), (int)Math.Ceiling(height * Scale), 96 * Scale, 96 * Scale, PixelFormats.Pbgra32);
+            (int)Math.Ceiling(width * scale), (int)Math.Ceiling(height * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));

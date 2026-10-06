@@ -82,8 +82,8 @@ namespace Amarin.UI
         private bool _integrationUiWired;
 
         /// <summary>
-        /// Behavior: подстраницы «Интеграция с Windows» и «Голосовой ввод», сочетания из любой
-        /// программы и вид уведомлений. Строки-ссылки показывают справа, что внутри включено.
+        /// «Общие»: подстраницы «Сочетания клавиш», «Интеграция с Windows» и «Голосовой ввод» и вид
+        /// уведомлений. Строки-ссылки показывают справа, что внутри включено или изменено.
         /// </summary>
         private void LoadIntegrationUi(AppServices services)
         {
@@ -96,6 +96,7 @@ namespace Amarin.UI
                 GlobalHotkeysSettings.Applied = () =>
                 {
                     ApplyWindowsIntegration();
+                    RefreshBehaviorLinks();
                     return GlobalHotkeyProblems;
                 };
             }
@@ -115,8 +116,26 @@ namespace Amarin.UI
                 return;
             }
 
+            HotkeysLinkRow.Tag = HotkeysSummary(_services.Settings);
             WindowsLinkRow.Tag = WindowsIntegrationBlock.Summary(_services.Settings.Windows);
             VoiceLinkRow.Tag = VoiceSettingsBlock.Summary(_services.Settings, IsVoiceAvailable());
+        }
+
+        /// <summary>
+        /// Значение у строки «Сочетания клавиш ›»: заводские или сколько назначено своих — и в
+        /// программе, и из любой программы. Своё у программы хранится только отличием от
+        /// заводского (SaveHotkey), поэтому число записей и есть число изменённых.
+        /// </summary>
+        internal static string HotkeysSummary(AppSettings settings)
+        {
+            var own = settings.Hotkeys?.Count ?? 0;
+            if (settings.Windows is { } windows)
+            {
+                own += GlobalHotkeys.All.Count(action =>
+                    !string.Equals(GlobalHotkeys.Effective(windows, action), GlobalHotkeys.Default(action), StringComparison.Ordinal));
+            }
+
+            return own == 0 ? Loc.Get("S.Hotkeys.Summary.Default") : Loc.Format("S.Hotkeys.Summary.Custom", own);
         }
 
         private void NotifyStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -34,7 +34,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
 
             var box = (TextBox)window.FindName(name)!;
             var restore = box.Text;
@@ -46,7 +46,7 @@ public sealed class CustomizePageTests
 
             box.Text = restore;
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return result;
         });
 
@@ -63,7 +63,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
             window.UpdateLayout();
 
             // Разделы опознаются по первому полю каждого: заголовки — безымянные TextBlock.
@@ -73,7 +73,7 @@ public sealed class CustomizePageTests
             var prompts = IndexOf(page, (UIElement)window.FindName("MainPromptTextBox")!);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return (answer, service, prompts);
         });
 
@@ -91,7 +91,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
             window.UpdateLayout();
 
             var toggle = (ToggleButton)window.FindName("SynGuardModelToggle")!;
@@ -105,7 +105,7 @@ public sealed class CustomizePageTests
 
             toggle.IsChecked = false;
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return (before, after, name);
         });
 
@@ -126,7 +126,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
             window.UpdateLayout();
 
             var page = Page(window);
@@ -140,7 +140,7 @@ public sealed class CustomizePageTests
                 ((CheckBox)window.FindName("AutoScrollToggle")!).Style);
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return (service, guard, prompts, shared);
         });
 
@@ -163,7 +163,7 @@ public sealed class CustomizePageTests
             var window = Window();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay")!;
             overlay.Visibility = Visibility.Visible;
-            ((RadioButton)window.FindName("NavCustomize")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavModels")!).IsChecked = true;
             window.UpdateLayout();
 
             var frame = Frame((TextBox)window.FindName(box)!);
@@ -172,7 +172,7 @@ public sealed class CustomizePageTests
                             ReferenceEquals(frame, Frame((FrameworkElement)window.FindName(reset)!));
 
             overlay.Visibility = Visibility.Collapsed;
-            ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+            ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             return (withSave, withReset);
         });
 

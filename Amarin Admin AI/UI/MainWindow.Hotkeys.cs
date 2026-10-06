@@ -120,6 +120,7 @@ namespace Amarin.UI
 
             _services.SettingsStore.Save(settings);
             RefreshShadowedHotkeys(settings);
+            RefreshBehaviorLinks();
         }
 
         /// <summary>

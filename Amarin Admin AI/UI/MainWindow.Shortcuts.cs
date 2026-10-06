@@ -11,7 +11,15 @@ namespace Amarin.UI
     /// </summary>
     public partial class MainWindow
     {
-        private void WireShortcuts() => HotkeySheet.EditRequested += () => OpenSettingsPage(NavBehavior);
+        /// <summary>
+        /// «Изменить» на листе сочетаний ведёт прямо на подстраницу сочетаний, а не на «Общие»:
+        /// там они больше не лежат на первом уровне, и человек искал бы их ещё одним щелчком.
+        /// </summary>
+        private void WireShortcuts() => HotkeySheet.EditRequested += () =>
+        {
+            OpenSettingsPage(NavGeneral);
+            SettingsDrill.Open(GeneralHotkeysSub, HotkeysLinkRow);
+        };
 
         /// <summary>
         /// Esc останавливает ход открытого чата — только когда больше ему нечего делать: поле

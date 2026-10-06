@@ -149,7 +149,7 @@ public sealed class InstructionUiTests : IDisposable
     // ───────────────────────── навигация настроек ─────────────────────────
 
     [Fact]
-    public void Instructions_sit_in_the_model_group_after_customize()
+    public void Instructions_sit_in_the_model_group_after_prompts()
     {
         var order = _wpf.Ui.Invoke(() =>
         {
@@ -160,7 +160,7 @@ public sealed class InstructionUiTests : IDisposable
                 .ToList();
         });
 
-        Assert.Equal(order.IndexOf("NavCustomize") + 1, order.IndexOf("NavInstructions"));
+        Assert.Equal(order.IndexOf("NavPrompts") + 1, order.IndexOf("NavInstructions"));
         Assert.True(order.IndexOf("NavInstructions") < order.IndexOf("NavKey"));
     }
 
@@ -178,7 +178,7 @@ public sealed class InstructionUiTests : IDisposable
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
             var version = (TextBlock)window.FindName("SettingsVersionText");
             var card = (FrameworkElement)window.FindName("SettingsAboutCard");
-            var last = (FrameworkElement)window.FindName("NavInfo");
+            var last = (FrameworkElement)window.FindName("NavAbout");
             var restore = version.Text;
 
             overlay.Visibility = Visibility.Visible;
@@ -365,7 +365,7 @@ public sealed class InstructionUiTests : IDisposable
             var window = SharedWindow();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
             var nav = (RadioButton)window.FindName("NavInstructions");
-            var behavior = (RadioButton)window.FindName("NavBehavior");
+            var behavior = (RadioButton)window.FindName("NavGeneral");
             var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
             var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
 
@@ -430,7 +430,7 @@ public sealed class InstructionUiTests : IDisposable
             var window = SharedWindow();
             var overlay = (FrameworkElement)window.FindName("SettingsOverlay");
             var nav = (RadioButton)window.FindName("NavInstructions");
-            var behavior = (RadioButton)window.FindName("NavBehavior");
+            var behavior = (RadioButton)window.FindName("NavGeneral");
             var page = (SettingsInstructionsPage)window.FindName("InstructionsPage");
             var closeButton = (FrameworkElement)window.FindName("SettingsCloseButton");
 

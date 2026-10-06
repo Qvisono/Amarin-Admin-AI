@@ -32,7 +32,7 @@ public sealed class AccessibilityTests
                 AccessibilityDefaults.ApplyTree(window);
                 Collect(window, found);
                 overlay.Visibility = Visibility.Visible;
-                foreach (var nav in new[] { "NavBehavior", "NavAppearance", "NavData", "NavKey", "NavInfo" })
+                foreach (var nav in new[] { "NavGeneral", "NavAppearance", "NavData", "NavKey", "NavAbout" })
                 {
                     ((RadioButton)window.FindName(nav)!).IsChecked = true;
                     window.UpdateLayout();
@@ -43,7 +43,7 @@ public sealed class AccessibilityTests
             finally
             {
                 overlay.Visibility = Visibility.Collapsed;
-                ((RadioButton)window.FindName("NavBehavior")!).IsChecked = true;
+                ((RadioButton)window.FindName("NavGeneral")!).IsChecked = true;
             }
 
             return found.Distinct().ToList();
