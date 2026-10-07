@@ -95,42 +95,31 @@ public sealed class UpdateControllerTests
     }
 
     [Fact]
-    public void A_download_that_stops_moving_is_given_up_with_a_reason()
+    public void A_download_the_downloader_gave_up_on_is_a_failure_with_a_reason()
     {
-        // Гонка 7. У тела загрузки своего срока не было: сеть, повисшая без обрыва, держала
-        // плашку на «Скачивание 40 %» до отмены руками — или до потолка выхода.
+        // Гонка 7. Повисшее соединение загрузчик меняет сам и докачивает (ResumableDownload), а
+        // исчерпав попытки — отвечает отказом. Это отказ на плашке, а не тихая отмена: до 1.32.0
+        // срок клиента выдавался за отмену, и загрузка пропадала молча.
         using var rig = new UpdateRig();
         var download = rig.StartBackgroundDownload(V130);
 
-        download.Progress.Report(0.1);
-        rig.Queue.Run();
-        rig.Time.Advance(UpdateController.StallLimit - TimeSpan.FromSeconds(1));
-        rig.Queue.Run();
-        Assert.False(download.Token.IsCancellationRequested);
-
-        // Каждый отчёт о доле отодвигает сторож.
-        download.Progress.Report(0.2);
-        rig.Queue.Run();
-        rig.Time.Advance(TimeSpan.FromSeconds(30));
-        rig.Queue.Run();
-        Assert.False(download.Token.IsCancellationRequested);
-
-        rig.Time.Advance(UpdateController.StallLimit);
+        download.Fail(Loc.Get("S.Updates.Stalled"));
         rig.Queue.Run();
 
-        Assert.True(download.Token.IsCancellationRequested);
         Assert.Null(rig.State.Download);
         Assert.Equal(new UpdateFailure(V130.Release, Loc.Get("S.Updates.Stalled")), rig.State.Failure);
     }
 
     [Fact]
-    public void A_download_without_progress_reports_is_not_watched()
+    public void A_long_download_is_not_cut_short_by_the_controller()
     {
-        // Без известного размера отчётов о доле нет вовсе — здоровую загрузку сторож не трогает.
+        // Сторож теперь у загрузчика и меряет байты; контроллер долгую загрузку не обрывает.
         using var rig = new UpdateRig();
         var download = rig.StartBackgroundDownload(V130);
 
-        rig.Time.Advance(UpdateController.StallLimit * 3);
+        download.Progress.Report(0.1);
+        rig.Queue.Run();
+        rig.Time.Advance(TimeSpan.FromMinutes(30));
         rig.Queue.Run();
 
         Assert.False(download.Token.IsCancellationRequested);

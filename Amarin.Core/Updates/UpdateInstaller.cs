@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
@@ -156,12 +155,19 @@ public static class UpdateInstaller
     /// Человек отдельно согласился поставить сборку, которую нечем сверить. Без этого сборка без
     /// контрольной суммы не скачивается вовсе.
     /// </param>
+    /// <param name="policy">Когда менять соединение (<see cref="ResumableDownload"/>); null — заводское.</param>
+    /// <remarks>
+    /// Отмену (исключение) отдаёт только отмена человеком. Повисшее соединение, срок клиента и
+    /// обрыв — повод для новой попытки с докачкой, а исчерпанные попытки — отказ с причиной: до
+    /// 1.32.0 срок клиента выдавался за отмену, и загрузка молча пропадала до следующей проверки.
+    /// </remarks>
     public static async Task<(UpdateStepResult Result, string? File)> DownloadAsync(
         UpdatePlan plan,
         HttpClient http,
         IProgress<double>? progress,
         CancellationToken cancellationToken,
-        bool allowUnverified = false)
+        bool allowUnverified = false,
+        DownloadPolicy? policy = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(http);
@@ -169,6 +175,11 @@ public static class UpdateInstaller
         if (!plan.Verified && !allowUnverified)
         {
             return (UpdateStepResult.Failed(Loc.Get("S.Updates.NoChecksum")), null);
+        }
+
+        if (plan.Asset.Size > MaxBytes)
+        {
+            return (UpdateStepResult.Failed(Loc.Get("S.Updates.TooBig")), null);
         }
 
         var target = Path.Combine(plan.WorkDirectory, plan.Asset.Name);
@@ -179,26 +190,19 @@ public static class UpdateInstaller
             Directory.CreateDirectory(plan.WorkDirectory);
             File.Delete(partial);
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, plan.Asset.Url);
-            request.Headers.UserAgent.ParseAdd("Amarin-Admin-AI-Updater");
-
-            using var response = await http
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                .ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
+            string hash;
+            var download = new ResumableDownload(
+                http,
+                plan.Asset.Url,
+                partial,
+                plan.Asset.Size,
+                MaxBytes,
+                progress,
+                policy ?? DownloadPolicy.Default);
+            await using (download.ConfigureAwait(false))
             {
-                return (UpdateStepResult.Failed(Loc.Format("S.Updates.Status", (int)response.StatusCode)), null);
+                hash = await download.RunAsync(cancellationToken).ConfigureAwait(false);
             }
-
-            var expected = plan.Asset.Size > 0 ? plan.Asset.Size : response.Content.Headers.ContentLength ?? 0;
-            if (expected > MaxBytes)
-            {
-                return (UpdateStepResult.Failed(Loc.Get("S.Updates.TooBig")), null);
-            }
-
-            var hash = await CopyAsync(response, partial, expected, progress, cancellationToken)
-                .ConfigureAwait(false);
 
             var actualSize = new FileInfo(partial).Length;
             if (plan.Asset.Size > 0 && actualSize != plan.Asset.Size)
@@ -218,10 +222,17 @@ public static class UpdateInstaller
             File.Move(partial, target, overwrite: true);
             return (UpdateStepResult.Success, target);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             TryDelete(partial);
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // Чужая отмена до сюда доходить не должна — загрузчик разбирает её сам. Дошла — это
+            // отказ, а не «человек отменил»: иначе загрузка пропала бы молча.
+            TryDelete(partial);
+            return (UpdateStepResult.Failed(Loc.Get("S.Updates.Stalled")), null);
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or UnauthorizedAccessException)
         {
@@ -539,59 +550,6 @@ public static class UpdateInstaller
             Path.TrimEndingDirectorySeparator(Path.GetFullPath(left)),
             Path.TrimEndingDirectorySeparator(Path.GetFullPath(right)),
             StringComparison.OrdinalIgnoreCase);
-
-    private static async Task<string> CopyAsync(
-        HttpResponseMessage response,
-        string path,
-        long expected,
-        IProgress<double>? progress,
-        CancellationToken cancellationToken)
-    {
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var file = File.Create(path);
-        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-
-        var buffer = ArrayPool<byte>.Shared.Rent(1024 * 1024);
-        long total = 0;
-        var lastReported = -1.0;
-
-        try
-        {
-            int read;
-            while ((read = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                total += read;
-                if (total > MaxBytes)
-                {
-                    throw new IOException(Loc.Get("S.Updates.TooBig"));
-                }
-
-                hasher.AppendData(buffer, 0, read);
-                await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-
-                if (progress is null || expected <= 0)
-                {
-                    continue;
-                }
-
-                // Доля считается раз в процент: иначе на семидесяти мегабайтах интерфейс
-                // получит десятки тысяч обновлений подряд.
-                var share = Math.Min(1.0, (double)total / expected);
-                if (share - lastReported >= 0.01)
-                {
-                    lastReported = share;
-                    progress.Report(share);
-                }
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
-
-        progress?.Report(1);
-        return Convert.ToHexString(hasher.GetHashAndReset()).ToLowerInvariant();
-    }
 
     private static bool TryEnsureWritable(string directory, out string error)
     {

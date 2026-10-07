@@ -29,17 +29,6 @@ public sealed class UpdateController : IDisposable
     /// </summary>
     internal static readonly TimeSpan CheckTimeout = TimeSpan.FromSeconds(30);
 
-    /// <summary>
-    /// Сколько загрузка может стоять без единого байта, прежде чем её признают зависшей.
-    /// </summary>
-    /// <remarks>
-    /// У тела загрузки своего срока нет: клиент меряет только ожидание заголовков, а дальше
-    /// зависшую без обрыва сеть держала бы лишь отмена — или потолок выхода в пятнадцать минут.
-    /// Сторож взводится первым отчётом о доле: без известного размера отчётов нет вовсе, и
-    /// здоровую загрузку он не тронет.
-    /// </remarks>
-    internal static readonly TimeSpan StallLimit = TimeSpan.FromMinutes(2);
-
     private readonly IUpdateSource _source;
     private readonly IUpdateFiles _files;
     private readonly IUpdateApp _app;
@@ -373,13 +362,14 @@ public sealed class UpdateController : IDisposable
         Watch(DownloadAsync(run, plan, start.AllowUnverified), "update_download");
     }
 
+    /// <remarks>
+    /// Повисшее и медленное соединение разбирает сам загрузчик (<see cref="ResumableDownload"/>):
+    /// он меняет соединение и докачивает, а сдавшись — отвечает отказом. Отмена отсюда — только
+    /// отмена человеком.
+    /// </remarks>
     private async Task DownloadAsync(DownloadRun run, UpdatePlan plan, bool allowUnverified)
     {
-        var progress = new Reporter(share => _post(() =>
-        {
-            ArmStallWatch(run);
-            Dispatch(new UpdateEvent.DownloadProgress(run.Generation, share));
-        }));
+        var progress = new Reporter(share => _post(() => Dispatch(new UpdateEvent.DownloadProgress(run.Generation, share))));
 
         UpdateEvent finished;
         try
@@ -389,9 +379,7 @@ public sealed class UpdateController : IDisposable
         }
         catch (OperationCanceledException)
         {
-            finished = run.Stalled
-                ? new UpdateEvent.DownloadFinished(run.Generation, UpdateStepResult.Failed(Loc.Get("S.Updates.Stalled")), null, plan)
-                : new UpdateEvent.DownloadCancelled(run.Generation);
+            finished = new UpdateEvent.DownloadCancelled(run.Generation);
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or UnauthorizedAccessException)
         {
@@ -410,29 +398,6 @@ public sealed class UpdateController : IDisposable
             run.Dispose();
             Dispatch(finished);
         });
-    }
-
-    /// <summary>Каждый отчёт о доле отодвигает сторож зависания.</summary>
-    private void ArmStallWatch(DownloadRun run)
-    {
-        if (!ReferenceEquals(_download, run))
-        {
-            return;
-        }
-
-        run.Watch ??= _time.CreateTimer(
-            _ => _post(() =>
-            {
-                if (ReferenceEquals(_download, run))
-                {
-                    run.Stalled = true;
-                    run.Cancel();
-                }
-            }),
-            null,
-            Timeout.InfiniteTimeSpan,
-            Timeout.InfiniteTimeSpan);
-        run.Watch.Change(StallLimit, Timeout.InfiniteTimeSpan);
     }
 
     private async Task InstallAsync(StagedUpdate staged)
@@ -457,7 +422,7 @@ public sealed class UpdateController : IDisposable
             TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
 
-    /// <summary>Одна загрузка: её отмена и сторож зависания.</summary>
+    /// <summary>Одна загрузка и её отмена.</summary>
     private sealed class DownloadRun(int generation) : IDisposable
     {
         private readonly CancellationTokenSource _cancellation = new();
@@ -465,11 +430,6 @@ public sealed class UpdateController : IDisposable
         public int Generation { get; } = generation;
 
         public CancellationToken Token => _cancellation.Token;
-
-        public ITimer? Watch { get; set; }
-
-        /// <summary>Отменена сторожем, а не человеком: итог — отказ «загрузка остановилась».</summary>
-        public bool Stalled { get; set; }
 
         public void Cancel()
         {
@@ -483,11 +443,7 @@ public sealed class UpdateController : IDisposable
             }
         }
 
-        public void Dispose()
-        {
-            Watch?.Dispose();
-            _cancellation.Dispose();
-        }
+        public void Dispose() => _cancellation.Dispose();
     }
 
     /// <summary>
