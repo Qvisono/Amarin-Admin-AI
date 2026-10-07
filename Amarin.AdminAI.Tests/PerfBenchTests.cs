@@ -248,6 +248,8 @@ public sealed class PerfBenchTests : IDisposable
         results.Add(("idle UI wakeups over 5 s", idle.Stop(), ""));
 
         results.AddRange(await DragEdge(window));
+        results.AddRange(await DragSidebar(window));
+        results.AddRange(await ToggleSidebar(window));
         results.AddRange(await MaximizeAndRestore(window));
         results.AddRange(await OpenOverlays(window));
 
@@ -311,6 +313,91 @@ public sealed class PerfBenchTests : IDisposable
         results.Add(("resize: settling cpu after release", settledCpu, "ms"));
         results.Add(("resize: max frame gap", frames.MaxGap, "ms"));
         results.Add(("resize: documents left at a stale width", layouts.Stale(), ""));
+        layouts.Dispose();
+        return results;
+    }
+
+    /// <summary>
+    /// Край боковой панели тянут мышью: двадцать шагов ширины 184 → 380 → 184 при неизменном окне.
+    /// Окно уже колонки ленты, поэтому каждый шаг меняет ширину сообщений.
+    /// </summary>
+    private static async Task<List<(string, double, string)>> DragSidebar(MainWindow window)
+    {
+        var results = new List<(string, double, string)>();
+        var handle = new WindowInteropHelper(window).Handle;
+        var scale = VisualTreeHelper.GetDpi(window).DpiScaleX;
+        _ = SetWindowPos(handle, IntPtr.Zero, 0, 0, (int)Math.Round(1100 * scale), (int)Math.Round(window.ActualHeight * scale), SwpNoMove | SwpNoZOrder | SwpNoActivate);
+        window.UpdateLayout();
+        await Settle(1500);
+
+        var grip = (Thumb)window.FindName("SidebarGrip")!;
+        var layouts = new DocumentLayouts(window);
+        var frames = new FrameGaps();
+        frames.Start();
+        grip.RaiseEvent(new DragStartedEventArgs(0, 0));
+        var steps = new List<double>();
+        var cpu = new List<double>();
+        var counts = new List<int>();
+        foreach (var change in Enumerable.Repeat(19.6, 10).Concat(Enumerable.Repeat(-19.6, 10)))
+        {
+            layouts.Reset();
+            var watch = Stopwatch.StartNew();
+            var cpuBefore = UiCpuMs();
+            grip.RaiseEvent(new DragDeltaEventArgs(change, 0));
+            window.UpdateLayout();
+            cpu.Add(UiCpuMs() - cpuBefore);
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            steps.Add(watch.Elapsed.TotalMilliseconds);
+            counts.Add(layouts.Count);
+        }
+
+        var released = Stopwatch.StartNew();
+        var releasedCpu = UiCpuMs();
+        grip.RaiseEvent(new DragCompletedEventArgs(0, 0, canceled: false));
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        var settled = released.Elapsed.TotalMilliseconds;
+        var settledCpu = UiCpuMs() - releasedCpu;
+        await Settle(1500);
+        frames.Stop();
+
+        results.Add(("sidebar drag step, average", steps.Average(), "ms"));
+        results.Add(("sidebar drag step, slowest", steps.Max(), "ms"));
+        results.Add(("sidebar drag step cpu, average", cpu.Average(), "ms"));
+        results.Add(("sidebar drag step cpu, slowest", cpu.Max(), "ms"));
+        results.Add(("documents laid out per sidebar step", counts.Average(), ""));
+        results.Add(("sidebar drag: settled after release", settled, "ms"));
+        results.Add(("sidebar drag: settling cpu after release", settledCpu, "ms"));
+        results.Add(("sidebar drag: max frame gap", frames.MaxGap, "ms"));
+        results.Add(("sidebar drag: documents left at a stale width", layouts.Stale(), ""));
+        layouts.Dispose();
+        return results;
+    }
+
+    /// <summary>Боковую панель сворачивают и разворачивают (Ctrl+B): ширина ленты меняется рывком.</summary>
+    private static async Task<List<(string, double, string)>> ToggleSidebar(MainWindow window)
+    {
+        var results = new List<(string, double, string)>();
+        var layouts = new DocumentLayouts(window);
+        foreach (var (collapsed, name) in new[] { (true, "sidebar collapse"), (false, "sidebar expand") })
+        {
+            layouts.Reset();
+            var frames = new FrameGaps();
+            frames.Start();
+            var watch = Stopwatch.StartNew();
+            var cpuBefore = UiCpuMs();
+            Call(window, "SetSidebarCollapsed", collapsed);
+            window.UpdateLayout();
+            var cpu = UiCpuMs() - cpuBefore;
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            results.Add(($"{name}: first frame", watch.Elapsed.TotalMilliseconds, "ms"));
+            results.Add(($"{name}: cpu to lay it out", cpu, "ms"));
+            results.Add(($"{name}: documents laid out for it", layouts.Count, ""));
+            await Settle(2000);
+            frames.Stop();
+            results.Add(($"{name}: max frame gap over 2 s", frames.MaxGap, "ms"));
+        }
+
+        results.Add(("sidebar toggle: documents left at a stale width", layouts.Stale(), ""));
         layouts.Dispose();
         return results;
     }

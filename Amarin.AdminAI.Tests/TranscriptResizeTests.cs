@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Amarin.Core;
@@ -90,6 +91,88 @@ public sealed class TranscriptResizeTests : IDisposable
         Assert.True(outcome.drift <= 2, $"читаемое сообщение уехало на {outcome.drift:0.#} точки");
         Assert.Equal(0, outcome.stale);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"resize step, slowest: {outcome.slowest:0.#} ms; documents per step: {outcome.worst}/{outcome.all}"));
+    }
+
+    /// <summary>
+    /// Край боковой панели — тот же жест, что край окна, только окно размера не меняет. До 1.32.0
+    /// заморозка слушала одно окно, и каждый шаг ручки перекладывал всю ленту: на большом чате
+    /// программа приходила в себя по две-три секунды.
+    /// </summary>
+    [Fact]
+    public async Task Dragging_the_sidebar_edge_lays_out_only_what_is_on_screen_and_the_reading_place_stays()
+    {
+        var outcome = await WithBigChat(1000, 760, async (window, hosts) =>
+        {
+            var viewer = (ScrollViewer)window.FindName("ChatScrollViewer")!;
+            viewer.ScrollToVerticalOffset(TopOf(hosts[Messages / 2]) + 40);
+            window.UpdateLayout();
+            await Pump();
+            var reading = Reading(viewer, hosts);
+            var before = ScreenTop(reading, viewer);
+
+            var boxes = Documents(hosts);
+            var laidOut = 0;
+            foreach (var box in boxes)
+            {
+                box.SizeChanged += (_, e) => laidOut += e.WidthChanged ? 1 : 0;
+            }
+
+            var grip = (Thumb)window.FindName("SidebarGrip")!;
+            var worst = 0;
+            var drift = 0.0;
+            grip.RaiseEvent(new DragStartedEventArgs(0, 0));
+            for (var step = 1; step <= 8; step++)
+            {
+                laidOut = 0;
+                grip.RaiseEvent(new DragDeltaEventArgs(18, 0));
+                window.UpdateLayout();
+                worst = Math.Max(worst, laidOut);
+                drift = Math.Max(drift, Math.Abs(ScreenTop(reading, viewer) - before));
+            }
+
+            grip.RaiseEvent(new DragCompletedEventArgs(0, 0, canceled: false));
+            await Until(() => hosts.All(host => !host.IsFrozen));
+            window.UpdateLayout();
+            drift = Math.Max(drift, Math.Abs(ScreenTop(reading, viewer) - before));
+            return (worst, all: boxes.Count, drift, stale: Stale(boxes));
+        });
+
+        Assert.True(outcome.worst <= 30, $"на шаге ручки переложено {outcome.worst} документов из {outcome.all}");
+        Assert.True(outcome.drift <= 2, $"читаемое сообщение уехало на {outcome.drift:0.#} точки");
+        Assert.Equal(0, outcome.stale);
+    }
+
+    [Fact]
+    public async Task Collapsing_the_sidebar_lays_out_the_visible_part_first_and_the_rest_right_after()
+    {
+        var outcome = await WithBigChat(1000, 650, async (window, hosts) =>
+        {
+            var boxes = Documents(hosts);
+            var laidOut = 0;
+            foreach (var box in boxes)
+            {
+                box.SizeChanged += (_, e) => laidOut += e.WidthChanged ? 1 : 0;
+            }
+
+            var collapse = typeof(MainWindow).GetMethod("SetSidebarCollapsed", Hidden)!;
+            try
+            {
+                collapse.Invoke(window, [true]);
+                window.UpdateLayout();
+                var first = laidOut;
+                await Until(() => hosts.All(host => !host.IsFrozen));
+                window.UpdateLayout();
+                return (first, all: boxes.Count, after: laidOut, stale: Stale(boxes));
+            }
+            finally
+            {
+                collapse.Invoke(window, [false]);
+            }
+        });
+
+        Assert.True(outcome.first <= 30, $"сворачивание панели переложило сразу {outcome.first} документов из {outcome.all}");
+        Assert.True(outcome.after > outcome.first, "остальное так и не переложилось");
+        Assert.Equal(0, outcome.stale);
     }
 
     [Fact]

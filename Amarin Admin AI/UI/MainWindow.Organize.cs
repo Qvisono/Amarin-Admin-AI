@@ -1275,6 +1275,10 @@ namespace Amarin.UI
 
         // ───────────────────────── Ширина панели ─────────────────────────
 
+        /// <remarks>
+        /// Начало и конец жеста — в <c>MainWindow.Resize.cs</c>: ширина панели — это ширина ленты,
+        /// и лента на время жеста замораживается так же, как при изменении размера окна.
+        /// </remarks>
         private void SidebarGrip_DragDelta(object sender, DragDeltaEventArgs e)
         {
             if (_sidebarCollapsed)
@@ -1284,18 +1288,6 @@ namespace Amarin.UI
 
             var width = Math.Clamp(SidebarColumn.ActualWidth + e.HorizontalChange, SidebarWidths.Min, SidebarWidths.Max);
             SidebarColumn.Width = new GridLength(width);
-        }
-
-        /// <summary>Сохраняется по отпусканию, а не на каждый сдвиг: иначе запись файла на каждый пиксель.</summary>
-        private void SidebarGrip_DragCompleted(object sender, DragCompletedEventArgs e)
-        {
-            if (_services is null || _sidebarCollapsed)
-            {
-                return;
-            }
-
-            _services.Settings.SidebarWidth = Math.Round(SidebarColumn.ActualWidth);
-            _services.SettingsStore.Save(_services.Settings);
         }
     }
 }

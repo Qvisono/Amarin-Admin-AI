@@ -80,7 +80,8 @@
                 Поверх колонки и невидимая — курсор-стрелка сам показывает, что край тянется.
             -->
             <Thumb x:Name="SidebarGrip" Grid.Column="0" Width="5" HorizontalAlignment="Right" Panel.ZIndex="10"
-                   Cursor="SizeWE" DragDelta="SidebarGrip_DragDelta" DragCompleted="SidebarGrip_DragCompleted">
+                   Cursor="SizeWE" DragStarted="SidebarGrip_DragStarted" DragDelta="SidebarGrip_DragDelta"
+                   DragCompleted="SidebarGrip_DragCompleted">
                 <Thumb.Template>
                     <ControlTemplate TargetType="Thumb">
                         <Border Background="Transparent"/>

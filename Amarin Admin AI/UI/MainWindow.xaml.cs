@@ -3072,7 +3072,10 @@ namespace Amarin.UI
             RefreshChatList();
         }
 
-        private void SetSidebarCollapsed(bool collapsed)
+        /// <summary>Сворачивает или разворачивает боковую панель; лента перекладывается по видимому.</summary>
+        private void SetSidebarCollapsed(bool collapsed) => ReflowTranscriptOnce(() => ApplySidebarCollapsed(collapsed));
+
+        private void ApplySidebarCollapsed(bool collapsed)
         {
             _sidebarCollapsed = collapsed;
             SidebarColumn.Width = new GridLength(collapsed ? 42 : SidebarWidths.Clamp(_services?.Settings.SidebarWidth));
@@ -3255,8 +3258,8 @@ namespace Amarin.UI
                 HideReplyPill();
             }
 
-            // Окно меняет размер: всё замороженное, что оказалось на виду, — сразу на новую ширину.
-            if (_windowSizing && ReferenceEquals(e.OriginalSource, ChatScrollViewer) &&
+            // Ширина ленты меняется: всё замороженное, что оказалось на виду, — сразу на новую ширину.
+            if (TranscriptReflowing && ReferenceEquals(e.OriginalSource, ChatScrollViewer) &&
                 (e.ViewportHeightChange != 0 || e.ViewportWidthChange != 0 || e.VerticalChange != 0))
             {
                 ThawAroundViewport();
