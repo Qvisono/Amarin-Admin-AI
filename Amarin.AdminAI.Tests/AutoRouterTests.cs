@@ -39,6 +39,21 @@ public sealed class AutoRouterTests
     }
 
     [Fact]
+    public void Router_prompt_sends_the_safety_of_the_user_to_the_heavy_chat_model()
+    {
+        // С 1.32.0: подозрение на вирус, взлом, утечку, обман — ответ чата оценивает опасность и
+        // руководит агентами, поэтому heavy, даже когда саму проверку делает агент.
+        var flat = string.Join(' ', ChatEngine.RouterSystemPrompt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("Safety is the one exception to all of the above", flat, StringComparison.Ordinal);
+        Assert.Contains("reply heavy, even when the work itself goes to an agent", flat, StringComparison.Ordinal);
+        Assert.Contains("unless the message may be about the user's safety", flat, StringComparison.Ordinal);
+
+        // lite больше не обещает любую работу на ПК — только ту, что не про безопасность.
+        Assert.Contains("any job on this computer that is not about safety", flat, StringComparison.Ordinal);
+        Assert.Contains("heavy = anything about the safety of the user or this computer", flat, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Router_prompt_keeps_the_marker_line_its_tests_match_on()
     {
         // ParallelTurnTests отличает запрос маршрутизатора от запроса чата по этой подстроке в

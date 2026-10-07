@@ -159,11 +159,18 @@ internal sealed partial class ChatEngine
     /// этом только ставит задачу и пересказывает отчёт, и флагман там оплачивался впустую.
     /// Поэтому мерой служит мышление, которое остаётся в самом ответе чата.
     /// </para>
+    /// <para>
+    /// Исключение с 1.32.0 — безопасность человека и этого компьютера: подозрение на заражение,
+    /// взлом, утечку, обман. Там ответ чата оценивает опасность и руководит агентами, и дешёвая
+    /// ошибка обходится дороже флагмана, — поэтому heavy, даже когда саму проверку делает агент.
+    /// Уровень агента по-прежнему выбирает его маршрутизатор: проверку может делать и лёгкая
+    /// модель. Правку этого текста проверяют прогоном на живых запросах (<c>RouterLiveTests</c>).
+    /// </para>
     /// Названия самих моделей дописываются на лету: см. <see cref="ModelBriefing.ForRouter"/>.
     /// </remarks>
     internal const string RouterSystemPrompt = """
         Classify the user request. Reply with exactly one word: lite or heavy.
-        When unsure, reply lite.
+        When unsure, reply lite -- unless the message may be about the user's safety.
 
         You choose the model that writes the chat reply, and nothing else.
         Judge the hardest single step of the thinking that reply has to do itself, not how much
@@ -178,21 +185,31 @@ internal sealed partial class ChatEngine
         not make the chat reply heavy, however hard the work itself is, and neither does asking
         for an agent by name.
 
+        Safety is the one exception to all of the above. When the message is about the safety of
+        the user or this computer -- a threat they suspect or have run into (something hostile
+        got in, their accounts or data are in someone else's hands, someone is deceiving them)
+        or how to protect themselves from one -- reply heavy, even when the work itself goes to
+        an agent and however simple the message looks. That reply has to judge how serious the
+        danger is and direct the agents' work, and a cheap wrong answer there costs the user far
+        more than the price of the expensive model.
+
         lite = chat, jokes, opinions, explanations, definitions, translation, short how-to,
         arithmetic of any length or precision, unit / colour / encoding conversion, a fact or
         a date to recall, one PowerShell one-liner, a routine local status check, and any job
-        on this computer -- however many of these arrive at once, and in any mix.
+        on this computer that is not about safety -- however many of these arrive at once, and
+        in any mix.
 
-        heavy = the reply itself needs reasoning that can go wrong quietly: subtle debugging of
-        code or text the user put into the message, writing or reworking a long piece of code in
-        the reply, a proof or a derivation, planning against several constraints that fight each
-        other. Pick it only when a cheap wrong answer in the chat would cost more than the
+        heavy = anything about the safety of the user or this computer (see above), or the reply
+        itself needs reasoning that can go wrong quietly: subtle debugging of code or text the
+        user put into the message, writing or reworking a long piece of code in the reply, a
+        proof or a derivation, planning against several constraints that fight each other. Pick
+        it for reasoning only when a cheap wrong answer in the chat would cost more than the
         expensive right one.
 
         Urgency, politeness, length and numbered formatting say nothing about difficulty.
 
-        The two models are named below. heavy is the user's expensive slot -- choose it only
-        when lite would actually get this reply wrong.
+        The two models are named below. heavy is the user's expensive slot -- outside safety,
+        choose it only when lite would actually get this reply wrong.
         Do not explain.
         """;
 
