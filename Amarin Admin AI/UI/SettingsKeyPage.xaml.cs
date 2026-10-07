@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Amarin.Core;
 
@@ -778,25 +779,20 @@ public partial class SettingsKeyPage : UserControl
             buttons.Children.Add(eye);
         }
 
-        // Переименование есть у любой строки, включая окружение: маска у всех ключей одинаковая,
-        // и между двумя рабочими человек выбирает по названию, а не по «vk-•••••••••ab12».
-        var rename = new Button
+        // «Изменить», «Отправить» и «Удалить» — меню, как у строки чата: по «⋯» и по правому щелчку
+        // на карточке. До 1.32.0 это были две кнопки, и третьей в ширину строки уже не было места.
+        // «⋯» проступает при наведении, но место под неё держится: иначе карточка дёргалась бы.
+        var more = new Button
         {
             Style = (Style)FindResource("KeyIconButton"),
-            Content = "✎",
-            ToolTip = Loc.Get("S.Key.Rename")
+            Content = "⋯",
+            ToolTip = Loc.Get("S.Chat.RowActions"),
+            Opacity = 0
         };
-        rename.Click += (_, _) => RenameKey(entry);
-        buttons.Children.Add(rename);
-
-        var remove = new Button
-        {
-            Style = (Style)FindResource("KeyIconButton"),
-            Content = "🗑",
-            ToolTip = Loc.Get("S.Common.Delete")
-        };
-        remove.Click += (_, _) => RemoveKey(entry);
-        buttons.Children.Add(remove);
+        System.Windows.Automation.AutomationProperties.SetName(more, Loc.Get("S.Chat.RowActions"));
+        more.Click += (_, _) => OpenKeyMenu(more, entry, PlacementMode.Bottom);
+        more.GotKeyboardFocus += (_, _) => more.Opacity = 1;
+        buttons.Children.Add(more);
 
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -823,7 +819,88 @@ public partial class SettingsKeyPage : UserControl
             Border.BackgroundProperty, entry.IsActive ? "Bg.Selected" : "Bg.Panel");
         card.SetResourceReference(
             Border.BorderBrushProperty, entry.IsActive ? "Accent.Fill" : "Border.Subtle");
+
+        card.MouseEnter += (_, _) => more.Opacity = 1;
+        card.MouseLeave += (_, _) => more.Opacity = more.IsKeyboardFocused ? 1 : 0;
+        more.LostKeyboardFocus += (_, _) => more.Opacity = card.IsMouseOver ? 1 : 0;
+
+        // Правый щелчок (или клавиша меню) по карточке — то же меню у курсора.
+        card.ContextMenuOpening += (_, e) =>
+        {
+            e.Handled = true;
+            OpenKeyMenu(card, entry, e.CursorLeft < 0 || e.CursorTop < 0 ? PlacementMode.Bottom : PlacementMode.MousePoint);
+        };
         return card;
+    }
+
+    /// <summary>Меню ключа: «Изменить» (название), «Отправить» в другой профиль и «Удалить».</summary>
+    /// <remarks>
+    /// Отправлять нечего у ключа, который здесь не расшифровался, и незачем у ключа из окружения:
+    /// переменная Windows видна каждому профилю и так. Других профилей нет — тоже некуда. Пункт
+    /// тогда стоит приглушённым: меню не меняет вида от ключа к ключу.
+    /// </remarks>
+    internal void OpenKeyMenu(FrameworkElement anchor, ApiKeyEntry entry, PlacementMode placement)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var targets = SendTargets();
+        var canSend = !entry.IsBroken && entry.Source != ApiKeySource.Environment && targets.Count > 0;
+        var menu = AppMenu.At(anchor, placement);
+        menu.Items.Add(AppMenu.Item(anchor, Loc.Get("S.Key.Edit"), () => RenameKey(entry), icon: "Icon.Menu.Rename"));
+        menu.Items.Add(AppMenu.Item(
+            anchor,
+            Loc.Get("S.Key.Send") + "…",
+            () => OpenSendMenu(anchor, entry, placement),
+            icon: "Icon.Menu.Share",
+            enabled: canSend));
+        menu.Items.Add(AppMenu.Divider(anchor));
+        menu.Items.Add(AppMenu.Item(anchor, Loc.Get("S.Common.Delete"), () => RemoveKey(entry), danger: true, icon: "Icon.Menu.Delete"));
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Второе меню на том же месте — профили, куда отправить. Вложенных меню у <c>AppMenuItem</c>
+    /// нет, и выбор папки у чатов открывается так же.
+    /// </summary>
+    private void OpenSendMenu(FrameworkElement anchor, ApiKeyEntry entry, PlacementMode placement)
+    {
+        var menu = AppMenu.At(anchor, placement);
+        menu.Items.Add(AppMenu.Section(anchor, Loc.Get("S.Key.SendTo")));
+        foreach (var profile in SendTargets())
+        {
+            var id = profile.Id;
+            menu.Items.Add(AppMenu.Item(anchor, profile.Name, () => SendKey(entry, id)));
+        }
+
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Профили, кроме открытого: в свой профиль ключ и так добавлен.</summary>
+    private List<UserProfile> SendTargets() =>
+        _services is null
+            ? []
+            : [.. _services.ProfileRegistry.Profiles.Where(profile => profile.Id != _services.ProfileRegistry.ActiveProfileId)];
+
+    /// <summary>
+    /// Отправляет ключ в профиль — молча: «отправлен» или «уже есть» человеку знать незачем, ключ
+    /// там в любом случае оказывается.
+    /// </summary>
+    internal void SendKey(ApiKeyEntry entry, string profileId)
+    {
+        if (_services is null || _services.ProfileRegistry.Profiles.All(profile => profile.Id != profileId) ||
+            profileId == _services.ProfileRegistry.ActiveProfileId)
+        {
+            return;
+        }
+
+        _ = ApiKeyTransfer.Send(
+            entry,
+            _services.Profiles.DataRootFor(profileId),
+            _services.EnvironmentKey,
+            _services.OpenRouterEnvironmentKey);
     }
 
     /// <summary>

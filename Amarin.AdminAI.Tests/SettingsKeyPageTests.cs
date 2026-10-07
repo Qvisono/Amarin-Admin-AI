@@ -159,24 +159,33 @@ public sealed class SettingsKeyPageTests
     }
 
     /// <summary>
-    /// Переименование и удаление есть у каждой строки, в том числе у ключа из окружения.
+    /// У каждой строки — меню «Изменить | Отправить | Удалить», в том числе у ключа из окружения.
     /// </summary>
     /// <remarks>
-    /// Раньше у такой строки не было ни того, ни другого: удалить её было нельзя вовсе, а
-    /// подписью ей служило имя переменной. Человек с двумя ключами различал их по маске
-    /// из точек, то есть никак.
+    /// Раньше у строки окружения не было ни переименования, ни удаления: удалить её было нельзя
+    /// вовсе, а подписью ей служило имя переменной. С 1.32.0 вместо пары кнопок — меню, как у
+    /// строки чата: по «⋯» и правому щелчку. «Отправить» у ключа окружения приглушено: переменная
+    /// Windows видна каждому профилю и так.
     /// </remarks>
     [Fact]
-    public void Every_key_row_can_be_renamed_and_removed()
+    public void Every_key_row_has_one_menu_with_edit_send_and_delete()
     {
-        var tips = _wpf.Ui.Invoke(() =>
+        var root = Path.Combine(Path.GetTempPath(), "amarin-keymenu-" + Guid.NewGuid().ToString("N"));
+        var (tips, stored, environment, alone) = _wpf.Ui.Invoke(() =>
         {
+            // Окно фикстуры — только хозяин стилей: своих служб у него нет, профили — у этих.
             var window = Window();
+            using var services = UiServices.Build(root, "k", new HttpClientHandler());
             var page = new SettingsKeyPage { Width = 520, Height = 900 };
+            typeof(SettingsKeyPage)
+                .GetField("_services", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(page, services);
 
             // В дерево окна: стили строк разрешаются по нему.
             var host = (Panel)window.FindSetting("MessagesPanel");
             host.Children.Add(page);
+            var other = new UserProfile { Id = "other-profile", Name = "Работа" };
+            services.ProfileRegistry.Profiles.Add(other);
             try
             {
                 page.ShowForShot(
@@ -184,20 +193,60 @@ public sealed class SettingsKeyPageTests
                     Keys());
                 page.UpdateLayout();
 
-                return Buttons((DependencyObject)page.FindName("KeyRows"))
-                    .Select(button => Convert.ToString(button.ToolTip) ?? "")
-                    .ToList();
+                var buttons = Buttons((DependencyObject)page.FindName("KeyRows")).ToList();
+                var more = buttons.First(button => Convert.ToString(button.ToolTip) == Loc.Get("S.Chat.RowActions"));
+                var forStored = MenuOf(page, more, Keys()[1]);
+                var forEnvironment = MenuOf(page, more, Keys()[0]);
+                services.ProfileRegistry.Profiles.Remove(other);
+                var withoutProfiles = MenuOf(page, more, Keys()[1]);
+                return (buttons.Select(button => Convert.ToString(button.ToolTip) ?? "").ToList(), forStored, forEnvironment, withoutProfiles);
             }
             finally
             {
+                services.ProfileRegistry.Profiles.Remove(other);
                 host.Children.Remove(page);
             }
         });
 
-        // Три строки, и у каждой своя пара кнопок. Глаз — только у читаемых, поэтому его не
-        // считаем: строка со сломанным блобом показывать нечего.
-        Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Key.Rename")));
-        Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Common.Delete")));
+        // Три строки — три «⋯»; кнопок «Переименовать» и «Удалить» в строке больше нет.
+        Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Chat.RowActions")));
+        Assert.DoesNotContain(tips, tip => tip == Loc.Get("S.Key.Rename") || tip == Loc.Get("S.Common.Delete"));
+
+        Assert.Equal([Loc.Get("S.Key.Edit"), Loc.Get("S.Key.Send") + "…", Loc.Get("S.Common.Delete")], stored.Select(item => item.Header));
+        Assert.True(stored[1].Enabled);
+        Assert.False(environment[1].Enabled);
+        Assert.False(alone[1].Enabled);
+    }
+
+    /// <summary>Открывает меню ключа и снимает его пункты: подпись и активен ли.</summary>
+    private static List<(string Header, bool Enabled)> MenuOf(SettingsKeyPage page, FrameworkElement anchor, ApiKeyEntry entry)
+    {
+        page.OpenKeyMenu(anchor, entry, System.Windows.Controls.Primitives.PlacementMode.Bottom);
+        var menu = PresentationSource.CurrentSources.OfType<System.Windows.Interop.HwndSource>()
+            .Select(source => source.RootVisual)
+            .OfType<DependencyObject>()
+            .SelectMany(root => root is ContextMenu own ? [own] : Descendants<ContextMenu>(root))
+            .Last(open => open.IsOpen);
+        var items = menu.Items.OfType<MenuItem>().Select(item => (Convert.ToString(item.Header) ?? "", item.IsEnabled)).ToList();
+        menu.IsOpen = false;
+        return items;
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in Descendants<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     private static IReadOnlyList<ApiKeyEntry> Keys() =>

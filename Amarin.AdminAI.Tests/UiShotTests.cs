@@ -202,27 +202,27 @@ public sealed class UiShotTests : IDisposable
                     sortMenu.IsOpen = false;
                 }
 
-                // Меню «⋯» строки чата — со значками у каждого пункта.
-                var row = ((Panel)window.FindSetting("ChatListPanel")).Children.OfType<Button>()
-                    .FirstOrDefault(button => button.Tag is string);
-                if (row is not null)
+                // Меню «⋯» строки чата — со значками у каждого пункта; у закреплённой — «Открепить».
+                var panel = (Panel)window.FindSetting("ChatListPanel");
+                foreach (var (pinned, file) in new[] { (false, "00-menu-chat.png"), (true, "00-menu-chat-pinned.png") })
                 {
-                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, false);
+                    var row = panel.Children.OfType<Button>()
+                        .FirstOrDefault(button => button.Tag is string && ChatRowState.GetIsPinned(button) == pinned);
+                    if (row is null)
+                    {
+                        continue;
+                    }
+
+                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, PlacementMode.Bottom);
                     await Settle(300);
                     if (OpenMenu() is { } chatMenu)
                     {
-                        Save(chatMenu, Path.Combine(folder, "00-menu-chat.png"), null);
+                        Save(chatMenu, Path.Combine(folder, file), null);
                         chatMenu.IsOpen = false;
                     }
-
-                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, true);
-                    await Settle(300);
-                    if (OpenMenu() is { } pinnedMenu)
-                    {
-                        Save(pinnedMenu, Path.Combine(folder, "00-menu-chat-pinned.png"), null);
-                        pinnedMenu.IsOpen = false;
-                    }
                 }
+
+                await ShootSelection(window, panel, folder);
 
                 // Боковая панель с включённым фильтром по тегу.
                 var tag = services.Organizer.Snapshot().Tags.First();
@@ -269,6 +269,37 @@ public sealed class UiShotTests : IDisposable
                 }
 
                 Save(card, Path.Combine(folder, prefix + ".png"), null);
+
+                // Меню ключа (1.32.0) и выбор профиля для «Отправить»: второй профиль — на время снимка.
+                if (name == "NavKey" && window.FindSetting("KeyPage") is SettingsKeyPage menuPage &&
+                    Descendants<Button>(menuPage).FirstOrDefault(button => Convert.ToString(button.ToolTip) == Loc.Get("S.Chat.RowActions")) is { } more)
+                {
+                    var other = new UserProfile { Id = "shot-profile", Name = language == "ru" ? "Работа" : "Work" };
+                    services.ProfileRegistry.Profiles.Add(other);
+                    try
+                    {
+                        more.Opacity = 1;
+                        menuPage.OpenKeyMenu(more, SampleKeys()[1], PlacementMode.Bottom);
+                        await Settle(300);
+                        if (OpenMenu() is { } keyMenu)
+                        {
+                            Save(keyMenu, Path.Combine(folder, prefix + "-key-menu.png"), null);
+                            keyMenu.IsOpen = false;
+                        }
+
+                        Call(menuPage, "OpenSendMenu", more, SampleKeys()[1], PlacementMode.Bottom);
+                        await Settle(300);
+                        if (OpenMenu() is { } sendMenu)
+                        {
+                            Save(sendMenu, Path.Combine(folder, prefix + "-key-send.png"), null);
+                            sendMenu.IsOpen = false;
+                        }
+                    }
+                    finally
+                    {
+                        services.ProfileRegistry.Profiles.Remove(other);
+                    }
+                }
 
                 // Раскрытая выпадашка: у неё своё окно, снимок страницы её не видит.
                 if (name == "NavGeneral" &&
@@ -383,6 +414,56 @@ public sealed class UiShotTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Выделение рамкой (1.32.0): рамка посреди жеста — от подписи «Папки» вниз через папку и пару
+    /// чатов, — выбранные строки с заголовком папки после отпускания и меню всего выбора.
+    /// </summary>
+    private async Task ShootSelection(MainWindow window, Panel panel, string folder)
+    {
+        if (window.FindSetting("SideBarScrollViewer") is not FrameworkElement sidebar ||
+            typeof(MainWindow).GetField("_marquee", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(window) is not ChatListMarquee marquee)
+        {
+            return;
+        }
+
+        var title = panel.Children.OfType<TextBlock>().FirstOrDefault(block => block.Text == Loc.Get("S.ChatList.Folders"));
+        var last = panel.Children.OfType<Button>().FirstOrDefault(button => button.Tag as string == "y1");
+        if (title is null || last is null)
+        {
+            return;
+        }
+
+        marquee.RealMouse = false;
+        try
+        {
+            marquee.Press(title.TranslatePoint(new Point(36, 4), panel), additive: false, onHeader: false);
+            marquee.MoveTo(last.TranslatePoint(new Point(last.ActualWidth - 40, last.ActualHeight / 2), panel));
+            await Settle(150);
+
+            // Рамка рисуется на своём слое рядом со списком — снимается колонка целиком.
+            var column = VisualTreeHelper.GetParent(sidebar) as FrameworkElement ?? sidebar;
+            Save(column, Path.Combine(folder, "00-sidebar-marquee.png"), (Brush)window.FindResource("Bg.Sidebar"));
+
+            marquee.Release();
+            await Settle(200);
+            Save(sidebar, Path.Combine(folder, "00-sidebar-selected.png"), (Brush)window.FindResource("Bg.Sidebar"));
+
+            Call(window, "OpenSelectionMenu", last, PlacementMode.Bottom);
+            await Settle(300);
+            if (OpenMenu() is { } menu)
+            {
+                Save(menu, Path.Combine(folder, "00-menu-selection.png"), null);
+                menu.IsOpen = false;
+            }
+        }
+        finally
+        {
+            marquee.RealMouse = true;
+            Call(window, "ClearChatSelection");
+            await Settle(100);
+        }
+    }
+
     private static bool Wanted(string? only, string name) =>
         string.IsNullOrEmpty(only) || only.Split(',').Any(part => name.Contains(part.Trim(), StringComparison.OrdinalIgnoreCase));
 
@@ -464,7 +545,7 @@ public sealed class UiShotTests : IDisposable
         }
 
         var args = new RoutedEventArgs();
-        await Shot("rename-chat", () => { Call(window, "RenameChat", "y1"); return Task.CompletedTask; },
+        await Shot("rename-chat", () => { Call(window, "RenameChats", new List<string> { "y1" }); return Task.CompletedTask; },
             () => Call(window, "NameCancelButton_Click", window, args));
         await Shot("new-tag", () => { Call(window, "CreateTag", [null]); return Task.CompletedTask; },
             () => Call(window, "NameCancelButton_Click", window, args));
