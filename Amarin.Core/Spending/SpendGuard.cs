@@ -114,17 +114,26 @@ internal static class SpendRules
         breach.Spent >= breach.Limit * warnPercent / 100m;
 
     /// <summary>
-    /// Ключ «уже предупреждали»: вид лимита, ключ и начало периода. Новый день или месяц —
-    /// новый ключ, и предупреждение прозвучит снова.
+    /// Ключ «уже предупреждали»: вид лимита, ключ, начало периода, сумма лимита и доля. Новый
+    /// день или месяц — новый ключ, и предупреждение прозвучит снова.
     /// </summary>
-    public static string WarnKey(SpendBreach breach, string fingerprint, DateTime now) => breach.Kind switch
+    /// <remarks>
+    /// Сумма и доля — в ключе с 1.32.0: прежде поднятый в тот же день лимит молчал до завтра,
+    /// хотя к новому порогу человек подходил впервые.
+    /// </remarks>
+    public static string WarnKey(SpendBreach breach, string fingerprint, DateTime now, int warnPercent)
     {
-        SpendLimitKind.KeyDay => $"key-day|{fingerprint}|{now:yyyy-MM-dd}",
-        SpendLimitKind.KeyMonth => $"key-month|{fingerprint}|{now:yyyy-MM}",
-        SpendLimitKind.ProfileDay => $"day|{now:yyyy-MM-dd}",
-        SpendLimitKind.ProfileMonth => $"month|{now:yyyy-MM}",
-        _ => $"{breach.Kind}"
-    };
+        var period = breach.Kind switch
+        {
+            SpendLimitKind.KeyDay => $"key-day|{fingerprint}|{now:yyyy-MM-dd}",
+            SpendLimitKind.KeyMonth => $"key-month|{fingerprint}|{now:yyyy-MM}",
+            SpendLimitKind.ProfileDay => $"day|{now:yyyy-MM-dd}",
+            SpendLimitKind.ProfileMonth => $"month|{now:yyyy-MM}",
+            _ => $"{breach.Kind}"
+        };
+
+        return string.Create(CultureInfo.InvariantCulture, $"{period}|{breach.Limit}|{warnPercent}");
+    }
 
     /// <summary>
     /// Сумма из поля настроек. Пусто, ноль, минус и не число — «лимита нет»: нулевой лимит
@@ -306,9 +315,9 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
 
         var now = Now();
         var fingerprint = ApiKeyStore.Fingerprint(credential.Secret);
-        var breaches = limits.DayUsd is null && limits.MonthUsd is null && limits.Keys.Count == 0
-            ? []
-            : SpendRules.Evaluate(limits, fingerprint, ledger.Totals(credential.Secret, now));
+        var breaches = HasPeriodLimits(limits)
+            ? SpendRules.Evaluate(limits, fingerprint, ledger.Totals(credential.Secret, now))
+            : [];
 
         if (breaches.FirstOrDefault(breach => breach.Reached) is { } reached && meter?.LimitsWaived != true)
         {
@@ -327,24 +336,8 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
                 .ConfigureAwait(false);
         }
 
-        foreach (var breach in breaches)
-        {
-            if (!SpendRules.ShouldWarn(breach, limits.WarnPercent))
-            {
-                continue;
-            }
-
-            bool first;
-            lock (_gate)
-            {
-                first = _warned.Add(SpendRules.WarnKey(breach, fingerprint, now));
-            }
-
-            if (first)
-            {
-                Warned?.Invoke(breach);
-            }
-        }
+        // Перед запросом — тоже: лимит, понижённый вручную, мог оказаться у порога и без новых трат.
+        Warn(limits, fingerprint, breaches, now);
 
         // Потолок хода — только там, где есть кого спросить: у расписания свой потолок прогона.
         if (limits.TurnUsd is > 0m && meter is { Unattended: false })
@@ -362,6 +355,63 @@ internal sealed class SpendGuard(Func<AppSettings?> settings, SpendLedger ledger
                         answered: () => meter.Usd < (meter.NextAskAt ?? ceiling),
                         approve: () => meter.NextAskAt = meter.Usd + ceiling)
                     .ConfigureAwait(false);
+            }
+        }
+    }
+
+    /// <summary>Цена записана в журнал — не подошла ли трата к порогу предупреждения.</summary>
+    /// <remarks>
+    /// До 1.32.0 предупреждение считалось только перед запросом, а цена записывается после
+    /// ответа: порог, перейдённый последним запросом, всплывал лишь на следующем — а если тот
+    /// случался уже назавтра, не всплывал вовсе. Зовётся из точки учёта (<see cref="AgentOptions.SpendSink"/>)
+    /// сразу после записи; журнал считает итоги в памяти, так что это дёшево.
+    /// </remarks>
+    public void AfterSpend(string? secret)
+    {
+        if (settings()?.SpendLimits is not { } limits || !HasPeriodLimits(limits))
+        {
+            return;
+        }
+
+        var now = Now();
+        var fingerprint = ApiKeyStore.Fingerprint(secret);
+        Warn(limits, fingerprint, SpendRules.Evaluate(limits, fingerprint, ledger.Totals(secret, now)), now);
+    }
+
+    /// <summary>
+    /// Профиль сменился: «уже предупреждали» относилось к тратам прежнего. Без этого общий на
+    /// программу набор глушил бы предупреждение нового профиля за тот же день.
+    /// </summary>
+    public void ForgetWarnings()
+    {
+        lock (_gate)
+        {
+            _warned.Clear();
+        }
+    }
+
+    private static bool HasPeriodLimits(SpendLimits limits) =>
+        limits.DayUsd is not null || limits.MonthUsd is not null || limits.Keys.Count > 0;
+
+    /// <summary>Порог пройден, а лимит ещё нет — сказать один раз за период на каждый лимит.</summary>
+    private void Warn(SpendLimits limits, string fingerprint, IReadOnlyList<SpendBreach> breaches, DateTime now)
+    {
+        foreach (var breach in breaches)
+        {
+            if (!SpendRules.ShouldWarn(breach, limits.WarnPercent))
+            {
+                continue;
+            }
+
+            bool first;
+            lock (_gate)
+            {
+                first = _warned.Add(SpendRules.WarnKey(breach, fingerprint, now, limits.WarnPercent));
+            }
+
+            if (first)
+            {
+                Warned?.Invoke(breach);
             }
         }
     }

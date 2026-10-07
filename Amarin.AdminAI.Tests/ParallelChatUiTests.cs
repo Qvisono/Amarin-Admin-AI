@@ -556,6 +556,38 @@ public sealed class ParallelChatUiTests : IDisposable
         Assert.True(sameStore, "профиль переключился, пока в фоне шёл ответ");
     }
 
+    [Fact]
+    public void A_spend_warning_stays_under_the_input_after_the_turn_that_raised_it_ends()
+    {
+        // До 1.32.0 предупреждение о лимите ложилось в подписи хода, а их снимает конец хода:
+        // приходит оно как раз во время ответа, и в окне перед глазами его почти не было видно.
+        var breach = new SpendBreach(SpendLimitKind.ProfileDay, 1m, 0.85m);
+        var (during, after, timer) = With(
+            (_, sent) => Task.FromResult(Sse("ответ", ModelOf(sent))),
+            harness =>
+            {
+                var chat = Session("s1");
+                Set(harness.Window, "_session", chat);
+                var turn = Register(harness.Window, chat);
+
+                harness.Services.SpendGuard.Warned!(breach);
+                var warning = (TextBlock)harness.Window.FindName("AttachmentsWarning")!;
+                var during = warning.Text;
+
+                harness.Window.FinishTurn(turn);
+                var countdown = Get<System.Windows.Threading.DispatcherTimer>(harness.Window, "_statusNoteTimer");
+                return (during, warning.Text, (countdown.IsEnabled, countdown.Interval));
+            });
+
+        var text = SpendPrompts.Warning(breach);
+        Assert.Contains(text, during, StringComparison.Ordinal);
+        Assert.Contains(text, after, StringComparison.Ordinal);
+
+        // Снимает строку только её собственный срок.
+        Assert.True(timer.IsEnabled);
+        Assert.Equal(MainWindow.StatusNoteDuration, timer.Interval);
+    }
+
     private static Visibility DotVisibility(MainWindow window, string sessionId)
     {
         var panel = (Panel)window.FindName("ChatListPanel")!;

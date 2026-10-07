@@ -239,9 +239,68 @@ public sealed class SpendLimitsTests : IDisposable
         // Новый день или месяц — новый период, и предупреждение прозвучит снова.
         var day = new SpendBreach(SpendLimitKind.ProfileDay, 1m, 0.9m);
         var month = new SpendBreach(SpendLimitKind.KeyMonth, 1m, 0.9m);
-        Assert.NotEqual(SpendRules.WarnKey(day, "fp", new DateTime(2026, 9, 30)), SpendRules.WarnKey(day, "fp", new DateTime(2026, 10, 1)));
-        Assert.Equal(SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 1)), SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 30)));
-        Assert.NotEqual(SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 30)), SpendRules.WarnKey(month, "other", new DateTime(2026, 9, 30)));
+        Assert.NotEqual(SpendRules.WarnKey(day, "fp", new DateTime(2026, 9, 30), 80), SpendRules.WarnKey(day, "fp", new DateTime(2026, 10, 1), 80));
+        Assert.Equal(SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 1), 80), SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 30), 80));
+        Assert.NotEqual(SpendRules.WarnKey(month, "fp", new DateTime(2026, 9, 30), 80), SpendRules.WarnKey(month, "other", new DateTime(2026, 9, 30), 80));
+    }
+
+    [Fact]
+    public void The_warning_sounds_on_the_spend_that_crossed_the_share_not_on_the_next_request()
+    {
+        // До 1.32.0 предупреждение считалось только перед запросом, а цена записывается после
+        // ответа: перейдённый последним запросом порог всплывал лишь на следующем — или никогда.
+        var (guard, ledger, _) = Guard(new SpendLimits { DayUsd = 1m, WarnPercent = 80 });
+        var warned = new List<SpendBreach>();
+        guard.Warned = warned.Add;
+
+        ledger.Record(Key.Secret, new VeniceCost { Usd = 0.5m, HasData = true }, "chat");
+        guard.AfterSpend(Key.Secret);
+        Assert.Empty(warned);
+
+        ledger.Record(Key.Secret, new VeniceCost { Usd = 0.35m, HasData = true }, "chat");
+        guard.AfterSpend(Key.Secret);
+
+        var breach = Assert.Single(warned);
+        Assert.Equal(SpendLimitKind.ProfileDay, breach.Kind);
+        Assert.Equal(0.85m, breach.Spent);
+    }
+
+    [Fact]
+    public void A_raised_limit_warns_again_when_its_own_share_is_reached()
+    {
+        // Ключ «уже предупреждали» не помнил сумму: поднятый в тот же день лимит молчал до завтра.
+        var (guard, ledger, settings) = Guard(new SpendLimits { DayUsd = 1m, WarnPercent = 80 });
+        var warned = new List<SpendBreach>();
+        guard.Warned = warned.Add;
+
+        ledger.Record(Key.Secret, new VeniceCost { Usd = 0.85m, HasData = true }, "chat");
+        guard.AfterSpend(Key.Secret);
+        settings.SpendLimits = new SpendLimits { DayUsd = 2m, WarnPercent = 80 };
+        guard.AfterSpend(Key.Secret);
+        Assert.Single(warned);
+
+        ledger.Record(Key.Secret, new VeniceCost { Usd = 0.8m, HasData = true }, "chat");
+        guard.AfterSpend(Key.Secret);
+
+        Assert.Equal(2, warned.Count);
+        Assert.Equal(2m, warned[1].Limit);
+    }
+
+    [Fact]
+    public void Another_profile_is_warned_on_its_own()
+    {
+        // Набор «уже предупреждали» общий на программу: без сброса при смене профиля первый
+        // глушил бы второму его предупреждение за тот же день.
+        var (guard, ledger, _) = Guard(new SpendLimits { DayUsd = 1m, WarnPercent = 80 });
+        var warned = new List<SpendBreach>();
+        guard.Warned = warned.Add;
+        ledger.Record(Key.Secret, new VeniceCost { Usd = 0.85m, HasData = true }, "chat");
+
+        guard.AfterSpend(Key.Secret);
+        guard.ForgetWarnings();
+        guard.AfterSpend(Key.Secret);
+
+        Assert.Equal(2, warned.Count);
     }
 
     [Fact]

@@ -357,6 +357,12 @@ namespace Amarin.UI
                 notes.Add(notice);
             }
 
+            // И строка программы (NotifyStatus): её снимает только свой срок.
+            if (!string.IsNullOrWhiteSpace(_statusNote))
+            {
+                notes.Add(_statusNote);
+            }
+
             AttachmentsWarning.Text = string.Join(" ", notes);
             AttachmentsWarning.Visibility = notes.Count == 0
                 ? Visibility.Collapsed

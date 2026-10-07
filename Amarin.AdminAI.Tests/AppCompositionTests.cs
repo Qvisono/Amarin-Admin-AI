@@ -40,10 +40,19 @@ public sealed class AppCompositionTests : IDisposable
 
         Assert.Same(services.SpendGuard, options.SpendGate?.Target);
         Assert.Same(services.Balances, options.BalanceSink?.Target);
-        Assert.Same(services.Ledger, options.SpendSink?.Target);
         Assert.NotNull(services.Audit);
         Assert.Same(services.Audit, options.Audit);
         Assert.Same(services.Keys, options.Keys);
+
+        // Точка учёта пишет в общий журнал и тут же сверяет трату с лимитами: предупреждение
+        // обязано прозвучать на том запросе, что подвёл к порогу.
+        services.Settings.SpendLimits = new SpendLimits { DayUsd = 1m, WarnPercent = 80 };
+        var warned = new List<SpendBreach>();
+        services.SpendGuard.Warned = warned.Add;
+        options.SpendSink!("sink-key", new VeniceCost { Usd = 0.9m, HasData = true }, "chat");
+
+        Assert.Equal(0.9m, services.Ledger.Totals("sink-key", DateTime.Now).KeyDay);
+        Assert.Single(warned);
     }
 
     [Fact]

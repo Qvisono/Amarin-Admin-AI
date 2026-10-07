@@ -114,7 +114,13 @@ internal static class AppComposition
         {
             ApiKey = configuration.VeniceKey,
             Keys = keys,
-            SpendSink = ledger.Record,
+            // Записал цену — сразу сверил с порогом: предупреждение о лимите обязано прозвучать
+            // на том запросе, что к нему подвёл, а не на следующем.
+            SpendSink = (secret, cost, sku) =>
+            {
+                ledger.Record(secret, cost, sku);
+                spendGuard.AfterSpend(secret);
+            },
             SpendGate = spendGuard.CheckAsync,
             BalanceSink = balances.Remember,
             Audit = audit,

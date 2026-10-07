@@ -378,13 +378,52 @@ namespace Amarin.UI
         /// Короткое сообщение программы (лимит близко, остаток кончается, копия не удалась): в окне —
         /// подписью у поля, а когда окно не перед глазами — уведомлением.
         /// </summary>
+        /// <remarks>
+        /// Подпись — своя строка окна, а не подпись хода. До 1.32.0 она ложилась в подписи хода
+        /// открытого чата, а их снимает конец хода: предупреждение о лимите приходит как раз во
+        /// время ответа и пропадало вместе с ним, так что в окне перед глазами его почти не было
+        /// видно. Деньги и копии — дело программы, а не чата, поэтому и смена чата строку не снимает.
+        /// </remarks>
         private void NotifyStatus(string text, bool warning = true)
         {
-            ShowTransientNotice(_session.Id, text);
+            ShowStatusNote(text);
             if (!IsVisible || WindowState == WindowState.Minimized || !IsForeground())
             {
                 Notify("", ToastText(text), "", () => { }, warning);
             }
+        }
+
+        /// <summary>Сколько держится строка программы под полем ввода.</summary>
+        internal static readonly TimeSpan StatusNoteDuration = TimeSpan.FromSeconds(12);
+
+        private string? _statusNote;
+        private System.Windows.Threading.DispatcherTimer? _statusNoteTimer;
+
+        private void ShowStatusNote(string text)
+        {
+            _statusNote = text;
+            if (_statusNoteTimer is null)
+            {
+                _statusNoteTimer = new System.Windows.Threading.DispatcherTimer { Interval = StatusNoteDuration };
+                _statusNoteTimer.Tick += (_, _) => ClearStatusNote();
+            }
+
+            // Новое сообщение — новый отсчёт: иначе второе исчезло бы через миг после первого.
+            _statusNoteTimer.Stop();
+            _statusNoteTimer.Start();
+            UpdateAttachmentWarning();
+        }
+
+        private void ClearStatusNote()
+        {
+            _statusNoteTimer?.Stop();
+            if (_statusNote is null)
+            {
+                return;
+            }
+
+            _statusNote = null;
+            UpdateAttachmentWarning();
         }
 
         /// <summary>

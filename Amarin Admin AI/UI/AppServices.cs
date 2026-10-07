@@ -170,7 +170,11 @@ internal sealed class AppServices : IDisposable
     public void ApplyActiveKey() => Profile.ApplyActiveKey();
 
     /// <inheritdoc cref="ProfileScope.UseProfile"/>
-    public void UseProfile(string dataRoot) => Profile.UseProfile(dataRoot);
+    public void UseProfile(string dataRoot)
+    {
+        Profile.UseProfile(dataRoot);
+        SpendGuard.ForgetWarnings();
+    }
 
     public void Dispose()
     {

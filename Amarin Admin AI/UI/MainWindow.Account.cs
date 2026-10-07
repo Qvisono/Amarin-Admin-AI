@@ -695,6 +695,9 @@ namespace Amarin.UI
 
             ProfileOverlay.Visibility = Visibility.Collapsed;
             ClearPendingAttachments();
+
+            // Строка программы говорила о деньгах и копиях прежнего профиля.
+            ClearStatusNote();
             StartNewSession(persist: false);
             ResetChatListView();
             SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
