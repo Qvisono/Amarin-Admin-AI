@@ -132,9 +132,11 @@ namespace Amarin.UI
                 System.Windows.Controls.Primitives.ButtonBase.ClickEvent,
                 new RoutedEventHandler(ChatListPanel_Click));
 
-            // Зажатая кнопка в колонке чатов перетаскивает чат, а не листает список.
+            // Зажатая кнопка в колонке чатов перетаскивает чат, а не листает список; на пустом
+            // месте — тянет рамку выделения.
             SmoothScroll.SetIsEnabled(SideBarScrollViewer, true);
             InitializeChatDrag();
+            InitializeChatSelection();
             SmoothScroll.SetIsEnabled(ChatScrollViewer, true);
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
@@ -1816,10 +1818,11 @@ namespace Amarin.UI
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Вставленный код «Поделиться» — не запрос поиска: открываем переписку из него.
+            // Вставленный код «Поделиться» — не запрос поиска: открываем переписку из него (у кода
+            // нескольких чатов — добавляем их все и открываем первый).
             if (ChatShareCodec.LooksLikeShareCode(SearchBox.Text))
             {
-                var shared = ChatShareCodec.TryDecode(SearchBox.Text);
+                var shared = ChatShareCodec.TryDecodeAll(SearchBox.Text);
                 SearchBox.Clear();
                 if (shared is null)
                 {
@@ -1827,7 +1830,7 @@ namespace Amarin.UI
                     return;
                 }
 
-                OpenSharedSession(shared);
+                OpenSharedSessions(shared);
                 return;
             }
 
@@ -1985,7 +1988,7 @@ namespace Amarin.UI
                 return;
             }
 
-            if (e.Key == Key.Escape && _chatDrag?.Cancel() == true)
+            if (e.Key == Key.Escape && (_chatDrag?.Cancel() == true || _marquee?.Cancel() == true))
             {
                 e.Handled = true;
                 return;
@@ -2021,6 +2024,14 @@ namespace Amarin.UI
 
             // Esc во время записи голоса (D14) отменяет запись — раньше всего остального.
             if (e.Key == Key.Escape && IsRecording && CancelRecording())
+            {
+                e.Handled = true;
+                return;
+            }
+
+            // Esc снимает выбор чатов — раньше остановки ответа: снять выбор просят чаще, а ответ
+            // остановит второе нажатие.
+            if (TryClearSelectionByEscape(e))
             {
                 e.Handled = true;
                 return;
@@ -2888,9 +2899,11 @@ namespace Amarin.UI
 
             var query = SearchBox.Text;
 
-            // Поиск по тексту — своя выдача: находки в сообщениях, а не строки чатов.
+            // Поиск по тексту — своя выдача: находки в сообщениях, а не строки чатов. Выбирать в ней
+            // нечего — ни рамкой, ни Ctrl+A.
             if (_searchByText && query.Trim().Length > 0)
             {
+                _chatListMembers = ChatListMembers.Empty;
                 RenderTextSearch(query);
                 return;
             }
@@ -2932,6 +2945,13 @@ namespace Amarin.UI
                 return;
             }
 
+            // Как и из-под рамки выделения: она помнит места строк с начала жеста.
+            if (_marquee is { IsSelecting: true })
+            {
+                _chatListRefreshPending = true;
+                return;
+            }
+
             // Панель не сносится: RenderChatListNodes сверяет её с прежней раскладкой и трогает
             // только изменившиеся строки.
             (_chatListSignature, _chatListScratch) = (signature, _chatListSignature);
@@ -2945,10 +2965,12 @@ namespace Amarin.UI
                 // заголовку папки и архив прятали бы найденное за свёрнутыми группами.
                 var ordered = IsContentSearchResult ? items : ChatListLayout.Sort(items, sort).ToList();
                 nodes = ChatListLayout.Flat(ordered, organize, "S.Search.Found");
+                _chatListMembers = ChatListMembers.Flat(ordered.Select(entry => entry.Id));
             }
             else
             {
                 nodes = ChatListLayout.Build(items, organize, sort, _tagFilter, _archiveExpanded, DateTime.Today);
+                _chatListMembers = ChatListLayout.Members(items, organize, _tagFilter);
             }
 
             // Первый кадр запуска строит только видимое (RefreshChatListFirstScreen). Подпись
@@ -3032,6 +3054,8 @@ namespace Amarin.UI
                     ApplyChatRowState(row, id);
                 }
             }
+
+            RefreshHeaderSelection();
         }
 
         /// <summary>Открыть чат. Ход, идущий в нём или в прежнем, не прерывается.</summary>

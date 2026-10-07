@@ -29,6 +29,33 @@ internal static class ChatPrint
     private const double BodySize = 12.5;
     private const double BodyLine = 19;
 
+    /// <summary>
+    /// Несколько чатов одним документом — для печати и PDF выбранных в списке: каждый чат с новой
+    /// страницы, оформление и палитра — у первого.
+    /// </summary>
+    public static FlowDocument BuildMany(FrameworkElement host, IReadOnlyList<ChatExportDocument> exports, Size page)
+    {
+        ArgumentNullException.ThrowIfNull(exports);
+        var merged = Build(host, exports[0], page);
+        for (var i = 1; i < exports.Count; i++)
+        {
+            var next = Build(host, exports[i], page);
+            var blocks = next.Blocks.ToList();
+            next.Blocks.Clear();
+            for (var j = 0; j < blocks.Count; j++)
+            {
+                if (j == 0)
+                {
+                    blocks[j].BreakPageBefore = true;
+                }
+
+                merged.Blocks.Add(blocks[j]);
+            }
+        }
+
+        return merged;
+    }
+
     public static FlowDocument Build(FrameworkElement host, ChatExportDocument export, Size page)
     {
         var document = new FlowDocument

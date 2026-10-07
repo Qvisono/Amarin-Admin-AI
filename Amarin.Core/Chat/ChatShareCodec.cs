@@ -17,6 +17,12 @@ internal static class ChatShareCodec
     /// <summary>Метка формата. Изменится форма содержимого — увеличить цифру.</summary>
     public const string Prefix = "AMRN1:";
 
+    /// <summary>
+    /// Метка кода с несколькими чатами (с 1.32.0): внутри список, а не один чат. Один чат
+    /// по-прежнему пишется <see cref="Prefix"/> — его прочтут и прежние версии программы.
+    /// </summary>
+    public const string BundlePrefix = "AMRN2:";
+
     /// <summary>Расширение файла для кода, слишком длинного для буфера обмена.</summary>
     public const string FileExtension = ".amrnchat";
 
@@ -93,21 +99,34 @@ internal static class ChatShareCodec
     public static string Encode(ChatSession session, string? upToMessageId = null)
     {
         ArgumentNullException.ThrowIfNull(session);
-
-        var trimmed = Trim(session, upToMessageId);
-        var json = JsonSerializer.SerializeToUtf8Bytes(trimmed, Compact);
-
-        using var output = new MemoryStream();
-        using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
-        {
-            gzip.Write(json, 0, json.Length);
-        }
-
-        return Prefix + ToBase64Url(output.ToArray());
+        return Prefix + Deflate(JsonSerializer.SerializeToUtf8Bytes(Trim(session, upToMessageId), Compact));
     }
 
-    /// <summary>Разбирает код в новую сессию; null — это не код.</summary>
-    public static ChatSession? TryDecode(string? code)
+    /// <summary>
+    /// Один код на несколько чатов — для «Поделиться» у выбранных в списке. Чат один — обычный
+    /// код (<see cref="Encode"/>), его прочтут и прежние версии.
+    /// </summary>
+    public static string EncodeMany(IReadOnlyList<ChatSession> sessions)
+    {
+        ArgumentNullException.ThrowIfNull(sessions);
+        if (sessions.Count == 1)
+        {
+            return Encode(sessions[0]);
+        }
+
+        List<ChatSession> trimmed = [.. sessions.Select(session => Trim(session, null))];
+        return BundlePrefix + Deflate(JsonSerializer.SerializeToUtf8Bytes(trimmed, Compact));
+    }
+
+    /// <summary>Разбирает код одного чата в новую сессию; null — это не код одного чата.</summary>
+    public static ChatSession? TryDecode(string? code) =>
+        TryDecodeAll(code) is [var single] ? single : null;
+
+    /// <summary>
+    /// Разбирает код — одного чата или нескольких — в новые сессии; null — это не код или в нём
+    /// нет ни одной переписки.
+    /// </summary>
+    public static IReadOnlyList<ChatSession>? TryDecodeAll(string? code)
     {
         var text = code?.Trim() ?? "";
         if (!LooksLikeShareCode(text))
@@ -117,43 +136,70 @@ internal static class ChatShareCodec
 
         try
         {
-            var payload = FromBase64Url(text[Prefix.Length..]);
-            using var input = new MemoryStream(payload);
-            using var gzip = new GZipStream(input, CompressionMode.Decompress);
-            using var output = new MemoryStream();
-
-            // CopyTo распаковал бы и zip-бомбу — копируем с жёстким потолком.
-            var buffer = new byte[81920];
-            int read;
-            while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                if (output.Length + read > MaxDecodedBytes)
-                {
-                    return null;
-                }
-
-                output.Write(buffer, 0, read);
-            }
-
-            var session = JsonSerializer.Deserialize<ChatSession>(output.ToArray(), Compact);
-            if (session is null || session.Messages.Count == 0)
+            var bundle = text.StartsWith(BundlePrefix, StringComparison.OrdinalIgnoreCase);
+            if (Inflate(text[(bundle ? BundlePrefix : Prefix).Length..]) is not { } json)
             {
                 return null;
             }
 
-            // Присланный чат становится обычным своим; новый id — чтобы он не столкнулся с
-            // существующей перепиской и не затёр её.
-            session.Id = Guid.NewGuid().ToString("N");
-            session.CreatedAt = DateTime.Now;
-            session.UpdatedAt = DateTime.Now;
-            session.Title = MarkShared(session.Title);
-            return session;
+            List<ChatSession?> sessions = bundle
+                ? [.. JsonSerializer.Deserialize<List<ChatSession?>>(json, Compact) ?? []]
+                : [JsonSerializer.Deserialize<ChatSession>(json, Compact)];
+            List<ChatSession> received = [.. sessions.OfType<ChatSession>().Where(session => session.Messages.Count > 0).Select(Received)];
+            return received.Count > 0 ? received : null;
         }
         catch (Exception ex) when (ex is FormatException or InvalidDataException or JsonException or
                                        ArgumentException or NotSupportedException)
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Присланный чат становится обычным своим; новый id — чтобы он не столкнулся с существующей
+    /// перепиской и не затёр её.
+    /// </summary>
+    private static ChatSession Received(ChatSession session)
+    {
+        session.Id = Guid.NewGuid().ToString("N");
+        session.CreatedAt = DateTime.Now;
+        session.UpdatedAt = DateTime.Now;
+        session.Title = MarkShared(session.Title);
+        return session;
+    }
+
+    private static string Deflate(byte[] json)
+    {
+        using var output = new MemoryStream();
+        using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+        {
+            gzip.Write(json, 0, json.Length);
+        }
+
+        return ToBase64Url(output.ToArray());
+    }
+
+    /// <summary>Распаковывает с жёстким потолком: CopyTo распаковал бы и zip-бомбу. Null — больше потолка.</summary>
+    private static byte[]? Inflate(string payloadText)
+    {
+        var payload = FromBase64Url(payloadText);
+        using var input = new MemoryStream(payload);
+        using var gzip = new GZipStream(input, CompressionMode.Decompress);
+        using var output = new MemoryStream();
+
+        var buffer = new byte[81920];
+        int read;
+        while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > MaxDecodedBytes)
+            {
+                return null;
+            }
+
+            output.Write(buffer, 0, read);
+        }
+
+        return output.ToArray();
     }
 
     /// <summary>
@@ -165,7 +211,8 @@ internal static class ChatShareCodec
     public static bool LooksLikeShareCode(string? text)
     {
         var trimmed = text?.Trim() ?? "";
-        return trimmed.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase) &&
+        return (trimmed.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith(BundlePrefix, StringComparison.OrdinalIgnoreCase)) &&
                trimmed.Length >= Prefix.Length + MinPayloadLength;
     }
 
@@ -189,16 +236,7 @@ internal static class ChatShareCodec
         try
         {
             var session = JsonSerializer.Deserialize<ChatSession>(json, Export);
-            if (session is null || session.Messages.Count == 0)
-            {
-                return null;
-            }
-
-            session.Id = Guid.NewGuid().ToString("N");
-            session.CreatedAt = DateTime.Now;
-            session.UpdatedAt = DateTime.Now;
-            session.Title = MarkShared(session.Title);
-            return session;
+            return session is null || session.Messages.Count == 0 ? null : Received(session);
         }
         catch (JsonException)
         {
@@ -221,7 +259,19 @@ internal static class ChatShareCodec
     /// есть служебный обмен с инструментами без пары в ленте, поэтому она обрезается по числу
     /// ходов человека и модели, а не по номеру.
     /// </summary>
+    /// <remarks>
+    /// Под замком переписки: пакетный «Поделиться» собирает код в фоне, а в открытый чат в это
+    /// время может дописывать идущий ход.
+    /// </remarks>
     private static ChatSession Trim(ChatSession session, string? upToMessageId)
+    {
+        lock (session.Gate)
+        {
+            return TrimLocked(session, upToMessageId);
+        }
+    }
+
+    private static ChatSession TrimLocked(ChatSession session, string? upToMessageId)
     {
         var messages = session.Messages;
         var cut = string.IsNullOrWhiteSpace(upToMessageId)

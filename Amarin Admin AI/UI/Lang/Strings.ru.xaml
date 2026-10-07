@@ -426,6 +426,8 @@
     <system:String x:Key="S.ChatList.DeleteTagText" xml:space="preserve">Тег снимется со всех чатов, сами чаты останутся.</system:String>
     <system:String x:Key="S.ChatList.DeleteTagTitle" xml:space="preserve">Удалить тег «{0}»?</system:String>
     <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Удалить чат?</system:String>
+    <system:String x:Key="S.ChatList.DeleteWithFoldersConfirm" xml:space="preserve">Выбрано чатов: {0}, папок: {1}. Они удалятся без возврата.</system:String>
+    <system:String x:Key="S.ChatList.DeleteWithFoldersTitle" xml:space="preserve">Удалить чаты и папки?</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Ранее</system:String>
     <system:String x:Key="S.ChatList.EditTag" xml:space="preserve">Изменить тег</system:String>
     <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Развернуть</system:String>
@@ -435,6 +437,7 @@
     <system:String x:Key="S.ChatList.Folders" xml:space="preserve">Папки</system:String>
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">В папку</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Переименовать чат</system:String>
+    <system:String x:Key="S.ChatList.NameTitleMany" xml:space="preserve">Переименовать чаты</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">Новый чат</system:String>
     <system:String x:Key="S.ChatList.NewFolder" xml:space="preserve">Новая папка</system:String>
     <system:String x:Key="S.ChatList.NewTag" xml:space="preserve">Новый тег</system:String>
@@ -608,6 +611,7 @@
     <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Оценка ответа модели чата: вход ≈ {0} токенов, ответ ≈ {1} — по длине прошлых ответов этого чата. Цены — из каталога провайдера.</system:String>
     <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">У части моделей каталог не назвал цену — они не учтены.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Ассистент</system:String>
+    <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Куда выгрузить чаты</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Выгружено {0}</system:String>
     <system:String x:Key="S.Export.Failed" xml:space="preserve">Файл не записан: {0}</system:String>
     <system:String x:Key="S.Export.FailedTitle" xml:space="preserve">Не удалось выгрузить</system:String>
@@ -619,6 +623,8 @@
     <system:String x:Key="S.Export.OpenFolder" xml:space="preserve">Показать в папке</system:String>
     <system:String x:Key="S.Export.Pdf" xml:space="preserve">PDF…</system:String>
     <system:String x:Key="S.Export.Print" xml:space="preserve">Печать…</system:String>
+    <system:String x:Key="S.Export.SavedMany" xml:space="preserve">Файлов: {0}. Папка: {1}</system:String>
+    <system:String x:Key="S.Export.SavedManyTitle" xml:space="preserve">Чаты выгружены</system:String>
     <system:String x:Key="S.Export.SavedTitle" xml:space="preserve">Чат выгружен</system:String>
     <system:String x:Key="S.Export.Tool" xml:space="preserve">Инструмент</system:String>
     <system:String x:Key="S.Export.ToolCount" xml:space="preserve">Инструменты ({0})</system:String>
@@ -814,6 +820,8 @@
     <system:String x:Key="S.Hotkeys.CheatsheetDesc" xml:space="preserve">Все сочетания одним списком.</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswer" xml:space="preserve">Копировать последний ответ</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswerDesc" xml:space="preserve">Текст последнего ответа открытого чата — в буфер обмена.</system:String>
+    <system:String x:Key="S.Hotkeys.DeleteChats" xml:space="preserve">Удалить чаты</system:String>
+    <system:String x:Key="S.Hotkeys.DeleteChatsDesc" xml:space="preserve">Выделенные, а если выделения нет - открытый. Сначала спросит.</system:String>
     <system:String x:Key="S.Hotkeys.FindInChat" xml:space="preserve">Найти в чате</system:String>
     <system:String x:Key="S.Hotkeys.FindInChatDesc" xml:space="preserve">Поиск по тексту открытого чата и его блокам инструментов.</system:String>
     <system:String x:Key="S.Hotkeys.Health" xml:space="preserve">Состояние ПК</system:String>
@@ -832,6 +840,8 @@
     <system:String x:Key="S.Hotkeys.RegenerateDesc" xml:space="preserve">Заново получить последний ответ открытого чата; прежний останется вариантом.</system:String>
     <system:String x:Key="S.Hotkeys.SearchChats" xml:space="preserve">Поиск по чатам</system:String>
     <system:String x:Key="S.Hotkeys.SearchChatsDesc" xml:space="preserve">Поле поиска в списке чатов; свёрнутая панель раскрывается.</system:String>
+    <system:String x:Key="S.Hotkeys.SelectAllChats" xml:space="preserve">Выделить все чаты</system:String>
+    <system:String x:Key="S.Hotkeys.SelectAllChatsDesc" xml:space="preserve">Вместе с папками и архивом. В поле с текстом выделяет текст.</system:String>
     <system:String x:Key="S.Hotkeys.Send" xml:space="preserve">Отправить сообщение</system:String>
     <system:String x:Key="S.Hotkeys.SheetEdit" xml:space="preserve">Изменить…</system:String>
     <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Назначения меняются в настройках: Общие › Сочетания клавиш.</system:String>
@@ -907,8 +917,11 @@
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Итог отката</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Аудит</system:String>
     <system:String x:Key="S.Key.Active" xml:space="preserve">Активный ключ</system:String>
+    <system:String x:Key="S.Key.Edit" xml:space="preserve">Изменить</system:String>
     <system:String x:Key="S.Key.NamePlaceholder" xml:space="preserve">Необязательно</system:String>
     <system:String x:Key="S.Key.RenamePlaceholder" xml:space="preserve">Пусто — название по умолчанию</system:String>
+    <system:String x:Key="S.Key.Send" xml:space="preserve">Отправить</system:String>
+    <system:String x:Key="S.Key.SendTo" xml:space="preserve">В профиль</system:String>
     <system:String x:Key="S.Language.DeleteTitle" xml:space="preserve">Удалить язык «{0}»?</system:String>
     <system:String x:Key="S.Language.NamePlaceholder" xml:space="preserve">Например, Deutsch</system:String>
     <system:String x:Key="S.Language.Translate" xml:space="preserve">Перевести</system:String>
@@ -1693,6 +1706,8 @@
     <system:String x:Key="S.Share.ClipboardBusy" xml:space="preserve">Его держит другая программа. Попробуйте ещё раз через пару секунд.</system:String>
     <system:String x:Key="S.Share.CodeBroken" xml:space="preserve">Код повреждён или это не код чата.</system:String>
     <system:String x:Key="S.Share.CodeCopied" xml:space="preserve">Символов: {0}, сообщений: {1}. Вставьте код в поиск боковой панели на другом компьютере — чат откроется.</system:String>
+    <system:String x:Key="S.Share.CodeCopiedMany" xml:space="preserve">Чатов: {0}, символов: {1}. Вставьте код в поиск боковой панели на другом компьютере, и чаты появятся в списке.</system:String>
+    <system:String x:Key="S.Share.CopiedManyTitle" xml:space="preserve">Код чатов скопирован</system:String>
     <system:String x:Key="S.Share.CopiedTitle" xml:space="preserve">Код чата скопирован</system:String>
     <system:String x:Key="S.Share.ExportTitle" xml:space="preserve">Экспорт диалога</system:String>
     <system:String x:Key="S.Share.FailedTitle" xml:space="preserve">Не удалось поделиться</system:String>

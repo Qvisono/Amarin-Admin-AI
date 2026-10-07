@@ -53,6 +53,17 @@ public static class HotkeyMap
     /// <summary>Предыдущий чат в порядке списка (D8).</summary>
     public const string PreviousChat = "PreviousChat";
 
+    /// <summary>Выбрать все чаты списка — вместе с папками и архивом (с 1.32.0).</summary>
+    /// <remarks>
+    /// В поле с текстом и в блоке кода сочетание остаётся их «выделить всё»: действие отказывается,
+    /// и клавиша уходит дальше (см. <c>MainWindow.TrySelectAllChats</c>).
+    /// </remarks>
+    public const string SelectAllChats = "SelectAllChats";
+
+    /// <summary>Удалить выбранные чаты, а без выбора — открытый (с 1.32.0), с вопросом.</summary>
+    /// <remarks>В поле с выделенным текстом Shift+Delete — это «вырезать», и действие отказывается.</remarks>
+    public const string DeleteChats = "DeleteChats";
+
     /// <summary>Скопировать последний ответ открытого чата (D8).</summary>
     public const string CopyLastAnswer = "CopyLastAnswer";
 
@@ -88,6 +99,8 @@ public static class HotkeyMap
         new(Regenerate, "Ctrl+Shift+R", "S.Hotkeys.Regenerate", "S.Hotkeys.RegenerateDesc"),
         new(NextChat, "Ctrl+Tab", "S.Hotkeys.NextChat", "S.Hotkeys.NextChatDesc"),
         new(PreviousChat, "Ctrl+Shift+Tab", "S.Hotkeys.PreviousChat", "S.Hotkeys.PreviousChatDesc"),
+        new(SelectAllChats, "Ctrl+A", "S.Hotkeys.SelectAllChats", "S.Hotkeys.SelectAllChatsDesc"),
+        new(DeleteChats, "Shift+Delete", "S.Hotkeys.DeleteChats", "S.Hotkeys.DeleteChatsDesc"),
         new(CopyLastAnswer, "Ctrl+Shift+C", "S.Hotkeys.CopyLastAnswer", "S.Hotkeys.CopyLastAnswerDesc"),
         new(ToggleSidebar, "Ctrl+B", "S.Hotkeys.ToggleSidebar", "S.Hotkeys.ToggleSidebarDesc"),
         new(OpenSettings, "Ctrl+OemComma", "S.Hotkeys.OpenSettings", "S.Hotkeys.OpenSettingsDesc"),
@@ -108,6 +121,21 @@ public static class HotkeyMap
     /// Windows, и назначенное на него молча не сработало бы.
     /// </remarks>
     private static readonly string[] RequiredModifiers = ["Ctrl", "Alt"];
+
+    /// <summary>
+    /// Клавиша не печатает текст — с ней сочетанию хватает одного Shift (Shift+Delete).
+    /// </summary>
+    /// <remarks>
+    /// Правило «Ctrl или Alt» бережёт буквы: Shift+N — это заглавная «N». Delete, Insert и
+    /// F-клавиши ничего не печатают, и Shift с ними у набора ничего не отнимает. Голой клавишей
+    /// сочетание не бывает и здесь: Delete в пустом поле удалял бы чат одним нажатием.
+    /// </remarks>
+    public static bool IsCommandKey(string key) =>
+        key.Equals("Delete", StringComparison.OrdinalIgnoreCase) ||
+        key.Equals("Insert", StringComparison.OrdinalIgnoreCase) ||
+        (key.Length is 2 or 3 && char.ToUpperInvariant(key[0]) == 'F' &&
+         int.TryParse(key.AsSpan(1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) &&
+         number is >= 1 and <= 24);
 
     public static HotkeyAction? Find(string? id) =>
         id is null ? null : All.FirstOrDefault(action => string.Equals(action.Id, id, StringComparison.Ordinal));
@@ -174,7 +202,8 @@ public static class HotkeyMap
     /// </summary>
     /// <remarks>
     /// Ctrl или Alt обязателен (см. <see cref="RequiredModifiers"/>): голая буква
-    /// перехватывалась бы прямо во время набора сообщения, и печатать стало бы нечем. Порядок
+    /// перехватывалась бы прямо во время набора сообщения, и печатать стало бы нечем. Исключение —
+    /// клавиши, которые не печатают (<see cref="IsCommandKey"/>): им хватает Shift. Порядок
     /// модификаторов канонизируется, иначе <c>Shift+Ctrl+N</c> и <c>Ctrl+Shift+N</c> считались
     /// бы разными назначениями.
     /// </remarks>
@@ -214,8 +243,16 @@ public static class HotkeyMap
             key = part;
         }
 
-        if (key is null || key.Length == 0 ||
-            !modifiers.Any(item => RequiredModifiers.Contains(item, StringComparer.Ordinal)))
+        if (key is null || key.Length == 0)
+        {
+            return false;
+        }
+
+        // Win в счёт не идёт и здесь: его сочетания Windows забирает себе.
+        var commandKey = IsCommandKey(key) &&
+                         modifiers.Contains("Shift", StringComparer.Ordinal) &&
+                         !modifiers.Contains("Win", StringComparer.Ordinal);
+        if (!commandKey && !modifiers.Any(item => RequiredModifiers.Contains(item, StringComparer.Ordinal)))
         {
             return false;
         }

@@ -135,10 +135,15 @@ namespace Amarin.UI
         private bool TryRunHotkey(KeyEventArgs e)
         {
             // Обычный набор текста приходит сюда на каждую букву, а разбор сочетания — это
-            // разрезание строки со списком. Ctrl или Alt обязателен (см. HotkeyMap), и дешёвая
-            // проверка спереди снимает эту работу со всего набора.
+            // разрезание строки со списком. Ctrl или Alt обязателен (см. HotkeyMap) — кроме Shift
+            // с клавишей, которая не печатает (Shift+Delete), — и дешёвая проверка спереди снимает
+            // эту работу со всего набора.
             var modifiers = Keyboard.Modifiers;
-            if ((modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == ModifierKeys.None)
+
+            // Alt приезжает под Key.System, настоящая клавиша — в SystemKey.
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if ((modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) == ModifierKeys.None &&
+                !(modifiers.HasFlag(ModifierKeys.Shift) && Hotkeys.IsCommandKey(key)))
             {
                 return false;
             }
@@ -150,8 +155,6 @@ namespace Amarin.UI
                 return false;
             }
 
-            // Alt приезжает под Key.System, настоящая клавиша — в SystemKey.
-            var key = e.Key == Key.System ? e.SystemKey : e.Key;
             var assignments = _services.Settings.Hotkeys;
 
             foreach (var action in HotkeyMap.All)
@@ -194,6 +197,10 @@ namespace Amarin.UI
                     return StepChat(+1);
                 case HotkeyMap.PreviousChat:
                     return StepChat(-1);
+                case HotkeyMap.SelectAllChats:
+                    return TrySelectAllChats();
+                case HotkeyMap.DeleteChats:
+                    return TryDeleteChatsByKey();
                 case HotkeyMap.CopyLastAnswer:
                     return CopyLastAnswer();
                 case HotkeyMap.ToggleSidebar:

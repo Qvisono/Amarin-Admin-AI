@@ -248,8 +248,31 @@ internal sealed class ChatOrganizer
         });
 
     /// <summary>Чат удалён — его назначения тоже.</summary>
-    public void Forget(string chatId) =>
-        Mutate(state => state.Chats.Remove(chatId));
+    public void Forget(string chatId) => Forget([chatId]);
+
+    /// <summary>
+    /// Чаты удалены — их назначения тоже, одной записью. Чаты без назначений (их большинство)
+    /// файл не трогают вовсе: каждая правка переписывает его целиком.
+    /// </summary>
+    public void Forget(IReadOnlyCollection<string> chatIds)
+    {
+        ArgumentNullException.ThrowIfNull(chatIds);
+        lock (_gate)
+        {
+            if (!chatIds.Any(_state.Chats.ContainsKey))
+            {
+                return;
+            }
+        }
+
+        Mutate(state =>
+        {
+            foreach (var id in chatIds)
+            {
+                state.Chats.Remove(id);
+            }
+        });
+    }
 
     private static ChatPlacement Placement(State state, string id)
     {
@@ -320,6 +343,28 @@ internal sealed record ChatListArchive(int Count, bool Expanded) : ChatListNode;
 internal sealed record ChatListChat(ChatIndexEntry Entry, IReadOnlyList<ChatTag> Tags, bool Nested = false) : ChatListNode;
 
 /// <summary>
+/// Чаты за заголовками списка (<see cref="ChatListLayout.Members"/>): выбрать папку или архив —
+/// значит выбрать их чаты, даже когда те свёрнуты и строк их на экране нет.
+/// </summary>
+/// <param name="Folders">Папка → её чаты. Папок, скрытых фильтром, здесь нет.</param>
+/// <param name="Archived">Чаты архива.</param>
+/// <param name="All">Все чаты, которые показывает список, — для Ctrl+A.</param>
+internal sealed record ChatListMembers(
+    IReadOnlyDictionary<string, IReadOnlyList<string>> Folders,
+    IReadOnlyList<string> Archived,
+    IReadOnlyList<string> All)
+{
+    public static ChatListMembers Empty { get; } = new(new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal), [], []);
+
+    /// <summary>Выдача поиска: одни чаты, без папок и архива.</summary>
+    public static ChatListMembers Flat(IEnumerable<string> ids) =>
+        new(new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal), [], [.. ids]);
+
+    /// <summary>Чаты папки; нет такой (удалена, скрыта фильтром) — пусто.</summary>
+    public IReadOnlyList<string> Of(string folderId) => Folders.TryGetValue(folderId, out var chats) ? chats : [];
+}
+
+/// <summary>
 /// Раскладка боковой панели: закреплённые, папки, группы по датам (или один список при другой
 /// сортировке) и архив. Чистая функция — проверяется тестами без окна.
 /// </summary>
@@ -335,10 +380,9 @@ internal static class ChatListLayout
     {
         var tags = organize.Tags.ToDictionary(tag => tag.Id, StringComparer.Ordinal);
         var folders = organize.Folders.ToDictionary(folder => folder.Id, StringComparer.Ordinal);
-        ChatPlacement PlacementOf(ChatIndexEntry entry) =>
-            organize.Chats.TryGetValue(entry.Id, out var placement) ? placement : Empty;
+        ChatPlacement PlacementOf(ChatIndexEntry entry) => Placement(organize, entry);
 
-        var visible = items.Where(entry => tagFilter is null || PlacementOf(entry).Tags.Contains(tagFilter)).ToList();
+        var visible = Visible(items, organize, tagFilter);
         var nodes = new List<ChatListNode>();
 
         ChatListChat Row(ChatIndexEntry entry) =>
@@ -368,7 +412,7 @@ internal static class ChatListLayout
         foreach (var folder in organize.Folders)
         {
             var inside = Sort(loose.Where(entry => PlacementOf(entry).FolderId == folder.Id), sort).ToList();
-            if (inside.Count == 0 && tagFilter is not null)
+            if (HiddenUnderFilter(inside.Count, tagFilter))
             {
                 continue;
             }
@@ -410,6 +454,38 @@ internal static class ChatListLayout
 
         return nodes;
     }
+
+    /// <summary>
+    /// Какие чаты стоят за заголовками раскладки <see cref="Build"/> с тем же фильтром — и в
+    /// свёрнутых папках, и в свёрнутом архиве. По тем же правилам, что и сама раскладка: у папки
+    /// нет закреплённых (их место наверху), как нет их и в числе на её заголовке.
+    /// </summary>
+    public static ChatListMembers Members(IReadOnlyList<ChatIndexEntry> items, ChatOrganizer.State organize, string? tagFilter)
+    {
+        var visible = Visible(items, organize, tagFilter);
+        var loose = visible.Where(entry => !Placement(organize, entry).Archived && !entry.IsPinned).ToList();
+        var folders = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        foreach (var folder in organize.Folders)
+        {
+            var inside = loose.Where(entry => Placement(organize, entry).FolderId == folder.Id).Select(entry => entry.Id).ToList();
+            if (!HiddenUnderFilter(inside.Count, tagFilter))
+            {
+                folders[folder.Id] = inside;
+            }
+        }
+
+        var archived = visible.Where(entry => Placement(organize, entry).Archived).Select(entry => entry.Id).ToList();
+        return new ChatListMembers(folders, archived, [.. visible.Select(entry => entry.Id)]);
+    }
+
+    private static ChatPlacement Placement(ChatOrganizer.State organize, ChatIndexEntry entry) =>
+        organize.Chats.TryGetValue(entry.Id, out var placement) ? placement : Empty;
+
+    private static List<ChatIndexEntry> Visible(IReadOnlyList<ChatIndexEntry> items, ChatOrganizer.State organize, string? tagFilter) =>
+        [.. items.Where(entry => tagFilter is null || Placement(organize, entry).Tags.Contains(tagFilter))];
+
+    /// <summary>Под фильтром по тегу пустая папка не показывается — нечего в ней найти.</summary>
+    private static bool HiddenUnderFilter(int count, string? tagFilter) => count == 0 && tagFilter is not null;
 
     /// <summary>
     /// Выдача поиска: одна группа в заданном порядке, с тегами, без папок и архива — найденное

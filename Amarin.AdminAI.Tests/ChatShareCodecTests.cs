@@ -107,6 +107,35 @@ public sealed class ChatShareCodecTests
     }
 
     [Fact]
+    public void One_code_carries_several_chats_and_each_arrives_as_a_new_one_of_its_own()
+    {
+        // «Поделиться» у выбранных в списке (1.32.0): один код на все.
+        var first = BuildSession();
+        var second = BuildSession();
+        second.Id = "second";
+        second.Title = "Сеть";
+
+        var code = ChatShareCodec.EncodeMany([first, second]);
+        var received = ChatShareCodec.TryDecodeAll(code);
+
+        Assert.StartsWith(ChatShareCodec.BundlePrefix, code, StringComparison.Ordinal);
+        Assert.True(ChatShareCodec.LooksLikeShareCode(code));
+        Assert.NotNull(received);
+        Assert.Equal(2, received!.Count);
+        Assert.Equal(first.Messages.Count, received[0].Messages.Count);
+        Assert.StartsWith("Сеть", received[1].Title, StringComparison.Ordinal);
+        Assert.NotEqual(received[0].Id, received[1].Id);
+        Assert.DoesNotContain(received, session => session.Id is "original" or "second");
+
+        // Код одного чата — прежнего вида: его прочтут и прежние версии программы.
+        Assert.StartsWith(ChatShareCodec.Prefix, ChatShareCodec.EncodeMany([first]), StringComparison.Ordinal);
+
+        // Старое чтение одного чата у кода на несколько не выдаёт первый молча за весь.
+        Assert.Null(ChatShareCodec.TryDecode(code));
+        Assert.Single(ChatShareCodec.TryDecodeAll(ChatShareCodec.Encode(first))!);
+    }
+
+    [Fact]
     public void Code_survives_line_breaks_introduced_by_a_paste()
     {
         var code = ChatShareCodec.Encode(BuildSession());

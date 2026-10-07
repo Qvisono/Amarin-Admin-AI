@@ -336,11 +336,31 @@ internal sealed class ProfileScope
     {
         store.Saved += session => _textIndex?.Update(session);
         store.Deleted += id => _textIndex?.Remove(id);
+        store.DeletedMany += ids =>
+        {
+            foreach (var id in ids)
+            {
+                _textIndex?.Remove(id);
+            }
+        };
     }
 
-    private void WireOrganizer(ChatStore store) => store.Deleted += id =>
+    private void WireOrganizer(ChatStore store)
     {
-        _organizer?.Forget(id);
-        _drafts?.Forget(id);
-    };
+        store.Deleted += id =>
+        {
+            _organizer?.Forget(id);
+            _drafts?.Forget(id);
+        };
+
+        // Раскладка — одной записью на пачку: каждая правка переписывает organize.json целиком.
+        store.DeletedMany += ids =>
+        {
+            _organizer?.Forget(ids);
+            foreach (var id in ids)
+            {
+                _drafts?.Forget(id);
+            }
+        };
+    }
 }

@@ -38,7 +38,7 @@ namespace Amarin.UI
 
             if (!ReferenceEquals(origin, row) && origin is Button actions)
             {
-                OpenChatActionsMenu(actions, id, ChatRowState.GetIsPinned(row));
+                OpenChatActionsMenu(actions, id, System.Windows.Controls.Primitives.PlacementMode.Bottom);
                 return;
             }
 
@@ -76,73 +76,130 @@ namespace Amarin.UI
             return null;
         }
 
-        private void OpenChatActionsMenu(Button anchor, string id, bool pinned)
+        /// <summary>
+        /// Меню строки чата — по «⋯» или правому щелчку. Строка в выборе из нескольких — меню
+        /// всего выбора: действие идёт по всем выбранным, даже переименование.
+        /// </summary>
+        /// <remarks>
+        /// Правый щелчок по невыбранной строке снимает выбор, как в Проводнике: меню тогда про эту
+        /// строку, и оставлять подсвеченными чаты, к которым оно не относится, значило бы путать.
+        /// </remarks>
+        private void OpenChatActionsMenu(FrameworkElement anchor, string id, System.Windows.Controls.Primitives.PlacementMode placement)
         {
-            var menu = new ContextMenu
+            if (_selection.Contains(id) && (_selection.Count > 1 || SelectedFolders().Count > 0))
             {
-                PlacementTarget = anchor,
-                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-                Style = (Style)FindResource("AppContextMenu")
-            };
-
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChat(id), icon: "Icon.Menu.Rename"));
-            menu.Items.Add(MenuItemFor(
-                Loc.Get(pinned ? "S.ChatList.Unpin" : "S.ChatList.Pin"),
-                () => PinChat(id, !pinned),
-                icon: pinned ? "Icon.Menu.Unpin" : "Icon.Menu.Pin"));
-
-            // Вложенных меню у AppMenuItem нет — выбор открывается вторым меню на том же месте.
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatProfile.Title") + "…", () =>
-            {
-                OpenChat(id);
-                if (id == _session.Id)
-                {
-                    OpenChatSettings();
-                }
-            }, icon: "Icon.Menu.ChatSettings"));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, [id]), icon: "Icon.Menu.MoveToFolder"));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, [id]), icon: "Icon.Menu.Tags"));
-            var archived = _services?.Organizer.PlacementOf(id).Archived == true;
-            menu.Items.Add(MenuItemFor(
-                Loc.Get(archived ? "S.ChatList.Unarchive" : "S.ChatList.Archive"),
-                () => ArchiveChats([id], !archived),
-                icon: archived ? "Icon.Menu.Unarchive" : "Icon.Menu.Archive"));
-
-            if (SharingEnabled())
-            {
-                menu.Items.Add(Divider());
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => WithChat(id, s => ShareSession(s, null)), icon: "Icon.Menu.Share"));
-                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Export") + "…", () => WithChat(id, s => OpenExportMenu(anchor, s, null)), icon: "Icon.Menu.Export"));
+                OpenSelectionMenu(anchor, placement);
+                return;
             }
 
-            menu.Items.Add(Divider());
+            ClearChatSelection();
+            OpenChatsMenu(anchor, [id], [], placement);
+        }
+
+        /// <summary>Меню всего выбора: выбранные чаты и папки, выбранные целиком.</summary>
+        private void OpenSelectionMenu(FrameworkElement anchor, System.Windows.Controls.Primitives.PlacementMode placement) =>
+            OpenChatsMenu(anchor, SelectedChats(), SelectedFolders(), placement);
+
+        /// <summary>
+        /// Меню действий над чатами — одно на один чат и на много. «Настройки чата» — только у
+        /// одного; у выбора из одних пустых папок — только «Удалить».
+        /// </summary>
+        /// <param name="folders">Папки, выбранные целиком: «Удалить» уносит и их.</param>
+        private void OpenChatsMenu(
+            FrameworkElement anchor,
+            IReadOnlyList<string> ids,
+            IReadOnlyList<string> folders,
+            System.Windows.Controls.Primitives.PlacementMode placement)
+        {
+            if (_services is null || (ids.Count == 0 && folders.Count == 0))
+            {
+                return;
+            }
+
+            var menu = NewMenu(anchor, placement);
+            if (ids.Count > 0)
+            {
+                AddChatActions(menu, anchor, ids, placement);
+                menu.Items.Add(Divider());
+            }
+
             menu.Items.Add(MenuItemFor(
                 Loc.Get("S.Common.Delete"),
-                () => Detached.Run(DeleteChatsAsync([id]), "delete_chat"),
+                () => Detached.Run(DeleteChatsAsync(ids, folders), "delete_chats"),
                 danger: true,
                 icon: "Icon.Menu.Delete"));
 
             menu.IsOpen = true;
         }
 
-        /// <param name="icon">Ключ геометрии значка из <c>Resources.xaml</c> (<c>Icon.Menu.*</c>).</param>
-        private MenuItem MenuItemFor(string header, Action invoke, bool danger = false, string? icon = null)
+        private void AddChatActions(
+            ContextMenu menu,
+            FrameworkElement anchor,
+            IReadOnlyList<string> ids,
+            System.Windows.Controls.Primitives.PlacementMode placement)
         {
-            var entry = new MenuItem
+            var single = ids.Count == 1;
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChats(ids), icon: "Icon.Menu.Rename"));
+
+            var pinned = PinnedIds();
+            var allPinned = ids.All(pinned.Contains);
+            menu.Items.Add(MenuItemFor(
+                Loc.Get(allPinned ? "S.ChatList.Unpin" : "S.ChatList.Pin"),
+                () => PinChats(ids, !allPinned),
+                icon: allPinned ? "Icon.Menu.Unpin" : "Icon.Menu.Pin"));
+
+            // Вложенных меню у AppMenuItem нет — выбор открывается вторым меню на том же месте.
+            if (single)
             {
-                Header = header,
-                Style = (Style)FindResource(danger ? "DangerMenuItem" : "AppMenuItem")
-            };
-            if (icon is not null)
-            {
-                MenuIcon.SetData(entry, (Geometry)FindResource(icon));
+                var id = ids[0];
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatProfile.Title") + "…", () =>
+                {
+                    OpenChat(id);
+                    if (id == _session.Id)
+                    {
+                        OpenChatSettings();
+                    }
+                }, icon: "Icon.Menu.ChatSettings"));
             }
 
-            entry.Click += (_, _) => invoke();
-            return entry;
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.MoveToFolder") + "…", () => OpenFolderPicker(anchor, ids, placement), icon: "Icon.Menu.MoveToFolder"));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Tags") + "…", () => OpenTagPicker(anchor, ids, placement), icon: "Icon.Menu.Tags"));
+            var allArchived = ids.All(id => _services!.Organizer.PlacementOf(id).Archived);
+            menu.Items.Add(MenuItemFor(
+                Loc.Get(allArchived ? "S.ChatList.Unarchive" : "S.ChatList.Archive"),
+                () => ArchiveChats(ids, !allArchived),
+                icon: allArchived ? "Icon.Menu.Unarchive" : "Icon.Menu.Archive"));
+
+            if (SharingEnabled())
+            {
+                menu.Items.Add(Divider());
+                menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Share"), () => ShareChats(ids), icon: "Icon.Menu.Share"));
+                menu.Items.Add(MenuItemFor(
+                    Loc.Get("S.ChatList.Export") + "…",
+                    () =>
+                    {
+                        if (single)
+                        {
+                            WithChat(ids[0], s => OpenExportMenu(anchor, s, null, placement));
+                        }
+                        else
+                        {
+                            OpenExportManyMenu(anchor, ids, placement);
+                        }
+                    },
+                    icon: "Icon.Menu.Export"));
+            }
         }
 
-        private Separator Divider() => new() { Style = (Style)FindResource("AppMenuSeparator") };
+        /// <summary>Закреплённые чаты — из описи: признак строки есть только у построенных строк.</summary>
+        private HashSet<string> PinnedIds() =>
+            _services!.ChatStore.List().Where(entry => entry.IsPinned).Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal);
+
+        /// <param name="icon">Ключ геометрии значка из <c>Resources.xaml</c> (<c>Icon.Menu.*</c>).</param>
+        private MenuItem MenuItemFor(string header, Action invoke, bool danger = false, string? icon = null) =>
+            AppMenu.Item(this, header, invoke, danger, icon);
+
+        private Separator Divider() => AppMenu.Divider(this);
 
         /// <summary>
         /// Выполняет действие над сохранённым чатом. Открытая сессия передаётся как есть, а не
@@ -165,19 +222,24 @@ namespace Amarin.UI
             action(session);
         }
 
-        private void RenameChat(string id)
+        /// <summary>
+        /// Переименовать чат или все выбранные — одно название на всех. В поле — нынешнее
+        /// название, если оно у всех одинаковое, иначе пусто.
+        /// </summary>
+        private void RenameChats(IReadOnlyList<string> ids)
         {
-            if (_services is null)
+            if (_services is null || ids.Count == 0)
             {
                 return;
             }
 
-            var current = id == _session.Id
-                ? _session.Title
-                : _services.ChatStore.Search("").FirstOrDefault(item => item.Id == id)?.Title ?? "";
+            var titles = _services.ChatStore.List().ToDictionary(item => item.Id, item => item.Title, StringComparer.Ordinal);
+            string TitleOf(string id) => id == _session.Id ? _session.Title : titles.GetValueOrDefault(id) ?? "";
+            var distinct = ids.Select(TitleOf).Distinct(StringComparer.Ordinal).ToList();
+            var current = distinct.Count == 1 && !ChatTitle.IsDefault(distinct[0]) ? distinct[0] : "";
 
             OpenNameDialog(
-                Loc.Get("S.ChatList.NameTitle"),
+                Loc.Get(ids.Count == 1 ? "S.ChatList.NameTitle" : "S.ChatList.NameTitleMany"),
                 current,
                 title =>
                 {
@@ -186,62 +248,76 @@ namespace Amarin.UI
                         return;
                     }
 
-                    if (id == _session.Id)
+                    foreach (var id in ids)
                     {
-                        // Копию в памяти обновляем тоже, иначе следующее сохранение вернуло бы
-                        // старый заголовок.
-                        _session.Title = title.Trim();
-                        _services.ChatStore.Save(_session);
-                    }
-                    else
-                    {
-                        _services.ChatStore.Rename(id, title);
+                        if (id == _session.Id)
+                        {
+                            // Копию в памяти обновляем тоже, иначе следующее сохранение вернуло бы
+                            // старый заголовок.
+                            _session.Title = title.Trim();
+                            _services.ChatStore.Save(_session);
+                        }
+                        else
+                        {
+                            _services.ChatStore.Rename(id, title);
+                        }
                     }
 
                     RefreshChatList();
                 });
         }
 
-        private void PinChat(string id, bool pinned)
+        /// <summary>Закрепить или открепить чат или все выбранные.</summary>
+        private void PinChats(IReadOnlyList<string> ids, bool pinned)
         {
             if (_services is null)
             {
                 return;
             }
 
-            _services.ChatStore.SetPinned(id, pinned);
+            foreach (var id in ids)
+            {
+                _services.ChatStore.SetPinned(id, pinned);
+            }
+
             RefreshChatList();
         }
 
         /// <summary>
-        /// Спрашивает и удаляет один или несколько чатов. Вопрос — своим окном, а не
-        /// <see cref="MessageBox"/>: системное рисовалось чужим стилем и в системном масштабе.
+        /// Спрашивает и удаляет чаты — один, несколько или выбранные вместе с папками. Вопрос —
+        /// своим окном, а не <see cref="MessageBox"/>: системное рисовалось чужим стилем и в
+        /// системном масштабе.
         /// </summary>
-        private async Task DeleteChatsAsync(IReadOnlyList<string> ids)
+        /// <param name="folders">Папки, выбранные целиком: удаляются после своих чатов.</param>
+        private async Task DeleteChatsAsync(IReadOnlyList<string> ids, IReadOnlyList<string>? folders)
         {
-            if (_services is null || ids.Count == 0)
+            folders ??= [];
+            if (_services is null || (ids.Count == 0 && folders.Count == 0))
             {
                 return;
             }
 
+            string title;
             string text;
-            if (ids.Count == 1)
+            if (folders.Count > 0)
+            {
+                title = Loc.Get("S.ChatList.DeleteWithFoldersTitle");
+                text = Loc.Format("S.ChatList.DeleteWithFoldersConfirm", ids.Count, folders.Count);
+            }
+            else if (ids.Count == 1)
             {
                 var entry = _services.ChatStore.List().FirstOrDefault(item => item.Id == ids[0]);
-                var title = string.IsNullOrWhiteSpace(entry?.Title) ? Loc.Get("S.ChatList.ThisChat") : $"«{DisplayTitle(entry!.Title)}»";
-                text = Loc.Format("S.ChatList.DeleteConfirm", title);
+                var name = string.IsNullOrWhiteSpace(entry?.Title) ? Loc.Get("S.ChatList.ThisChat") : $"«{DisplayTitle(entry!.Title)}»";
+                title = Loc.Get("S.ChatList.DeleteTitle");
+                text = Loc.Format("S.ChatList.DeleteConfirm", name);
             }
             else
             {
+                title = Loc.Get("S.ChatList.DeleteManyTitle");
                 text = Loc.Format("S.ChatList.DeleteManyConfirm", ids.Count);
             }
 
-            var confirmed = await ShowNoticeAsync(
-                Loc.Get(ids.Count == 1 ? "S.ChatList.DeleteTitle" : "S.ChatList.DeleteManyTitle"),
-                text,
-                Loc.Get("S.Common.Delete"),
-                Loc.Get("S.Common.Cancel"),
-                NoticeTone.Danger);
+            var confirmed = await ShowNoticeAsync(title, text, Loc.Get("S.Common.Delete"), Loc.Get("S.Common.Cancel"), NoticeTone.Danger);
             if (!confirmed || _services is null)
             {
                 return;
@@ -254,18 +330,26 @@ namespace Amarin.UI
                 // ход по завершении сохранил бы себя обратно на диск, и чат «воскрес» бы.
                 CancelTurn(id);
                 deletingOpen |= id == _session.Id;
-                _services.ChatStore.Delete(id);
                 _services.Confirmations.ForgetSession(id);
                 ForgetAttention(id);
-                _selection.Remove([id]);
             }
 
+            // Пачкой: опись и раскладка переписываются один раз, а не по разу на чат.
+            _ = _services.ChatStore.DeleteMany(ids);
+            foreach (var folder in folders)
+            {
+                _services.Organizer.DeleteFolder(folder);
+            }
+
+            _selection.Remove(ids);
+            _selection.RemoveFolders(folders);
             if (deletingOpen)
             {
                 StartNewSession(persist: false);
             }
 
             RefreshChatList();
+            UpdateBatchBar();
         }
     }
 }

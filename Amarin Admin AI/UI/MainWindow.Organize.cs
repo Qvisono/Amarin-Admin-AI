@@ -232,6 +232,9 @@ namespace Amarin.UI
             _shown = shown;
             _shownElements = elements;
 
+            // Заголовок, построенный заново, обязан сразу знать, выбрана ли его папка.
+            RefreshHeaderSelection();
+
             if (_growingRows.Count > 0 || _leavingRows.Count > 0)
             {
                 StartChatListMotion(desired, oldOuter);
@@ -575,11 +578,20 @@ namespace Amarin.UI
             button.Click += (_, e) =>
             {
                 e.Handled = true;
-                if (button.Tag is ChatFolder current)
+                if (button.Tag is not ChatFolder current)
                 {
-                    _services?.Organizer.SetCollapsed(current.Id, !current.Collapsed);
-                    RefreshChatList();
+                    return;
                 }
+
+                // Ctrl+щелчок выбирает папку целиком, как Ctrl+щелчок по строке выбирает чат.
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
+                {
+                    ToggleFolderSelection(current.Id);
+                    return;
+                }
+
+                _services?.Organizer.SetCollapsed(current.Id, !current.Collapsed);
+                RefreshChatList();
             };
 
             var menu = new ContextMenu { Style = (Style)FindResource("AppContextMenu") };
@@ -603,6 +615,12 @@ namespace Amarin.UI
             button.Click += (_, e) =>
             {
                 e.Handled = true;
+                if (System.Windows.Input.Keyboard.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control))
+                {
+                    ToggleArchiveSelection();
+                    return;
+                }
+
                 _archiveExpanded = !_archiveExpanded;
                 RefreshChatList();
             };
@@ -756,19 +774,7 @@ namespace Amarin.UI
         private void TagFilterClear_Click(object sender, RoutedEventArgs e) => SetTagFilter(null);
 
         /// <summary>Подпись раздела в меню: не пункт, а заголовок над группой пунктов.</summary>
-        private MenuItem MenuSection(string text)
-        {
-            var label = new TextBlock { Text = text, FontSize = 10.5, FontWeight = FontWeights.SemiBold };
-            label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Faint");
-            return new MenuItem
-            {
-                Header = label,
-                Height = 24,
-                Style = (Style)FindResource("AppMenuItem"),
-                IsHitTestVisible = false,
-                Focusable = false
-            };
-        }
+        private MenuItem MenuSection(string text) => AppMenu.Section(this, text);
 
         // ───────────────────────── Выбор ─────────────────────────
 
@@ -804,19 +810,26 @@ namespace Amarin.UI
 
         private void UpdateBatchBar()
         {
-            // Выбранный чат мог исчезнуть (удалён из другого места, сменился профиль).
-            if (_services is not null && _selection.Count > 0)
+            // Выбранный чат или папка могли исчезнуть (удалены из другого места, сменился профиль).
+            if (_services is not null && !_selection.IsEmpty)
             {
-                _selection.KeepOnly(_services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal));
+                _selection.KeepOnly(
+                    _services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal),
+                    OrganizeSnapshot().Folders.Select(folder => folder.Id).ToHashSet(StringComparer.Ordinal));
             }
 
-            if (_selection.Count == 0 || _sidebarCollapsed)
+            if (_selection.IsEmpty || _sidebarCollapsed)
             {
                 BatchBar.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            BatchCount.Text = Loc.Format("S.ChatList.Selected", _selection.Count);
+            // Только число: пять кнопок полосы в колонке шириной 184 оставляли подписи «Выбрано: 12»
+            // два знака, и на месте счёта стояло «Вы…». Полная подпись — в подсказке и диктору.
+            var selected = Loc.Format("S.ChatList.Selected", _selection.Count);
+            BatchCount.Text = _selection.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
+            BatchCount.ToolTip = selected;
+            System.Windows.Automation.AutomationProperties.SetName(BatchCount, selected);
             var allArchived = _services is not null &&
                               _selection.Items.All(id => _services.Organizer.PlacementOf(id).Archived);
             var archiveKey = allArchived ? "S.ChatList.Unarchive" : "S.ChatList.Archive";
@@ -843,7 +856,7 @@ namespace Amarin.UI
         }
 
         private void BatchDeleteButton_Click(object sender, RoutedEventArgs e) =>
-            Detached.Run(DeleteChatsAsync(SelectedChats()), "delete_chats");
+            Detached.Run(DeleteChatsAsync(SelectedChats(), SelectedFolders()), "delete_chats");
 
         private void BatchClearButton_Click(object sender, RoutedEventArgs e) => ClearChatSelection();
 
@@ -869,7 +882,8 @@ namespace Amarin.UI
         }
 
         /// <summary>Меню «в папку»: папки с отметкой, «без папки» и новая папка.</summary>
-        private void OpenFolderPicker(FrameworkElement anchor, IReadOnlyList<string> ids)
+        /// <param name="placement">Где открыть: у якоря или у курсора — там же, где было первое меню.</param>
+        private void OpenFolderPicker(FrameworkElement anchor, IReadOnlyList<string> ids, PlacementMode placement = PlacementMode.Bottom)
         {
             if (_services is null || ids.Count == 0)
             {
@@ -877,11 +891,11 @@ namespace Amarin.UI
             }
 
             var organize = _services.Organizer.Snapshot();
-            string? FolderOf(string id) => organize.Chats.TryGetValue(id, out var placement) ? placement.FolderId : null;
+            string? FolderOf(string id) => organize.Chats.TryGetValue(id, out var placed) ? placed.FolderId : null;
             var common = ids.Select(FolderOf).Distinct().ToList();
             var current = common.Count == 1 ? common[0] : "\0mixed";
 
-            var menu = NewMenu(anchor);
+            var menu = NewMenu(anchor, placement);
             foreach (var folder in organize.Folders)
             {
                 var id = folder.Id;
@@ -895,7 +909,7 @@ namespace Amarin.UI
         }
 
         /// <summary>Меню тегов: отметка — тег есть у всех выбранных; щелчок ставит или снимает.</summary>
-        private void OpenTagPicker(FrameworkElement anchor, IReadOnlyList<string> ids)
+        private void OpenTagPicker(FrameworkElement anchor, IReadOnlyList<string> ids, PlacementMode placement = PlacementMode.Bottom)
         {
             if (_services is null || ids.Count == 0)
             {
@@ -903,7 +917,7 @@ namespace Amarin.UI
             }
 
             var organize = _services.Organizer.Snapshot();
-            var menu = NewMenu(anchor);
+            var menu = NewMenu(anchor, placement);
             foreach (var tag in organize.Tags)
             {
                 var tagId = tag.Id;
@@ -924,12 +938,8 @@ namespace Amarin.UI
             menu.IsOpen = true;
         }
 
-        private ContextMenu NewMenu(FrameworkElement anchor) => new()
-        {
-            PlacementTarget = anchor,
-            Placement = PlacementMode.Bottom,
-            Style = (Style)FindResource("AppContextMenu")
-        };
+        private static ContextMenu NewMenu(FrameworkElement anchor, PlacementMode placement = PlacementMode.Bottom) =>
+            AppMenu.At(anchor, placement);
 
         /// <summary>Пункт с местом под галочку слева и, для тегов, точкой цвета.</summary>
         /// <param name="tag">Тег пункта: справа у него кнопка «⋯» — изменить или удалить.</param>

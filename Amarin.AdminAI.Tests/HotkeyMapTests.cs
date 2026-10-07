@@ -45,6 +45,25 @@ public sealed class HotkeyMapTests
     }
 
     [Fact]
+    public void Shift_is_enough_with_a_key_that_types_nothing()
+    {
+        // С 1.32.0: Delete, Insert и F-клавиши ничего не печатают, и Shift+Delete («удалить
+        // чаты») у набора ничего не отнимает. Голой клавишей сочетание не бывает и здесь —
+        // Delete в пустом поле удалял бы чат одним нажатием.
+        Assert.True(HotkeyMap.TryParse("Shift+Delete", out var delete));
+        Assert.Equal("Shift+Delete", delete);
+        Assert.True(HotkeyMap.TryParse("shift+insert", out _));
+        Assert.True(HotkeyMap.TryParse("Shift+F5", out _));
+        Assert.True(HotkeyMap.TryParse("Shift+F24", out _));
+
+        Assert.False(HotkeyMap.TryParse("Delete", out _));
+        Assert.False(HotkeyMap.TryParse("F5", out _));
+        Assert.False(HotkeyMap.TryParse("Shift+F25", out _));
+        Assert.False(HotkeyMap.TryParse("Shift+Back", out _));
+        Assert.False(HotkeyMap.TryParse("Win+Shift+Delete", out _));
+    }
+
+    [Fact]
     public void The_order_of_modifiers_does_not_make_a_second_shortcut()
     {
         // Иначе Shift+Ctrl+N и Ctrl+Shift+N лежали бы в настройках двумя разными записями,

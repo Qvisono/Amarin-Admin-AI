@@ -27,6 +27,16 @@ internal static class CodeBlockView
     /// <summary>Сколько держать надпись «Скопировано» вместо имени языка.</summary>
     private static readonly TimeSpan CopiedFor = TimeSpan.FromSeconds(1.5);
 
+    /// <summary>
+    /// Поле с кодом блока. По нему окно узнаёт, что Ctrl+A в фокусе блока кода — это «выделить
+    /// весь код», а не «выделить все чаты»: в остальной ленте сочетание про список чатов.
+    /// </summary>
+    private static readonly DependencyProperty IsCodeProperty =
+        DependencyProperty.RegisterAttached("IsCode", typeof(bool), typeof(CodeBlockView), new PropertyMetadata(false));
+
+    /// <summary>Это поле с кодом блока, а не текст ответа.</summary>
+    public static bool IsCode(DependencyObject element) => (bool)element.GetValue(IsCodeProperty);
+
     // Живой рендер пересобирает блок примерно двенадцать раз в секунду, а замер строк —
     // самая дорогая его часть. Ключ включает DPI: на другом мониторе ширина другая.
     // Блокировки нет и не нужно: документ собирается только на UI-потоке.
@@ -260,6 +270,7 @@ internal static class CodeBlockView
         };
         box.SetResourceReference(Control.ForegroundProperty, "Text.Secondary");
         box.SetResourceReference(TextBoxBase.SelectionBrushProperty, "Bg.Elevated");
+        box.SetValue(IsCodeProperty, true);
         return box;
     }
 

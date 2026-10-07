@@ -184,7 +184,12 @@
                                         <Border x:Name="Band" Background="{DynamicResource Bg.Card}" CornerRadius="10"/>
                                         <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Margin="4"
                                                 Padding="5,0,6,0">
-                                            <ContentPresenter VerticalAlignment="Center"/>
+                                            <Grid>
+                                                <!-- Папка выбрана целиком: тон акцента, как у выбранной строки. -->
+                                                <Border x:Name="Picked" CornerRadius="6" Opacity="0" Margin="-5,0,-6,0"
+                                                        IsHitTestVisible="False" Background="{DynamicResource Accent.Fill}"/>
+                                                <ContentPresenter VerticalAlignment="Center"/>
+                                            </Grid>
                                         </Border>
                                     </Grid>
                                     <ControlTemplate.Triggers>
@@ -199,6 +204,12 @@
                                         </Trigger>
                                         <Trigger Property="IsPressed" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                        </Trigger>
+                                        <!-- Папка выбрана целиком (рамкой, Ctrl+A, Ctrl+щелчком) — тот же
+                                             вид, что у выбранной строки чата, и под курсором тоже. -->
+                                        <Trigger Property="local:ChatRowState.IsSelected" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                            <Setter TargetName="Picked" Property="Opacity" Value="0.16"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -236,6 +247,13 @@
                                                 плашка, а не её середина.
                                             -->
                                             <Border x:Name="Flash" CornerRadius="6" Opacity="0" Grid.ColumnSpan="2"
+                                 IsHitTestVisible="False" Margin="-9,0,-4,0"
+                                 Background="{DynamicResource Accent.Fill}"/>
+                                            <!-- Выбрана (рамкой, Ctrl+щелчком, Ctrl+A): тот же приём, что у
+                                                 вспышки, — акцент проступает прозрачностью поверх фона и
+                                                 читается в любой теме. Одна серая подсветка в тёмных темах
+                                                 почти сливалась с карточкой папки. -->
+                                            <Border x:Name="Picked" CornerRadius="6" Opacity="0" Grid.ColumnSpan="2"
                                  IsHitTestVisible="False" Margin="-9,0,-4,0"
                                  Background="{DynamicResource Accent.Fill}"/>
                                             <!-- Теги (D5): до трёх точек перед названием. -->
@@ -307,6 +325,7 @@
                                             <Setter TargetName="Bg" Property="Margin" Value="4,1"/>
                                             <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
                                             <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
+                                            <Setter TargetName="Picked" Property="Margin" Value="-28,0,-4,0"/>
                                         </Trigger>
                                         <Trigger Property="local:ChatRowState.Band" Value="Bottom">
                                             <Setter Property="Height" Value="35"/>
@@ -316,6 +335,7 @@
                                             <Setter TargetName="Bg" Property="Margin" Value="4,1,4,4"/>
                                             <Setter TargetName="Bg" Property="Padding" Value="28,0,4,0"/>
                                             <Setter TargetName="Flash" Property="Margin" Value="-28,0,-4,0"/>
+                                            <Setter TargetName="Picked" Property="Margin" Value="-28,0,-4,0"/>
                                         </Trigger>
                                         <!--
                                             Открытый чат. Стоит первым: IsMouseOver ниже перекрывает
@@ -325,9 +345,10 @@
                                         <Trigger Property="local:ChatRowState.IsActive" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
                                         </Trigger>
-                                        <!-- Выбран для пакетного действия (Ctrl/Shift+щелчок). -->
+                                        <!-- Выбран для пакетного действия (рамка, Ctrl/Shift+щелчок, Ctrl+A). -->
                                         <Trigger Property="local:ChatRowState.IsSelected" Value="True">
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                            <Setter TargetName="Picked" Property="Opacity" Value="0.16"/>
                                         </Trigger>
                                         <Trigger Property="local:ChatRowState.Tag1" Value="{x:Null}">
                                             <Setter TargetName="Tag1Dot" Property="Visibility" Value="Collapsed"/>
@@ -395,6 +416,16 @@
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
                                         </Trigger>
+                                        <!-- Выбранная строка под курсором остаётся выбранной на вид: после
+                                             рамки курсор стоит на одной из выбранных, и подсветка наведения
+                                             выдавала её за невыбранную. -->
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="local:ChatRowState.IsSelected" Value="True"/>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                                        </MultiTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
@@ -409,7 +440,14 @@
                         <RowDefinition Height="42"/>
                     </Grid.RowDefinitions>
 
-                    <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ClipToBounds="True" x:Name="SideBarScrollViewer" HorizontalScrollBarVisibility="Disabled">
+                    <!--
+                        Прозрачный фон — чтобы нажатие на пустом месте под последним чатом доходило до
+                        рамки выделения (ChatListMarquee), а не уходило в перетаскивание окна. Фокус
+                        колонка берёт после рамки: Ctrl+A и Shift+Del тогда про чаты, а набранный текст
+                        окно по-прежнему отдаёт полю ввода.
+                    -->
+                    <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ClipToBounds="True" x:Name="SideBarScrollViewer" HorizontalScrollBarVisibility="Disabled"
+                                  Background="Transparent" Focusable="True" FocusVisualStyle="{x:Null}">
                         <StackPanel>
                             <!--
                                 Без горизонтальных полей: свёрнутая панель шириной 42 не может
@@ -679,6 +717,9 @@
                     <!-- Слой перетаскивания чатов (ChatListDrag): карточка под курсором, подсветка
                          раздела и зона «Закрепить». Поверх списка и сквозной для мыши. -->
                     <Canvas x:Name="ChatDragLayer" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <!-- Рамка выделения чатов (ChatListMarquee): свой слой, у перетаскивания на своём
+                         лежат карточка и зона «Закрепить». -->
+                    <Canvas x:Name="ChatMarqueeLayer" Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True"/>
                     <Border Grid.Row="1" x:Name="SidebarFooter">
                         <Grid Height="40" Margin="8,0">
                             <Grid.ColumnDefinitions>

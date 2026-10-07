@@ -145,7 +145,7 @@ public sealed class ChatOrganizeUiTests : IDisposable
             {
                 Save(services, "doomed", "Doomed");
                 services.Organizer.SetArchived(["doomed"], true);
-                var task = (Task)Call(window, "DeleteChatsAsync", new List<string> { "doomed" })!;
+                var task = (Task)Call(window, "DeleteChatsAsync", new List<string> { "doomed" }, null)!;
                 var notice = Find<FrameworkElement>(window, "NoticeOverlay").Visibility;
 
                 Call(window, "CloseNotice", true);

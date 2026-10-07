@@ -17,6 +17,63 @@ namespace Amarin.UI
         private void ShareMessage(ChatDisplayMessage message) => ShareSession(_session, message.Id);
 
         /// <summary>
+        /// «Поделиться» у чатов в списке: один чат — его код, несколько — один код на все
+        /// (<see cref="ChatShareCodec.EncodeMany"/>): вставка его в другой копии добавит их все.
+        /// </summary>
+        private void ShareChats(IReadOnlyList<string> ids)
+        {
+            if (ids.Count == 1)
+            {
+                WithChat(ids[0], session => ShareSession(session, null));
+                return;
+            }
+
+            Detached.Run(ShareManyAsync(ids), "share_many");
+        }
+
+        private async Task ShareManyAsync(IReadOnlyList<string> ids)
+        {
+            if (_services is null || !SharingEnabled())
+            {
+                return;
+            }
+
+            var sessions = await LoadChatsAsync(ids);
+            if (sessions.Count == 0)
+            {
+                return;
+            }
+
+            string code;
+            try
+            {
+                code = await Task.Run(() => ChatShareCodec.EncodeMany(sessions));
+            }
+            catch (Exception ex)
+            {
+                Inform(Loc.Get("S.Share.FailedTitle"), ex.Message);
+                return;
+            }
+
+            if (!TrySetClipboardText(code))
+            {
+                Inform(Loc.Get("S.Common.ClipboardBusyTitle"), Loc.Get("S.Share.ClipboardBusy"));
+                return;
+            }
+
+            var note = Loc.Format("S.Share.CodeCopiedMany", sessions.Count, code.Length);
+
+            // Многотысячная строка в буфере переживает не каждый мессенджер — длинный код
+            // отдаём ещё и файлом, как и у одного чата.
+            if (code.Length > ShareCodeFileThreshold && TrySaveShareFile(code, DisplayTitle(sessions[0].Title)) is { } path)
+            {
+                note += "\n\n" + Loc.Format("S.Share.SavedToFile", path);
+            }
+
+            Inform(Loc.Get("S.Share.CopiedManyTitle"), note, NoticeTone.Info);
+        }
+
+        /// <summary>
         /// Копирует код для <paramref name="session"/>. <paramref name="upToMessageId"/> = null —
         /// вся переписка; так просит меню чата в боковой панели.
         /// </summary>
@@ -94,22 +151,26 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Открывает разобранный чат как обычный свой, сохранённый в хранилище профиля, — дальше он
-        /// ведёт себя как любой другой.
+        /// Сохраняет разобранные чаты как обычные свои и открывает первый — дальше они ведут себя
+        /// как любые другие. Код нескольких чатов (<see cref="ChatShareCodec.BundlePrefix"/>)
+        /// добавляет их все.
         /// </summary>
-        private void OpenSharedSession(ChatSession shared)
+        private void OpenSharedSessions(IReadOnlyList<ChatSession> shared)
         {
-            if (_services is null)
+            if (_services is null || shared.Count == 0)
             {
                 return;
             }
 
             PersistCurrent();
+            foreach (var session in shared)
+            {
+                // Поделиться могли посреди ответа — у нас этот ход не идёт и не дойдёт до конца.
+                ChatEngine.CloseInterruptedReplies(session);
+                _services.ChatStore.Save(session);
+            }
 
-            // Поделиться могли посреди ответа — у нас этот ход не идёт и не дойдёт до конца.
-            ChatEngine.CloseInterruptedReplies(shared);
-            _services.ChatStore.Save(shared);
-            LoadSession(shared);
+            LoadSession(shared[0]);
             RefreshChatList();
         }
 
@@ -151,19 +212,20 @@ namespace Amarin.UI
                 return;
             }
 
-            // Одно окно выбора файла на оба формата: код «Поделиться» и открытый JSON.
-            var session = ChatShareCodec.LooksLikeShareCode(content)
-                ? ChatShareCodec.TryDecode(content)
-                : ChatShareCodec.TryImportJson(content);
+            // Одно окно выбора файла на оба формата: код «Поделиться» (одного чата или нескольких)
+            // и открытый JSON.
+            IReadOnlyList<ChatSession>? sessions = ChatShareCodec.LooksLikeShareCode(content)
+                ? ChatShareCodec.TryDecodeAll(content)
+                : ChatShareCodec.TryImportJson(content) is { } imported ? [imported] : null;
 
-            if (session is null)
+            if (sessions is null)
             {
                 Inform(Loc.Get("S.Share.OpenFailedTitle"), Loc.Get("S.Share.NotAChat"));
                 return;
             }
 
             SettingsOverlay.Visibility = Visibility.Collapsed;
-            OpenSharedSession(session);
+            OpenSharedSessions(sessions);
         }
 
         private static string? TrySaveShareFile(string code, string? title)

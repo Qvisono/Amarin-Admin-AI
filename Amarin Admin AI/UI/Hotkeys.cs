@@ -63,6 +63,9 @@ internal static class Hotkeys
                string.Equals(expected, pressed, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Клавиша не печатает текст — с ней сочетанию хватает Shift (<see cref="HotkeyMap.IsCommandKey"/>).</summary>
+    public static bool IsCommandKey(Key key) => HotkeyMap.IsCommandKey(Name(key));
+
     private static bool IsUnusable(Key key, ModifierKeys modifiers) =>
         Unusable.Contains(key) && !(key == Key.Tab && modifiers.HasFlag(ModifierKeys.Control));
 

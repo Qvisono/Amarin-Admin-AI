@@ -181,6 +181,132 @@ public sealed class ChatListModelTests : IDisposable
         Assert.False(organizer.PlacementOf("a").Archived);
     }
 
+    // ───────────────────────── папки и архив в выборе (1.32.0) ─────────────────────────
+
+    [Fact]
+    public void The_members_of_a_folder_and_the_archive_match_what_the_layout_counts()
+    {
+        // Рамка по заголовку и Ctrl+A выбирают чаты за заголовками — тех же, что считает раскладка.
+        var items = new List<ChatIndexEntry>
+        {
+            new() { Id = "pinned", Title = "P", UpdatedAt = Today, IsPinned = true },
+            new() { Id = "in1", Title = "1", UpdatedAt = Today },
+            new() { Id = "in2", Title = "2", UpdatedAt = Today },
+            new() { Id = "loose", Title = "L", UpdatedAt = Today },
+            new() { Id = "old", Title = "A", UpdatedAt = Today }
+        };
+        var organize = new ChatOrganizer.State
+        {
+            Folders = [new ChatFolder { Id = "f", Name = "Работа", Collapsed = true }, new ChatFolder { Id = "empty", Name = "Пусто" }],
+            Chats =
+            {
+                ["pinned"] = new ChatPlacement { FolderId = "f" },
+                ["in1"] = new ChatPlacement { FolderId = "f" },
+                ["in2"] = new ChatPlacement { FolderId = "f" },
+                ["old"] = new ChatPlacement { Archived = true }
+            }
+        };
+
+        var members = ChatListLayout.Members(items, organize, tagFilter: null);
+        var layout = ChatListLayout.Build(items, organize, ChatSort.Updated, null, archiveExpanded: false, Today);
+
+        // Закреплённый в папке стоит наверху и в число на её заголовке не входит — не входит и сюда.
+        Assert.Equal(["in1", "in2"], members.Of("f").OrderBy(id => id));
+        Assert.Equal(layout.OfType<ChatListFolder>().Single(folder => folder.Folder.Id == "f").Count, members.Of("f").Count);
+        Assert.Empty(members.Of("empty"));
+        Assert.Equal(["old"], members.Archived);
+        Assert.Equal(layout.OfType<ChatListArchive>().Single().Count, members.Archived.Count);
+        Assert.Equal(items.Count, members.All.Count);
+
+        // Под фильтром по тегу — только то, что фильтр показывает: невидимое не выбирается.
+        organize.Tags.Add(new ChatTag { Id = "t", Name = "Тег" });
+        organize.Chats["in1"].Tags.Add("t");
+        var filtered = ChatListLayout.Members(items, organize, tagFilter: "t");
+        Assert.Equal(["in1"], filtered.All);
+        Assert.False(filtered.Folders.ContainsKey("empty"));
+    }
+
+    [Fact]
+    public void A_folder_is_whole_while_all_its_chats_are_selected()
+    {
+        var members = new ChatListMembers(
+            new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal) { ["f"] = ["a", "b"], ["empty"] = [] },
+            ["z"],
+            ["a", "b", "c", "z"]);
+        var selection = new ChatSelection();
+
+        selection.Sweep(selection.BeginSweep(additive: false), ["a", "b"], ["f", "empty"]);
+        Assert.Equal(["empty", "f"], selection.WholeFolders(members).OrderBy(id => id));
+
+        // Снял Ctrl+щелчком один чат — папка уже не целиком, «Удалить» её не унесёт.
+        selection.Toggle("a");
+        Assert.Equal(["empty"], selection.WholeFolders(members));
+
+        // Ctrl+щелчок по заголовку: выбрать целиком, второй — снять вместе с чатами.
+        selection.ToggleFolder("f", members.Of("f"));
+        Assert.Contains("f", selection.WholeFolders(members));
+        selection.ToggleFolder("f", members.Of("f"));
+        Assert.DoesNotContain("a", selection.Items);
+        Assert.DoesNotContain("f", selection.WholeFolders(members));
+    }
+
+    [Fact]
+    public void A_sweep_with_ctrl_keeps_the_old_selection_and_without_it_starts_anew()
+    {
+        var selection = new ChatSelection();
+        selection.Toggle("old");
+
+        selection.Sweep(selection.BeginSweep(additive: true), ["new"], []);
+        Assert.Equal(["new", "old"], selection.Items.OrderBy(id => id));
+
+        selection.Sweep(selection.BeginSweep(additive: false), ["other"], []);
+        Assert.Equal(["other"], selection.Items);
+    }
+
+    [Fact]
+    public void Select_all_takes_every_chat_and_every_folder_the_list_shows()
+    {
+        var members = new ChatListMembers(
+            new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal) { ["f"] = ["a"] },
+            ["z"],
+            ["a", "b", "z"]);
+        var selection = new ChatSelection();
+
+        selection.SelectAll(members);
+
+        Assert.Equal(["a", "b", "z"], selection.Items.OrderBy(id => id));
+        Assert.Equal(["f"], selection.WholeFolders(members));
+        Assert.True(selection.Clear());
+        Assert.True(selection.IsEmpty);
+    }
+
+    [Fact]
+    public void Deleting_a_batch_removes_files_index_and_placements_in_one_pass()
+    {
+        var (store, organizer) = Storage();
+        Save(store, "a");
+        Save(store, "b");
+        Save(store, "c");
+        organizer.MoveToFolder(["a", "b"], organizer.CreateFolder("Работа").Id);
+        IReadOnlyList<string>? reported = null;
+        var batches = 0;
+        store.DeletedMany += ids =>
+        {
+            batches++;
+            reported = ids;
+            organizer.Forget(ids);
+        };
+
+        var removed = store.DeleteMany(["a", "b", "b", " "]);
+
+        Assert.Equal(2, removed);
+        Assert.Equal(1, batches);
+        Assert.Equal(["a", "b"], reported);
+        Assert.Equal(["c"], store.List().Select(entry => entry.Id));
+        Assert.Null(store.TryLoad("a"));
+        Assert.False(organizer.Snapshot().Chats.ContainsKey("a"));
+    }
+
     public void Dispose()
     {
         try

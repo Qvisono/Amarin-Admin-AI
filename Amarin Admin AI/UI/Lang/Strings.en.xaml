@@ -426,6 +426,8 @@
     <system:String x:Key="S.ChatList.DeleteTagText" xml:space="preserve">It comes off every chat; the chats themselves stay.</system:String>
     <system:String x:Key="S.ChatList.DeleteTagTitle" xml:space="preserve">Delete the tag "{0}"?</system:String>
     <system:String x:Key="S.ChatList.DeleteTitle" xml:space="preserve">Delete this chat?</system:String>
+    <system:String x:Key="S.ChatList.DeleteWithFoldersConfirm" xml:space="preserve">Selected chats: {0}, folders: {1}. They will be deleted for good.</system:String>
+    <system:String x:Key="S.ChatList.DeleteWithFoldersTitle" xml:space="preserve">Delete these chats and folders?</system:String>
     <system:String x:Key="S.ChatList.Earlier" xml:space="preserve">Earlier</system:String>
     <system:String x:Key="S.ChatList.EditTag" xml:space="preserve">Edit tag</system:String>
     <system:String x:Key="S.ChatList.Expand" xml:space="preserve">Expand</system:String>
@@ -435,6 +437,7 @@
     <system:String x:Key="S.ChatList.Folders" xml:space="preserve">Folders</system:String>
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">Move to folder</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Rename chat</system:String>
+    <system:String x:Key="S.ChatList.NameTitleMany" xml:space="preserve">Rename chats</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">New chat</system:String>
     <system:String x:Key="S.ChatList.NewFolder" xml:space="preserve">New folder</system:String>
     <system:String x:Key="S.ChatList.NewTag" xml:space="preserve">New tag</system:String>
@@ -608,6 +611,7 @@
     <system:String x:Key="S.Estimate.Tip" xml:space="preserve">Estimate for the chat model's answer: about {0} input tokens and {1} output tokens, judged by this chat's earlier answers. Prices come from the provider's catalog.</system:String>
     <system:String x:Key="S.Estimate.Unpriced" xml:space="preserve">The catalog gives no price for some models; they are left out.</system:String>
     <system:String x:Key="S.Export.Assistant" xml:space="preserve">Assistant</system:String>
+    <system:String x:Key="S.Export.ChooseFolder" xml:space="preserve">Where to export the chats</system:String>
     <system:String x:Key="S.Export.ExportedAt" xml:space="preserve">Exported {0}</system:String>
     <system:String x:Key="S.Export.Failed" xml:space="preserve">The file was not written: {0}</system:String>
     <system:String x:Key="S.Export.FailedTitle" xml:space="preserve">Export failed</system:String>
@@ -619,6 +623,8 @@
     <system:String x:Key="S.Export.OpenFolder" xml:space="preserve">Show in folder</system:String>
     <system:String x:Key="S.Export.Pdf" xml:space="preserve">PDF…</system:String>
     <system:String x:Key="S.Export.Print" xml:space="preserve">Print…</system:String>
+    <system:String x:Key="S.Export.SavedMany" xml:space="preserve">Files: {0}. Folder: {1}</system:String>
+    <system:String x:Key="S.Export.SavedManyTitle" xml:space="preserve">Chats exported</system:String>
     <system:String x:Key="S.Export.SavedTitle" xml:space="preserve">Chat exported</system:String>
     <system:String x:Key="S.Export.Tool" xml:space="preserve">Tool</system:String>
     <system:String x:Key="S.Export.ToolCount" xml:space="preserve">Tools ({0})</system:String>
@@ -814,6 +820,8 @@
     <system:String x:Key="S.Hotkeys.CheatsheetDesc" xml:space="preserve">All shortcuts in one list.</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswer" xml:space="preserve">Copy the last answer</system:String>
     <system:String x:Key="S.Hotkeys.CopyLastAnswerDesc" xml:space="preserve">The text of the open chat's last answer goes to the clipboard.</system:String>
+    <system:String x:Key="S.Hotkeys.DeleteChats" xml:space="preserve">Delete chats</system:String>
+    <system:String x:Key="S.Hotkeys.DeleteChatsDesc" xml:space="preserve">The selected chats, or the open one if none are selected. Asks first.</system:String>
     <system:String x:Key="S.Hotkeys.FindInChat" xml:space="preserve">Find in chat</system:String>
     <system:String x:Key="S.Hotkeys.FindInChatDesc" xml:space="preserve">Search the open chat's text and its tool blocks.</system:String>
     <system:String x:Key="S.Hotkeys.Health" xml:space="preserve">PC health</system:String>
@@ -832,6 +840,8 @@
     <system:String x:Key="S.Hotkeys.RegenerateDesc" xml:space="preserve">Get the last answer of the open chat again; the old one stays as a variant.</system:String>
     <system:String x:Key="S.Hotkeys.SearchChats" xml:space="preserve">Search chats</system:String>
     <system:String x:Key="S.Hotkeys.SearchChatsDesc" xml:space="preserve">The search box in the chat list; a collapsed panel opens.</system:String>
+    <system:String x:Key="S.Hotkeys.SelectAllChats" xml:space="preserve">Select all chats</system:String>
+    <system:String x:Key="S.Hotkeys.SelectAllChatsDesc" xml:space="preserve">Folders and the archive too. In a text field it selects the text.</system:String>
     <system:String x:Key="S.Hotkeys.Send" xml:space="preserve">Send the message</system:String>
     <system:String x:Key="S.Hotkeys.SheetEdit" xml:space="preserve">Change…</system:String>
     <system:String x:Key="S.Hotkeys.SheetHint" xml:space="preserve">Change them in Settings: General › Keyboard shortcuts.</system:String>
@@ -907,8 +917,11 @@
     <system:String x:Key="S.Journal.Rollback.ResultTitle" xml:space="preserve">Rollback result</system:String>
     <system:String x:Key="S.Journal.Tab.Audit" xml:space="preserve">Audit</system:String>
     <system:String x:Key="S.Key.Active" xml:space="preserve">Active key</system:String>
+    <system:String x:Key="S.Key.Edit" xml:space="preserve">Edit</system:String>
     <system:String x:Key="S.Key.NamePlaceholder" xml:space="preserve">Optional</system:String>
     <system:String x:Key="S.Key.RenamePlaceholder" xml:space="preserve">Empty — the default name</system:String>
+    <system:String x:Key="S.Key.Send" xml:space="preserve">Send</system:String>
+    <system:String x:Key="S.Key.SendTo" xml:space="preserve">To profile</system:String>
     <system:String x:Key="S.Language.DeleteTitle" xml:space="preserve">Delete the language "{0}"?</system:String>
     <system:String x:Key="S.Language.NamePlaceholder" xml:space="preserve">For example, Deutsch</system:String>
     <system:String x:Key="S.Language.Translate" xml:space="preserve">Translate</system:String>
@@ -1693,6 +1706,8 @@
     <system:String x:Key="S.Share.ClipboardBusy" xml:space="preserve">Another app is holding it. Try again in a couple of seconds.</system:String>
     <system:String x:Key="S.Share.CodeBroken" xml:space="preserve">The code is damaged or isn't a chat code.</system:String>
     <system:String x:Key="S.Share.CodeCopied" xml:space="preserve">{0} characters, {1} messages. Paste the code into the side panel search on another computer to open the chat.</system:String>
+    <system:String x:Key="S.Share.CodeCopiedMany" xml:space="preserve">{0} chats, {1} characters. Paste the code into the side panel search on another computer to add the chats.</system:String>
+    <system:String x:Key="S.Share.CopiedManyTitle" xml:space="preserve">Chats code copied</system:String>
     <system:String x:Key="S.Share.CopiedTitle" xml:space="preserve">Chat code copied</system:String>
     <system:String x:Key="S.Share.ExportTitle" xml:space="preserve">Export conversation</system:String>
     <system:String x:Key="S.Share.FailedTitle" xml:space="preserve">Couldn't share the chat</system:String>

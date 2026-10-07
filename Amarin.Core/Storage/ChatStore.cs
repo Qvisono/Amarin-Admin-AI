@@ -99,6 +99,9 @@ public sealed partial class ChatStore
     /// <summary>Чат удалён.</summary>
     public event Action<string>? Deleted;
 
+    /// <summary>Удалена пачка чатов (<see cref="DeleteMany"/>): подписчики прибирают за всей разом.</summary>
+    public event Action<IReadOnlyList<string>>? DeletedMany;
+
     public ChatStore(string? rootDirectory = null)
     {
         _root = string.IsNullOrWhiteSpace(rootDirectory)
@@ -323,29 +326,7 @@ public sealed partial class ChatStore
 
         Flush();
 
-        var path = ChatPath(id);
-        bool existed;
-        lock (FileLock(path))
-        {
-            existed = File.Exists(path);
-            if (existed)
-            {
-                File.Delete(path);
-            }
-
-            // Вложения чата (F4) — вместе с ним.
-            var folder = Path.Combine(_chatsDirectory, id);
-            if (IsSafeId(id) && Directory.Exists(ChatAttachmentFiles.FolderOf(_chatsDirectory, id)))
-            {
-                try
-                {
-                    Directory.Delete(folder, recursive: true);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-            }
-        }
+        var existed = DeleteFiles(id);
 
         lock (_gate)
         {
@@ -366,6 +347,90 @@ public sealed partial class ChatStore
         StartDrain();
         Deleted?.Invoke(id);
         return existed || removed;
+    }
+
+    /// <summary>
+    /// Удаляет пачку чатов: очередь сбрасывается, опись переписывается и подписчики зовутся один
+    /// раз на всю пачку (<see cref="DeletedMany"/>).
+    /// </summary>
+    /// <remarks>
+    /// По одному <see cref="Delete"/> на чат выбор из трёхсот (Ctrl+A, затем Shift+Del) держал бы
+    /// окно: каждый сбрасывал очередь, переписывал опись и — через подписчиков — раскладку папок.
+    /// </remarks>
+    /// <returns>Сколько чатов ушло из описи.</returns>
+    public int DeleteMany(IReadOnlyCollection<string> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        List<string> doomed = [.. ids.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal)];
+        if (doomed.Count == 0)
+        {
+            return 0;
+        }
+
+        // Сначала очередь: иначе отложенная запись воскресила бы только что удалённые файлы.
+        lock (_gate)
+        {
+            foreach (var id in doomed)
+            {
+                _pendingChats.Remove(id);
+                _written.Remove(id);
+            }
+        }
+
+        Flush();
+        foreach (var id in doomed)
+        {
+            _ = DeleteFiles(id);
+        }
+
+        var gone = doomed.ToHashSet(StringComparer.Ordinal);
+        int removed;
+        lock (_gate)
+        {
+            foreach (var id in doomed)
+            {
+                _blobSets.Remove(id);
+            }
+
+            var index = LoadIndexLocked();
+            removed = index.Items.RemoveAll(item => gone.Contains(item.Id));
+            if (removed > 0)
+            {
+                SaveIndexLocked(index);
+            }
+        }
+
+        StartDrain();
+        DeletedMany?.Invoke(doomed);
+        return removed;
+    }
+
+    /// <summary>Файл чата и папка его вложений (F4). Возвращает, был ли файл.</summary>
+    private bool DeleteFiles(string id)
+    {
+        var path = ChatPath(id);
+        lock (FileLock(path))
+        {
+            var existed = File.Exists(path);
+            if (existed)
+            {
+                File.Delete(path);
+            }
+
+            var folder = Path.Combine(_chatsDirectory, id);
+            if (IsSafeId(id) && Directory.Exists(ChatAttachmentFiles.FolderOf(_chatsDirectory, id)))
+            {
+                try
+                {
+                    Directory.Delete(folder, recursive: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
+            }
+
+            return existed;
+        }
     }
 
     public int DeleteAll()
