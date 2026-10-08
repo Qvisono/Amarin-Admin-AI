@@ -92,16 +92,39 @@ internal static class AccessibilityDefaults
 
     private static void OnControlLoaded(object sender, RoutedEventArgs e)
     {
-        if (sender is not Control control || !control.Focusable)
+        if (sender is Control control)
+        {
+            ApplyFocusFrame(control);
+        }
+    }
+
+    /// <summary>Рамка фокуса цветом акцента — элементу, у которого своей нет.</summary>
+    /// <remarks>
+    /// Поле с текстом рамки не получает (1.32.0): фокус в нём видно по каретке, а рамка вокруг
+    /// поля ввода всплывала, стоило фокусу прийти туда с клавиатуры, — например, пробелом,
+    /// набранным, пока фокус был на колонке чатов или в ленте, — и закрывала край поля. Тексты
+    /// ответов в ленте — тоже поля (только для чтения), и рамка обводила бы ответ целиком.
+    /// </remarks>
+    internal static void ApplyFocusFrame(Control control)
+    {
+        if (!control.Focusable)
         {
             return;
         }
 
         var source = DependencyPropertyHelper.GetValueSource(control, FrameworkElement.FocusVisualStyleProperty).BaseValueSource;
-        if (source is BaseValueSource.Default or BaseValueSource.DefaultStyle or BaseValueSource.DefaultStyleTrigger)
+        if (source is not (BaseValueSource.Default or BaseValueSource.DefaultStyle or BaseValueSource.DefaultStyleTrigger))
         {
-            control.SetResourceReference(FrameworkElement.FocusVisualStyleProperty, "AppFocusVisual");
+            return;
         }
+
+        if (control is TextBoxBase or PasswordBox)
+        {
+            control.FocusVisualStyle = null;
+            return;
+        }
+
+        control.SetResourceReference(FrameworkElement.FocusVisualStyleProperty, "AppFocusVisual");
     }
 
     /// <summary>Текст подсказки, чем бы она ни была: строкой или <see cref="ToolTip"/> со строкой внутри.</summary>

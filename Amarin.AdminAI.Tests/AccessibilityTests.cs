@@ -70,6 +70,33 @@ public sealed class AccessibilityTests
         Assert.Equal("Копировать", second);
     }
 
+    [Fact]
+    public void Text_fields_draw_no_focus_frame_and_buttons_keep_the_accent_one()
+    {
+        // Фокус в поле видно по каретке, а рамка вокруг поля ввода всплывала от пробела или Esc,
+        // набранного, пока фокус был в колонке чатов или в ленте (1.32.0). Кнопкам рамка нужна:
+        // по ней видно, куда пришёл Tab.
+        var (input, answer, password, button) = _wpf.Ui.Invoke(() =>
+        {
+            var fields = new Control[] { new TextBox(), new RichTextBox { IsReadOnly = true }, new PasswordBox(), new Button() };
+            foreach (var field in fields)
+            {
+                AccessibilityDefaults.ApplyFocusFrame(field);
+            }
+
+            return (
+                fields[0].FocusVisualStyle,
+                fields[1].FocusVisualStyle,
+                fields[2].FocusVisualStyle,
+                fields[3].ReadLocalValue(FrameworkElement.FocusVisualStyleProperty));
+        });
+
+        Assert.Null(input);
+        Assert.Null(answer);
+        Assert.Null(password);
+        Assert.NotEqual(DependencyProperty.UnsetValue, button);
+    }
+
     private static void Collect(DependencyObject root, List<string> found)
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
