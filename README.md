@@ -35,7 +35,8 @@ take a look", you get the job done and a report on what was done.
 When a task needs more than one answer, the chat hands it to an agent. The agent works step by
 step, picks its own tools and comes back with the result. Every tool call is listed in the
 conversation, and you can expand it to see the details. The program chooses between a light model
-and a strong one by the task itself, not by how long the message is.
+and a strong one by the task itself, not by how long the message is, and anything about your
+safety or the safety of this computer always gets the strong one.
 
 Asking again doesn't throw away the previous answer. **Retry** and editing your question keep the
 earlier answer, and everything after it, as a separate version. The ‹ 2/3 › arrows under the
@@ -61,7 +62,9 @@ tools from **MCP servers** to the built-in ones.
 
 Hundreds of chats stay easy to manage: folders, tags and an archive, full-text search across all
 chats, export to Markdown, HTML or PDF, per-chat settings, a separate draft for each chat, voice
-input, and the cost of the whole chat next to an estimate for the next answer.
+input, and the cost of the whole chat next to an estimate for the next answer. Select several
+chats by dragging a frame over the list or with Ctrl+A, and pin, move, tag, archive, share,
+export or delete them in one go; Shift+Del deletes the selection after asking.
 
 ---
 
@@ -93,7 +96,8 @@ You don't need to install .NET: it is built in.
 **2. Give the program a key.** A Venice key, an OpenRouter key or both will do. Paste them into
 **Settings → Keys & spending**. The key is stored on disk encrypted by Windows, so only your user
 account can read it. You can add as many keys as you like, name them and assign each task its own
-key. The same page shows the account balances and a chart of spending by day.
+key, and a key's menu sends it to another profile on this computer. The same page shows the
+account balances and a chart of spending by day.
 
 If you don't want the program to store the key, set an environment variable instead. The program
 reads it at startup and never saves it anywhere.
