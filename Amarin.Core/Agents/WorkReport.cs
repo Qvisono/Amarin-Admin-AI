@@ -252,7 +252,7 @@ internal static class WorkReport
                 builder.Append("- ").Append(ChatExport.Stamp(snapshot.Created)).Append(" · `").Append(snapshot.Id).Append('`');
                 if (!string.IsNullOrWhiteSpace(snapshot.Label))
                 {
-                    builder.Append(" — ").Append(snapshot.Label.ReplaceLineEndings(" "));
+                    builder.Append(" - ").Append(snapshot.Label.ReplaceLineEndings(" "));
                 }
 
                 builder.AppendLine();

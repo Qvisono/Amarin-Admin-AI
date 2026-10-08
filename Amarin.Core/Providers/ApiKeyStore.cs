@@ -667,7 +667,7 @@ internal sealed class ApiKeyStore
     {
         if (string.IsNullOrWhiteSpace(secret))
         {
-            return "—";
+            return "-";
         }
 
         const string Dots = "•••••••••";

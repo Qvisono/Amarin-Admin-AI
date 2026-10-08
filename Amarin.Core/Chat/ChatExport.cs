@@ -227,7 +227,7 @@ internal static class ChatExport
             foreach (var tool in message.Tools)
             {
                 builder.Append("**").Append(Loc.Get("S.Export.Tool")).Append(":** `").Append(tool.Name).Append('`')
-                    .AppendLine(tool.Success ? "" : " — " + Loc.Get("S.Export.ToolFailed")).AppendLine();
+                    .AppendLine(tool.Success ? "" : " - " + Loc.Get("S.Export.ToolFailed")).AppendLine();
                 AppendFence(builder, "json", tool.Arguments);
                 if (!string.IsNullOrWhiteSpace(tool.Result))
                 {
@@ -322,7 +322,7 @@ internal static class ChatExport
                         .Append(Encode(tool.Name)).Append("</code>");
                     if (!tool.Success)
                     {
-                        html.Append(" — ").Append(Encode(Loc.Get("S.Export.ToolFailed")));
+                        html.Append(" - ").Append(Encode(Loc.Get("S.Export.ToolFailed")));
                     }
 
                     html.Append("</div><pre>").Append(Encode(tool.Arguments)).Append("</pre>");

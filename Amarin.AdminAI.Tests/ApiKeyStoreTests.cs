@@ -76,7 +76,7 @@ public sealed class ApiKeyStoreTests : IDisposable
 
         var entry = Assert.Single(Store().List(), item => item.Source == ApiKeySource.Stored);
         Assert.True(entry.IsBroken);
-        Assert.Equal("—", entry.Masked);
+        Assert.Equal("-", entry.Masked);
 
         // И программа не остаётся без ключа вовсе: работает тот, что в окружении.
         Assert.Equal(FromEnvironment, Store().ActiveSecret());
@@ -383,7 +383,7 @@ public sealed class ApiKeyStoreTests : IDisposable
     public void A_tiny_key_shows_nothing_at_all() => Assert.Equal("•••••••••", ApiKeyStore.Mask("vk-12"));
 
     [Fact]
-    public void A_missing_key_masks_to_a_dash() => Assert.Equal("—", ApiKeyStore.Mask(null));
+    public void A_missing_key_masks_to_a_dash() => Assert.Equal("-", ApiKeyStore.Mask(null));
 
     [Fact]
     public void The_fingerprint_is_stable_and_is_not_the_key()

@@ -110,7 +110,7 @@ namespace Amarin.UI
 
             DataPage.UsageList.ItemsSource = rows;
             DataPage.UsageAppText.Text = report.AppBytes > 0
-                ? $"{Loc.Get(DataUsage.AppKey)} - {AttachmentTypes.FormatSize(report.AppBytes)}"
+                ? $"{Loc.Get(DataUsage.AppKey)}: {AttachmentTypes.FormatSize(report.AppBytes)}"
                 : "";
         }
 

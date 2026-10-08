@@ -506,7 +506,7 @@ internal sealed class McpStdioTransport : IMcpTransport
         lock (_stderr)
         {
             var text = _stderr.ToString().Trim();
-            return text.Length == 0 ? "—" : text.Length > 400 ? text[^400..] : text;
+            return text.Length == 0 ? "-" : text.Length > 400 ? text[^400..] : text;
         }
     }
 

@@ -214,13 +214,13 @@
                     <StackPanel>
                         <TextBlock x:Name="BalanceCreditsCaption" Style="{StaticResource TileCaption}"
                                    Text="{DynamicResource S.Key.Balance.Credits}"/>
-                        <TextBlock x:Name="BalanceCreditsValue" Style="{StaticResource TileValue}" Text="—"/>
+                        <TextBlock x:Name="BalanceCreditsValue" Style="{StaticResource TileValue}" Text="-"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource BalanceTile}" Margin="5,0,0,0">
                     <StackPanel>
                         <TextBlock Style="{StaticResource TileCaption}" Text="{DynamicResource S.Key.Balance.Usd}"/>
-                        <TextBlock x:Name="BalanceUsdValue" Style="{StaticResource TileValue}" Text="—"/>
+                        <TextBlock x:Name="BalanceUsdValue" Style="{StaticResource TileValue}" Text="-"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -294,7 +294,7 @@
                     -->
                     <TextBlock x:Name="SpendTotalCaption" Style="{StaticResource TileCaption}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                        <TextBlock x:Name="SpendTotalUsd" Style="{StaticResource TileValue}" Text="—" Margin="0"/>
+                        <TextBlock x:Name="SpendTotalUsd" Style="{StaticResource TileValue}" Text="-" Margin="0"/>
                         <TextBlock x:Name="SpendTotalCredits" VerticalAlignment="Bottom" Margin="8,0,0,3"
                                    FontSize="11.5" Foreground="{DynamicResource Text.Dim}"/>
                     </StackPanel>

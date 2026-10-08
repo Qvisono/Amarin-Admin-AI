@@ -240,20 +240,20 @@ internal static class UserLanguageStore
     /// <summary>Служебный ключ: не подпись интерфейса, а имя самого языка для списка.</summary>
     public const string NameKey = Loc.LanguageNameKey;
 
-    public static ResourceDictionary? TryLoad(string code)
-    {
-        var map = Read(code);
-        if (map is null)
-        {
-            return null;
-        }
+    public static ResourceDictionary? TryLoad(string code) => Read(code) is { } map ? ToDictionary(map) : null;
 
+    /// <summary>Файл перевода — в словарь интерфейса: только подписи <c>S.*</c>.</summary>
+    internal static ResourceDictionary ToDictionary(IReadOnlyDictionary<string, string> map)
+    {
+        // Переводы, сделанные до 1.32.0, полны длинных тире — меняются при чтении. Поправленное
+        // руками не трогается: так человек написал сам.
+        var edited = TranslationEdits.Edited(map);
         var dictionary = new ResourceDictionary();
         foreach (var (key, value) in map)
         {
             if (key.StartsWith("S.", StringComparison.Ordinal))
             {
-                dictionary[key] = value;
+                dictionary[key] = edited.Contains(key) ? value : TextTypography.PlainDashes(value);
             }
         }
 

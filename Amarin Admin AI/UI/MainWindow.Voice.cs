@@ -276,7 +276,7 @@ namespace Amarin.UI
                 throw new VoiceUnavailableException(Loc.Format(
                     "S.Voice.NoLocal",
                     culture.DisplayName,
-                    installed.Count == 0 ? "—" : string.Join(", ", installed.Select(item => item.Name))));
+                    installed.Count == 0 ? "-" : string.Join(", ", installed.Select(item => item.Name))));
             }
 
             var model = settings.VoiceModel?.Trim();

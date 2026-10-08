@@ -480,8 +480,8 @@ public partial class SettingsKeyPage : UserControl
     {
         if (_services is null || credential.IsEmpty)
         {
-            BalanceUsdValue.Text = "—";
-            BalanceCreditsValue.Text = "—";
+            BalanceUsdValue.Text = "-";
+            BalanceCreditsValue.Text = "-";
             BalanceNote.Text = Loc.Get("S.Spend.NoKey");
             return;
         }
@@ -504,14 +504,14 @@ public partial class SettingsKeyPage : UserControl
         {
             // Остаток из заголовков прошлого ответа — лучше, чем прочерк; он же лежит на плашке.
             var cached = _services.Venice.LastBalance?.Usd;
-            BalanceUsdValue.Text = cached is { } value ? FormatUsd(value) : "—";
+            BalanceUsdValue.Text = cached is { } value ? FormatUsd(value) : "-";
             if (cached is { } known)
             {
                 ShowLeftTile(credential.Provider, known, spent: null);
             }
             else
             {
-                BalanceCreditsValue.Text = "—";
+                BalanceCreditsValue.Text = "-";
             }
 
             BalanceNote.Text = Loc.Get("S.Spend.Error");
@@ -537,8 +537,8 @@ public partial class SettingsKeyPage : UserControl
     {
         if (_services is null || credentials.Count == 0)
         {
-            BalanceUsdValue.Text = "—";
-            BalanceCreditsValue.Text = "—";
+            BalanceUsdValue.Text = "-";
+            BalanceCreditsValue.Text = "-";
             BalanceNote.Text = Loc.Get("S.Spend.NoKey");
             return;
         }
@@ -574,8 +574,8 @@ public partial class SettingsKeyPage : UserControl
 
         if (!answered)
         {
-            BalanceUsdValue.Text = "—";
-            BalanceCreditsValue.Text = "—";
+            BalanceUsdValue.Text = "-";
+            BalanceCreditsValue.Text = "-";
             BalanceNote.Text = Loc.Get("S.Spend.Error");
             return;
         }
@@ -608,7 +608,7 @@ public partial class SettingsKeyPage : UserControl
         }
 
         BalanceCreditsCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Left");
-        BalanceCreditsValue.Text = spent is { } value ? FormatUsd(value) : "—";
+        BalanceCreditsValue.Text = spent is { } value ? FormatUsd(value) : "-";
     }
 
     private static string BuildBalanceNote(VeniceRateLimitsData limits)

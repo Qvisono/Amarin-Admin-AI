@@ -258,7 +258,7 @@ internal sealed class BalanceBadge
         {
             foreach (var row in rows)
             {
-                text.Append('\n').Append(row.Label).Append(" — ").Append(FormatUsd(row.Usd));
+                text.Append('\n').Append(row.Label).Append(": ").Append(FormatUsd(row.Usd));
             }
         }
 

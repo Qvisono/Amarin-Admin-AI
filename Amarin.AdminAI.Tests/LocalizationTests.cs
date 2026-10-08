@@ -23,6 +23,27 @@ public sealed class LocalizationTests
         _wpf.Ui.Invoke(() => LanguageManager.Flatten(LanguageManager.LoadBuiltIn(code)));
 
     [Fact]
+    public void A_saved_machine_translation_loses_its_long_dashes_but_a_hand_edit_keeps_them()
+    {
+        // 1.32.0: переводы, сделанные раньше, полны «—». Поправленное руками — так человек
+        // написал сам, и программа его не правит.
+        var shown = _wpf.Ui.Invoke(() =>
+        {
+            var dictionary = UserLanguageStore.ToDictionary(new Dictionary<string, string>
+            {
+                ["S.A"] = "Lesen — ohne Fragen",
+                ["S.B"] = "Von Hand — so gewollt",
+                [TranslationEdits.EditedKey] = "S.B"
+            });
+            return ((string)dictionary["S.A"], (string)dictionary["S.B"], dictionary.Contains(TranslationEdits.EditedKey));
+        });
+
+        Assert.Equal("Lesen - ohne Fragen", shown.Item1);
+        Assert.Equal("Von Hand — so gewollt", shown.Item2);
+        Assert.False(shown.Item3);
+    }
+
+    [Fact]
     public void Every_built_in_language_has_the_same_keys()
     {
         // Главный страж полноты перевода: пропущенный ключ виден здесь, а не в чужом интерфейсе.

@@ -90,7 +90,7 @@ internal static class BugReport
 
         var title = type is null
             ? "Crash"
-            : "Crash: " + type + (string.IsNullOrWhiteSpace(message) ? "" : " — " + message);
+            : "Crash: " + type + (string.IsNullOrWhiteSpace(message) ? "" : " - " + message);
         return title.Length <= 120 ? title : title[..117].TrimEnd() + "…";
     }
 

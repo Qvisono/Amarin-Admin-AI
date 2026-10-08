@@ -282,7 +282,7 @@ namespace Amarin.UI
                 };
             }
 
-            System.Windows.Automation.AutomationProperties.SetName(row, "/" + command.Name + " — " + description.Text);
+            System.Windows.Automation.AutomationProperties.SetName(row, "/" + command.Name + " - " + description.Text);
             row.Click += (_, _) => CommitCommandSuggest(command, runIfComplete: false);
             return row;
         }

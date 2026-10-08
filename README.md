@@ -2,11 +2,11 @@
 
 # Amarin Admin AI
 
-**A chat with a model that runs this computer.**
+**A chat with an AI model that manages this computer.**
 
-Ask in plain words, and the program itself reads the Windows logs, edits the registry,
-sorts out services and disks, installs and updates software. Anything irreversible it asks
-about separately and waits for your answer.
+Ask in plain words, and the program does the work: it reads the Windows logs, edits the registry,
+fixes services and disks, installs and updates software. Before anything that can't be undone, it
+asks you and waits for your answer.
 
 [![Release](https://img.shields.io/github/v/release/Qvisono/Amarin-Admin-AI?label=release&color=0078D6)](https://github.com/Qvisono/Amarin-Admin-AI/releases/latest)
 ![Platform](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D6?logo=windows&logoColor=white)
@@ -21,48 +21,47 @@ about separately and waits for your answer.
 
 ## What it is
 
-An ordinary chat window on your desktop — a single `.exe` that installs nothing and registers
-itself nowhere. Answers come from [Venice.ai](https://venice.ai) and
-[OpenRouter](https://openrouter.ai) models on your own key — you can keep both accounts at once
-and give different tasks different models; the conversations stay on your disk.
+A chat window on your desktop. It is a single `.exe` that needs no installation. Answers come from
+[Venice.ai](https://venice.ai) and [OpenRouter](https://openrouter.ai) models, paid with your own
+key. You can use both services at once and give different tasks to different models. Conversations
+stay on your disk.
 
-What sets it apart from a chat in the browser is that the model here does more than write text.
-It has some forty tools on this very machine: PowerShell, the registry, services and scheduled
-tasks, disks and SMART, the network and the firewall, event logs, `winget`, SFC and DISM,
-restore points, screenshots, the clipboard, web search and page reading. So instead of "open
-Device Manager and have a look" you get the work done and an account of how it went.
+Unlike a chat in the browser, the model here does more than write text. It has about forty tools
+on this computer: PowerShell, the registry, services and scheduled tasks, disks and SMART, the
+network and the firewall, event logs, `winget`, SFC and DISM, restore points, screenshots, the
+clipboard, web search and reading web pages. So instead of advice like "open Device Manager and
+take a look", you get the job done and a report on what was done.
 
-When a task can't be solved in a single answer, the chat hands it to an agent: it works step by
-step, picks its own tools and comes back with the result, and a report on every call is right
-there in the conversation — expand it and read it. Who takes the job — a light model or a
-strong one — the program decides by itself, by the task, not by how long it is worded.
+When a task needs more than one answer, the chat hands it to an agent. The agent works step by
+step, picks its own tools and comes back with the result. Every tool call is listed in the
+conversation, and you can expand it to see the details. The program chooses between a light model
+and a strong one by the task itself, not by how long the message is.
 
-An answer you didn't like is not lost when you ask again: **Retry** and editing your question keep
-the earlier answer — with everything that followed it — as a version, and the ‹ 2/3 › arrows under
-the message switch between them.
+Asking again doesn't throw away the previous answer. **Retry** and editing your question keep the
+earlier answer, and everything after it, as a separate version. The ‹ 2/3 › arrows under the
+message switch between versions.
 
-Any earlier answer, even one from the very start of a long chat, can be answered point by point:
-select a passage, press **Reply**, and the model gets exactly those words, marked as the part you
-are responding to.
+You can reply to any part of an earlier answer, even one from the start of a long chat: select a
+passage and press **Reply**. The model receives exactly those words, marked as the part you are
+answering.
 
-What you already know, you can teach it once. **Settings → Instructions** holds your own notes on
-particular topics: a name, a few trigger words and the text itself. The chat model sees only the
-names and trigger words, and when a message touches one of those topics it opens the instruction
-and follows it before answering; the reply is marked with the instruction it used. Instructions are
-plain Markdown files — they can be switched off, exported and imported.
+You can teach it things once. **Settings → Instructions** holds your own notes on specific topics:
+a name, a few trigger words and the text. The chat model sees only the names and trigger words.
+When a message touches one of these topics, the model reads the instruction and follows it, and the
+reply shows which instruction was used. Instructions are plain Markdown files. You can turn them
+off, export and import them.
 
-It also works when you are not asking. **Scheduled tasks** let the agent check the machine daily,
-weekly or at startup — strictly read-only — and leave a report as a chat, with a notification when
-something needs attention. The **PC health** panel shows disks, memory, protection, recent errors
-and pending updates at a glance. An action you liked can be saved as a **recipe** and run again
-without a model. For bigger jobs the agent can first send a **plan** for you to approve, a chat can
-work on **another computer** over PowerShell Remoting, and tools of **MCP servers** can be plugged
-in next to the built-in ones.
+It can also work without being asked. With **scheduled tasks**, the agent checks the computer
+daily, weekly or at startup, in read-only mode, and leaves a report as a chat. If something needs
+attention, you get a notification. The **PC health** panel shows disks, memory, protection, recent
+errors and pending updates on one screen. An action you want to repeat can be saved as a
+**recipe** and run again without a model. For bigger jobs, the agent can first send a **plan** for
+you to approve. A chat can work on **another computer** over PowerShell Remoting, and you can add
+tools from **MCP servers** to the built-in ones.
 
-Chats stay manageable when there are hundreds of them: folders, tags and an archive, free search
-through the text of every chat, export to Markdown, HTML or PDF, per-chat settings,
-a draft kept per chat, voice input, and the cost of the whole chat next to an estimate for the
-next answer.
+Hundreds of chats stay easy to manage: folders, tags and an archive, full-text search across all
+chats, export to Markdown, HTML or PDF, per-chat settings, a separate draft for each chat, voice
+input, and the cost of the whole chat next to an estimate for the next answer.
 
 ---
 
@@ -72,14 +71,14 @@ next answer.
 
 <img src="Amarin%20Admin%20AI/Assets/Guide/app-02-confirm.png" width="780" alt="Confirmation request">
 
-<sup>The agent reports on every step and stops before anything irreversible: in plain words —
-what is about to happen, under the arrow — the exact command.</sup>
+<sup>The agent reports every step and stops before anything that can't be undone. It explains in
+plain words what is about to happen, and the exact command is under the arrow.</sup>
 
 <img src="Amarin%20Admin%20AI/Assets/Guide/app-03-models.png" width="780" alt="Choosing a model">
 
-<sup>The model and the reasoning effort sit in the row under the input field, next to the account
-balances and how full the context is. The price of every answer is written above it, so the
-money never runs out mid-task unnoticed.</sup>
+<sup>The model and the reasoning level are in the row under the input field, next to the account
+balances and the context fill. Every answer shows its price, so spending never comes as a
+surprise.</sup>
 
 </div>
 
@@ -88,138 +87,139 @@ money never runs out mid-task unnoticed.</sup>
 ## Installation
 
 **1. Download the program.** The [Releases](https://github.com/Qvisono/Amarin-Admin-AI/releases/latest)
-page holds a single file, `Amarin-Admin-AI-v<version>-win-x64.exe`, and `SHA256SUMS` with its
-checksum. No need to install .NET — it is inside.
+page has one file, `Amarin-Admin-AI-v<version>-win-x64.exe`, and `SHA256SUMS` with its checksum.
+You don't need to install .NET: it is built in.
 
-**2. Give the program a key.** A Venice key, an OpenRouter key or both will do — paste them into
-**Settings → Key & Info**. The key is stored on disk encrypted with Windows' own means: only your
-user account can read it. You can keep as many keys as you like, name them your way and assign
-each task its own; next to them are the account balances and a chart of spending by day.
+**2. Give the program a key.** A Venice key, an OpenRouter key or both will do. Paste them into
+**Settings → Keys & spending**. The key is stored on disk encrypted by Windows, so only your user
+account can read it. You can add as many keys as you like, name them and assign each task its own
+key. The same page shows the account balances and a chart of spending by day.
 
-If you'd rather not hand the key over for safekeeping, set an environment variable instead: the
-program reads it at startup and never writes it anywhere.
+If you don't want the program to store the key, set an environment variable instead. The program
+reads it at startup and never saves it anywhere.
 
 ```powershell
 [Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')
 [Environment]::SetEnvironmentVariable('OPENROUTER_API_KEY', 'your-key-here', 'User')
 ```
 
-The variables are read once at startup, so restart the program after running this command. A key
-pasted on the Key & Info page works right away.
+Variables are read only at startup, so restart the program after running these commands. A key
+pasted on the settings page works right away.
 
-**3. Launch it and write something.** An answer is coming — everything is in place.
+**3. Start the program and send a message.** That's all the setup.
 
-> Where to get the key itself, what it costs and how to cap your spending — the program has its
-> own guide with screenshots: **Settings → Info**, five steps from sign-up to the first answer.
-> The program finds new versions on GitHub by itself and installs them — only after checking the
-> SHA-256 checksum, and, if your copy is signed, the publisher's signature. The update question
-> shows the release notes first; the previous version is kept, and one button in
-> **Settings → Updates** brings it back. Pre-releases come only if you turn on the beta channel.
+> Where to get a key, what it costs and how to limit spending: the program has a guide with
+> screenshots in **Settings → About → Getting started**, five steps from sign-up to the first
+> answer.
+>
+> The program finds new versions on GitHub and installs them, but only after checking the SHA-256
+> checksum and, if your copy is signed, the publisher's signature. Before updating, it shows the
+> release notes. The previous version is kept, and one button in **Settings → About** brings it
+> back. Pre-releases come only if you turn on the beta channel.
 
 ---
 
 ## Safety
 
-The model works with a live system, so it has limits — and they are on by default.
+The model works on a real system, so it has limits, and they are on by default.
 
-**Anything dangerous is asked about.** Writing to the registry, managing services, installing and
-removing software, firewall rules, disk cleanup — only with explicit consent and a description of
-what exactly will change. A refusal is an ordinary answer for the model: it sees it and looks for
-another way. The chat's own tools pass the same gate as the agent's: only a new file in Downloads
-or on the Desktop is written without a question, and nothing may write into the program's own data
-folder.
+**Dangerous actions need your approval.** Registry changes, service management, installing and
+removing software, firewall rules and disk cleanup run only after you agree, and the request says
+exactly what will change. If you refuse, the model sees the refusal and looks for another way. The
+chat's own tools go through the same checks as the agent's: only a new file in Downloads or on the
+Desktop is written without asking, and nothing can write into the program's own data folder.
 
-**You choose how much it may do.** **Settings → Security** offers four access modes — normal, ask
-about everything, read only, and approve everything automatically — and switches individual tools
-off; a switched-off tool is not even shown to the model. A confirmation can allow a tool until the
-end of the reply or for the whole chat.
+**You decide how much it can do.** **Settings → Security** has four access modes: normal, ask
+about everything, read only, and approve everything automatically. You can also turn off
+individual tools; the model doesn't even see a tool that is off. When you approve an action, you
+can allow the tool until the end of the reply or for the whole chat.
 
-**You can see it coming.** For the agent tiers you choose, the agent first explores read-only and
-sends a plan to approve; only the approved steps run without another question. Where a script's
-commands support it, the confirmation shows a `-WhatIf` dry run of what will change. **Stop** ends
-running scripts and programs at once.
+**You see what will happen.** For the agent levels you choose, the agent first looks around in
+read-only mode and sends a plan for approval. Only the approved steps run without asking again.
+When a script's commands support it, the request shows a `-WhatIf` dry run of the changes.
+**Stop** ends running scripts and programs immediately.
 
-**PowerShell is read, not guessed.** A script is analysed by its syntax tree, and only reading runs
-without a question; the confirmation lists what the script is going to change.
+**PowerShell is parsed, not guessed.** The program analyses each script's syntax tree. Only
+scripts that just read run without asking, and the request lists what the script will change.
 
-**A second model checks the intent.** A list of dangerous cmdlets catches what a command touches,
-but not why it was written: a script that collects passwords and sends them out contains not a
-single suspicious cmdlet. That is why every agent round is read by a separate guard before it
-runs.
+**A second model checks the intent.** A list of dangerous cmdlets shows what a command touches,
+but not why it was written. A script that collects passwords and sends them away may not contain a
+single suspicious cmdlet. So a separate guard model reads every agent step before it runs.
 
-**Changes can be rolled back.** Before an edit, the state of services, scheduled tasks, startup
-entries and the affected registry keys is captured, value by value. A rollback returns what was
-changed and removes what was added, and shows you what it will do before it does it. Where there is
-no rollback (firewall rules, Windows features), the program says so honestly in the request itself.
+**Changes can be undone.** Before a change, the program saves the state of services, scheduled
+tasks, startup entries and the affected registry keys, value by value. A rollback restores what
+was changed and removes what was added, and shows you its plan first. Where rollback is not
+possible (firewall rules, Windows features), the request says so.
 
-**Everything is on record.** Every call that changes the system and every refusal lands in an audit
-log — with the chat, the arguments (secrets removed), who allowed it and what the guard said. The
-log outlives deleted chats and exports to CSV and JSON.
+**Everything is logged.** Every call that changes the system and every refusal goes into an audit
+log: the chat, the arguments (without secrets), who allowed it and what the guard said. The log
+stays when chats are deleted and can be exported to CSV and JSON.
 
-**The limits are hard.** Deleting files through PowerShell and the file tool is forbidden.
-Downloads come only from allow-listed domains. The current user can't be disabled and the last
+**Some limits can't be lifted.** Deleting files through PowerShell or the file tool is forbidden.
+Downloads come only from allowed domains. The current user can't be disabled, and the last
 administrator can't be removed. Critical Windows processes and services can't be stopped. Browser
-password stores, SSH keys, password vaults and the Windows credential stores are never read.
-BitLocker keys and passwords are never handed out.
+password stores, SSH keys, password managers and the Windows credential stores are never read.
+BitLocker keys and passwords are never shown.
 
-**Money has limits too.** Spending limits per day and month — for the profile or a single key — and
-a cap per reply: reaching one asks before going on. Scheduled runs have their own cap and never ask.
+**Spending has limits too.** You can set daily and monthly limits for the profile or for a single
+key, and a cap per reply. The program warns you when spending gets close to a limit and asks
+before going past it. Scheduled runs have their own cap and never ask.
 
-**The key goes nowhere.** On disk it is encrypted with Windows' own means — or it stays in an
-environment variable altogether, if that's what you chose. It is not in `appsettings.json`, it
-never lands in a conversation, it is cut out of crash reports, and it is sent only to the
-provider it belongs to.
+**Your key stays private.** On disk it is encrypted by Windows, or it stays in an environment
+variable if you chose that. It is not in `appsettings.json`, never appears in a conversation, is
+removed from crash reports, and is sent only to the provider it belongs to.
 
 ---
 
 ## Where your data lives
 
-Everything is in `%APPDATA%\Amarin Admin AI`: conversations (attachments sit in a folder next to
-each chat), settings, drafts, recipes and scheduled tasks, interface translations, and your
-instructions (`instructions\*.md`, one file each). The program has neither a cloud nor accounts. Several people can share one
-computer: each profile has its own chats and settings, and a profile can be locked with a password.
+Everything is stored in `%APPDATA%\Amarin Admin AI`: conversations (attachments are in a folder
+next to each chat), settings, drafts, recipes and scheduled tasks, interface translations, and
+your instructions (`instructions\*.md`, one file each). The program has no cloud and no accounts.
+Several people can share one computer: each profile has its own chats and settings, and a profile
+can be locked with a password.
 
-Conversations can be stored encrypted with Windows' own means (**Settings → Security**): then only
-your Windows account can read them. A profile with a password can lock itself after a few idle
-minutes, or on request.
+Conversations can be stored encrypted by Windows (**Settings → Security**), so only your Windows
+account can read them. A profile with a password can lock itself after a few minutes of
+inactivity, or when you ask.
 
-Data is exported as a single archive and imported back, optionally protected with a password; a
-single chat — as JSON or as a string you can forward. **Delete all data** wipes the current profile
-and starts it from a clean slate.
+All data can be exported to one archive and imported back, with an optional password. A single
+chat can be saved as JSON or shared as a code you can send to someone. **Delete all data** erases
+the current profile and starts it fresh.
 
-Backups can be made automatically, daily or weekly, into a folder of your choice (keys are not
-included, and the backups are not encrypted). Old chats can be archived or deleted after a number
-of days, and the data page shows what takes space and cleans up logs, old snapshots and exports.
-Settings, profiles and keys keep a spare copy: a damaged file is set aside and the last good copy
-takes its place.
+Backups can run automatically, daily or weekly, into a folder you choose (keys are not included,
+and backups are not encrypted). Old chats can be archived or deleted after a set number of days.
+The **Data** page shows what takes up space and cleans up logs, old snapshots and exports.
+Settings, profiles and keys keep a spare copy: if a file is damaged, it is set aside and the last
+good copy is used.
 
 ---
 
 ## Working with Windows
 
 A tray icon shows whether the program is answering or waiting for you, and the close button can
-hide the window into it. A global shortcut (Win+Shift+A by default) shows or hides the window from
-anywhere; two more start a chat with the clipboard text or a screenshot. The program can start with
-Windows straight into the tray, adds **Ask Amarin** to Explorer's menu for files and folders, and
-keeps the latest chats in its jump list. Notifications come as the program's own card or as
-Windows notifications — your choice.
+hide the window to the tray. A global shortcut (Win+Shift+A by default) shows or hides the window
+from anywhere; two more start a chat with the clipboard text or a screenshot. The program can
+start with Windows directly to the tray, adds **Ask Amarin** to the Explorer menu for files and
+folders, and keeps recent chats in its taskbar jump list. Notifications appear as the program's
+own card or as Windows notifications, whichever you choose.
 
 ---
 
 ## Appearance
 
-Some forty palettes, dark and light, each shown as a card with a preview. On top of the palette —
-your own accent colour and a background behind the interface: a moving gradient or your own
-picture, over which the panels turn translucent. Interface scale from 80 to 250 %, bundled fonts,
-chat column width, grain over the window.
+About fifty palettes, dark and light, each shown as a card with a preview. On top of a palette
+you can set your own accent colour and a background: a moving gradient or your own picture, with
+the panels turning translucent over it. Interface scale from 80 to 250%, built-in fonts, chat
+column width, and film grain over the window.
 
-The interface comes in Russian and English; the program translates itself into any other language
-— with one button, by a model, and from then on it lives next to the others. A machine translation
-can be corrected line by line, and your corrections survive the next translation.
+The interface is in Russian and English. With one button, a model translates it into any other
+language, which then appears in the list next to the others. You can correct a machine
+translation line by line, and your corrections are kept when you translate again.
 
-Screen readers get a name for every button and switch, the keyboard focus is drawn in the accent
-colour, Windows high contrast is followed automatically, and the chat text size and code font are
-adjustable.
+Every button and switch has a name for screen readers, the keyboard focus is drawn in the accent
+colour, Windows high contrast is applied automatically, and you can change the chat text size and
+the code font.
 
 ---
 
@@ -235,9 +235,8 @@ dotnet build "Amarin Admin AI/Amarin Admin AI.csproj"
 dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj
 ```
 
-There are more than three thousand tests — including those that bring up real WPF and
-check the window, the chat markup and the order in which popups close, without showing anything on
-screen.
+There are more than three thousand tests. Some of them start real WPF and check the window, the
+chat layout and the order in which popups close, without showing anything on screen.
 
 The release build is a single self-contained file:
 
@@ -251,15 +250,15 @@ Check the tools without a single API call (no key needed):
 & ".\Amarin Admin AI.exe" --smoke-tools
 ```
 
-`--smoke-report <file>` writes the same run as a Markdown table into a file instead of a console
-window — that is how CI runs it; tools whose Windows component is missing are marked `SKIP`.
+`--smoke-report <file>` writes the same run to a file as a Markdown table instead of a console
+window. This is how CI runs it; tools whose Windows component is missing are marked `SKIP`.
 
-Found a problem? **Report a problem** on the Info page (or in the crash window) opens a GitHub
-issue with the report filled in and your profile path and user name removed.
+Found a problem? **Report a problem** on the About page (or in the crash window) opens a GitHub
+issue with the report filled in. Your profile path and user name are removed from it.
 
 ---
 
 ## License
 
-[GNU General Public License v3.0](LICENSE.txt). Use, modify and distribute it — provided that
-derivative works stay under the same license. The program comes "as is", without warranty.
+[GNU General Public License v3.0](LICENSE.txt). You can use, modify and distribute it, as long as
+derivative works stay under the same license. The program is provided "as is", without warranty.

@@ -24,7 +24,7 @@ public partial class HotkeySheetOverlay : UserControl
         var rows = HotkeyMap.All
             .Select(action => new HotkeySheetRow(
                 Loc.Get(action.TitleKey),
-                HotkeyMap.Effective(assignments, action.Id) is { } gesture ? HotkeyMap.Display(gesture) : "—"))
+                HotkeyMap.Effective(assignments, action.Id) is { } gesture ? HotkeyMap.Display(gesture) : "-"))
             .ToList();
 
         // Эти не переназначаются: Enter и Esc у поля ввода — общее правило окон, а ↑ работает

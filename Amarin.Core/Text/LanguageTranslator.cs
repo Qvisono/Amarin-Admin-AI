@@ -50,7 +50,7 @@ internal sealed class LanguageTranslator
     /// </summary>
     internal const int BatchSize = 40;
 
-    private const string SystemPrompt = """
+    internal const string SystemPrompt = """
         You translate user-interface strings.
 
         You are given a JSON object: keys are string identifiers, values are Russian UI text.
@@ -63,6 +63,10 @@ internal sealed class LanguageTranslator
         - Keep line breaks that are already in the value.
         - Keep product names as they are: Venice, GitHub, JSON, PDF, YouTube, Amarin Admin AI.
         - UI text is short. Prefer the wording a native speaker would see in an app menu.
+        - Write plain, exact text: the meaning of the original and nothing added. No filler, no
+          embellishment, no marketing tone, no explanations the original does not have.
+        - Never use the long dash or the en dash. Where a dash is natural, use a plain hyphen with
+          spaces around it, or rephrase the sentence.
         """;
 
     private readonly VeniceClient _venice;
@@ -205,7 +209,8 @@ internal sealed class LanguageTranslator
                 continue;
             }
 
-            accepted[key] = value;
+            // Тире модель ставит по привычке, даже когда промпт это запрещает.
+            accepted[key] = TextTypography.PlainDashes(value);
         }
 
         return accepted;

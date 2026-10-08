@@ -157,7 +157,7 @@ public partial class McpPanel : UserControl
                 Margin = new Thickness(0, 2, 0, 4),
                 Content = new TextBlock
                 {
-                    Text = string.IsNullOrWhiteSpace(tool.Description) ? tool.Name : $"{tool.Name} — {tool.Description}",
+                    Text = string.IsNullOrWhiteSpace(tool.Description) ? tool.Name : $"{tool.Name} - {tool.Description}",
                     TextWrapping = TextWrapping.Wrap,
                     FontSize = 11.5
                 }

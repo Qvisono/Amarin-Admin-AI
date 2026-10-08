@@ -161,7 +161,7 @@ namespace Amarin.UI
                                         Loc.Format("S.Rollback.Done", ok, outcomes.Count);
             JournalRollbackLines.ItemsSource = Capped(outcomes.Select(outcome => outcome.Success
                 ? new RollbackLineView("✓", outcome.Line, "Success")
-                : new RollbackLineView("✕", outcome.Line + " — " + outcome.Error, "Failure")));
+                : new RollbackLineView("✕", outcome.Line + ": " + outcome.Error, "Failure")));
             JournalRollbackHint.Visibility = Visibility.Collapsed;
             JournalRollbackApplyButton.Visibility = Visibility.Collapsed;
             JournalRollbackCancelButton.Content = Loc.Get("S.Common.Close");

@@ -86,7 +86,7 @@ public sealed class InstallerUpdateFiles(Func<HttpClient?> downloadHttp, string?
     {
         if (downloadHttp() is not { } http)
         {
-            return (UpdateStepResult.Failed(Loc.Format("S.Updates.NoConnection", "—")), null);
+            return (UpdateStepResult.Failed(Loc.Format("S.Updates.NoConnection", "-")), null);
         }
 
         return await UpdateInstaller.DownloadAsync(plan, http, progress, cancellationToken, allowUnverified).ConfigureAwait(false);

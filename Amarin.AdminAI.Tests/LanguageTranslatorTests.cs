@@ -96,6 +96,19 @@ public sealed class LanguageTranslatorTests
     }
 
     [Fact]
+    public void Long_dashes_in_a_translation_become_plain_hyphens()
+    {
+        // 1.32.0: «—» и «–» — примета текста модели; промпт их запрещает, а приём страхует.
+        var asked = new Dictionary<string, string> { ["S.A"] = "Чтение - без вопросов", ["S.B"] = "1-2" };
+
+        var accepted = LanguageTranslator.Accept(asked, """{"S.A": "Lesen — ohne Fragen", "S.B": "1–2"}""");
+
+        Assert.Equal("Lesen - ohne Fragen", accepted["S.A"]);
+        Assert.Equal("1-2", accepted["S.B"]);
+        Assert.DoesNotContain("—", LanguageTranslator.SystemPrompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_empty_translation_is_not_accepted()
     {
         var asked = new Dictionary<string, string> { ["S.A"] = "Привет" };

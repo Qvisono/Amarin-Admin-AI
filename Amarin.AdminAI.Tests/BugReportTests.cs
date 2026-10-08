@@ -52,7 +52,7 @@ public sealed class BugReportTests
             Сообщение: Collection was modified
             """;
 
-        Assert.Equal("Crash: InvalidOperationException — Collection was modified", BugReport.TitleFrom(report));
+        Assert.Equal("Crash: InvalidOperationException - Collection was modified", BugReport.TitleFrom(report));
         Assert.Equal("Crash", BugReport.TitleFrom("nothing here"));
         Assert.True(BugReport.TitleFrom("Исключение: X\nСообщение: " + new string('a', 500)).Length <= 120);
     }

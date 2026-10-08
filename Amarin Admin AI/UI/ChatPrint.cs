@@ -143,7 +143,7 @@ internal static class ChatPrint
 
             foreach (var tool in message.Tools)
             {
-                var head = new Paragraph(new Run(Loc.Get("S.Export.Tool") + ": " + tool.Name + (tool.Success ? "" : " — " + Loc.Get("S.Export.ToolFailed"))))
+                var head = new Paragraph(new Run(Loc.Get("S.Export.Tool") + ": " + tool.Name + (tool.Success ? "" : " - " + Loc.Get("S.Export.ToolFailed"))))
                 {
                     FontSize = 10.5,
                     FontWeight = FontWeights.SemiBold,
