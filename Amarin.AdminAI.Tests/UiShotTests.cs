@@ -421,7 +421,7 @@ public sealed class UiShotTests : IDisposable
     private async Task ShootSelection(MainWindow window, Panel panel, string folder)
     {
         if (window.FindSetting("SideBarScrollViewer") is not FrameworkElement sidebar ||
-            typeof(MainWindow).GetField("_marquee", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(window) is not ChatListMarquee marquee)
+            typeof(MainWindow).GetProperty("Marquee", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(window) is not ChatListMarquee marquee)
         {
             return;
         }

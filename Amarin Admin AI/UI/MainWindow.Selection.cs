@@ -35,41 +35,63 @@ namespace Amarin.UI
 
         private void InitializeChatSelection()
         {
+            // Саму рамку заводит первое нажатие в колонке: в конструкторе окна она стоила около
+            // 7 мс холодного запуска (компиляция и загрузка её кода), а нужна, только когда за неё
+            // возьмутся.
+            SideBarScrollViewer.PreviewMouseLeftButtonDown += SideBarScrollViewer_FirstPress;
+
+            // Своё меню по правому щелчку: для строки — её меню «⋯», для выбранного — всего выбора.
+            ChatListPanel.AddHandler(ContextMenuOpeningEvent, new ContextMenuEventHandler(ChatListPanel_ContextMenuOpening));
+        }
+
+        /// <summary>Рамка выделения колонки чатов; создаётся при первом обращении.</summary>
+        private ChatListMarquee Marquee => _marquee ??= CreateMarquee();
+
+        private void SideBarScrollViewer_FirstPress(object sender, MouseButtonEventArgs e)
+        {
+            SideBarScrollViewer.PreviewMouseLeftButtonDown -= SideBarScrollViewer_FirstPress;
+
+            // Свой обработчик рамка вешает на то же событие, но в уже идущий маршрут он не попадает:
+            // это нажатие ей передаётся вручную.
+            Marquee.OnPress(e);
+        }
+
+        private ChatListMarquee CreateMarquee()
+        {
             // Выдача поиска по тексту — карточки находок, а не строки чатов: выбирать в ней нечего.
-            _marquee = new ChatListMarquee(
+            var marquee = new ChatListMarquee(
                 SideBarScrollViewer,
                 ChatListPanel,
                 ChatMarqueeLayer,
                 () => !_sidebarCollapsed && _chatDrag?.IsDragging != true && _textSearchShown is null);
 
-            _marquee.Began += additive =>
+            marquee.Began += additive =>
             {
                 // Строки посреди раскрытия папки дали бы рамке неверные места.
                 FinishChatListMotion();
                 _beforeSweep = _selection.BeginSweep(additive: true);
                 _sweepBasis = additive ? _beforeSweep : ChatSelectionBasis.Empty;
             };
-            _marquee.Swept += rows =>
+            marquee.Swept += rows =>
             {
                 var (chats, folders) = Expand(rows);
                 _selection.Sweep(_sweepBasis, chats, folders);
                 RefreshChatRowStates();
             };
-            _marquee.Ended += () => FinishSweep(focus: true);
-            _marquee.Cancelled += () =>
+            marquee.Ended += () => FinishSweep(focus: true);
+            marquee.Cancelled += () =>
             {
                 _selection.Sweep(_beforeSweep, [], []);
                 RefreshChatRowStates();
                 FinishSweep(focus: false);
             };
-            _marquee.ClickedEmpty += () =>
+            marquee.ClickedEmpty += () =>
             {
                 FocusChatList();
                 ClearChatSelection();
             };
 
-            // Своё меню по правому щелчку: для строки — её меню «⋯», для выбранного — всего выбора.
-            ChatListPanel.AddHandler(ContextMenuOpeningEvent, new ContextMenuEventHandler(ChatListPanel_ContextMenuOpening));
+            return marquee;
         }
 
         /// <summary>Рамка кончилась: полоса действий встаёт по отпусканию, отложенная перерисовка — тоже.</summary>

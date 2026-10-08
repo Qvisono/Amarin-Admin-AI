@@ -174,7 +174,8 @@ internal sealed class ChatListMarquee
         return false;
     }
 
-    private void OnPress(MouseButtonEventArgs e)
+    /// <summary>Нажатие в колонке. Окно зовёт его и само — для нажатия, которое рамку создало.</summary>
+    internal void OnPress(MouseButtonEventArgs e)
     {
         _press = null;
         if (!_canStart() || e.OriginalSource is not DependencyObject origin || !StartsHere(origin, out var onHeader))

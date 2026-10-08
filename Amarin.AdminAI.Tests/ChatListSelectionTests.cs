@@ -146,6 +146,36 @@ public sealed class ChatListSelectionTests : IDisposable
     }
 
     [Fact]
+    public void The_marquee_is_built_by_the_first_press_in_the_column_not_by_the_window()
+    {
+        // В конструкторе окна рамка стоила ~7 мс холодного запуска, а нужна она лишь тому, кто
+        // за неё возьмётся. Первое нажатие заводит её один раз; дальше нажатия ловит она сама.
+        var (beforePress, afterPress, sameAfterSecond) = _wpf.Ui.Invoke(() =>
+        {
+            var (window, _) = OpenWindow();
+            try
+            {
+                // Событие прямое: на колонке его поднимает её собственный разбор нажатия, туда и шлём.
+                var column = (UIElement)window.FindName("SideBarScrollViewer")!;
+                var before = BuiltMarquee(window);
+                Press(column);
+                var first = BuiltMarquee(window);
+                first?.Cancel();
+                Press(column);
+                return (before, first, ReferenceEquals(first, BuiltMarquee(window)));
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+
+        Assert.Null(beforePress);
+        Assert.NotNull(afterPress);
+        Assert.True(sameAfterSecond);
+    }
+
+    [Fact]
     public void The_list_waits_for_the_marquee_before_rebuilding()
     {
         var (during, after) = With((window, services, marquee) =>
@@ -351,6 +381,17 @@ public sealed class ChatListSelectionTests : IDisposable
 
     private (MainWindow Window, AppServices Services, ChatListMarquee Marquee) Open()
     {
+        var (window, services) = OpenWindow();
+        var marquee = (ChatListMarquee)typeof(MainWindow)
+            .GetProperty("Marquee", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(window)!;
+        marquee.RealMouse = false;
+        Refresh(window);
+        return (window, services, marquee);
+    }
+
+    private (MainWindow Window, AppServices Services) OpenWindow()
+    {
         var services = UiServices.Build(Path.Combine(_root, Guid.NewGuid().ToString("N")[..8]), "k", new HttpClientHandler());
         var now = DateTime.Now;
         var minutes = 0;
@@ -372,13 +413,11 @@ public sealed class ChatListSelectionTests : IDisposable
         };
         window.AttachServices(services);
         window.Show();
-        var marquee = (ChatListMarquee)typeof(MainWindow)
-            .GetField("_marquee", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(window)!;
-        marquee.RealMouse = false;
-        Refresh(window);
-        return (window, services, marquee);
+        return (window, services);
     }
+
+    private static ChatListMarquee? BuiltMarquee(MainWindow window) =>
+        (ChatListMarquee?)typeof(MainWindow).GetField("_marquee", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window);
 
     private static void Refresh(MainWindow window)
     {
