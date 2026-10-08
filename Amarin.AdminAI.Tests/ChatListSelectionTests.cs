@@ -350,6 +350,35 @@ public sealed class ChatListSelectionTests : IDisposable
     }
 
     [Fact]
+    public void The_menu_key_on_the_column_opens_the_menu_of_the_whole_selection()
+    {
+        // Полосы с кнопками над списком нет (1.32.0): с клавиатуры до действий над выбором ведёт
+        // клавиша меню — после рамки и Ctrl+A фокус как раз у колонки, а не у строки.
+        var (headers, kept, withoutSelection) = With((window, _, _) =>
+        {
+            Call(window, "ToggleChatSelection", "a");
+            Call(window, "ToggleChatSelection", "b");
+            var column = (UIElement)window.FindName("SideBarScrollViewer")!;
+            column.RaiseEvent(KeyboardMenu(column));
+            var items = OpenMenus().SelectMany(menu => menu.Items.OfType<MenuItem>()).Select(item => item.Header as string).ToList();
+            var selected = Selected(window).Count;
+            CloseMenus();
+
+            // Без выбора клавиша меню на колонке ничего не открывает: у пустого места меню нет.
+            Call(window, "ClearChatSelection");
+            column.RaiseEvent(KeyboardMenu(column));
+            var none = OpenMenus().Count;
+            CloseMenus();
+            return (items, selected, none);
+        });
+
+        Assert.Contains(Loc.Get("S.Common.Delete"), headers);
+        Assert.Contains(Loc.Get("S.ChatList.MoveToFolder") + "…", headers);
+        Assert.Equal(2, kept);
+        Assert.Equal(0, withoutSelection);
+    }
+
+    [Fact]
     public void Renaming_several_chats_gives_them_one_name()
     {
         var titles = With((window, services, _) =>
@@ -460,18 +489,32 @@ public sealed class ChatListSelectionTests : IDisposable
             RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent
         });
 
+    private static List<ContextMenu> OpenMenus() =>
+        [.. PresentationSource.CurrentSources.OfType<System.Windows.Interop.HwndSource>()
+            .Select(source => source.RootVisual)
+            .OfType<DependencyObject>()
+            .SelectMany(root => root is ContextMenu own ? [own] : Descendants<ContextMenu>(root))
+            .Where(menu => menu.IsOpen)];
+
     private static void CloseMenus()
     {
-        foreach (var menu in PresentationSource.CurrentSources.OfType<System.Windows.Interop.HwndSource>()
-                     .Select(source => source.RootVisual)
-                     .OfType<DependencyObject>()
-                     .SelectMany(root => root is ContextMenu own ? [own] : Descendants<ContextMenu>(root))
-                     .Where(menu => menu.IsOpen)
-                     .ToList())
+        foreach (var menu in OpenMenus())
         {
             menu.IsOpen = false;
         }
     }
+
+    /// <summary>
+    /// Клавиша меню на элементе: у вызова с клавиатуры нет точки курсора (-1, -1). Конструктор
+    /// аргументов у WPF внутренний — так же их создаёт сама служба контекстных меню.
+    /// </summary>
+    private static ContextMenuEventArgs KeyboardMenu(object source) =>
+        (ContextMenuEventArgs)Activator.CreateInstance(
+            typeof(ContextMenuEventArgs),
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            args: [source, true, -1.0, -1.0],
+            culture: null)!;
 
     private static RichTextBox FindCodeBox(DependencyObject root)
     {

@@ -2984,7 +2984,7 @@ namespace Amarin.UI
             }
 
             RenderChatListNodes(nodes, droppable: !searching);
-            UpdateBatchBar();
+            PruneChatSelection();
 
             if (ChatListPanel.Children.Count == 0 && !string.IsNullOrWhiteSpace(query))
             {
@@ -3107,16 +3107,11 @@ namespace Amarin.UI
             SidebarGrip.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
             if (collapsed)
             {
-                BatchBar.Visibility = Visibility.Collapsed;
                 TagFilterPill.Visibility = Visibility.Collapsed;
             }
-            else
+            else if (_services is { } organized)
             {
-                UpdateBatchBar();
-                if (_services is { } organized)
-                {
-                    RefreshTagFilterPill(organized.Organizer.Snapshot(), SearchBox.Text);
-                }
+                RefreshTagFilterPill(organized.Organizer.Snapshot(), SearchBox.Text);
             }
 
             if (_services is { } services && services.Settings.SidebarCollapsed != collapsed)

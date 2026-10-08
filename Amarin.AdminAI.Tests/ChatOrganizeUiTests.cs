@@ -91,9 +91,11 @@ public sealed class ChatOrganizeUiTests : IDisposable
     }
 
     [Fact]
-    public void Ctrl_selection_marks_rows_and_shows_the_batch_bar()
+    public void Ctrl_selection_marks_rows_without_an_action_strip_over_the_list()
     {
-        var (selected, bar, count, cleared) = With((window, services) =>
+        // 1.32.0: полосы действий над списком нет — всё это есть в меню выбора по правому щелчку,
+        // а полоса только сдвигала список вниз на свою высоту.
+        var (selected, strip, cleared) = With((window, services) =>
         {
             Save(services, "a", "A");
             Save(services, "b", "B");
@@ -102,17 +104,14 @@ public sealed class ChatOrganizeUiTests : IDisposable
             Call(window, "ToggleChatSelection", "a");
             Call(window, "ToggleChatSelection", "b");
             var marks = (ChatRowState.GetIsSelected(Row(window, "a")!), ChatRowState.GetIsSelected(Row(window, "b")!));
-            var visible = Find<Border>(window, "BatchBar").Visibility;
-            var text = Find<TextBlock>(window, "BatchCount").Text;
 
             Call(window, "ClearChatSelection");
-            return (marks, visible, text, (Find<Border>(window, "BatchBar").Visibility, ChatRowState.GetIsSelected(Row(window, "a")!)));
+            return (marks, window.FindName("BatchBar"), ChatRowState.GetIsSelected(Row(window, "a")!));
         });
 
         Assert.Equal((true, true), selected);
-        Assert.Equal(Visibility.Visible, bar);
-        Assert.Contains("2", count, StringComparison.Ordinal);
-        Assert.Equal((Visibility.Collapsed, false), cleared);
+        Assert.Null(strip);
+        Assert.False(cleared);
     }
 
     [Fact]

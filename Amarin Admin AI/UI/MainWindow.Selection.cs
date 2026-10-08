@@ -60,6 +60,7 @@ namespace Amarin.UI
 
             // Своё меню по правому щелчку: для строки — её меню «⋯», для выбранного — всего выбора.
             ChatListPanel.AddHandler(ContextMenuOpeningEvent, new ContextMenuEventHandler(ChatListPanel_ContextMenuOpening));
+            SideBarScrollViewer.ContextMenuOpening += SideBarScrollViewer_ContextMenuOpening;
         }
 
         /// <summary>Рамка выделения колонки чатов; создаётся при первом обращении.</summary>
@@ -112,11 +113,7 @@ namespace Amarin.UI
             return marquee;
         }
 
-        /// <summary>Рамка кончилась: полоса действий встаёт по отпусканию, отложенная перерисовка — тоже.</summary>
-        /// <remarks>
-        /// Полоса действий стоит над списком, и появись она посреди жеста — список съехал бы под
-        /// рамкой вниз на её высоту.
-        /// </remarks>
+        /// <summary>Рамка кончилась: отложенная посреди жеста перерисовка списка идёт сейчас.</summary>
         private void FinishSweep(bool focus)
         {
             _sweepBasis = null;
@@ -126,7 +123,6 @@ namespace Amarin.UI
                 FocusChatList();
             }
 
-            UpdateBatchBar();
             if (_chatListRefreshPending)
             {
                 _chatListRefreshPending = false;
@@ -204,7 +200,6 @@ namespace Amarin.UI
         {
             _selection.ToggleFolder(folderId, ChatListMembersNow.Of(folderId));
             RefreshChatRowStates();
-            UpdateBatchBar();
         }
 
         /// <summary>Ctrl+щелчок по заголовку архива: выбрать все его чаты или снять.</summary>
@@ -221,7 +216,6 @@ namespace Amarin.UI
             }
 
             RefreshChatRowStates();
-            UpdateBatchBar();
         }
 
         // ───────────────────────── клавиши ─────────────────────────
@@ -241,7 +235,6 @@ namespace Amarin.UI
 
             _selection.SelectAll(ChatListMembersNow);
             RefreshChatRowStates();
-            UpdateBatchBar();
             return true;
         }
 
@@ -360,6 +353,43 @@ namespace Amarin.UI
                     OpenSelectionMenu(row, placement);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Клавиша меню (или Shift+F10), когда клавиатура у самой колонки, а не у строки: меню всего
+        /// выбора, то же, что по правому щелчку на выбранной строке.
+        /// </summary>
+        /// <remarks>
+        /// Полосы с кнопками над списком нет (1.32.0), и без этого с клавиатуры до действий над
+        /// выбором было бы не добраться: после рамки и Ctrl+A фокус стоит на колонке. Правый щелчок
+        /// по пустому месту меню не открывает — у пустого места своего меню нет, как в Проводнике.
+        /// </remarks>
+        private void SideBarScrollViewer_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            var fromKeyboard = e.CursorLeft < 0 && e.CursorTop < 0;
+            if (e.Handled || !fromKeyboard || _selection.IsEmpty || _sidebarCollapsed)
+            {
+                return;
+            }
+
+            e.Handled = true;
+
+            // Под первой выбранной строкой, что видна; выбранное целиком за краем — посреди колонки.
+            var anchor = ChatListPanel.Children.OfType<Button>()
+                .FirstOrDefault(row => ChatRowState.GetIsSelected(row) && InSidebarView(row));
+            if (anchor is null)
+            {
+                OpenSelectionMenu(SideBarScrollViewer, PlacementMode.Center);
+                return;
+            }
+
+            OpenSelectionMenu(anchor, PlacementMode.Bottom);
+        }
+
+        private bool InSidebarView(FrameworkElement row)
+        {
+            var top = row.TranslatePoint(default, SideBarScrollViewer).Y;
+            return top >= 0 && top + row.ActualHeight <= SideBarScrollViewer.ViewportHeight;
         }
 
         /// <summary>Прямой ребёнок списка, внутри которого щёлкнули: строка чата или заголовок.</summary>

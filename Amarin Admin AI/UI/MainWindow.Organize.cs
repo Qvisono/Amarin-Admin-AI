@@ -60,7 +60,6 @@ namespace Amarin.UI
 
             _selection.Reset();
             RefreshChatList();
-            UpdateBatchBar();
         }
 
         private ChatOrganizer.State? _organizeSnapshot;
@@ -782,7 +781,6 @@ namespace Amarin.UI
         {
             _selection.Toggle(id);
             RefreshChatRowStates();
-            UpdateBatchBar();
         }
 
         /// <summary>Shift+щелчок: всё между якорем и этой строкой в том порядке, что на экране.</summary>
@@ -794,7 +792,6 @@ namespace Amarin.UI
                 .ToList();
             _selection.SelectRange(id, visible, _session.Id);
             RefreshChatRowStates();
-            UpdateBatchBar();
         }
 
         private void ClearChatSelection()
@@ -805,60 +802,29 @@ namespace Amarin.UI
             }
 
             RefreshChatRowStates();
-            UpdateBatchBar();
         }
 
-        private void UpdateBatchBar()
+        /// <summary>
+        /// Выбранный чат или папка могли исчезнуть (удалены из другого места, сменился профиль) —
+        /// выбор их забывает, иначе «Удалить» спросило бы и о том, чего уже нет.
+        /// </summary>
+        /// <remarks>
+        /// Полосы действий над списком с 1.32.0 нет: всё, что она умела, есть в меню выбора по
+        /// правому щелчку, а с клавиатуры — по клавише меню (<see cref="SideBarScrollViewer_ContextMenuOpening"/>).
+        /// </remarks>
+        private void PruneChatSelection()
         {
-            // Выбранный чат или папка могли исчезнуть (удалены из другого места, сменился профиль).
-            if (_services is not null && !_selection.IsEmpty)
+            if (_services is null || _selection.IsEmpty)
             {
-                _selection.KeepOnly(
-                    _services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal),
-                    OrganizeSnapshot().Folders.Select(folder => folder.Id).ToHashSet(StringComparer.Ordinal));
-            }
-
-            if (_selection.IsEmpty || _sidebarCollapsed)
-            {
-                BatchBar.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            // Только число: пять кнопок полосы в колонке шириной 184 оставляли подписи «Выбрано: 12»
-            // два знака, и на месте счёта стояло «Вы…». Полная подпись — в подсказке и диктору.
-            var selected = Loc.Format("S.ChatList.Selected", _selection.Count);
-            BatchCount.Text = _selection.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
-            BatchCount.ToolTip = selected;
-            System.Windows.Automation.AutomationProperties.SetName(BatchCount, selected);
-            var allArchived = _services is not null &&
-                              _selection.Items.All(id => _services.Organizer.PlacementOf(id).Archived);
-            var archiveKey = allArchived ? "S.ChatList.Unarchive" : "S.ChatList.Archive";
-            BatchArchiveButton.SetResourceReference(ToolTipProperty, archiveKey);
-            System.Windows.Automation.AutomationProperties.SetName(BatchArchiveButton, Loc.Get(archiveKey));
-            BatchBar.Visibility = Visibility.Visible;
+            _selection.KeepOnly(
+                _services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal),
+                OrganizeSnapshot().Folders.Select(folder => folder.Id).ToHashSet(StringComparer.Ordinal));
         }
 
         private IReadOnlyList<string> SelectedChats() => _selection.Items;
-
-        private void BatchFolderButton_Click(object sender, RoutedEventArgs e) => OpenFolderPicker(BatchFolderButton, SelectedChats());
-
-        private void BatchTagButton_Click(object sender, RoutedEventArgs e) => OpenTagPicker(BatchTagButton, SelectedChats());
-
-        private void BatchArchiveButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_services is null || _selection.Count == 0)
-            {
-                return;
-            }
-
-            var allArchived = _selection.Items.All(id => _services.Organizer.PlacementOf(id).Archived);
-            ArchiveChats(SelectedChats(), !allArchived);
-        }
-
-        private void BatchDeleteButton_Click(object sender, RoutedEventArgs e) =>
-            Detached.Run(DeleteChatsAsync(SelectedChats(), SelectedFolders()), "delete_chats");
-
-        private void BatchClearButton_Click(object sender, RoutedEventArgs e) => ClearChatSelection();
 
         // ───────────────────────── Действия ─────────────────────────
 

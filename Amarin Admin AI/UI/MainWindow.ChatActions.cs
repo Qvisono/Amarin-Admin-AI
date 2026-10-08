@@ -349,7 +349,6 @@ namespace Amarin.UI
             }
 
             RefreshChatList();
-            UpdateBatchBar();
         }
     }
 }

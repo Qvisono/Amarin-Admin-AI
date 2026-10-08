@@ -412,7 +412,6 @@
     <system:String x:Key="S.ChatList.Archive" xml:space="preserve">В архив</system:String>
     <system:String x:Key="S.ChatList.ArchiveGroup" xml:space="preserve">Архив</system:String>
     <system:String x:Key="S.ChatList.ClearFilter" xml:space="preserve">Снять фильтр</system:String>
-    <system:String x:Key="S.ChatList.ClearSelection" xml:space="preserve">Снять выбор</system:String>
     <system:String x:Key="S.ChatList.Collapse" xml:space="preserve">Свернуть</system:String>
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">Все сохранённые чаты удалятся без возврата.</system:String>
     <system:String x:Key="S.ChatList.DeleteAllTitle" xml:space="preserve">Удалить все чаты?</system:String>
@@ -447,7 +446,6 @@
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Закреплённые</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Переименовать папку</system:String>
-    <system:String x:Key="S.ChatList.Selected" xml:space="preserve">Выбрано: {0}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Поделиться</system:String>
     <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">По цене</system:String>
     <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">По дате создания</system:String>
@@ -1203,7 +1201,7 @@
     <system:String x:Key="S.Hotkeys.ReplyDesc" xml:space="preserve">Прикрепляет выделенный фрагмент ответа к сообщению как цитату</system:String>
     <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Нажмите клавиши</system:String>
     <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Вернуть заводское сочетание</system:String>
-    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, раскладывать по папкам, переименовывать и удалять. Несколько чатов выделяются рамкой мышью или Ctrl+A, и действие из меню применяется ко всем сразу. К сообщению можно приложить файлы и картинки. Модель может отвечать сразу в трёх чатах: пока она отвечает в одном, можно работать в другом.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">Слева список чатов: их можно закреплять, раскладывать по папкам, переименовывать и удалять. Несколько чатов выделяются рамкой мышью или Ctrl+A, и действие из меню по правому щелчку применяется ко всем сразу. К сообщению можно приложить файлы и картинки. Модель может отвечать сразу в трёх чатах: пока она отвечает в одном, можно работать в другом.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Переписка и вложения</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Перед удалением, записью в реестр, установкой программ и другими необратимыми действиями программа спрашивает вас и ждёт ответа. В запросе простыми словами сказано, что произойдёт, а в «Подробностях» лежит точная команда или скрипт. Отказ - обычный ответ: модель его видит и ищет другой путь. Есть режим, в котором всё подтверждается автоматически, но его нужно выбрать самому.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Подтверждение опасных действий</system:String>

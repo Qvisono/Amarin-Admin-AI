@@ -412,7 +412,6 @@
     <system:String x:Key="S.ChatList.Archive" xml:space="preserve">Archive</system:String>
     <system:String x:Key="S.ChatList.ArchiveGroup" xml:space="preserve">Archive</system:String>
     <system:String x:Key="S.ChatList.ClearFilter" xml:space="preserve">Clear filter</system:String>
-    <system:String x:Key="S.ChatList.ClearSelection" xml:space="preserve">Clear selection</system:String>
     <system:String x:Key="S.ChatList.Collapse" xml:space="preserve">Collapse</system:String>
     <system:String x:Key="S.ChatList.DeleteAllConfirm" xml:space="preserve">All saved chats will be deleted for good.</system:String>
     <system:String x:Key="S.ChatList.DeleteAllTitle" xml:space="preserve">Delete all chats?</system:String>
@@ -447,7 +446,6 @@
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Pinned</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Rename</system:String>
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Rename folder</system:String>
-    <system:String x:Key="S.ChatList.Selected" xml:space="preserve">Selected: {0}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Share</system:String>
     <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">By cost</system:String>
     <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">By date created</system:String>
@@ -1203,7 +1201,7 @@
     <system:String x:Key="S.Hotkeys.ReplyDesc" xml:space="preserve">Attaches the selected part of a reply to your message as a quote</system:String>
     <system:String x:Key="S.Hotkeys.Press" xml:space="preserve">Press the keys</system:String>
     <system:String x:Key="S.Hotkeys.Reset" xml:space="preserve">Restore the default shortcut</system:String>
-    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: chats can be pinned, sorted into folders, renamed and deleted. Select several chats by dragging a frame with the mouse or with Ctrl+A, and a menu action applies to all of them. You can attach files and images to a message. The model can answer in up to three chats at once: while it answers in one, you can work in another.</system:String>
+    <system:String x:Key="S.Info.Basics.Chat.Text" xml:space="preserve">The chat list is on the left: chats can be pinned, sorted into folders, renamed and deleted. Select several chats by dragging a frame with the mouse or with Ctrl+A, and an action from the right-click menu applies to all of them. You can attach files and images to a message. The model can answer in up to three chats at once: while it answers in one, you can work in another.</system:String>
     <system:String x:Key="S.Info.Basics.Chat.Title" xml:space="preserve">Conversations and attachments</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Text" xml:space="preserve">Before deleting, writing to the registry, installing software or doing anything else irreversible, the app asks you and waits for your answer. The request says in plain words what will happen, and Details holds the exact command or script. Refusing is a normal answer: the model sees it and looks for another way. There is a mode that approves everything automatically, but you have to choose it yourself.</system:String>
     <system:String x:Key="S.Info.Basics.Confirm.Title" xml:space="preserve">Confirming dangerous actions</system:String>
