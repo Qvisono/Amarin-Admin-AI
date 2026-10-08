@@ -13,7 +13,7 @@ namespace Amarin.UI
     /// </summary>
     /// <remarks>
     /// Что выбрано, держит <see cref="ChatSelection"/>; какие чаты стоят за заголовками папок и
-    /// архива — <see cref="_chatListMembers"/>, собранный вместе с раскладкой списка тем же
+    /// архива — <see cref="ChatListMembersNow"/>, собранный по раскладке списка тем же
     /// фильтром. Поэтому рамка по свёрнутой папке выбирает и её невидимые чаты, а Ctrl+A при
     /// фильтре по тегу — только то, что фильтр показывает: удалить то, чего не видно, нельзя.
     /// </remarks>
@@ -22,13 +22,31 @@ namespace Amarin.UI
         private ChatListMarquee? _marquee;
 
         /// <summary>Что остаётся выбранным под рамкой: прежний выбор с Ctrl, ничего — без него.</summary>
-        private ChatSelectionBasis _sweepBasis = ChatSelectionBasis.Empty;
+        private ChatSelectionBasis? _sweepBasis;
 
         /// <summary>Выбор до рамки — его возвращает Esc, с Ctrl рамка шла или без.</summary>
-        private ChatSelectionBasis _beforeSweep = ChatSelectionBasis.Empty;
+        private ChatSelectionBasis? _beforeSweep;
+
+        /// <summary>Как посчитать чаты за заголовками того, что сейчас показывает список.</summary>
+        private Func<ChatListMembers>? _chatListMembersSource;
+
+        private ChatListMembers? _chatListMembers;
 
         /// <summary>Чаты за заголовками того, что сейчас показывает список.</summary>
-        private ChatListMembers _chatListMembers = ChatListMembers.Empty;
+        /// <remarks>
+        /// Считаются по первому вопросу после пересборки, а не при каждой: без выбора их не
+        /// спрашивает никто, а пересборок списка за сеанс сотни, и первая из них — на запуске.
+        /// Источник держит снимки той пересборки (строки, раскладку, фильтр), поэтому поздний
+        /// счёт видит ровно то, что показано.
+        /// </remarks>
+        private ChatListMembers ChatListMembersNow =>
+            _chatListMembers ??= _chatListMembersSource?.Invoke() ?? ChatListMembers.Empty;
+
+        private void SetChatListMembers(Func<ChatListMembers>? source)
+        {
+            _chatListMembersSource = source;
+            _chatListMembers = null;
+        }
 
         /// <summary>Список просили пересобрать посреди рамки — это случится, когда она кончится.</summary>
         private bool _chatListRefreshPending;
@@ -75,13 +93,13 @@ namespace Amarin.UI
             marquee.Swept += rows =>
             {
                 var (chats, folders) = Expand(rows);
-                _selection.Sweep(_sweepBasis, chats, folders);
+                _selection.Sweep(_sweepBasis ?? ChatSelectionBasis.Empty, chats, folders);
                 RefreshChatRowStates();
             };
             marquee.Ended += () => FinishSweep(focus: true);
             marquee.Cancelled += () =>
             {
-                _selection.Sweep(_beforeSweep, [], []);
+                _selection.Sweep(_beforeSweep ?? ChatSelectionBasis.Empty, [], []);
                 RefreshChatRowStates();
                 FinishSweep(focus: false);
             };
@@ -101,8 +119,8 @@ namespace Amarin.UI
         /// </remarks>
         private void FinishSweep(bool focus)
         {
-            _sweepBasis = ChatSelectionBasis.Empty;
-            _beforeSweep = ChatSelectionBasis.Empty;
+            _sweepBasis = null;
+            _beforeSweep = null;
             if (focus)
             {
                 FocusChatList();
@@ -142,10 +160,10 @@ namespace Amarin.UI
                         break;
                     case ChatFolder folder:
                         folders.Add(folder.Id);
-                        chats.AddRange(_chatListMembers.Of(folder.Id));
+                        chats.AddRange(ChatListMembersNow.Of(folder.Id));
                         break;
                     case ChatListArchive:
-                        chats.AddRange(_chatListMembers.Archived);
+                        chats.AddRange(ChatListMembersNow.Archived);
                         break;
                 }
             }
@@ -154,7 +172,7 @@ namespace Amarin.UI
         }
 
         /// <summary>Папки, выбранные целиком: «Удалить» уносит их вместе с чатами.</summary>
-        private IReadOnlyList<string> SelectedFolders() => _selection.WholeFolders(_chatListMembers);
+        private IReadOnlyList<string> SelectedFolders() => _selection.WholeFolders(ChatListMembersNow);
 
         /// <summary>
         /// Заголовок папки выбран, когда папка выбрана целиком; заголовок архива — когда выбраны все
@@ -162,15 +180,17 @@ namespace Amarin.UI
         /// </summary>
         private void RefreshHeaderSelection()
         {
-            var whole = SelectedFolders().ToHashSet(StringComparer.Ordinal);
-            var archive = _chatListMembers.Archived;
-            var archiveSelected = archive.Count > 0 && archive.All(_selection.Contains);
+            // Без выбора заголовки просто гаснут: состав папок для этого не нужен, а считать его
+            // на каждой пересборке списка (и на запуске) было бы лишней работой.
+            var any = !_selection.IsEmpty;
+            var whole = any ? SelectedFolders().ToHashSet(StringComparer.Ordinal) : null;
+            var archiveSelected = any && ChatListMembersNow.Archived is { Count: > 0 } archive && archive.All(_selection.Contains);
             foreach (var child in ChatListPanel.Children)
             {
                 switch (child)
                 {
                     case Button { Tag: ChatFolder folder } header:
-                        Flip(header, ChatRowState.IsSelectedProperty, whole.Contains(folder.Id));
+                        Flip(header, ChatRowState.IsSelectedProperty, whole?.Contains(folder.Id) == true);
                         break;
                     case Button { Tag: ChatListArchive } header:
                         Flip(header, ChatRowState.IsSelectedProperty, archiveSelected);
@@ -182,7 +202,7 @@ namespace Amarin.UI
         /// <summary>Ctrl+щелчок по заголовку папки: выбрать её целиком или снять.</summary>
         private void ToggleFolderSelection(string folderId)
         {
-            _selection.ToggleFolder(folderId, _chatListMembers.Of(folderId));
+            _selection.ToggleFolder(folderId, ChatListMembersNow.Of(folderId));
             RefreshChatRowStates();
             UpdateBatchBar();
         }
@@ -190,7 +210,7 @@ namespace Amarin.UI
         /// <summary>Ctrl+щелчок по заголовку архива: выбрать все его чаты или снять.</summary>
         private void ToggleArchiveSelection()
         {
-            var archived = _chatListMembers.Archived;
+            var archived = ChatListMembersNow.Archived;
             if (archived.Count > 0 && archived.All(_selection.Contains))
             {
                 _selection.Remove(archived);
@@ -219,7 +239,7 @@ namespace Amarin.UI
                 return false;
             }
 
-            _selection.SelectAll(_chatListMembers);
+            _selection.SelectAll(ChatListMembersNow);
             RefreshChatRowStates();
             UpdateBatchBar();
             return true;

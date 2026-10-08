@@ -2903,7 +2903,7 @@ namespace Amarin.UI
             // нечего — ни рамкой, ни Ctrl+A.
             if (_searchByText && query.Trim().Length > 0)
             {
-                _chatListMembers = ChatListMembers.Empty;
+                SetChatListMembers(null);
                 RenderTextSearch(query);
                 return;
             }
@@ -2965,12 +2965,13 @@ namespace Amarin.UI
                 // заголовку папки и архив прятали бы найденное за свёрнутыми группами.
                 var ordered = IsContentSearchResult ? items : ChatListLayout.Sort(items, sort).ToList();
                 nodes = ChatListLayout.Flat(ordered, organize, "S.Search.Found");
-                _chatListMembers = ChatListMembers.Flat(ordered.Select(entry => entry.Id));
+                SetChatListMembers(() => ChatListMembers.Flat(ordered.Select(entry => entry.Id)));
             }
             else
             {
                 nodes = ChatListLayout.Build(items, organize, sort, _tagFilter, _archiveExpanded, DateTime.Today);
-                _chatListMembers = ChatListLayout.Members(items, organize, _tagFilter);
+                var tagFilter = _tagFilter;
+                SetChatListMembers(() => ChatListLayout.Members(items, organize, tagFilter));
             }
 
             // Первый кадр запуска строит только видимое (RefreshChatListFirstScreen). Подпись
