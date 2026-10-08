@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -198,6 +198,18 @@ internal static class CodeBlockView
         root.SetResourceReference(Border.BorderBrushProperty, "Border.Subtle");
 
         ForwardMouseWheel(root, scroller);
+        root.RequestBringIntoView += ForwardBringIntoView;
+
+        // Нажатие на свободном месте блока (шапка, поля, правее строк) не должно доходить до
+        // редактора ответа: тот ставил каретку за блоком и листал ленту к его концу. Нажатие на
+        // коде и кнопках гасят они сами, правая кнопка остаётся меню ленты.
+        root.MouseDown += (_, e) =>
+        {
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                e.Handled = true;
+            }
+        };
         return root;
     }
 
@@ -503,6 +515,59 @@ internal static class CodeBlockView
                 Source = outer
             });
         };
+    }
+
+    /// <summary>
+    /// Просьба показать часть блока (каретку при выделении, сам блок при фокусе) уходит ленте в
+    /// обход документа ответа, в котором блок лежит.
+    /// </summary>
+    /// <remarks>
+    /// Блок — элемент внутри документа ответа (<see cref="BlockUIContainer"/>), и прокрутка этого
+    /// документа (FlowDocumentView) переводит прямоугольник вложенного элемента в самый верх
+    /// сообщения. Щелчок по коду ставит каретку, редактор просит показать её — и лента уезжала к
+    /// началу ответа прямо под мышью, а выделение тянулось вверх по всему блоку. Поэтому просьба
+    /// гасится у блока и поднимается заново с родителя документа, с прямоугольником в его
+    /// координатах: при выделении мышью за край ленты она по-прежнему листается за кареткой.
+    /// Просьбу показать блок целиком (её шлёт фокус) после щелчка мышью не передаём: блок под
+    /// курсором и так на экране, а лента ехала бы под мышью. С клавиатуры (Tab) — передаём:
+    /// фокус должен быть виден.
+    /// </remarks>
+    private static void ForwardBringIntoView(object sender, RequestBringIntoViewEventArgs e)
+    {
+        if (sender is not FrameworkElement block || e.TargetObject is not Visual target || DocumentHost(block) is not { } outside)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        var rect = e.TargetRect.IsEmpty && target is UIElement element ? new Rect(element.RenderSize) : e.TargetRect;
+        // Каретка — строка-другая; больше — это просьба показать блок целиком.
+        var caret = rect.Height <= CodeLineHeight * 2;
+        var fromKeyboard = InputManager.Current.MostRecentInputDevice is KeyboardDevice;
+        if ((!caret && !fromKeyboard) || !target.IsDescendantOf(outside))
+        {
+            return;
+        }
+
+        outside.BringIntoView(target.TransformToAncestor(outside).TransformBounds(rect));
+    }
+
+    /// <summary>
+    /// Родитель документа ответа, в котором лежит блок: первый предок за пределами его
+    /// <see cref="RichTextBox"/>. Блок вне документа (печать, тесты) — <c>null</c>, и просьба
+    /// идёт обычным путём.
+    /// </summary>
+    private static FrameworkElement? DocumentHost(DependencyObject block)
+    {
+        for (var node = VisualTreeHelper.GetParent(block); node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is RichTextBox document)
+            {
+                return VisualTreeHelper.GetParent(document) as FrameworkElement;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

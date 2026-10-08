@@ -1933,18 +1933,26 @@ namespace Amarin.UI
 
         private static bool IsInside(DependencyObject root, DependencyObject node)
         {
-            for (DependencyObject? current = node; current is not null;)
+            for (DependencyObject? current = node; current is not null; current = ParentOf(current))
             {
                 if (ReferenceEquals(current, root))
                 {
                     return true;
                 }
-
-                current = VisualTreeHelper.GetParent(current) ?? LogicalTreeHelper.GetParent(current);
             }
 
             return false;
         }
+
+        /// <summary>
+        /// Родитель в дереве окна. У текста документа (<see cref="System.Windows.Documents.Run"/>,
+        /// абзац) визуального родителя нет — <see cref="VisualTreeHelper.GetParent"/> на нём бросает,
+        /// а нажатие мышью в ленте приходит как раз от него, — поэтому только логический.
+        /// </summary>
+        private static DependencyObject? ParentOf(DependencyObject node) =>
+            node is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(node) ?? LogicalTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
 
         private void InsertIntoMessageBox(string text)
         {

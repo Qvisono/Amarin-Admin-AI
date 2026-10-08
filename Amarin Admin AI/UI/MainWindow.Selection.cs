@@ -61,6 +61,7 @@ namespace Amarin.UI
             // Своё меню по правому щелчку: для строки — её меню «⋯», для выбранного — всего выбора.
             ChatListPanel.AddHandler(ContextMenuOpeningEvent, new ContextMenuEventHandler(ChatListPanel_ContextMenuOpening));
             SideBarScrollViewer.ContextMenuOpening += SideBarScrollViewer_ContextMenuOpening;
+            AddHandler(PreviewMouseDownEvent, new MouseButtonEventHandler(ClearSelectionOnPressElsewhere), handledEventsToo: true);
         }
 
         /// <summary>Рамка выделения колонки чатов; создаётся при первом обращении.</summary>
@@ -286,8 +287,7 @@ namespace Amarin.UI
         /// </remarks>
         private bool ChatListKeysAvailable()
         {
-            if (_services is null || IsLocked || ChatBlocked ||
-                ScaledRoot.Children.OfType<UIElement>().Skip(1).Any(layer => layer.Visibility == Visibility.Visible))
+            if (!MainLayoutUncovered())
             {
                 return false;
             }
@@ -296,6 +296,60 @@ namespace Amarin.UI
                    ReferenceEquals(focused, this) ||
                    IsInside(SidebarBorder, focused) ||
                    IsInside(Chat, focused);
+        }
+
+        /// <summary>Окно в обычном виде: нет блокировки и ничего не лежит поверх ленты и колонки.</summary>
+        private bool MainLayoutUncovered() =>
+            _services is not null && !IsLocked && !ChatBlocked &&
+            !ScaledRoot.Children.OfType<UIElement>().Skip(1).Any(layer => layer.Visibility == Visibility.Visible);
+
+        /// <summary>
+        /// Нажатие мышью вне списка чатов — в ленте, в поле ввода, на кнопках боковой панели —
+        /// снимает выбор, как и щелчок по пустому месту колонки.
+        /// </summary>
+        /// <remarks>
+        /// Список разбирает свои нажатия сам (Ctrl/Shift+щелчок, меню выбора), а пустое место
+        /// колонки — рамка: с Ctrl она добавляет к выбору, и снимать его на нажатии было бы рано
+        /// (щелчок без сдвига снимет его сама). Заголовок окна и край панели выбор не трогают: окно
+        /// двигают и тянут, не меняя, что выбрано. Не трогают и слои поверх окна (вопрос «Удалить?»,
+        /// переименование): они и есть дело над выбором.
+        /// </remarks>
+        private void ClearSelectionOnPressElsewhere(object sender, MouseButtonEventArgs e)
+        {
+            if (_selection.IsEmpty ||
+                e.ChangedButton is not (MouseButton.Left or MouseButton.Right) ||
+                e.OriginalSource is not DependencyObject origin ||
+                !MainLayoutUncovered())
+            {
+                return;
+            }
+
+            if (IsInside(Chat, origin) || IsSidebarControlOutsideList(origin))
+            {
+                ClearChatSelection();
+            }
+        }
+
+        /// <summary>Кнопка или поле боковой панели вне самого списка: «Новый чат», поиск, настройки.</summary>
+        private bool IsSidebarControlOutsideList(DependencyObject origin)
+        {
+            var control = false;
+            for (DependencyObject? node = origin; node is not null; node = ParentOf(node))
+            {
+                if (ReferenceEquals(node, ChatListPanel))
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(node, SidebarBorder))
+                {
+                    return control;
+                }
+
+                control |= node is ButtonBase or TextBoxBase;
+            }
+
+            return false;
         }
 
         private static bool FocusedTextSelectsAll() => TextOwnsSelectAll(Keyboard.FocusedElement);

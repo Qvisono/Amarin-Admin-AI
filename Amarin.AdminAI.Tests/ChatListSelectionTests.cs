@@ -350,6 +350,34 @@ public sealed class ChatListSelectionTests : IDisposable
     }
 
     [Fact]
+    public void A_press_anywhere_outside_the_list_clears_the_selection_but_the_title_bar_keeps_it()
+    {
+        // Как щелчок по пустому месту колонки: нажатие в ленте, в поле ввода или на кнопках
+        // боковой панели снимает выбор. Заголовок окна — нет: окно двигают, не меняя выбора.
+        var (input, transcript, search, title) = With((window, _, _) =>
+        {
+            bool PressClears(string element)
+            {
+                Call(window, "ToggleChatSelection", "a");
+                Call(window, "ToggleChatSelection", "b");
+                PressDown((UIElement)window.FindName(element)!);
+                return Selected(window).Count == 0;
+            }
+
+            var cleared = (PressClears("MessageTextBox"), PressClears("ChatScrollViewer"), PressClears("SearchBox"));
+            Call(window, "ClearChatSelection");
+            Call(window, "ToggleChatSelection", "a");
+            PressDown((UIElement)window.FindName("TitleText")!);
+            return (cleared.Item1, cleared.Item2, cleared.Item3, Selected(window).Count);
+        });
+
+        Assert.True(input);
+        Assert.True(transcript);
+        Assert.True(search);
+        Assert.Equal(1, title);
+    }
+
+    [Fact]
     public void The_menu_key_on_the_column_opens_the_menu_of_the_whole_selection()
     {
         // Полосы с кнопками над списком нет (1.32.0): с клавиатуры до действий над выбором ведёт
@@ -481,6 +509,13 @@ public sealed class ChatListSelectionTests : IDisposable
         notice.GetType().GetProperty("Task")?.GetValue(notice) is Task task
             ? task
             : Task.CompletedTask;
+
+    /// <summary>Нажатие на элементе так, как его видит окно: туннелем сверху вниз.</summary>
+    private static void PressDown(UIElement element) =>
+        element.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+        {
+            RoutedEvent = UIElement.PreviewMouseDownEvent
+        });
 
     /// <summary>Нажатие на элементе — настоящим событием: его разбирает сама рамка.</summary>
     private static void Press(UIElement element) =>
