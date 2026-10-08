@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -48,6 +48,28 @@ namespace Amarin.UI
                 }
             };
             _chatDrag.Starting += FinishChatListMotion;
+            SideBarScrollViewer.AddHandler(SmoothScroll.MotionChangedEvent, new RoutedEventHandler(SideBarScrollViewer_MotionChanged));
+        }
+
+        /// <summary>
+        /// Колонка тронулась или встала: на время её собственного хода строки не откликаются на
+        /// наведение (<see cref="ChatRowState.ScrollingProperty"/>).
+        /// </summary>
+        /// <remarks>
+        /// Под инерцией колеса строки проезжают под неподвижной мышью, и каждая раскладывала
+        /// заново заголовок и кнопку «⋯» — прокрутка над строками дёргалась, а у полосы шла
+        /// гладко. Встала колонка — строка под мышью подсвечивается как обычно.
+        /// </remarks>
+        private void SideBarScrollViewer_MotionChanged(object sender, RoutedEventArgs e)
+        {
+            var scrolling = SmoothScroll.GetIsInMotion(SideBarScrollViewer);
+            foreach (var child in ChatListPanel.Children)
+            {
+                if (child is Button { Tag: string } row)
+                {
+                    ChatRowState.SetScrolling(row, scrolling);
+                }
+            }
         }
 
         /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop.Apply"/>.</summary>
@@ -542,6 +564,12 @@ namespace Amarin.UI
 
             // Закрепление живёт только в описи, а меню действий читает его со строки.
             ChatRowState.SetIsPinned(button, chat.Entry.IsPinned);
+
+            // Строка, родившаяся посреди хода колонки, ведёт себя как соседи.
+            if (SmoothScroll.GetIsInMotion(SideBarScrollViewer))
+            {
+                ChatRowState.SetScrolling(button, true);
+            }
 
             // Подсказка: полное название (в строке оно обрезано) и цена чата целиком (E3).
             var tip = DisplayTitle(chat.Entry.Title) + "\n" + ChatFormat.DateTimeShort(chat.Entry.UpdatedAt, ActiveDateFormat);

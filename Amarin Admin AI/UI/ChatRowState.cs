@@ -125,6 +125,22 @@ public static class ChatRowState
     public static bool GetIsSelected(DependencyObject element) => Get(element, IsSelectedProperty);
 
     /// <summary>
+    /// Колонка едет сама (инерция колеса): строка не откликается на наведение — ни подсветкой,
+    /// ни кнопкой «⋯», ни подсказкой (1.32.0).
+    /// </summary>
+    /// <remarks>
+    /// Под неподвижной мышью строки проезжают одна за другой, и каждая раскладывала заново
+    /// заголовок и кнопку: прокрутка над строками дёргалась, а над пустым местом у полосы шла
+    /// гладко. Ставит его окно по <see cref="SmoothScroll.IsInMotionProperty"/> колонки.
+    /// </remarks>
+    public static readonly DependencyProperty ScrollingProperty =
+        DependencyProperty.RegisterAttached("Scrolling", typeof(bool), typeof(ChatRowState), new PropertyMetadata(false));
+
+    public static void SetScrolling(DependencyObject element, bool value) => Set(element, ScrollingProperty, value);
+
+    public static bool GetScrolling(DependencyObject element) => Get(element, ScrollingProperty);
+
+    /// <summary>
     /// Кисти тегов строки — до трёх точек перед названием (D5). Кисть ставится ссылкой на ресурс
     /// (<c>SetResourceReference</c>), поэтому точки перекрашиваются вместе с темой.
     /// </summary>

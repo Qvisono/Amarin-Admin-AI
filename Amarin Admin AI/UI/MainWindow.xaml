@@ -403,12 +403,25 @@
                                                 <StopStoryboard BeginStoryboardName="FlashRun"/>
                                             </Trigger.ExitActions>
                                         </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
+                                        <!--
+                                            Наведение — только пока колонка стоит. Под инерцией колеса
+                                            строки проезжают под неподвижной мышью, и каждая заново
+                                            раскладывала заголовок и кнопку «⋯»: прокрутка над строками
+                                            дёргалась (ChatRowState.Scrolling ставит окно).
+                                        -->
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                                <Condition Property="local:ChatRowState.Scrolling" Value="False"/>
+                                            </MultiTrigger.Conditions>
                                             <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Raised}"/>
                                             <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
                                             <Setter TargetName="Working" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="Done" Property="Visibility" Value="Collapsed"/>
                                             <Setter TargetName="Title" Property="Margin" Value="0,0,26,0"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="local:ChatRowState.Scrolling" Value="True">
+                                            <Setter Property="ToolTipService.IsEnabled" Value="False"/>
                                         </Trigger>
                                         <!-- Keep the affordance up while its menu is open, or it
                                              vanishes the moment the pointer leaves the row. -->

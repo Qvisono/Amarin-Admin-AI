@@ -350,6 +350,30 @@ public sealed class ChatListSelectionTests : IDisposable
     }
 
     [Fact]
+    public void While_the_column_coasts_the_rows_ignore_the_mouse_and_take_it_back_when_it_stops()
+    {
+        // Под инерцией колеса строки проезжают под неподвижной мышью, и каждая раскладывала
+        // заново заголовок и кнопку «⋯»: над строками прокрутка дёргалась, у полосы шла гладко.
+        var (moving, rowWhileMoving, tipWhileMoving, stopped, rowAfter) = With((window, _, _) =>
+        {
+            var column = (ScrollViewer)window.FindName("SideBarScrollViewer")!;
+            var row = Row(window, "a");
+            SmoothScroll.Fling(column, 4000);
+            var inMotion = SmoothScroll.GetIsInMotion(column);
+            var scrolling = ChatRowState.GetScrolling(row);
+            var tip = ToolTipService.GetIsEnabled(row);
+            SmoothScroll.Cancel(column);
+            return (inMotion, scrolling, tip, SmoothScroll.GetIsInMotion(column), ChatRowState.GetScrolling(row));
+        });
+
+        Assert.True(moving);
+        Assert.True(rowWhileMoving);
+        Assert.False(tipWhileMoving);
+        Assert.False(stopped);
+        Assert.False(rowAfter);
+    }
+
+    [Fact]
     public void A_press_anywhere_outside_the_list_clears_the_selection_but_the_title_bar_keeps_it()
     {
         // Как щелчок по пустому месту колонки: нажатие в ленте, в поле ввода или на кнопках

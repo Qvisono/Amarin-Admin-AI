@@ -82,6 +82,43 @@ namespace Amarin.UI
                 typeof(SmoothScroll),
                 new PropertyMetadata(false));
 
+        private static readonly DependencyPropertyKey IsInMotionKey =
+            DependencyProperty.RegisterAttachedReadOnly(
+                "IsInMotion",
+                typeof(bool),
+                typeof(SmoothScroll),
+                new PropertyMetadata(false, OnIsInMotionChanged));
+
+        /// <summary>Список тронулся или встал (<see cref="IsInMotionProperty"/>).</summary>
+        /// <remarks>
+        /// Событием, а не подпиской на свойство: подписка через описатель свойства стоила бы
+        /// конструктору окна отражения, а это событие — одного <c>AddHandler</c>.
+        /// </remarks>
+        public static readonly RoutedEvent MotionChangedEvent =
+            EventManager.RegisterRoutedEvent("MotionChanged", RoutingStrategy.Direct, typeof(RoutedEventHandler), typeof(SmoothScroll));
+
+        private static void OnIsInMotionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is UIElement element)
+            {
+                element.RaiseEvent(new RoutedEventArgs(MotionChangedEvent, element));
+            }
+        }
+
+        /// <summary>
+        /// Список едет сам — инерцией колеса или доездом к краю, — и под неподвижной мышью
+        /// проезжают строки.
+        /// </summary>
+        /// <remarks>
+        /// По нему список гасит на это время то, что строка делает при наведении: в колонке
+        /// чатов каждая строка под мышью раскладывала заново заголовок и кнопку «⋯», и прокрутка
+        /// над строками дёргалась, а над пустым местом у полосы шла гладко (1.32.0).
+        /// </remarks>
+        public static readonly DependencyProperty IsInMotionProperty = IsInMotionKey.DependencyProperty;
+
+        public static bool GetIsInMotion(DependencyObject obj) =>
+            (bool)obj.GetValue(IsInMotionProperty);
+
         public static bool GetBounceWhenShort(DependencyObject obj) =>
             (bool)obj.GetValue(BounceWhenShortProperty);
 
@@ -1056,6 +1093,7 @@ namespace Amarin.UI
                 _ticking = true;
                 _lastTime = 0;
                 CompositionTarget.Rendering += _onRendering;
+                _viewer.SetValue(IsInMotionKey, true);
             }
 
             private void StopTicking()
@@ -1068,6 +1106,7 @@ namespace Amarin.UI
                 CompositionTarget.Rendering -= _onRendering;
                 if (IsSettled())
                     _virtualValid = false;
+                _viewer.SetValue(IsInMotionKey, false);
             }
 
             private static double Rubber(double overflow)
