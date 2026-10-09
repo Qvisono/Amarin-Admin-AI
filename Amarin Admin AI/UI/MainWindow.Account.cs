@@ -691,6 +691,7 @@ namespace Amarin.UI
             registry.ActiveProfileId = target.Id;
             ProfileStore.Save(registry);
             _services.UseProfile(ProfileStore.DataRootFor(target.Id));
+            OnDeferredProfileChanged();
             StartTextIndexBuild();
 
             ProfileOverlay.Visibility = Visibility.Collapsed;

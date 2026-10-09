@@ -43,9 +43,10 @@ internal static class Program
         {
             // --model намеренно не передаём: он пишет модель в настройки всей программы, и
             // менять её у работающего окна из ярлыка за спиной пользователя хуже, чем не менять.
-            // Автозапуск (--tray) при уже работающей программе делать нечего: окно поднимать
-            // незачем — человек его не просил.
-            if (startup.Action == StartupAction.Tray)
+            // Автозапуск (--tray) и пробуждение к сроку (--wake) при уже работающей программе
+            // делать нечего: окно поднимать незачем — человек его не просил, а задачи работающая
+            // программа выполнит сама.
+            if (startup.Action is StartupAction.Tray or StartupAction.Wake)
             {
                 return 0;
             }
@@ -160,7 +161,7 @@ internal static class Program
         // только после него — у выбранного профиля своя папка с чатами и своим settings.json.
         if (activeProfile.IsLocked)
         {
-            var unlocked = PasswordWindow.UnlockAtStartup(profileStore, registry);
+            var unlocked = PasswordWindow.UnlockAtStartup(profileStore, registry, woken: startup.Action == StartupAction.Wake);
             if (unlocked is null)
             {
                 return 1;
@@ -217,9 +218,14 @@ internal static class Program
 
         // Автозапуск (--tray, G3): сразу в трей. Без значка — обычный запуск: иначе окно было бы
         // недостижимо.
-        if (startup.Action == StartupAction.Tray && settings.Windows is { ShowTrayIcon: true })
+        if (startup.Action is StartupAction.Tray or StartupAction.Wake && settings.Windows is { ShowTrayIcon: true })
         {
             window.PrepareStartInTray();
+        }
+        else if (startup.Action == StartupAction.Wake)
+        {
+            // Без значка в трее прятать некуда: окно приходит свёрнутым и фокус не отнимает.
+            window.PrepareQuietStart();
         }
 
         // Забираем место, которое мог занять экран входа, и возвращаем обычное «закрыл окно —

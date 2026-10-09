@@ -90,6 +90,7 @@ internal sealed partial class ChatEngine
         parts.Add(tech);
         parts.Add(FormulaRules);
         parts.Add(FileRules);
+        parts.Add(DeferredRules);
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать
         // нужную, а сохранённые техпромпты не отстают, потому что строка дописывается здесь.
@@ -114,6 +115,20 @@ internal sealed partial class ChatEngine
             parts.Add(remote);
         }
 
+        parts.Add(DateLine(Time.GetLocalNow()));
         return string.Join(Environment.NewLine + Environment.NewLine, parts);
     }
+
+    /// <summary>
+    /// Сегодняшняя дата — последней строкой промпта.
+    /// </summary>
+    /// <remarks>
+    /// Без неё модель не знает, какой сегодня день, и «напомни в пятницу» превращала в случайную
+    /// дату. Только дата, без времени: строка меняется раз в сутки, и закэшированное провайдером
+    /// начало промпта ломается не чаще. Точное «сейчас» называет ответ инструмента, которому оно
+    /// нужно (<c>deferred_task</c>). Последней — по той же причине: всё выше остаётся неизменным.
+    /// </remarks>
+    internal static string DateLine(DateTimeOffset now) =>
+        "Local date: " + now.ToString("yyyy-MM-dd, dddd", System.Globalization.CultureInfo.InvariantCulture) +
+        " (UTC" + (now.Offset < TimeSpan.Zero ? "-" : "+") + now.Offset.ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture) + ").";
 }

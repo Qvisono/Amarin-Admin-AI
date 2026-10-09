@@ -181,7 +181,8 @@ internal static class AppComposition
             new FetchImageTool(),
             new YouTubeTranscriptTool(),
             new InitAgentTool(new AgentSlotLimiter(), agentHost),
-            new ReadInstructionTool(instructions)
+            new ReadInstructionTool(instructions),
+            new DeferredTaskTool(scope.Deferred)
         ]);
 
         return new AppServices
@@ -206,6 +207,7 @@ internal static class AppComposition
             PlanReviews = planReviews,
             AgentHost = agentHost,
             RecipeRunner = new RecipeRunner(() => recipeTools.Value, confirmations, ReadSettings, () => options.Audit),
+            RunTools = () => recipeTools.Value,
             StartupPrompt = startup.Prompt,
             StartupSend = startup.ShouldSend,
             StartupWipe = wiped,

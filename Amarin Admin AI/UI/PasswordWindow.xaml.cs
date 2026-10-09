@@ -108,7 +108,11 @@ public partial class PasswordWindow : Window
     /// место того, чей пароль спрашивают. Возвращает выбранный профиль или <c>null</c>,
     /// если вход отменили.
     /// </summary>
-    public static UserProfile? UnlockAtStartup(ProfileStore profiles, ProfileRegistry registry)
+    /// <param name="woken">
+    /// Запуск Планировщиком к сроку отложенной задачи: окно приходит свёрнутым и мигает на панели
+    /// задач, а не встаёт посреди экрана поверх чужой работы, и объясняет, зачем просит пароль.
+    /// </param>
+    public static UserProfile? UnlockAtStartup(ProfileStore profiles, ProfileRegistry registry, bool woken = false)
     {
         ArgumentNullException.ThrowIfNull(profiles);
         ArgumentNullException.ThrowIfNull(registry);
@@ -120,6 +124,13 @@ public partial class PasswordWindow : Window
         };
         window.EnableProfileSwitching(profiles, registry);
         window.SelectProfile(active);
+        if (woken)
+        {
+            window.SubtitleText.Text = Loc.Get("S.Deferred.UnlockHint");
+            window.ShowActivated = false;
+            window.WindowState = WindowState.Minimized;
+            window.Loaded += (_, _) => TaskbarFlash.Flash(window);
+        }
 
         return window.ShowDialog() == true ? window.UnlockedProfile ?? active : null;
     }

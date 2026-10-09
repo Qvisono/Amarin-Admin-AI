@@ -274,6 +274,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootDialogs(window, services, folder);
             }
 
+            if (Wanted(only, "deferred"))
+            {
+                await ShootDeferred(window, services, folder, language == "ru");
+            }
+
             Call(window, "SettingsButton_Click", window, new RoutedEventArgs());
             await Settle(500);
             var card = (FrameworkElement)window.FindSetting("SettingsCard");
@@ -354,7 +359,7 @@ public sealed class UiShotTests : IDisposable
 
                 if (name == "NavAutomation")
                 {
-                    foreach (var tab in new[] { "ScheduleTab", "MachinesTab", "McpTab" })
+                    foreach (var tab in new[] { "ScheduleTab", "DeferredTab", "MachinesTab", "McpTab" })
                     {
                         if (Descendants<RadioButton>(card).FirstOrDefault(r => r.Name == tab) is { } radio)
                         {
@@ -362,6 +367,12 @@ public sealed class UiShotTests : IDisposable
                             await Settle(300);
                             var short_ = tab.Replace("Tab", "").ToLowerInvariant();
                             Save(card, Path.Combine(folder, $"{prefix}-{short_}.png"), null);
+
+                            // У «Отложенных» редактора нет: задачи ставит чат.
+                            if (tab == "DeferredTab")
+                            {
+                                continue;
+                            }
 
                             // Редактор вкладки: заголовок и вкладки страницы над ним уходят.
                             var (panelName, open) = tab switch
@@ -795,6 +806,168 @@ public sealed class UiShotTests : IDisposable
                    Files: 3    Size: 48 214
                    ```
                    """
+        });
+        return session;
+    }
+
+    /// <summary>
+    /// Отложенные задачи (1.33.0): чат с отметкой поставленной задачи и сообщением наступившей,
+    /// карточки напоминаний и вкладка «Отложенные» со списком.
+    /// </summary>
+    private async Task ShootDeferred(MainWindow window, AppServices services, string folder, bool ru)
+    {
+        var now = DateTime.Now;
+        var tomorrow = now.Date.AddDays(1).AddHours(9);
+        var book = services.Deferred;
+        DeferredTask Add(string id, DeferredKind kind, string title, string text, DeferredStatus status, DateTime? due, DeferredRepeat? repeat = null, DeferredTrigger? trigger = null) =>
+            book.Add(new DeferredTask
+            {
+                Id = id,
+                ChatId = "d1",
+                Kind = kind,
+                Title = title,
+                Text = text,
+                Command = kind == DeferredKind.Command ? "Clear-DnsClientCache" : null,
+                Status = status,
+                CreatedUtc = now.AddDays(-1).ToUniversalTime(),
+                NextDueUtc = due?.ToUniversalTime(),
+                LastFiredUtc = status is DeferredStatus.Done or DeferredStatus.Failed ? now.AddHours(-3).ToUniversalTime() : null,
+                Repeat = repeat ?? new DeferredRepeat(),
+                Trigger = trigger ?? new DeferredTrigger { Kind = DeferredTriggerKind.At },
+                Error = status == DeferredStatus.Failed ? "Access is denied." : null
+            });
+
+        var reboot = Add("shot-reboot", DeferredKind.Reminder, ru ? "Перезагрузить компьютер" : "Restart the computer",
+            ru ? "Обновления Windows ждут перезагрузки." : "Windows updates are waiting for a restart.", DeferredStatus.Pending, tomorrow);
+        var disks = Add("shot-disks", DeferredKind.Agent, ru ? "Проверить место на дисках" : "Check disk space",
+            ru ? "Проверь свободное место на дисках и почисти временные файлы." : "Check free disk space and clear temp files.",
+            DeferredStatus.Pending, tomorrow, new DeferredRepeat { Kind = DeferredRepeatKind.Daily, Time = "09:00" });
+        Add("shot-programs", DeferredKind.RestorePrograms, ru ? "Открыть программы прошлого сеанса" : "Reopen last session's programs", "",
+            DeferredStatus.Pending, null, trigger: new DeferredTrigger { Kind = DeferredTriggerKind.NextBoot });
+        Add("shot-dns", DeferredKind.Command, ru ? "Сбросить кэш DNS" : "Flush the DNS cache", "", DeferredStatus.Interrupted, now.AddMinutes(-20));
+        Add("shot-call", DeferredKind.Reminder, ru ? "Позвонить в сервис" : "Call the service center", "", DeferredStatus.Done, null);
+        Add("shot-backup", DeferredKind.Command, ru ? "Копия папки «Проекты»" : "Back up the Projects folder", "", DeferredStatus.Failed, null);
+
+        services.ChatStore.Save(DeferredConversation(now, ru, reboot, disks));
+        services.ChatStore.Flush();
+        Call(window, "RefreshChatList");
+        Call(window, "OpenChat", "d1");
+        await Settle(400);
+        Save((FrameworkElement)window.Content, Path.Combine(folder, "deferred-chat.png"), null);
+
+        // Карточки снимаются без показа окна стопки: оно встало бы в угол настоящего экрана.
+        var facts = DeferredClock.Now();
+        var toast = new ReminderToast();
+        toast.Items.Add(new ReminderItem(reboot.Id, ReminderLook.Reminder)
+        {
+            Heading = reboot.Title,
+            Body = reboot.Text,
+            Meta = MainWindow.ReminderMeta(
+                new DeferredTask { AwaitingAckSinceUtc = now.AddHours(-2).ToUniversalTime(), MissedWhileUnacked = 1 }, TimeSpan.FromHours(2), facts),
+            HasChat = true,
+            More = Loc.Format("S.Deferred.Toast.More", 2)
+        });
+        toast.Items.Add(new ReminderItem("shot-snooze", ReminderLook.Reminder)
+        {
+            Heading = ru ? "Встреча с командой" : "Team meeting",
+            Meta = MainWindow.ReminderMeta(new DeferredTask { AwaitingAckSinceUtc = now.ToUniversalTime() }, null, facts),
+            Snoozing = true
+        });
+        toast.Items.Add(new ReminderItem("shot-dns", ReminderLook.Interrupted)
+        {
+            Heading = Loc.Get("S.Deferred.Toast.Interrupted"),
+            Body = Loc.Format("S.Deferred.Toast.InterruptedText", ru ? "Сбросить кэш DNS" : "Flush the DNS cache"),
+            Meta = Loc.Get("S.Deferred.Kind.Command"),
+            HasChat = true
+        });
+        toast.Items.Add(new ReminderItem("shot-locked", ReminderLook.Reminder)
+        {
+            Heading = Loc.Get("S.Deferred.Toast.Reminder"),
+            Body = Loc.Get("S.Deferred.Toast.Locked"),
+            Hidden = true
+        });
+        var cards = (FrameworkElement)toast.Content;
+        toast.Content = null;
+        var host = new Grid { Width = 400 };
+        host.Resources.MergedDictionaries.Add(toast.Resources);
+        host.Children.Add(cards);
+        host.Measure(new Size(400, double.PositiveInfinity));
+        host.Arrange(new Rect(host.DesiredSize));
+        host.UpdateLayout();
+        await Settle(350);
+        Save(host, Path.Combine(folder, "deferred-reminders.png"), (Brush)window.FindResource("Bg.Window"));
+        toast.Close();
+
+        Call(window, "OpenDeferredTab");
+        await Settle(450);
+        Save((FrameworkElement)window.FindSetting("SettingsCard")!, Path.Combine(folder, "deferred-tab.png"), null);
+        ((FrameworkElement)window.FindSetting("SettingsOverlay")!).Visibility = Visibility.Collapsed;
+
+        Call(window, "OpenChat", "c7");
+        await Settle(300);
+    }
+
+    /// <summary>Чат, где поставили напоминание, и сообщение, которое написала наступившая задача.</summary>
+    private static ChatSession DeferredConversation(DateTime now, bool ru, DeferredTask reboot, DeferredTask disks)
+    {
+        var session = new ChatSession
+        {
+            Id = "d1",
+            Title = ru ? "Напоминания" : "Reminders",
+            CreatedAt = now.AddDays(-1),
+            UpdatedAt = now.AddMinutes(-1)
+        };
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "user",
+            Id = "du1",
+            CreatedAt = now.AddDays(-1),
+            Text = ru ? "Напомни завтра в 9 перезагрузить комп и каждое утро проверяй место на дисках" : "Remind me to restart the PC tomorrow at 9 and check disk space every morning"
+        });
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "assistant",
+            Id = "da1",
+            CreatedAt = now.AddDays(-1),
+            ResolvedModelId = "claude-sonnet-5",
+            Duration = TimeSpan.FromSeconds(4),
+            Status = AssistantStatus.Complete,
+            ToolRounds =
+            [
+                new ToolRound
+                {
+                    InfoLine = EngineLines.ToolsDone,
+                    Calls =
+                    [
+                        new ToolCallRecord { Id = "dt1", Name = DeferredTaskTool.ToolName, ArgumentsJson = "{}", Success = true, Status = ToolCallStatus.Done, Deferred = new DeferredRef(reboot.Id, reboot.Title, reboot.Kind) },
+                        new ToolCallRecord { Id = "dt2", Name = DeferredTaskTool.ToolName, ArgumentsJson = "{}", Success = true, Status = ToolCallStatus.Done, Deferred = new DeferredRef(disks.Id, disks.Title, disks.Kind) }
+                    ]
+                }
+            ],
+            Text = ru
+                ? "Поставил напоминание на завтра, 09:00, и ежедневную проверку дисков в 09:00 - отчёт придёт в этот чат."
+                : "I set a reminder for tomorrow at 09:00 and a daily disk check at 09:00; the report will come to this chat."
+        });
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "user",
+            Id = "du2",
+            CreatedAt = now.AddMinutes(-2),
+            Text = disks.Text,
+            Deferred = new DeferredMark(disks.Id, disks.Title, now.AddHours(-2).ToUniversalTime(), TimeSpan.FromHours(2))
+        });
+        session.Messages.Add(new ChatDisplayMessage
+        {
+            Role = "assistant",
+            Id = "da2",
+            CreatedAt = now.AddMinutes(-1),
+            ResolvedModelId = "claude-sonnet-5",
+            Duration = TimeSpan.FromSeconds(41),
+            Cost = new VeniceCost { Usd = 0.0118m, HasData = true },
+            Status = AssistantStatus.Complete,
+            Text = ru
+                ? "На диске C: свободно 41 ГБ из 476, на D: 212 ГБ. Временные файлы почищены: освободилось 3,2 ГБ."
+                : "Drive C: has 41 GB free of 476, D: has 212 GB. Temp files cleared: 3.2 GB freed."
         });
         return session;
     }

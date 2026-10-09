@@ -156,7 +156,7 @@ public sealed class SettingsRedesignTests : IDisposable
             var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
             var nav = (RadioButton)window.FindSetting("NavAutomation")!;
             var page = (SettingsAutomationPage)window.FindSetting("AutomationPage")!;
-            var tabs = new[] { "RecipesTab", "ScheduleTab", "MachinesTab", "McpTab" }.Select(name => (RadioButton)page.FindName(name)!).ToList();
+            var tabs = new[] { "RecipesTab", "ScheduleTab", "DeferredTab", "MachinesTab", "McpTab" }.Select(name => (RadioButton)page.FindName(name)!).ToList();
             var wasVisible = overlay.Visibility;
             var wasChecked = window.FindSetting("NavGeneral") as RadioButton;
             overlay.Visibility = Visibility.Visible;
@@ -188,6 +188,59 @@ public sealed class SettingsRedesignTests : IDisposable
 
         Assert.All(widths, set => Assert.Equal(widths[0], set));
         Assert.All(tops, top => Assert.Equal(tops[0], top));
+    }
+
+    /// <summary>
+    /// Пять вкладок «Автоматизации» (1.33.0 добавил «Отложенные») стоят в одну строку на обоих
+    /// языках: перенос второй строкой сдвинул бы список вниз только у одного из них.
+    /// </summary>
+    [Fact]
+    public void Automation_tabs_fit_one_row_in_both_languages()
+    {
+        var previous = LanguageManager.Current;
+        try
+        {
+            var rows = _wpf.Ui.Invoke(() =>
+            {
+                var window = Shared();
+                var overlay = (FrameworkElement)window.FindSetting("SettingsOverlay")!;
+                var nav = (RadioButton)window.FindSetting("NavAutomation")!;
+                var page = (SettingsAutomationPage)window.FindSetting("AutomationPage")!;
+                var tabs = new[] { "RecipesTab", "ScheduleTab", "DeferredTab", "MachinesTab", "McpTab" }
+                    .Select(name => (RadioButton)page.FindName(name)!).ToList();
+                var wasVisible = overlay.Visibility;
+                var wasChecked = window.FindSetting("NavGeneral") as RadioButton;
+                overlay.Visibility = Visibility.Visible;
+                nav.IsChecked = true;
+                var found = new Dictionary<string, double[]>();
+                try
+                {
+                    foreach (var language in new[] { "ru", "en" })
+                    {
+                        LanguageManager.Apply(language);
+                        window.UpdateLayout();
+                        found[language] = tabs.Select(tab => Math.Round(tab.TranslatePoint(new Point(0, 0), page).Y, 1)).ToArray();
+                    }
+                }
+                finally
+                {
+                    wasChecked?.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+                    overlay.Visibility = wasVisible;
+                }
+
+                return found;
+            });
+
+            Assert.All(rows.Values, tops => Assert.All(tops, top => Assert.Equal(tops[0], top)));
+        }
+        finally
+        {
+            _wpf.Ui.Invoke<object?>(() =>
+            {
+                LanguageManager.Apply(previous);
+                return null;
+            });
+        }
     }
 
     /// <summary>

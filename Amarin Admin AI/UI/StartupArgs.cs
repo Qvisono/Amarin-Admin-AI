@@ -7,7 +7,7 @@ namespace Amarin.UI;
 /// <c>--send</c>, <c>--smoke-tools</c>, <c>--smoke-report</c>, <c>--await-exit</c>, <c>--apply-update</c>,
 /// <c>--rollback-update</c>, <c>--wipe</c>,
 /// <c>--open-chat</c> и действия интеграции с Windows (G): <c>--new-chat</c>, <c>--health</c>,
-/// <c>--tray</c>, <c>--ask-path</c>.
+/// <c>--tray</c>, <c>--ask-path</c>; <c>--wake</c> — запуск Планировщиком к сроку отложенной задачи.
 /// </summary>
 /// <remarks>
 /// <c>--prompt-file</c> удаляет файл сразу после чтения: через него ярлык передаёт длинный
@@ -161,6 +161,12 @@ internal sealed class StartupArgs
                 continue;
             }
 
+            if (a.Equals("--wake", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Action = StartupAction.Wake;
+                continue;
+            }
+
             if (TryTakeValue(args, ref i, "--ask-path", out var askPath))
             {
                 if (IsAskPath(askPath))
@@ -308,5 +314,11 @@ internal enum StartupAction
     Tray,
 
     /// <summary>Новый чат с путём из Проводника в поле ввода.</summary>
-    AskPath
+    AskPath,
+
+    /// <summary>
+    /// Запуск Планировщиком Windows к сроку отложенной задачи: тихо, как автозапуск, — задача
+    /// сработает сама, а окно человек откроет, если захочет.
+    /// </summary>
+    Wake
 }

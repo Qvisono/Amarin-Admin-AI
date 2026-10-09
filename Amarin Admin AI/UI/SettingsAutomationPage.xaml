@@ -66,8 +66,8 @@
     <Grid>
         <!-- ═══════════ СПИСОК ═══════════ -->
         <!--
-            Четыре вкладки — рецепты, расписание, компьютеры и MCP: всё, что агент делает сам или
-            не на этом ПК. Прежде компьютеры и MCP жили отдельной страницей «Подключения», и
+            Пять вкладок — рецепты, расписание, отложенные задачи, компьютеры и MCP: всё, что агент
+            делает сам, потом или не на этом ПК. Прежде компьютеры и MCP жили отдельной страницей «Подключения», и
             навигация не помещалась в окно. Пока у вкладки открыт редактор, заголовок и вкладки
             уходят: у редактора своя шапка «‹».
         -->
@@ -86,6 +86,8 @@
                              IsChecked="True" Content="{DynamicResource S.Recipe.Tab}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="ScheduleTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
                              Content="{DynamicResource S.Schedule.Tab}" Checked="Tab_Checked"/>
+                <RadioButton x:Name="DeferredTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
+                             Content="{DynamicResource S.Deferred.Tab}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="MachinesTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
                              Content="{DynamicResource S.Machines.Tab}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="McpTab" GroupName="AutomationTab" Style="{StaticResource PageTab}"
@@ -159,6 +161,7 @@
             <local:SchedulePanel x:Name="SchedulePane" Grid.Row="2" Visibility="Collapsed"/>
             <local:MachinesPanel x:Name="MachinesPane" Grid.Row="2" Visibility="Collapsed"/>
             <local:McpPanel x:Name="McpPane" Grid.Row="2" Visibility="Collapsed"/>
+            <local:DeferredPanel x:Name="DeferredPane" Grid.Row="2" Visibility="Collapsed"/>
         </Grid>
 
         <!-- ═══════════ РЕДАКТОР ═══════════ -->

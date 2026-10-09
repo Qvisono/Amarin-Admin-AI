@@ -15,7 +15,10 @@ internal enum TurnKind
     Continue,
 
     /// <summary>«Create infographic» по видео.</summary>
-    Infographic
+    Infographic,
+
+    /// <summary>Отложенная задача: агент, команда или возврат программ в чате, где её поставили.</summary>
+    Deferred
 }
 
 /// <summary>

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -77,16 +76,11 @@ public partial class NotificationToast : Window
     {
         base.OnSourceInitialized(e);
 
-        // Владельца у окна нет (подчинённое прячется со свёрнутым владельцем), поэтому из Alt+Tab
-        // его убирает стиль «инструмент», а «без активации» не даёт отнять фокус у программы,
-        // в которой человек работает.
-        var handle = new WindowInteropHelper(this).Handle;
-        var ex = GetWindowLong(handle, GwlExStyle);
-        _ = SetWindowLong(handle, GwlExStyle, ex | WsExToolWindow | WsExNoActivate);
+        ToastScreen.MakeQuiet(new WindowInteropHelper(this).Handle);
 
         // Примерное место по известному размеру карточки: первый кадр уже в углу, а не в 0,0.
         // Точное место приедет со следующим проходом раскладки.
-        var area = WorkAreaInDips();
+        var area = ToastScreen.InDips(this, _workArea);
         Left = area.Right - EstimatedWidth;
         Top = area.Bottom - EstimatedHeight;
     }
@@ -106,7 +100,8 @@ public partial class NotificationToast : Window
         string metaLine,
         int uiScalePercent,
         IntPtr ownerHandle,
-        Action? onActivated)
+        Action? onActivated,
+        string? title = null)
     {
         var toast = new NotificationToast();
 
@@ -119,7 +114,12 @@ public partial class NotificationToast : Window
         ModelBrand.Apply(toast, modelId, toast.Logo, toast.LogoLetter, null);
         toast.Preview.Text = previewLine;
         toast.Meta.Text = metaLine;
-        toast._workArea = WorkAreaOf(ownerHandle);
+        if (title is not null)
+        {
+            toast.Title2.Text = title;
+        }
+
+        toast._workArea = ToastScreen.WorkAreaOf(ownerHandle);
         if (onActivated is not null)
         {
             toast.CardClicked += onActivated;
@@ -181,64 +181,9 @@ public partial class NotificationToast : Window
             return;
         }
 
-        var area = WorkAreaInDips();
+        var area = ToastScreen.InDips(this, _workArea);
         Left = area.Right - width;
         Top = area.Bottom - height;
-    }
-
-    /// <summary>
-    /// Рабочая область монитора главного окна в единицах WPF; если её не узнать —
-    /// <see cref="SystemParameters.WorkArea"/> основного монитора.
-    /// </summary>
-    private Rect WorkAreaInDips()
-    {
-        if (_workArea is not { } device)
-        {
-            return SystemParameters.WorkArea;
-        }
-
-        var transform = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice;
-        if (transform is null)
-        {
-            return SystemParameters.WorkArea;
-        }
-
-        var topLeft = transform.Value.Transform(new Point(device.Left, device.Top));
-        var bottomRight = transform.Value.Transform(new Point(device.Right, device.Bottom));
-        return new Rect(topLeft, bottomRight);
-    }
-
-    private static Rect? WorkAreaOf(IntPtr ownerHandle)
-    {
-        if (ownerHandle == IntPtr.Zero)
-        {
-            return null;
-        }
-
-        try
-        {
-            var monitor = MonitorFromWindow(ownerHandle, MonitorDefaultToNearest);
-            if (monitor == IntPtr.Zero)
-            {
-                return null;
-            }
-
-            var info = new MonitorInfo { cbSize = Marshal.SizeOf<MonitorInfo>() };
-            if (!GetMonitorInfo(monitor, ref info))
-            {
-                return null;
-            }
-
-            return new Rect(
-                info.rcWork.left,
-                info.rcWork.top,
-                info.rcWork.right - info.rcWork.left,
-                info.rcWork.bottom - info.rcWork.top);
-        }
-        catch (EntryPointNotFoundException)
-        {
-            return null;
-        }
     }
 
     // Пока карточку читают или тянутся к ней, сама она не гаснет.
@@ -269,41 +214,5 @@ public partial class NotificationToast : Window
         // Щелчок всплывёт и в Card_MouseLeftButtonUp — там он не должен считаться «открыть».
         _suppressCardClick = true;
         Dismiss();
-    }
-
-    private const int GwlExStyle = -20;
-    private const int WsExToolWindow = 0x00000080;
-    private const int WsExNoActivate = 0x08000000;
-    private const uint MonitorDefaultToNearest = 2;
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRect
-    {
-        public int left;
-        public int top;
-        public int right;
-        public int bottom;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MonitorInfo
-    {
-        public int cbSize;
-        public NativeRect rcMonitor;
-        public NativeRect rcWork;
-        public uint dwFlags;
     }
 }

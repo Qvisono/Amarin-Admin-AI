@@ -37,7 +37,7 @@ internal sealed class TrayIcon : IDisposable
     private const int CallbackMessage = 0x8000 + 0x4A; // WM_APP + 74
     private const int NIM_ADD = 0, NIM_MODIFY = 1, NIM_DELETE = 2, NIM_SETVERSION = 4;
     private const int NIF_MESSAGE = 0x1, NIF_ICON = 0x2, NIF_TIP = 0x4, NIF_INFO = 0x10, NIF_SHOWTIP = 0x80;
-    private const int NIIF_INFO = 0x1, NIIF_WARNING = 0x2;
+    private const int NIIF_INFO = 0x1, NIIF_WARNING = 0x2, NIIF_NOSOUND = 0x10;
     private const int NOTIFYICON_VERSION_4 = 4;
     private const int WM_CONTEXTMENU = 0x007B, WM_LBUTTONDBLCLK = 0x0203;
     private const int NIN_SELECT = 0x0400, NIN_KEYSELECT = 0x0401, NIN_BALLOONUSERCLICK = 0x0405;
@@ -97,7 +97,8 @@ internal sealed class TrayIcon : IDisposable
     /// Всплывающее уведомление значка. Windows 10 и 11 показывают его системным уведомлением.
     /// </summary>
     /// <param name="onClick">Что сделать по щелчку на уведомлении — обычно открыть окно.</param>
-    public bool Balloon(string title, string text, bool warning, Action? onClick)
+    /// <param name="silent">Без системного звука: своя мелодия уже прозвучала.</param>
+    public bool Balloon(string title, string text, bool warning, Action? onClick, bool silent = false)
     {
         if (!_added)
         {
@@ -108,7 +109,7 @@ internal sealed class TrayIcon : IDisposable
         var data = Data(NIF_INFO);
         data.szInfoTitle = Trim(title, 63);
         data.szInfo = Trim(text, 255);
-        data.dwInfoFlags = warning ? NIIF_WARNING : NIIF_INFO;
+        data.dwInfoFlags = (warning ? NIIF_WARNING : NIIF_INFO) | (silent ? NIIF_NOSOUND : 0);
         return Shell_NotifyIconW(NIM_MODIFY, ref data);
     }
 

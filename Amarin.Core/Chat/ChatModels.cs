@@ -180,6 +180,13 @@ public sealed class ChatDisplayMessage
     /// </remarks>
     public List<MessageQuote> Quotes { get; set; } = [];
 
+    /// <summary>
+    /// Сообщение пришло от отложенной задачи, а не от человека: лента рисует над ним шапку
+    /// «Отложенная задача» со сроком. У прочих сообщений и у переписок прежних версий — null.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DeferredMark? Deferred { get; set; }
+
     public string? RequestedModelId { get; set; }
 
     public string? ResolvedModelId { get; set; }

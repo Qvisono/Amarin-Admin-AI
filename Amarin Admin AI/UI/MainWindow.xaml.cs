@@ -343,6 +343,7 @@ namespace Amarin.UI
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
             StartSchedule();
+            StartDeferred();
             StartBackups();
             StartTextIndexBuild();
 
@@ -655,6 +656,21 @@ namespace Amarin.UI
             _services.Settings.NotifySound = GeneralPage.NotifySoundToggle.IsChecked == true;
             _services.SettingsStore.Save(_services.Settings);
         }
+
+        private void DeferredSoundToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null)
+            {
+                return;
+            }
+
+            _services.Settings.DeferredSound = GeneralPage.DeferredSoundToggle.IsChecked == true;
+            _services.SettingsStore.Save(_services.Settings);
+        }
+
+        /// <summary>«Послушать» играет мелодию напоминания и при выключенной галке — чтобы решить, включать ли.</summary>
+        private void DeferredSoundListen_Click(object sender, RoutedEventArgs e) =>
+            _ = ChimePlayer.Play(ChimeTune.Reminder, enabled: true, respectQuiet: false);
 
         private void MaybeShowCompletionToast(ChatDisplayMessage assistant)
         {
@@ -2394,7 +2410,9 @@ namespace Amarin.UI
             ShowQuoteSource = quote => ShowQuoteSource(session, quote),
             CurrentDateFormat = () => ActiveDateFormat,
             OpenInstruction = OpenInstruction,
-            InstructionExists = InstructionExists
+            InstructionExists = InstructionExists,
+            OpenDeferred = OpenDeferredTab,
+            DeferredState = DeferredStateText
         };
 
         private static void CopyMessage(ChatDisplayMessage message)
@@ -3560,8 +3578,12 @@ namespace Amarin.UI
             // по чату, который отвечал в фоне, человек будет наравне с остальными.
             MaybeUpdateSummary(turn.Session);
 
-            // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат.
-            MaybeShowCompletionToast(assistant);
+            // Тост нужен и фоновому ходу: человек ждёт именно его, глядя в другой чат. У отложенной
+            // задачи своя карточка с мелодией (OnDeferredCompleted) — вторая сказала бы то же.
+            if (turn.Kind != TurnKind.Deferred)
+            {
+                MaybeShowCompletionToast(assistant);
+            }
 
             // А метка в списке — ровно на тот случай, когда тоста не будет: его глушат, пока окно
             // в фокусе, и фоновый ответ до сих пор не оставлял по себе никакого следа.

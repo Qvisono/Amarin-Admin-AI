@@ -249,6 +249,10 @@ namespace Amarin.UI
             RefreshAppearanceLinks();
             RefreshPromptLinks();
             RefreshAllowedDomainsUi();
+
+            // Подписи карточек напоминаний («сегодня», «опоздало на») и вкладки задач — тоже из кода.
+            RefillReminders();
+            RefreshDeferredPanel();
             if (ProfileOverlay.Visibility == Visibility.Visible)
             {
                 RefreshProfileList();

@@ -299,6 +299,13 @@ namespace Amarin.UI
                         SettingsOverlay.Visibility = Visibility.Collapsed;
                         OpenChat(chatId);
                     };
+                    automation.Deferred.Runner = () => _deferredRunner;
+                    automation.Deferred.WakeProblem = () => DeferredWakeProblem;
+                    automation.Deferred.OpenChatRequested += chatId =>
+                    {
+                        SettingsOverlay.Visibility = Visibility.Collapsed;
+                        OpenChat(chatId);
+                    };
                     break;
                 case SettingsSecurityPage security:
                     Wire(security);
@@ -435,6 +442,7 @@ namespace Amarin.UI
                         general.CodeLineNumbersToggle.IsChecked = settings.CodeLineNumbers;
                         general.NotifyOnCompleteToggle.IsChecked = settings.NotifyOnResponseComplete;
                         general.NotifySoundToggle.IsChecked = settings.NotifySound;
+                        general.DeferredSoundToggle.IsChecked = settings.DeferredSound;
                         general.RememberWindowSizeToggle.IsChecked = settings.RememberWindowSize;
                         LoadIntegrationUi(_services);
 
@@ -551,6 +559,9 @@ namespace Amarin.UI
             p.NotifyOnCompleteToggle.Unchecked += NotifyOnCompleteToggle_Changed;
             p.NotifySoundToggle.Checked += NotifySoundToggle_Changed;
             p.NotifySoundToggle.Unchecked += NotifySoundToggle_Changed;
+            p.DeferredSoundToggle.Checked += DeferredSoundToggle_Changed;
+            p.DeferredSoundToggle.Unchecked += DeferredSoundToggle_Changed;
+            p.DeferredSoundListenButton.Click += DeferredSoundListen_Click;
             p.NotifyStyleCombo.SelectionChanged += NotifyStyleCombo_SelectionChanged;
             p.AutoScrollToggle.Checked += AutoScrollToggle_Changed;
             p.AutoScrollToggle.Unchecked += AutoScrollToggle_Changed;

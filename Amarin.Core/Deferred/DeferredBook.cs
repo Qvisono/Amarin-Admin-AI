@@ -150,9 +150,23 @@ internal sealed class DeferredBook
     }
 
     /// <summary>Сходится ли печать задачи с её содержимым.</summary>
-    public bool Verify(DeferredTask task) =>
-        task.Seal is { Length: > 0 } seal &&
-        CryptographicOperations.FixedTimeEquals(Convert.FromHexString(seal), Convert.FromHexString(Seal(task)));
+    /// <remarks>Печать, поправленная руками до не-шестнадцатеричной строки, — «не сходится», а не авария.</remarks>
+    public bool Verify(DeferredTask task)
+    {
+        if (task.Seal is not { Length: > 0 } seal)
+        {
+            return false;
+        }
+
+        try
+        {
+            return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(seal), Convert.FromHexString(Seal(task)));
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
 
     private static string Sealed(DeferredTask task) =>
         string.Join('\n', task.Id, task.Kind, task.Command ?? "", task.CreatedUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture));

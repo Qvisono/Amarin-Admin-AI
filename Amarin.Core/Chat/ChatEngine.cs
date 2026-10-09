@@ -270,6 +270,25 @@ internal sealed partial class ChatEngine
           the complete updated block.
         """;
 
+    /// <summary>
+    /// Отложенные задачи: когда их ставить и что говорить человеку. Дописывается в
+    /// <see cref="BuildSystemPrompt"/> после правил файлов — по той же причине, что и они.
+    /// </summary>
+    internal const string DeferredRules = """
+        DEFERRED TASKS
+        - deferred_task schedules work for later: a reminder, a task for the agent, an exact command the user
+          approves now, or reopening the programs open at the last shutdown. It also lists and cancels tasks.
+        - Use it whenever the user wants something done later, at a time, on a condition, repeatedly, at the
+          next program start or the next time the PC is turned on. Set one on your own only for a follow-up the
+          user clearly needs, and say that you did.
+        - Pass times the way the user said them; the result names the resolved time and the current time. Then
+          tell the user in one line what is scheduled and when.
+        - Prefer remind and run_agent. Use run_command only for a short exact script the user wants run as is.
+        """;
+
+    /// <summary>Часы для строки с датой в промпте — подменяются в тестах.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
     private const string InitAgentToolName = Tools.InitAgentTool.ToolName;
 
     private readonly VeniceClient _venice;
@@ -480,7 +499,8 @@ internal sealed partial class ChatEngine
         string complexity,
         IChatTurnObserver observer,
         CancellationToken cancellationToken,
-        ChatDisplayMessage? placed = null)
+        ChatDisplayMessage? placed = null,
+        bool planAllowed = true)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(observer);
@@ -582,7 +602,7 @@ internal sealed partial class ChatEngine
             observer.OnToolsChanged(assistant);
 
             await ExecuteRoundAsync(
-                    toolRound, messages, session, assistant, observer, cancellationToken, complexity)
+                    toolRound, messages, session, assistant, observer, cancellationToken, complexity, planAllowed)
                 .ConfigureAwait(false);
 
             toolRound.InfoLine = EngineLines.AgentDone;

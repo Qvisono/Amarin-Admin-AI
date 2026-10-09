@@ -28,7 +28,7 @@ public sealed class SettingsInventoryTests
         ("NavGeneral",
         [
             "LanguagePicker", "EditTranslationButton", "DateFormatComboBox",
-            "NotifyOnCompleteToggle", "NotifySoundToggle", "NotifyStyleCombo",
+            "NotifyOnCompleteToggle", "NotifySoundToggle", "NotifyStyleCombo", "DeferredSoundToggle", "DeferredSoundListenButton",
             "AutoScrollToggle", "CodeLineNumbersToggle", "RememberWindowSizeToggle",
             "HotkeysLinkRow", "HotkeyList", "GlobalHotkeysSettings",
             "WindowsLinkRow", "WindowsSettings", "VoiceLinkRow", "VoiceSettings"

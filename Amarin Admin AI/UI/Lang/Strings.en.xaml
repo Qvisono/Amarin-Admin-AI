@@ -1919,8 +1919,9 @@
     <system:String x:Key="S.Deferred.WakeFailed" xml:space="preserve">Windows Task Scheduler refused to start the app on time: tasks run while the app is open.</system:String>
     <system:String x:Key="S.Deferred.Mark" xml:space="preserve">Scheduled task</system:String>
     <system:String x:Key="S.Deferred.ChipTip" xml:space="preserve">Open the list of scheduled tasks</system:String>
+    <system:String x:Key="S.Deferred.ChipLabel" xml:space="preserve">Scheduled</system:String>
     <system:String x:Key="S.Deferred.Sound" xml:space="preserve">Reminder chime</system:String>
-    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">A quiet sound when a reminder arrives or a task is done</system:String>
+    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">A soft sound for reminders and finished tasks</system:String>
     <system:String x:Key="S.Deferred.Listen" xml:space="preserve">Listen</system:String>
     <system:String x:Key="S.Deferred.Result.CommandDone" xml:space="preserve">The command has run.</system:String>
     <system:String x:Key="S.Deferred.Result.CommandFailed" xml:space="preserve">The command failed: {0}</system:String>
@@ -1931,6 +1932,9 @@
     <system:String x:Key="S.Deferred.Result.ReadOnly" xml:space="preserve">Not run: Read-only mode is on.</system:String>
     <system:String x:Key="S.Deferred.Result.NoAnswer" xml:space="preserve">No answer within {0}: the task was stopped.</system:String>
     <system:String x:Key="S.Deferred.UnlockHint" xml:space="preserve">Scheduled tasks are due: sign in to the profile</system:String>
+    <system:String x:Key="S.Deferred.ChatTitle" xml:space="preserve">Scheduled task: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.NoReply" xml:space="preserve">No reply: the turn stopped before the model said anything.</system:String>
+    <system:String x:Key="S.Deferred.Result.Stopped" xml:space="preserve">Stopped manually.</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">YouTube transcripts</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">New input from the user:</system:String>

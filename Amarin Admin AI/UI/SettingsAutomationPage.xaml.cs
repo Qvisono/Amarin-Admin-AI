@@ -38,6 +38,21 @@ public partial class SettingsAutomationPage : UserControl
         McpPane.EditingChanged += ShowHeader;
     }
 
+    /// <summary>Вкладка «Отложенные» — для хозяина: проверка сроков и переход в чат задачи живут в окне.</summary>
+    internal DeferredPanel Deferred => DeferredPane;
+
+    /// <summary>Книга задач изменилась — перечитать вкладку, если она на экране.</summary>
+    internal void RefreshDeferred()
+    {
+        if (DeferredPane.IsVisible)
+        {
+            DeferredPane.Refresh();
+        }
+    }
+
+    /// <summary>Открывает вкладку «Отложенные» — по щелчку на отметке задачи в ленте.</summary>
+    internal void ShowDeferredTab() => DeferredTab.IsChecked = true;
+
     /// <summary>У редактора вкладки своя шапка «‹» — заголовок страницы и вкладки над ним лишние.</summary>
     private void ShowHeader(bool editing)
     {
@@ -56,6 +71,7 @@ public partial class SettingsAutomationPage : UserControl
     {
         _services = services;
         SchedulePane.Attach(services);
+        DeferredPane.Attach(services);
         MachinesPane.Attach(services);
         McpPane.Attach(services);
     }
@@ -93,11 +109,16 @@ public partial class SettingsAutomationPage : UserControl
     {
         RecipesContent.Visibility = RecipesTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SchedulePane.Visibility = ScheduleTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        DeferredPane.Visibility = DeferredTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         MachinesPane.Visibility = MachinesTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         McpPane.Visibility = McpTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (SchedulePane.Visibility == Visibility.Visible)
         {
             SchedulePane.Load();
+        }
+        else if (DeferredPane.Visibility == Visibility.Visible)
+        {
+            DeferredPane.Load();
         }
         else if (MachinesPane.Visibility == Visibility.Visible)
         {
@@ -111,6 +132,7 @@ public partial class SettingsAutomationPage : UserControl
 
     private FrameworkElement ActiveTabContent() =>
         ScheduleTab.IsChecked == true ? SchedulePane
+        : DeferredTab.IsChecked == true ? DeferredPane
         : MachinesTab.IsChecked == true ? MachinesPane
         : McpTab.IsChecked == true ? McpPane
         : RecipesContent;

@@ -109,6 +109,7 @@ namespace Amarin.UI
             LockOverlay.Prepare(ActiveProfile.Name);
             LockOverlay.Visibility = Visibility.Visible;
             LockOverlay.FocusPassword();
+            RefillReminders();
         }
 
         /// <remarks>
@@ -147,6 +148,7 @@ namespace Amarin.UI
 
             _hiddenByLock.Clear();
             LockOverlay.Visibility = Visibility.Collapsed;
+            RefillReminders();
             NoteInput();
             FocusMessageInput();
         }

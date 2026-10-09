@@ -76,26 +76,38 @@ namespace Amarin.UI
         /// <summary>
         /// Общий каркас хода: проверки, регистрация, работа движка, снятие с учёта.
         /// </summary>
-        internal async Task RunTurnAsync(
+        internal Task RunTurnAsync(
             ChatSession session,
             TurnKind kind,
-            Func<ChatSession, IChatTurnObserver, CancellationToken, Task> work)
+            Func<ChatSession, IChatTurnObserver, CancellationToken, Task> work) =>
+            TryRunTurnAsync(session, kind, work, ShowTurnLimitNotice);
+
+        /// <summary>
+        /// Тот же каркас, но отказ — ответом, а не окном: отложенная задача при занятом чате или без
+        /// свободного места просто подождёт, человеку об этом знать незачем.
+        /// </summary>
+        /// <returns>False — ход не начался: в чате уже идёт ход или заняты все места.</returns>
+        internal async Task<bool> TryRunTurnAsync(
+            ChatSession session,
+            TurnKind kind,
+            Func<ChatSession, IChatTurnObserver, CancellationToken, Task> work,
+            Action? limitReached = null)
         {
             if (_services is null)
             {
-                return;
+                return false;
             }
 
             var start = Turns.TryStart(session, kind, DateTime.Now);
             if (start.Refusal == TurnRefusal.LimitReached)
             {
-                ShowTurnLimitNotice();
-                return;
+                limitReached?.Invoke();
+                return false;
             }
 
             if (start.Turn is not { } turn)
             {
-                return;
+                return false;
             }
 
             UpdateComposerChrome();
@@ -127,6 +139,8 @@ namespace Amarin.UI
             {
                 FinishTurn(turn);
             }
+
+            return true;
         }
 
         /// <summary>

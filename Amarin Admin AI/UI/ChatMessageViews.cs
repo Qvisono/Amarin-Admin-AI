@@ -71,6 +71,15 @@ internal sealed class MessageActions
     /// Есть ли ещё такая инструкция. Отметка удалённой не ведёт никуда и так и говорит.
     /// </summary>
     public Func<string, bool>? InstructionExists;
+
+    /// <summary>Открыть вкладку «Отложенные» — с отметки задачи в ленте.</summary>
+    public Action? OpenDeferred;
+
+    /// <summary>
+    /// Где сейчас отложенная задача: ближайший срок или чем кончилась. Null — задачи больше нет в
+    /// списке, и отметка показывает только название.
+    /// </summary>
+    public Func<string, string?>? DeferredState;
 }
 
 internal sealed class UserMessageView
@@ -166,6 +175,9 @@ internal sealed class AssistantMessageView
 
     /// <summary>Отметки «по инструкции» — какие инструкции пользователя модель прочла.</summary>
     public required StackPanel InstructionsHost { get; init; }
+
+    /// <summary>Отметки отложенных задач, которые этот ответ поставил.</summary>
+    public required StackPanel DeferredHost { get; init; }
 
     public required FrameworkElement Host { get; init; }
 
@@ -435,10 +447,36 @@ internal sealed class AssistantMessageView
     /// с десятком вызовов это сотни объектов на сообщение — впустую и при каждом открытии чата,
     /// и при каждом изменении состояния вызова во время ответа.
     /// </remarks>
+    /// <summary>Какие задачи уже нарисованы отметками — по той же причине, что и <see cref="_shownInstructions"/>.</summary>
+    private string _shownDeferred = "";
+
+    /// <summary>Перерисовывает отметки отложенных задач под ответом.</summary>
+    public void UpdateDeferred(ChatDisplayMessage message)
+    {
+        var tasks = ChatMessageViews.CollectDeferred(message);
+        var key = string.Join("\n", tasks.Select(task => task.Id));
+        if (key == _shownDeferred)
+        {
+            return;
+        }
+
+        _shownDeferred = key;
+        DeferredHost.Children.Clear();
+        if (tasks.Count == 0)
+        {
+            DeferredHost.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        DeferredHost.Visibility = Visibility.Visible;
+        DeferredHost.Children.Add(ChatMessageViews.CreateDeferredStrip(Host, tasks, Callbacks));
+    }
+
     public void UpdateTools(ChatDisplayMessage message)
     {
         UpdateSavedFiles(message);
         UpdateInstructions(message);
+        UpdateDeferred(message);
 
         if (message.ToolRounds.Count == 0)
         {
@@ -1238,6 +1276,12 @@ internal static class ChatMessageViews
             root.Children.Add(QuoteViews.BubbleStrip(host, message, actions));
         }
 
+        // Сообщение поставила наступившая отложенная задача, а не человек — шапка говорит об этом.
+        if (message.Deferred is { } deferred)
+        {
+            root.Children.Add(CreateDeferredMark(host, deferred, actions));
+        }
+
         root.Children.Add(bubble);
         root.Children.Add(row);
         var view = new UserMessageView(root)
@@ -1481,12 +1525,16 @@ internal static class ChatMessageViews
         // что она положила на диск.
         var filesHost = new StackPanel { Visibility = Visibility.Collapsed };
         var instructionsHost = new StackPanel { Visibility = Visibility.Collapsed };
+
+        // Отложенное — тоже итог ответа, и тоже под текстом: модель сперва говорит, что поставила.
+        var deferredHost = new StackPanel { Visibility = Visibility.Collapsed };
         var column = new StackPanel();
         column.Children.Add(meta);
         column.Children.Add(toolsHost);
         column.Children.Add(instructionsHost);
         column.Children.Add(body);
         column.Children.Add(filesHost);
+        column.Children.Add(deferredHost);
         column.Children.Add(buttons.Row);
 
         var grid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
@@ -1518,6 +1566,7 @@ internal static class ChatMessageViews
             ToolsHost = toolsHost,
             FilesHost = filesHost,
             InstructionsHost = instructionsHost,
+            DeferredHost = deferredHost,
             Host = host,
             Callbacks = actions
         };
@@ -1954,6 +2003,131 @@ internal static class ChatMessageViews
             actions?.OpenInstruction?.Invoke(instruction.Id);
         };
 
+        return chip;
+    }
+
+    /// <summary>Часы на отметках отложенных задач — тот же знак, что у задачи в списке.</summary>
+    private const string DeferredClockGlyph =
+        "M24,24z M0,0z M3.5,12 A8.5,8.5 0 1 0 20.5,12 A8.5,8.5 0 1 0 3.5,12 M12,7.5 L12,12 L15,14";
+
+    /// <summary>Задачи, которые поставили удачные вызовы ответа, — без повторов.</summary>
+    internal static IReadOnlyList<DeferredRef> CollectDeferred(ChatDisplayMessage message)
+    {
+        var tasks = new List<DeferredRef>();
+        foreach (var call in message.ToolRounds.SelectMany(round => round.Calls))
+        {
+            if (call is { Success: true, Deferred: { } task } && !tasks.Any(item => item.Id == task.Id))
+            {
+                tasks.Add(task);
+            }
+        }
+
+        return tasks;
+    }
+
+    /// <summary>Ряд отметок «отложено» под ответом: что поставлено и где оно сейчас.</summary>
+    internal static FrameworkElement CreateDeferredStrip(
+        FrameworkElement host,
+        IReadOnlyList<DeferredRef> tasks,
+        MessageActions? actions)
+    {
+        var strip = new WrapPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 2, 0, 8)
+        };
+
+        foreach (var task in tasks)
+        {
+            var state = actions?.DeferredState?.Invoke(task.Id);
+            strip.Children.Add(CreateDeferredChip(host, "S.Deferred.ChipLabel", task.Title, state, actions));
+        }
+
+        return strip;
+    }
+
+    /// <summary>
+    /// Шапка над сообщением, которое написала не рука человека, а наступившая отложенная задача:
+    /// когда был срок и насколько опоздали.
+    /// </summary>
+    internal static FrameworkElement CreateDeferredMark(FrameworkElement host, DeferredMark mark, MessageActions? actions)
+    {
+        var when = DeferredText.Moment(mark.DueUtc, DeferredClock.Now());
+        var state = mark.LateBy is { } late ? when + " · " + DeferredText.Late(late) : when;
+        var chip = CreateDeferredChip(host, "S.Deferred.Mark", mark.Title, state, actions);
+        chip.HorizontalAlignment = HorizontalAlignment.Right;
+        chip.Margin = new Thickness(0, 0, 0, 6);
+        return chip;
+    }
+
+    private static Button CreateDeferredChip(
+        FrameworkElement host,
+        string labelKey,
+        string title,
+        string? state,
+        MessageActions? actions)
+    {
+        var clock = new System.Windows.Shapes.Path
+        {
+            Data = Glyphs.Get(DeferredClockGlyph),
+            Width = 12,
+            Height = 12,
+            Stretch = Stretch.Uniform,
+            StrokeThickness = 1.3,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0)
+        };
+        clock.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Accent.Fill");
+
+        var label = new TextBlock
+        {
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 5, 0)
+        };
+        label.SetResourceReference(TextBlock.TextProperty, labelKey);
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+
+        var name = new TextBlock
+        {
+            Text = title,
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            MaxWidth = 260,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        name.SetResourceReference(TextBlock.ForegroundProperty, "Text.Body");
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(clock);
+        row.Children.Add(label);
+        row.Children.Add(name);
+        if (!string.IsNullOrEmpty(state))
+        {
+            var when = new TextBlock
+            {
+                Text = "· " + state,
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 0, 0, 0)
+            };
+            when.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
+            row.Children.Add(when);
+        }
+
+        var chip = new Button
+        {
+            Style = (Style)host.FindResource("InstructionChip"),
+            Content = row,
+            IsEnabled = actions?.OpenDeferred is not null
+        };
+        chip.SetResourceReference(FrameworkElement.ToolTipProperty, "S.Deferred.ChipTip");
+        chip.Click += (_, _) => actions?.OpenDeferred?.Invoke();
         return chip;
     }
 

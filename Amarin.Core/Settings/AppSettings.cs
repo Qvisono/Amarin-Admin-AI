@@ -190,6 +190,9 @@ public sealed class AppSettings
     /// <summary>Короткий системный звук с карточкой. Без карточки не учитывается.</summary>
     public bool NotifySound { get; set; } = true;
 
+    /// <summary>Мелодия напоминаний и итогов отложенных задач (1.33.0).</summary>
+    public bool DeferredSound { get; set; } = true;
+
     /// <summary>
     /// Кнопки «поделиться» и «экспорт» под сообщениями. Обе отдают всю переписку без шифрования,
     /// поэтому их можно выключить совсем.

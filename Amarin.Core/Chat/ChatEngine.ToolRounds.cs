@@ -98,7 +98,8 @@ internal sealed partial class ChatEngine
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
         CancellationToken cancellationToken,
-        string? forcedAgentTier = null)
+        string? forcedAgentTier = null,
+        bool planAllowed = true)
     {
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
@@ -160,7 +161,8 @@ internal sealed partial class ChatEngine
                             Observer = observer,
                             SessionId = session.Id,
                             ChatTitle = session.Title,
-                            ForcedTier = forcedAgentTier
+                            ForcedTier = forcedAgentTier,
+                            PlanAllowed = planAllowed
                         }))
                         {
                             started = true;

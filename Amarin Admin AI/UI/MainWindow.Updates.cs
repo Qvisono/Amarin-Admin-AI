@@ -554,6 +554,9 @@ namespace Amarin.UI
         {
             // До выхода процесса дело может не дойти: Windows гасит его, как только ответили.
             AppSettingsStore.FlushAll();
+
+            // Программы, открытые в миг выключения, — для задачи «вернуть их при включении».
+            SaveProgramsSnapshot(atShutdown: true);
             Exit.OnSessionEnding();
         }
 

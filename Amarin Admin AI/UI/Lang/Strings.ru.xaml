@@ -1919,8 +1919,9 @@
     <system:String x:Key="S.Deferred.WakeFailed" xml:space="preserve">Планировщик Windows не дал завести запуск программы к сроку: задачи сработают, пока программа открыта.</system:String>
     <system:String x:Key="S.Deferred.Mark" xml:space="preserve">Отложенная задача</system:String>
     <system:String x:Key="S.Deferred.ChipTip" xml:space="preserve">Открыть список отложенных задач</system:String>
+    <system:String x:Key="S.Deferred.ChipLabel" xml:space="preserve">Отложено</system:String>
     <system:String x:Key="S.Deferred.Sound" xml:space="preserve">Мелодия напоминаний</system:String>
-    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">Тихий звук, когда приходит напоминание или выполнена задача</system:String>
+    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">Тихий звук напоминаний и выполненных задач</system:String>
     <system:String x:Key="S.Deferred.Listen" xml:space="preserve">Послушать</system:String>
     <system:String x:Key="S.Deferred.Result.CommandDone" xml:space="preserve">Команда выполнена.</system:String>
     <system:String x:Key="S.Deferred.Result.CommandFailed" xml:space="preserve">Команда не выполнилась: {0}</system:String>
@@ -1931,6 +1932,9 @@
     <system:String x:Key="S.Deferred.Result.ReadOnly" xml:space="preserve">Задача не выполнена: сейчас включён режим «Только чтение».</system:String>
     <system:String x:Key="S.Deferred.Result.NoAnswer" xml:space="preserve">Нет ответа за {0}: задача остановлена.</system:String>
     <system:String x:Key="S.Deferred.UnlockHint" xml:space="preserve">Пора выполнить отложенные задачи: войдите в профиль</system:String>
+    <system:String x:Key="S.Deferred.ChatTitle" xml:space="preserve">Отложенная задача: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.NoReply" xml:space="preserve">Ответа нет: ход оборвался раньше, чем модель что-то сказала.</system:String>
+    <system:String x:Key="S.Deferred.Result.Stopped" xml:space="preserve">Остановлено вручную.</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">Расшифровка видео YouTube</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">Вводная от пользователя:</system:String>

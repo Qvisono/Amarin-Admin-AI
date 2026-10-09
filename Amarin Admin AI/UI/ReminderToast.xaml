@@ -1,0 +1,196 @@
+<Window x:Class="Amarin.UI.ReminderToast"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Amarin.UI"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual"
+        Focusable="False"
+        Title="Amarin">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources.xaml"/>
+                <ResourceDictionary Source="DeferredIcons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Кнопка карточки: вторичная кнопка диалогов, только ниже — карточка в углу, а не окно. -->
+            <Style x:Key="ReminderButton" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButton}">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="11,0"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+                <Setter Property="Focusable" Value="False"/>
+            </Style>
+            <Style x:Key="ReminderPrimaryButton" TargetType="Button" BasedOn="{StaticResource DialogPrimaryButton}">
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="11,0"/>
+                <Setter Property="Margin" Value="0,0,6,0"/>
+                <Setter Property="Focusable" Value="False"/>
+            </Style>
+
+            <DataTemplate x:Key="ReminderCard" DataType="{x:Type local:ReminderItem}">
+                <!-- Поля карточки — те же, что у «ответ готов»: тень видна внутри окна. -->
+                <Border x:Name="Card" Width="340" Margin="0,0,0,10"
+                        Background="{DynamicResource Bg.Panel}"
+                        BorderBrush="{DynamicResource Border.Default}" BorderThickness="1"
+                        CornerRadius="12" Padding="14,12"
+                        Loaded="Card_Loaded" MouseLeftButtonUp="Card_MouseLeftButtonUp">
+                    <Border.RenderTransform>
+                        <TranslateTransform Y="0"/>
+                    </Border.RenderTransform>
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.5"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Style="{StaticResource AiLogoBorder}" Margin="0,1,10,0">
+                            <Path x:Name="Glyph" Data="{StaticResource DeferredIcon.Reminder}"
+                                  Stroke="{DynamicResource Accent.Fill}" StrokeThickness="1.7"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Width="15" Height="15" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1">
+                            <Grid>
+                                <TextBlock Text="{Binding Heading}" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Text.Body}"
+                                           TextTrimming="CharacterEllipsis" Margin="0,0,52,0"/>
+                                <TextBlock Text="{Binding More}" FontSize="11" HorizontalAlignment="Right"
+                                           VerticalAlignment="Center" Foreground="{DynamicResource Text.Faint}"/>
+                            </Grid>
+                            <TextBlock Text="{Binding Body}" FontSize="12" Margin="0,3,0,0"
+                                       Foreground="{DynamicResource Text.Secondary}"
+                                       TextWrapping="Wrap" MaxHeight="68"
+                                       TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Body}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding Meta}" FontSize="11" Margin="0,5,0,0"
+                                       Foreground="{DynamicResource Text.Faint}"
+                                       TextWrapping="Wrap" MaxHeight="30"
+                                       TextTrimming="CharacterEllipsis">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Meta}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Кнопки — во всю ширину карточки, под значком тоже: в колонке текста
+                             три кнопки не помещались и уходили второй строкой. -->
+                        <Grid Grid.Row="1" Grid.ColumnSpan="3">
+                            <!-- Действия напоминания. -->
+                            <WrapPanel x:Name="ReminderActions" Margin="0,12,0,0" Visibility="Collapsed">
+                                <Button Style="{StaticResource ReminderPrimaryButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.Ack}" Click="Ack_Click"/>
+                                <Button Style="{StaticResource ReminderButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.Snooze}" Click="Snooze_Click"/>
+                                <Button x:Name="OpenChatButton" Style="{StaticResource ReminderButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.OpenChat}" Click="OpenChat_Click"/>
+                            </WrapPanel>
+
+                            <!-- «Отложить» раскрывается на месте: на сколько. -->
+                            <WrapPanel x:Name="SnoozeActions" Margin="0,12,0,0" Visibility="Collapsed">
+                                <Button Style="{StaticResource ReminderButton}" Tag="{x:Static local:ReminderSnooze.TenMinutes}"
+                                        Content="{DynamicResource S.Deferred.Toast.Snooze10}" Click="SnoozeFor_Click"/>
+                                <Button Style="{StaticResource ReminderButton}" Tag="{x:Static local:ReminderSnooze.OneHour}"
+                                        Content="{DynamicResource S.Deferred.Toast.Snooze60}" Click="SnoozeFor_Click"/>
+                                <Button Style="{StaticResource ReminderButton}" Tag="{x:Static local:ReminderSnooze.TomorrowMorning}"
+                                        Content="{DynamicResource S.Deferred.Toast.SnoozeTomorrow}" Click="SnoozeFor_Click"/>
+                            </WrapPanel>
+
+                            <!-- Прервавшаяся задача: повторить или отменить решает человек. -->
+                            <WrapPanel x:Name="InterruptedActions" Margin="0,12,0,0" Visibility="Collapsed">
+                                <Button Style="{StaticResource ReminderPrimaryButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.Retry}" Click="Retry_Click"/>
+                                <Button Style="{StaticResource ReminderButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.Cancel}" Click="CancelTask_Click"/>
+                                <Button x:Name="InterruptedOpenChat" Style="{StaticResource ReminderButton}"
+                                        Content="{DynamicResource S.Deferred.Toast.OpenChat}" Click="OpenChat_Click"/>
+                            </WrapPanel>
+                        </Grid>
+
+                        <Button Grid.Column="2" Width="20" Height="20" Focusable="False"
+                                VerticalAlignment="Top" Margin="8,0,0,0" Cursor="Hand"
+                                ToolTip="{DynamicResource S.Common.Close}" Click="Close_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bg" Background="Transparent" CornerRadius="5">
+                                        <Path x:Name="Icon" Data="M0,0 L8,8 M8,0 L0,8"
+                                              Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Width="8" Height="8" Stretch="Uniform"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Hover}"/>
+                                            <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Primary}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Look}" Value="{x:Static local:ReminderLook.Reminder}">
+                        <Setter TargetName="ReminderActions" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Look}" Value="{x:Static local:ReminderLook.Interrupted}">
+                        <Setter TargetName="InterruptedActions" Property="Visibility" Value="Visible"/>
+                        <Setter TargetName="Glyph" Property="Data" Value="{StaticResource DeferredIcon.Clock}"/>
+                        <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource Status.Warning}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Snoozing}" Value="True">
+                        <Setter TargetName="ReminderActions" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="SnoozeActions" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <!-- Под блокировкой текст скрыт, а действия ждут входа: отвечать на то, чего не видно, незачем. -->
+                    <DataTrigger Binding="{Binding Hidden}" Value="True">
+                        <Setter TargetName="ReminderActions" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="SnoozeActions" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="InterruptedActions" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="Card" Property="Cursor" Value="Hand"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding HasChat}" Value="False">
+                        <Setter TargetName="OpenChatButton" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="InterruptedOpenChat" Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Поля окна оставляют место тени нижней карточки; между карточками — их собственный отступ. -->
+    <ItemsControl x:Name="Cards" Margin="30,30,30,20" Focusable="False"
+                  ItemTemplate="{StaticResource ReminderCard}"/>
+</Window>

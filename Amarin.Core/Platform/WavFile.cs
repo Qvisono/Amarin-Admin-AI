@@ -17,7 +17,10 @@ internal static class WavFile
     public const int BytesPerSecond = SampleRate * 2;
 
     /// <summary>Заголовок RIFF/WAVE и данные: 16 бит, моно, <see cref="SampleRate"/>.</summary>
-    public static byte[] Build(ReadOnlySpan<byte> pcm)
+    public static byte[] Build(ReadOnlySpan<byte> pcm) => Build(pcm, SampleRate);
+
+    /// <summary>Заголовок RIFF/WAVE и данные: 16 бит, моно, с этой частотой — для мелодий, которым 16 кГц мало.</summary>
+    public static byte[] Build(ReadOnlySpan<byte> pcm, int sampleRate)
     {
         var wav = new byte[44 + pcm.Length];
         var span = wav.AsSpan();
@@ -28,8 +31,8 @@ internal static class WavFile
         BinaryPrimitives.WriteInt32LittleEndian(span[16..], 16);
         BinaryPrimitives.WriteInt16LittleEndian(span[20..], 1);
         BinaryPrimitives.WriteInt16LittleEndian(span[22..], 1);
-        BinaryPrimitives.WriteInt32LittleEndian(span[24..], SampleRate);
-        BinaryPrimitives.WriteInt32LittleEndian(span[28..], BytesPerSecond);
+        BinaryPrimitives.WriteInt32LittleEndian(span[24..], sampleRate);
+        BinaryPrimitives.WriteInt32LittleEndian(span[28..], sampleRate * 2);
         BinaryPrimitives.WriteInt16LittleEndian(span[32..], 2);
         BinaryPrimitives.WriteInt16LittleEndian(span[34..], 16);
         "data"u8.CopyTo(span[36..]);

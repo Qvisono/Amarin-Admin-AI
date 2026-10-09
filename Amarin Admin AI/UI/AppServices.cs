@@ -108,6 +108,13 @@ internal sealed class AppServices : IDisposable
 
     private RecipeRunner? _recipeRunner;
 
+    /// <summary>
+    /// Инструменты агента и файловые — те, которыми исполняются рецепты, команды отложенных задач
+    /// и проверки их условий. Без собранного в Program — пустой набор: тестам окна исполнять
+    /// настоящие команды незачем.
+    /// </summary>
+    internal Func<ToolRegistry> RunTools { get; init; } = () => new ToolRegistry([]);
+
     /// <summary>Запуск агента в обход чата — для задач по расписанию. Null — расписание не работает.</summary>
     internal IAgentHost? AgentHost { get; init; }
 

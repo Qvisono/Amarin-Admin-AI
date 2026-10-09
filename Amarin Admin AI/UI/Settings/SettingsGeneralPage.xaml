@@ -120,6 +120,23 @@
                             <ComboBoxItem Tag="System" Content="{DynamicResource S.Windows.NotifySystem}"/>
                         </ComboBox>
                     </Grid>
+                    <!-- Мелодия отложенных задач (1.33.0): напоминания и «задача выполнена». -->
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Deferred.Sound}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Deferred.SoundDesc}"/>
+                        </StackPanel>
+                        <Button x:Name="DeferredSoundListenButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                                Margin="0,0,12,0" Content="{DynamicResource S.Deferred.Listen}"/>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Deferred.Sound}" x:Name="DeferredSoundToggle" Grid.Column="2"
+                                  Style="{StaticResource SettingsToggle}" IsChecked="True"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 

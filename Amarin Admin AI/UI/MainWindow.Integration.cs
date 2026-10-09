@@ -61,6 +61,16 @@ namespace Amarin.UI
             WindowState = WindowState.Minimized;
         }
 
+        /// <summary>
+        /// Пробуждение Планировщиком (<c>--wake</c>) без значка в трее: окно приходит свёрнутым
+        /// на панель задач и фокус у программы, в которой человек работает, не отнимает.
+        /// </summary>
+        internal void PrepareQuietStart()
+        {
+            ShowActivated = false;
+            WindowState = WindowState.Minimized;
+        }
+
         private void FinishStartInTray()
         {
             if (_tray is { IsShown: true })
@@ -339,15 +349,21 @@ namespace Amarin.UI
         /// Одна точка для всех уведомлений: своя карточка или системное — через значок в трее.
         /// Без значка системное уведомление показать нечем, и тогда — карточка.
         /// </summary>
-        private void Notify(string modelId, string text, string meta, Action onOpen, bool warning = false)
+        /// <param name="title">Заголовок карточки вместо «Ответ готов»; у системного уведомления заголовок — <paramref name="meta"/>.</param>
+        /// <param name="silent">Своя мелодия уже прозвучала: системное уведомление идёт без звука.</param>
+        private void Notify(string modelId, string text, string meta, Action onOpen, bool warning = false, string? title = null, bool silent = false)
         {
             if (_services?.Settings.Windows is { Notifications: NotificationStyle.System } &&
                 _tray is { IsShown: true } tray &&
-                tray.Balloon(string.IsNullOrWhiteSpace(meta) ? "Amarin Admin AI" : meta, text, warning, () => Ui(() =>
+                tray.Balloon(
+                    title ?? (string.IsNullOrWhiteSpace(meta) ? "Amarin Admin AI" : meta),
+                    title is null || string.IsNullOrWhiteSpace(meta) ? text : text + "\n" + meta,
+                    warning,
+                    () => Ui(() =>
                 {
                     ShowFromTray();
                     onOpen();
-                })))
+                }), silent))
             {
                 return;
             }
@@ -363,14 +379,20 @@ namespace Amarin.UI
                 {
                     ShowFromTray();
                     onOpen();
-                });
+                },
+                title);
             _toast = toast;
+
+            // Стопка напоминаний встаёт над карточкой, а не поверх неё.
+            toast.SizeChanged += (_, _) => KeepRemindersAbove(toast);
             toast.Closed += (_, _) =>
             {
                 if (ReferenceEquals(_toast, toast))
                 {
                     _toast = null;
                 }
+
+                KeepRemindersAbove(null);
             };
         }
 
@@ -573,7 +595,7 @@ namespace Amarin.UI
         /// <summary>Действие из командной строки, второго запуска, меню трея или списка переходов.</summary>
         internal void RunStartupAction(StartupAction action, string? chatId, string? askPath)
         {
-            if (action != StartupAction.Tray)
+            if (action is not (StartupAction.Tray or StartupAction.Wake))
             {
                 ShowFromTray();
             }
