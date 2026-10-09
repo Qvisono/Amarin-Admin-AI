@@ -30,7 +30,7 @@ internal static class DocumentFiles
                 write(stream);
             }
 
-            File.Move(temporary, full, overwrite);
+            Replace(temporary, full, overwrite);
         }
         catch (IOException) when (!overwrite && File.Exists(full))
         {
@@ -75,7 +75,7 @@ internal static class DocumentFiles
             }
 
             edit(temporary);
-            File.Move(temporary, full, overwrite);
+            Replace(temporary, full, overwrite);
         }
         catch (IOException) when (!overwrite && File.Exists(full))
         {
@@ -90,6 +90,33 @@ internal static class DocumentFiles
             if (File.Exists(temporary))
             {
                 File.Delete(temporary);
+            }
+        }
+    }
+
+    /// <summary>Сколько раз пробовать поставить готовый файл на место, пока его держит кто-то другой.</summary>
+    private const int ReplaceAttempts = 6;
+
+    /// <summary>
+    /// Ставит готовый файл на место. Отказ «доступ запрещён» в первые мгновения после прошлой
+    /// записи — не запрет, а чужой взгляд на файл: антивирус и индексатор Windows открывают только
+    /// что записанное, и подмена в эту долю секунды не проходит. Поэтому несколько попыток с
+    /// растущей паузой; файл, который и правда только для чтения, после них даёт тот же отказ.
+    /// </summary>
+    private static void Replace(string temporary, string full, bool overwrite)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(temporary, full, overwrite);
+                return;
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException &&
+                                       attempt < ReplaceAttempts &&
+                                       (overwrite || !File.Exists(full)))
+            {
+                Thread.Sleep(40 * attempt);
             }
         }
     }
