@@ -332,12 +332,14 @@ namespace Amarin.UI
         /// <summary>
         /// Страница настроек — тем же скроллом, что колонка и чат, и перетаскиванием зажатой
         /// кнопкой. В ленте чата левая кнопка занята выделением текста и лупой, в колонке чатов —
-        /// перетаскиванием чатов по папкам, а здесь свободна.
+        /// перетаскиванием чатов по папкам, а здесь свободна. Средняя кнопка — автопрокрутка, как
+        /// в ленте и колонке.
         /// </summary>
-        private static void EnablePageScroll(ScrollViewer scroll)
+        internal static void EnablePageScroll(ScrollViewer scroll)
         {
             SmoothScroll.SetIsEnabled(scroll, true);
             SmoothScroll.SetDragScroll(scroll, true);
+            SmoothScroll.SetAutoScroll(scroll, true);
         }
 
         /// <summary>Строки «Сочетаний клавиш» — тринадцать полей записи, если их ещё нет.</summary>

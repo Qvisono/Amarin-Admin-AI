@@ -31,8 +31,7 @@ public partial class SettingsSecurityPage : UserControl
     {
         InitializeComponent();
 
-        SmoothScroll.SetIsEnabled(PageScroll, true);
-        SmoothScroll.SetDragScroll(PageScroll, true);
+        MainWindow.EnablePageScroll(PageScroll);
     }
 
     /// <summary>Ставится главным окном, когда службы уже собраны.</summary>

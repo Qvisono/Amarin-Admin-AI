@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -82,6 +83,30 @@ namespace Amarin.UI
                 typeof(SmoothScroll),
                 new PropertyMetadata(false));
 
+        /// <summary>
+        /// Автопрокрутка средней кнопкой, как в браузере (1.33.0): нажатие ставит метку, и список
+        /// едет в ту сторону, куда увели от неё мышь, — тем быстрее, чем дальше.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Третье умение того же хука и на его физике, а не своё: пока идёт автопрокрутка, хук
+        /// держит <see cref="IsInMotionProperty"/> и считается анимацией (<see cref="IsAnimating"/>),
+        /// поэтому всё, что уже уступает инерции колеса, — достройка ленты, автоследование за
+        /// ответом, наведение на строки колонки чатов — уступает и ей, без единой правки там.
+        /// </para>
+        /// <para>
+        /// Нажатие разбирает классовый обработчик окна, а не сам список: у ленты и её шаблона нет
+        /// заливки, и средняя кнопка на пустом месте между сообщениями достаётся корню окна —
+        /// предку ленты, а не потомку (то же, что у лупы, см. <c>ChatZoom</c>).
+        /// </para>
+        /// </remarks>
+        public static readonly DependencyProperty AutoScrollProperty =
+            DependencyProperty.RegisterAttached(
+                "AutoScroll",
+                typeof(bool),
+                typeof(SmoothScroll),
+                new PropertyMetadata(false, OnAutoScrollChanged));
+
         private static readonly DependencyPropertyKey IsInMotionKey =
             DependencyProperty.RegisterAttachedReadOnly(
                 "IsInMotion",
@@ -136,6 +161,179 @@ namespace Amarin.UI
 
         public static void SetDragScroll(DependencyObject obj, bool value) =>
             obj.SetValue(DragScrollProperty, value);
+
+        public static bool GetAutoScroll(DependencyObject obj) =>
+            (bool)obj.GetValue(AutoScrollProperty);
+
+        public static void SetAutoScroll(DependencyObject obj, bool value) =>
+            obj.SetValue(AutoScrollProperty, value);
+
+        /// <summary>Идёт автопрокрутка средней кнопкой.</summary>
+        public static bool IsAutoScrolling(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.IsAutoScrolling ?? false;
+
+        /// <summary>Начать автопрокрутку с меткой в этой точке — в обход событий, ради тестов.</summary>
+        /// <remarks>Положение мыши в поднятом событии берётся у настоящего курсора — см. <see cref="ArmDrag"/>.</remarks>
+        /// <param name="held">Зажата ли средняя кнопка: от этого зависит, кончит ли прокрутку её отпускание.</param>
+        internal static bool BeginAutoScroll(ScrollViewer viewer, Point origin, bool held = false) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.BeginAutoScroll(origin, held) ?? false;
+
+        /// <summary>Метка автопрокрутки на этом списке — для тестов и снимков.</summary>
+        internal static FrameworkElement? AutoScrollMarkerOf(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.Marker;
+
+        /// <summary>Один кадр автопрокрутки с мышью в этой точке, <paramref name="seconds"/> спустя прошлый.</summary>
+        /// <inheritdoc cref="BeginAutoScroll"/>
+        internal static void AutoScrollFrame(ScrollViewer viewer, Point pointer, double seconds) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.StepAuto(pointer, seconds);
+
+        /// <summary>Отпущена средняя кнопка — ради тестов, как и <see cref="BeginAutoScroll"/>.</summary>
+        internal static void ReleaseAutoScrollButton(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.ReleaseAutoButton();
+
+        /// <summary>Закончить автопрокрутку, где бы она ни шла.</summary>
+        public static void EndAutoScroll(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.EndAutoScroll();
+
+        /// <summary>Пикселей в секунду и в какую сторону, когда мышь увели от метки на столько.</summary>
+        /// <remarks>
+        /// Мёртвая зона у метки — чтобы дрожь руки после щелчка не трогала список. Дальше скорость
+        /// растёт чуть быстрее расстояния: в паре сантиметров от метки читается строка за строкой,
+        /// у края экрана длинный чат пролетает за секунды. Потолок — чтобы лента не превращалась в
+        /// мельтешение, которое нечем остановить взглядом.
+        /// </remarks>
+        internal static double AutoScrollSpeed(double offset)
+        {
+            var distance = Math.Abs(offset) - AutoDeadZone;
+            if (distance <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Sign(offset) * Math.Min(AutoMaxSpeed, AutoGain * Math.Pow(distance, AutoExponent));
+        }
+
+        internal const double AutoDeadZone = 12;
+        private const double AutoGain = 5;
+        private const double AutoExponent = 1.25;
+        private const double AutoMaxSpeed = 7000;
+
+        /// <summary>Хуки с автопрокруткой, чьи списки сейчас в дереве, — кандидаты для нажатия на пустом месте.</summary>
+        private static readonly HashSet<Hook> AutoHooks = [];
+
+        /// <summary>Автопрокрутка, которая идёт сейчас: она одна на программу, как и мышь.</summary>
+        private static Hook? _activeAuto;
+
+        private static bool _routerRegistered;
+
+        private static void OnAutoScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not ScrollViewer viewer)
+            {
+                return;
+            }
+
+            if (e.NewValue is true && !_routerRegistered)
+            {
+                // Классовый обработчик — один на процесс: он видит нажатие раньше любого
+                // элемента окна, а подписка на каждое окно потребовала бы следить за окнами.
+                _routerRegistered = true;
+                EventManager.RegisterClassHandler(
+                    typeof(Window),
+                    UIElement.PreviewMouseDownEvent,
+                    new MouseButtonEventHandler(OnWindowPreviewMouseDown));
+            }
+
+            if (viewer.GetValue(HookProperty) is Hook hook)
+            {
+                hook.AutoEnabled = e.NewValue is true;
+            }
+        }
+
+        /// <summary>
+        /// Любое нажатие в окне: средняя кнопка начинает автопрокрутку, а пока она идёт, любая
+        /// кнопка её заканчивает — и сама никуда не доходит, как в браузере.
+        /// </summary>
+        private static void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_activeAuto is { } active)
+            {
+                active.EndAutoScroll();
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ChangedButton != MouseButton.Middle || FindAutoTarget(e) is not { } target)
+            {
+                return;
+            }
+
+            if (target.BeginAutoScroll(e.GetPosition(target.Viewer)))
+            {
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Чей список листать: ближайший предок нажатия с автопрокруткой, которому есть что
+        /// листать, — а если нажали на пустом месте, то список, в чьи границы попала точка и чьим
+        /// предком является то, на что нажали.
+        /// </summary>
+        /// <remarks>
+        /// Второе правило ловит пустые места без заливки (лента, страница настроек): нажатие там
+        /// достаётся предку списка. Требование «источник — предок списка» отсекает слои поверх:
+        /// рамка, заслоняющая чат, или подложка настроек — соседи ленты, а не её предки, и
+        /// нажатие на них ленту не листает.
+        /// </remarks>
+        private static Hook? FindAutoTarget(MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source)
+            {
+                return null;
+            }
+
+            for (var node = source; node is not null; node = Hook.Up(node))
+            {
+                if (node is ScrollViewer viewer && viewer.GetValue(HookProperty) is Hook { AutoEnabled: true } own && own.CanAutoScroll)
+                {
+                    return own;
+                }
+            }
+
+            if (source is not Visual visual)
+            {
+                return null;
+            }
+
+            var sourceRoot = PresentationSource.FromVisual(visual);
+            Hook? best = null;
+            var bestArea = double.MaxValue;
+            foreach (var hook in AutoHooks)
+            {
+                var viewer = hook.Viewer;
+                if (!hook.CanAutoScroll || !viewer.IsVisible || !ReferenceEquals(PresentationSource.FromVisual(viewer), sourceRoot) ||
+                    !visual.IsAncestorOf(viewer))
+                {
+                    continue;
+                }
+
+                var point = e.GetPosition(viewer);
+                if (point.X < 0 || point.Y < 0 || point.X > viewer.ActualWidth || point.Y > viewer.ActualHeight)
+                {
+                    continue;
+                }
+
+                // Самый тесный из подходящих — самый внутренний.
+                var area = viewer.ActualWidth * viewer.ActualHeight;
+                if (area < bestArea)
+                {
+                    best = hook;
+                    bestArea = area;
+                }
+            }
+
+            return best;
+        }
 
         /// <summary>
         /// Плавно доезжает до края и зовёт <paramref name="arrived"/>, когда встал — или когда
@@ -314,6 +512,23 @@ namespace Amarin.UI
             /// <summary>Текущую инерцию завело отпущенное перетаскивание, а не колесо.</summary>
             private bool _dragFling;
 
+            private bool _autoEnabled;
+            private bool _auto;
+            private bool _autoCapturing;
+            private Point _autoOrigin;
+
+            /// <summary>Средняя кнопка ещё зажата с того нажатия, что начало автопрокрутку.</summary>
+            private bool _autoHeld;
+
+            /// <summary>Пока кнопку держали, мышь ушла из мёртвой зоны: отпускание заканчивает прокрутку.</summary>
+            private bool _autoDragged;
+
+            /// <summary>Куда показывает метка: -1 вверх, 1 вниз, 0 — стоим.</summary>
+            private int _autoDirection;
+
+            private AutoScrollMarker? _autoMarker;
+            private Window? _autoWindow;
+
             public Hook(ScrollViewer viewer)
             {
                 _viewer = viewer;
@@ -333,6 +548,48 @@ namespace Amarin.UI
             public bool IsDragging => _dragging;
 
             public bool DragEnabled { get; set; }
+
+            public ScrollViewer Viewer => _viewer;
+
+            public bool IsAutoScrolling => _auto;
+
+            public FrameworkElement? Marker => _autoMarker;
+
+            /// <summary>Автопрокрутка включена у этого списка; список в дереве — значит, он кандидат.</summary>
+            public bool AutoEnabled
+            {
+                get => _autoEnabled;
+                set
+                {
+                    _autoEnabled = value;
+                    if (!value)
+                    {
+                        EndAutoScroll();
+                    }
+
+                    RegisterAuto();
+                }
+            }
+
+            /// <summary>Есть что листать: автопрокрутка над коротким списком только мешала бы.</summary>
+            public bool CanAutoScroll => _attached && _viewer.IsLoaded && GetMaxOffset() > 0;
+
+            /// <param name="loaded">В дереве ли список сейчас; null — спросить у него самого.</param>
+            /// <remarks>
+            /// Из <c>Loaded</c> и <c>Unloaded</c> ответ передаётся явно: что успел показать
+            /// <see cref="FrameworkElement.IsLoaded"/> в миг самого события, зависит от порядка внутри WPF.
+            /// </remarks>
+            private void RegisterAuto(bool? loaded = null)
+            {
+                if (_attached && _autoEnabled && (loaded ?? _viewer.IsLoaded))
+                {
+                    AutoHooks.Add(this);
+                }
+                else
+                {
+                    AutoHooks.Remove(this);
+                }
+            }
 
             public void Attach()
             {
@@ -362,8 +619,14 @@ namespace Amarin.UI
                 // и листать было бы уже нечем.
                 _viewer.AddHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
 
+                _viewer.PreviewMouseUp += OnAutoMouseUp;
+                _viewer.LostMouseCapture += OnAutoLostCapture;
+                _autoEnabled = GetAutoScroll(_viewer);
+
                 if (_viewer.IsLoaded)
                     BindTemplateParts();
+
+                RegisterAuto();
             }
 
             public void Detach()
@@ -372,6 +635,8 @@ namespace Amarin.UI
                     return;
                 _attached = false;
 
+                EndAutoScroll();
+                RegisterAuto();
                 EndDrag(fling: false);
                 FinishGlide();
                 StopTicking();
@@ -386,6 +651,8 @@ namespace Amarin.UI
                 _viewer.PreviewMouseLeftButtonUp -= OnDragRelease;
                 _viewer.LostMouseCapture -= OnDragLostCapture;
                 _viewer.RemoveHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
+                _viewer.PreviewMouseUp -= OnAutoMouseUp;
+                _viewer.LostMouseCapture -= OnAutoLostCapture;
 
                 if (_presenter is not null && ReferenceEquals(_presenter.RenderTransform, _translate))
                     _presenter.RenderTransform = null;
@@ -400,11 +667,17 @@ namespace Amarin.UI
                     _viewer.ClearValue(ScrollViewer.CanContentScrollProperty);
             }
 
-            private void OnLoaded(object sender, RoutedEventArgs e) => BindTemplateParts();
+            private void OnLoaded(object sender, RoutedEventArgs e)
+            {
+                BindTemplateParts();
+                RegisterAuto(loaded: true);
+            }
 
             private void OnUnloaded(object sender, RoutedEventArgs e)
             {
                 // Popup unloads the viewer every close — keep the hook, just stop the loop.
+                EndAutoScroll();
+                RegisterAuto(loaded: false);
                 EndDrag(fling: false);
                 FinishGlide();
                 StopTicking();
@@ -466,6 +739,10 @@ namespace Amarin.UI
             /// </remarks>
             private void OnWheel(object sender, MouseWheelEventArgs e)
             {
+                // Колесо посреди автопрокрутки — человек передумал, как и в браузере: метка
+                // уходит, а колесо дальше крутит обычным порядком.
+                EndAutoScroll();
+
                 if (AimedDeeper(e))
                 {
                     return;
@@ -531,7 +808,7 @@ namespace Amarin.UI
                 return false;
             }
 
-            private static DependencyObject? Up(DependencyObject node) =>
+            internal static DependencyObject? Up(DependencyObject node) =>
                 node is Visual or Visual3D
                     ? VisualTreeHelper.GetParent(node)
                     : LogicalTreeHelper.GetParent(node);
@@ -652,6 +929,15 @@ namespace Amarin.UI
 
             private void OnRendering(object? sender, EventArgs e)
             {
+                if (_auto)
+                {
+                    var frame = e is RenderingEventArgs rendering ? rendering.RenderingTime.TotalSeconds : 0;
+                    var seconds = _lastTime <= 0 || frame <= _lastTime ? 1.0 / 120.0 : frame - _lastTime;
+                    _lastTime = frame;
+                    StepAuto(Mouse.GetPosition(_viewer), seconds);
+                    return;
+                }
+
                 if (_gliding)
                 {
                     StepGlide();
@@ -998,6 +1284,208 @@ namespace Amarin.UI
                 return false;
             }
 
+            // ───────────────────────── автопрокрутка ─────────────────────────
+
+            /// <summary>Начинает автопрокрутку с меткой в этой точке (координаты списка).</summary>
+            /// <returns><c>false</c> — листать нечего, и нажатие остаётся тому, кому шло.</returns>
+            /// <param name="held">Зажата ли средняя кнопка; null — спросить у мыши. Тестам — своё значение.</param>
+            public bool BeginAutoScroll(Point origin, bool? held = null)
+            {
+                if (!_autoEnabled || !CanAutoScroll)
+                {
+                    return false;
+                }
+
+                // Чужая автопрокрутка в другом списке (вторая средняя кнопка, пока шла первая,
+                // сюда не доходит — её гасит обработчик окна) и свои жесты кончаются здесь.
+                _activeAuto?.EndAutoScroll();
+                EndDrag(fling: false);
+                FinishGlide();
+                CancelInertia(snap: true);
+
+                _auto = true;
+                _activeAuto = this;
+                _autoOrigin = origin;
+                _autoHeld = held ?? Mouse.MiddleButton == MouseButtonState.Pressed;
+                _autoDirection = 0;
+                _autoDragged = false;
+                _velocity = 0;
+                _virtual = Clamp(_viewer.VerticalOffset, 0, GetMaxOffset());
+                _virtualValid = true;
+
+                if (AdornerLayer.GetAdornerLayer(_viewer) is { } layer)
+                {
+                    _autoMarker = new AutoScrollMarker(_viewer, origin);
+                    layer.Add(_autoMarker);
+                }
+
+                _autoWindow = Window.GetWindow(_viewer);
+                if (_autoWindow is not null)
+                {
+                    _autoWindow.PreviewKeyDown += OnAutoKey;
+                    _autoWindow.Deactivated += OnAutoDeactivated;
+                }
+
+                // Мышь — себе: кнопка, нажатая под курсором после метки, не должна сработать, а
+                // движение за краем списка должно доходить. Её же «потерю» ловит OnAutoLostCapture.
+                _autoCapturing = true;
+                try
+                {
+                    Mouse.Capture(_viewer, CaptureMode.Element);
+                }
+                finally
+                {
+                    _autoCapturing = false;
+                }
+
+                Mouse.OverrideCursor = Cursors.ScrollNS;
+                EnsureTicking();
+                return true;
+            }
+
+            /// <summary>
+            /// Один кадр: скорость — от того, насколько мышь ушла от метки по вертикали.
+            /// </summary>
+            /// <remarks>
+            /// Без резинки и трения: край — это край, как в браузере. Отдельный путь в кадре, а
+            /// не общая инерция, потому что скорость здесь задаёт рука каждое мгновение, а не
+            /// разгон, который затухает.
+            /// </remarks>
+            public void StepAuto(Point pointer, double seconds)
+            {
+                if (!_auto)
+                {
+                    return;
+                }
+
+                var dt = Math.Clamp(seconds, MinDt, MaxDt);
+                var offset = pointer.Y - _autoOrigin.Y;
+                if (_autoHeld && Math.Abs(offset) > AutoDeadZone)
+                {
+                    _autoDragged = true;
+                }
+
+                var speed = AutoScrollSpeed(offset);
+                _virtual = Clamp(_virtual + (speed * dt), 0, GetMaxOffset());
+                _velocity = 0;
+                ApplyVisual();
+
+                var direction = Math.Sign(speed);
+                if (direction == _autoDirection)
+                {
+                    return;
+                }
+
+                _autoDirection = direction;
+                _autoMarker?.PointTo(direction);
+                Mouse.OverrideCursor = direction switch
+                {
+                    < 0 => Cursors.ScrollN,
+                    > 0 => Cursors.ScrollS,
+                    _ => Cursors.ScrollNS
+                };
+            }
+
+            /// <summary>
+            /// Отпустили среднюю кнопку. Держали и вели — это был жест, и он кончился; просто
+            /// щёлкнули — метка остаётся до следующего щелчка, как в браузере.
+            /// </summary>
+            public void ReleaseAutoButton()
+            {
+                if (!_auto || !_autoHeld)
+                {
+                    return;
+                }
+
+                _autoHeld = false;
+                if (_autoDragged)
+                {
+                    EndAutoScroll();
+                }
+            }
+
+            public void EndAutoScroll()
+            {
+                if (!_auto)
+                {
+                    return;
+                }
+
+                _auto = false;
+                _autoHeld = false;
+                if (ReferenceEquals(_activeAuto, this))
+                {
+                    _activeAuto = null;
+                }
+
+                if (_autoMarker is { } marker)
+                {
+                    AdornerLayer.GetAdornerLayer(_viewer)?.Remove(marker);
+                    _autoMarker = null;
+                }
+
+                if (_autoWindow is { } window)
+                {
+                    window.PreviewKeyDown -= OnAutoKey;
+                    window.Deactivated -= OnAutoDeactivated;
+                    _autoWindow = null;
+                }
+
+                Mouse.OverrideCursor = null;
+                if (ReferenceEquals(Mouse.Captured, _viewer))
+                {
+                    _autoCapturing = true;
+                    try
+                    {
+                        Mouse.Capture(null);
+                    }
+                    finally
+                    {
+                        _autoCapturing = false;
+                    }
+                }
+
+                _velocity = 0;
+                _virtual = Clamp(_virtual, 0, GetMaxOffset());
+                StopTicking();
+            }
+
+            private void OnAutoMouseUp(object sender, MouseButtonEventArgs e)
+            {
+                if (!_auto || e.ChangedButton != MouseButton.Middle)
+                {
+                    return;
+                }
+
+                ReleaseAutoButton();
+                e.Handled = true;
+            }
+
+            private void OnAutoLostCapture(object sender, MouseEventArgs e)
+            {
+                // Только свой захват — см. OnDragLostCapture: всплывающая потеря чужого захвата
+                // оборвала бы прокрутку в мгновение её начала.
+                if (_auto && !_autoCapturing && ReferenceEquals(e.OriginalSource, _viewer))
+                {
+                    EndAutoScroll();
+                }
+            }
+
+            /// <summary>
+            /// Любая клавиша заканчивает автопрокрутку. Esc этим и исчерпывается — иначе тот же
+            /// Esc закрыл бы ещё и настройки или сбросил лупу; остальные клавиши идут дальше.
+            /// </summary>
+            private void OnAutoKey(object sender, KeyEventArgs e)
+            {
+                EndAutoScroll();
+                if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                }
+            }
+
+            private void OnAutoDeactivated(object? sender, EventArgs e) => EndAutoScroll();
+
             private bool SameSource(RoutedEventArgs e) =>
                 e.OriginalSource is not Visual visual ||
                 ReferenceEquals(PresentationSource.FromVisual(visual), PresentationSource.FromVisual(_viewer));
@@ -1154,6 +1642,98 @@ namespace Amarin.UI
                 }
 
                 return FindChild<ScrollBar>(root);
+            }
+        }
+
+        /// <summary>
+        /// Метка автопрокрутки: кружок на месте нажатия и стрелки вверх и вниз. Стрелка той
+        /// стороны, куда едет список, горит акцентом.
+        /// </summary>
+        /// <remarks>
+        /// Слоем украшений над списком, а не элементом в нём: метка стоит на месте, пока под ней
+        /// едет содержимое, и не участвует ни в раскладке, ни в попадании мыши. Кисти — из темы на
+        /// момент нажатия: тема посреди жеста не меняется, а следить за ней ради кружка, который
+        /// живёт секунды, незачем.
+        /// </remarks>
+        private sealed class AutoScrollMarker : Adorner
+        {
+            private const double Radius = 15;
+
+            private readonly Point _origin;
+            private readonly Brush _fill;
+            private readonly Pen _ring;
+            private readonly Brush _dot;
+            private readonly Pen _idle;
+            private readonly Pen _faint;
+            private readonly Pen _active;
+            private int _direction;
+
+            public AutoScrollMarker(FrameworkElement adorned, Point origin)
+                : base(adorned)
+            {
+                _origin = origin;
+                IsHitTestVisible = false;
+                Focusable = false;
+
+                _fill = Themed(adorned, "Bg.Panel", Color.FromRgb(0x24, 0x24, 0x24));
+                _ring = Line(Themed(adorned, "Border.Default", Color.FromRgb(0x44, 0x44, 0x44)), 1);
+                _dot = Themed(adorned, "Text.Dim", Color.FromRgb(0x9A, 0x9A, 0x9A));
+                _idle = Line(_dot, 1.7);
+                _faint = Line(Themed(adorned, "Text.Faint", Color.FromRgb(0x6A, 0x6A, 0x6A)), 1.7);
+                _active = Line(Themed(adorned, "Accent.Fill", Color.FromRgb(0x4C, 0x8D, 0xF6)), 1.9);
+
+                // Тень — та же мягкая, что у карточек и попапов: метка висит над содержимым.
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    BlurRadius = 10,
+                    ShadowDepth = 1.5,
+                    Direction = 270,
+                    Opacity = 0.3,
+                    Color = Colors.Black
+                };
+            }
+
+            /// <summary>Куда смотрит список: -1 вверх, 1 вниз, 0 — стоим в мёртвой зоне.</summary>
+            public void PointTo(int direction)
+            {
+                if (direction == _direction)
+                {
+                    return;
+                }
+
+                _direction = direction;
+                InvalidateVisual();
+            }
+
+            protected override void OnRender(DrawingContext drawing)
+            {
+                var c = _origin;
+                drawing.DrawEllipse(_fill, _ring, c, Radius, Radius);
+                drawing.DrawEllipse(_dot, null, c, 1.7, 1.7);
+                Chevron(drawing, c, up: true, _direction < 0 ? _active : _direction > 0 ? _faint : _idle);
+                Chevron(drawing, c, up: false, _direction > 0 ? _active : _direction < 0 ? _faint : _idle);
+            }
+
+            private static void Chevron(DrawingContext drawing, Point center, bool up, Pen pen)
+            {
+                var sign = up ? -1 : 1;
+                var tip = new Point(center.X, center.Y + (sign * 9));
+                drawing.DrawLine(pen, new Point(center.X - 4.2, center.Y + (sign * 4.8)), tip);
+                drawing.DrawLine(pen, tip, new Point(center.X + 4.2, center.Y + (sign * 4.8)));
+            }
+
+            private static Brush Themed(FrameworkElement host, string key, Color fallback) =>
+                host.TryFindResource(key) as Brush ?? new SolidColorBrush(fallback);
+
+            private static Pen Line(Brush brush, double thickness)
+            {
+                var pen = new Pen(brush, thickness)
+                {
+                    StartLineCap = PenLineCap.Round,
+                    EndLineCap = PenLineCap.Round,
+                    LineJoin = PenLineJoin.Round
+                };
+                return pen;
             }
         }
     }

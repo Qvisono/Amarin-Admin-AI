@@ -56,8 +56,7 @@ public partial class SettingsKeyPage : UserControl
         InitializeComponent();
 
         // Та же плавная прокрутка, что у боковой колонки и ленты чата.
-        SmoothScroll.SetIsEnabled(KeyPageScroll, true);
-        SmoothScroll.SetDragScroll(KeyPageScroll, true);
+        MainWindow.EnablePageScroll(KeyPageScroll);
         LimitsBlock.Changed += ShowLimitsSummary;
 
         // Раскрытый ключ не должен пережить уход со страницы: настройки закрывают и уходят

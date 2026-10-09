@@ -259,6 +259,11 @@ public sealed class UiShotTests : IDisposable
                 await Settle(150);
             }
 
+            if (Wanted(only, "autoscroll"))
+            {
+                await ShootAutoScroll(window, folder);
+            }
+
             if (Wanted(only, "health"))
             {
                 await ShootHealth(window, folder);
@@ -497,6 +502,52 @@ public sealed class UiShotTests : IDisposable
     private static void SettingsDrillBack(DependencyObject scope) =>
         typeof(MainWindow).Assembly.GetType("Amarin.UI.SettingsDrill")?
             .GetMethod("TryBackIn", BindingFlags.Static | BindingFlags.Public)?.Invoke(null, [scope]);
+
+    /// <summary>
+    /// Метка автопрокрутки средней кнопкой (1.33.0) посреди ленты: в покое и когда лента едет вниз.
+    /// Снимается корень шаблона окна — метка живёт в его слое украшений, а не в содержимом.
+    /// </summary>
+    private static async Task ShootAutoScroll(MainWindow window, string folder)
+    {
+        var feed = (ScrollViewer)window.FindSetting("ChatScrollViewer")!;
+        if (VisualTreeHelper.GetChild(window, 0) is not FrameworkElement root)
+        {
+            return;
+        }
+
+        // Разговор снимков короче окна, и листать ленте нечего: на время снимка окно ниже.
+        var height = window.Height;
+        window.Height = 420;
+        await Settle(300);
+        var origin = new Point(feed.ActualWidth / 2, feed.ActualHeight / 2);
+        if (!SmoothScroll.BeginAutoScroll(feed, origin))
+        {
+            window.Height = height;
+            return;
+        }
+
+        try
+        {
+            // Кадр с подставленной мышью — прямо перед снимком: между снимками крутится настоящий
+            // цикл кадров, а у него мышь настоящая, и где она относительно окна за краем экрана —
+            // не угадать.
+            var corner = feed.TranslatePoint(new Point(origin.X - 90, origin.Y - 70), root);
+            var region = new Rect(corner, new Size(180, 140));
+            await Settle(150);
+            SmoothScroll.AutoScrollFrame(feed, origin, 1.0 / 60);
+            root.UpdateLayout();
+            Save(root, Path.Combine(folder, "00-autoscroll-idle.png"), null, region, scale: 3);
+            SmoothScroll.AutoScrollFrame(feed, new Point(origin.X, origin.Y + 90), 1.0 / 60);
+            root.UpdateLayout();
+            Save(root, Path.Combine(folder, "00-autoscroll-down.png"), null, region, scale: 3);
+        }
+        finally
+        {
+            SmoothScroll.EndAutoScroll(feed);
+            window.Height = height;
+            await Settle(200);
+        }
+    }
 
     private async Task ShootHealth(MainWindow window, string folder)
     {

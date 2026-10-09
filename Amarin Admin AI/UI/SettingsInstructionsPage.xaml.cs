@@ -52,8 +52,7 @@ public partial class SettingsInstructionsPage : UserControl
     {
         InitializeComponent();
 
-        SmoothScroll.SetIsEnabled(ListScroll, true);
-        SmoothScroll.SetDragScroll(ListScroll, true);
+        MainWindow.EnablePageScroll(ListScroll);
 
         // Список бывает и в одну карточку: тогда листать нечего, и без резинки страница под
         // зажатой кнопкой казалась бы неживой рядом с длинными соседками.
