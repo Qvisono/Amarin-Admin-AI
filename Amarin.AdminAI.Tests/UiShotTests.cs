@@ -203,23 +203,45 @@ public sealed class UiShotTests : IDisposable
                 }
 
                 // Меню «⋯» строки чата — со значками у каждого пункта; у закреплённой — «Открепить».
+                // Второй профиль — на время снимков меню: без него «Отправить | Переместить»
+                // приглушены, а выбор профиля не открывается (1.33.0).
                 var panel = (Panel)window.FindSetting("ChatListPanel");
-                foreach (var (pinned, file) in new[] { (false, "00-menu-chat.png"), (true, "00-menu-chat-pinned.png") })
+                var otherProfile = new UserProfile { Id = "shot-profile", Name = language == "ru" ? "Работа" : "Work" };
+                services.ProfileRegistry.Profiles.Add(otherProfile);
+                try
                 {
-                    var row = panel.Children.OfType<Button>()
-                        .FirstOrDefault(button => button.Tag is string && ChatRowState.GetIsPinned(button) == pinned);
-                    if (row is null)
+                    foreach (var (pinned, file) in new[] { (false, "00-menu-chat.png"), (true, "00-menu-chat-pinned.png") })
                     {
-                        continue;
-                    }
+                        var row = panel.Children.OfType<Button>()
+                            .FirstOrDefault(button => button.Tag is string && ChatRowState.GetIsPinned(button) == pinned);
+                        if (row is null)
+                        {
+                            continue;
+                        }
 
-                    Call(window, "OpenChatActionsMenu", row, (string)row.Tag, PlacementMode.Bottom);
-                    await Settle(300);
-                    if (OpenMenu() is { } chatMenu)
-                    {
-                        Save(chatMenu, Path.Combine(folder, file), null);
-                        chatMenu.IsOpen = false;
+                        Call(window, "OpenChatActionsMenu", row, (string)row.Tag, PlacementMode.Bottom);
+                        await Settle(300);
+                        if (OpenMenu() is { } chatMenu)
+                        {
+                            Save(chatMenu, Path.Combine(folder, file), null);
+                            chatMenu.IsOpen = false;
+                        }
+
+                        if (!pinned)
+                        {
+                            Call(window, "OpenTransferMenu", row, (IReadOnlyList<string>)[(string)row.Tag], PlacementMode.Bottom, true);
+                            await Settle(300);
+                            if (OpenMenu() is { } transferMenu)
+                            {
+                                Save(transferMenu, Path.Combine(folder, "00-menu-chat-move.png"), null);
+                                transferMenu.IsOpen = false;
+                            }
+                        }
                     }
+                }
+                finally
+                {
+                    services.ProfileRegistry.Profiles.Remove(otherProfile);
                 }
 
                 await ShootSelection(window, panel, folder);

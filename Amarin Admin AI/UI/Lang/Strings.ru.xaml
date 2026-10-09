@@ -435,17 +435,24 @@
     <system:String x:Key="S.ChatList.FilterSection" xml:space="preserve">Показывать</system:String>
     <system:String x:Key="S.ChatList.Folders" xml:space="preserve">Папки</system:String>
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">В папку</system:String>
+    <system:String x:Key="S.ChatList.MoveTo" xml:space="preserve">Переместить</system:String>
+    <system:String x:Key="S.ChatList.MoveToSection" xml:space="preserve">Перенести в профиль</system:String>
+    <system:String x:Key="S.ChatList.MovedNote" xml:space="preserve">В профиль «{0}» перенесено чатов: {1}</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Переименовать чат</system:String>
     <system:String x:Key="S.ChatList.NameTitleMany" xml:space="preserve">Переименовать чаты</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">Новый чат</system:String>
     <system:String x:Key="S.ChatList.NewFolder" xml:space="preserve">Новая папка</system:String>
     <system:String x:Key="S.ChatList.NewTag" xml:space="preserve">Новый тег</system:String>
+    <system:String x:Key="S.ChatList.NoOtherProfiles" xml:space="preserve">Других профилей нет - их заводят в настройках, на странице «Профиль»</system:String>
     <system:String x:Key="S.ChatList.NoFolder" xml:space="preserve">Без папки</system:String>
     <system:String x:Key="S.ChatList.Options" xml:space="preserve">Сортировка и фильтр</system:String>
     <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Закрепить наверху</system:String>
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Закреплённые</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Переименовать папку</system:String>
+    <system:String x:Key="S.ChatList.SendTo" xml:space="preserve">Отправить</system:String>
+    <system:String x:Key="S.ChatList.SendToSection" xml:space="preserve">Копию в профиль</system:String>
+    <system:String x:Key="S.ChatList.SentNote" xml:space="preserve">В профиль «{0}» отправлено чатов: {1}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Поделиться</system:String>
     <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">По цене</system:String>
     <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">По дате создания</system:String>
@@ -456,6 +463,7 @@
     <system:String x:Key="S.ChatList.TagActionsFor" xml:space="preserve">Тег «{0}»: изменить или удалить</system:String>
     <system:String x:Key="S.ChatList.TagColor" xml:space="preserve">Цвет</system:String>
     <system:String x:Key="S.ChatList.TagColorItem" xml:space="preserve">Цвет {0}</system:String>
+    <system:String x:Key="S.ChatList.TransferFailed" xml:space="preserve">Не все чаты удалось записать в профиль «{0}»: те, что не записались, остались здесь.</system:String>
     <system:String x:Key="S.ChatList.Tags" xml:space="preserve">Теги</system:String>
     <system:String x:Key="S.ChatList.ThisChat" xml:space="preserve">этот чат</system:String>
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Сегодня</system:String>

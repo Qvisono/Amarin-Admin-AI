@@ -59,7 +59,9 @@ internal static class UiServices
         {
             Options = options,
             Profile = profile,
-            Profiles = new ProfileStore(),
+            // На той же временной папке: папки других профилей (перенос чата, отправка ключа)
+            // иначе вычислялись бы в настоящем %APPDATA%.
+            Profiles = new ProfileStore(root),
             ProfileRegistry = new ProfileRegistry(),
             Http = http,
             DownloadHttp = download,

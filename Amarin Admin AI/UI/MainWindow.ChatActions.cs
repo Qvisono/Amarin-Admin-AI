@@ -6,7 +6,8 @@ using Amarin.Core;
 namespace Amarin.UI
 {
     /// <summary>
-    /// Меню «⋯» чата в боковой панели: переименовать, закрепить, поделиться, экспорт, удалить. Чат
+    /// Меню «⋯» чата в боковой панели: переименовать, закрепить, поделиться, экспорт, отправить или
+    /// перенести в другой профиль (<c>MainWindow.ChatTransfer.cs</c>), удалить. Чат
     /// адресуется по id и загружается по требованию, поэтому каждое действие работает, открыт он
     /// сейчас или нет.
     /// </summary>
@@ -120,6 +121,7 @@ namespace Amarin.UI
             if (ids.Count > 0)
             {
                 AddChatActions(menu, anchor, ids, placement);
+                AddTransferActions(menu, anchor, ids, placement);
                 menu.Items.Add(Divider());
             }
 
@@ -319,6 +321,19 @@ namespace Amarin.UI
 
             var confirmed = await ShowNoticeAsync(title, text, Loc.Get("S.Common.Delete"), Loc.Get("S.Common.Cancel"), NoticeTone.Danger);
             if (!confirmed || _services is null)
+            {
+                return;
+            }
+
+            RemoveChats(ids, folders);
+        }
+
+        /// <summary>
+        /// Убирает чаты и папки без вопроса — после «Удалить» и после переноса в другой профиль.
+        /// </summary>
+        private void RemoveChats(IReadOnlyList<string> ids, IReadOnlyList<string> folders)
+        {
+            if (_services is null)
             {
                 return;
             }

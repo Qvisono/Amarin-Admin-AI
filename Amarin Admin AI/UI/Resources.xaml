@@ -57,6 +57,9 @@
     <Geometry x:Key="Icon.Menu.Unarchive" po:Freeze="True">M1.8,3 H14.2 V6 H1.8 Z M2.8,6 V12.4 A1,1 0 0 0 3.8,13.4 H12.2 A1,1 0 0 0 13.2,12.4 V6 M8,11.6 V8 M6.4,9.6 L8,8 L9.6,9.6</Geometry>
     <Geometry x:Key="Icon.Menu.Share" po:Freeze="True">M5.6,6.2 H4.4 A1,1 0 0 0 3.4,7.2 V13 A1,1 0 0 0 4.4,14 H11.6 A1,1 0 0 0 12.6,13 V7.2 A1,1 0 0 0 11.6,6.2 H10.4 M8,1.8 V9.6 M5.8,4 L8,1.8 L10.2,4</Geometry>
     <Geometry x:Key="Icon.Menu.Export" po:Freeze="True">M8,1.8 V9.8 M5.2,7 L8,9.8 L10.8,7 M2.4,10.6 V12.6 A1,1 0 0 0 3.4,13.6 H12.6 A1,1 0 0 0 13.6,12.6 V10.6</Geometry>
+    <!-- Чат в другой профиль (1.33.0): копия — бумажный самолётик, перенос — стрелка в дверь. -->
+    <Geometry x:Key="Icon.Menu.SendTo" po:Freeze="True">M1.8,7.4 L14.2,1.8 L9.8,14.2 L7.2,8.8 Z M7.2,8.8 L14.2,1.8</Geometry>
+    <Geometry x:Key="Icon.Menu.MoveTo" po:Freeze="True">M7.2,2.4 H12.6 A1,1 0 0 1 13.6,3.4 V12.6 A1,1 0 0 1 12.6,13.6 H7.2 M2.4,8 H10.2 M7.8,5.6 L10.2,8 L7.8,10.4</Geometry>
     <Geometry x:Key="Icon.Menu.Delete" po:Freeze="True">M2.2,4.2 H13.8 M6.2,4.2 V2.9 A0.8,0.8 0 0 1 7,2.1 H9 A0.8,0.8 0 0 1 9.8,2.9 V4.2 M3.6,4.2 L4.4,13 A1,1 0 0 0 5.4,13.9 H10.6 A1,1 0 0 0 11.6,13 L12.4,4.2 M6.6,7 V11 M9.4,7 V11</Geometry>
 
     <Style TargetType="ScrollBar">

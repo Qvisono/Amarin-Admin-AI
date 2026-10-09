@@ -52,6 +52,8 @@ public sealed partial class SourceLiteralTests
     [InlineData("UI", "HotkeyField.xaml.cs")]
     [InlineData("UI", "MainWindow.SettingsHost.cs")]
     [InlineData("UI/Settings", "SettingsView.xaml.cs")]
+    // 1.33.0: отправка и перенос чата в другой профиль.
+    [InlineData("UI", "MainWindow.ChatTransfer.cs")]
     [InlineData("Tools", "DangerousActionGuard.cs")]
     [InlineData("Agents", "Agent.cs")]
     [InlineData("Agents", "AgentUiAdapter.cs")]
