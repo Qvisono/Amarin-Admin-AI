@@ -43,7 +43,8 @@ public sealed class ToolRegistry
         "devices",
         "security_status",
         "remote_access",
-        "write_clipboard"
+        "write_clipboard",
+        "deferred_task"
     };
 
     private readonly Dictionary<string, ITool> _tools;

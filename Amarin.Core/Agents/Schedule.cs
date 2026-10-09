@@ -77,40 +77,12 @@ internal static class ScheduleClock
     public static int Hours(ScheduledJob job) => Math.Clamp(job.EveryHours, 1, 24 * 7);
 
     /// <summary>Последний плановый момент не позже <paramref name="now"/>; null — таких нет.</summary>
-    public static DateTime? LastOccurrence(ScheduledJob job, DateTime now)
+    public static DateTime? LastOccurrence(ScheduledJob job, DateTime now) => job.Kind switch
     {
-        var time = TimeOfDay(job);
-        switch (job.Kind)
-        {
-            case ScheduleKind.Daily:
-            {
-                var today = now.Date + time;
-                return today <= now ? today : today.AddDays(-1);
-            }
-
-            case ScheduleKind.Weekly:
-            {
-                if (job.Days is not { Count: > 0 } days)
-                {
-                    return null;
-                }
-
-                for (var back = 0; back <= 7; back++)
-                {
-                    var moment = now.Date.AddDays(-back) + time;
-                    if (moment <= now && days.Contains(moment.DayOfWeek))
-                    {
-                        return moment;
-                    }
-                }
-
-                return null;
-            }
-
-            default:
-                return null;
-        }
-    }
+        ScheduleKind.Daily => RecurrenceMath.LastOccurrence(TimeOfDay(job), null, now),
+        ScheduleKind.Weekly => RecurrenceMath.LastOccurrence(TimeOfDay(job), job.Days ?? [], now),
+        _ => null
+    };
 
     /// <summary>Пора ли запускать задачу.</summary>
     public static bool IsDue(ScheduledJob job, DateTime now, DateTime appStartedAt)
@@ -141,17 +113,10 @@ internal static class ScheduleClock
             }
 
             case ScheduleKind.Daily:
-            case ScheduleKind.Weekly:
-                for (var ahead = 0; ahead <= 8; ahead++)
-                {
-                    var moment = now.Date.AddDays(ahead) + TimeOfDay(job);
-                    if (moment > now && (job.Kind == ScheduleKind.Daily || job.Days.Contains(moment.DayOfWeek)))
-                    {
-                        return moment;
-                    }
-                }
+                return RecurrenceMath.NextOccurrence(TimeOfDay(job), null, now);
 
-                return null;
+            case ScheduleKind.Weekly:
+                return RecurrenceMath.NextOccurrence(TimeOfDay(job), job.Days ?? [], now);
 
             default:
                 return null;

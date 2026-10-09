@@ -114,6 +114,9 @@ internal sealed class AppServices : IDisposable
     /// <summary>Задачи по расписанию (C3).</summary>
     internal ScheduleBook Schedule => Profile.Schedule;
 
+    /// <inheritdoc cref="ProfileScope.Deferred"/>
+    internal DeferredBook Deferred => Profile.Deferred;
+
     /// <summary>Последний снимок «Состояния ПК» (C4).</summary>
     internal HealthCache Health => Profile.Health;
 

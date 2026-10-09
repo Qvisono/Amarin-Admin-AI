@@ -294,6 +294,14 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Отложенные задачи — этого компьютера: «перезагрузи при аптайме» на другом ПК не к месту,
+        // а заранее одобренные команды из чужого архива не должны выполниться без вопроса. Ключ
+        // печати и снимок открытых программ — тем более.
+        if (name is DeferredBook.FileName or DeferredBook.KeyName or SessionSnapshot.FileName)
+        {
+            return DataCategory.None;
+        }
+
         if (name == "keys.json" ||
             relative == "usage" ||
             relative.StartsWith("usage/", StringComparison.Ordinal) ||

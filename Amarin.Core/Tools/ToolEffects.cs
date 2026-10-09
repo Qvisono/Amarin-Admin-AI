@@ -47,6 +47,9 @@ internal static class ToolEffects
         {
             ["change_rollback"] = ["snapshot", "list_snapshots", "snapshot_info", "compare"],
             ["credentials"] = ["list_cmdkey", "list_certs", "expiring_certs"],
+            // Напоминание и поручение агенту ничего не меняют сейчас: действия агента пройдут шлюз
+            // в своё время. Команда и возврат программ — запись: согласие на них берётся сразу.
+            ["deferred_task"] = ["remind", "run_agent", "list", "cancel"],
             ["devices"] = ["printers", "usb", "drivers", "driver_problems", "pnp_devices"],
             ["disk_management"] = ["list_disks", "list_volumes", "smart_status", "chkdsk_scan", "bitlocker_status"],
             ["disk_space"] = ["analyze", "largest_items"],

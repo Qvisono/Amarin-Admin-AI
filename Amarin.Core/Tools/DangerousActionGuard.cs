@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
@@ -40,7 +41,15 @@ public sealed record DangerousActionInfo(
     /// Удалённая машина, на которой исполнится вызов; null — этот ПК. Окно подтверждения
     /// называет её, а пробный прогон не запускается: он прошёл бы здесь, а не там.
     /// </summary>
-    string? Target = null);
+    string? Target = null)
+{
+    /// <summary>
+    /// Согласие на будущее, а не на сейчас: отложенная команда выполнится без человека, поэтому
+    /// ни режим «подтверждать всё автоматически», ни «разрешить на ход/чат» за него не отвечают —
+    /// одно «да» иначе одобрило бы и все следующие скрипты, которые модель поставит на потом.
+    /// </summary>
+    public bool Standing => ToolName.Equals(DeferredTaskTool.ToolName, StringComparison.OrdinalIgnoreCase);
+}
 
 internal static partial class DangerousActionGuard
 {
@@ -72,6 +81,8 @@ internal static partial class DangerousActionGuard
             // Файлы и документы чата (1.33.0): спрашиваются так же, как write_file, — без вопроса
             // шлюз пропускает только новый файл в «Загрузках» и на «Рабочем столе».
             "edit_file" or "create_folder" or "create_document" or "edit_document" or "save_image" => true,
+            // Отложенная команда и возврат программ выполнятся без человека — согласие берётся сейчас.
+            "deferred_task" => ActionOf(arguments) is "run_command" or "restore_programs",
             // Разбор по дереву: спрашивается всё, кроме чистого чтения. Прежде — только то, что
             // нашлось регуляркой в списке опасного, и Set-Content или winget install шли молча.
             "run_powershell" => PowerShellAnalysis.Analyze(arguments).IsWrite,
@@ -413,6 +424,7 @@ internal static partial class DangerousActionGuard
             "create_document" => ("content", "markdown"),
             "registry" => ("value_data", "ini"),
             "scheduled_task" => ("command", "powershell"),
+            "deferred_task" => ("command", "powershell"),
             _ => ("", "")
         };
 
@@ -434,6 +446,29 @@ internal static partial class DangerousActionGuard
     }
 
     /// <summary>Правка <c>edit_file</c> строками «- было» и «+ стало» — так её и читают глазами.</summary>
+    /// <summary>
+    /// Что и когда выполнится без человека: «Отложенная команда: Очистка TEMP · каждый день в 03:00».
+    /// Срок в вопросе — главное: человек одобряет не только скрипт, но и то, как часто он пойдёт.
+    /// </summary>
+    private static string DeferredSummary(JsonElement arguments)
+    {
+        var restore = ActionOf(arguments) == "restore_programs";
+        var head = L(restore ? "S.Guard.Sum.DeferredRestore" : "S.Guard.Sum.DeferredCommand") + FormatField(arguments, "title", prefix: ": ");
+        try
+        {
+            var facts = DeferredClock.Now();
+            var kind = restore ? DeferredKind.RestorePrograms : DeferredKind.Command;
+            var schedule = DeferredTimeParser.Resolve(arguments, kind, facts);
+            var task = new DeferredTask { Kind = kind, Trigger = schedule.Trigger, Repeat = schedule.Repeat, NextDueUtc = schedule.FirstDueUtc };
+            return head + " · " + DeferredText.When(task, facts);
+        }
+        catch (DeferredInputException)
+        {
+            // Срок не разобрался — инструмент откажет сам; вопрос всё равно честно называет команду.
+            return head;
+        }
+    }
+
     private static string EditDiff(JsonElement arguments)
     {
         static IEnumerable<string> Lines(JsonElement args, string name, string sign) =>
@@ -502,6 +537,7 @@ internal static partial class DangerousActionGuard
             "edit_document" => L("S.Guard.Sum.EditDocument") + FormatField(arguments, "path", prefix: ": ") +
                                FormatField(arguments, "save_as", prefix: " → "),
             "save_image" => L("S.Guard.Sum.SaveImage") + FormatField(arguments, "path", prefix: ": "),
+            "deferred_task" => DeferredSummary(arguments),
             "run_powershell" => L("S.Guard.Sum.PowerShell") + FormatField(arguments, "command", prefix: ": ", max: 120),
             "windows_process" => L("S.Guard.Sum.KillProcess") + FormatField(arguments, "process_name", prefix: ": ") +
                                  FormatField(arguments, "pid", prefix: " PID "),

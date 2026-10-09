@@ -1851,6 +1851,86 @@
     <system:String x:Key="S.Tool.create_document" xml:space="preserve">Создание документов</system:String>
     <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Правка документов</system:String>
     <system:String x:Key="S.Tool.save_image" xml:space="preserve">Сохранение картинок</system:String>
+    <system:String x:Key="S.Tool.deferred_task" xml:space="preserve">Отложенные задачи</system:String>
+    <system:String x:Key="S.Guard.Sum.DeferredCommand" xml:space="preserve">Отложенная команда</system:String>
+    <system:String x:Key="S.Guard.Sum.DeferredRestore" xml:space="preserve">Открыть программы прошлого сеанса</system:String>
+    <system:String x:Key="S.Deferred.When.Every" xml:space="preserve">каждые {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Daily" xml:space="preserve">каждый день в {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Weekly" xml:space="preserve">{0} в {1}</system:String>
+    <system:String x:Key="S.Deferred.When.Uptime" xml:space="preserve">когда ПК проработает {0}</system:String>
+    <system:String x:Key="S.Deferred.When.UptimeEvery" xml:space="preserve">в каждом сеансе, когда ПК проработает {0}</system:String>
+    <system:String x:Key="S.Deferred.When.NextBoot" xml:space="preserve">при следующем включении ПК</system:String>
+    <system:String x:Key="S.Deferred.When.EveryBoot" xml:space="preserve">при каждом включении ПК</system:String>
+    <system:String x:Key="S.Deferred.When.NextStart" xml:space="preserve">при следующем запуске программы</system:String>
+    <system:String x:Key="S.Deferred.When.EveryStart" xml:space="preserve">при каждом запуске программы</system:String>
+    <system:String x:Key="S.Deferred.When.Condition" xml:space="preserve">когда выполнится условие, проверка раз в {0}</system:String>
+    <system:String x:Key="S.Deferred.When.ConditionEvery" xml:space="preserve">каждый раз, когда выполнится условие, проверка раз в {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Next" xml:space="preserve">ближайший раз {0}</system:String>
+    <system:String x:Key="S.Deferred.Today" xml:space="preserve">сегодня, {0}</system:String>
+    <system:String x:Key="S.Deferred.Tomorrow" xml:space="preserve">завтра, {0}</system:String>
+    <system:String x:Key="S.Deferred.Late" xml:space="preserve">опоздало на {0}</system:String>
+    <system:String x:Key="S.Deferred.Span.Days" xml:space="preserve">{0} д</system:String>
+    <system:String x:Key="S.Deferred.Span.Hours" xml:space="preserve">{0} ч</system:String>
+    <system:String x:Key="S.Deferred.Span.Minutes" xml:space="preserve">{0} мин</system:String>
+    <system:String x:Key="S.Deferred.Span.Seconds" xml:space="preserve">{0} с</system:String>
+    <system:String x:Key="S.Deferred.Day.Monday" xml:space="preserve">пн</system:String>
+    <system:String x:Key="S.Deferred.Day.Tuesday" xml:space="preserve">вт</system:String>
+    <system:String x:Key="S.Deferred.Day.Wednesday" xml:space="preserve">ср</system:String>
+    <system:String x:Key="S.Deferred.Day.Thursday" xml:space="preserve">чт</system:String>
+    <system:String x:Key="S.Deferred.Day.Friday" xml:space="preserve">пт</system:String>
+    <system:String x:Key="S.Deferred.Day.Saturday" xml:space="preserve">сб</system:String>
+    <system:String x:Key="S.Deferred.Day.Sunday" xml:space="preserve">вс</system:String>
+    <system:String x:Key="S.Deferred.Toast.Reminder" xml:space="preserve">Напоминание</system:String>
+    <system:String x:Key="S.Deferred.Toast.Done" xml:space="preserve">Задача выполнена</system:String>
+    <system:String x:Key="S.Deferred.Toast.Failed" xml:space="preserve">Задача не выполнилась</system:String>
+    <system:String x:Key="S.Deferred.Toast.Interrupted" xml:space="preserve">Задача прервалась</system:String>
+    <system:String x:Key="S.Deferred.Toast.InterruptedText" xml:space="preserve">«{0}» начала выполняться, но программу закрыли или ПК выключили. Повторить?</system:String>
+    <system:String x:Key="S.Deferred.Toast.Locked" xml:space="preserve">Пора выполнить отложенную задачу. Откройте программу.</system:String>
+    <system:String x:Key="S.Deferred.Toast.Ack" xml:space="preserve">Готово</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze" xml:space="preserve">Отложить</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze10" xml:space="preserve">10 мин</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze60" xml:space="preserve">1 ч</system:String>
+    <system:String x:Key="S.Deferred.Toast.SnoozeTomorrow" xml:space="preserve">Завтра, 9:00</system:String>
+    <system:String x:Key="S.Deferred.Toast.OpenChat" xml:space="preserve">Открыть чат</system:String>
+    <system:String x:Key="S.Deferred.Toast.Retry" xml:space="preserve">Повторить</system:String>
+    <system:String x:Key="S.Deferred.Toast.Cancel" xml:space="preserve">Отменить</system:String>
+    <system:String x:Key="S.Deferred.Toast.Missed" xml:space="preserve">пропущено: {0}</system:String>
+    <system:String x:Key="S.Deferred.Toast.More" xml:space="preserve">ещё {0}</system:String>
+    <system:String x:Key="S.Deferred.Tab" xml:space="preserve">Отложенные</system:String>
+    <system:String x:Key="S.Deferred.Desc" xml:space="preserve">Задачи, которые чат поставил на потом</system:String>
+    <system:String x:Key="S.Deferred.Empty" xml:space="preserve">Пока ничего не отложено. Попросите в чате напомнить о чём-то или сделать что-то позже.</system:String>
+    <system:String x:Key="S.Deferred.Waiting" xml:space="preserve">Ждут</system:String>
+    <system:String x:Key="S.Deferred.History" xml:space="preserve">Выполненные</system:String>
+    <system:String x:Key="S.Deferred.Kind.Reminder" xml:space="preserve">Напоминание</system:String>
+    <system:String x:Key="S.Deferred.Kind.Agent" xml:space="preserve">Задача агенту</system:String>
+    <system:String x:Key="S.Deferred.Kind.Command" xml:space="preserve">Команда</system:String>
+    <system:String x:Key="S.Deferred.Kind.RestorePrograms" xml:space="preserve">Возврат программ</system:String>
+    <system:String x:Key="S.Deferred.Status.Pending" xml:space="preserve">ждёт</system:String>
+    <system:String x:Key="S.Deferred.Status.Running" xml:space="preserve">выполняется</system:String>
+    <system:String x:Key="S.Deferred.Status.Done" xml:space="preserve">выполнена</system:String>
+    <system:String x:Key="S.Deferred.Status.Failed" xml:space="preserve">не удалась</system:String>
+    <system:String x:Key="S.Deferred.Status.Cancelled" xml:space="preserve">отменена</system:String>
+    <system:String x:Key="S.Deferred.Status.Interrupted" xml:space="preserve">прервалась</system:String>
+    <system:String x:Key="S.Deferred.Status.Paused" xml:space="preserve">остановлена после трёх неудач</system:String>
+    <system:String x:Key="S.Deferred.RunNow" xml:space="preserve">Выполнить сейчас</system:String>
+    <system:String x:Key="S.Deferred.Cancel" xml:space="preserve">Отменить</system:String>
+    <system:String x:Key="S.Deferred.Resume" xml:space="preserve">Возобновить</system:String>
+    <system:String x:Key="S.Deferred.OpenChat" xml:space="preserve">Открыть чат</system:String>
+    <system:String x:Key="S.Deferred.WakeFailed" xml:space="preserve">Планировщик Windows не дал завести запуск программы к сроку: задачи сработают, пока программа открыта.</system:String>
+    <system:String x:Key="S.Deferred.Mark" xml:space="preserve">Отложенная задача</system:String>
+    <system:String x:Key="S.Deferred.ChipTip" xml:space="preserve">Открыть список отложенных задач</system:String>
+    <system:String x:Key="S.Deferred.Sound" xml:space="preserve">Мелодия напоминаний</system:String>
+    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">Тихий звук, когда приходит напоминание или выполнена задача</system:String>
+    <system:String x:Key="S.Deferred.Listen" xml:space="preserve">Послушать</system:String>
+    <system:String x:Key="S.Deferred.Result.CommandDone" xml:space="preserve">Команда выполнена.</system:String>
+    <system:String x:Key="S.Deferred.Result.CommandFailed" xml:space="preserve">Команда не выполнилась: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.Restored" xml:space="preserve">Открыто программ: {0}.</system:String>
+    <system:String x:Key="S.Deferred.Result.RestoreNone" xml:space="preserve">Открывать нечего: список программ при выключении не сохранён или они все уже открыты.</system:String>
+    <system:String x:Key="S.Deferred.Result.RestoreSkipped" xml:space="preserve">Не открылись: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.Unsealed" xml:space="preserve">Задача не выполнена: её разрешение не подтверждается (она из чужого архива или изменена вручную). Поставьте её заново.</system:String>
+    <system:String x:Key="S.Deferred.Result.ReadOnly" xml:space="preserve">Задача не выполнена: сейчас включён режим «Только чтение».</system:String>
+    <system:String x:Key="S.Deferred.Result.NoAnswer" xml:space="preserve">Нет ответа за {0}: задача остановлена.</system:String>
+    <system:String x:Key="S.Deferred.UnlockHint" xml:space="preserve">Пора выполнить отложенные задачи: войдите в профиль</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">Расшифровка видео YouTube</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">Вводная от пользователя:</system:String>

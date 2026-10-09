@@ -25,7 +25,10 @@ public enum ApprovalSource
     SynGuardHuman,
 
     /// <summary>Вызов — шаг плана, который человек одобрил целиком (<see cref="AgentPlans"/>).</summary>
-    Plan
+    Plan,
+
+    /// <summary>Отложенная команда: человек одобрил её, когда её ставили, — выполняется без вопроса.</summary>
+    Deferred
 }
 
 /// <summary>Насколько хватает разрешения, данного в окне подтверждения.</summary>
@@ -57,7 +60,7 @@ internal sealed class ConfirmationRequest
     public string? SessionId { get; init; }
 
     /// <summary>Можно ли разрешить инструмент впрок: у вопроса есть чат, и это не вопрос SynGuard.</summary>
-    public bool CanAllowAhead => !string.IsNullOrWhiteSpace(SessionId) && !Info.AlwaysAsk;
+    public bool CanAllowAhead => !string.IsNullOrWhiteSpace(SessionId) && !Info.AlwaysAsk && !Info.Standing;
 
     /// <summary>
     /// Можно ли разрешить инструмент на весь чат. PowerShell — только до конца хода: разрешить
@@ -125,12 +128,12 @@ internal sealed class ConfirmationQueue
 
         // AlwaysAsk минует режим «подтверждать всё автоматически»: так спрашивает SynGuard про
         // вызов, который счёл атакой, и удобство не вправе отвечать за человека на этот вопрос.
-        if (!info.AlwaysAsk && _settings().ApprovalMode == ApprovalMode.AlwaysApprove)
+        if (!info.AlwaysAsk && !info.Standing && _settings().ApprovalMode == ApprovalMode.AlwaysApprove)
         {
             return new ConfirmationAnswer(true, ApprovalSource.Auto);
         }
 
-        if (!info.AlwaysAsk && AllowedAhead(sessionId, info.ToolName) is { } source)
+        if (!info.AlwaysAsk && !info.Standing && AllowedAhead(sessionId, info.ToolName) is { } source)
         {
             return new ConfirmationAnswer(true, source);
         }

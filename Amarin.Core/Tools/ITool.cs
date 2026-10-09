@@ -41,7 +41,8 @@ public sealed record ToolResult(
     string? ImageMimeType = null,
     IReadOnlyList<ImageAttachment>? Images = null,
     IReadOnlyList<SavedFile>? Files = null,
-    InstructionRef? Instruction = null)
+    InstructionRef? Instruction = null,
+    Amarin.Core.DeferredRef? Deferred = null)
 {
     public static ToolResult Ok(string output) => new(true, output);
     public static ToolResult Fail(string output) => new(false, output);

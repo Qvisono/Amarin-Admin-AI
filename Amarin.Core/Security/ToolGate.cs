@@ -79,6 +79,12 @@ internal static class ToolGate
     public static bool IsReadOnly(AppSettings settings) =>
         settings.ApprovalMode == ApprovalMode.ReadOnly || ReadOnlyForced.Value;
 
+    /// <summary>
+    /// «Только чтение» этого прогона (<see cref="ForceReadOnly"/>), без настроек: отложенная задача,
+    /// поставленная из такого прогона, так и выполнится — только на чтение.
+    /// </summary>
+    public static bool ScopedReadOnly => ReadOnlyForced.Value;
+
     private sealed class ReadOnlyRestore(bool previous) : IDisposable
     {
         public void Dispose() => ReadOnlyForced.Value = previous;
@@ -120,6 +126,15 @@ internal static class ToolGate
             PowerShellAnalysis.Analyze(args).Refusal is { } scriptRefusal)
         {
             return Refused(scriptRefusal);
+        }
+
+        // Отложенная команда — тот же скрипт, только позже и без человека: её жёсткие запреты те же
+        // и проверяются сейчас, до вопроса, а не в момент запуска, когда спросить уже некого.
+        if (tool.Equals(DeferredTaskTool.ToolName, StringComparison.OrdinalIgnoreCase) &&
+            DangerousActionGuard.ActionOf(args) == "run_command" &&
+            PowerShellAnalysis.Analyze(args).Refusal is { } deferredRefusal)
+        {
+            return Refused(deferredRefusal);
         }
 
         if (effect == ToolEffect.Write && IsReadOnly(settings))

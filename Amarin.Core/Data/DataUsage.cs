@@ -124,7 +124,7 @@ public static class DataUsage
         // в архив данных вовсе — незнакомый файл классификатор отдаёт в «прочее», а прочее
         // экспорт не берёт.
         if (name is "settings.json" or "profiles.json" or "balance.json" or "prompts.json" or
-            ScheduleBook.FileName or ScheduleBook.LogName)
+            ScheduleBook.FileName or ScheduleBook.LogName or DeferredBook.FileName or DeferredBook.KeyName or SessionSnapshot.FileName)
         {
             return SettingsKey;
         }

@@ -122,7 +122,9 @@ internal static class RecipeRules
     [
         "web_search", "scrape_url", "generate_image", "init_agent", ReadInstructionTool.ToolName, AgentPlans.SubmitTool,
         // Ручка картинки живёт в памяти одного запуска: после перезапуска рецепт её бы не нашёл.
-        "save_image"
+        "save_image",
+        // Отложенная задача ставится из чата и помнит его; рецепт без чата её не поставил бы.
+        "deferred_task"
     ];
 
     public static bool IsRunnable(string? tool) =>
@@ -359,61 +361,17 @@ internal sealed class RecipeRunner(
         }
 
         var label = Loc.Format("S.Recipe.Origin", recipe.Name);
-        var callId = "recipe_" + Guid.NewGuid().ToString("N")[..8];
-        var check = ToolGate.Check(recipe.Tool, arguments, settings());
-        var decision = await ToolGate.DecideAsync(
-                check,
+        return await GateRun.RunAsync(
+                tools(),
+                recipe.Tool,
+                arguments,
+                settings(),
                 (info, token) => confirmations.ConfirmDetailedAsync(label, info, null, token),
-                guardApproved: false,
+                new AuditOrigin(null, null, label),
+                "recipe_" + Guid.NewGuid().ToString("N")[..8],
+                Undo,
+                audit(),
                 cancellationToken)
             .ConfigureAwait(false);
-
-        if (!decision.Allowed)
-        {
-            var refused = ToolResult.Fail(decision.Refusal ?? ToolGate.DeniedReply);
-            Audit(AuditOutcome.Refused, refused);
-            return new RecipeRunOutcome(refused, false, decision.Approval);
-        }
-
-        SessionUndoTracker? undo = null;
-        if (decision.NeedsSnapshot)
-        {
-            undo = Undo();
-            undo.BeginRequest(label);
-            await Task.Run(() => undo.EnsureSnapshotBeforeMutation(check.ToolName, decision.Arguments), cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        ToolResult result;
-        try
-        {
-            result = await tools().ExecuteAsync(check.ToolName, decision.Arguments, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            Audit(AuditOutcome.Cancelled, null);
-            throw;
-        }
-
-        if (undo is not null && result.Success)
-        {
-            undo.RecordMutation(check.ToolName, decision.Arguments);
-            undo.CompleteRequest();
-        }
-
-        Audit(result.Success ? AuditOutcome.Ok : AuditOutcome.Failed, result);
-        return new RecipeRunOutcome(result, true, decision.Approval);
-
-        void Audit(AuditOutcome outcome, ToolResult? output) =>
-            audit()?.Record(
-                new AuditOrigin(null, null, label),
-                callId,
-                check.ToolName,
-                decision?.Arguments.GetRawText() ?? arguments.GetRawText(),
-                decision?.Effect ?? check.Effect,
-                outcome,
-                decision?.Approval ?? ApprovalSource.NotRequired,
-                AuditGuard.Off,
-                output?.Output);
     }
 }

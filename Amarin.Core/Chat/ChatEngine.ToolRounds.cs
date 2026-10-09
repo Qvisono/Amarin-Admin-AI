@@ -196,6 +196,7 @@ internal sealed partial class ChatEngine
                 call.TruncatedForModel = ChatToolPreview.IsTruncatedForApi(result);
                 call.SavedFiles = [.. result.GetFiles()];
                 call.Instruction = result.Instruction;
+                call.Deferred = result.Deferred;
                 call.Duration = callClock.Elapsed;
                 observer.OnToolsChanged(assistant);
             });

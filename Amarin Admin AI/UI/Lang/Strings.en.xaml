@@ -1851,6 +1851,86 @@
     <system:String x:Key="S.Tool.create_document" xml:space="preserve">Creating documents</system:String>
     <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Editing documents</system:String>
     <system:String x:Key="S.Tool.save_image" xml:space="preserve">Saving pictures</system:String>
+    <system:String x:Key="S.Tool.deferred_task" xml:space="preserve">Deferred tasks</system:String>
+    <system:String x:Key="S.Guard.Sum.DeferredCommand" xml:space="preserve">Deferred command</system:String>
+    <system:String x:Key="S.Guard.Sum.DeferredRestore" xml:space="preserve">Reopen programs from the last session</system:String>
+    <system:String x:Key="S.Deferred.When.Every" xml:space="preserve">every {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Daily" xml:space="preserve">every day at {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Weekly" xml:space="preserve">{0} at {1}</system:String>
+    <system:String x:Key="S.Deferred.When.Uptime" xml:space="preserve">when the PC has been on for {0}</system:String>
+    <system:String x:Key="S.Deferred.When.UptimeEvery" xml:space="preserve">in every session, when the PC has been on for {0}</system:String>
+    <system:String x:Key="S.Deferred.When.NextBoot" xml:space="preserve">the next time the PC is turned on</system:String>
+    <system:String x:Key="S.Deferred.When.EveryBoot" xml:space="preserve">every time the PC is turned on</system:String>
+    <system:String x:Key="S.Deferred.When.NextStart" xml:space="preserve">the next time the app starts</system:String>
+    <system:String x:Key="S.Deferred.When.EveryStart" xml:space="preserve">every time the app starts</system:String>
+    <system:String x:Key="S.Deferred.When.Condition" xml:space="preserve">when the condition is met, checked every {0}</system:String>
+    <system:String x:Key="S.Deferred.When.ConditionEvery" xml:space="preserve">each time the condition is met, checked every {0}</system:String>
+    <system:String x:Key="S.Deferred.When.Next" xml:space="preserve">next {0}</system:String>
+    <system:String x:Key="S.Deferred.Today" xml:space="preserve">today, {0}</system:String>
+    <system:String x:Key="S.Deferred.Tomorrow" xml:space="preserve">tomorrow, {0}</system:String>
+    <system:String x:Key="S.Deferred.Late" xml:space="preserve">{0} late</system:String>
+    <system:String x:Key="S.Deferred.Span.Days" xml:space="preserve">{0} d</system:String>
+    <system:String x:Key="S.Deferred.Span.Hours" xml:space="preserve">{0} h</system:String>
+    <system:String x:Key="S.Deferred.Span.Minutes" xml:space="preserve">{0} min</system:String>
+    <system:String x:Key="S.Deferred.Span.Seconds" xml:space="preserve">{0} s</system:String>
+    <system:String x:Key="S.Deferred.Day.Monday" xml:space="preserve">Mon</system:String>
+    <system:String x:Key="S.Deferred.Day.Tuesday" xml:space="preserve">Tue</system:String>
+    <system:String x:Key="S.Deferred.Day.Wednesday" xml:space="preserve">Wed</system:String>
+    <system:String x:Key="S.Deferred.Day.Thursday" xml:space="preserve">Thu</system:String>
+    <system:String x:Key="S.Deferred.Day.Friday" xml:space="preserve">Fri</system:String>
+    <system:String x:Key="S.Deferred.Day.Saturday" xml:space="preserve">Sat</system:String>
+    <system:String x:Key="S.Deferred.Day.Sunday" xml:space="preserve">Sun</system:String>
+    <system:String x:Key="S.Deferred.Toast.Reminder" xml:space="preserve">Reminder</system:String>
+    <system:String x:Key="S.Deferred.Toast.Done" xml:space="preserve">Task done</system:String>
+    <system:String x:Key="S.Deferred.Toast.Failed" xml:space="preserve">Task failed</system:String>
+    <system:String x:Key="S.Deferred.Toast.Interrupted" xml:space="preserve">Task interrupted</system:String>
+    <system:String x:Key="S.Deferred.Toast.InterruptedText" xml:space="preserve">"{0}" started but the app was closed or the PC was shut down. Run it again?</system:String>
+    <system:String x:Key="S.Deferred.Toast.Locked" xml:space="preserve">A scheduled task is due. Open the app.</system:String>
+    <system:String x:Key="S.Deferred.Toast.Ack" xml:space="preserve">Done</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze" xml:space="preserve">Snooze</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze10" xml:space="preserve">10 min</system:String>
+    <system:String x:Key="S.Deferred.Toast.Snooze60" xml:space="preserve">1 h</system:String>
+    <system:String x:Key="S.Deferred.Toast.SnoozeTomorrow" xml:space="preserve">Tomorrow, 9:00</system:String>
+    <system:String x:Key="S.Deferred.Toast.OpenChat" xml:space="preserve">Open chat</system:String>
+    <system:String x:Key="S.Deferred.Toast.Retry" xml:space="preserve">Run again</system:String>
+    <system:String x:Key="S.Deferred.Toast.Cancel" xml:space="preserve">Cancel</system:String>
+    <system:String x:Key="S.Deferred.Toast.Missed" xml:space="preserve">missed: {0}</system:String>
+    <system:String x:Key="S.Deferred.Toast.More" xml:space="preserve">{0} more</system:String>
+    <system:String x:Key="S.Deferred.Tab" xml:space="preserve">Deferred</system:String>
+    <system:String x:Key="S.Deferred.Desc" xml:space="preserve">Tasks the chat scheduled for later</system:String>
+    <system:String x:Key="S.Deferred.Empty" xml:space="preserve">Nothing is scheduled yet. Ask the chat to remind you of something or to do something later.</system:String>
+    <system:String x:Key="S.Deferred.Waiting" xml:space="preserve">Waiting</system:String>
+    <system:String x:Key="S.Deferred.History" xml:space="preserve">Finished</system:String>
+    <system:String x:Key="S.Deferred.Kind.Reminder" xml:space="preserve">Reminder</system:String>
+    <system:String x:Key="S.Deferred.Kind.Agent" xml:space="preserve">Agent task</system:String>
+    <system:String x:Key="S.Deferred.Kind.Command" xml:space="preserve">Command</system:String>
+    <system:String x:Key="S.Deferred.Kind.RestorePrograms" xml:space="preserve">Reopen programs</system:String>
+    <system:String x:Key="S.Deferred.Status.Pending" xml:space="preserve">waiting</system:String>
+    <system:String x:Key="S.Deferred.Status.Running" xml:space="preserve">running</system:String>
+    <system:String x:Key="S.Deferred.Status.Done" xml:space="preserve">done</system:String>
+    <system:String x:Key="S.Deferred.Status.Failed" xml:space="preserve">failed</system:String>
+    <system:String x:Key="S.Deferred.Status.Cancelled" xml:space="preserve">cancelled</system:String>
+    <system:String x:Key="S.Deferred.Status.Interrupted" xml:space="preserve">interrupted</system:String>
+    <system:String x:Key="S.Deferred.Status.Paused" xml:space="preserve">stopped after three failures</system:String>
+    <system:String x:Key="S.Deferred.RunNow" xml:space="preserve">Run now</system:String>
+    <system:String x:Key="S.Deferred.Cancel" xml:space="preserve">Cancel</system:String>
+    <system:String x:Key="S.Deferred.Resume" xml:space="preserve">Resume</system:String>
+    <system:String x:Key="S.Deferred.OpenChat" xml:space="preserve">Open chat</system:String>
+    <system:String x:Key="S.Deferred.WakeFailed" xml:space="preserve">Windows Task Scheduler refused to start the app on time: tasks run while the app is open.</system:String>
+    <system:String x:Key="S.Deferred.Mark" xml:space="preserve">Scheduled task</system:String>
+    <system:String x:Key="S.Deferred.ChipTip" xml:space="preserve">Open the list of scheduled tasks</system:String>
+    <system:String x:Key="S.Deferred.Sound" xml:space="preserve">Reminder chime</system:String>
+    <system:String x:Key="S.Deferred.SoundDesc" xml:space="preserve">A quiet sound when a reminder arrives or a task is done</system:String>
+    <system:String x:Key="S.Deferred.Listen" xml:space="preserve">Listen</system:String>
+    <system:String x:Key="S.Deferred.Result.CommandDone" xml:space="preserve">The command has run.</system:String>
+    <system:String x:Key="S.Deferred.Result.CommandFailed" xml:space="preserve">The command failed: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.Restored" xml:space="preserve">Programs reopened: {0}.</system:String>
+    <system:String x:Key="S.Deferred.Result.RestoreNone" xml:space="preserve">Nothing to reopen: no list of programs from the shutdown, or they are all open already.</system:String>
+    <system:String x:Key="S.Deferred.Result.RestoreSkipped" xml:space="preserve">Did not open: {0}</system:String>
+    <system:String x:Key="S.Deferred.Result.Unsealed" xml:space="preserve">Not run: its approval cannot be verified (it came from another archive or was edited by hand). Schedule it again.</system:String>
+    <system:String x:Key="S.Deferred.Result.ReadOnly" xml:space="preserve">Not run: Read-only mode is on.</system:String>
+    <system:String x:Key="S.Deferred.Result.NoAnswer" xml:space="preserve">No answer within {0}: the task was stopped.</system:String>
+    <system:String x:Key="S.Deferred.UnlockHint" xml:space="preserve">Scheduled tasks are due: sign in to the profile</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">YouTube transcripts</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">New input from the user:</system:String>

@@ -169,7 +169,7 @@ internal static class WorkReport
 
     internal static string ApprovalLabel(ApprovalSource? source) => source switch
     {
-        ApprovalSource.Human or ApprovalSource.SynGuardHuman => Loc.Get("S.Report.ByHuman"),
+        ApprovalSource.Human or ApprovalSource.SynGuardHuman or ApprovalSource.Deferred => Loc.Get("S.Report.ByHuman"),
         ApprovalSource.AllowTurn or ApprovalSource.AllowChat => Loc.Get("S.Report.ByAllowance"),
         ApprovalSource.Auto => Loc.Get("S.Report.ByAuto"),
         ApprovalSource.Plan => Loc.Get("S.Report.ByPlan"),

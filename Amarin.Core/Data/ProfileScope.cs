@@ -21,6 +21,7 @@ internal sealed class ProfileScope
 {
     private RecipeLibrary? _recipes;
     private ScheduleBook? _schedule;
+    private DeferredBook? _deferred;
     private HealthCache? _health;
     private MachineBook? _machines;
     private ChatTextIndex? _textIndex;
@@ -120,6 +121,13 @@ internal sealed class ProfileScope
     {
         get => _schedule ??= new ScheduleBook(DataRoot);
         init => _schedule = value;
+    }
+
+    /// <summary>Отложенные задачи чата (1.33.0).</summary>
+    public DeferredBook Deferred
+    {
+        get => _deferred ??= new DeferredBook(DataRoot);
+        init => _deferred = value;
     }
 
     /// <summary>Последний снимок «Состояния ПК» (C4).</summary>
@@ -254,6 +262,7 @@ internal sealed class ProfileScope
         Instructions.UseRoot(dataRoot);
         Recipes.UseRoot(dataRoot);
         Schedule.UseRoot(dataRoot);
+        _deferred?.UseRoot(dataRoot);
         Health.UseRoot(dataRoot);
         Machines.UseRoot(dataRoot);
         Mcp?.UseRoot(dataRoot);
