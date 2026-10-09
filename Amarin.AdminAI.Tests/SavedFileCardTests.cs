@@ -295,4 +295,69 @@ public sealed class SavedFileCardTests
             Directory.Delete(folder, recursive: true);
         }
     }
+
+    [Fact]
+    public void Right_click_on_a_card_offers_open_reveal_copy_and_save_as()
+    {
+        // До 1.33.0 у карточки было одно действие — показать в проводнике; отдать файл дальше
+        // (в мессенджер, в другую папку) можно было только руками.
+        var path = Path.Combine(Path.GetTempPath(), "amarin-card-menu-" + Guid.NewGuid().ToString("N") + ".docx");
+        File.WriteAllBytes(path, new byte[16]);
+        try
+        {
+            var headers = _wpf.Ui.Invoke(() =>
+            {
+                var file = new SavedFile(path, Path.GetFileName(path), 16);
+                var card = ChatMessageViews.CreateSavedFileCard(Window(), file);
+                Window().MessagesPanel.Children.Add(card);
+                try
+                {
+                    return SavedFileActions.BuildMenu(card, file).Items.OfType<MenuItem>()
+                        .Select(item => item.Header as string).OfType<string>().ToList();
+                }
+                finally
+                {
+                    Window().MessagesPanel.Children.Remove(card);
+                }
+            });
+
+            Assert.Equal(
+                [Loc.Get("S.SavedFile.Open"), Loc.Get("S.SavedFile.Reveal"), Loc.Get("S.SavedFile.Copy"), Loc.Get("S.SavedFile.SaveAs")],
+                headers);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void A_created_folder_gets_a_folder_card()
+    {
+        var folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "amarin-card-folder-" + Guid.NewGuid().ToString("N"))).FullName;
+        try
+        {
+            var texts = Render(Answer(new SavedFile(folder, Path.GetFileName(folder), 0)));
+
+            Assert.Contains(Loc.Get("S.SavedFile.Folder"), texts);
+            Assert.DoesNotContain(Loc.Get("S.Tools.SavedFileMissing"), texts);
+        }
+        finally
+        {
+            Directory.Delete(folder);
+        }
+    }
+
+    [Fact]
+    public void Dragging_a_card_out_is_not_taken_for_an_attachment()
+    {
+        // Карточка, протащенная над своей же лентой, не должна прикрепиться к сообщению.
+        var data = new DataObject();
+        data.SetFileDropList([@"C:\Downloads\report.pdf"]);
+        Assert.True(MainWindow.HasDroppableAttachment(data));
+
+        data.SetData(SavedFileActions.OwnDragFormat, true);
+        Assert.False(MainWindow.HasDroppableAttachment(data));
+    }
+
 }

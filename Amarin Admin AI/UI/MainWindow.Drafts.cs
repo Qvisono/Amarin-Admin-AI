@@ -108,6 +108,7 @@ namespace Amarin.UI
                 _pendingImages.AddRange(draft.Images);
                 _pendingFiles.Clear();
                 _pendingFiles.AddRange(draft.Files);
+                WarmPendingDocuments();
                 RefreshAttachments();
                 MessageTextBox.Text = draft.Text;
                 MessageTextBox.CaretIndex = draft.Text.Length;

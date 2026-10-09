@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Amarin.Tools;
@@ -7,8 +8,52 @@ internal static class DownloadPaths
     public static string DesktopDirectory =>
         Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 
+    /// <summary>
+    /// Настоящая папка «Загрузки» — та, что видна в Проводнике, даже если её перенесли на другой диск.
+    /// </summary>
+    /// <remarks>
+    /// У <see cref="Environment.SpecialFolder"/> «Загрузок» нет, и прежде путь собирался как
+    /// <c>%USERPROFILE%\Downloads</c>. С 1.33.0 от этой папки раскрываются все относительные пути
+    /// файловых инструментов, и у человека, перенёсшего «Загрузки» на D:, файлы ложились бы в
+    /// пустую папку, которую он не открывает.
+    /// </remarks>
     public static string DownloadsDirectory =>
+        KnownFolder(DownloadsFolderId) ??
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+    /// <summary>«Документы» — для пути вида <c>Documents\отчёт.docx</c>.</summary>
+    public static string DocumentsDirectory =>
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+    private static readonly Guid DownloadsFolderId = new("374DE290-123F-4565-9164-39C4925E467B");
+
+    private static string? KnownFolder(Guid id)
+    {
+        try
+        {
+            if (SHGetKnownFolderPath(id, 0, IntPtr.Zero, out var buffer) != 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                return Marshal.PtrToStringUni(buffer) is { Length: > 0 } path ? path : null;
+            }
+            finally
+            {
+                Marshal.FreeCoTaskMem(buffer);
+            }
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    [DllImport("shell32.dll")]
+    private static extern int SHGetKnownFolderPath(
+        [MarshalAs(UnmanagedType.LPStruct)] Guid id, uint flags, IntPtr token, out IntPtr path);
 
     public static bool TryResolveDestination(
         string? destination,

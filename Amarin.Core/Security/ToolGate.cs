@@ -88,7 +88,10 @@ internal static class ToolGate
     {
         settings ??= new AppSettings();
         var tool = (toolName ?? "").Trim();
-        var args = WithoutInternalFields(arguments);
+
+        // Путь — тот, по которому запишет инструмент, а не сырая строка модели: иначе проверки ниже
+        // смотрели бы в одно место, а запись шла бы в другое.
+        var args = FileToolPaths.CanonicalArguments(tool, WithoutInternalFields(arguments));
         var effect = ToolEffects.Classify(tool, args);
 
         // Инструмент MCP читает, только если так его отметил человек: сервер о себе может сказать
@@ -251,7 +254,9 @@ internal static class ToolGate
         var action = DangerousActionGuard.ActionOf(args);
         var target = tool.ToLowerInvariant() switch
         {
-            "write_file" => StringArg(args, "path"),
+            "write_file" or "create_document" or "save_image" or "create_folder" => StringArg(args, "path"),
+            // Правка на месте всегда спрашивается; без вопроса — только результат в новый файл.
+            "edit_document" => StringArg(args, "save_as"),
             "filesystem" when action == "write" => StringArg(args, "path"),
             "filesystem" when action is "copy" or "move" => StringArg(args, "destination"),
             _ => null
@@ -280,7 +285,8 @@ internal static class ToolGate
         var action = DangerousActionGuard.ActionOf(args);
         string?[] targets = tool.ToLowerInvariant() switch
         {
-            "write_file" => [StringArg(args, "path")],
+            "write_file" or "edit_file" or "create_folder" or "create_document" or "save_image" => [StringArg(args, "path")],
+            "edit_document" => [StringArg(args, "path"), StringArg(args, "save_as")],
             "filesystem" when action is "write" or "mkdir" => [StringArg(args, "path")],
             "filesystem" when action == "copy" => [StringArg(args, "destination")],
             "filesystem" when action == "move" => [StringArg(args, "path"), StringArg(args, "destination")],

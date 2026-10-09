@@ -120,7 +120,9 @@ internal static class RecipeRules
     /// </summary>
     public static readonly string[] Excluded =
     [
-        "web_search", "scrape_url", "generate_image", "init_agent", ReadInstructionTool.ToolName, AgentPlans.SubmitTool
+        "web_search", "scrape_url", "generate_image", "init_agent", ReadInstructionTool.ToolName, AgentPlans.SubmitTool,
+        // Ручка картинки живёт в памяти одного запуска: после перезапуска рецепт её бы не нашёл.
+        "save_image"
     ];
 
     public static bool IsRunnable(string? tool) =>

@@ -736,6 +736,11 @@
     <system:String x:Key="S.Guard.Sum.Virtualization" xml:space="preserve">Виртуализация</system:String>
     <system:String x:Key="S.Guard.Sum.WifiForget" xml:space="preserve">Забыть сеть Wi-Fi</system:String>
     <system:String x:Key="S.Guard.Sum.WriteFile" xml:space="preserve">Запись в файл</system:String>
+    <system:String x:Key="S.Guard.Sum.EditFile" xml:space="preserve">Правка файла</system:String>
+    <system:String x:Key="S.Guard.Sum.CreateFolder" xml:space="preserve">Новая папка</system:String>
+    <system:String x:Key="S.Guard.Sum.CreateDocument" xml:space="preserve">Новый документ</system:String>
+    <system:String x:Key="S.Guard.Sum.EditDocument" xml:space="preserve">Правка документа</system:String>
+    <system:String x:Key="S.Guard.Sum.SaveImage" xml:space="preserve">Сохранение картинки</system:String>
     <system:String x:Key="S.Guard.Tool" xml:space="preserve">Инструмент: {0}</system:String>
     <system:String x:Key="S.Guard.UsersChange" xml:space="preserve">Изменение локальных учётных записей или членства в группах.</system:String>
     <system:String x:Key="S.Guard.UsersPrevious" xml:space="preserve">Прежнее состояние и состав групп будут в ответе инструмента, по ним можно откатить изменение вручную.</system:String>
@@ -1841,6 +1846,11 @@
     <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">Запросы WMI</system:String>
     <system:String x:Key="S.Tool.write_clipboard" xml:space="preserve">Запись в буфер обмена</system:String>
     <system:String x:Key="S.Tool.write_file" xml:space="preserve">Запись файлов</system:String>
+    <system:String x:Key="S.Tool.edit_file" xml:space="preserve">Правка файлов</system:String>
+    <system:String x:Key="S.Tool.create_folder" xml:space="preserve">Создание папок</system:String>
+    <system:String x:Key="S.Tool.create_document" xml:space="preserve">Создание документов</system:String>
+    <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Правка документов</system:String>
+    <system:String x:Key="S.Tool.save_image" xml:space="preserve">Сохранение картинок</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">Расшифровка видео YouTube</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Добавить в белый список</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">Вводная от пользователя:</system:String>
@@ -1858,9 +1868,19 @@
     <system:String x:Key="S.Tools.GuardFailed" xml:space="preserve">Проверка SynGuard не выполнилась, вызовы прошли без неё</system:String>
     <system:String x:Key="S.Tools.GuardUnparsed" xml:space="preserve">Ответ SynGuard не удалось разобрать, вызовы без вердикта прошли без проверки</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>
-    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы показать в проводнике</system:String>
+    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Нажмите, чтобы открыть. Правая кнопка: показать в папке, скопировать, сохранить как</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;Файла больше нет на месте</system:String>
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">файла нет на месте</system:String>
+    <system:String x:Key="S.SavedFile.Open" xml:space="preserve">Открыть</system:String>
+    <system:String x:Key="S.SavedFile.Reveal" xml:space="preserve">Показать в папке</system:String>
+    <system:String x:Key="S.SavedFile.Copy" xml:space="preserve">Копировать файл</system:String>
+    <system:String x:Key="S.SavedFile.SaveAs" xml:space="preserve">Сохранить как…</system:String>
+    <system:String x:Key="S.SavedFile.Folder" xml:space="preserve">Папка</system:String>
+    <system:String x:Key="S.SavedFile.AllFiles" xml:space="preserve">Все файлы</system:String>
+    <system:String x:Key="S.SavedFile.CopyFailedTitle" xml:space="preserve">Не удалось скопировать</system:String>
+    <system:String x:Key="S.SavedFile.CopyFailed" xml:space="preserve">Буфер обмена занят другой программой. Попробуйте ещё раз.</system:String>
+    <system:String x:Key="S.SavedFile.SaveFailedTitle" xml:space="preserve">Не удалось сохранить</system:String>
+    <system:String x:Key="S.SavedFile.SaveFailed" xml:space="preserve">Копию «{0}» не получилось записать в выбранное место.</system:String>
 
     <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Вывод длинный: модель видела только его начало. Полностью он есть в журнале.</system:String>
     <system:String x:Key="S.TranslationEditor.Desc" xml:space="preserve">Поправленные строки помечаются, и новый перевод моделью их не тронет. Метки вида {0} должны остаться на месте.</system:String>

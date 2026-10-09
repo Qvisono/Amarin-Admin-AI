@@ -17,7 +17,10 @@ public sealed class Wave3ChatToolsTests
             var tool = new ReadFileTool();
             var result = await tool.ExecuteAsync(JsonSchema.Parse($$"""{"path":{{JsonSerializer.Serialize(path)}}}"""));
             Assert.True(result.Success);
-            Assert.Equal("hello wave3", result.Output);
+
+            // Заголовок «что это и сколько всего», дальше строки с номерами — как у правки.
+            Assert.StartsWith(path + " - text, 1 lines", result.Output, StringComparison.Ordinal);
+            Assert.EndsWith("     1\thello wave3", result.Output, StringComparison.Ordinal);
         }
         finally
         {

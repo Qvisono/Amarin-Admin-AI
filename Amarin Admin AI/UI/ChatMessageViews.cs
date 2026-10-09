@@ -2018,7 +2018,8 @@ internal static class ChatMessageViews
 
     internal static Border CreateSavedFileCard(FrameworkElement host, Tools.SavedFile file)
     {
-        var present = FileIsThere(file.Path);
+        var folder = FolderIsThere(file.Path);
+        var present = folder || FileIsThere(file.Path);
         var frame = new Border
         {
             MinWidth = 190,
@@ -2038,19 +2039,9 @@ internal static class ChatMessageViews
         frame.SetResourceReference(Border.BackgroundProperty, "Bg.Card");
         RoundedClip.SetRadius(frame, 9);
 
-        // Без этого клик по карточке внутри ленты начинает тянуть выделение текста -
-        // тот же приём стоит на картинке в ответе, см. ImageBlockView.
-        frame.PreviewMouseLeftButtonDown += (_, e) => e.Handled = true;
-        frame.MouseLeftButtonUp += (_, e) =>
-        {
-            e.Handled = true;
-            if (AttachmentOpener.RevealInExplorer(file.Path))
-            {
-                return;
-            }
-
-            MainWindow.Inform(host, Loc.Get("S.Links.OpenFailed"), Loc.Format("S.Attach.RevealFailed", file.FileName));
-        };
+        // Щелчок открывает, правая кнопка — меню (показать, скопировать, сохранить как),
+        // перетаскивание отдаёт файл другой программе.
+        SavedFileActions.Attach(frame, file);
 
         // Иконка - плиткой слева, подписи - справа от неё. Столбиком карточка выходила высокой
         // и узкой, а стоит она среди строк текста, у которых длина всегда больше высоты.
@@ -2061,7 +2052,7 @@ internal static class ChatMessageViews
             CornerRadius = new CornerRadius(7),
             Margin = new Thickness(0, 0, 10, 0),
             VerticalAlignment = VerticalAlignment.Center,
-            Child = CreateFileGlyph(present)
+            Child = CreateFileGlyph(present, folder)
         };
         tile.SetResourceReference(Border.BackgroundProperty, "Bg.Raised");
 
@@ -2076,10 +2067,10 @@ internal static class ChatMessageViews
         // Тип файла ушёл с картинки в подпись: рядом с настоящей иконкой слово «ФАЙЛ» на месте
         // отсутствующего расширения сообщало бы, что файл - это файл. Точка-разделитель -
         // вёрстка, а не текст для перевода.
-        var detail = present
-            ? AttachmentTypes.FormatSize(file.SizeBytes)
+        var detail = folder ? Loc.Get("S.SavedFile.Folder")
+            : present ? AttachmentTypes.FormatSize(file.SizeBytes)
             : Loc.Get("S.Tools.SavedFileMissing");
-        var kind = AttachmentTypes.ExtensionLabel(file.FileName);
+        var kind = folder ? "" : AttachmentTypes.ExtensionLabel(file.FileName);
 
         var size = new TextBlock
         {
@@ -2119,11 +2110,14 @@ internal static class ChatMessageViews
     /// и набор картинок всё равно пришлось бы закрывать одной общей. Тип написан словом рядом.
     /// </para>
     /// </remarks>
-    private static UIElement CreateFileGlyph(bool present)
+    private static UIElement CreateFileGlyph(bool present, bool folder = false)
     {
+        // Папка (create_folder) — тем же пером: лист сменяется контуром папки, остальное то же.
         var sheet = new System.Windows.Shapes.Path
         {
-            Data = Glyphs.Get("M5.5,3 L13.5,3 L18.5,8 L18.5,21 L5.5,21 Z M13.5,3 L13.5,8 L18.5,8"),
+            Data = Glyphs.Get(folder
+                ? "M3,6.5 A1.5,1.5 0 0 1 4.5,5 L9.5,5 L11.5,7 L19.5,7 A1.5,1.5 0 0 1 21,8.5 L21,18.5 A1.5,1.5 0 0 1 19.5,20 L4.5,20 A1.5,1.5 0 0 1 3,18.5 Z"
+                : "M5.5,3 L13.5,3 L18.5,8 L18.5,21 L5.5,21 Z M13.5,3 L13.5,8 L18.5,8"),
             StrokeThickness = 1.7,
             StrokeLineJoin = PenLineJoin.Round,
             StrokeStartLineCap = PenLineCap.Round,
@@ -2149,6 +2143,18 @@ internal static class ChatMessageViews
         try
         {
             return !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static bool FolderIsThere(string path)
+    {
+        try
+        {
+            return !string.IsNullOrWhiteSpace(path) && Directory.Exists(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {

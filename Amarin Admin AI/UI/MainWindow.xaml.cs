@@ -335,6 +335,9 @@ namespace Amarin.UI
 
             // Прошлое обновление оставило рядом прежний exe и папку загрузки — убираем.
             UpdateInstaller.CleanupLeftovers(Environment.ProcessPath);
+
+            // До 1.33.0 вложения разворачивались копиями во %TEMP% открытым текстом — убираем.
+            Detached.Run(Task.Run(DocumentDigest.DeleteLegacyCopies), "legacy_attachment_copies");
             ScheduleWhatsNew();
             ScheduleAutoUpdateCheck();
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
@@ -2268,6 +2271,7 @@ namespace Amarin.UI
             // Ссылки на картинки в прежних ответах разрешаются, только пока картинки
             // зарегистрированы, а реестр перезапуск не переживает.
             ChatImageRegistry.RestoreAll(session);
+            ChatAttachmentRegistry.RestoreAll(session);
             RenderSession();
             UpdateModelButton();
             FocusMessageInput();
@@ -2472,12 +2476,16 @@ namespace Amarin.UI
 
             var services = _services;
             var kind = command is { Name: ChatCommands.Agent } ? TurnKind.AgentCommand : TurnKind.Continue;
-            Detached.Run(RunTurnAsync(_session, kind, (chat, observer, token) =>
+            Detached.Run(RunTurnAsync(_session, kind, async (chat, observer, token) =>
             {
+                // Документы правленого сообщения читаются на рабочем потоке до развилки: сборка
+                // содержимого ниже идёт на потоке окна, и стостраничный PDF держал бы его.
+                await DocumentDigest.WarmAsync(anchor.Files, token);
+
                 var at = chat.Messages.IndexOf(message);
                 if (at < 0)
                 {
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 // Команда кладёт в историю задачу, а не видимый текст, — как при отправке.
@@ -2490,9 +2498,9 @@ namespace Amarin.UI
                     });
                 ShowForkedTail(chat);
 
-                return command is { } run
+                await (command is { } run
                     ? services.Chat.RunAgentCommandAsync(chat, text, run.Argument, run.Complexity, observer, token, placed: anchor)
-                    : services.Chat.GenerateAssistantAsync(chat, observer, token);
+                    : services.Chat.GenerateAssistantAsync(chat, observer, token));
             }), "edit_turn");
         }
 

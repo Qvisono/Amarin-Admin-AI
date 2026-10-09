@@ -69,6 +69,9 @@ internal static partial class DangerousActionGuard
             // write_file wraps its arguments into a filesystem/write call and executes it
             // directly, so checking only "filesystem" let every file it wrote through unasked.
             "write_file" => true,
+            // Файлы и документы чата (1.33.0): спрашиваются так же, как write_file, — без вопроса
+            // шлюз пропускает только новый файл в «Загрузках» и на «Рабочем столе».
+            "edit_file" or "create_folder" or "create_document" or "edit_document" or "save_image" => true,
             // Разбор по дереву: спрашивается всё, кроме чистого чтения. Прежде — только то, что
             // нашлось регуляркой в списке опасного, и Set-Content или winget install шли молча.
             "run_powershell" => PowerShellAnalysis.Analyze(arguments).IsWrite,
@@ -323,7 +326,9 @@ internal static partial class DangerousActionGuard
     {
         string? target = toolName.ToLowerInvariant() switch
         {
-            "write_file" => Field(arguments, "path"),
+            "write_file" or "create_document" or "save_image" => Field(arguments, "path"),
+            // Правка на месте — правка, а не перезапись; перезапись — только save_as поверх чужого файла.
+            "edit_document" => Field(arguments, "save_as"),
             "filesystem" when action == "write" => Field(arguments, "path"),
             "filesystem" when action is "copy" or "move" => Field(arguments, "destination"),
             "download_file" => DownloadTarget(arguments),
@@ -395,14 +400,27 @@ internal static partial class DangerousActionGuard
     /// </remarks>
     private static (string Text, string Language) ExtractCode(string toolName, JsonElement arguments)
     {
+        // Правка — тем, что меняется: «было» и «стало» строками с минусом и плюсом, а не одним путём.
+        if (toolName.Equals("edit_file", StringComparison.OrdinalIgnoreCase))
+        {
+            return (EditDiff(arguments), "");
+        }
+
         var (field, language) = toolName.ToLowerInvariant() switch
         {
             "run_powershell" => ("command", "powershell"),
             "filesystem" or "write_file" => ("content", LanguageFromPath(arguments)),
+            "create_document" => ("content", "markdown"),
             "registry" => ("value_data", "ini"),
             "scheduled_task" => ("command", "powershell"),
             _ => ("", "")
         };
+
+        if (toolName.Equals("edit_document", StringComparison.OrdinalIgnoreCase) &&
+            arguments.TryGetProperty("operations", out var operations) && operations.ValueKind == JsonValueKind.Array)
+        {
+            return (operations.ToString(), "json");
+        }
 
         if (field.Length == 0 ||
             !arguments.TryGetProperty(field, out var value) ||
@@ -413,6 +431,18 @@ internal static partial class DangerousActionGuard
 
         var text = value.GetString() ?? "";
         return string.IsNullOrWhiteSpace(text) ? ("", "") : (text, language);
+    }
+
+    /// <summary>Правка <c>edit_file</c> строками «- было» и «+ стало» — так её и читают глазами.</summary>
+    private static string EditDiff(JsonElement arguments)
+    {
+        static IEnumerable<string> Lines(JsonElement args, string name, string sign) =>
+            (args.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "")
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Split('\n')
+            .Select(line => sign + line);
+
+        return string.Join("\n", Lines(arguments, "old_string", "- ").Concat(Lines(arguments, "new_string", "+ ")));
     }
 
     /// <summary>
@@ -466,6 +496,12 @@ internal static partial class DangerousActionGuard
             "windows_service" => L("S.Guard.Sum.Service") + FormatField(arguments, "service_name", prefix: ": ") +
                                  (string.IsNullOrWhiteSpace(action) ? "" : $" → {action}"),
             "filesystem" or "write_file" => L("S.Guard.Sum.WriteFile") + FormatField(arguments, "path", prefix: ": "),
+            "edit_file" => L("S.Guard.Sum.EditFile") + FormatField(arguments, "path", prefix: ": "),
+            "create_folder" => L("S.Guard.Sum.CreateFolder") + FormatField(arguments, "path", prefix: ": "),
+            "create_document" => L("S.Guard.Sum.CreateDocument") + FormatField(arguments, "path", prefix: ": "),
+            "edit_document" => L("S.Guard.Sum.EditDocument") + FormatField(arguments, "path", prefix: ": ") +
+                               FormatField(arguments, "save_as", prefix: " → "),
+            "save_image" => L("S.Guard.Sum.SaveImage") + FormatField(arguments, "path", prefix: ": "),
             "run_powershell" => L("S.Guard.Sum.PowerShell") + FormatField(arguments, "command", prefix: ": ", max: 120),
             "windows_process" => L("S.Guard.Sum.KillProcess") + FormatField(arguments, "process_name", prefix: ": ") +
                                  FormatField(arguments, "pid", prefix: " PID "),

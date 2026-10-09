@@ -77,9 +77,9 @@ internal static class ChatContent
     /// </summary>
     /// <remarks>
     /// Формат OpenAI-совместимый. Текстовая часть обязана идти первой — без неё часть моделей
-    /// спотыкается на массиве содержимого. Документы уходят частью <c>file</c>: Venice сам
-    /// извлекает из них текст (PDF, DOCX, XLSX, исходники), поэтому разбирать их в программе
-    /// не нужно, а <c>filename</c> модель видит и на него ссылается в ответе.
+    /// спотыкается на массиве содержимого. Частью <c>file</c> с 1.33.0 уходят только документы,
+    /// которые не прочитались здесь (скан PDF без текстового слоя): их распознаёт провайдер, а
+    /// прочитанные едут текстом (<see cref="DocumentDigest"/>).
     /// </remarks>
     public static JsonElement Multipart(
         string prompt,
@@ -144,6 +144,7 @@ internal static class ChatContent
 
         var sb = new StringBuilder(prompt);
         sb.AppendLine().AppendLine().AppendLine("[Вложения к этому сообщению]");
+        var digested = new List<string>();
         foreach (var file in files)
         {
             sb.Append("- ")
@@ -153,22 +154,38 @@ internal static class ChatContent
                 .Append(", ")
                 .Append(AttachmentTypes.FormatSize(file.SizeBytes));
 
-            // Путь пишем, только если файл и правда там лежит: у чата, открытого на другой
-            // машине или после переезда файла, путь врал бы, и модель послала бы туда агента.
-            if (!string.IsNullOrWhiteSpace(file.SourcePath) && File.Exists(file.SourcePath))
+            // Путь — тот, по которому вложение читают инструменты: исходный файл, если он на месте
+            // и тот же, иначе ручка вложения. Чужой путь врал бы, и модель правила бы не тот файл.
+            sb.Append(", ").Append(DocumentDigest.PathOf(file)).AppendLine();
+            if (DocumentDigest.TextOf(file, files.Count) is { } block)
             {
-                sb.Append(", ").Append(file.SourcePath);
+                digested.Add(block);
             }
-
-            sb.AppendLine();
         }
 
-        sb.AppendLine(
-            "Содержимое этих файлов передано вместе с сообщением - открывать их инструментом не нужно.");
-        sb.Append(
-            "Путь указан на случай вопросов про сам файл на диске, а не про его содержимое.");
-        return sb.ToString();
+        if (digested.Count > 0)
+        {
+            sb.AppendLine(
+                "Текст документов прочитан на этом ПК и стоит ниже блоками <document>: номера абзацев, строк и страниц - " +
+                "те же, что у read_file и edit_document. Если показана только часть, дочитывай read_file по пути из блока.");
+        }
+
+        if (digested.Count < files.Count)
+        {
+            sb.AppendLine("Остальные файлы переданы вместе с сообщением как есть.");
+        }
+
+        foreach (var block in digested)
+        {
+            sb.AppendLine().Append(block).AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
     }
+
+    /// <summary>Вложения, которые уходят провайдеру файлом: прочитанные здесь едут текстом.</summary>
+    private static List<Tools.FileAttachment>? AsFiles(IReadOnlyList<Tools.FileAttachment>? files) =>
+        files?.Where(file => DocumentDigest.TextOf(file, files.Count) is null).ToList() is { Count: > 0 } rest ? rest : null;
 
     /// <summary>
     /// Содержимое сообщения человека для модели, собранное из того, что лежит в переписке.
@@ -191,10 +208,11 @@ internal static class ChatContent
         var files = user.Files.Count == 0 ? null : user.Files;
         var body = images is null && files is null ? user.Text : BuildPrompt(user.Text, images, files);
         var text = ChatQuotes.Wrap(body, user.Quotes, messages, index);
+        var raw = AsFiles(files);
 
-        return images is null && files is null
+        return images is null && raw is null
             ? Text(text)
-            : Multipart(text, images, files);
+            : Multipart(text, images, raw);
     }
 
     /// <summary>

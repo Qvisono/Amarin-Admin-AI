@@ -38,6 +38,10 @@ internal sealed partial class ChatEngine
         }
 
         messages.AddRange(ChatMessageCloner.CloneAll(history));
+
+        // Устаревшие версии файлов и прочитанные давно документы — заглушками: только в копии для
+        // запроса, хранимая история и отпечаток сжатия не меняются.
+        ContextHygiene.Apply(messages);
         return messages;
     }
 
@@ -85,6 +89,7 @@ internal sealed partial class ChatEngine
 
         parts.Add(tech);
         parts.Add(FormulaRules);
+        parts.Add(FileRules);
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать
         // нужную, а сохранённые техпромпты не отстают, потому что строка дописывается здесь.

@@ -228,18 +228,23 @@ public sealed class AttachmentFileTests
         Assert.Contains("зачёт.pdf", prompt, StringComparison.Ordinal);
         Assert.Contains("PDF", prompt, StringComparison.Ordinal);
         Assert.Contains(AttachmentTypes.FormatSize(118_681), prompt, StringComparison.Ordinal);
-        Assert.Contains("открывать их инструментом не нужно", prompt, StringComparison.Ordinal);
+
+        // У вложения без файла на диске — ручка, по которой read_file дочитывает его из памяти.
+        Assert.Contains("amarin-attachment:", prompt, StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_real_path_reaches_the_model_only_while_the_file_is_where_it_says()
     {
-        var path = Path.Combine(Path.GetTempPath(), "amarin-attach-" + Guid.NewGuid().ToString("N") + ".txt");
-        File.WriteAllText(path, "данные");
+        var path = Path.Combine(Path.GetTempPath(), "amarin-attach-" + Guid.NewGuid().ToString("N") + ".pdf");
+        var changed = Path.Combine(Path.GetTempPath(), "amarin-attach-" + Guid.NewGuid().ToString("N") + ".pdf");
+        File.WriteAllBytes(path, "%PDF-1.4"u8.ToArray());
+        File.WriteAllBytes(changed, "%PDF-1.7"u8.ToArray());
         try
         {
             var here = Pdf("здесь.pdf") with { SourcePath = path };
             var gone = Pdf("уехал.pdf") with { SourcePath = Path.Combine(Path.GetTempPath(), "нет-такого.pdf") };
+            var other = Pdf("другой.pdf") with { SourcePath = changed };
 
             Assert.Contains(path, ChatContent.BuildPrompt("глянь", null, [here]), StringComparison.Ordinal);
 
@@ -247,10 +252,16 @@ public sealed class AttachmentFileTests
             var missing = ChatContent.BuildPrompt("глянь", null, [gone]);
             Assert.Contains("уехал.pdf", missing, StringComparison.Ordinal);
             Assert.DoesNotContain("нет-такого.pdf", missing, StringComparison.Ordinal);
+
+            // Файл на месте, но уже другой (того же размера): модель правила бы не то, что прислали.
+            var stale = ChatContent.BuildPrompt("глянь", null, [other]);
+            Assert.DoesNotContain(changed, stale, StringComparison.Ordinal);
+            Assert.Contains("amarin-attachment:", stale, StringComparison.Ordinal);
         }
         finally
         {
             File.Delete(path);
+            File.Delete(changed);
         }
     }
 

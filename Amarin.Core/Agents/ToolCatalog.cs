@@ -14,8 +14,8 @@ internal static class ToolCatalog
 {
     public static IReadOnlyList<string> Chat { get; } =
     [
-        "read_file", "write_file", "search_web", "generate_image", "fetch_image", "youtube_transcript",
-        "init_agent", "read_instruction"
+        "read_file", "write_file", "edit_file", "create_folder", "create_document", "edit_document", "save_image",
+        "search_web", "generate_image", "fetch_image", "youtube_transcript", "init_agent", "read_instruction"
     ];
 
     /// <summary>Только агентские — без тех, что уже есть у чата.</summary>

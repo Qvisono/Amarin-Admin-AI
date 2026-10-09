@@ -94,6 +94,12 @@ namespace Amarin.UI
         /// <summary>internal ради теста: разбор переносимого объекта проверяется без окна.</summary>
         internal static bool HasDroppableAttachment(IDataObject data)
         {
+            // Карточку файла из ленты тащат наружу, в другую программу, — не во вложения себе же.
+            if (data.GetDataPresent(SavedFileActions.OwnDragFormat))
+            {
+                return false;
+            }
+
             if (ClipboardImages.Contains(data))
             {
                 return true;
@@ -236,10 +242,23 @@ namespace Amarin.UI
                     name,
                     info.Length,
                     info.FullName));
+                WarmPendingDocuments();
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
             {
                 Note(Loc.Format("S.Attach.FileUnreadable", name));
+            }
+        }
+
+        /// <summary>
+        /// Читает приложенные документы в фоне, пока человек дописывает сообщение: к отправке их
+        /// текст уже готов, и отправка не ждёт разбора стостраничного PDF.
+        /// </summary>
+        private void WarmPendingDocuments()
+        {
+            if (_pendingFiles.Count > 0)
+            {
+                Detached.Run(DocumentDigest.WarmAsync([.. _pendingFiles], CancellationToken.None), "digest_warm");
             }
         }
 

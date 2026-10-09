@@ -154,6 +154,9 @@ internal static class AppComposition
         // Инструменты рецептов — те же, что у агента, плюс файловые чата: рецепт сохраняют из
         // журнала любого из них. Лениво и один раз — набор строится за заметное время, а рецепты
         // запускают редко.
+        // Что модель прочла в каждом чате и какой файл правится сейчас — одно на все файловые
+        // инструменты: штамп чтения из read_file проверяет edit_file, замок держат все пишущие.
+        var fileState = new FileToolState();
         var recipeTools = new Lazy<ToolRegistry>(() => new ToolRegistry(
         [
             .. AgentTools.Create(
@@ -161,16 +164,14 @@ internal static class AppComposition
                 downloadHttp,
                 options.Download,
                 knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey)).All,
-            new ReadFileTool(),
-            new WriteFileTool()
+            .. FileTools(fileState)
         ]));
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
             mcp.Tools);
         var chatTools = new ToolRegistry(
         [
-            new ReadFileTool(),
-            new WriteFileTool(),
+            .. FileTools(fileState),
             new WebSearchTool((query, ct) =>
                 venice.SearchWebAsync(query, ModelSlots.WebSearch(ReadSettings()), ct)),
             // Соотношение сторон у вызова инструмента выводится из размера в пикселях; особое
@@ -195,7 +196,10 @@ internal static class AppComposition
             DownloadHttp = downloadHttp,
             Venice = venice,
             Models = models,
-            Chat = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations),
+            Chat = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations)
+            {
+                Files = fileState
+            },
             Titles = new ChatTitleGenerator(http, options, ReadSettings),
             Summaries = new ChatSummaryGenerator(http, options, ReadSettings),
             Confirmations = confirmations,
@@ -210,6 +214,21 @@ internal static class AppComposition
             StartupAskPath = startup.AskPath
         };
     }
+
+    /// <summary>
+    /// Файлы и документы чата: чтение, запись, правка, папки, документы и картинки. Один набор на
+    /// чат и рецепты — рецепт сохраняют из журнала вызовов чата, и инструменты там должны быть те же.
+    /// </summary>
+    internal static ITool[] FileTools(FileToolState state) =>
+    [
+        new ReadFileTool(state),
+        new WriteFileTool(state),
+        new EditFileTool(state),
+        new CreateFolderTool(),
+        new CreateDocumentTool(state),
+        new EditDocumentTool(state),
+        new SaveImageTool()
+    ];
 
     /// <summary>
     /// Общая на процесс статика, которая смотрит на собранные службы: белый список загрузок и

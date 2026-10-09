@@ -736,6 +736,11 @@
     <system:String x:Key="S.Guard.Sum.Virtualization" xml:space="preserve">Virtualization</system:String>
     <system:String x:Key="S.Guard.Sum.WifiForget" xml:space="preserve">Forget the Wi-Fi network</system:String>
     <system:String x:Key="S.Guard.Sum.WriteFile" xml:space="preserve">Write to file</system:String>
+    <system:String x:Key="S.Guard.Sum.EditFile" xml:space="preserve">Edit file</system:String>
+    <system:String x:Key="S.Guard.Sum.CreateFolder" xml:space="preserve">New folder</system:String>
+    <system:String x:Key="S.Guard.Sum.CreateDocument" xml:space="preserve">New document</system:String>
+    <system:String x:Key="S.Guard.Sum.EditDocument" xml:space="preserve">Edit document</system:String>
+    <system:String x:Key="S.Guard.Sum.SaveImage" xml:space="preserve">Save picture</system:String>
     <system:String x:Key="S.Guard.Tool" xml:space="preserve">Tool: {0}</system:String>
     <system:String x:Key="S.Guard.UsersChange" xml:space="preserve">Change to local accounts or group membership.</system:String>
     <system:String x:Key="S.Guard.UsersPrevious" xml:space="preserve">The previous state and group members come back in the tool's reply, so the change can be undone by hand.</system:String>
@@ -1841,6 +1846,11 @@
     <system:String x:Key="S.Tool.wmi_query" xml:space="preserve">WMI queries</system:String>
     <system:String x:Key="S.Tool.write_clipboard" xml:space="preserve">Write to clipboard</system:String>
     <system:String x:Key="S.Tool.write_file" xml:space="preserve">Writing files</system:String>
+    <system:String x:Key="S.Tool.edit_file" xml:space="preserve">Editing files</system:String>
+    <system:String x:Key="S.Tool.create_folder" xml:space="preserve">Creating folders</system:String>
+    <system:String x:Key="S.Tool.create_document" xml:space="preserve">Creating documents</system:String>
+    <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Editing documents</system:String>
+    <system:String x:Key="S.Tool.save_image" xml:space="preserve">Saving pictures</system:String>
     <system:String x:Key="S.Tool.youtube_transcript" xml:space="preserve">YouTube transcripts</system:String>
     <system:String x:Key="S.Tools.AddToAllowlist" xml:space="preserve">Add to the allowlist</system:String>
     <system:String x:Key="S.Tools.AgentHeard" xml:space="preserve">New input from the user:</system:String>
@@ -1858,9 +1868,19 @@
     <system:String x:Key="S.Tools.GuardFailed" xml:space="preserve">The SynGuard check did not run; the calls went ahead without it</system:String>
     <system:String x:Key="S.Tools.GuardUnparsed" xml:space="preserve">SynGuard's reply could not be read; calls without a verdict went ahead unchecked</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Running tools</system:String>
-    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to show it in Explorer</system:String>
+    <system:String x:Key="S.Tools.SavedFile" xml:space="preserve">{0}&#10;Click to open. Right-click to show in folder, copy or save as</system:String>
     <system:String x:Key="S.Tools.SavedFileGone" xml:space="preserve">{0}&#10;The file is no longer there</system:String>
     <system:String x:Key="S.Tools.SavedFileMissing" xml:space="preserve">file is gone</system:String>
+    <system:String x:Key="S.SavedFile.Open" xml:space="preserve">Open</system:String>
+    <system:String x:Key="S.SavedFile.Reveal" xml:space="preserve">Show in folder</system:String>
+    <system:String x:Key="S.SavedFile.Copy" xml:space="preserve">Copy file</system:String>
+    <system:String x:Key="S.SavedFile.SaveAs" xml:space="preserve">Save as…</system:String>
+    <system:String x:Key="S.SavedFile.Folder" xml:space="preserve">Folder</system:String>
+    <system:String x:Key="S.SavedFile.AllFiles" xml:space="preserve">All files</system:String>
+    <system:String x:Key="S.SavedFile.CopyFailedTitle" xml:space="preserve">Could not copy</system:String>
+    <system:String x:Key="S.SavedFile.CopyFailed" xml:space="preserve">Another program is using the clipboard. Try again.</system:String>
+    <system:String x:Key="S.SavedFile.SaveFailedTitle" xml:space="preserve">Could not save</system:String>
+    <system:String x:Key="S.SavedFile.SaveFailed" xml:space="preserve">The copy of "{0}" could not be written to the chosen place.</system:String>
 
     <system:String x:Key="S.Tools.TruncatedForModel" xml:space="preserve">Long output: the model saw only its beginning. The full text is in the journal.</system:String>
     <system:String x:Key="S.TranslationEditor.Desc" xml:space="preserve">Edited lines are marked, and a new model translation leaves them alone. Markers like {0} must stay in place.</system:String>

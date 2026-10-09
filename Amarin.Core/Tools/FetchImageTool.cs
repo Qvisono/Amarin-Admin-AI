@@ -86,6 +86,7 @@ public sealed class FetchImageTool : ITool
 
             var label = string.IsNullOrWhiteSpace(caption) ? payload.FileName : caption!.Trim();
             var attachment = ImageHelpers.FromBytes(payload.Bytes, payload.MimeType, label);
+            ChatImageRegistry.KeepOriginal(attachment, payload.Bytes);
             return ToolResult.WithImages($"Изображение получено: {label}", [attachment]);
         }
         catch (OperationCanceledException)

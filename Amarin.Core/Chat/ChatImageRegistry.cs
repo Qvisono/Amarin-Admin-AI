@@ -92,4 +92,32 @@ public static class ChatImageRegistry
 
     public static bool IsHandle(string? url) =>
         url is not null && url.StartsWith(Scheme, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Больше этого исходник в памяти не держится — сохранится ужатая копия.</summary>
+    private const int MaxOriginalBytes = 25 * 1024 * 1024;
+
+    /// <summary>
+    /// Исходные байты принесённых картинок — по строке base64 их ужатой копии. Ключ — сама строка
+    /// (сравнение по ссылке): <c>with</c> при выдаче ручки её не копирует, а после перезапуска
+    /// исходника всё равно нет — тогда сохраняется то, что лежит в переписке.
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<string, byte[]> Originals = [];
+
+    /// <summary>
+    /// Запоминает исходник картинки, которую переписка держит ужатой: <c>save_image</c> сохранит
+    /// его, а не копию в 1920 точек с белым вместо прозрачности.
+    /// </summary>
+    public static void KeepOriginal(ImageAttachment image, byte[] original)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(original);
+        if (original.Length <= MaxOriginalBytes)
+        {
+            Originals.AddOrUpdate(image.Base64, original);
+        }
+    }
+
+    /// <summary>Исходные байты картинки, если они ещё в памяти этого запуска; иначе null.</summary>
+    public static byte[]? OriginalOf(ImageAttachment image) =>
+        image is not null && Originals.TryGetValue(image.Base64, out var original) ? original : null;
 }

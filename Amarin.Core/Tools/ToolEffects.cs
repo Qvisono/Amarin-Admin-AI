@@ -39,7 +39,7 @@ internal static class ToolEffects
     /// <summary>Инструменты без действий, которые всегда пишут, — чтобы таблица знала их по имени.</summary>
     private static readonly FrozenSet<string> ActionlessWrites = new[]
     {
-        "write_clipboard"
+        "write_clipboard", "edit_file", "create_folder", "create_document", "edit_document", "save_image"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private static readonly FrozenDictionary<string, FrozenSet<string>> ReadActions =

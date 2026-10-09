@@ -54,6 +54,17 @@ public sealed partial class SourceLiteralTests
     [InlineData("UI/Settings", "SettingsView.xaml.cs")]
     // 1.33.0: отправка и перенос чата в другой профиль.
     [InlineData("UI", "MainWindow.ChatTransfer.cs")]
+    // 1.33.0: документы и файлы чата — ответы инструментов идут модели по-английски, подписи — через Loc.
+    [InlineData("UI", "SavedFileActions.cs")]
+    [InlineData("Tools", "EditFileTool.cs")]
+    [InlineData("Tools", "CreateFolderTool.cs")]
+    [InlineData("Tools", "CreateDocumentTool.cs")]
+    [InlineData("Tools", "EditDocumentTool.cs")]
+    [InlineData("Tools", "SaveImageTool.cs")]
+    [InlineData("Tools", "ReadFileTool.cs")]
+    [InlineData("Tools", "FileToolState.cs")]
+    [InlineData("Chat", "ContextHygiene.cs")]
+    [InlineData("Chat", "ChatAttachmentRegistry.cs")]
     [InlineData("Tools", "DangerousActionGuard.cs")]
     [InlineData("Agents", "Agent.cs")]
     [InlineData("Agents", "AgentUiAdapter.cs")]
@@ -73,6 +84,7 @@ public sealed partial class SourceLiteralTests
     [InlineData("Data")]
     [InlineData("ChatList")]
     [InlineData("Turns")]
+    [InlineData("Documents")]
     public void Whole_core_folders_hold_no_literal_russian(string folder)
     {
         var files = SourceTree.CoreFolder(folder);

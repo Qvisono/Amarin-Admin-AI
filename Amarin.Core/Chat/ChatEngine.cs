@@ -18,8 +18,17 @@ internal sealed partial class ChatEngine
         reply, and only when it genuinely fits. Most replies need none.
 
         TOOLS
-        - read_file(path): read a text file, or list a directory.
-        - write_file(path, content): write text, creates folders, never deletes.
+        - read_file(path, offset, limit, sheet, range): read any file -- text and code
+          with line numbers; Word, Excel, PowerPoint and PDF as numbered paragraphs,
+          sheet rows and pages -- or list a folder. Long files come in parts.
+        - write_file(path, content): create or overwrite a plain-text file.
+        - edit_file(path, old_string, new_string): change part of a text file or a
+          Word document by exact replacement.
+        - create_folder(path), create_document(path, content or sheets): new folders
+          and Word, Excel, PDF, HTML or text documents.
+        - edit_document(path, operations, save_as): change Word paragraphs, Excel
+          cells and sheets, PDF pages.
+        - save_image(image, path): save a picture from this chat to disk.
         - search_web(query): web search. Ends with a list of source URLs.
         - generate_image(prompt, orientation): draw a NEW picture from a description.
         - fetch_image(url, caption): bring an EXISTING picture from any public
@@ -31,17 +40,14 @@ internal sealed partial class ChatEngine
 
         ATTACHMENTS
         - What the user attaches arrives with the message itself. A picture you
-          simply see; a document's text is already in front of you, pulled out
-          for you. Never reach for read_file to "open" an attachment -- it does
-          not sit on a path you can reach, the call fails, and you end up telling
-          the user you have no access to a file they can see right there.
-        - Under the user's text comes the list of what came with it: name, kind,
-          size, and the real path on disk when it is known. Use that path only for
-          questions about the file itself -- where it lies, how old it is, what
-          else is in that folder -- and then through init_agent, not read_file.
-        - read_file is for files the user names in words, and it wants an absolute
-          path. A bare name is resolved against the program's own folder, not the
-          user's, and will not be found there.
+          simply see. A document is read on this PC: its beginning sits under the
+          message in a <document> block with numbered parts, and the block names
+          its path -- a file on disk or an amarin-attachment: handle. That path is
+          what read_file, edit_file and edit_document take.
+        - When the answer needs more than the shown part, read on with read_file
+          by that path; do not guess what the unread rest says.
+        - A relative path means the user's Downloads folder; Desktop\... and
+          Documents\... mean those folders.
 
         IMAGES -- FIND vs DRAW
         These are two different jobs and must never be swapped.
@@ -232,6 +238,38 @@ internal sealed partial class ChatEngine
         Never put a formula into a code block unless the user asked for code.
         """;
 
+    /// <summary>
+    /// Как работать с файлами, документами и правками. Дописывается в <see cref="BuildSystemPrompt"/>
+    /// после правил формул.
+    /// </summary>
+    /// <remarks>
+    /// Отдельно от <see cref="DefaultTechPrompt"/> по той же причине, что и формулы: сохранённый
+    /// человеком техпромпт несёт прежние слова о вложениях («не открывай вложение read_file»), и
+    /// этот блок прямо говорит, что он главнее. Правила, а не разборы случаев: модель, которая
+    /// держит в голове старые версии файла или промпта, ошибается в любой задаче одинаково.
+    /// </remarks>
+    internal const string FileRules = """
+        FILES AND DOCUMENTS
+        These rules take precedence over anything said above about files and attachments.
+        - read_file reads text, code, Word, Excel, PowerPoint and PDF. The numbers it shows -- lines,
+          paragraphs, sheet rows, pages -- are the ones edit_file and edit_document take.
+        - A document attached to a message comes as a <document> block naming its path or
+          amarin-attachment: handle; read the rest of it with read_file by that path.
+        - A relative path means the user's Downloads folder; Desktop\... and Documents\... mean those
+          folders. Every file you create comes back with its full path; name that path in your answer.
+        - Before changing an existing file, read the part you change in this conversation and base the
+          change on what read_file shows now, not on an earlier version you remember.
+        - Change part of a file with edit_file (an exact fragment that occurs once) or edit_document;
+          rewrite a whole file only when most of it changes. After a failed edit, read the file again.
+        - A tool result marked out of date or omitted means the file changed since: read it again
+          instead of relying on the old text.
+        - Word, Excel and PDF are made with create_document, never with write_file; pictures from
+          this chat are saved with save_image.
+        - When revising text you produced earlier -- code, a prompt in a code block, a draft -- start
+          from its latest version, change only what was asked, keep the rest word for word, and give
+          the complete updated block.
+        """;
+
     private const string InitAgentToolName = Tools.InitAgentTool.ToolName;
 
     private readonly VeniceClient _venice;
@@ -260,6 +298,29 @@ internal sealed partial class ChatEngine
     /// то, что вокруг неё.
     /// </summary>
     internal Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? Guard { get; set; }
+
+    /// <summary>
+    /// Журнал прочитанного файловых инструментов. Вложение с исходным файлом на диске модель уже
+    /// видела текстом — его можно править сразу, не перечитывая. Null — отметок нет.
+    /// </summary>
+    internal FileToolState? Files { get; init; }
+
+    private void NoteAttachmentsRead(ChatSession session, IReadOnlyList<FileAttachment>? documents)
+    {
+        if (Files is null || documents is null)
+        {
+            return;
+        }
+
+        foreach (var document in documents)
+        {
+            var path = DocumentDigest.PathOf(document);
+            if (!FileToolPaths.IsAttachmentHandle(path))
+            {
+                Files.NoteRead(session.Id, path);
+            }
+        }
+    }
 
     /// <param name="agents">
     /// Агенты, работающие прямо сейчас. Нужны, чтобы дописанное во время работы сообщение могло
@@ -369,6 +430,13 @@ internal sealed partial class ChatEngine
         {
             return;
         }
+
+        // Документы читаются на рабочем потоке до того, как сообщение встанет в историю: сборка
+        // содержимого ниже синхронная и идёт на потоке вызывающего. Обычно они уже прочитаны —
+        // поле ввода прогревает их при вложении, — и ожидание здесь мгновенное. Без ConfigureAwait:
+        // ход дальше обязан продолжиться там же, где начат.
+        await DocumentDigest.WarmAsync(documents, cancellationToken);
+        NoteAttachmentsRead(session, documents);
 
         var now = DateTime.Now;
         var user = new ChatDisplayMessage
