@@ -848,7 +848,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"/>
+                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True" local:SmoothScroll.PanScroll="True"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

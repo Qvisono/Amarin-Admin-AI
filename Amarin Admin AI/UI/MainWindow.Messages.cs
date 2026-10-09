@@ -78,6 +78,23 @@ namespace Amarin.UI
         /// </summary>
         private bool TranscriptInMotion => ChatZoomBusy || SmoothScroll.IsAnimating(ChatScrollViewer);
 
+        /// <summary>
+        /// Лента встала: автопрокрутка средней кнопкой закончилась или замерла у метки — строим то,
+        /// что теперь на виду.
+        /// </summary>
+        /// <remarks>
+        /// Во время автопрокрутки сообщения по кадрам не достраиваются (как и при доезде капсулы):
+        /// на скорости в десятки экранов в секунду каждый кадр строил бы всё, что мелькнуло, и
+        /// двигал ленту под курсором.
+        /// </remarks>
+        private void ChatScrollViewer_MotionChanged(object sender, RoutedEventArgs e)
+        {
+            if (!SmoothScroll.GetIsInMotion(ChatScrollViewer) && !ChatZoomBusy && !SmoothScroll.IsGliding(ChatScrollViewer))
+            {
+                MaterializeAroundViewport();
+            }
+        }
+
         /// <summary>Ставит в ленту хосты под все сообщения чата и строит только видимую часть.</summary>
         private void BuildMessageHosts()
         {

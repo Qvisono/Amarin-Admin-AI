@@ -141,8 +141,9 @@ namespace Amarin.UI
 
             // Средняя кнопка листает, как в браузере (1.33.0): левая в ленте занята выделением и
             // лупой, в колонке — перетаскиванием чатов, а средняя у обоих свободна.
-            SmoothScroll.SetAutoScroll(SideBarScrollViewer, true);
-            SmoothScroll.SetAutoScroll(ChatScrollViewer, true);
+            SmoothScroll.SetPanScroll(SideBarScrollViewer, true);
+            SmoothScroll.SetPanScroll(ChatScrollViewer, true);
+            ChatScrollViewer.AddHandler(SmoothScroll.MotionChangedEvent, new RoutedEventHandler(ChatScrollViewer_MotionChanged));
             ChatScrollViewer.ScrollChanged += ChatScrollViewer_ScrollChanged;
 
             // Лупа над лентой. Порядок с SmoothScroll неважен: её обработчики сидят на окне, а не
@@ -3342,7 +3343,7 @@ namespace Amarin.UI
                 // ChatZoom позовёт её сам, когда жест кончится. Доезд капсулы «в начало / в
                 // конец» — тот же случай: по кадру строилось бы всё, что мелькнуло, а по
                 // прибытии достройку зовёт MainWindow.ScrollJump.
-                if (ChatZoomBusy || SmoothScroll.IsGliding(ChatScrollViewer))
+                if (ChatZoomBusy || SmoothScroll.IsGliding(ChatScrollViewer) || SmoothScroll.IsPanScrolling(ChatScrollViewer))
                 {
                     return;
                 }

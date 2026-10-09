@@ -339,7 +339,7 @@ namespace Amarin.UI
         {
             SmoothScroll.SetIsEnabled(scroll, true);
             SmoothScroll.SetDragScroll(scroll, true);
-            SmoothScroll.SetAutoScroll(scroll, true);
+            SmoothScroll.SetPanScroll(scroll, true);
         }
 
         /// <summary>Строки «Сочетаний клавиш» — тринадцать полей записи, если их ещё нет.</summary>

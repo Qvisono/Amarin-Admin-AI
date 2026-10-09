@@ -660,7 +660,7 @@
                                  TextChanged="BodyBox_TextChanged">
                             <TextBox.Template>
                                 <ControlTemplate TargetType="TextBox">
-                                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True"
+                                    <ScrollViewer x:Name="PART_ContentHost" local:SmoothScroll.IsEnabled="True" local:SmoothScroll.PanScroll="True"
                                                   Padding="0,0,6,0"/>
                                 </ControlTemplate>
                             </TextBox.Template>

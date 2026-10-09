@@ -520,7 +520,7 @@ public sealed class UiShotTests : IDisposable
         window.Height = 420;
         await Settle(300);
         var origin = new Point(feed.ActualWidth / 2, feed.ActualHeight / 2);
-        if (!SmoothScroll.BeginAutoScroll(feed, origin))
+        if (!SmoothScroll.BeginPanScroll(feed, origin))
         {
             window.Height = height;
             return;
@@ -534,16 +534,16 @@ public sealed class UiShotTests : IDisposable
             var corner = feed.TranslatePoint(new Point(origin.X - 90, origin.Y - 70), root);
             var region = new Rect(corner, new Size(180, 140));
             await Settle(150);
-            SmoothScroll.AutoScrollFrame(feed, origin, 1.0 / 60);
+            SmoothScroll.PanScrollFrame(feed, origin, 1.0 / 60);
             root.UpdateLayout();
             Save(root, Path.Combine(folder, "00-autoscroll-idle.png"), null, region, scale: 3);
-            SmoothScroll.AutoScrollFrame(feed, new Point(origin.X, origin.Y + 90), 1.0 / 60);
+            SmoothScroll.PanScrollFrame(feed, new Point(origin.X, origin.Y + 90), 1.0 / 60);
             root.UpdateLayout();
             Save(root, Path.Combine(folder, "00-autoscroll-down.png"), null, region, scale: 3);
         }
         finally
         {
-            SmoothScroll.EndAutoScroll(feed);
+            SmoothScroll.EndPanScroll(feed);
             window.Height = height;
             await Settle(200);
         }

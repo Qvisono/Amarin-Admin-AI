@@ -100,12 +100,12 @@ namespace Amarin.UI
         /// предку ленты, а не потомку (то же, что у лупы, см. <c>ChatZoom</c>).
         /// </para>
         /// </remarks>
-        public static readonly DependencyProperty AutoScrollProperty =
+        public static readonly DependencyProperty PanScrollProperty =
             DependencyProperty.RegisterAttached(
-                "AutoScroll",
+                "PanScroll",
                 typeof(bool),
                 typeof(SmoothScroll),
-                new PropertyMetadata(false, OnAutoScrollChanged));
+                new PropertyMetadata(false, OnPanScrollChanged));
 
         private static readonly DependencyPropertyKey IsInMotionKey =
             DependencyProperty.RegisterAttachedReadOnly(
@@ -131,7 +131,7 @@ namespace Amarin.UI
         }
 
         /// <summary>
-        /// Список едет сам — инерцией колеса или доездом к краю, — и под неподвижной мышью
+        /// Список едет сам — инерцией колеса, доездом к краю или средней кнопкой, — и под неподвижной мышью
         /// проезжают строки.
         /// </summary>
         /// <remarks>
@@ -162,71 +162,80 @@ namespace Amarin.UI
         public static void SetDragScroll(DependencyObject obj, bool value) =>
             obj.SetValue(DragScrollProperty, value);
 
-        public static bool GetAutoScroll(DependencyObject obj) =>
-            (bool)obj.GetValue(AutoScrollProperty);
+        public static bool GetPanScroll(DependencyObject obj) =>
+            (bool)obj.GetValue(PanScrollProperty);
 
-        public static void SetAutoScroll(DependencyObject obj, bool value) =>
-            obj.SetValue(AutoScrollProperty, value);
+        public static void SetPanScroll(DependencyObject obj, bool value) =>
+            obj.SetValue(PanScrollProperty, value);
 
         /// <summary>Идёт автопрокрутка средней кнопкой.</summary>
-        public static bool IsAutoScrolling(ScrollViewer viewer) =>
-            ((Hook?)viewer.GetValue(HookProperty))?.IsAutoScrolling ?? false;
+        public static bool IsPanScrolling(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.IsPanScrolling ?? false;
 
         /// <summary>Начать автопрокрутку с меткой в этой точке — в обход событий, ради тестов.</summary>
         /// <remarks>Положение мыши в поднятом событии берётся у настоящего курсора — см. <see cref="ArmDrag"/>.</remarks>
         /// <param name="held">Зажата ли средняя кнопка: от этого зависит, кончит ли прокрутку её отпускание.</param>
-        internal static bool BeginAutoScroll(ScrollViewer viewer, Point origin, bool held = false) =>
-            ((Hook?)viewer.GetValue(HookProperty))?.BeginAutoScroll(origin, held) ?? false;
+        internal static bool BeginPanScroll(ScrollViewer viewer, Point origin, bool held = false) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.BeginPanScroll(origin, held) ?? false;
 
         /// <summary>Метка автопрокрутки на этом списке — для тестов и снимков.</summary>
-        internal static FrameworkElement? AutoScrollMarkerOf(ScrollViewer viewer) =>
+        internal static FrameworkElement? PanScrollMarkerOf(ScrollViewer viewer) =>
             ((Hook?)viewer.GetValue(HookProperty))?.Marker;
 
         /// <summary>Один кадр автопрокрутки с мышью в этой точке, <paramref name="seconds"/> спустя прошлый.</summary>
-        /// <inheritdoc cref="BeginAutoScroll"/>
-        internal static void AutoScrollFrame(ScrollViewer viewer, Point pointer, double seconds) =>
-            ((Hook?)viewer.GetValue(HookProperty))?.StepAuto(pointer, seconds);
+        /// <inheritdoc cref="BeginPanScroll"/>
+        internal static void PanScrollFrame(ScrollViewer viewer, Point pointer, double seconds) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.StepPan(pointer, seconds);
 
-        /// <summary>Отпущена средняя кнопка — ради тестов, как и <see cref="BeginAutoScroll"/>.</summary>
-        internal static void ReleaseAutoScrollButton(ScrollViewer viewer) =>
-            ((Hook?)viewer.GetValue(HookProperty))?.ReleaseAutoButton();
+        /// <summary>Отпущена средняя кнопка — ради тестов, как и <see cref="BeginPanScroll"/>.</summary>
+        internal static void ReleasePanScrollButton(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.ReleasePanButton();
 
         /// <summary>Закончить автопрокрутку, где бы она ни шла.</summary>
-        public static void EndAutoScroll(ScrollViewer viewer) =>
-            ((Hook?)viewer.GetValue(HookProperty))?.EndAutoScroll();
+        public static void EndPanScroll(ScrollViewer viewer) =>
+            ((Hook?)viewer.GetValue(HookProperty))?.EndPanScroll();
 
         /// <summary>Пикселей в секунду и в какую сторону, когда мышь увели от метки на столько.</summary>
         /// <remarks>
-        /// Мёртвая зона у метки — чтобы дрожь руки после щелчка не трогала список. Дальше скорость
-        /// растёт чуть быстрее расстояния: в паре сантиметров от метки читается строка за строкой,
-        /// у края экрана длинный чат пролетает за секунды. Потолок — чтобы лента не превращалась в
-        /// мельтешение, которое нечем остановить взглядом.
+        /// Мёртвая зона у метки — чтобы дрожь руки после щелчка не трогала список. Рядом с меткой
+        /// скорость растёт чуть быстрее расстояния: в паре сантиметров читается строка за строкой.
+        /// Дальше <see cref="PanRushStart"/> она разгоняется уже экспоненциально, и у края экрана
+        /// длинный чат пролетает за мгновение — «до безумной скорости», как просили. Потолок
+        /// <see cref="PanMaxSpeed"/> — не тормоз, а защита от бесконечности: за кадр это десятки экранов.
         /// </remarks>
-        internal static double AutoScrollSpeed(double offset)
+        internal static double PanScrollSpeed(double offset)
         {
-            var distance = Math.Abs(offset) - AutoDeadZone;
+            var distance = Math.Abs(offset) - PanDeadZone;
             if (distance <= 0)
             {
                 return 0;
             }
 
-            return Math.Sign(offset) * Math.Min(AutoMaxSpeed, AutoGain * Math.Pow(distance, AutoExponent));
+            var rush = Math.Exp(Math.Max(0, distance - PanRushStart) / PanRushScale);
+            return Math.Sign(offset) * Math.Min(PanMaxSpeed, PanGain * Math.Pow(distance, PanExponent) * rush);
         }
 
-        internal const double AutoDeadZone = 12;
-        private const double AutoGain = 5;
-        private const double AutoExponent = 1.25;
-        private const double AutoMaxSpeed = 7000;
+        internal const double PanDeadZone = 12;
+        private const double PanGain = 5;
+        private const double PanExponent = 1.25;
+
+        /// <summary>С этого расстояния (за мёртвой зоной) скорость разгоняется экспоненциально.</summary>
+        internal const double PanRushStart = 250;
+
+        /// <summary>Каждые столько точек сверх <see cref="PanRushStart"/> скорость растёт в e раз.</summary>
+        private const double PanRushScale = 120;
+
+        internal const double PanMaxSpeed = 50_000;
 
         /// <summary>Хуки с автопрокруткой, чьи списки сейчас в дереве, — кандидаты для нажатия на пустом месте.</summary>
-        private static readonly HashSet<Hook> AutoHooks = [];
+        private static readonly HashSet<Hook> PanHooks = [];
 
         /// <summary>Автопрокрутка, которая идёт сейчас: она одна на программу, как и мышь.</summary>
-        private static Hook? _activeAuto;
+        private static Hook? _activePan;
 
         private static bool _routerRegistered;
 
-        private static void OnAutoScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnPanScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not ScrollViewer viewer)
             {
@@ -235,18 +244,32 @@ namespace Amarin.UI
 
             if (e.NewValue is true && !_routerRegistered)
             {
-                // Классовый обработчик — один на процесс: он видит нажатие раньше любого
-                // элемента окна, а подписка на каждое окно потребовала бы следить за окнами.
+                // Классовые обработчики — одни на процесс: они видят нажатие, клавишу и колесо
+                // раньше любого обработчика самого окна, а подписка на каждое окно потребовала бы
+                // следить за окнами. Клавиши — именно так: окно своим PreviewKeyDown забирало Esc
+                // (и останавливало им ответ) раньше, чем его видела автопрокрутка.
                 _routerRegistered = true;
                 EventManager.RegisterClassHandler(
                     typeof(Window),
                     UIElement.PreviewMouseDownEvent,
                     new MouseButtonEventHandler(OnWindowPreviewMouseDown));
+                EventManager.RegisterClassHandler(
+                    typeof(Window),
+                    UIElement.PreviewMouseUpEvent,
+                    new MouseButtonEventHandler(OnWindowPreviewMouseUp));
+                EventManager.RegisterClassHandler(
+                    typeof(Window),
+                    UIElement.PreviewKeyDownEvent,
+                    new KeyEventHandler(OnWindowPreviewKeyDown));
+                EventManager.RegisterClassHandler(
+                    typeof(Window),
+                    UIElement.PreviewMouseWheelEvent,
+                    new MouseWheelEventHandler(OnWindowPreviewMouseWheel));
             }
 
             if (viewer.GetValue(HookProperty) is Hook hook)
             {
-                hook.AutoEnabled = e.NewValue is true;
+                hook.PanEnabled = e.NewValue is true;
             }
         }
 
@@ -256,23 +279,71 @@ namespace Amarin.UI
         /// </summary>
         private static void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (_activeAuto is { } active)
+            // Отпускание, которое ждали, могло случиться за окном: новое нажатие его уже не ждёт.
+            _swallowRelease = null;
+            if (_activePan is { } active)
             {
-                active.EndAutoScroll();
+                active.EndPanScroll();
                 e.Handled = true;
+
+                // Отпускание той же кнопки тоже гасится: правая иначе открыла бы на отпускании
+                // контекстное меню того, что под курсором.
+                _swallowRelease = e.ChangedButton;
                 return;
             }
 
-            if (e.ChangedButton != MouseButton.Middle || FindAutoTarget(e) is not { } target)
+            // Пока зажата другая кнопка, идёт свой жест — перетаскивание чата, рамка, лупа: средняя
+            // кнопка посреди него отняла бы у жеста мышь, и смещение тянули бы двое.
+            if (e.ChangedButton != MouseButton.Middle ||
+                e.LeftButton == MouseButtonState.Pressed || e.RightButton == MouseButtonState.Pressed ||
+                FindPanTarget(e) is not { } target)
             {
                 return;
             }
 
-            if (target.BeginAutoScroll(e.GetPosition(target.Viewer)))
+            if (target.BeginPanScroll(e.GetPosition(target.Viewer)))
             {
                 e.Handled = true;
             }
         }
+
+        private static void OnWindowPreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_swallowRelease is { } button && button == e.ChangedButton)
+            {
+                _swallowRelease = null;
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Любая клавиша заканчивает автопрокрутку. Esc этим и исчерпывается — иначе тот же Esc
+        /// остановил бы ответ, закрыл настройки или сбросил лупу; остальные клавиши идут дальше
+        /// (горячая клавиша срабатывает, а прокрутка уже не пишет в чужой чат).
+        /// </summary>
+        private static void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (_activePan is not { } active)
+            {
+                return;
+            }
+
+            active.EndPanScroll();
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Колесо, в том числе с Ctrl, заканчивает автопрокрутку и дальше идёт своим путём: лупа
+        /// ловит Ctrl+колесо на окне, и до списка оно не доходило.
+        /// </summary>
+        private static void OnWindowPreviewMouseWheel(object sender, MouseWheelEventArgs e) =>
+            _activePan?.EndPanScroll();
+
+        /// <summary>Кнопка, чьё отпускание надо погасить: ею закончили автопрокрутку.</summary>
+        private static MouseButton? _swallowRelease;
 
         /// <summary>
         /// Чей список листать: ближайший предок нажатия с автопрокруткой, которому есть что
@@ -285,7 +356,7 @@ namespace Amarin.UI
         /// рамка, заслоняющая чат, или подложка настроек — соседи ленты, а не её предки, и
         /// нажатие на них ленту не листает.
         /// </remarks>
-        private static Hook? FindAutoTarget(MouseButtonEventArgs e)
+        private static Hook? FindPanTarget(MouseButtonEventArgs e)
         {
             if (e.OriginalSource is not DependencyObject source)
             {
@@ -294,7 +365,7 @@ namespace Amarin.UI
 
             for (var node = source; node is not null; node = Hook.Up(node))
             {
-                if (node is ScrollViewer viewer && viewer.GetValue(HookProperty) is Hook { AutoEnabled: true } own && own.CanAutoScroll)
+                if (node is ScrollViewer viewer && viewer.GetValue(HookProperty) is Hook { PanEnabled: true } own && own.CanPanScroll)
                 {
                     return own;
                 }
@@ -308,10 +379,10 @@ namespace Amarin.UI
             var sourceRoot = PresentationSource.FromVisual(visual);
             Hook? best = null;
             var bestArea = double.MaxValue;
-            foreach (var hook in AutoHooks)
+            foreach (var hook in PanHooks)
             {
                 var viewer = hook.Viewer;
-                if (!hook.CanAutoScroll || !viewer.IsVisible || !ReferenceEquals(PresentationSource.FromVisual(viewer), sourceRoot) ||
+                if (!hook.CanPanScroll || !viewer.IsVisible || !ReferenceEquals(PresentationSource.FromVisual(viewer), sourceRoot) ||
                     !visual.IsAncestorOf(viewer))
                 {
                     continue;
@@ -460,6 +531,7 @@ namespace Amarin.UI
             private const double Impulse = 9.0;
             private const double MinDt = 1.0 / 240.0;
             private const double MaxDt = 1.0 / 30.0;
+            private const double MaxPanDt = 0.1;
 
             /// <summary>Сколько длится доезд к краю, секунд.</summary>
             private const double GlideSeconds = 0.42;
@@ -512,8 +584,8 @@ namespace Amarin.UI
             /// <summary>Текущую инерцию завело отпущенное перетаскивание, а не колесо.</summary>
             private bool _dragFling;
 
-            private bool _autoEnabled;
-            private bool _auto;
+            private bool _panEnabled;
+            private bool _pan;
             private bool _autoCapturing;
             private Point _autoOrigin;
 
@@ -526,8 +598,11 @@ namespace Amarin.UI
             /// <summary>Куда показывает метка: -1 вверх, 1 вниз, 0 — стоим.</summary>
             private int _autoDirection;
 
-            private AutoScrollMarker? _autoMarker;
-            private Window? _autoWindow;
+            private PanScrollMarker? _panMarker;
+            private Window? _panWindow;
+
+            /// <summary>Курсор, который стоял до автопрокрутки, — его она и возвращает.</summary>
+            private Cursor? _cursorBefore;
 
             public Hook(ScrollViewer viewer)
             {
@@ -551,43 +626,43 @@ namespace Amarin.UI
 
             public ScrollViewer Viewer => _viewer;
 
-            public bool IsAutoScrolling => _auto;
+            public bool IsPanScrolling => _pan;
 
-            public FrameworkElement? Marker => _autoMarker;
+            public FrameworkElement? Marker => _panMarker;
 
             /// <summary>Автопрокрутка включена у этого списка; список в дереве — значит, он кандидат.</summary>
-            public bool AutoEnabled
+            public bool PanEnabled
             {
-                get => _autoEnabled;
+                get => _panEnabled;
                 set
                 {
-                    _autoEnabled = value;
+                    _panEnabled = value;
                     if (!value)
                     {
-                        EndAutoScroll();
+                        EndPanScroll();
                     }
 
-                    RegisterAuto();
+                    RegisterPan();
                 }
             }
 
             /// <summary>Есть что листать: автопрокрутка над коротким списком только мешала бы.</summary>
-            public bool CanAutoScroll => _attached && _viewer.IsLoaded && GetMaxOffset() > 0;
+            public bool CanPanScroll => _attached && _viewer.IsLoaded && GetMaxOffset() > 0;
 
             /// <param name="loaded">В дереве ли список сейчас; null — спросить у него самого.</param>
             /// <remarks>
             /// Из <c>Loaded</c> и <c>Unloaded</c> ответ передаётся явно: что успел показать
             /// <see cref="FrameworkElement.IsLoaded"/> в миг самого события, зависит от порядка внутри WPF.
             /// </remarks>
-            private void RegisterAuto(bool? loaded = null)
+            private void RegisterPan(bool? loaded = null)
             {
-                if (_attached && _autoEnabled && (loaded ?? _viewer.IsLoaded))
+                if (_attached && _panEnabled && (loaded ?? _viewer.IsLoaded))
                 {
-                    AutoHooks.Add(this);
+                    PanHooks.Add(this);
                 }
                 else
                 {
-                    AutoHooks.Remove(this);
+                    PanHooks.Remove(this);
                 }
             }
 
@@ -619,14 +694,14 @@ namespace Amarin.UI
                 // и листать было бы уже нечем.
                 _viewer.AddHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
 
-                _viewer.PreviewMouseUp += OnAutoMouseUp;
-                _viewer.LostMouseCapture += OnAutoLostCapture;
-                _autoEnabled = GetAutoScroll(_viewer);
+                _viewer.PreviewMouseUp += OnPanMouseUp;
+                _viewer.LostMouseCapture += OnPanLostCapture;
+                _panEnabled = GetPanScroll(_viewer);
 
                 if (_viewer.IsLoaded)
                     BindTemplateParts();
 
-                RegisterAuto();
+                RegisterPan();
             }
 
             public void Detach()
@@ -635,8 +710,8 @@ namespace Amarin.UI
                     return;
                 _attached = false;
 
-                EndAutoScroll();
-                RegisterAuto();
+                EndPanScroll();
+                RegisterPan();
                 EndDrag(fling: false);
                 FinishGlide();
                 StopTicking();
@@ -651,8 +726,8 @@ namespace Amarin.UI
                 _viewer.PreviewMouseLeftButtonUp -= OnDragRelease;
                 _viewer.LostMouseCapture -= OnDragLostCapture;
                 _viewer.RemoveHandler(UIElement.MouseLeftButtonDownEvent, new MouseButtonEventHandler(OnDragBubblePress));
-                _viewer.PreviewMouseUp -= OnAutoMouseUp;
-                _viewer.LostMouseCapture -= OnAutoLostCapture;
+                _viewer.PreviewMouseUp -= OnPanMouseUp;
+                _viewer.LostMouseCapture -= OnPanLostCapture;
 
                 if (_presenter is not null && ReferenceEquals(_presenter.RenderTransform, _translate))
                     _presenter.RenderTransform = null;
@@ -670,14 +745,14 @@ namespace Amarin.UI
             private void OnLoaded(object sender, RoutedEventArgs e)
             {
                 BindTemplateParts();
-                RegisterAuto(loaded: true);
+                RegisterPan(loaded: true);
             }
 
             private void OnUnloaded(object sender, RoutedEventArgs e)
             {
                 // Popup unloads the viewer every close — keep the hook, just stop the loop.
-                EndAutoScroll();
-                RegisterAuto(loaded: false);
+                EndPanScroll();
+                RegisterPan(loaded: false);
                 EndDrag(fling: false);
                 FinishGlide();
                 StopTicking();
@@ -741,7 +816,7 @@ namespace Amarin.UI
             {
                 // Колесо посреди автопрокрутки — человек передумал, как и в браузере: метка
                 // уходит, а колесо дальше крутит обычным порядком.
-                EndAutoScroll();
+                EndPanScroll();
 
                 if (AimedDeeper(e))
                 {
@@ -929,12 +1004,12 @@ namespace Amarin.UI
 
             private void OnRendering(object? sender, EventArgs e)
             {
-                if (_auto)
+                if (_pan)
                 {
                     var frame = e is RenderingEventArgs rendering ? rendering.RenderingTime.TotalSeconds : 0;
                     var seconds = _lastTime <= 0 || frame <= _lastTime ? 1.0 / 120.0 : frame - _lastTime;
                     _lastTime = frame;
-                    StepAuto(Mouse.GetPosition(_viewer), seconds);
+                    StepPan(Mouse.GetPosition(_viewer), seconds);
                     return;
                 }
 
@@ -1289,22 +1364,22 @@ namespace Amarin.UI
             /// <summary>Начинает автопрокрутку с меткой в этой точке (координаты списка).</summary>
             /// <returns><c>false</c> — листать нечего, и нажатие остаётся тому, кому шло.</returns>
             /// <param name="held">Зажата ли средняя кнопка; null — спросить у мыши. Тестам — своё значение.</param>
-            public bool BeginAutoScroll(Point origin, bool? held = null)
+            public bool BeginPanScroll(Point origin, bool? held = null)
             {
-                if (!_autoEnabled || !CanAutoScroll)
+                if (!_panEnabled || !CanPanScroll)
                 {
                     return false;
                 }
 
                 // Чужая автопрокрутка в другом списке (вторая средняя кнопка, пока шла первая,
                 // сюда не доходит — её гасит обработчик окна) и свои жесты кончаются здесь.
-                _activeAuto?.EndAutoScroll();
+                _activePan?.EndPanScroll();
                 EndDrag(fling: false);
                 FinishGlide();
                 CancelInertia(snap: true);
 
-                _auto = true;
-                _activeAuto = this;
+                _pan = true;
+                _activePan = this;
                 _autoOrigin = origin;
                 _autoHeld = held ?? Mouse.MiddleButton == MouseButtonState.Pressed;
                 _autoDirection = 0;
@@ -1315,19 +1390,20 @@ namespace Amarin.UI
 
                 if (AdornerLayer.GetAdornerLayer(_viewer) is { } layer)
                 {
-                    _autoMarker = new AutoScrollMarker(_viewer, origin);
-                    layer.Add(_autoMarker);
+                    _panMarker = new PanScrollMarker(_viewer, origin);
+                    layer.Add(_panMarker);
                 }
 
-                _autoWindow = Window.GetWindow(_viewer);
-                if (_autoWindow is not null)
+                // Клавиши разбирает классовый обработчик окна (OnWindowPreviewKeyDown): подписка
+                // здесь шла бы после обработчиков самого окна, и Esc раньше доходил бы до них.
+                _panWindow = Window.GetWindow(_viewer);
+                if (_panWindow is not null)
                 {
-                    _autoWindow.PreviewKeyDown += OnAutoKey;
-                    _autoWindow.Deactivated += OnAutoDeactivated;
+                    _panWindow.Deactivated += OnPanDeactivated;
                 }
 
                 // Мышь — себе: кнопка, нажатая под курсором после метки, не должна сработать, а
-                // движение за краем списка должно доходить. Её же «потерю» ловит OnAutoLostCapture.
+                // движение за краем списка должно доходить. Её же «потерю» ловит OnPanLostCapture.
                 _autoCapturing = true;
                 try
                 {
@@ -1338,6 +1414,7 @@ namespace Amarin.UI
                     _autoCapturing = false;
                 }
 
+                _cursorBefore = Mouse.OverrideCursor;
                 Mouse.OverrideCursor = Cursors.ScrollNS;
                 EnsureTicking();
                 return true;
@@ -1351,24 +1428,30 @@ namespace Amarin.UI
             /// не общая инерция, потому что скорость здесь задаёт рука каждое мгновение, а не
             /// разгон, который затухает.
             /// </remarks>
-            public void StepAuto(Point pointer, double seconds)
+            public void StepPan(Point pointer, double seconds)
             {
-                if (!_auto)
+                if (!_pan)
                 {
                     return;
                 }
 
-                var dt = Math.Clamp(seconds, MinDt, MaxDt);
+                // Шаг — настоящее время кадра, до десятой секунды: на тяжёлом чате кадры реже 30 в
+                // секунду, и потолок 1/30 с сам срезал бы скорость ровно там, где она нужнее всего.
+                var dt = Math.Clamp(seconds, MinDt, MaxPanDt);
                 var offset = pointer.Y - _autoOrigin.Y;
-                if (_autoHeld && Math.Abs(offset) > AutoDeadZone)
+                if (_autoHeld && Math.Abs(offset) > PanDeadZone)
                 {
                     _autoDragged = true;
                 }
 
-                var speed = AutoScrollSpeed(offset);
+                var speed = PanScrollSpeed(offset);
                 _virtual = Clamp(_virtual + (speed * dt), 0, GetMaxOffset());
                 _velocity = 0;
                 ApplyVisual();
+
+                // «В движении» — только пока список и правда едет: метка, которая стоит в мёртвой
+                // зоне, не должна держать достройку ленты и следование за ответом.
+                _viewer.SetValue(IsInMotionKey, speed != 0);
 
                 var direction = Math.Sign(speed);
                 if (direction == _autoDirection)
@@ -1377,7 +1460,7 @@ namespace Amarin.UI
                 }
 
                 _autoDirection = direction;
-                _autoMarker?.PointTo(direction);
+                _panMarker?.PointTo(direction);
                 Mouse.OverrideCursor = direction switch
                 {
                     < 0 => Cursors.ScrollN,
@@ -1390,9 +1473,9 @@ namespace Amarin.UI
             /// Отпустили среднюю кнопку. Держали и вели — это был жест, и он кончился; просто
             /// щёлкнули — метка остаётся до следующего щелчка, как в браузере.
             /// </summary>
-            public void ReleaseAutoButton()
+            public void ReleasePanButton()
             {
-                if (!_auto || !_autoHeld)
+                if (!_pan || !_autoHeld)
                 {
                     return;
                 }
@@ -1400,38 +1483,40 @@ namespace Amarin.UI
                 _autoHeld = false;
                 if (_autoDragged)
                 {
-                    EndAutoScroll();
+                    EndPanScroll();
                 }
             }
 
-            public void EndAutoScroll()
+            public void EndPanScroll()
             {
-                if (!_auto)
+                if (!_pan)
                 {
                     return;
                 }
 
-                _auto = false;
+                _pan = false;
                 _autoHeld = false;
-                if (ReferenceEquals(_activeAuto, this))
+                if (ReferenceEquals(_activePan, this))
                 {
-                    _activeAuto = null;
+                    _activePan = null;
                 }
 
-                if (_autoMarker is { } marker)
+                if (_panMarker is { } marker)
                 {
                     AdornerLayer.GetAdornerLayer(_viewer)?.Remove(marker);
-                    _autoMarker = null;
+                    _panMarker = null;
                 }
 
-                if (_autoWindow is { } window)
+                if (_panWindow is { } window)
                 {
-                    window.PreviewKeyDown -= OnAutoKey;
-                    window.Deactivated -= OnAutoDeactivated;
-                    _autoWindow = null;
+                    window.Deactivated -= OnPanDeactivated;
+                    _panWindow = null;
                 }
 
-                Mouse.OverrideCursor = null;
+                // Свой курсор снимается возвратом прежнего, а не сбросом: чужой «песочные часы»
+                // под автопрокруткой не должны пропасть вместе с ней.
+                Mouse.OverrideCursor = _cursorBefore;
+                _cursorBefore = null;
                 if (ReferenceEquals(Mouse.Captured, _viewer))
                 {
                     _autoCapturing = true;
@@ -1450,41 +1535,28 @@ namespace Amarin.UI
                 StopTicking();
             }
 
-            private void OnAutoMouseUp(object sender, MouseButtonEventArgs e)
+            private void OnPanMouseUp(object sender, MouseButtonEventArgs e)
             {
-                if (!_auto || e.ChangedButton != MouseButton.Middle)
+                if (!_pan || e.ChangedButton != MouseButton.Middle)
                 {
                     return;
                 }
 
-                ReleaseAutoButton();
+                ReleasePanButton();
                 e.Handled = true;
             }
 
-            private void OnAutoLostCapture(object sender, MouseEventArgs e)
+            private void OnPanLostCapture(object sender, MouseEventArgs e)
             {
                 // Только свой захват — см. OnDragLostCapture: всплывающая потеря чужого захвата
                 // оборвала бы прокрутку в мгновение её начала.
-                if (_auto && !_autoCapturing && ReferenceEquals(e.OriginalSource, _viewer))
+                if (_pan && !_autoCapturing && ReferenceEquals(e.OriginalSource, _viewer))
                 {
-                    EndAutoScroll();
+                    EndPanScroll();
                 }
             }
 
-            /// <summary>
-            /// Любая клавиша заканчивает автопрокрутку. Esc этим и исчерпывается — иначе тот же
-            /// Esc закрыл бы ещё и настройки или сбросил лупу; остальные клавиши идут дальше.
-            /// </summary>
-            private void OnAutoKey(object sender, KeyEventArgs e)
-            {
-                EndAutoScroll();
-                if (e.Key == Key.Escape)
-                {
-                    e.Handled = true;
-                }
-            }
-
-            private void OnAutoDeactivated(object? sender, EventArgs e) => EndAutoScroll();
+            private void OnPanDeactivated(object? sender, EventArgs e) => EndPanScroll();
 
             private bool SameSource(RoutedEventArgs e) =>
                 e.OriginalSource is not Visual visual ||
@@ -1655,7 +1727,7 @@ namespace Amarin.UI
         /// момент нажатия: тема посреди жеста не меняется, а следить за ней ради кружка, который
         /// живёт секунды, незачем.
         /// </remarks>
-        private sealed class AutoScrollMarker : Adorner
+        private sealed class PanScrollMarker : Adorner
         {
             private const double Radius = 15;
 
@@ -1668,7 +1740,7 @@ namespace Amarin.UI
             private readonly Pen _active;
             private int _direction;
 
-            public AutoScrollMarker(FrameworkElement adorned, Point origin)
+            public PanScrollMarker(FrameworkElement adorned, Point origin)
                 : base(adorned)
             {
                 _origin = origin;
