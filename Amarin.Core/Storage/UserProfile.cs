@@ -36,4 +36,10 @@ public sealed class ProfileRegistry
     public string ActiveProfileId { get; set; } = "";
 
     public List<UserProfile> Profiles { get; set; } = [];
+
+    /// <summary>
+    /// Профили, кроме открытого, — куда отправить ключ или чат. Открытый исключён не ради порядка:
+    /// его данные держат в памяти свои хранилища, и второе хранилище на той же папке затёрло бы их.
+    /// </summary>
+    public List<UserProfile> Others() => [.. Profiles.Where(profile => profile.Id != ActiveProfileId)];
 }

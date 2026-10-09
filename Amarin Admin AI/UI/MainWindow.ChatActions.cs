@@ -121,7 +121,7 @@ namespace Amarin.UI
             if (ids.Count > 0)
             {
                 AddChatActions(menu, anchor, ids, placement);
-                AddTransferActions(menu, anchor, ids, placement);
+                AddTransferActions(menu, anchor, ids, folders, placement);
                 menu.Items.Add(Divider());
             }
 

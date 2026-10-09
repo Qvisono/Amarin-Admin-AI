@@ -63,7 +63,7 @@ public sealed class ChatTransferUiTests : IDisposable
             services.ProfileRegistry.Profiles.Add(new UserProfile { Id = "work", Name = "Работа" });
             Directory.CreateDirectory(services.Profiles.DataRootFor("work"));
 
-            window.TransferChats(["b"], "work", move: true);
+            Pump(window.TransferChatsAsync(["b"], [], "work", move: true));
             Refresh(window);
             return (
                 Rows(window),
@@ -75,7 +75,64 @@ public sealed class ChatTransferUiTests : IDisposable
         Assert.Contains("a", rowsLeft);
         Assert.NotNull(there);
         Assert.Equal("Chat b", there.Title);
-        Assert.Equal(Loc.Format("S.ChatList.MovedNote", "Работа", 1), note);
+
+        // Удачный перенос молчит, как отправка ключа: так попросил человек.
+        Assert.Null(note);
+    }
+
+    [Fact]
+    public void Moving_the_open_chat_takes_the_unsent_text_along_and_clears_the_field()
+    {
+        var (field, draft) = With((window, services) =>
+        {
+            services.ProfileRegistry.Profiles.Add(new UserProfile { Id = "work", Name = "Работа" });
+            var root = services.Profiles.DataRootFor("work");
+            Directory.CreateDirectory(root);
+            var open = (ChatSession)typeof(MainWindow).GetField("_session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+            open.Messages.Add(new ChatDisplayMessage { Role = "user", Id = "u", Text = "привет" });
+            services.ChatStore.Save(open);
+            services.ChatStore.Flush();
+            window.MessageTextBox.Text = "недописанное";
+
+            Pump(window.TransferChatsAsync([open.Id], [], "work", move: true));
+            return (window.MessageTextBox.Text, new DraftStore(root, () => false).TryLoad(open.Id)?.Text);
+        });
+
+        Assert.Equal("", field);
+        Assert.Equal("недописанное", draft);
+    }
+
+    [Fact]
+    public void A_chat_that_is_answering_cannot_be_sent_or_moved()
+    {
+        var items = With((window, services) =>
+        {
+            services.ProfileRegistry.Profiles.Add(new UserProfile { Id = "work", Name = "Работа" });
+            var session = services.ChatStore.TryLoad("a") ?? throw new InvalidOperationException();
+            var start = window.Turns.TryStart(session, TurnKind.Send, DateTime.Now);
+            try
+            {
+                return MenuItems(window, "a");
+            }
+            finally
+            {
+                if (start.Turn is { } turn)
+                {
+                    window.Turns.Finish(turn);
+                }
+            }
+        });
+
+        Assert.False(items.Single(item => item.Header == Loc.Get("S.ChatList.MoveTo") + "…").Enabled);
+        Assert.False(items.Single(item => item.Header == Loc.Get("S.ChatList.SendTo") + "…").Enabled);
+    }
+
+    private static void Pump(Task task)
+    {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        _ = task.ContinueWith(_ => frame.Continue = false, TaskScheduler.FromCurrentSynchronizationContext());
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        task.GetAwaiter().GetResult();
     }
 
     [Fact]
@@ -86,7 +143,7 @@ public sealed class ChatTransferUiTests : IDisposable
             services.ProfileRegistry.Profiles.Add(new UserProfile { Id = "home", Name = "Дом" });
             Directory.CreateDirectory(services.Profiles.DataRootFor("home"));
 
-            window.TransferChats(["a", "c"], "home", move: false);
+            Pump(window.TransferChatsAsync(["a", "c"], [], "home", move: false));
             Refresh(window);
             return (Rows(window), new ChatStore(services.Profiles.DataRootFor("home")).List().Select(entry => entry.Title).ToList());
         });

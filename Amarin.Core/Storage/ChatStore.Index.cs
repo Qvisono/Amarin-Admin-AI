@@ -43,6 +43,32 @@ public sealed partial class ChatStore
         }
     }
 
+    /// <summary>
+    /// Опись чатов читается — или её ещё нет. False — файл есть, но не прочитался (занят, повреждён,
+    /// зашифрован чужим ключом).
+    /// </summary>
+    /// <remarks>
+    /// Обычная загрузка молча читает такую опись как пустую, и первая же запись положила бы на её
+    /// место опись из одного чата: в профиле пропал бы список всех остальных. Кто пишет в чужой,
+    /// не открытый сейчас профиль (перенос чата), обязан спросить это раньше.
+    /// </remarks>
+    internal bool IndexReadable()
+    {
+        if (!File.Exists(_indexFile))
+        {
+            return true;
+        }
+
+        try
+        {
+            return ReadText(_indexFile) is { } text && JsonSerializer.Deserialize<ChatIndex>(text, AppJson.Options) is not null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or System.Security.Cryptography.CryptographicException)
+        {
+            return false;
+        }
+    }
+
     private ChatIndex LoadIndexLocked()
     {
         if (_index is not null)

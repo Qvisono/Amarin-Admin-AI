@@ -614,7 +614,7 @@ public sealed class DataBundleImporter
     }
 
     /// <summary>Хранит ли профиль в этой папке переписку зашифрованной.</summary>
-    private static bool EncryptsAtRest(string targetRoot) =>
+    internal static bool EncryptsAtRest(string targetRoot) =>
         new AppSettingsStore(targetRoot).Load().EncryptChats;
 
     private static void ApplyChats(

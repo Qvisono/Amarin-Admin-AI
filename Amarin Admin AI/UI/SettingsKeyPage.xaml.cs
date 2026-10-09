@@ -881,7 +881,7 @@ public partial class SettingsKeyPage : UserControl
     private List<UserProfile> SendTargets() =>
         _services is null
             ? []
-            : [.. _services.ProfileRegistry.Profiles.Where(profile => profile.Id != _services.ProfileRegistry.ActiveProfileId)];
+            : _services.ProfileRegistry.Others();
 
     /// <summary>
     /// Отправляет ключ в профиль — молча: «отправлен» или «уже есть» человеку знать незачем, ключ

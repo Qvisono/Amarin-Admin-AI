@@ -437,7 +437,6 @@
     <system:String x:Key="S.ChatList.MoveToFolder" xml:space="preserve">Move to folder</system:String>
     <system:String x:Key="S.ChatList.MoveTo" xml:space="preserve">Move</system:String>
     <system:String x:Key="S.ChatList.MoveToSection" xml:space="preserve">Move to profile</system:String>
-    <system:String x:Key="S.ChatList.MovedNote" xml:space="preserve">Chats moved to "{0}": {1}</system:String>
     <system:String x:Key="S.ChatList.NameTitle" xml:space="preserve">Rename chat</system:String>
     <system:String x:Key="S.ChatList.NameTitleMany" xml:space="preserve">Rename chats</system:String>
     <system:String x:Key="S.ChatList.NewChat" xml:space="preserve">New chat</system:String>
@@ -452,7 +451,6 @@
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Rename folder</system:String>
     <system:String x:Key="S.ChatList.SendTo" xml:space="preserve">Send</system:String>
     <system:String x:Key="S.ChatList.SendToSection" xml:space="preserve">Copy to profile</system:String>
-    <system:String x:Key="S.ChatList.SentNote" xml:space="preserve">Chats copied to "{0}": {1}</system:String>
     <system:String x:Key="S.ChatList.Share" xml:space="preserve">Share</system:String>
     <system:String x:Key="S.ChatList.SortCost" xml:space="preserve">By cost</system:String>
     <system:String x:Key="S.ChatList.SortCreated" xml:space="preserve">By date created</system:String>
@@ -464,6 +462,8 @@
     <system:String x:Key="S.ChatList.TagColor" xml:space="preserve">Colour</system:String>
     <system:String x:Key="S.ChatList.TagColorItem" xml:space="preserve">Colour {0}</system:String>
     <system:String x:Key="S.ChatList.TransferFailed" xml:space="preserve">Some chats could not be written to "{0}"; those stay here.</system:String>
+    <system:String x:Key="S.ChatList.TransferBusy" xml:space="preserve">This chat is answering right now: send or move it once the answer is finished.</system:String>
+    <system:String x:Key="S.ChatList.TransferUnreadable" xml:space="preserve">The chat list of "{0}" cannot be read right now, so the chats stayed here. Open that profile and try again.</system:String>
     <system:String x:Key="S.ChatList.Tags" xml:space="preserve">Tags</system:String>
     <system:String x:Key="S.ChatList.ThisChat" xml:space="preserve">this chat</system:String>
     <system:String x:Key="S.ChatList.Today" xml:space="preserve">Today</system:String>
