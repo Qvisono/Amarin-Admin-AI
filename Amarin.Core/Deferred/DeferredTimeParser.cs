@@ -63,7 +63,7 @@ internal static partial class DeferredTimeParser
         {
             if (hours <= 0 || hours > 24 * 365)
             {
-                throw new DeferredInputException("uptime_hours must be a positive number of hours, such as 48 for two days.");
+                throw new DeferredInputException("uptime_hours must be a positive number of hours.");
             }
 
             trigger.Kind = DeferredTriggerKind.Uptime;
@@ -104,7 +104,7 @@ internal static partial class DeferredTimeParser
             case DeferredRepeatKind.Daily or DeferredRepeatKind.Weekly:
                 if (string.IsNullOrWhiteSpace(atText) || !TryTimeOfDay(atText, out var time))
                 {
-                    throw new DeferredInputException("A daily or weekly task needs at as the time of day, such as at=\"09:00\".");
+                    throw new DeferredInputException("A daily or weekly task needs at: the time of day as HH:mm.");
                 }
 
                 repeat.Time = time.ToString(@"hh\:mm", CultureInfo.InvariantCulture);
@@ -113,7 +113,7 @@ internal static partial class DeferredTimeParser
                     repeat.Days = Days(args);
                     if (repeat.Days.Count == 0)
                     {
-                        throw new DeferredInputException("A weekly task needs days, such as days=[\"mon\",\"thu\"].");
+                        throw new DeferredInputException("A weekly task needs days: a list of mon, tue, wed, thu, fri, sat, sun.");
                     }
                 }
 
@@ -143,7 +143,7 @@ internal static partial class DeferredTimeParser
                     var delay = Duration(inText);
                     if (delay < TimeSpan.FromSeconds(5))
                     {
-                        throw new DeferredInputException("in is too short: give at least a few seconds, such as in=\"10m\".");
+                        throw new DeferredInputException("in is too short: give a delay of at least 5 seconds.");
                     }
 
                     first = facts.NowUtc + delay;
@@ -155,7 +155,7 @@ internal static partial class DeferredTimeParser
                 else
                 {
                     throw new DeferredInputException(
-                        "Say when: in (\"90m\", \"2h\", \"1d 3h\"), at (\"18:30\" or \"2026-10-11 09:00\"), uptime_hours, event (next_boot, next_start) or condition.");
+                        "Say when: in (a delay), at (HH:mm or YYYY-MM-DD HH:mm), uptime_hours, event (next_boot, next_start) or condition.");
                 }
 
                 break;
@@ -234,7 +234,7 @@ internal static partial class DeferredTimeParser
             }
             catch (FormatException)
             {
-                throw new DeferredInputException($"\"{text}\" is not a duration. Use forms like \"90m\", \"2h\" or \"1d 3h\".");
+                throw new DeferredInputException($"\"{text}\" is not a duration. Give numbers with the units w, d, h, m or s, several parts together if needed.");
             }
         }
 
@@ -261,7 +261,7 @@ internal static partial class DeferredTimeParser
 
         if (matched == 0 || matched < value.Count(c => !char.IsWhiteSpace(c)) / 2)
         {
-            throw new DeferredInputException($"\"{text}\" is not a duration. Use forms like \"90m\", \"2h\" or \"1d 3h\".");
+            throw new DeferredInputException($"\"{text}\" is not a duration. Give numbers with the units w, d, h, m or s, several parts together if needed.");
         }
 
         return total;
@@ -292,7 +292,7 @@ internal static partial class DeferredTimeParser
             return ToUtc(parsed.TimeOfDay == TimeSpan.Zero && !value.Contains(':', StringComparison.Ordinal) ? parsed.Date.AddHours(9) : parsed, facts.Zone);
         }
 
-        throw new DeferredInputException($"\"{text}\" is not a time. Use \"18:30\", \"2026-10-11 09:00\" or an ISO time with offset.");
+        throw new DeferredInputException($"\"{text}\" is not a time. Use HH:mm, YYYY-MM-DD HH:mm or an ISO time with offset.");
     }
 
     private static bool TryTimeOfDay(string text, out TimeSpan time)

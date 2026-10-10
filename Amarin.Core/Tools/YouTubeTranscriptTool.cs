@@ -25,7 +25,7 @@ public sealed partial class YouTubeTranscriptTool : ITool
 
     public string Description =>
         "Fetch the subtitle transcript of a YouTube video as plain text. Use it whenever the " +
-        "user asks to summarize, analyse or quote a video. Requires yt-dlp to be installed.";
+        "answer depends on what is said in the video. Requires yt-dlp to be installed.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -37,7 +37,7 @@ public sealed partial class YouTubeTranscriptTool : ITool
             },
             "language": {
               "type": "string",
-              "description": "Preferred subtitle language code, e.g. ru or en. Defaults to the video's own."
+              "description": "Preferred subtitle language as an ISO 639-1 code. Defaults to the video's own."
             }
           },
           "required": ["url"]

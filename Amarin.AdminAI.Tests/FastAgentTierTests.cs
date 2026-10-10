@@ -120,11 +120,12 @@ public sealed class FastAgentTierTests
     {
         // Asked to hurry, the model wrote "СРОЧНО" into the prompt — which the agent reads and
         // can do nothing with. Раньше вместо этого выбирали уровень; теперь это пишут в пометке,
-        // и распорядиться ею может только маршрутизатор.
-        Assert.Contains("СРОЧНО", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.Contains("goes into notes", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        // и распорядиться ею может только маршрутизатор. С 1.33.0 — правилом, без самого слова:
+        // процитированный случай тянул бы модель к себе.
+        Assert.Contains("A wish about speed goes into notes, not into the prompt", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
         Assert.DoesNotContain("Hurry is a tier", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
-        Assert.DoesNotContain("СРОЧНО", LegacyTechPrompts.V14, StringComparison.Ordinal);
+        Assert.DoesNotContain("СРОЧНО", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("goes into notes", LegacyTechPrompts.V14, StringComparison.Ordinal);
     }
 
     [Fact]

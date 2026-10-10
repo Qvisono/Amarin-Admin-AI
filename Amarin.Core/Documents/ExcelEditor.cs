@@ -47,7 +47,7 @@ internal sealed class ExcelEditor : IDisposable
         {
             if (!CellAddress.TryParse(address, out var column, out var row))
             {
-                throw new DocumentException($"'{address}' is not a cell address. Use A1-style addresses such as B7.");
+                throw new DocumentException($"'{address}' is not a cell address. Use A1-style addresses: the column letters, then the row number.");
             }
 
             ExcelCells.Set(data, column, row, value, _styles);

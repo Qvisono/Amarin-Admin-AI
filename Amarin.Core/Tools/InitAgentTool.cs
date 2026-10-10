@@ -39,7 +39,7 @@ public sealed class InitAgentTool : ITool
             },
             "notes": {
               "type": "string",
-              "description": "Optional. One short line for the router that picks the model: what the user asked for (to hurry, to be careful) and what makes this work easy or uncertain. Write it only when you have something real to add; leave it out otherwise. Never a model id and never a tier word - you are not choosing the model."
+              "description": "Optional. One short line for the router that picks the model: how fast or how carefully the user wants it done, and what makes this work easy or uncertain. Write it only when you have something real to add; leave it out otherwise. Never a model id and never a tier word - you are not choosing the model."
             }
           },
           "required": ["prompt"]

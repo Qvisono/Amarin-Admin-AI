@@ -29,7 +29,7 @@ internal static partial class ExcelFill
         if (!CellAddress.TryParseRange(fill.Range, out var range) || range.FromColumn < 1 || range.FromRow < 1 ||
             range.ToColumn > CellAddress.MaxColumn || range.ToRow > CellAddress.MaxRow)
         {
-            throw new DocumentException($"'{fill.Range}' is not a cell range to fill. Use A1-style ranges such as B2:K11.");
+            throw new DocumentException($"'{fill.Range}' is not a cell range to fill. Give an A1-style range: the top-left cell, a colon, the bottom-right cell.");
         }
 
         var width = range.ToColumn - range.FromColumn + 1;
@@ -139,7 +139,7 @@ internal static partial class ExcelFill
             var newRow = fixedRow ? row : row + rows;
             if (newColumn < 1 || newRow < 1 || newColumn > CellAddress.MaxColumn || newRow > CellAddress.MaxRow)
             {
-                throw new DocumentException($"Filling moves the reference {match.Value} off the sheet; fix it with $ (for example $A1).");
+                throw new DocumentException($"Filling moves the reference {match.Value} off the sheet; fix its column or row with $.");
             }
 
             return match.Groups[1].Value + CellAddress.ColumnName(newColumn) + match.Groups[3].Value +

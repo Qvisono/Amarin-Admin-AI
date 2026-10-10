@@ -40,12 +40,13 @@ public sealed class DeferredTaskTool : ITool
         "Schedule something for later or for a condition, and manage what is scheduled. action: remind (a reminder card " +
         "with a soft chime), run_agent (when the time comes the agent does the task and reports in this chat), " +
         "run_command (runs this exact PowerShell command; the user approves it now), restore_programs (reopens the programs " +
-        "that were open when the PC was last shut down), list, cancel (by id). When: in (\"90m\", \"2h\", \"1d 3h\"), at " +
-        "(\"18:30\" is the next such time, or \"2026-10-11 09:00\" local time), uptime_hours (Windows uptime as Task Manager " +
-        "shows it), event (next_boot: the PC is turned on next time; next_start: the program starts next time), or condition " +
-        "(read-only PowerShell that prints True or False, checked every check_every_minutes). repeat: once (default), every " +
-        "(with every_minutes), daily or weekly (at is the time of day, days for weekly), every_start, every_boot. Pass times " +
-        "the way the user said them; the result names the resolved time.";
+        "that were open when the PC was last shut down), list, cancel (by id). When: in (a delay: numbers with the units w, " +
+        "d, h, m or s, several parts together if needed), at (HH:mm is the next such time; YYYY-MM-DD HH:mm is local time), " +
+        "uptime_hours (Windows uptime as Task Manager shows it), event (next_boot: the PC is turned on next time; next_start: " +
+        "the program starts next time), or condition (read-only PowerShell that prints True or False, checked every " +
+        "check_every_minutes). repeat: once (default), every (with every_minutes), daily or weekly (at is the time of day, " +
+        "days for weekly), every_start, every_boot. A delay the user gave goes into in and a moment into at, without " +
+        "converting one into the other; the result names the resolved time.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {
@@ -56,8 +57,8 @@ public sealed class DeferredTaskTool : ITool
             "text": { "type": "string", "description": "remind: the reminder text; run_agent: the task for the agent" },
             "command": { "type": "string", "description": "run_command: the exact PowerShell script" },
             "id": { "type": "string", "description": "cancel: the task id" },
-            "in": { "type": "string", "description": "Delay: 90m, 2h, 1d 3h" },
-            "at": { "type": "string", "description": "18:30 (next such time) or 2026-10-11 09:00 (local); time of day for daily/weekly" },
+            "in": { "type": "string", "description": "Delay: numbers with the units w, d, h, m or s, several parts together if needed" },
+            "at": { "type": "string", "description": "HH:mm (the next such time) or YYYY-MM-DD HH:mm (local); the time of day for daily and weekly" },
             "uptime_hours": { "type": "number", "description": "Fire when Windows uptime reaches this many hours" },
             "event": { "type": "string", "enum": ["next_boot", "next_start"] },
             "condition": { "type": "string", "description": "Read-only PowerShell that prints True or False" },

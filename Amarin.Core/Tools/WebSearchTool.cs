@@ -10,10 +10,9 @@ public sealed class WebSearchTool : ITool
 
     public string Name => "search_web";
     public string Description =>
-        "Search the web for anything: Windows error codes, KB articles and documentation, but " +
-        "also pictures, art, wallpapers, news, facts. The answer always ends with a list of the " +
-        "source URLs, so this is how you find an address to hand to fetch_image when the user " +
-        "asks you to find a picture rather than draw one.";
+        "Search the web for anything, pictures included. The answer always ends with a list of " +
+        "the source URLs, so this is how you find an address to hand to fetch_image when the " +
+        "user wants a picture that already exists rather than a new one drawn.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

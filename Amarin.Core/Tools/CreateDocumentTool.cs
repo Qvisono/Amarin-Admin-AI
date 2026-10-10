@@ -43,10 +43,11 @@ public sealed class CreateDocumentTool : ITool
         "Create a new Word (.docx), Excel (.xlsx), PDF, HTML or text file and get its path back. The extension of " +
         "path picks the format. content is Markdown: headings, paragraphs, bold, italic, lists, tables, code, links, " +
         "\\pagebreak, and pictures as ![caption](amarin-image:handle) or ![caption](C:\\full\\path.png). For .xlsx give " +
-        "sheets: [{name, rows: [[...], ...], fill: [{range, value, step}]}] (first row is the header; numbers, dates " +
-        "YYYY-MM-DD, 12% and =formulas keep their type), or Markdown tables, or CSV lines in content. fill writes a whole " +
-        "range from one formula with relative references, as dragging does in Excel ($ keeps a reference), or a number " +
-        "series from value and step - a large or regular table needs no list of every value. Formulas are calculated as " +
+        "sheets: [{name, rows: [[...], ...], fill: [{range, value, step}]}] (first row is the header; numbers, YYYY-MM-DD " +
+        "dates, N% percentages and =formulas keep their type), or Markdown tables, or CSV lines in content. fill writes a " +
+        "whole range from one formula written for its top-left cell, with relative references shifting as dragging does in " +
+        "Excel ($ keeps a column or row), or a number series from value and step - a large or regular table needs no list " +
+        "of every value. Formulas are calculated as " +
         "the file is written. source makes the document from an existing one in a single call - Word, Excel (with formula " +
         "results), PDF, PowerPoint, CSV or text - instead of retyping it. An existing file is kept unless overwrite=true. " +
         "Too big for one call: create it with the first part and add the rest with edit_document append (Word, PDF) " +
@@ -76,8 +77,8 @@ public sealed class CreateDocumentTool : ITool
                     "items": {
                       "type": "object",
                       "properties": {
-                        "range": { "type": "string", "description": "Such as B2:K11" },
-                        "value": { "type": "string", "description": "=formula, a number to start a series, or text" },
+                        "range": { "type": "string", "description": "A1-style range: top-left cell, colon, bottom-right cell" },
+                        "value": { "type": "string", "description": "=formula written for the top-left cell, a number to start a series, or text" },
                         "step": { "type": "number", "description": "Step of a number series" }
                       },
                       "required": ["range", "value"]
@@ -181,7 +182,7 @@ public sealed class CreateDocumentTool : ITool
         }
         catch (UnauthorizedAccessException ex)
         {
-            return ToolResult.Fail($"Windows refused to write there: {ex.Message}. Choose a folder in the user's profile, such as Documents or Downloads.");
+            return ToolResult.Fail($"Windows refused to write there: {ex.Message}. Choose a folder in the user's profile; a relative path goes to the Downloads folder.");
         }
     }
 

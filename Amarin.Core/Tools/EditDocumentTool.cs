@@ -36,13 +36,16 @@ public sealed class EditDocumentTool : ITool
         "Change a Word, Excel or PDF file in parts, keeping everything else as it was. operations run in order and refer " +
         "to the numbers read_file showed. Word (.docx): {op:\"replace\", find, replace, all}, {op:\"insert\", after|before: " +
         "paragraph, content}, {op:\"set\", paragraph, content}, {op:\"delete\", paragraph, to}, {op:\"append\", content} - " +
-        "content is Markdown. Excel (.xlsx): {op:\"set_cells\", sheet, cells:[{cell:\"B2\", value:\"12.5\"}, {cell:\"C9\", value:\"=SUM(C2:C8)\"}]}, " +
-        "{op:\"fill\", sheet, range:\"B2:K11\", value:\"=B$1*$A2\"} fills every cell of the range, shifting relative references " +
-        "as dragging does in Excel ($ keeps them); value:\"1\" with step:1 makes a number series. " +
+        "content is Markdown. Excel (.xlsx), with A1-style cells and ranges: {op:\"set_cells\", sheet, cells:[{cell, value}]} - " +
+        "value is a number, text, TRUE/FALSE, a YYYY-MM-DD date or =formula; {op:\"fill\", sheet, range, value, step} fills " +
+        "every cell of the range from one value: a =formula written for its top-left cell, whose relative references shift " +
+        "for every other cell as dragging does in Excel ($ keeps a column or row), a number that starts a series growing " +
+        "by step cell by cell, row by row, or text for every cell. " +
         "{op:\"append_rows\", sheet, rows}, {op:\"add_sheet\", name, rows}, {op:\"rename_sheet\", sheet, name}, " +
         "{op:\"clear\", sheet, range}. Formulas are calculated when the file is saved. " +
         "PDF: {op:\"append\", content} adds Markdown as new pages at the end, " +
-        "{op:\"keep_pages\", pages:\"1-3,7\"}, {op:\"append_pdf\", files:[...]}. " +
+        "{op:\"keep_pages\", pages} keeps the listed pages (numbers and N-M ranges, comma-separated), " +
+        "{op:\"append_pdf\", files} adds other PDF files at the end. " +
         "A document too big for one call is built in parts: create it with the first part, then append the rest " +
         "(append for Word and PDF, append_rows for Excel) call by call into the same file. " +
         "save_as writes the result to a new file and keeps the original.";
@@ -73,7 +76,7 @@ public sealed class EditDocumentTool : ITool
                     "items": {
                       "type": "object",
                       "properties": {
-                        "cell": { "type": "string", "description": "Address such as B7" },
+                        "cell": { "type": "string", "description": "A1-style address" },
                         "value": { "type": "string", "description": "Number, text, TRUE/FALSE, YYYY-MM-DD date or =formula" }
                       },
                       "required": ["cell", "value"]
@@ -164,7 +167,7 @@ public sealed class EditDocumentTool : ITool
 
         if (!arguments.TryGetProperty("operations", out var operations) || operations.ValueKind != JsonValueKind.Array || operations.GetArrayLength() == 0)
         {
-            return ToolResult.Fail("Missing operations: give a list such as [{\"op\":\"replace\",\"find\":\"...\",\"replace\":\"...\"}].");
+            return ToolResult.Fail("Missing operations: give a list of operation objects, each with op and the fields the tool description lists for it.");
         }
 
         var overwrite = true;
@@ -342,7 +345,7 @@ public sealed class EditDocumentTool : ITool
         var range = Required(operation, "range", step);
         if (!operation.TryGetProperty("value", out var value) || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
-            throw new DocumentException($"Operation {step} (fill) needs value: a formula such as =B$1*$A2, a number to start a series with step, or text.");
+            throw new DocumentException($"Operation {step} (fill) needs value: a =formula written for the top-left cell of the range, a number to start a series with step, or text.");
         }
 
         double? by = operation.TryGetProperty("step", out var stepValue) && stepValue.ValueKind == JsonValueKind.Number ? stepValue.GetDouble() : null;
@@ -418,16 +421,16 @@ public sealed class EditDocumentTool : ITool
     {
         if (!operation.TryGetProperty("cells", out var cells))
         {
-            throw new DocumentException($"Operation {step} (set_cells) needs cells: [{{\"cell\":\"B2\",\"value\":\"12.5\"}}].");
+            throw new DocumentException($"Operation {step} (set_cells) needs cells: a list of {{cell, value}} with A1-style addresses.");
         }
 
         return cells.ValueKind switch
         {
             JsonValueKind.Object => [.. cells.EnumerateObject().Select(cell => (cell.Name, ExcelCells.Parse(cell.Value)))],
             JsonValueKind.Array => [.. cells.EnumerateArray().Select(item =>
-                (FileToolPaths.String(item, "cell") ?? throw new DocumentException($"Operation {step} (set_cells): every item needs cell, such as \"B2\"."),
+                (FileToolPaths.String(item, "cell") ?? throw new DocumentException($"Operation {step} (set_cells): every item needs cell, an A1-style address."),
                  item.TryGetProperty("value", out var value) ? ExcelCells.Parse(value) : CellInput.Empty))],
-            _ => throw new DocumentException($"Operation {step} (set_cells) needs cells: [{{\"cell\":\"B2\",\"value\":\"12.5\"}}].")
+            _ => throw new DocumentException($"Operation {step} (set_cells) needs cells: a list of {{cell, value}} with A1-style addresses.")
         };
     }
 

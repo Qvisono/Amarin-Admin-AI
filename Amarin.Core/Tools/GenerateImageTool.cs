@@ -17,8 +17,8 @@ public sealed class GenerateImageTool : ITool
     public string Name => "generate_image";
 
     public string Description =>
-        "Generate an image from a text description and place it in the reply. Use it when a " +
-        "picture explains better than words: diagrams, infographics, illustrations, mock-ups. " +
+        "Generate a new image from a text description and place it in the reply. Use it when the " +
+        "user asks for a picture to be made, or when a picture explains better than words. " +
         "Describe the whole picture in one detailed English prompt - including any text that " +
         "must appear inside it. The image is inserted where this tool is called, so call it at " +
         "the point in the answer where the picture belongs.";
@@ -34,7 +34,7 @@ public sealed class GenerateImageTool : ITool
             "orientation": {
               "type": "string",
               "enum": ["square", "portrait", "landscape"],
-              "description": "Shape of the image. Default square. Use portrait for infographics."
+              "description": "Shape of the image, chosen by its content: portrait when it runs top to bottom, landscape when it runs side to side. Default square."
             }
           },
           "required": ["prompt"]

@@ -28,9 +28,8 @@ public sealed class FetchImageTool : ITool
 
     public string Description =>
         "Fetch a picture from a public http(s) URL and put it in the reply. Use it whenever the " +
-        "user pastes a link to an image or to a page showing one (art sites, galleries, news, " +
-        "wikis), and whenever you find such a link yourself - never paste a raw external URL and " +
-        "hope it renders. A link to a submission or article page works too: the page's own preview " +
+        "user pastes a link to an image or to any page showing one, and whenever you find such a " +
+        "link yourself - never paste a raw external URL and hope it renders. A link to a submission or article page works too: the page's own preview " +
         "image is followed automatically. There is no domain allowlist here and nothing is saved " +
         "to disk. You get the picture back as a handle and you can see it, so you can describe " +
         "what is actually in it.";

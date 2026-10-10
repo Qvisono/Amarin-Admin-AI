@@ -72,7 +72,7 @@ internal static class ExcelReader
             sections.Add(section);
             if (wide)
             {
-                notes.Add($"Sheet \"{sheet.Name}\" is wider than {MaxColumns} columns; read the rest with range, e.g. range=\"{CellAddress.ColumnName(MaxColumns + 1)}1:{CellAddress.ColumnName(MaxColumns + 20)}50\".");
+                notes.Add($"Sheet \"{sheet.Name}\" is wider than {MaxColumns} columns; read the next columns with range=\"{CellAddress.ColumnName(MaxColumns + 1)}1:{CellAddress.ColumnName(MaxColumns + 20)}50\".");
             }
         }
 

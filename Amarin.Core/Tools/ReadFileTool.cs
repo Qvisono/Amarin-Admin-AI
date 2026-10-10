@@ -48,7 +48,7 @@ public sealed class ReadFileTool : ITool
             "offset": { "type": "integer", "description": "First line / paragraph / page / slide / sheet row to show (1-based)" },
             "limit": { "type": "integer", "description": "How many of them to show at most" },
             "sheet": { "type": "string", "description": "Excel: sheet name" },
-            "range": { "type": "string", "description": "Excel: cell range such as A1:F50" },
+            "range": { "type": "string", "description": "Excel: A1-style cell range" },
             "part": { "type": "integer", "description": "Next piece of one very long line, paragraph, table or page (2, 3, ...), as the previous read suggested" }
           },
           "required": ["path"]
