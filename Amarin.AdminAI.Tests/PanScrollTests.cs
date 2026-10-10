@@ -62,6 +62,56 @@ public sealed class PanScrollTests
     }
 
     [Fact]
+    public void The_far_speed_grows_with_the_list_but_reading_speed_near_the_mark_does_not()
+    {
+        const double Long = 2_000_000;
+
+        // Рядом с меткой длина списка ни при чём: читать строку за строкой можно в любом чате.
+        Assert.Equal(SmoothScroll.PanScrollSpeed(150), SmoothScroll.PanScrollSpeed(150, Long));
+
+        // Вдали — весь список за доли секунды, какой бы длины он ни был.
+        var far = SmoothScroll.PanDeadZone + SmoothScroll.PanFullAt;
+        Assert.Equal(Long / SmoothScroll.PanCrossSeconds, SmoothScroll.PanScrollSpeed(-far, Long) * -1, 3);
+        Assert.Equal(SmoothScroll.PanMaxSpeed, SmoothScroll.PanScrollSpeed(far, 1000));
+
+        var previous = 0.0;
+        for (var offset = 0; offset <= 800; offset += 10)
+        {
+            var speed = SmoothScroll.PanScrollSpeed(offset, Long);
+            Assert.True(speed >= previous, $"speed dropped at {offset}");
+            previous = speed;
+        }
+    }
+
+    /// <summary>
+    /// Нажал колесо внизу длинного чата, увёл мышь высоко вверх — через секунду наверху. И на тяжёлом
+    /// чате, где кадров всего пять в секунду, — тоже.
+    /// </summary>
+    [Theory]
+    [InlineData(60)]
+    [InlineData(5)]
+    public void Far_up_from_the_mark_a_long_list_reaches_the_top_within_a_second(int framesPerSecond)
+    {
+        var top = WithPage(1_500_000, (host, page) =>
+        {
+            page.ScrollToEnd();
+            host.UpdateLayout();
+            var bottom = page.VerticalOffset;
+            SmoothScroll.BeginPanScroll(page, new Point(100, 600));
+            for (var frame = 0; frame < framesPerSecond; frame++)
+            {
+                SmoothScroll.PanScrollFrame(page, new Point(100, 600 - 480), 1.0 / framesPerSecond);
+            }
+
+            host.UpdateLayout();
+            return (bottom, page.VerticalOffset);
+        });
+
+        Assert.True(top.bottom > 1_000_000);
+        Assert.Equal(0, top.Item2);
+    }
+
+    [Fact]
     public void A_slow_frame_does_not_cut_the_speed()
     {
         // На тяжёлом чате кадры реже 30 в секунду: путь за кадр — по его настоящему времени.

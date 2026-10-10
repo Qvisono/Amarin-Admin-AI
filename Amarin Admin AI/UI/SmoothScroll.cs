@@ -196,14 +196,21 @@ namespace Amarin.UI
             ((Hook?)viewer.GetValue(HookProperty))?.EndPanScroll();
 
         /// <summary>Пикселей в секунду и в какую сторону, когда мышь увели от метки на столько.</summary>
+        /// <param name="length">Сколько всего можно пролистать (<c>ScrollableHeight</c>): от него — предельная скорость.</param>
         /// <remarks>
+        /// <para>
         /// Мёртвая зона у метки — чтобы дрожь руки после щелчка не трогала список. Рядом с меткой
         /// скорость растёт чуть быстрее расстояния: в паре сантиметров читается строка за строкой.
-        /// Дальше <see cref="PanRushStart"/> она разгоняется уже экспоненциально, и у края экрана
-        /// длинный чат пролетает за мгновение — «до безумной скорости», как просили. Потолок
-        /// <see cref="PanMaxSpeed"/> — не тормоз, а защита от бесконечности: за кадр это десятки экранов.
+        /// </para>
+        /// <para>
+        /// Дальше <see cref="PanRushStart"/> скорость разгоняется экспоненциально и к
+        /// <see cref="PanFullAt"/> доходит до предельной (<see cref="PanTopSpeed"/>), с которой весь
+        /// список пролетает за <see cref="PanCrossSeconds"/>, какой бы он ни был длины. До этого предел
+        /// был постоянным, 50 000 точек в секунду, и чат на сотни тысяч точек листался до верха много
+        /// секунд — человек просил: «увёл мышь высоко — и за секунду наверху».
+        /// </para>
         /// </remarks>
-        internal static double PanScrollSpeed(double offset)
+        internal static double PanScrollSpeed(double offset, double length = 0)
         {
             var distance = Math.Abs(offset) - PanDeadZone;
             if (distance <= 0)
@@ -211,9 +218,18 @@ namespace Amarin.UI
                 return 0;
             }
 
-            var rush = Math.Exp(Math.Max(0, distance - PanRushStart) / PanRushScale);
-            return Math.Sign(offset) * Math.Min(PanMaxSpeed, PanGain * Math.Pow(distance, PanExponent) * rush);
+            if (distance <= PanRushStart)
+            {
+                return Math.Sign(offset) * PanGain * Math.Pow(distance, PanExponent);
+            }
+
+            var start = PanGain * Math.Pow(PanRushStart, PanExponent);
+            var share = Math.Min(1, (distance - PanRushStart) / (PanFullAt - PanRushStart));
+            return Math.Sign(offset) * start * Math.Pow(PanTopSpeed(length) / start, share);
         }
+
+        /// <summary>Предельная скорость для списка такой длины: весь за <see cref="PanCrossSeconds"/>, но не медленнее <see cref="PanMaxSpeed"/>.</summary>
+        internal static double PanTopSpeed(double length) => Math.Max(PanMaxSpeed, length / PanCrossSeconds);
 
         internal const double PanDeadZone = 12;
         private const double PanGain = 5;
@@ -222,9 +238,16 @@ namespace Amarin.UI
         /// <summary>С этого расстояния (за мёртвой зоной) скорость разгоняется экспоненциально.</summary>
         internal const double PanRushStart = 250;
 
-        /// <summary>Каждые столько точек сверх <see cref="PanRushStart"/> скорость растёт в e раз.</summary>
-        private const double PanRushScale = 120;
+        /// <summary>
+        /// С этого расстояния (за мёртвой зоной) скорость предельная. Не дальше: при масштабе 150 % это
+        /// уже шестьсот точек экрана, и выше метки столько места бывает не всегда.
+        /// </summary>
+        internal const double PanFullAt = 400;
 
+        /// <summary>За сколько секунд предельная скорость проходит весь список.</summary>
+        internal const double PanCrossSeconds = 0.6;
+
+        /// <summary>Предельная скорость короткого списка: на нём весь путь и так — доля секунды.</summary>
         internal const double PanMaxSpeed = 50_000;
 
         /// <summary>Хуки с автопрокруткой, чьи списки сейчас в дереве, — кандидаты для нажатия на пустом месте.</summary>
@@ -531,7 +554,7 @@ namespace Amarin.UI
             private const double Impulse = 9.0;
             private const double MinDt = 1.0 / 240.0;
             private const double MaxDt = 1.0 / 30.0;
-            private const double MaxPanDt = 0.1;
+            private const double MaxPanDt = 0.25;
 
             /// <summary>Сколько длится доезд к краю, секунд.</summary>
             private const double GlideSeconds = 0.42;
@@ -1435,8 +1458,9 @@ namespace Amarin.UI
                     return;
                 }
 
-                // Шаг — настоящее время кадра, до десятой секунды: на тяжёлом чате кадры реже 30 в
-                // секунду, и потолок 1/30 с сам срезал бы скорость ровно там, где она нужнее всего.
+                // Шаг — настоящее время кадра, до четверти секунды: на тяжёлом чате, пролетающем
+                // экраны за кадр, кадры бывают и по 5 в секунду, и потолок короче сам срезал бы
+                // скорость ровно там, где она нужнее всего. Длиннее — уже не кадр, а зависание.
                 var dt = Math.Clamp(seconds, MinDt, MaxPanDt);
                 var offset = pointer.Y - _autoOrigin.Y;
                 if (_autoHeld && Math.Abs(offset) > PanDeadZone)
@@ -1444,7 +1468,7 @@ namespace Amarin.UI
                     _autoDragged = true;
                 }
 
-                var speed = PanScrollSpeed(offset);
+                var speed = PanScrollSpeed(offset, GetMaxOffset());
                 _virtual = Clamp(_virtual + (speed * dt), 0, GetMaxOffset());
                 _velocity = 0;
                 ApplyVisual();
