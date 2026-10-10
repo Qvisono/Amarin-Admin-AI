@@ -45,7 +45,7 @@ public sealed class AgentOptionsCopyTests
         Assert.False(copy.EnableXSearch);
 
         // Копия — новый объект: сдвиг модели у одного клиента не уводит другой.
-        Assert.Equal("grok-4-6", source.Model);
+        Assert.Equal(AppSettings.FactoryAgentHeavyModelId, source.Model);
     }
 
     [Fact]

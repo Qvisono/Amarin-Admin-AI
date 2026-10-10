@@ -285,7 +285,7 @@ public sealed class ReasoningPolicyTests
         Assert.Equal(2, bodies.Count);
         Assert.Contains("\"reasoning_effort\":\"high\"", bodies[0], StringComparison.Ordinal);
         Assert.DoesNotContain("reasoning_effort", bodies[1], StringComparison.Ordinal);
-        Assert.Contains("\"model\":\"grok-4-6\"", bodies[1], StringComparison.Ordinal);
+        Assert.Contains("\"model\":\"" + VeniceModelFallback.FallbackModels[0] + "\"", bodies[1], StringComparison.Ordinal);
     }
 
     [Fact]

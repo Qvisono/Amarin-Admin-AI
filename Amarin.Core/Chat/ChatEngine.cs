@@ -1358,7 +1358,7 @@ internal sealed partial class ChatEngine
         var liteId = FirstNonEmpty(
             settings.LiteModelId,
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
-            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, "openai-gpt-56-luna"));
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, AppSettings.FactoryLiteModelId));
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
         var slot = resolvedModelId.Equals(heavyId, StringComparison.OrdinalIgnoreCase)
             ? settings.HeavyReasoning

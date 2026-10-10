@@ -10,6 +10,10 @@ public sealed class ModelFallbackTests
 {
     private const string Lite = "openai-gpt-56-luna";
 
+    /// <summary>Первые две модели цепочки Venice — какие бы ни были заводскими в этой версии.</summary>
+    private static readonly string First = VeniceModelFallback.FallbackModels[0];
+    private static readonly string Second = VeniceModelFallback.FallbackModels[1];
+
     [Fact]
     public void Auto_never_enters_the_chain()
     {
@@ -29,7 +33,7 @@ public sealed class ModelFallbackTests
         var chain = VeniceModelFallback.GetModelsFrom(Lite, "auto").ToList();
 
         Assert.Equal(Lite, chain[0]);
-        Assert.Contains("grok-4-6", chain);
+        Assert.Contains(Second, chain);
     }
 
     [Fact]
@@ -48,12 +52,12 @@ public sealed class ModelFallbackTests
     {
         // Смысл перебора: продолжить с того места, где остановились, а не начать сначала —
         // иначе после отказа первый же повтор уходит на уже упавшую модель.
-        var full = VeniceModelFallback.BuildChain("claude-sonnet-5").ToList();
-        var resumed = VeniceModelFallback.GetModelsFrom("grok-4-6", "claude-sonnet-5").ToList();
+        var full = VeniceModelFallback.BuildChain(First).ToList();
+        var resumed = VeniceModelFallback.GetModelsFrom(Second, First).ToList();
 
-        Assert.Equal("grok-4-6", resumed[0]);
-        Assert.DoesNotContain("claude-sonnet-5", resumed);
-        Assert.Equal(full.Skip(full.IndexOf("grok-4-6")), resumed);
+        Assert.Equal(Second, resumed[0]);
+        Assert.DoesNotContain(First, resumed);
+        Assert.Equal(full.Skip(full.IndexOf(Second)), resumed);
     }
 
     [Fact]

@@ -9,9 +9,10 @@ public sealed class Wave4AgentTests
     [Fact]
     public void Forced_agent_model_is_grok_and_has_logo()
     {
-        Assert.Equal("grok-4-3", AgentHost.ForcedAgentModelId);
+        // Запас пустого слота — заводская модель тяжёлого агента, а не отдельная устаревшая.
+        Assert.Equal(AppSettings.FactoryAgentHeavyModelId, AgentHost.ForcedAgentModelId);
         Assert.Equal("Grok", VeniceModelCatalog.GetLogoResourceKey(AgentHost.ForcedAgentModelId));
-        Assert.Equal("Grok 4.3", VeniceModelCatalog.GetDisplayName(AgentHost.ForcedAgentModelId));
+        Assert.Equal("Grok 4.7", VeniceModelCatalog.GetDisplayName(AgentHost.ForcedAgentModelId));
     }
 
     [Fact]

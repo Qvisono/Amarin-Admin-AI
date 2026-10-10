@@ -121,15 +121,24 @@ public sealed class Wave1PersistenceTests
             Assert.False(loaded.LiteReasoning.DisableThinking);
             Assert.Equal(SessionMode.Isolated, loaded.SessionMode);
             Assert.Equal("custom", loaded.MainPrompt);
-            Assert.Equal("grok-4-6", loaded.HeavyModelId);
-            Assert.Equal("openai-gpt-56-luna", loaded.LiteModelId);
-            Assert.Equal("medium", loaded.HeavyReasoning.ReasoningEffort);
-            Assert.True(loaded.TitleReasoning.DisableThinking);
-            Assert.False(loaded.AgentLiteReasoning.DisableThinking);
-            Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
-            Assert.Equal("deepseek-v4-flash-0731-fast", loaded.AgentFastModelId);
-            Assert.True(loaded.AgentFastReasoning.DisableThinking);
+            // Заводские модели 1.34.0.
+            Assert.Equal("claude-sonnet-5-5", loaded.HeavyModelId);
+            Assert.Equal("low", loaded.HeavyReasoning.ReasoningEffort);
+            Assert.Equal("claude-haiku-5-5", loaded.LiteModelId);
+            Assert.Equal("medium", loaded.LiteReasoning.ReasoningEffort);
+            Assert.Equal("deepseek-v4-flash-0731", loaded.RouterModelId);
             Assert.True(loaded.RouterReasoning.DisableThinking);
+            Assert.Equal("deepseek-v4-flash-0731", loaded.TitleModelId);
+            Assert.True(loaded.TitleReasoning.DisableThinking);
+            Assert.Equal("deepseek-v4-flash-0731", loaded.AgentFastModelId);
+            Assert.Equal("medium", loaded.AgentFastReasoning.ReasoningEffort);
+            Assert.Equal("claude-haiku-5-5", loaded.AgentLiteModelId);
+            Assert.Equal("low", loaded.AgentLiteReasoning.ReasoningEffort);
+            Assert.Equal("grok-4-7", loaded.AgentHeavyModelId);
+            Assert.Equal("medium", loaded.AgentHeavyReasoning.ReasoningEffort);
+            Assert.Equal("claude-haiku-5-5", loaded.SummaryModelId);
+            Assert.Equal("low", loaded.SummaryReasoning.ReasoningEffort);
+            Assert.Null(loaded.WebSearchProvider);
 
             // Защита включена с самого начала: в этом её смысл, а стоит она одного дешёвого
             // запроса на раунд инструментов агента.

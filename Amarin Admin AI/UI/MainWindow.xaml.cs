@@ -1493,7 +1493,6 @@ namespace Amarin.UI
             }
 
             var settings = _services.Settings;
-            var changed = false;
 
             if (Belongs(_session.SelectedModelId, provider) &&
                 !VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId))
@@ -1504,53 +1503,14 @@ namespace Amarin.UI
                 PersistCurrent();
             }
 
-            foreach (var (slot, read, write) in ModelSlots.All)
-            {
-                var current = read(settings) ?? "";
-
-                // Сверяем слот только с каталогом его собственного провайдера: у слота,
-                // стоящего у соседа, этой модели в списке нет и быть не должно — вылечив его
-                // здесь, мы бы молча перетащили заголовки чатов к другому провайдеру.
-                if (!Belongs(current, provider))
-                {
-                    continue;
-                }
-
-                if (VeniceModelCatalog.IsSelectable(models, current))
-                {
-                    // Модель на месте, а вот назначенный ключ мог исчезнуть вместе с удалённой
-                    // строкой: возвращаем слот к ключу по умолчанию, а не к отказу в запросе.
-                    if (ModelSlots.ReadKey(settings, slot) is { } keyId && !KeyExists(keyId))
-                    {
-                        ModelSlots.WriteKey(settings, slot, null);
-                        changed = true;
-                    }
-
-                    continue;
-                }
-
-                // У Venice пустая строка в слоте чата означает «взять модель из
-                // appsettings.json», и обнулить слот достаточно. У остальных провайдеров такой
-                // модели нет — им слот заполняется явно, иначе каждый ход уходил бы к чужому
-                // идентификатору.
-                if (slot == ModelSlot.Chat && provider == LlmProvider.Venice)
-                {
-                    settings.ChatModelId = "";
-                    ModelSlots.WriteKey(settings, slot, null);
-                    changed = true;
-                    continue;
-                }
-
-                var replacement = ModelSlotDefaults.Resolve(provider, slot, models);
-                if (replacement.Length == 0)
-                {
-                    continue;
-                }
-
-                write(settings, replacement);
-                ModelSlots.WriteKey(settings, slot, null);
-                changed = true;
-            }
+            // Правила — в Core (ModelSlotHealing): там они проверяются без окна.
+            var changed = ModelSlotHealing.Heal(
+                settings,
+                provider,
+                models,
+                _services.Keys.CurrentProvider,
+                _services.Keys.HasKeyFor,
+                KeyExists);
 
             if (changed)
             {
@@ -3337,7 +3297,7 @@ namespace Amarin.UI
             // Модель из appsettings.json — идентификатор Venice; на ключе другого провайдера
             // её пришлось бы подбирать, иначе в шапке чата стояла бы модель, которой там нет.
             return _services is null
-                ? "claude-sonnet-5"
+                ? AppSettings.FactoryHeavyModelId
                 : ModelSlotDefaults.LastResort(
                     _services.Keys.CurrentProvider, ModelSlot.Chat, _services.Options.Model);
         }

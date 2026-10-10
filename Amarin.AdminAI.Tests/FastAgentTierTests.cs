@@ -57,8 +57,10 @@ public sealed class FastAgentTierTests
     [Fact]
     public void The_shipped_default_is_the_flash_model()
     {
-        Assert.Equal("deepseek-v4-flash-0731-fast", AppSettings.CreateDefault().AgentFastModelId);
-        Assert.True(AppSettings.CreateDefault().AgentFastReasoning.DisableThinking);
+        // С 1.34.0 — Flash 0731 с размышлением medium: у модели его нет, и он сводится к low.
+        Assert.Equal("deepseek-v4-flash-0731", AppSettings.CreateDefault().AgentFastModelId);
+        Assert.False(AppSettings.CreateDefault().AgentFastReasoning.DisableThinking);
+        Assert.Equal("medium", AppSettings.CreateDefault().AgentFastReasoning.ReasoningEffort);
     }
 
     [Fact]

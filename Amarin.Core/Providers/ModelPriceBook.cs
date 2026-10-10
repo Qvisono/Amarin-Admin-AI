@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Amarin.Core;
 
@@ -18,7 +17,7 @@ namespace Amarin.Core;
 /// человека) — цен нет, а токены всё равно считаются.
 /// </para>
 /// </remarks>
-internal sealed partial class ModelPriceBook
+internal sealed class ModelPriceBook
 {
     private const string CatalogUrl = "https://openrouter.ai/api/v1/models";
 
@@ -115,7 +114,7 @@ internal sealed partial class ModelPriceBook
         var result = new List<VeniceModelInfo>(models.Count);
         foreach (var model in models)
         {
-            var name = Normalize(ModelRef.Bare(model.Id));
+            var name = ModelFamily.Normalize(ModelRef.Bare(model.Id));
             var known = vendors
                 .Select(vendor => book.GetValueOrDefault(vendor + "/" + name))
                 .FirstOrDefault(entry => entry is not null);
@@ -150,7 +149,7 @@ internal sealed partial class ModelPriceBook
                 continue;
             }
 
-            var key = model.Id[..slash].ToLowerInvariant() + "/" + Normalize(model.Id[(slash + 1)..]);
+            var key = model.Id[..slash].ToLowerInvariant() + "/" + ModelFamily.Normalize(model.Id[(slash + 1)..]);
             raw.TryAdd(key, model);
         }
 
@@ -158,7 +157,7 @@ internal sealed partial class ModelPriceBook
         {
             var bare = ModelRef.Bare(model.Id);
             var slash = bare.IndexOf('/', StringComparison.Ordinal);
-            byKey.TryAdd(bare[..slash].ToLowerInvariant() + "/" + Normalize(bare[(slash + 1)..]), model);
+            byKey.TryAdd(bare[..slash].ToLowerInvariant() + "/" + ModelFamily.Normalize(bare[(slash + 1)..]), model);
         }
 
         lock (_gate)
@@ -166,23 +165,6 @@ internal sealed partial class ModelPriceBook
             _byKey = byKey;
             _loadedUtc = DateTime.UtcNow;
         }
-    }
-
-    /// <summary>
-    /// Имя модели без различий в написании: у Anthropic <c>claude-haiku-5-5</c>, у OpenRouter
-    /// <c>claude-haiku-5.5</c>, у снимков — дата в конце.
-    /// </summary>
-    internal static string Normalize(string id)
-    {
-        var name = id.Trim().ToLowerInvariant();
-        var slash = name.LastIndexOf('/');
-        if (slash >= 0)
-        {
-            name = name[(slash + 1)..];
-        }
-
-        name = name.Replace('.', '-');
-        return DateSuffix().Replace(name, "");
     }
 
     private static VeniceModelInfo Merge(VeniceModelInfo model, VeniceModelInfo known)
@@ -291,7 +273,4 @@ internal sealed partial class ModelPriceBook
         {
         }
     }
-
-    [GeneratedRegex(@"-(\d{8}|\d{4}-\d{2}-\d{2})$")]
-    private static partial Regex DateSuffix();
 }

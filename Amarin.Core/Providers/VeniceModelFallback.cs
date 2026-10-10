@@ -4,8 +4,8 @@ internal static class VeniceModelFallback
 {
     public static readonly string[] FallbackModels =
     [
-        "claude-sonnet-5",
-        "grok-4-6",
+        AppSettings.FactoryHeavyModelId,
+        AppSettings.FactoryAgentHeavyModelId,
         "openai-gpt-53-codex",
         "kimi-k2-7-code"
     ];
@@ -20,9 +20,9 @@ internal static class VeniceModelFallback
     /// </remarks>
     private static readonly string[] OpenRouterFallbackModels =
     [
-        "openrouter:anthropic/claude-sonnet-4.5",
-        "openrouter:google/gemini-2.5-flash",
-        "openrouter:openai/gpt-4.1-mini"
+        "openrouter:anthropic/claude-sonnet-5.5",
+        "openrouter:deepseek/deepseek-v4-flash-0731",
+        "openrouter:google/gemini-2.5-flash"
     ];
 
     /// <remarks>

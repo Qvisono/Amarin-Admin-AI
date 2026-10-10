@@ -59,7 +59,7 @@ internal sealed partial class ChatEngine
         FirstNonEmpty(
             _settings().LiteModelId,
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
-            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, "openai-gpt-56-luna"));
+            ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, AppSettings.FactoryLiteModelId));
 
     /// <summary>
     /// Модели, между которыми выбирает «Авто», - ровно те две, что возвращает
@@ -211,6 +211,6 @@ internal sealed partial class ChatEngine
             }
         }
 
-        return "openai-gpt-56-luna";
+        return AppSettings.FactoryLiteModelId;
     }
 }

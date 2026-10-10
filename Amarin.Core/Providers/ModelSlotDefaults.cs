@@ -30,21 +30,25 @@ public static class ModelSlotDefaults
         "flash", "mini", "haiku", "small", "lite", "nano", "turbo", "fast"
     ];
 
+    /// <summary>
+    /// Запас OpenRouter, когда заводского семейства в его каталоге нет. Сверяется с живым
+    /// каталогом: слаги он изредка меняет.
+    /// </summary>
     private static readonly string[] OpenRouterStrong =
     [
+        "openrouter:anthropic/claude-sonnet-5.5",
+        "openrouter:x-ai/grok-4.7",
         "openrouter:anthropic/claude-sonnet-4.5",
-        "openrouter:openai/gpt-5",
-        "openrouter:google/gemini-2.5-pro",
-        "openrouter:x-ai/grok-4"
+        "openrouter:openai/gpt-5"
     ];
 
     private static readonly string[] OpenRouterCheap =
     [
+        "openrouter:anthropic/claude-haiku-5.5",
+        "openrouter:deepseek/deepseek-v4-flash-0731",
         "openrouter:google/gemini-2.5-flash",
         "openrouter:openai/gpt-5-mini",
-        "openrouter:anthropic/claude-haiku-4.5",
-        "openrouter:openai/gpt-4.1-mini",
-        "openrouter:mistralai/mistral-small-3.2-24b-instruct"
+        "openrouter:anthropic/claude-haiku-4.5"
     ];
 
     /// <summary>
@@ -52,6 +56,11 @@ public static class ModelSlotDefaults
     /// для модели чата у Venice: там пустая строка — не отсутствие модели, а «взять ту, что
     /// указана в appsettings.json».
     /// </summary>
+    /// <remarks>
+    /// Сначала — заводская модель слота того же семейства у этого провайдера (<see cref="ModelFamily"/>):
+    /// Claude Haiku 5.5 у OpenRouter, Anthropic или перепродавца — та же модель, что у Venice.
+    /// Нет её — запасной список OpenRouter, затем приметы.
+    /// </remarks>
     /// <param name="catalog">
     /// Загруженный каталог. Пустой — подбирать не из чего, и слот остаётся нетронутым.
     /// </param>
@@ -60,11 +69,16 @@ public static class ModelSlotDefaults
         ModelSlot slot,
         IReadOnlyList<VeniceModelInfo>? catalog)
     {
+        var shipped = Shipped(slot);
         if (provider == LlmProvider.Venice)
         {
             // Умолчания Venice — те же, что и были: они лежат в самих настройках.
-            var shipped = Shipped(slot);
             return VeniceModelCatalog.IsSelectable(catalog, shipped) ? shipped : Pick(slot, catalog);
+        }
+
+        if (ModelFamily.Find(ModelFamily.KeyOf(shipped), provider, catalog) is { } same)
+        {
+            return same;
         }
 
         // Чужой провайдер слагов OpenRouter не знает: ему — только подбор по его же каталогу.
@@ -106,9 +120,18 @@ public static class ModelSlotDefaults
         provider == LlmProvider.Venice ? veniceId : Resolve(provider, slot, catalog: null);
 
     /// <summary>Значение, с которым программа приезжает к человеку впервые.</summary>
+    /// <remarks>
+    /// Модель чата — всегда «оставить как есть»: заводское «Авто» не модель, и подставить его туда,
+    /// где нужна настоящая модель, значило бы отправить провайдеру запрос к «auto».
+    /// </remarks>
     private static string Shipped(ModelSlot slot)
     {
-        var defaults = new AppSettings();
+        if (slot == ModelSlot.Chat)
+        {
+            return "";
+        }
+
+        var defaults = AppSettings.CreateDefault();
         foreach (var (candidate, read, _) in ModelSlots.All)
         {
             if (candidate == slot)

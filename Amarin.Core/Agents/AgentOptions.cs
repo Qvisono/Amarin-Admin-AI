@@ -114,7 +114,7 @@ public sealed record AgentOptions
     /// Единственное изменяемое поле: перегрузка модели у запроса без своего ключа сдвигает модель
     /// программы на заменившую (<c>VeniceClient</c>), чтобы следующие запросы не начинали с упавшей.
     /// </remarks>
-    public string Model { get; set; } = "grok-4-6";
+    public string Model { get; set; } = AppSettings.FactoryAgentHeavyModelId;
     public int MaxToolRounds { get; init; } = 30;
 
     /// <summary>Только для агента. У общих настроек запуска <see cref="AgentOptions"/> выключено, чтобы чат сюда не протёк.</summary>

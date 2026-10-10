@@ -56,7 +56,7 @@ internal static class ChatTitle
             return fallback.Trim();
         }
 
-        return "openai-gpt-56-luna";
+        return AppSettings.DefaultFastModelId;
     }
 
     public static string? Sanitize(string? raw)

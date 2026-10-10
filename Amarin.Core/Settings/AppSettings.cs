@@ -266,29 +266,57 @@ public sealed class AppSettings
     public Dictionary<string, Dictionary<string, string>>? ModelSlotsByProvider { get; set; }
 
     /// <summary>
-    /// Empty means use Venice:Model from the shipped appsettings.json.
+    /// Заводские модели (1.34.0) — идентификаторами Venice. У других провайдеров то же семейство
+    /// находит <see cref="ModelFamily"/>, поэтому имена здесь и есть ключи семейств.
+    /// </summary>
+    public const string FactoryLiteModelId = "claude-haiku-5-5";
+
+    public const string FactoryHeavyModelId = "claude-sonnet-5-5";
+
+    public const string FactoryAgentHeavyModelId = "grok-4-7";
+
+    /// <summary>
+    /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
+    /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз.
+    /// </summary>
+    public const int CurrentFactoryModels = 1;
+
+    /// <summary>
+    /// Какие заводские модели уже стоят у этого профиля. Отметка нужна, потому что заводская
+    /// модель 1.33 неотличима от выбранной вручную той же: без отметки человек, сам вернувший
+    /// себе прежнюю модель, получал бы подмену на каждом запуске.
+    /// </summary>
+    public int FactoryModelsRevision { get; set; }
+
+    /// <summary>
+    /// Модель чата. <c>auto</c> — маршрутизатор выбирает между лёгким и тяжёлым слотом.
     /// </summary>
     /// <remarks>
-    /// Пустая строка — сентинел только для Venice: в appsettings.json лежит его идентификатор
-    /// модели. У остальных провайдеров слот заполняется явно, см. <see cref="ModelSlotDefaults"/>.
+    /// Пустая строка — прежний сентинел «модель Venice из appsettings.json». Новые профили с
+    /// 1.34.0 получают «Авто»: идентификатор Venice у человека с ключом другого провайдера не
+    /// работал, а «Авто» работает у любого — его слоты подбираются по семейству.
     /// </remarks>
     public string ChatModelId { get; set; } = "";
 
     public ReasoningSettings ChatReasoning { get; set; } = new();
 
-    public string LiteModelId { get; set; } = "openai-gpt-56-luna";
+    public string LiteModelId { get; set; } = FactoryLiteModelId;
 
-    public ReasoningSettings LiteReasoning { get; set; } = new() { DisableThinking = false };
-
-    public string HeavyModelId { get; set; } = "grok-4-6";
-
-    public ReasoningSettings HeavyReasoning { get; set; } = new()
+    public ReasoningSettings LiteReasoning { get; set; } = new()
     {
         DisableThinking = false,
         ReasoningEffort = "medium"
     };
 
-    public string RouterModelId { get; set; } = "openai-gpt-56-luna";
+    public string HeavyModelId { get; set; } = FactoryHeavyModelId;
+
+    public ReasoningSettings HeavyReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "low"
+    };
+
+    public string RouterModelId { get; set; } = DefaultFastModelId;
 
     /// <summary>
     /// Маршрутизатор отвечает одним словом, и размышление перед ним только оплачивается.
@@ -300,35 +328,42 @@ public sealed class AppSettings
         DisableThinking = true
     };
 
-    public string TitleModelId { get; set; } = "openai-gpt-56-luna";
+    public string TitleModelId { get; set; } = DefaultFastModelId;
 
     public ReasoningSettings TitleReasoning { get; set; } = new();
 
     /// <summary>
-    /// Модель быстрого уровня по умолчанию. Ею же подписываются сводки чатов, когда слот пуст,
-    /// — идентификатор один на оба места.
+    /// Быстрая дешёвая модель: маршрутизатор, заголовки и быстрый уровень агента.
     /// </summary>
-    public const string DefaultFastModelId = "deepseek-v4-flash-0731-fast";
+    public const string DefaultFastModelId = "deepseek-v4-flash-0731";
 
     /// <summary>
     /// Дешёвый уровень — для работы, которой не нужен флагман, или когда человек просит быстрее.
-    /// Размышление по умолчанию выключено: смысл слота — ответ раньше, а размышление съело бы
-    /// ровно то, что он экономит.
+    /// Размышление «medium»: у этой модели уровня medium нет, и он сводится к ближайшему (low),
+    /// но выбранный человеком уровень остаётся записанным, если модель сменят.
     /// </summary>
     public string AgentFastModelId { get; set; } = DefaultFastModelId;
 
-    public ReasoningSettings AgentFastReasoning { get; set; } = new() { DisableThinking = true };
+    public ReasoningSettings AgentFastReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "medium"
+    };
 
-    public string AgentLiteModelId { get; set; } = "openai-gpt-56-luna";
+    public string AgentLiteModelId { get; set; } = FactoryLiteModelId;
 
-    public ReasoningSettings AgentLiteReasoning { get; set; } = new() { DisableThinking = false };
+    public ReasoningSettings AgentLiteReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "low"
+    };
 
-    public string AgentHeavyModelId { get; set; } = "grok-4-6";
+    public string AgentHeavyModelId { get; set; } = FactoryAgentHeavyModelId;
 
     public ReasoningSettings AgentHeavyReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "high"
+        ReasoningEffort = "medium"
     };
 
     /// <summary>
@@ -362,11 +397,19 @@ public sealed class AppSettings
     /// До 1.23.0 сводки молча брали слот быстрого агента, и отдельно их было не настроить:
     /// поменяв модель агенту, человек менял её и сводкам, не зная об этом. При первом чтении
     /// старых настроек сюда переносится то, что стояло у быстрого агента, — поведение
-    /// у обновившегося не меняется.
+    /// у обновившегося не меняется. Пустое значение здесь — признак старого файла, поэтому
+    /// заводская модель сводки ставится не им, а <see cref="CreateDefault"/>.
     /// </remarks>
     public string SummaryModelId { get; set; } = "";
 
     public ReasoningSettings SummaryReasoning { get; set; } = new() { DisableThinking = true };
+
+    /// <summary>Заводское размышление сводки: подумать немного, но не оплачивать долгое.</summary>
+    internal static ReasoningSettings FactorySummaryReasoning() => new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "low"
+    };
 
     /// <summary>
     /// Через кого искать в интернете. <c>null</c> — там же, где идёт разговор.
@@ -514,8 +557,17 @@ public sealed class AppSettings
     /// <summary>Окно было закрыто развёрнутым.</summary>
     public bool WindowMaximized { get; set; }
 
+    /// <summary>Настройки нового профиля.</summary>
+    /// <remarks>
+    /// Модель чата и сводки ставятся здесь, а не начальными значениями свойств: пустые значения
+    /// у них — признак файла прежней версии, по которому срабатывают переносы при чтении.
+    /// </remarks>
     public static AppSettings CreateDefault() => new()
     {
-        DownloadAllowedDomains = [.. new DownloadOptions().AllowedDomains]
+        DownloadAllowedDomains = [.. new DownloadOptions().AllowedDomains],
+        ChatModelId = VeniceModelCatalog.AutoId,
+        SummaryModelId = FactoryLiteModelId,
+        SummaryReasoning = FactorySummaryReasoning(),
+        FactoryModelsRevision = CurrentFactoryModels
     };
 }

@@ -265,6 +265,12 @@ internal static class VeniceModelCatalog
 
         return bare.Trim().ToLowerInvariant() switch
         {
+            // Номер версии у Venice и Anthropic пишется через тире: без строки «claude-haiku-5-5»
+            // стал бы «Claude Haiku 5 5».
+            "claude-haiku-5-5" => "Claude Haiku 5.5",
+            "claude-sonnet-5-5" => "Claude Sonnet 5.5",
+            "claude-opus-5-5" => "Claude Opus 5.5",
+            "grok-4-7" => "Grok 4.7",
             "claude-sonnet-5" => "Claude Sonnet 5",
             "grok-4-6" => "Grok 4.6",
             "grok-4-3" => "Grok 4.3",

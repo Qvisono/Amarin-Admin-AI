@@ -67,7 +67,7 @@ public sealed class ModelPriceBookTests : IDisposable
     [InlineData("claude-sonnet-5-5-20260815", "claude-sonnet-5.5")]
     [InlineData("gpt-6-sol-2026-08-01", "GPT-6-Sol")]
     public void Spellings_of_one_model_meet(string direct, string catalog) =>
-        Assert.Equal(ModelPriceBook.Normalize(catalog), ModelPriceBook.Normalize(direct));
+        Assert.Equal(ModelFamily.Normalize(catalog), ModelFamily.Normalize(direct));
 
     [Fact]
     public void A_bare_openai_model_gets_price_vision_context_and_levels()

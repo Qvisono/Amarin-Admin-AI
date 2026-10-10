@@ -41,7 +41,7 @@ internal sealed record AppConfiguration(
             ReadEnvironmentKey(configuration, "VENICE_API_KEY"),
             ReadEnvironmentKey(configuration, "OPENROUTER_API_KEY"),
             configuration["Venice:BaseUrl"] ?? "https://api.venice.ai/api/v1",
-            configuration["Venice:Model"] ?? "grok-4-6",
+            configuration["Venice:Model"] ?? AppSettings.FactoryAgentHeavyModelId,
             int.TryParse(configuration["Venice:MaxToolRounds"], out var rounds) ? rounds : 30,
             configuration["Venice:WebSearch"] ?? "off",
             !bool.TryParse(configuration["Venice:EnableWebCitations"], out var citations) || citations,

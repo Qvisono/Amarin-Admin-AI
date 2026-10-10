@@ -261,7 +261,7 @@ internal sealed class AgentHost : IAgentHost
         }
     }
 
-    internal const string ForcedAgentModelId = "grok-4-3";
+    internal const string ForcedAgentModelId = AppSettings.FactoryAgentHeavyModelId;
 
     /// <summary>
     /// Живой выбор уровня: тот же маршрутизатор, что и у «Авто», на той же модели и с тем же
