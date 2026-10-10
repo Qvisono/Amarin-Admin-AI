@@ -1106,7 +1106,7 @@ namespace Amarin.UI
             }
         }
 
-        private void SettingsPickerAddKeyRequested(object? sender, EventArgs e) => OpenKeyDialog();
+        private void SettingsPickerAddKeyRequested(object? sender, LlmProvider provider) => OpenKeyDialog(provider);
 
         /// <summary>
         /// Человек выбрал, через кого и каким ключом искать в интернете.
@@ -1268,10 +1268,10 @@ namespace Amarin.UI
             UpdateModelButton();
         }
 
-        private void ChatModelPicker_AddKeyRequested(object sender, EventArgs e)
+        private void ChatModelPicker_AddKeyRequested(object sender, LlmProvider provider)
         {
             ModelButton.IsChecked = false;
-            OpenKeyDialog();
+            OpenKeyDialog(provider);
         }
 
         private void ModelPicker_ProviderShown(object sender, LlmProvider provider) =>
@@ -1360,7 +1360,7 @@ namespace Amarin.UI
             }
 
             var loads = new List<Task>();
-            foreach (var spec in ProviderSpec.All)
+            foreach (var spec in _services.Keys.Providers)
             {
                 if (_services.Keys.HasKeyFor(spec.Provider))
                 {
@@ -1462,7 +1462,7 @@ namespace Amarin.UI
                 return all;
             }
 
-            foreach (var spec in ProviderSpec.All)
+            foreach (var spec in _services.Keys.Providers)
             {
                 if (_services.Models.CachedFor(spec.Provider) is { } models)
                 {

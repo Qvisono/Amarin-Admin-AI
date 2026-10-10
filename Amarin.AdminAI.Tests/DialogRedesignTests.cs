@@ -54,13 +54,6 @@ public sealed class DialogRedesignTests : IDisposable
             .First(m => m.Name == method && m.GetParameters().Length == args.Length)
             .Invoke(target, args);
 
-    private static double CardHeight(MainWindow window, string overlay)
-    {
-        var card = (FrameworkElement)((Viewbox)((Grid)window.FindName(overlay)!).Children.OfType<Viewbox>().Single()).Child;
-        card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return card.DesiredSize.Height;
-    }
-
     /// <summary>
     /// Отказ ключа пишется в подвал, слева от кнопок: окно стоит по центру, и выросшее от
     /// строки ошибки оно подпрыгивало бы. Прежде ошибка вставала под полем.
@@ -71,10 +64,14 @@ public sealed class DialogRedesignTests : IDisposable
         var (before, after, text) = WithWindow((window, _) =>
         {
             window.OpenKeyDialog();
-            var height = CardHeight(window, "KeyOverlay");
-            Call(window, "ShowKeyDialogError", "Провайдер этот ключ не принял, и это длинное объяснение");
-            var status = (TextBlock)window.FindName("KeyDialogStatus")!;
-            return (height, CardHeight(window, "KeyOverlay"), status.Text);
+            var dialog = window.KeyDialog;
+            var card = (FrameworkElement)dialog.FindName("Card")!;
+            card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var height = card.DesiredSize.Height;
+            dialog.ShowError("Провайдер этот ключ не принял, и это длинное объяснение");
+            card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var status = (TextBlock)dialog.FindName("Status")!;
+            return (height, card.DesiredSize.Height, status.Text);
         });
 
         Assert.Equal(before, after, 1);

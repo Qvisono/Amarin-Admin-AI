@@ -212,10 +212,16 @@ public sealed class SettingsKeyPageTests
         Assert.Equal(3, tips.Count(tip => tip == Loc.Get("S.Chat.RowActions")));
         Assert.DoesNotContain(tips, tip => tip == Loc.Get("S.Key.Rename") || tip == Loc.Get("S.Common.Delete"));
 
-        Assert.Equal([Loc.Get("S.Key.Edit"), Loc.Get("S.Key.Send") + "…", Loc.Get("S.Common.Delete")], stored.Select(item => item.Header));
+        Assert.Equal(
+            [Loc.Get("S.Key.Edit"), Loc.Get("S.Key.TokenLimit") + "…", Loc.Get("S.Key.Send") + "…", Loc.Get("S.Common.Delete")],
+            stored.Select(item => item.Header));
+        Assert.True(stored[2].Enabled);
+        Assert.False(environment[2].Enabled);
+        Assert.False(alone[2].Enabled);
+
+        // Лимит токенов хранится в записи ключа, а у ключа окружения записи нет.
         Assert.True(stored[1].Enabled);
         Assert.False(environment[1].Enabled);
-        Assert.False(alone[1].Enabled);
     }
 
     /// <summary>Открывает меню ключа и снимает его пункты: подпись и активен ли.</summary>

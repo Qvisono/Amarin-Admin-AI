@@ -1,0 +1,79 @@
+<UserControl x:Class="Amarin.UI.KeyAddDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             KeyboardNavigation.TabNavigation="Cycle">
+    <!--
+        Новый ключ. Провайдеров больше десятка, поэтому выбор — списком, а не сегментами; под ним
+        адрес, куда уйдёт ключ: у встроенного провайдера он только для чтения, у своего сервера его
+        вводят. Строки одни и те же при любом выборе, и окно по центру от выбора не меняет высоту.
+        «Проверяю…» и отказ — в подвале, по той же причине.
+
+        Стили диалогов берутся DynamicResource из ресурсов окна: контрол создаётся при первом
+        открытии и сразу встаёт в окно, а своя копия Resources.xaml разбиралась бы заново ради
+        одного окна.
+    -->
+    <Grid>
+        <Border Background="{DynamicResource Overlay.Scrim}">
+            <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}"
+                    Click="CancelButton_Click"/>
+        </Border>
+        <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
+            <Border x:Name="Card" Style="{DynamicResource DialogCard}" Width="420">
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource DialogTitle}" Text="{DynamicResource S.Key.AddTitle}"/>
+
+                    <TextBlock Style="{DynamicResource DialogLabel}" Text="{DynamicResource S.Key.Provider}"/>
+                    <ComboBox x:Name="ProviderBox" Style="{DynamicResource DialogComboBox}"
+                              AutomationProperties.Name="{DynamicResource S.Key.Provider}"
+                              SelectionChanged="ProviderBox_SelectionChanged"/>
+
+                    <TextBlock Style="{DynamicResource DialogLabel}" Text="{DynamicResource S.Key.Address}"/>
+                    <Border Style="{DynamicResource DialogField}">
+                        <TextBox x:Name="AddressValue" Style="{DynamicResource DialogInput}" FontFamily="Consolas" FontSize="12.5"
+                                 Tag="{DynamicResource S.Key.AddressPlaceholder}"
+                                 AutomationProperties.Name="{DynamicResource S.Key.Address}"
+                                 TextChanged="AddressValue_TextChanged" KeyDown="Field_KeyDown"/>
+                    </Border>
+
+                    <Grid Margin="0,16,0,6">
+                        <TextBlock Style="{DynamicResource DialogLabel}" Margin="0" Text="{DynamicResource S.Key.Value}"/>
+                        <!-- Адрес идёт за выбранным провайдером: он же в подсказке ссылки. У своего сервера
+                             ссылке некуда вести — она прячется, но место держит. -->
+                        <Button x:Name="KeysLink" Style="{DynamicResource DialogLink}" HorizontalAlignment="Right"
+                                Content="{DynamicResource S.Key.WhereToGet}" Click="KeysLink_Click"/>
+                    </Grid>
+                    <!-- Обычный TextBox, а не PasswordBox: ключ вставляют из буфера, и видно должно быть,
+                         что вставилось. Прячется он в списке, а не здесь. -->
+                    <Border Style="{DynamicResource DialogField}">
+                        <TextBox x:Name="KeyValue" Style="{DynamicResource DialogInput}" FontFamily="Consolas" FontSize="12.5"
+                                 AutomationProperties.Name="{DynamicResource S.Key.Value}"
+                                 TextChanged="KeyValue_TextChanged" KeyDown="Field_KeyDown"/>
+                    </Border>
+
+                    <TextBlock Style="{DynamicResource DialogLabel}" Text="{DynamicResource S.Key.Name}"/>
+                    <Border Style="{DynamicResource DialogField}">
+                        <TextBox x:Name="LabelValue" Style="{DynamicResource DialogInput}" MaxLength="40"
+                                 Tag="{DynamicResource S.Key.NamePlaceholder}"
+                                 AutomationProperties.Name="{DynamicResource S.Key.Name}"
+                                 KeyDown="Field_KeyDown"/>
+                    </Border>
+
+                    <Grid Style="{DynamicResource DialogFooter}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="Status" Style="{DynamicResource DialogStatus}"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="{DynamicResource S.Common.Cancel}" Style="{DynamicResource DialogSecondaryButton}"
+                                    Margin="0,0,8,0" Click="CancelButton_Click"/>
+                            <Button x:Name="SaveButton" Content="{DynamicResource S.Common.Add}"
+                                    Style="{DynamicResource DialogPrimaryButton}"
+                                    Click="SaveButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Viewbox>
+    </Grid>
+</UserControl>

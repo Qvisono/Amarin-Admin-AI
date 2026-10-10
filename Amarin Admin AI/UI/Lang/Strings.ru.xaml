@@ -1230,7 +1230,7 @@
     <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Как пользоваться программой</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Модель умеет больше, чем отвечать текстом: читает и пишет файлы, запускает PowerShell, смотрит журналы Windows, ищет в интернете. Каждый вызов инструмента виден в чате, его можно развернуть и посмотреть, что именно было сделано.</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Инструменты</system:String>
-    <system:String x:Key="S.Info.Intro" xml:space="preserve">Программа работает с моделями через Venice или OpenRouter и по их командам управляет этим компьютером. Нужен ключ одного из этих сервисов. Ниже пять шагов от регистрации до первого ответа.</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">Программа работает с моделями через Venice, OpenRouter, напрямую у OpenAI, Anthropic и других провайдеров или через свой сервер и по их командам управляет этим компьютером. Нужен ключ хотя бы одного из них. Ниже пять шагов от регистрации до первого ответа на примере Venice и OpenRouter.</system:String>
     <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Документация Venice</system:String>
     <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Репозиторий проекта</system:String>
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">Документация Venice отвечает на вопросы про ключи, лимиты и модели. Вопросы про саму программу, найденные ошибки и предложения пишите в репозиторий проекта.</system:String>
@@ -1390,6 +1390,33 @@
     <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Не читается, введите заново</system:String>
     <system:String x:Key="S.Key.Value" xml:space="preserve">Ключ</system:String>
     <system:String x:Key="S.Key.WhereToGet" xml:space="preserve">Где взять</system:String>
+    <system:String x:Key="S.Key.Provider" xml:space="preserve">Провайдер</system:String>
+    <system:String x:Key="S.Key.Provider.CustomDesc" xml:space="preserve">Перепродавец или шлюз с API, совместимым с OpenAI или Anthropic</system:String>
+    <system:String x:Key="S.Key.CustomServer" xml:space="preserve">Свой сервер</system:String>
+    <system:String x:Key="S.Key.Address" xml:space="preserve">Адрес API</system:String>
+    <system:String x:Key="S.Key.AddressPlaceholder" xml:space="preserve">Base URL сервера</system:String>
+    <system:String x:Key="S.Key.AddressEmpty" xml:space="preserve">Введите адрес сервера</system:String>
+    <system:String x:Key="S.Key.AddressInvalid" xml:space="preserve">Это не похоже на адрес сервера</system:String>
+    <system:String x:Key="S.Key.AddressInsecure" xml:space="preserve">Нужен адрес с https: по http ключ видят посредники</system:String>
+    <system:String x:Key="S.Key.CheckingServer" xml:space="preserve">Проверяю сервер…</system:String>
+    <system:String x:Key="S.Key.NotAnApi" xml:space="preserve">По этому адресу нет API моделей</system:String>
+    <system:String x:Key="S.Key.Unreachable" xml:space="preserve">{0} не отвечает, проверьте сеть</system:String>
+    <system:String x:Key="S.Key.Denied" xml:space="preserve">{0}: доступ закрыт ({1})</system:String>
+    <system:String x:Key="S.Key.TokenLimit" xml:space="preserve">Лимит токенов</system:String>
+    <system:String x:Key="S.Key.TokenLimitTitle" xml:space="preserve">Лимит токенов ключа</system:String>
+    <system:String x:Key="S.Key.TokenLimitText" xml:space="preserve">Сколько токенов выдано с ключом. Программа считает расход сама и показывает остаток.</system:String>
+    <system:String x:Key="S.Key.TokenLimitPlaceholder" xml:space="preserve">Пусто: без лимита</system:String>
+    <system:String x:Key="S.Key.TokenLimitInvalid" xml:space="preserve">Введите целое число токенов</system:String>
+    <system:String x:Key="S.Key.StatsTokens" xml:space="preserve">использовано {0} из {1} токенов</system:String>
+    <system:String x:Key="S.Key.StatsTokensUsed" xml:space="preserve">использовано {0} токенов</system:String>
+    <system:String x:Key="S.Key.StatsTokensTip" xml:space="preserve">По счёту программы. Сервер может списывать больше: у моделей бывает свой коэффициент.</system:String>
+    <system:String x:Key="S.Key.NoBalanceApi" xml:space="preserve">{0} не сообщает остаток, он виден в кабинете провайдера</system:String>
+    <system:String x:Key="S.Key.TokensLeft" xml:space="preserve">Осталось ≈ {0} из {1} токенов, по счёту программы</system:String>
+    <system:String x:Key="S.Key.Balance.TokensLeft" xml:space="preserve">Остаток, токены</system:String>
+    <system:String x:Key="S.Tokens.Millions" xml:space="preserve">{0} млн</system:String>
+    <system:String x:Key="S.Balance.TokensRow" xml:space="preserve">{0}: осталось ≈ {1} токенов</system:String>
+    <system:String x:Key="S.Info.Others.Title" xml:space="preserve">Другие провайдеры и свой сервер</system:String>
+    <system:String x:Key="S.Info.Others.Text" xml:space="preserve">Ключи OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Kimi, Mistral, Z.ai, Qwen и Groq добавляются так же: «Ключи и траты» › «Добавить ключ», а провайдер выбирается сам по началу ключа. Для перепродавца или шлюза выберите «Свой сервер» и вставьте его адрес (Base URL): программа сама узнает, каким протоколом он работает. Если ключ выдан пакетом токенов, задайте лимит в меню ключа, и программа покажет остаток. Картинки и чтение страниц работают только через Venice.</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Удалить язык</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">Чтобы вернуть язык, его придётся перевести заново.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Не удалось удалить язык. Проверьте доступ к папке с данными программы.</system:String>

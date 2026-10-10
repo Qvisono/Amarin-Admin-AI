@@ -70,6 +70,12 @@ internal sealed class BalanceBadge
     /// <summary>Сумма, навязанная тестом вместо книги. <c>null</c> — обычная работа.</summary>
     private BalanceTotal? _forced;
 
+    /// <summary>
+    /// Сколько токенов прошло через ключ по счёту программы. У ключа, выданного пакетом токенов,
+    /// долларов нет, и в подсказке вместо них — сколько токенов осталось.
+    /// </summary>
+    private readonly Func<string?, long> _tokensUsed;
+
     public BalanceBadge(
         Border plate,
         Shape.Path coin,
@@ -77,9 +83,11 @@ internal sealed class BalanceBadge
         Func<BalanceBook?> book,
         Func<IReadOnlyList<ApiKeyEntry>> keys,
         BalanceStore? store = null,
-        Func<BalanceThresholds?>? thresholds = null)
+        Func<BalanceThresholds?>? thresholds = null,
+        Func<string?, long>? tokensUsed = null)
     {
         _thresholds = thresholds ?? (() => null);
+        _tokensUsed = tokensUsed ?? (_ => 0);
         _plate = plate;
         _coin = coin;
         _amount = amount;
@@ -188,20 +196,22 @@ internal sealed class BalanceBadge
         var book = Book();
         var keys = _keys();
         var total = _forced ?? book?.Total(keys) ?? default;
+        var tokens = TokenRows(keys);
 
         if (total.Usd is null && total.Diem is null)
         {
             // До первого ответа самого первого запуска цифры нет нигде. Прочерк честен;
-            // «$0.00» читалось бы как «деньги кончились».
+            // «$0.00» читалось бы как «деньги кончились». У человека с одними пакетами токенов
+            // долларов нет вовсе — тогда подсказка говорит о токенах.
             _amount.Text = FormatUsd(null);
-            _plate.ToolTip = Loc.Get("S.Balance.Unknown");
+            _plate.ToolTip = tokens.Count > 0 ? string.Join("\n", tokens) : Loc.Get("S.Balance.Unknown");
             return;
         }
 
         var rows = _forced is null && book is not null ? book.Breakdown(keys) : [];
         var thresholds = _thresholds() ?? new BalanceThresholds();
         _amount.Text = FormatUsd(total.Usd);
-        _plate.ToolTip = BuildTooltip(total, rows, thresholds);
+        _plate.ToolTip = BuildTooltip(total, rows, thresholds, tokens);
 
         if (_forced is null)
         {
@@ -241,7 +251,21 @@ internal sealed class BalanceBadge
     /// Итог, а под ним — кто сколько. Разбивка нужна ровно потому, что сумма её прячет: увидев
     /// «$4.86», человек не знает, лежат ли они на том ключе, которым идёт разговор.
     /// </summary>
-    private static string BuildTooltip(BalanceTotal total, IReadOnlyList<BalanceRow> rows, BalanceThresholds thresholds)
+    private List<string> TokenRows(IReadOnlyList<ApiKeyEntry> keys) =>
+    [
+        .. keys
+            .Where(key => key.TokenLimit is not null && !key.IsBroken)
+            .Select(key => Loc.Format(
+                "S.Balance.TokensRow",
+                key.Label,
+                TokenCount.Format(Math.Max(0, (key.TokenLimit ?? 0) - _tokensUsed(key.Secret)))))
+    ];
+
+    private static string BuildTooltip(
+        BalanceTotal total,
+        IReadOnlyList<BalanceRow> rows,
+        BalanceThresholds thresholds,
+        IReadOnlyList<string> tokens)
     {
         // Переносы строк собираются здесь, а не внутри самих подписей: вёрстка подсказки —
         // не то, что переводчик обязан беречь, да и XAML обрезал бы ведущий перенос.
@@ -267,6 +291,11 @@ internal sealed class BalanceBadge
             text.Append('\n').Append(Loc.Format(
                 "S.Balance.Unknown.Some",
                 total.Unknown.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        foreach (var line in tokens)
+        {
+            text.Append('\n').Append(line);
         }
 
         switch (BalanceWatch.Level(total.Usd, thresholds.LowUsd, thresholds.CriticalUsd))

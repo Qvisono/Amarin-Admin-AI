@@ -2869,69 +2869,10 @@
 
         <!-- ═══════════ ДОБАВЛЕНИЕ КЛЮЧА ═══════════ -->
         <!--
-            Провайдер — сегментами сверху: от него зависят и проверка ключа, и ссылка «Где взять»
-            у подписи поля. Чем провайдеры различаются, видно в подсказке на сегменте, а не
-            абзацем в окне. «Проверяю…» и отказ — в подвале, окно от них не меняет высоту.
+            Хост окна нового ключа (KeyAddDialog). Само окно создаётся при первом открытии: на первом
+            кадре его не видно, и разбирать его разметку вместе с окном незачем.
         -->
-        <Grid x:Name="KeyOverlay" Visibility="Collapsed" Panel.ZIndex="42">
-            <Border Background="{DynamicResource Overlay.Scrim}">
-                <Button Opacity="0" IsTabStop="False" AutomationProperties.Name="{DynamicResource S.Common.Close}" Click="KeyDialogCancelButton_Click"/>
-            </Border>
-            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Style="{StaticResource DialogCard}" Width="420">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource DialogTitle}" Text="{DynamicResource S.Key.AddTitle}"/>
-
-                        <UniformGrid Columns="2" Margin="0,16,0,0">
-                            <RadioButton x:Name="KeyDialogVenice" GroupName="KeyDialogProvider" IsChecked="True"
-                                         Style="{StaticResource DialogSegment}" Margin="0,0,4,0" Content="Venice"
-                                         ToolTip="{DynamicResource S.Key.Provider.VeniceDesc}"
-                                         Checked="KeyDialogProvider_Checked"/>
-                            <RadioButton x:Name="KeyDialogOpenRouter" GroupName="KeyDialogProvider"
-                                         Style="{StaticResource DialogSegment}" Margin="4,0,0,0" Content="OpenRouter"
-                                         ToolTip="{DynamicResource S.Key.Provider.OpenRouterDesc}"
-                                         Checked="KeyDialogProvider_Checked"/>
-                        </UniformGrid>
-
-                        <Grid Margin="0,16,0,6">
-                            <TextBlock Style="{StaticResource DialogLabel}" Margin="0" Text="{DynamicResource S.Key.Value}"/>
-                            <!-- Адрес идёт за выбранным провайдером: он же в подсказке ссылки. -->
-                            <Button x:Name="KeyDialogKeysLink" Style="{StaticResource DialogLink}" HorizontalAlignment="Right"
-                                    Content="{DynamicResource S.Key.WhereToGet}" Click="KeyDialogKeysLink_Click"/>
-                        </Grid>
-                        <!-- Обычный TextBox, а не PasswordBox: ключ вставляют из буфера, и видно должно быть,
-                             что вставилось. Прячется он в списке, а не здесь. -->
-                        <Border Style="{StaticResource DialogField}">
-                            <TextBox x:Name="KeyDialogValue" Style="{StaticResource DialogInput}" FontFamily="Consolas" FontSize="12.5"
-                                     AutomationProperties.Name="{DynamicResource S.Key.Value}"
-                                     KeyDown="KeyDialogValue_KeyDown"/>
-                        </Border>
-
-                        <TextBlock Style="{StaticResource DialogLabel}" Text="{DynamicResource S.Key.Name}"/>
-                        <Border Style="{StaticResource DialogField}">
-                            <TextBox x:Name="KeyDialogLabel" Style="{StaticResource DialogInput}" MaxLength="40"
-                                     Tag="{DynamicResource S.Key.NamePlaceholder}"
-                                     AutomationProperties.Name="{DynamicResource S.Key.Name}"/>
-                        </Border>
-
-                        <Grid Style="{StaticResource DialogFooter}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="KeyDialogStatus" Style="{StaticResource DialogStatus}"/>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Content="{DynamicResource S.Common.Cancel}" Style="{StaticResource DialogSecondaryButton}"
-                                        Margin="0,0,8,0" Click="KeyDialogCancelButton_Click"/>
-                                <Button x:Name="KeyDialogSaveButton" Content="{DynamicResource S.Common.Add}"
-                                        Style="{StaticResource DialogPrimaryButton}"
-                                        Click="KeyDialogSaveButton_Click"/>
-                            </StackPanel>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-            </Viewbox>
-        </Grid>
+        <Grid x:Name="KeyOverlay" Visibility="Collapsed" Panel.ZIndex="42"/>
 
         <!-- ═══════════ ПЕРЕИМЕНОВАНИЕ КЛЮЧА ═══════════ -->
         <!--

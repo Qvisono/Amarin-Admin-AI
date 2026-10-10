@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Amarin.Core;
 
 /// <summary>Строка ключа в таблицах лимитов и порогов: одна на секрет.</summary>
-internal sealed record SpendKeyRow(string Fingerprint, string Label, LlmProvider Provider);
+internal sealed record SpendKeyRow(string Fingerprint, string Label, LlmProvider Provider, string ProviderName);
 
 /// <summary>Итог правки поля суммы: что оставить в поле и что сохранить.</summary>
 /// <param name="Text">Текст поля после ухода фокуса.</param>
@@ -106,7 +106,7 @@ internal sealed class SpendLimitsEditor(Func<AppSettings> settings, Action<AppSe
             var fingerprint = ApiKeyStore.Fingerprint(entry.Secret);
             if (seen.Add(fingerprint))
             {
-                rows.Add(new SpendKeyRow(fingerprint, entry.Label, entry.Provider));
+                rows.Add(new SpendKeyRow(fingerprint, entry.Label, entry.Provider, entry.ProviderName));
             }
         }
 

@@ -28,38 +28,58 @@ public sealed class ProviderKeyDialogTests
     private static T Part<T>(string name) where T : class =>
         (T)Window().FindSetting(name)!;
 
+    private static T Dialog<T>(string name) where T : class =>
+        (T)Window().KeyDialog.FindName(name)!;
+
+    /// <summary>Открывает окно, даёт сделать своё и закрывает его, что бы ни случилось.</summary>
+    private T WithDialog<T>(Func<KeyAddDialog, T> body, LlmProvider? provider = null) => _wpf.Ui.Invoke(() =>
+    {
+        var window = Window();
+        window.OpenKeyDialog(provider);
+        try
+        {
+            window.KeyDialog.UpdateLayout();
+            return body(window.KeyDialog);
+        }
+        finally
+        {
+            Part<Grid>("KeyOverlay").Visibility = Visibility.Collapsed;
+        }
+    });
+
     /// <summary>
-    /// Обе карточки собираются и берут общий стиль. Radio в одном контейнере — значит выбран
-    /// ровно один, и второго «оба сразу» быть не может.
+    /// В списке — все встроенные провайдеры по порядку и последним свой сервер; список взял
+    /// стиль полей диалога, а не строки настроек.
     /// </summary>
     [Fact]
-    public void Both_provider_cards_build_and_only_one_is_chosen()
+    public void The_provider_list_holds_every_provider_and_a_custom_server()
     {
-        var (veniceStyled, openRouterStyled, checkedCount) = _wpf.Ui.Invoke(() =>
+        var (names, styled) = WithDialog(dialog =>
         {
-            var venice = Part<RadioButton>("KeyDialogVenice");
-            var openRouter = Part<RadioButton>("KeyDialogOpenRouter");
-            var card = (Style)Window().FindResource("DialogSegment");
-
-            var chosen = (venice.IsChecked == true ? 1 : 0) + (openRouter.IsChecked == true ? 1 : 0);
-            return (venice.Style == card, openRouter.Style == card, chosen);
+            var box = Dialog<ComboBox>("ProviderBox");
+            return (box.Items.OfType<ComboBoxItem>().Select(item => item.Content?.ToString()).ToList(),
+                    ReferenceEquals(box.Style, Window().FindResource("DialogComboBox")));
         });
 
-        Assert.True(veniceStyled, "сегмент Venice не взял общий стиль");
-        Assert.True(openRouterStyled, "сегмент OpenRouter не взял общий стиль");
-        Assert.Equal(1, checkedCount);
+        Assert.Equal([.. ProviderSpec.All.Select(spec => spec.Name), Loc.Get("S.Key.CustomServer")], names);
+        Assert.True(styled, "список провайдеров не взял стиль полей диалога");
     }
 
-    /// <summary>Диалог начинает скрытым и на Venice — так было до появления второго провайдера.</summary>
+    /// <summary>Окно начинает скрытым, а открывается на Venice — так было до остальных провайдеров.</summary>
     [Fact]
-    public void The_dialog_starts_hidden_and_on_venice()
+    public void The_dialog_starts_hidden_and_opens_on_venice()
     {
-        var (hidden, venice) = _wpf.Ui.Invoke(() =>
-            (Part<Grid>("KeyOverlay").Visibility, Part<RadioButton>("KeyDialogVenice").IsChecked));
+        var hidden = _wpf.Ui.Invoke(() => Part<Grid>("KeyOverlay").Visibility);
+        var provider = WithDialog(dialog => dialog.Provider);
 
         Assert.Equal(Visibility.Collapsed, hidden);
-        Assert.True(venice);
+        Assert.Equal(LlmProvider.Venice, provider);
     }
+
+    /// <summary>«Добавить ключ» у провайдера в плашке открывает окно сразу на нём.</summary>
+    [Fact]
+    public void The_dialog_opens_on_the_provider_it_was_asked_for() =>
+        Assert.Equal(LlmProvider.Anthropic, WithDialog(dialog => dialog.Provider, LlmProvider.Anthropic));
 
     /// <summary>
     /// «Где взять» идёт за выбором: отправлять человека на venice.ai за ключом OpenRouter значило
@@ -68,47 +88,103 @@ public sealed class ProviderKeyDialogTests
     [Fact]
     public void The_key_link_follows_the_chosen_provider()
     {
-        var (venice, openRouter) = _wpf.Ui.Invoke(() =>
+        var (venice, openRouter) = WithDialog(_ =>
         {
-            var window = Window();
-            window.OpenKeyDialog();
-
-            var link = Part<Button>("KeyDialogKeysLink");
+            var link = Dialog<Button>("KeysLink");
             var first = (string)link.ToolTip;
-
-            Part<RadioButton>("KeyDialogOpenRouter").IsChecked = true;
-            var second = (string)link.ToolTip;
-
-            Part<RadioButton>("KeyDialogVenice").IsChecked = true;
-            Part<Grid>("KeyOverlay").Visibility = Visibility.Collapsed;
-            return (first, second);
+            Select(ProviderSpec.For(LlmProvider.OpenRouter).Name);
+            return (first, (string)link.ToolTip);
         });
 
         Assert.Contains("venice", venice, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("openrouter", openRouter, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEqual(venice, openRouter);
+    }
+
+    /// <summary>
+    /// Адрес встроенного провайдера виден, но не правится: иначе ключ провайдера ушёл бы на чужой
+    /// сервер. У своего сервера поле открыто, а ссылке «Где взять» вести некуда.
+    /// </summary>
+    [Fact]
+    public void The_address_is_fixed_for_a_provider_and_typed_for_a_server()
+    {
+        var (fixedText, fixedReadOnly, serverReadOnly, serverText, link, custom) = WithDialog(dialog =>
+        {
+            var address = Dialog<TextBox>("AddressValue");
+            Select(ProviderSpec.For(LlmProvider.OpenAI).Name);
+            var text = address.Text;
+            var readOnly = address.IsReadOnly;
+
+            Select(Loc.Get("S.Key.CustomServer"));
+            return (text, readOnly, address.IsReadOnly, address.Text, Dialog<Button>("KeysLink").Visibility, dialog.IsCustomServer);
+        });
+
+        Assert.Equal(ProviderSpec.For(LlmProvider.OpenAI).BaseUrl, fixedText);
+        Assert.True(fixedReadOnly);
+        Assert.False(serverReadOnly);
+        Assert.Equal("", serverText);
+        Assert.Equal(Visibility.Hidden, link);
+        Assert.True(custom);
+    }
+
+    /// <summary>Выбор провайдера не меняет высоту окна: оно стоит по центру и подпрыгивало бы.</summary>
+    [Fact]
+    public void Choosing_a_server_keeps_the_dialog_height()
+    {
+        var (provider, server) = WithDialog(_ =>
+        {
+            var card = Dialog<FrameworkElement>("Card");
+            card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var first = card.DesiredSize.Height;
+            Select(Loc.Get("S.Key.CustomServer"));
+            card.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return (first, card.DesiredSize.Height);
+        });
+
+        Assert.Equal(provider, server, 1);
+    }
+
+    /// <summary>
+    /// Вставленный ключ Anthropic сам выбирает Anthropic; выбранный вручную провайдер догадка
+    /// не перебивает.
+    /// </summary>
+    [Fact]
+    public void A_pasted_key_picks_its_provider_until_one_is_chosen_by_hand()
+    {
+        var (guessed, kept) = WithDialog(dialog =>
+        {
+            Dialog<TextBox>("KeyValue").Text = "sk-ant-api03-abcdef";
+            var first = dialog.Provider;
+
+            Select(ProviderSpec.For(LlmProvider.DeepSeek).Name);
+            Dialog<TextBox>("KeyValue").Text = "gsk_abcdef";
+            return (first, dialog.Provider);
+        });
+
+        Assert.Equal(LlmProvider.Anthropic, guessed);
+        Assert.Equal(LlmProvider.DeepSeek, kept);
     }
 
     /// <summary>Ни одна подпись диалога не осталась пустой — иначе поле выглядит безымянным.</summary>
     [Fact]
     public void No_label_in_the_dialog_is_blank()
     {
-        var blank = _wpf.Ui.Invoke(() =>
-        {
-            var window = Window();
-            window.OpenKeyDialog();
-
-            var empty = Labels(Part<Grid>("KeyOverlay"))
-                .Where(text => text.Name.Length > 0 && string.IsNullOrWhiteSpace(text.Text))
-                .Select(text => text.Name)
-                .Where(name => name is not "KeyDialogStatus")
-                .ToList();
-
-            Part<Grid>("KeyOverlay").Visibility = Visibility.Collapsed;
-            return empty;
-        });
+        // Только подписи самого окна: у полей в шаблоне есть своя подсказка, и пустой она бывает
+        // законно — у поля без подсказки.
+        var blank = WithDialog(dialog => Labels(dialog)
+            .Where(text => text.Name.Length > 0 && ReferenceEquals(dialog.FindName(text.Name), text))
+            .Where(text => string.IsNullOrWhiteSpace(text.Text))
+            .Select(text => text.Name)
+            .Where(name => name is not "Status")
+            .ToList());
 
         Assert.True(blank.Count == 0, "пустые подписи: " + string.Join(", ", blank));
+    }
+
+    /// <summary>Выбор пункта списка — тем же путём, что щелчок человека: через выбранный элемент.</summary>
+    private static void Select(string name)
+    {
+        var box = Dialog<ComboBox>("ProviderBox");
+        box.SelectedItem = box.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Content, name));
     }
 
     private static IEnumerable<TextBlock> Labels(DependencyObject root)

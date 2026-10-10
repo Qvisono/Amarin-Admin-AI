@@ -28,6 +28,7 @@ namespace Amarin.UI
 
         /// <summary>What the name dialog does when it is confirmed.</summary>
         private Action<string>? _nameDialogCommit;
+        private Func<string, string?>? _nameDialogValidate;
         private Action? _nameDialogDelete;
 
         private ProfileStore ProfileStore => _services!.Profiles;
@@ -353,15 +354,21 @@ namespace Amarin.UI
         /// <param name="action">Подпись главной кнопки; по умолчанию «Сохранить», для нового — «Создать».</param>
         /// <param name="placeholder">Подсказка в пустом поле.</param>
         /// <param name="hint">Строка под полем — только когда без неё не понять, что вводить.</param>
+        /// <param name="validate">
+        /// Своя проверка набранного: текст ошибки или <c>null</c>, если годится. Без неё годится
+        /// любое непустое. С ней пустое поле — тоже ответ (лимит токенов: «пусто — без лимита»).
+        /// </param>
         private void OpenNameDialog(
             string title,
             string current,
             Action<string> commit,
             string? action = null,
             string? placeholder = null,
-            string? hint = null)
+            string? hint = null,
+            Func<string, string?>? validate = null)
         {
             _nameDialogCommit = commit;
+            _nameDialogValidate = validate;
             NameDialogTitle.Text = title;
             NameInput.Text = current;
             NameInput.Tag = placeholder;
@@ -386,6 +393,7 @@ namespace Amarin.UI
         {
             NameOverlay.Visibility = Visibility.Collapsed;
             _nameDialogCommit = null;
+            _nameDialogValidate = null;
             _nameDialogDelete = null;
         }
 
@@ -399,15 +407,19 @@ namespace Amarin.UI
         private void NameSaveButton_Click(object sender, RoutedEventArgs e)
         {
             var name = NameInput.Text.Trim();
-            if (name.Length == 0)
+            var error = _nameDialogValidate is { } validate
+                ? validate(name)
+                : name.Length == 0 ? Loc.Get("S.Account.NameEmpty") : null;
+            if (error is not null)
             {
-                NameError.Text = Loc.Get("S.Account.NameEmpty");
+                NameError.Text = error;
                 return;
             }
 
             var commit = _nameDialogCommit;
             NameOverlay.Visibility = Visibility.Collapsed;
             _nameDialogCommit = null;
+            _nameDialogValidate = null;
             commit?.Invoke(name);
         }
 

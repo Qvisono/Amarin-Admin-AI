@@ -529,7 +529,7 @@ namespace Amarin.UI
                 return;
             }
 
-            foreach (var spec in ProviderSpec.All)
+            foreach (var spec in _services.Keys.Providers)
             {
                 if (_services.Models.CachedFor(spec.Provider) is { } models)
                 {

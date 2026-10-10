@@ -117,7 +117,8 @@ namespace Amarin.UI
                 () => _services?.Balances,
                 () => _services?.KeyStore.List() ?? [],
                 new BalanceStore(),
-                () => _services?.Settings.BalanceThresholds);
+                () => _services?.Settings.BalanceThresholds,
+                secret => _services?.Ledger.TokensUsed(secret) ?? 0);
             _balance.Alerted += OnBalanceAlert;
             _context = new ContextRing(ContextBadge, ContextTrack, ContextProgress, ContextAmount);
 

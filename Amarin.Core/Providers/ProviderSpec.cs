@@ -198,7 +198,8 @@ public sealed record ProviderSpec
         // GET /activity открыт только ключам, выданным через provisioning API; обычный ключ
         // получает отказ — как журнал Venice без админ-ключа.
         HasWebSearch = true,
-        HasBatch = true
+        HasBatch = true,
+        KeyPrefixes = ["sk-or-"]
     };
 
     // Прямые провайдеры. Все, кроме Anthropic, говорят OpenAI-совместимым /chat/completions без
@@ -314,6 +315,24 @@ public sealed record ProviderSpec
         VeniceSpec, OpenRouterSpec, OpenAISpec, AnthropicSpec, GoogleSpec, XAiSpec, DeepSeekSpec,
         MoonshotSpec, MistralSpec, ZAiSpec, QwenSpec, GroqSpec
     ];
+
+    /// <summary>
+    /// Чей это ключ — по его началу. <c>null</c> — начало ничего не говорит: у многих
+    /// провайдеров оно такое же <c>sk-</c>.
+    /// </summary>
+    public static ProviderSpec? ByKeyPrefix(string? secret)
+    {
+        var key = (secret ?? "").Trim();
+        foreach (var spec in All)
+        {
+            if (spec.KeyPrefixes.Any(prefix => key.StartsWith(prefix, StringComparison.Ordinal)))
+            {
+                return spec;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Описание провайдера. Незнакомому — пустое, без адреса: запрос к нему не уйдёт.

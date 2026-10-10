@@ -75,7 +75,7 @@ namespace Amarin.UI
             }
 
             var candidates = new List<(string Id, string Name)> { ("auto", VeniceModelCatalog.GetDisplayName("auto")) };
-            foreach (var provider in ProviderSpec.All.Select(spec => spec.Provider))
+            foreach (var provider in _services.Keys.Providers.Select(spec => spec.Provider))
             {
                 foreach (var model in _services.Models.CachedFor(provider) ?? [])
                 {

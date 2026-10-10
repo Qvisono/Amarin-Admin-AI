@@ -262,6 +262,112 @@ public sealed class ModelPickerPanelTests
         Assert.Equal([Loc.Get("S.Models.KeyDefault"), "Роутер"], names);
     }
 
+    private static readonly ProviderEndpoint Star =
+        new("ai.starimg.ru", "https://ai.starimg.ru/v1", OpenAiChat: true, AnthropicMessages: true);
+
+    private static IReadOnlyList<ApiKeyEntry> WithServer() =>
+    [
+        new("a1", "Claude", "sk-ant-secret", ApiKeySource.Stored, true, LlmProvider.Anthropic),
+        new("s1", "Star", "sk-star-secret", ApiKeySource.Stored, false, LlmProvider.Custom("a1b2c3"), Star)
+    ];
+
+    /// <summary>
+    /// Провайдеры с ключами — сверху, в порядке встроенных, свой сервер — следом под своим
+    /// названием; остальные ниже. Иначе у человека с одним ключом Anthropic он терялся бы среди
+    /// дюжины бледных строк.
+    /// </summary>
+    [Fact]
+    public void Providers_with_keys_come_first_and_a_server_goes_by_its_name()
+    {
+        var names = Shown(
+            panel => panel.SetKeys(WithServer()),
+            panel => Labels(Part(panel, "ProviderItems")).ToList());
+
+        Assert.Equal("Anthropic", names[0]);
+        Assert.Equal("ai.starimg.ru", names[1]);
+        Assert.Equal(ProviderSpec.All.Count + 1, names.Count);
+        Assert.Equal("Venice", names[2]);
+    }
+
+    /// <summary>
+    /// Новый свой сервер добавляет кнопку, удалённый убирает свою, а живые кнопки остаются теми же
+    /// объектами: пересоздание поднимало <c>Checked</c> внутри обработчика соседки.
+    /// </summary>
+    [Fact]
+    public void A_server_comes_and_goes_without_rebuilding_the_others()
+    {
+        var (same, withServer, without) = Shown(
+            panel => panel.SetKeys(BothProviders()),
+            panel =>
+            {
+                var venice = Part(panel, "ProviderItems").Children.OfType<RadioButton>()
+                    .Single(item => item.Content is TextBlock { Text: "Venice" });
+
+                panel.SetKeys([.. BothProviders(), .. WithServer()]);
+                panel.RebuildNow();
+                var added = Labels(Part(panel, "ProviderItems")).Contains("ai.starimg.ru");
+
+                panel.SetKeys(BothProviders());
+                panel.RebuildNow();
+                var removed = !Labels(Part(panel, "ProviderItems")).Contains("ai.starimg.ru");
+
+                var still = Part(panel, "ProviderItems").Children.OfType<RadioButton>()
+                    .Single(item => item.Content is TextBlock { Text: "Venice" });
+                return (ReferenceEquals(venice, still), added, removed);
+            });
+
+        Assert.True(same, "кнопку Venice пересоздали");
+        Assert.True(withServer);
+        Assert.True(without);
+    }
+
+    /// <summary>
+    /// Показанный свой сервер исчез вместе с ключом — столбец переходит к первому провайдеру, а не
+    /// остаётся ничьим.
+    /// </summary>
+    [Fact]
+    public void A_shown_server_that_disappears_hands_over_the_column()
+    {
+        var shown = Shown(
+            panel =>
+            {
+                panel.SetKeys(WithServer());
+                panel.SetSelected("custom-a1b2c3:gpt-6-sol", null);
+                panel.ShowSelectedProvider();
+            },
+            panel =>
+            {
+                panel.SetKeys(BothProviders());
+                panel.RebuildNow();
+                return panel.ShownProvider;
+            });
+
+        Assert.Equal(LlmProvider.Venice, shown);
+    }
+
+    /// <summary>«Добавить ключ» у бледного провайдера называет его — окно ключа откроется на нём.</summary>
+    [Fact]
+    public void Add_key_names_the_shown_provider()
+    {
+        var asked = Shown(
+            panel =>
+            {
+                panel.SetKeys(BothProviders());
+                panel.SetSelected("openai:gpt-6-sol", null);
+                panel.ShowSelectedProvider();
+            },
+            panel =>
+            {
+                LlmProvider? provider = null;
+                panel.AddKeyRequested += (_, value) => provider = value;
+                var button = (Button)panel.FindName("AddKeyButton")!;
+                button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
+                return provider;
+            });
+
+        Assert.Equal(LlmProvider.OpenAI, asked);
+    }
+
     /// <summary>
     /// Новая попытка загрузки не прячет уже загруженные модели.
     /// </summary>

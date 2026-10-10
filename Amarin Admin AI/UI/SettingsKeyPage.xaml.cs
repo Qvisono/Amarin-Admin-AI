@@ -485,6 +485,14 @@ public partial class SettingsKeyPage : UserControl
             return;
         }
 
+        BalanceUsdCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Usd");
+        var entry = _services.KeyStore.List().FirstOrDefault(key => key.Secret == credential.Secret);
+        if (entry?.TokenLimit is { } limit)
+        {
+            ShowTokenTiles(entry, limit);
+            return;
+        }
+
         try
         {
             var limits = await _services.Venice
@@ -498,6 +506,14 @@ public partial class SettingsKeyPage : UserControl
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (BalanceNotReportedException)
+        {
+            // Остатка у провайдера не спросить — прочерк и честное «где его смотреть», а не
+            // «не удалось загрузить»: загружать тут нечего.
+            BalanceUsdValue.Text = "-";
+            ShowLeftTile(credential.Provider, 0m, spent: null);
+            BalanceNote.Text = Loc.Format("S.Key.NoBalanceApi", entry?.ProviderName ?? ProviderSpec.Of(credential).Name);
         }
         catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
         {
@@ -534,6 +550,7 @@ public partial class SettingsKeyPage : UserControl
         IReadOnlyList<ApiCredential> credentials,
         CancellationToken cancellationToken)
     {
+        BalanceUsdCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Usd");
         if (_services is null || credentials.Count == 0)
         {
             BalanceUsdValue.Text = "-";
@@ -546,9 +563,21 @@ public partial class SettingsKeyPage : UserControl
         var venice = 0m;
         var answered = false;
 
+        // Ключ с пакетом токенов в сумму долларов не идёт: перепродавец, бывает, пишет токены в
+        // поля остатка, и сумма вышла бы на порядки больше настоящей.
+        var tokenKeys = _services.KeyStore.List()
+            .Where(key => key.TokenLimit is not null)
+            .Select(key => key.Secret)
+            .ToHashSet(StringComparer.Ordinal);
+
         foreach (var credential in credentials)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (tokenKeys.Contains(credential.Secret))
+            {
+                continue;
+            }
+
             try
             {
                 var limits = await _services.Venice
@@ -609,6 +638,29 @@ public partial class SettingsKeyPage : UserControl
         BalanceCreditsCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Left");
         BalanceCreditsValue.Text = spent is { } value ? FormatUsd(value) : "-";
     }
+
+    /// <summary>
+    /// Плашки ключа, выданного пакетом токенов: справа — сколько осталось по счёту программы,
+    /// слева — сколько потрачено, если модели назвали цену.
+    /// </summary>
+    private void ShowTokenTiles(ApiKeyEntry entry, long limit)
+    {
+        if (_services is null)
+        {
+            return;
+        }
+
+        var used = _services.Ledger.TokensUsed(entry.Secret);
+        var left = Math.Max(0, limit - used);
+        BalanceUsdCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.TokensLeft");
+        BalanceUsdValue.Text = TokenCount.Format(left);
+        BalanceCreditsCaption.SetResourceReference(TextBlock.TextProperty, "S.Key.Balance.Left");
+        BalanceCreditsValue.Text = SpentAllTime(entry.Secret) is > 0m and var spent ? FormatUsd(spent) : "-";
+        BalanceNote.Text = Loc.Format("S.Key.TokensLeft", TokenCount.Format(left), TokenCount.Format(limit));
+    }
+
+    private decimal SpentAllTime(string? secret) =>
+        _services is null ? 0m : _services.Ledger.Read(secret).Days.Sum(day => day.Usd);
 
     private static string BuildBalanceNote(VeniceRateLimitsData limits)
     {
@@ -710,8 +762,7 @@ public partial class SettingsKeyPage : UserControl
         // Провайдер — у каждой строки, а не только у своих: две строки окружения различаются
         // лишь названием переменной, и с одного взгляда их не разобрать. Он же объясняет,
         // почему после выбора этого ключа поменялся весь список моделей.
-        head.Children.Add(Badge(
-            ProviderSpec.For(entry.Provider).Name, Loc.Get("S.Key.ProviderTip")));
+        head.Children.Add(Badge(entry.ProviderName, Loc.Get("S.Key.ProviderTip")));
 
         if (entry.Source == ApiKeySource.Environment)
         {
@@ -832,11 +883,14 @@ public partial class SettingsKeyPage : UserControl
         return card;
     }
 
-    /// <summary>Меню ключа: «Изменить» (название), «Отправить» в другой профиль и «Удалить».</summary>
+    /// <summary>
+    /// Меню ключа: «Изменить» (название), «Лимит токенов», «Отправить» в другой профиль и «Удалить».
+    /// </summary>
     /// <remarks>
     /// Отправлять нечего у ключа, который здесь не расшифровался, и незачем у ключа из окружения:
     /// переменная Windows видна каждому профилю и так. Других профилей нет — тоже некуда. Пункт
-    /// тогда стоит приглушённым: меню не меняет вида от ключа к ключу.
+    /// тогда стоит приглушённым: меню не меняет вида от ключа к ключу. Лимит токенов хранится в
+    /// записи ключа, а у ключа окружения записи нет — пункт у него тоже приглушён.
     /// </remarks>
     internal void OpenKeyMenu(FrameworkElement anchor, ApiKeyEntry entry, PlacementMode placement)
     {
@@ -846,9 +900,16 @@ public partial class SettingsKeyPage : UserControl
         }
 
         var targets = SendTargets();
-        var canSend = !entry.IsBroken && entry.Source != ApiKeySource.Environment && targets.Count > 0;
+        var stored = !entry.IsBroken && entry.Source != ApiKeySource.Environment;
+        var canSend = stored && targets.Count > 0;
         var menu = AppMenu.At(anchor, placement);
         menu.Items.Add(AppMenu.Item(anchor, Loc.Get("S.Key.Edit"), () => RenameKey(entry), icon: "Icon.Menu.Rename"));
+        menu.Items.Add(AppMenu.Item(
+            anchor,
+            Loc.Get("S.Key.TokenLimit") + "…",
+            () => SetTokenLimit(entry),
+            icon: "Icon.Menu.Limit",
+            enabled: stored));
         menu.Items.Add(AppMenu.Item(
             anchor,
             Loc.Get("S.Key.Send") + "…",
@@ -983,21 +1044,35 @@ public partial class SettingsKeyPage : UserControl
             }
 
             var parts = new List<string>();
+            var used = _services.Ledger.TokensUsed(entry.Secret);
             try
             {
-                var report = await _spend
-                    .GetReportAsync(entry.Credential, _period, force: false, CancellationToken.None)
-                    .ConfigureAwait(true);
-                if (report.Status is SpendStatus.Ready or SpendStatus.Stale or SpendStatus.Local)
+                // Пакет токенов считает только программа: «осталось $» у перепродавца с пакетом
+                // либо нет вовсе, либо там токены под видом долларов.
+                if (entry.TokenLimit is { } limit)
                 {
-                    parts.Add(Loc.Format("S.Key.StatsSpent", FormatUsd(report.TotalUsd)));
+                    parts.Add(Loc.Format("S.Key.StatsTokens", TokenCount.Format(used), TokenCount.Format(limit)));
+                    line.ToolTip = Loc.Get("S.Key.StatsTokensTip");
                 }
+                else
+                {
+                    var report = await _spend
+                        .GetReportAsync(entry.Credential, _period, force: false, CancellationToken.None)
+                        .ConfigureAwait(true);
+                    if (report.Status is SpendStatus.Ready or SpendStatus.Stale or SpendStatus.Local)
+                    {
+                        // Без цены у модели денег в журнале нет, а токены есть: тогда они и показываются.
+                        parts.Add(report.TotalUsd == 0 && used > 0
+                            ? Loc.Format("S.Key.StatsTokensUsed", TokenCount.Format(used))
+                            : Loc.Format("S.Key.StatsSpent", FormatUsd(report.TotalUsd)));
+                    }
 
-                var limits = await _services.Venice
-                    .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
-                    .ConfigureAwait(true);
-                var left = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
-                parts.Add(Loc.Format("S.Key.StatsLeft", FormatUsd(left)));
+                    var limits = await _services.Venice
+                        .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
+                        .ConfigureAwait(true);
+                    var left = (limits.Balances?.Usd ?? 0m) + (limits.Balances?.BundledCredits ?? 0m);
+                    parts.Add(Loc.Format("S.Key.StatsLeft", FormatUsd(left)));
+                }
             }
             catch (OperationCanceledException)
             {
@@ -1148,6 +1223,32 @@ public partial class SettingsKeyPage : UserControl
         });
     }
 
+    /// <summary>
+    /// Лимит токенов ключа. Деньги он не трогает и слотов не двигает, поэтому идущему ходу не
+    /// помеха — как и переименование.
+    /// </summary>
+    private void SetTokenLimit(ApiKeyEntry entry)
+    {
+        if (Window.GetWindow(this) is not MainWindow owner)
+        {
+            return;
+        }
+
+        owner.AskTokenLimit(entry.TokenLimit, limit =>
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            _services.KeyStore.SetTokenLimit(entry.Id, limit ?? 0);
+            _services.ApplyActiveKey();
+            owner.OnSelectedKeyChanged();
+            RefreshKeyRows();
+            Detached.Run(ReloadAsync(force: true), "spend_report");
+        });
+    }
+
     private void AddKeyButton_Click(object sender, RoutedEventArgs e)
     {
         if (Window.GetWindow(this) is MainWindow owner)
@@ -1191,8 +1292,9 @@ public partial class SettingsKeyPage : UserControl
         KeyRows.ItemsSource = keys.Select(BuildKeyRow).ToList();
         foreach (var entry in keys.Where(item => !item.IsBroken))
         {
-            _keyStats[entry.Id].Text = Loc.Format("S.Key.StatsSpent", "$0.88") + "  ·  " +
-                                       Loc.Format("S.Key.StatsLeft", "$3.71");
+            _keyStats[entry.Id].Text = entry.TokenLimit is { } limit
+                ? Loc.Format("S.Key.StatsTokens", TokenCount.Format(1_240_000), TokenCount.Format(limit))
+                : Loc.Format("S.Key.StatsSpent", "$0.88") + "  ·  " + Loc.Format("S.Key.StatsLeft", "$3.71");
         }
     }
 

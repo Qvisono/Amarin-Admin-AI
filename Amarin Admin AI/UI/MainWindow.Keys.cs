@@ -135,62 +135,42 @@ namespace Amarin.UI
 
         // ───────────────────────── добавление ключа ─────────────────────────
 
-        /// <summary>Провайдер, выбранный в диалоге. Venice — как было до появления второго.</summary>
-        private LlmProvider KeyDialogProvider =>
-            KeyDialogOpenRouter.IsChecked == true ? LlmProvider.OpenRouter : LlmProvider.Venice;
+        private KeyAddDialog? _keyDialog;
 
-        /// <summary>
-        /// Подсказка о том, где взять ключ, идёт за выбором провайдера: отправлять человека
-        /// на venice.ai за ключом OpenRouter значило бы врать ему прямо в диалоге.
-        /// </summary>
-        private void KeyDialogProvider_Checked(object sender, RoutedEventArgs e)
+        /// <summary>Окно нового ключа; создаётся при первом открытии.</summary>
+        internal KeyAddDialog KeyDialog
         {
-            if (!IsLoaded)
+            get
             {
-                return;
-            }
+                if (_keyDialog is null)
+                {
+                    _keyDialog = new KeyAddDialog();
+                    _keyDialog.Submitted += (_, _) => Detached.Run(SaveKeyAsync(), "add_key");
+                    _keyDialog.Cancelled += (_, _) => CloseKeyDialog();
+                    _keyDialog.LinkRequested += (_, url) => OpenExternalLink(url);
+                    KeyOverlay.Children.Add(_keyDialog);
+                }
 
-            KeyDialogKeysLink.ToolTip = ProviderSpec.For(KeyDialogProvider).KeysUrl;
-            KeyDialogStatus.Text = "";
+                return _keyDialog;
+            }
         }
 
-        private void KeyDialogKeysLink_Click(object sender, RoutedEventArgs e) =>
-            OpenExternalLink(ProviderSpec.For(KeyDialogProvider).KeysUrl);
-
-        internal void OpenKeyDialog()
+        /// <param name="provider">
+        /// Провайдер, у которого человек нажал «Добавить ключ» в плашке выбора модели. <c>null</c> —
+        /// окно открыто со страницы ключей, и провайдер угадается по ключу.
+        /// </param>
+        internal void OpenKeyDialog(LlmProvider? provider = null)
         {
-            KeyDialogLabel.Text = "";
-            KeyDialogValue.Text = "";
-            KeyDialogVenice.IsChecked = true;
-            KeyDialogProvider_Checked(KeyDialogVenice, new RoutedEventArgs());
-            KeyDialogStatus.Text = "";
-            SetKeyDialogBusy(false);
+            var dialog = KeyDialog;
+            dialog.Reset(provider);
             KeyOverlay.Visibility = Visibility.Visible;
 
             Dispatcher.BeginInvoke(
-                new Action(() => KeyDialogValue.Focus()),
+                new Action(dialog.FocusKey),
                 System.Windows.Threading.DispatcherPriority.Input);
         }
 
-        private void KeyDialogCancelButton_Click(object sender, RoutedEventArgs e) =>
-            KeyOverlay.Visibility = Visibility.Collapsed;
-
-        private void KeyDialogValue_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                e.Handled = true;
-                KeyDialogSaveButton_Click(sender, e);
-            }
-            else if (e.Key == Key.Escape)
-            {
-                e.Handled = true;
-                KeyOverlay.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private void KeyDialogSaveButton_Click(object sender, RoutedEventArgs e) =>
-            Detached.Run(SaveKeyAsync(), "add_venice_key");
+        private void CloseKeyDialog() => KeyOverlay.Visibility = Visibility.Collapsed;
 
         /// <summary>
         /// Проверяет ключ у провайдера и только потом сохраняет.
@@ -206,21 +186,21 @@ namespace Amarin.UI
         /// </remarks>
         private async Task SaveKeyAsync()
         {
-            if (_services is null)
+            if (_services is null || _keyDialog is not { } dialog)
             {
                 return;
             }
 
             if (HasRunningTurns)
             {
-                ShowKeyDialogError(Loc.Get("S.Key.BusyTurns"));
+                dialog.ShowError(Loc.Get("S.Key.BusyTurns"));
                 return;
             }
 
-            var secret = (KeyDialogValue.Text ?? "").Trim();
+            var secret = dialog.Secret;
             if (secret.Length == 0)
             {
-                ShowKeyDialogError(Loc.Get("S.Key.Empty"));
+                dialog.ShowError(Loc.Get("S.Key.Empty"));
                 return;
             }
 
@@ -229,65 +209,145 @@ namespace Amarin.UI
             // человек держал его снаружи программы сознательно.
             if (_services.KeyStore.IsRemovedEnvironmentKey(secret))
             {
-                ShowKeyDialogError(Loc.Get("S.Key.DuplicateRemoved"));
+                dialog.ShowError(Loc.Get("S.Key.DuplicateRemoved"));
                 return;
             }
 
             if (_services.KeyStore.Contains(secret))
             {
-                ShowKeyDialogError(Loc.Get("S.Key.Duplicate"));
+                dialog.ShowError(Loc.Get("S.Key.Duplicate"));
                 return;
             }
 
-            var provider = KeyDialogProvider;
-            SetKeyDialogBusy(true);
-            try
+            var record = dialog.Provider is { } provider
+                ? await AddProviderKeyAsync(dialog, provider, secret).ConfigureAwait(true)
+                : await AddServerKeyAsync(dialog, secret).ConfigureAwait(true);
+            if (record is null)
             {
-                await _services.Venice
-                    .GetRateLimitsAsync(new ApiCredential(provider, secret), CancellationToken.None)
-                    .ConfigureAwait(true);
-            }
-            catch (Exception exception) when (exception is VeniceApiException or HttpRequestException)
-            {
-                SetKeyDialogBusy(false);
-                ShowKeyDialogError(Loc.Get("S.Key.Invalid"));
-                return;
-            }
-
-            SetKeyDialogBusy(false);
-
-            if (_services.KeyStore.Add(KeyDialogLabel.Text ?? "", secret, provider) is null)
-            {
-                ShowKeyDialogError(Loc.Get("S.Key.Invalid"));
                 return;
             }
 
             _services.ApplyActiveKey();
-            OnActiveKeyChanged(provider);
-            KeyOverlay.Visibility = Visibility.Collapsed;
+            OnActiveKeyChanged(record.Provider);
+            CloseKeyDialog();
             BuiltPage<SettingsKeyPage>()?.OnKeyAdded();
         }
 
-        private void ShowKeyDialogError(string text)
+        /// <summary>Ключ встроенного провайдера: проверка тем запросом, который у провайдера есть.</summary>
+        private async Task<ApiKeyRecord?> AddProviderKeyAsync(KeyAddDialog dialog, LlmProvider provider, string secret)
         {
-            KeyDialogStatus.SetResourceReference(TextBlock.ForegroundProperty, "Status.Danger");
-            KeyDialogStatus.Text = text;
+            if (_services is null)
+            {
+                return null;
+            }
+
+            var spec = ProviderSpec.For(provider);
+            dialog.SetBusy(true, Loc.Get("S.Key.Checking"));
+            try
+            {
+                await _services.Venice
+                    .CheckKeyAsync(new ApiCredential(provider, secret), CancellationToken.None)
+                    .ConfigureAwait(true);
+            }
+            catch (Exception exception) when (exception is VeniceApiException or HttpRequestException or TaskCanceledException)
+            {
+                dialog.SetBusy(false, null);
+                dialog.ShowError(KeyRefusal(exception, spec.Name));
+                return null;
+            }
+
+            dialog.SetBusy(false, null);
+            var record = _services.KeyStore.Add(dialog.KeyLabel, secret, provider);
+            if (record is null)
+            {
+                dialog.ShowError(Loc.Get("S.Key.Invalid"));
+            }
+
+            return record;
         }
 
-        /// <summary>«Проверяю ключ…» — в подвале, на месте будущей ошибки: окно не меняет высоту.</summary>
-        private void SetKeyDialogBusy(bool busy)
+        /// <summary>
+        /// Ключ своего сервера: проба находит корень API и протоколы, ни одной модели не запуская.
+        /// </summary>
+        private async Task<ApiKeyRecord?> AddServerKeyAsync(KeyAddDialog dialog, string secret)
         {
-            KeyDialogSaveButton.IsEnabled = !busy;
-            if (busy)
+            if (_services is null)
             {
-                KeyDialogStatus.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
-                KeyDialogStatus.Text = Loc.Get("S.Key.Checking");
+                return null;
             }
-            else if (KeyDialogStatus.Text == Loc.Get("S.Key.Checking"))
+
+            if (EndpointAddress.Normalize(dialog.Address, out var problem) is not { } address)
             {
-                KeyDialogStatus.Text = "";
+                dialog.ShowError(Loc.Get(problem switch
+                {
+                    "empty" => "S.Key.AddressEmpty",
+                    "insecure" => "S.Key.AddressInsecure",
+                    _ => "S.Key.AddressInvalid"
+                }));
+                return null;
             }
+
+            dialog.SetBusy(true, Loc.Get("S.Key.CheckingServer"));
+            var probe = await _services.Venice
+                .ProbeServerAsync(address, secret, CancellationToken.None)
+                .ConfigureAwait(true);
+            dialog.SetBusy(false, null);
+
+            if (probe.Endpoint is not { } endpoint)
+            {
+                dialog.ShowError(probe.Failure switch
+                {
+                    ServerProbeFailure.BadAddress => Loc.Get("S.Key.AddressInvalid"),
+                    ServerProbeFailure.KeyRejected => Loc.Get("S.Key.Invalid"),
+                    ServerProbeFailure.NotAnApi => Loc.Get("S.Key.NotAnApi"),
+                    _ => Loc.Format("S.Key.Unreachable", EndpointAddress.HostOf(address))
+                });
+                return null;
+            }
+
+            var record = _services.KeyStore.AddCustom(dialog.KeyLabel, secret, endpoint);
+            if (record is null)
+            {
+                dialog.ShowError(Loc.Get("S.Key.Invalid"));
+            }
+
+            return record;
         }
+
+        /// <summary>
+        /// Отказ проверки — коротко, чтобы строка уместилась в подвал. «Не принял ключ» — только на
+        /// 401: на 403 OpenRouter отвечает и из закрытой страны, и отправлять человека искать
+        /// опечатку в верном ключе нечестно.
+        /// </summary>
+        private static string KeyRefusal(Exception exception, string provider) => exception switch
+        {
+            VeniceApiException { StatusCode: 401 } => Loc.Get("S.Key.Invalid"),
+            VeniceApiException { StatusCode: 403 } => Loc.Format("S.Key.Denied", provider, 403),
+            VeniceApiException { StatusCode: 429 } => Loc.Format("S.Models.LoadBusy", provider),
+            VeniceApiException { StatusCode: >= 500 and var code } => Loc.Format("S.Models.LoadServer", provider, code),
+            VeniceApiException => Loc.Get("S.Key.Invalid"),
+            _ => Loc.Format("S.Key.Unreachable", provider)
+        };
+
+        // ───────────────────────── лимит токенов ─────────────────────────
+
+        /// <summary>
+        /// Спрашивает лимит токенов ключа. Пустое поле — лимита нет.
+        /// </summary>
+        /// <remarks>
+        /// Тем же окном с одним полем, что и названия: свой оверлей ради одного числа был бы
+        /// копией того же окна.
+        /// </remarks>
+        internal void AskTokenLimit(long? current, Action<long?> commit) =>
+            OpenNameDialog(
+                Loc.Get("S.Key.TokenLimitTitle"),
+                current is { } limit
+                    ? limit.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(',', ' ')
+                    : "",
+                text => commit(TokenCount.TryParseLimit(text, out var parsed) ? parsed : null),
+                placeholder: Loc.Get("S.Key.TokenLimitPlaceholder"),
+                hint: Loc.Get("S.Key.TokenLimitText"),
+                validate: text => TokenCount.TryParseLimit(text, out _) ? null : Loc.Get("S.Key.TokenLimitInvalid"));
 
         // ───────────────────────── удаление ключа ─────────────────────────
 

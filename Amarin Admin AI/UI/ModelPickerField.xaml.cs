@@ -63,7 +63,7 @@ public partial class ModelPickerField : UserControl
     public event EventHandler<ModelBinding>? ModelPicked;
 
     /// <summary>У показанного провайдера нет ключа, и человек просит его завести.</summary>
-    public event EventHandler? AddKeyRequested;
+    public event EventHandler<LlmProvider>? AddKeyRequested;
 
     /// <summary>Человек открыл столбец этого провайдера — хозяину пора подвезти каталог.</summary>
     public event EventHandler<LlmProvider>? ProviderShown;
@@ -242,10 +242,10 @@ public partial class ModelPickerField : UserControl
         ModelPicked?.Invoke(this, binding);
     }
 
-    private void Panel_AddKeyRequested(object? sender, EventArgs e)
+    private void Panel_AddKeyRequested(object? sender, LlmProvider provider)
     {
         OpenButton.IsChecked = false;
-        AddKeyRequested?.Invoke(this, EventArgs.Empty);
+        AddKeyRequested?.Invoke(this, provider);
     }
 
     private void Panel_ProviderShown(object? sender, LlmProvider provider) =>

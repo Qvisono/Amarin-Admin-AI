@@ -423,6 +423,15 @@
                 </Border>
             </StackPanel>
 
+            <!-- Остальные провайдеры (1.34.0): одна карточка, а не своя вкладка с шагами на каждого —
+                 ключ добавляется одинаково, различается лишь сайт, где его выдают («Где взять» в окне). -->
+            <Border Style="{StaticResource StepCard}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Info.Others.Title}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Info.Others.Text}"/>
+                </StackPanel>
+            </Border>
+
             <!-- ═══ Безопасность ключа ═══ -->
             <Border Background="{DynamicResource Status.WarningSurface}"
                     BorderBrush="{DynamicResource Status.WarningBorder}"

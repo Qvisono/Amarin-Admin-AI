@@ -134,8 +134,11 @@ public partial class ModelPickerPanel : UserControl
     /// </remarks>
     public event EventHandler<ModelBinding>? KeyPicked;
 
-    /// <summary>У показанного провайдера нет ключа, и человек просит его завести.</summary>
-    public event EventHandler? AddKeyRequested;
+    /// <summary>
+    /// У показанного провайдера нет ключа, и человек просит его завести. Провайдер едет с
+    /// событием: окно ключа открывается сразу на нём.
+    /// </summary>
+    public event EventHandler<LlmProvider>? AddKeyRequested;
 
     /// <summary>
     /// Человек открыл столбец этого провайдера — хозяину пора подвезти его каталог.
@@ -275,6 +278,7 @@ public partial class ModelPickerPanel : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        SmoothScroll.SetIsEnabled(ProviderScroll, true);
         SmoothScroll.SetIsEnabled(KeyScroll, true);
         if (FindScroll(ModelItems) is { } scroll)
         {
@@ -485,7 +489,7 @@ public partial class ModelPickerPanel : UserControl
     private void AutoItem_Click(object sender, RoutedEventArgs e) => Pick(VeniceModelCatalog.AutoId, null);
 
     private void AddKeyButton_Click(object sender, RoutedEventArgs e) =>
-        AddKeyRequested?.Invoke(this, EventArgs.Empty);
+        AddKeyRequested?.Invoke(this, _shown);
 
     private void ModelRow_Click(object sender, RoutedEventArgs e)
     {
@@ -620,12 +624,41 @@ public partial class ModelPickerPanel : UserControl
     }
 
     /// <summary>
-    /// Столбец провайдеров: кнопки заводятся один раз, дальше им лишь обновляют состояние.
+    /// Провайдеры столбца: встроенные и свои серверы, к которым есть ключ; сначала те, чем
+    /// можно платить, потом бледные.
+    /// </summary>
+    /// <remarks>
+    /// Встроенных с 1.34.0 дюжина, и у человека с одним-двумя ключами нужные терялись бы среди
+    /// остальных. Порядок внутри каждой половины — порядок <see cref="ProviderSpec.All"/>, свои
+    /// серверы — за встроенными.
+    /// </remarks>
+    private List<ProviderSpec> ProviderOrder()
+    {
+        var specs = new List<ProviderSpec>(ProviderSpec.All);
+        foreach (var key in _keys)
+        {
+            if (key.Provider.IsCustom && key.Endpoint is { } endpoint &&
+                specs.All(spec => spec.Provider != key.Provider))
+            {
+                specs.Add(ProviderSpec.ForCustom(key.Provider, endpoint));
+            }
+        }
+
+        return [.. specs.Where(spec => HasKey(spec.Provider)), .. specs.Where(spec => !HasKey(spec.Provider))];
+    }
+
+    private string NameOf(LlmProvider provider) =>
+        ProviderOrder().FirstOrDefault(spec => spec.Provider == provider)?.Name ?? ProviderSpec.For(provider).Name;
+
+    /// <summary>
+    /// Столбец провайдеров: кнопка заводится один раз на провайдера, дальше ей лишь обновляют
+    /// состояние и место.
     /// </summary>
     /// <remarks>
     /// Пересоздание переключало провайдера само: новая кнопка со снятым <c>IsChecked</c>
     /// поднимала <c>Checked</c> прямо внутри обработчика удаляемой соседки, и нажатие
-    /// срабатывало через раз.
+    /// срабатывало через раз. Поэтому новый ключ добавляет недостающую кнопку, удалённый свой
+    /// сервер убирает свою, а живые кнопки только переставляются.
     /// </remarks>
     private void RebuildProviders()
     {
@@ -634,47 +667,37 @@ public partial class ModelPickerPanel : UserControl
             return;
         }
 
-        if (ProviderItems.Children.Count == 0)
+        var order = ProviderOrder();
+
+        // Свой сервер исчезает вместе с последним ключом. Был показан он — показываем первый
+        // в списке, иначе столбец моделей остался бы ничьим.
+        if (order.All(spec => spec.Provider != _shown))
         {
-            foreach (var spec in ProviderSpec.All)
-            {
-                var provider = spec.Provider;
-                var name = new TextBlock
-                {
-                    Text = spec.Name,
-                    FontSize = 12.5,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TextTrimming = TextTrimming.CharacterEllipsis
-                };
+            _shown = order[0].Provider;
+        }
 
-                var item = new RadioButton
-                {
-                    Style = (Style)FindResource("ProviderItem"),
-                    GroupName = _providerGroup,
-                    Content = name
-                };
-
-                item.Checked += (_, _) =>
-                {
-                    if (!_suppressProviderEvent)
-                    {
-                        ShowProvider(provider);
-                    }
-                };
-
-                _providerItems[provider] = item;
-                ProviderItems.Children.Add(item);
-            }
+        foreach (var gone in _providerItems.Keys.Where(provider => order.All(spec => spec.Provider != provider)).ToList())
+        {
+            ProviderItems.Children.Remove(_providerItems[gone]);
+            _providerItems.Remove(gone);
         }
 
         _suppressProviderEvent = true;
         try
         {
-            foreach (var spec in ProviderSpec.All)
+            for (var index = 0; index < order.Count; index++)
             {
+                var spec = order[index];
                 if (!_providerItems.TryGetValue(spec.Provider, out var item))
                 {
-                    continue;
+                    item = CreateProviderItem(spec.Provider);
+                    _providerItems[spec.Provider] = item;
+                }
+
+                if (index >= ProviderItems.Children.Count || !ReferenceEquals(ProviderItems.Children[index], item))
+                {
+                    ProviderItems.Children.Remove(item);
+                    ProviderItems.Children.Insert(index, item);
                 }
 
                 var hasKey = HasKey(spec.Provider);
@@ -685,6 +708,7 @@ public partial class ModelPickerPanel : UserControl
                 // поймёт, что модели там есть, но платить за них пока нечем.
                 if (item.Content is TextBlock label)
                 {
+                    label.Text = spec.Name;
                     label.SetResourceReference(
                         TextBlock.ForegroundProperty,
                         hasKey ? "Text.Tertiary" : "Text.Faint");
@@ -695,6 +719,31 @@ public partial class ModelPickerPanel : UserControl
         {
             _suppressProviderEvent = false;
         }
+    }
+
+    private RadioButton CreateProviderItem(LlmProvider provider)
+    {
+        var item = new RadioButton
+        {
+            Style = (Style)FindResource("ProviderItem"),
+            GroupName = _providerGroup,
+            Content = new TextBlock
+            {
+                FontSize = 12.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            }
+        };
+
+        item.Checked += (_, _) =>
+        {
+            if (!_suppressProviderEvent)
+            {
+                ShowProvider(provider);
+            }
+        };
+
+        return item;
     }
 
     private void RebuildModels()
@@ -710,7 +759,7 @@ public partial class ModelPickerPanel : UserControl
             ModelItems.Visibility = Visibility.Collapsed;
             SearchRow.Visibility = Visibility.Collapsed;
             AutoItem.Visibility = Visibility.Collapsed;
-            NoKeyText.Text = Loc.Format("S.Models.NoKeyHint", ProviderSpec.For(_shown).Name);
+            NoKeyText.Text = Loc.Format("S.Models.NoKeyHint", NameOf(_shown));
             _built = Nothing;
             return;
         }

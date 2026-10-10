@@ -274,13 +274,16 @@
 
     <!-- Плашка живёт в попапе, и поля вокруг неё — место под тень (PopupShadow): без них тень
          резалась краем окна попапа со всех сторон. Попапы сдвинуты на эти поля назад. -->
-    <Border x:Name="PanelFrame" Width="548" Height="360" Margin="{x:Static local:PopupShadow.Margin}"
+    <!-- Столбец провайдеров шире прежних 112: с 1.34.0 в нём «Kimi (Moonshot)» и «Qwen (Alibaba)»,
+         а рядом может встать полоса прокрутки. Плашка подросла на столько же, и столбец моделей
+         остался прежней ширины. -->
+    <Border x:Name="PanelFrame" Width="566" Height="360" Margin="{x:Static local:PopupShadow.Margin}"
             Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
             BorderThickness="1" CornerRadius="10" Padding="6" Effect="{x:Static local:PopupShadow.Effect}">
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="112"/>
+                <ColumnDefinition Width="130"/>
                 <ColumnDefinition Width="1"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="1"/>
@@ -288,10 +291,14 @@
             </Grid.ColumnDefinitions>
 
             <!-- ===== Провайдер ===== -->
+            <!-- Прокручивается: провайдеров больше, чем помещается в высоту плашки. -->
             <DockPanel Grid.Column="0" Margin="0,0,5,0">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource PickerGroupHeader}"
                            Text="{DynamicResource S.Models.ProviderColumn}"/>
-                <StackPanel x:Name="ProviderItems"/>
+                <ScrollViewer x:Name="ProviderScroll" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
+                    <StackPanel x:Name="ProviderItems"/>
+                </ScrollViewer>
             </DockPanel>
 
             <Border Grid.Column="1" Background="{DynamicResource Border.Subtle}"/>

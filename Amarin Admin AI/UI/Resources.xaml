@@ -64,6 +64,8 @@
     <!-- Чат в другой профиль (1.33.0): копия — бумажный самолётик, перенос — стрелка в дверь. -->
     <Geometry x:Key="Icon.Menu.SendTo" po:Freeze="True">M1.8,7.4 L14.2,1.8 L9.8,14.2 L7.2,8.8 Z M7.2,8.8 L14.2,1.8</Geometry>
     <Geometry x:Key="Icon.Menu.MoveTo" po:Freeze="True">M7.2,2.4 H12.6 A1,1 0 0 1 13.6,3.4 V12.6 A1,1 0 0 1 12.6,13.6 H7.2 M2.4,8 H10.2 M7.8,5.6 L10.2,8 L7.8,10.4</Geometry>
+    <!-- Лимит токенов ключа (1.34.0): шкала со стрелкой. -->
+    <Geometry x:Key="Icon.Menu.Limit" po:Freeze="True">M2.6,11.6 A5.6,5.6 0 1 1 13.4,11.6 M8,10.4 L10.9,6.8</Geometry>
     <Geometry x:Key="Icon.Menu.Delete" po:Freeze="True">M2.2,4.2 H13.8 M6.2,4.2 V2.9 A0.8,0.8 0 0 1 7,2.1 H9 A0.8,0.8 0 0 1 9.8,2.9 V4.2 M3.6,4.2 L4.4,13 A1,1 0 0 0 5.4,13.9 H10.6 A1,1 0 0 0 11.6,13 L12.4,4.2 M6.6,7 V11 M9.4,7 V11</Geometry>
 
     <Style TargetType="ScrollBar">
@@ -781,6 +783,102 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Bright}"/>
                             <Setter TargetName="Label" Property="TextDecorations" Value="Underline"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        Выбор из многих в диалоге (провайдер ключа): форма поля диалога — та же высота, фон и
+        скругление, что у DialogField рядом, — а список тот же, что у DarkComboBox в настройках.
+        DarkComboBox в окне не годится: он ростом и фоном под строку настроек и среди полей
+        диалога выглядел бы чужим.
+    -->
+    <Style x:Key="DialogComboBoxItem" TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="5"
+                            Padding="9,6" Margin="3,1">
+                        <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Bg.Selected}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DialogComboBox" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{DynamicResource Text.Bright}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource DialogComboBoxItem}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton IsChecked="{Binding IsDropDownOpen,
+                              RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                              Focusable="False" ClickMode="Press" Cursor="Hand">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bg" Background="{DynamicResource Bg.Card}"
+                                            BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="8">
+                                        <Path Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource Text.Dim}" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              Width="8" Height="4" Stretch="Uniform"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Margin="0,0,12,0"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                          Margin="12,0,30,0" VerticalAlignment="Center"
+                                          IsHitTestVisible="False"/>
+                        <!-- Поля и смещения — как у DarkComboBox: место под тень (PopupShadow), список
+                             встаёт на 4 ниже поля. -->
+                        <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                               VerticalOffset="-12" HorizontalOffset="-16"
+                               AllowsTransparency="True" StaysOpen="False"
+                               PopupAnimation="Fade">
+                            <Border Margin="{x:Static local:PopupShadow.Margin}"
+                                    Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}"
+                                    BorderThickness="1" CornerRadius="8" Padding="0,3"
+                                    MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300"
+                                    Effect="{x:Static local:PopupShadow.Effect}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              local:SmoothScroll.IsEnabled="True">
+                                    <ItemsPresenter/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

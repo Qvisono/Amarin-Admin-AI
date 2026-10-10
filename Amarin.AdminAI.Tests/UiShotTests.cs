@@ -274,6 +274,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootDialogs(window, services, folder);
             }
 
+            if (Wanted(only, "picker"))
+            {
+                await ShootPicker(window, folder);
+            }
+
             if (Wanted(only, "deferred"))
             {
                 await ShootDeferred(window, services, folder, language == "ru");
@@ -633,8 +638,53 @@ public sealed class UiShotTests : IDisposable
             () => Call(window, "NameCancelButton_Click", window, args));
         await Shot("new-tag", () => { Call(window, "CreateTag", [null]); return Task.CompletedTask; },
             () => Call(window, "NameCancelButton_Click", window, args));
-        await Shot("key-add", () => { Call(window, "OpenKeyDialog"); return Task.CompletedTask; },
-            () => Call(window, "KeyDialogCancelButton_Click", window, args));
+        await Shot("key-add", () => { window.OpenKeyDialog(); return Task.CompletedTask; },
+            () => Call(window, "CloseKeyDialog"));
+        await Shot("key-add-anthropic", () =>
+            {
+                window.OpenKeyDialog(LlmProvider.Anthropic);
+                ((TextBox)window.KeyDialog.FindName("KeyValue")!).Text = "sk-ant-api03-••••••••••••••••";
+                return Task.CompletedTask;
+            },
+            () => Call(window, "CloseKeyDialog"));
+        await Shot("key-add-server", () =>
+            {
+                window.OpenKeyDialog();
+                var box = (ComboBox)window.KeyDialog.FindName("ProviderBox")!;
+                box.SelectedIndex = box.Items.Count - 1;
+                ((TextBox)window.KeyDialog.FindName("AddressValue")!).Text = "https://ai.example.com/v1";
+                window.KeyDialog.ShowError(Loc.Get("S.Key.NotAnApi"));
+                return Task.CompletedTask;
+            },
+            () => Call(window, "CloseKeyDialog"));
+
+        // Раскрытый список провайдеров живёт в своём окне попапа — снимок окна его не видит.
+        try
+        {
+            window.OpenKeyDialog();
+            var box = (ComboBox)window.KeyDialog.FindName("ProviderBox")!;
+            box.IsDropDownOpen = true;
+            await Settle(300);
+            var root = VisualTreeHelper.GetChild(box, 0);
+            var popup = Enumerable.Range(0, VisualTreeHelper.GetChildrenCount(root))
+                .Select(index => VisualTreeHelper.GetChild(root, index))
+                .OfType<System.Windows.Controls.Primitives.Popup>()
+                .FirstOrDefault();
+            if (popup is { Child: FrameworkElement list })
+            {
+                Save(list, Path.Combine(folder, "dlg-key-add-list.png"), null);
+            }
+
+            box.IsDropDownOpen = false;
+            Call(window, "CloseKeyDialog");
+            await Settle(120);
+        }
+        catch (Exception ex)
+        {
+            errors.Add("key-add-list: " + (ex.InnerException ?? ex).Message);
+        }
+        await Shot("key-token-limit", () => { window.AskTokenLimit(10_000_000, _ => { }); return Task.CompletedTask; },
+            () => Call(window, "NameCancelButton_Click", window, args));
         await Shot("key-remove", () => { window.AskKeyRemoval("OpenRouter", "S.Key.DeleteDesc", () => { }); return Task.CompletedTask; },
             () => Call(window, "KeyRemoveNoButton_Click", window, args));
         await Shot("key-rename", () => { window.AskKeyRename("OpenRouter", _ => { }); return Task.CompletedTask; },
@@ -1253,9 +1303,68 @@ public sealed class UiShotTests : IDisposable
         };
     }
 
+    /// <summary>
+    /// Плашка выбора модели (1.34.0): провайдеры с ключами сверху, свой сервер по названию, у
+    /// бледных — «добавьте ключ».
+    /// </summary>
+    private static async Task ShootPicker(MainWindow window, string folder)
+    {
+        var host = (Panel)window.FindSetting("MessagesPanel");
+        var panel = new ModelPickerPanel();
+        host.Children.Add(panel);
+        try
+        {
+            panel.SetKeys(SampleKeys());
+            panel.SetCatalog(LlmProvider.Anthropic,
+            [
+                Sample("anthropic:claude-opus-5-5", "Claude Opus 5.5"),
+                Sample("anthropic:claude-sonnet-5-5", "Claude Sonnet 5.5"),
+                Sample("anthropic:claude-haiku-5-5", "Claude Haiku 5.5")
+            ]);
+            panel.SetCatalog(LlmProvider.Custom("a1b2c3"),
+            [
+                Sample("custom-a1b2c3:claude-sonnet-5-5", "claude-sonnet-5-5"),
+                Sample("custom-a1b2c3:gpt-6-sol", "gpt-6-sol"),
+                Sample("custom-a1b2c3:deepseek-v4-flash-0731", "deepseek-v4-flash-0731")
+            ]);
+
+            foreach (var (model, file) in new[]
+                     {
+                         ("anthropic:claude-sonnet-5-5", "picker-anthropic.png"),
+                         ("custom-a1b2c3:gpt-6-sol", "picker-server.png"),
+                         ("openai:gpt-6-sol", "picker-nokey.png")
+                     })
+            {
+                panel.SetSelected(model, null);
+                panel.ShowSelectedProvider();
+                panel.RebuildNow();
+                await Settle(250);
+                Save(panel, Path.Combine(folder, file), null);
+            }
+        }
+        finally
+        {
+            host.Children.Remove(panel);
+        }
+
+        static VeniceModelInfo Sample(string id, string name) => new()
+        {
+            Id = id,
+            ModelSpec = new VeniceModelSpec
+            {
+                Name = name,
+                Capabilities = new VeniceModelCapabilities { SupportsFunctionCalling = true }
+            }
+        };
+    }
+
     private static IReadOnlyList<ApiKeyEntry> SampleKeys() =>
     [
         new("environment", "VENICE_API_KEY", "VENabcdefghijklmnopqrstuvIyuC", ApiKeySource.Environment, true),
-        new("k2", "OpenRouter", "sk-or-second-key-abcdefghijkl3F7q", ApiKeySource.Stored, false, LlmProvider.OpenRouter)
+        new("k2", "OpenRouter", "sk-or-second-key-abcdefghijkl3F7q", ApiKeySource.Stored, false, LlmProvider.OpenRouter),
+        new("k3", "Claude", "sk-ant-api03-abcdefghijklmnop9Rt2", ApiKeySource.Stored, false, LlmProvider.Anthropic),
+        new("k4", "Star 10M", "sk-star-abcdefghijklmnopqrs8Kd1", ApiKeySource.Stored, false, LlmProvider.Custom("a1b2c3"),
+            new ProviderEndpoint("ai.starimg.ru", "https://ai.starimg.ru/v1", OpenAiChat: true, AnthropicMessages: true),
+            TokenLimit: 10_000_000)
     ];
 }

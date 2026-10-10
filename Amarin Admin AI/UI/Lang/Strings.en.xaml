@@ -1230,7 +1230,7 @@
     <system:String x:Key="S.Info.Basics.Section" xml:space="preserve">Using the app</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Text" xml:space="preserve">Besides answering, the model reads and writes files, runs PowerShell, checks Windows event logs and searches the web. Every tool call is shown in the chat; expand it to see exactly what was done.</system:String>
     <system:String x:Key="S.Info.Basics.Tools.Title" xml:space="preserve">Tools</system:String>
-    <system:String x:Key="S.Info.Intro" xml:space="preserve">The app works with AI models through Venice or OpenRouter and manages this computer on their instructions. You need a key from one of these services. Below are five steps from signing up to the first answer.</system:String>
+    <system:String x:Key="S.Info.Intro" xml:space="preserve">The app works with AI models through Venice, OpenRouter, directly with OpenAI, Anthropic and other providers, or through your own server, and manages this computer on their instructions. You need a key from at least one of them. Below are five steps from signing up to the first answer, using Venice and OpenRouter as examples.</system:String>
     <system:String x:Key="S.Info.Links.Docs" xml:space="preserve">Venice documentation</system:String>
     <system:String x:Key="S.Info.Links.Repo" xml:space="preserve">Project repository</system:String>
     <system:String x:Key="S.Info.Links.Text" xml:space="preserve">The Venice documentation answers questions about keys, limits and models. Send questions about the app itself, bugs and suggestions to the project repository.</system:String>
@@ -1390,6 +1390,33 @@
     <system:String x:Key="S.Key.Unreadable" xml:space="preserve">Can't be read, enter it again</system:String>
     <system:String x:Key="S.Key.Value" xml:space="preserve">Key</system:String>
     <system:String x:Key="S.Key.WhereToGet" xml:space="preserve">Get a key</system:String>
+    <system:String x:Key="S.Key.Provider" xml:space="preserve">Provider</system:String>
+    <system:String x:Key="S.Key.Provider.CustomDesc" xml:space="preserve">A reseller or gateway with an OpenAI- or Anthropic-compatible API</system:String>
+    <system:String x:Key="S.Key.CustomServer" xml:space="preserve">Custom server</system:String>
+    <system:String x:Key="S.Key.Address" xml:space="preserve">API address</system:String>
+    <system:String x:Key="S.Key.AddressPlaceholder" xml:space="preserve">Server base URL</system:String>
+    <system:String x:Key="S.Key.AddressEmpty" xml:space="preserve">Enter the server address</system:String>
+    <system:String x:Key="S.Key.AddressInvalid" xml:space="preserve">This doesn't look like a server address</system:String>
+    <system:String x:Key="S.Key.AddressInsecure" xml:space="preserve">Use https: over http anyone in between sees the key</system:String>
+    <system:String x:Key="S.Key.CheckingServer" xml:space="preserve">Checking the server…</system:String>
+    <system:String x:Key="S.Key.NotAnApi" xml:space="preserve">No model API at this address</system:String>
+    <system:String x:Key="S.Key.Unreachable" xml:space="preserve">{0} isn't responding, check your connection</system:String>
+    <system:String x:Key="S.Key.Denied" xml:space="preserve">{0}: access denied ({1})</system:String>
+    <system:String x:Key="S.Key.TokenLimit" xml:space="preserve">Token limit</system:String>
+    <system:String x:Key="S.Key.TokenLimitTitle" xml:space="preserve">Key token limit</system:String>
+    <system:String x:Key="S.Key.TokenLimitText" xml:space="preserve">How many tokens came with the key. The program counts usage itself and shows what's left.</system:String>
+    <system:String x:Key="S.Key.TokenLimitPlaceholder" xml:space="preserve">Empty: no limit</system:String>
+    <system:String x:Key="S.Key.TokenLimitInvalid" xml:space="preserve">Enter a whole number of tokens</system:String>
+    <system:String x:Key="S.Key.StatsTokens" xml:space="preserve">{0} of {1} tokens used</system:String>
+    <system:String x:Key="S.Key.StatsTokensUsed" xml:space="preserve">{0} tokens used</system:String>
+    <system:String x:Key="S.Key.StatsTokensTip" xml:space="preserve">Counted by the program. The server may charge more: models can have their own multiplier.</system:String>
+    <system:String x:Key="S.Key.NoBalanceApi" xml:space="preserve">{0} doesn't report a balance, check it in the provider's dashboard</system:String>
+    <system:String x:Key="S.Key.TokensLeft" xml:space="preserve">About {0} of {1} tokens left, as counted by the program</system:String>
+    <system:String x:Key="S.Key.Balance.TokensLeft" xml:space="preserve">Left, tokens</system:String>
+    <system:String x:Key="S.Tokens.Millions" xml:space="preserve">{0}M</system:String>
+    <system:String x:Key="S.Balance.TokensRow" xml:space="preserve">{0}: about {1} tokens left</system:String>
+    <system:String x:Key="S.Info.Others.Title" xml:space="preserve">Other providers and your own server</system:String>
+    <system:String x:Key="S.Info.Others.Text" xml:space="preserve">Keys from OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Kimi, Mistral, Z.ai, Qwen and Groq are added the same way: Keys and spending › Add key, and the provider is picked from how the key starts. For a reseller or gateway, choose Custom server and paste its address (base URL): the app finds out which protocol it speaks. If the key came as a package of tokens, set the limit in the key's menu and the app will show what's left. Images and page reading work only through Venice.</system:String>
     <system:String x:Key="S.Language.Delete" xml:space="preserve">Delete language</system:String>
     <system:String x:Key="S.Language.DeleteConfirm" xml:space="preserve">To get it back, you would have to translate it again.</system:String>
     <system:String x:Key="S.Language.DeleteFailed" xml:space="preserve">Could not delete the language. Check access to the app data folder.</system:String>

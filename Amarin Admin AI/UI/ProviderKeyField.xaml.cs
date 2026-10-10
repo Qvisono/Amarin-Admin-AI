@@ -54,7 +54,7 @@ public partial class ProviderKeyField : UserControl
     public event EventHandler<WebSearchTarget>? Changed;
 
     /// <summary>У выбранного провайдера нет ключа, и человек просит его завести.</summary>
-    public event EventHandler? AddKeyRequested;
+    public event EventHandler<LlmProvider>? AddKeyRequested;
 
     public void SetSelected(LlmProvider? provider, string? keyId, string? engine, string? mode)
     {
@@ -146,7 +146,10 @@ public partial class ProviderKeyField : UserControl
     private void AddKeyButton_Click(object sender, RoutedEventArgs e)
     {
         OpenButton.IsChecked = false;
-        AddKeyRequested?.Invoke(this, EventArgs.Empty);
+        if (_provider is { } provider)
+        {
+            AddKeyRequested?.Invoke(this, provider);
+        }
     }
 
     private void Rebuild()
@@ -183,7 +186,9 @@ public partial class ProviderKeyField : UserControl
             dim: false,
             () => Pick(null)));
 
-        foreach (var spec in ProviderSpec.All)
+        // Только те, у кого поиск есть: у прямых провайдеров его нет вовсе, и закрепить поиск
+        // за ними значило бы молча искать нигде.
+        foreach (var spec in ProviderSpec.All.Where(spec => spec.HasWebSearch))
         {
             var provider = spec.Provider;
             var hasKey = HasKey(provider);

@@ -84,7 +84,7 @@ public partial class SpendLimitsBlock : UserControl
     }
 
     private static string KeyName(SpendKeyRow key) =>
-        Loc.Format("S.Limit.KeyRow", key.Label, ProviderSpec.For(key.Provider).Name);
+        Loc.Format("S.Limit.KeyRow", key.Label, key.ProviderName);
 
     /// <summary>Строка таблицы: подпись и два поля (или две подписи колонок).</summary>
     private void AddRow(Grid grid, string? tag, string label, object day, object? month, bool header = false)

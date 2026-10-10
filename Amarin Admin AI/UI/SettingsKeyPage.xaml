@@ -219,7 +219,7 @@
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource BalanceTile}" Margin="5,0,0,0">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource TileCaption}" Text="{DynamicResource S.Key.Balance.Usd}"/>
+                        <TextBlock x:Name="BalanceUsdCaption" Style="{StaticResource TileCaption}" Text="{DynamicResource S.Key.Balance.Usd}"/>
                         <TextBlock x:Name="BalanceUsdValue" Style="{StaticResource TileValue}" Text="-"/>
                     </StackPanel>
                 </Border>

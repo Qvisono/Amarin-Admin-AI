@@ -69,6 +69,11 @@ public sealed partial class SourceLiteralTests
     [InlineData("Agents", "Agent.cs")]
     [InlineData("Agents", "AgentUiAdapter.cs")]
     [InlineData("Chat", "ChatEngineInfographic.cs")]
+    // 1.34.0: окно нового ключа и провайдеры в плашке выбора модели.
+    [InlineData("UI", "KeyAddDialog.xaml.cs")]
+    [InlineData("UI", "MainWindow.Keys.cs")]
+    [InlineData("UI", "ModelPickerPanel.xaml.cs")]
+    [InlineData("UI", "SettingsKeyPage.xaml.cs")]
     public void Screens_and_their_logic_hold_no_literal_russian(string folder, string file)
     {
         // Эти экраны написали до локализации, и подписи так и остались литералами: при
