@@ -167,7 +167,8 @@ internal static class ModelListParser
                     SupportsReasoning = thinks,
                     SupportsReasoningEffort = efforts is not { Count: 0 },
                     ReasoningEffortOptions = efforts,
-                    SupportsVision = Supported(capabilities, "image_input") ?? false
+                    SupportsVision = Supported(capabilities, "image_input") ?? false,
+                    ThinkingModes = ThinkingModes(capabilities)
                 }
             }
         };
@@ -196,6 +197,33 @@ internal static class ModelListParser
         }
 
         return levels;
+    }
+
+    /// <summary>
+    /// Режимы размышления из <c>capabilities.thinking.types</c> Anthropic: те, у которых
+    /// <c>supported: true</c>. <c>null</c> — каталог не сказал.
+    /// </summary>
+    private static List<string>? ThinkingModes(JsonElement capabilities)
+    {
+        if (capabilities.ValueKind != JsonValueKind.Object ||
+            !capabilities.TryGetProperty("thinking", out var thinking) ||
+            thinking.ValueKind != JsonValueKind.Object ||
+            !thinking.TryGetProperty("types", out var types) ||
+            types.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var modes = new List<string>();
+        foreach (var type in types.EnumerateObject())
+        {
+            if (Supported(types, type.Name) == true)
+            {
+                modes.Add(type.Name);
+            }
+        }
+
+        return modes;
     }
 
     /// <summary>Значение <c>{"supported": true}</c> у вложенного поля. <c>null</c> — поля нет.</summary>

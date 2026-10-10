@@ -121,7 +121,7 @@ public sealed partial class VeniceClient
         }
 
         var answer = OpenRouterBatchPlan.ReadAnswer(batch);
-        RecordCost(answer, ChargeSku(model), credential);
+        RecordCost(answer, model, credential);
         return answer;
     }
 

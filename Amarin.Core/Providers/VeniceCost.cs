@@ -11,11 +11,29 @@ public sealed class VeniceCost
 
     public bool HasData { get; set; }
 
+    /// <summary>
+    /// Цену назвал не провайдер, а посчитала программа: токены × цена модели из каталога.
+    /// </summary>
+    public bool Estimated { get; set; }
+
+    /// <summary>Токены запроса — всё, что прочитала модель.</summary>
+    /// <remarks>
+    /// Едут вместе с деньгами одной дорогой (<c>AddCost</c> → журнал трат): по ним считается
+    /// расход ключа, выданного пакетом токенов, и у провайдера без цены это единственный учёт.
+    /// </remarks>
+    public long InputTokens { get; set; }
+
+    /// <summary>Токены ответа.</summary>
+    public long OutputTokens { get; set; }
+
     public VeniceCost Add(VeniceCost other) => new()
     {
         Usd = Usd + other.Usd,
         Diem = Diem + other.Diem,
-        HasData = HasData || other.HasData
+        HasData = HasData || other.HasData,
+        Estimated = Estimated || other.Estimated,
+        InputTokens = InputTokens + other.InputTokens,
+        OutputTokens = OutputTokens + other.OutputTokens
     };
 
     /// <summary>
@@ -27,7 +45,10 @@ public sealed class VeniceCost
     {
         Usd = Math.Max(0m, Usd - other.Usd),
         Diem = Math.Max(0m, Diem - other.Diem),
-        HasData = HasData
+        HasData = HasData,
+        Estimated = Estimated,
+        InputTokens = Math.Max(0, InputTokens - other.InputTokens),
+        OutputTokens = Math.Max(0, OutputTokens - other.OutputTokens)
     };
 
     public string Format()

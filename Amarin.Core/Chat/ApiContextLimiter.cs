@@ -41,7 +41,8 @@ internal static class ApiContextLimiter
             Content = null,
             ToolCalls = clone.ToolCalls,
             ToolCallId = clone.ToolCallId,
-            Name = clone.Name
+            Name = clone.Name,
+            ReplayBlocks = clone.ReplayBlocks
         };
     }
 
@@ -68,7 +69,8 @@ internal static class ApiContextLimiter
                     text[..MaxToolContentChars] + "\n... [обрезано для контекста API]"),
                 ToolCalls = original.ToolCalls,
                 ToolCallId = original.ToolCallId,
-                Name = original.Name
+                Name = original.Name,
+                ReplayBlocks = original.ReplayBlocks
             };
         }
     }
@@ -82,9 +84,16 @@ internal static class ApiContextLimiter
     /// переписки заново тащил бы и все картинки, и все документы — на десятимегабайтном PDF
     /// это мегабайты трафика на каждую реплику. Существо ответа при этом не теряется: то, что
     /// модель вычитала из файла, уже написано в её предыдущем сообщении.
+    /// <para>
+    /// Текущий ход (всё с последнего сообщения человека) не трогается никогда. Прежде картинка,
+    /// пришедшая от инструмента посреди раунда, заменяла заметкой вложение самого человека в этом
+    /// же ходе — и начало истории менялось на ходу: у Anthropic это лишает силы подписи
+    /// размышления, у всех — кэш провайдера.
+    /// </para>
     /// </remarks>
     private static void ReplaceStaleAttachmentMessages(List<ChatMessage> messages)
     {
+        var currentTurn = messages.FindLastIndex(ChatContent.IsTurnStart);
         var indexes = new List<int>();
         for (var i = 0; i < messages.Count; i++)
         {
@@ -103,6 +112,11 @@ internal static class ApiContextLimiter
         for (var i = 0; i < indexes.Count - 1; i++)
         {
             var index = indexes[i];
+            if (index >= currentTurn)
+            {
+                break;
+            }
+
             var original = messages[index];
             messages[index] = new ChatMessage
             {
@@ -110,7 +124,8 @@ internal static class ApiContextLimiter
                 Content = ChatContent.Text(StaleNote(original.Content)),
                 ToolCalls = original.ToolCalls,
                 ToolCallId = original.ToolCallId,
-                Name = original.Name
+                Name = original.Name,
+                ReplayBlocks = original.ReplayBlocks
             };
         }
     }
@@ -175,6 +190,7 @@ internal static class ApiContextLimiter
         Content = ChatContent.Clone(message.Content),
         ToolCalls = message.ToolCalls?.ToList(),
         ToolCallId = message.ToolCallId,
-        Name = message.Name
+        Name = message.Name,
+        ReplayBlocks = message.ReplayBlocks
     };
 }

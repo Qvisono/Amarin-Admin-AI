@@ -1,4 +1,4 @@
-﻿namespace Amarin.Core;
+namespace Amarin.Core;
 
 /// <summary>
 /// Русские строки интерфейса, встроенные в код.
@@ -1074,6 +1074,7 @@ internal static class StringsRu
             ["S.Prompts.Tech.Default"] = "Заводские",
             ["S.Prompts.TechDesc"] = "Правила работы, которые программа даёт чату и агенту",
             ["S.Provider.AllOverloaded"] = "Все модели в цепочке запасных перегружены. Повторите запрос позже.",
+            ["S.Provider.Refusal"] = "Модель отказалась отвечать на этот запрос: сработала защита провайдера. Переформулируйте запрос или выберите другую модель.",
             ["S.Provider.NoImage"] = "Venice вернул пустой ответ без изображения.",
             ["S.Quote.Reply"] = "Ответить",
             ["S.Quote.FromLast"] = "из последнего ответа",

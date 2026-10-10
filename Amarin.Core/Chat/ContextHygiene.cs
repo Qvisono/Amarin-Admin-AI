@@ -417,6 +417,7 @@ internal static partial class ContextHygiene
         ToolCalls = toolCalls ?? message.ToolCalls,
         ToolCallId = message.ToolCallId,
         Annotations = message.Annotations,
-        Name = message.Name
+        Name = message.Name,
+        ReplayBlocks = message.ReplayBlocks
     };
 }

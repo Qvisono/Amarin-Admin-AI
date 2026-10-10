@@ -36,6 +36,11 @@ public static class ModelRef
             return fallback;
         }
 
+        if (CustomPrefixLength(id) is > 0 and var length)
+        {
+            return LlmProvider.Parse(id[..(length - 1)]);
+        }
+
         return FindPrefix(id)?.Provider ?? LlmProvider.Venice;
     }
 
@@ -43,6 +48,11 @@ public static class ModelRef
     public static string Bare(string? modelId)
     {
         var id = (modelId ?? "").Trim();
+        if (CustomPrefixLength(id) is > 0 and var length)
+        {
+            return id[length..];
+        }
+
         var spec = FindPrefix(id);
         return spec is null ? id : id[spec.Prefix.Length..];
     }
@@ -61,8 +71,29 @@ public static class ModelRef
             return id;
         }
 
-        var prefix = ProviderSpec.For(provider).Prefix;
+        var prefix = provider.IsCustom ? provider.Id + ":" : ProviderSpec.For(provider).Prefix;
         return prefix.Length == 0 ? Bare(id) : prefix + Bare(id);
+    }
+
+    /// <summary>
+    /// Длина приставки своего сервера (<c>custom-3f2a9c:</c>) вместе с двоеточием. Ноль — это
+    /// не свой сервер.
+    /// </summary>
+    /// <remarks>
+    /// По форме, без справочника серверов: идентификатор модели разбирается и там, где ключей
+    /// нет вовсе (разбивка трат, логотипы), а сервер, чей ключ уже удалён, всё равно должен
+    /// узнаваться своим, а не превращаться в Venice. Сам идентификатор сервера двоеточий не
+    /// содержит — его выдаёт программа.
+    /// </remarks>
+    private static int CustomPrefixLength(string id)
+    {
+        if (!id.StartsWith("custom-", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        var colon = id.IndexOf(':', StringComparison.Ordinal);
+        return colon > "custom-".Length ? colon + 1 : 0;
     }
 
     /// <summary>

@@ -32,7 +32,7 @@ public sealed class ProviderJsonTests
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
-    private static string? Field(string json, string name)
+    private static string? JsonField(string json, string name)
     {
         using var document = JsonDocument.Parse(json);
         return document.RootElement.GetProperty(name).GetString();
@@ -47,7 +47,7 @@ public sealed class ProviderJsonTests
 
         var json = JsonSerializer.Serialize(record, AppJson.Options);
 
-        Assert.Equal(expected, Field(json, "provider"));
+        Assert.Equal(expected, JsonField(json, "provider"));
     }
 
     /// <summary>То, что пишет 1.34.0 про Venice и OpenRouter, прежняя версия читает своим перечислением.</summary>
@@ -84,7 +84,7 @@ public sealed class ProviderJsonTests
 
         var json = JsonSerializer.Serialize(record, AppJson.Options);
 
-        Assert.Equal("fromTheFuture", Field(json, "provider"));
+        Assert.Equal("fromTheFuture", JsonField(json, "provider"));
     }
 
     /// <summary>Пустое поле старого файла и необязательный параметр значат Venice, как у перечисления.</summary>
@@ -133,6 +133,6 @@ public sealed class ProviderJsonTests
 
         var json = JsonSerializer.Serialize(settings, AppJson.Options);
 
-        Assert.Equal("openRouter", Field(json, "webSearchProvider"));
+        Assert.Equal("openRouter", JsonField(json, "webSearchProvider"));
     }
 }

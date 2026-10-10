@@ -255,8 +255,9 @@ public sealed partial class VeniceClient
 
         if (spec.Balance != BalanceSource.VeniceRateLimits)
         {
-            // Не отказ ключа, а свойство провайдера: спрашивать остаток не у кого.
-            throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
+            var other = await GetOtherBalanceAsync(credential, spec, cancellationToken).ConfigureAwait(false);
+            NoteBalance(credential, other);
+            return other;
         }
 
         using var httpRequest = Request(HttpMethod.Get, "api_keys/rate_limits", credential);
@@ -287,6 +288,65 @@ public sealed partial class VeniceClient
             throw new VeniceApiException(
                 $"Venice API returned non-JSON rate limits response ({ex.Message}). Body: {Preview(body)}");
         }
+    }
+
+    /// <summary>
+    /// Остаток у провайдера, который не Venice и не OpenRouter.
+    /// </summary>
+    /// <remarks>
+    /// Провайдер без такого запроса — <see cref="BalanceNotReportedException"/>: это его свойство,
+    /// а не отказ ключа, и спрашивать снова после каждого ответа незачем. Шлюз перепродавца,
+    /// который ответил, но остатка не назвал, — тот же случай.
+    /// </remarks>
+    private async Task<VeniceRateLimitsData> GetOtherBalanceAsync(
+        ApiCredential credential,
+        ProviderSpec spec,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            switch (spec.Balance)
+            {
+                case BalanceSource.DeepSeekBalance:
+                    return ProviderBalances.FromDeepSeek(
+                        await GetJsonAsync("user/balance", credential, trackBalance: false, cancellationToken)
+                            .ConfigureAwait(false));
+
+                case BalanceSource.MoonshotBalance:
+                    return ProviderBalances.FromMoonshot(
+                        await GetJsonAsync("users/me/balance", credential, trackBalance: false, cancellationToken)
+                            .ConfigureAwait(false));
+
+                case BalanceSource.ResellerBilling:
+                    var subscription = await GetJsonAsync(
+                            "dashboard/billing/subscription", credential, trackBalance: false, cancellationToken)
+                        .ConfigureAwait(false);
+                    var today = DateTime.UtcNow.Date;
+                    var usage = await GetJsonAsync(
+                            "dashboard/billing/usage?start_date=" + today.AddDays(-90).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) +
+                            "&end_date=" + today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                            credential,
+                            trackBalance: false,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    return ProviderBalances.FromResellerBilling(subscription, usage)
+                           ?? throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
+            }
+        }
+        catch (JsonException)
+        {
+            throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
+        }
+        catch (VeniceApiException exception) when (
+            spec.Balance == BalanceSource.ResellerBilling && exception.StatusCode is 404 or 405 or 501)
+        {
+            // Шлюз без этого адреса — не отказ ключа: такой перепродавец показывает остаток
+            // только у себя на сайте.
+            throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
+        }
+
+        // Не отказ ключа, а свойство провайдера: спрашивать остаток не у кого.
+        throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
     }
 
     /// <summary>

@@ -86,9 +86,15 @@ internal static class VeniceModelFallback
         string primaryModel,
         LlmProvider fallbackProvider = default)
     {
-        var chain = BuildChain(
-            primaryModel,
-            ModelRef.Of(currentModel, ModelRef.Of(primaryModel, fallbackProvider)));
+        // Корень цепочки — модель того же провайдера, что и запрошенная. Модель программы по
+        // умолчанию (Venice) у запроса к другому провайдеру стала бы «запасной» и ушла бы к его
+        // серверу с его ключом: в лучшем случае 404, в худшем — запрос не той модели.
+        var provider = ModelRef.Of(currentModel, ModelRef.Of(primaryModel, fallbackProvider));
+        var root = string.IsNullOrWhiteSpace(primaryModel) || VeniceModelCatalog.IsAuto(primaryModel) ||
+                   ModelRef.Of(primaryModel, provider) == provider
+            ? primaryModel
+            : currentModel;
+        var chain = BuildChain(root, provider);
 
         for (var i = 0; i < chain.Count; i++)
         {

@@ -16,14 +16,74 @@ public sealed partial class VeniceClient
         }
     }
 
-    private void RecordCost(ChatCompletionResponse result, string sku, ApiCredential credential)
+    private void RecordCost(ChatCompletionResponse result, string model, ApiCredential credential)
     {
         // По тому же правилу, по которому цену ответа читают побочные запросы для разбивки под
         // сообщением: в журнале трат и в разбивке обязана стоять одна и та же сумма.
-        if (result.ReportedCost() is { } cost)
+        var usage = result.Usage;
+        var cost = CostOf(
+            result.ReportedCost() ?? VeniceCost.Zero,
+            model,
+            usage?.PromptTokens ?? 0,
+            usage?.CompletionTokens ?? 0);
+
+        // Посчитанную цену — и в сам ответ: восемь побочных запросов (заголовок, сводка,
+        // маршрутизатор…) читают её через ReportedCost и ставят свою строку в разбивку.
+        if (cost.Estimated && usage is not null)
         {
-            AddCost(cost, sku, credential);
+            usage.Cost = cost.Usd;
         }
+
+        Book(cost, model, credential);
+    }
+
+    /// <summary>Записывает расход, если в нём есть хоть деньги, хоть токены.</summary>
+    private void Book(VeniceCost cost, string model, ApiCredential credential)
+    {
+        if (cost.HasData || cost.InputTokens > 0 || cost.OutputTokens > 0)
+        {
+            AddCost(cost, ChargeSku(model), credential);
+        }
+    }
+
+    /// <summary>
+    /// Цена ответа: названная провайдером, а нет её — токены × цена модели из каталога.
+    /// </summary>
+    /// <remarks>
+    /// Считается только у провайдеров, которые цену не называют вовсе: у Venice и OpenRouter
+    /// нулевая цена — это бесплатная модель, а не молчание, и досчитывать её нельзя. Токены
+    /// приписываются всегда — по ним ведётся расход ключа, выданного пакетом токенов.
+    /// </remarks>
+    private VeniceCost CostOf(VeniceCost reported, string model, int promptTokens, int completionTokens)
+    {
+        var cost = new VeniceCost
+        {
+            Usd = reported.Usd,
+            Diem = reported.Diem,
+            HasData = reported.HasData,
+            InputTokens = Math.Max(0, promptTokens),
+            OutputTokens = Math.Max(0, completionTokens)
+        };
+
+        if (reported.HasData || ProviderSpec.For(ModelRef.Of(model, _options.Provider)).ReportsCost)
+        {
+            return cost;
+        }
+
+        if (CostEstimator.PriceOf(ResolveModelInfo?.Invoke(model)) is not { } price)
+        {
+            return cost;
+        }
+
+        var usd = (cost.InputTokens * price.InputPerMillion + cost.OutputTokens * price.OutputPerMillion) / 1_000_000m;
+        if (usd > 0m)
+        {
+            cost.Usd = usd;
+            cost.HasData = true;
+            cost.Estimated = true;
+        }
+
+        return cost;
     }
 
     /// <summary>

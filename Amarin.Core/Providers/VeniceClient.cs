@@ -139,7 +139,17 @@ public sealed partial class VeniceClient
 
         if (!string.IsNullOrWhiteSpace(credential.Secret))
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential.Secret);
+            // Anthropic ключ берёт своим заголовком, а Bearer у него значит токен входа — с
+            // обычным ключом такой запрос был бы отвергнут.
+            if (ProviderSpec.For(credential.Provider).Protocol == WireProtocol.AnthropicMessages)
+            {
+                request.Headers.Add("x-api-key", credential.Secret);
+                request.Headers.Add("anthropic-version", AnthropicMessages.ApiVersion);
+            }
+            else
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential.Secret);
+            }
         }
 
         return request;
@@ -382,6 +392,12 @@ public sealed partial class VeniceClient
                 .ConfigureAwait(false);
         }
 
+        if (UsesAnthropic(model, credential))
+        {
+            return await SendAnthropicAsync(request, model, prepareMessages, credential, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var payload = BuildPayload(request, model, prepareMessages, stream: false);
         using var response = await PostCompletionAsync(payload, model, credential, cancellationToken)
             .ConfigureAwait(false);
@@ -437,7 +453,7 @@ public sealed partial class VeniceClient
             throw new VeniceApiException(result.Error.Message ?? "Unknown Venice API error.");
         }
 
-        RecordCost(result, ChargeSku(model), credential);
+        RecordCost(result, model, credential);
         return result;
     }
 
@@ -459,6 +475,12 @@ public sealed partial class VeniceClient
                 .ConfigureAwait(false);
 
             return ToStreamed(answer, model, onText);
+        }
+
+        if (UsesAnthropic(model, credential))
+        {
+            return await StreamAnthropicAsync(request, model, prepareMessages, onText, credential, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var payload = BuildPayload(request, model, prepareMessages, stream: true);
@@ -553,10 +575,8 @@ public sealed partial class VeniceClient
                 }
             }
 
-            if (accumulator.Cost.HasData)
-            {
-                AddCost(accumulator.Cost, ChargeSku(model), credential);
-            }
+            var cost = CostOf(accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens);
+            Book(cost, model, credential);
 
             return new StreamedChatCompletion
             {
@@ -566,8 +586,9 @@ public sealed partial class VeniceClient
                 ThinkingElapsed = accumulator.ThinkingElapsed,
                 ToolCalls = accumulator.BuildToolCalls(),
                 FinishReason = accumulator.FinishReason,
-                Cost = accumulator.Cost,
+                Cost = cost,
                 PromptTokens = accumulator.PromptTokens,
+                CompletionTokens = accumulator.CompletionTokens,
                 TotalTokens = accumulator.TotalTokens,
                 Model = model
             };
@@ -603,8 +624,10 @@ public sealed partial class VeniceClient
             FinishReason = choice?.FinishReason,
             Cost = answer.ReportedCost() ?? VeniceCost.Zero,
             PromptTokens = answer.Usage?.PromptTokens ?? 0,
+            CompletionTokens = answer.Usage?.CompletionTokens ?? 0,
             TotalTokens = answer.Usage?.TotalTokens ?? 0,
-            Model = model
+            Model = model,
+            ReplayBlocks = choice?.Message.ReplayBlocks
         };
     }
 

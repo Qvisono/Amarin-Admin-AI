@@ -116,6 +116,32 @@ public sealed class ChatImageTests
         Assert.Equal(JsonValueKind.Array, last.Content!.Value.ValueKind);
     }
 
+    /// <summary>
+    /// Картинка инструмента посреди раунда не заменяет вложение самого человека в этом же ходе:
+    /// начало истории не должно меняться на ходу — у Anthropic это лишает силы подписи
+    /// размышления, у всех провайдеров — кэш.
+    /// </summary>
+    [Fact]
+    public void Context_limiter_leaves_the_current_turn_alone()
+    {
+        var messages = new List<ChatMessage>
+        {
+            new() { Role = "user", Content = ChatContent.VisionMultiple("посмотри", [Sample()]) },
+            new()
+            {
+                Role = "assistant",
+                ToolCalls = [new ToolCall { Id = "c1", Function = new FunctionCall { Name = "screenshot", Arguments = "{}" } }]
+            },
+            new() { Role = "tool", ToolCallId = "c1", Content = ChatContent.Text("готово") },
+            new() { Role = "user", Content = ChatContent.ToolImages("screenshot", "снимок", [Sample()]) }
+        };
+
+        var prepared = ApiContextLimiter.Prepare(messages);
+
+        Assert.Equal(JsonValueKind.Array, prepared[0].Content!.Value.ValueKind);
+        Assert.Equal(JsonValueKind.Array, prepared[3].Content!.Value.ValueKind);
+    }
+
     [Fact]
     public void Editing_a_message_keeps_its_images()
     {

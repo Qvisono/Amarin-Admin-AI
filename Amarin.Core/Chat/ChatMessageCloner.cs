@@ -8,7 +8,8 @@ internal static class ChatMessageCloner
         Content = ChatContent.Clone(message.Content),
         ToolCalls = message.ToolCalls?.ToList(),
         ToolCallId = message.ToolCallId,
-        Name = message.Name
+        Name = message.Name,
+        ReplayBlocks = message.ReplayBlocks
     };
 
     public static List<ChatMessage> CloneAll(IEnumerable<ChatMessage> messages)

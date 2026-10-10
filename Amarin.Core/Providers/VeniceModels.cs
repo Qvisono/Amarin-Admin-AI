@@ -161,8 +161,13 @@ public sealed class VeniceUsage
     /// (<see cref="UsageAccounting"/>). Venice кладёт цену отдельным полем <c>cost</c> рядом,
     /// объектом с двумя валютами.
     /// </summary>
+    /// <remarks>
+    /// Изменяемое: у провайдера, который цену не называет, её вписывает клиент по каталогу
+    /// (<c>VeniceClient.RecordCost</c>), чтобы <see cref="ChatCompletionResponse.ReportedCost"/>
+    /// читали все одинаково.
+    /// </remarks>
     [JsonPropertyName("cost")]
-    public decimal? Cost { get; init; }
+    public decimal? Cost { get; set; }
 }
 
 public sealed class VeniceParameters
@@ -239,6 +244,19 @@ public sealed class ChatMessage
     [JsonPropertyName("name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Name { get; init; }
+
+    /// <summary>
+    /// Блоки ответа, которые провайдер просит вернуть ему без изменений: размышление Anthropic
+    /// с подписью. Без них модель посреди раунда инструментов теряет ход своих мыслей.
+    /// </summary>
+    /// <remarks>
+    /// Не сериализуется ни в файл чата, ни в тело OpenAI-совместимого запроса: подпись нужна
+    /// только до конца раунда, другим серверам поле незнакомо, а чат, открытый заново,
+    /// продолжается и без неё — Anthropic такое допускает. Кто копирует сообщение, обязан
+    /// переносить и это поле (<see cref="ChatMessageCloner"/>, <see cref="ApiContextLimiter"/>).
+    /// </remarks>
+    [JsonIgnore]
+    public JsonElement? ReplayBlocks { get; init; }
 }
 
 public sealed class ToolCall
@@ -446,9 +464,15 @@ public sealed class StreamedChatCompletion
     /// </summary>
     public int PromptTokens { get; init; }
 
+    /// <summary>Токены ответа по счёту провайдера. Ноль — не сообщил.</summary>
+    public int CompletionTokens { get; init; }
+
     public int TotalTokens { get; init; }
 
     public string Model { get; init; } = "";
+
+    /// <summary>Блоки, которые провайдер просит вернуть без изменений (<see cref="ChatMessage.ReplayBlocks"/>).</summary>
+    public JsonElement? ReplayBlocks { get; init; }
 }
 
 public sealed class VeniceModelsListResponse
@@ -615,6 +639,14 @@ public sealed class VeniceModelCapabilities
 
     [JsonPropertyName("supportsVision")]
     public bool SupportsVision { get; init; }
+
+    /// <summary>
+    /// Какие режимы размышления модель принимает (<c>adaptive</c>, <c>enabled</c>,
+    /// <c>disabled</c>, <c>between_tools</c>) — так их называет каталог Anthropic. <c>null</c> —
+    /// каталог не сказал.
+    /// </summary>
+    [JsonPropertyName("thinkingModes")]
+    public List<string>? ThinkingModes { get; init; }
 
     [JsonPropertyName("quantization")]
     public string? Quantization { get; init; }

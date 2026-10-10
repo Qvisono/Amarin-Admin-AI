@@ -1025,7 +1025,11 @@ internal sealed partial class ChatEngine
                 Content = string.IsNullOrWhiteSpace(streamed.Text)
                     ? null
                     : ChatContent.Text(streamed.Text),
-                ToolCalls = streamed.ToolCalls
+                ToolCalls = streamed.ToolCalls,
+
+                // Размышление Anthropic с подписью: следующий запрос раунда обязан вернуть его
+                // как есть, иначе модель продолжит с вызовами, но без хода своих мыслей.
+                ReplayBlocks = streamed.ReplayBlocks
             };
             var stored = ChatMessageCloner.CloneForStorage(apiAssistant);
             messages.Add(stored);

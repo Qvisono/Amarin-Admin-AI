@@ -245,7 +245,8 @@ public sealed class ModelPickerPanelTests
             panel =>
             {
                 // Человек ушёл в столбец соседа...
-                Part(panel, "ProviderItems").Children.OfType<RadioButton>().Last().IsChecked = true;
+                Part(panel, "ProviderItems").Children.OfType<RadioButton>()
+                    .First(item => item.Content is TextBlock { Text: "OpenRouter" }).IsChecked = true;
                 panel.RebuildNow();
 
                 // ...и в этот миг доехал каталог, а хозяин пересказал плашке выбранную модель.

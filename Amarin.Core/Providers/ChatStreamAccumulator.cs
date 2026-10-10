@@ -89,6 +89,9 @@ internal sealed class ChatStreamAccumulator
     /// </summary>
     public int PromptTokens { get; private set; }
 
+    /// <summary>Токены ответа: по ним считается цена у провайдеров, которые её не называют.</summary>
+    public int CompletionTokens { get; private set; }
+
     public int TotalTokens { get; private set; }
 
     public bool Apply(ChatCompletionChunk chunk)
@@ -108,6 +111,11 @@ internal sealed class ChatStreamAccumulator
         if (chunk.Usage?.PromptTokens > 0)
         {
             PromptTokens = chunk.Usage.PromptTokens.Value;
+        }
+
+        if (chunk.Usage?.CompletionTokens > 0)
+        {
+            CompletionTokens = chunk.Usage.CompletionTokens.Value;
         }
 
         if (chunk.Usage?.TotalTokens > 0)
