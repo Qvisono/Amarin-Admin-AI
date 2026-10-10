@@ -22,9 +22,11 @@ asks you and waits for your answer.
 ## What it is
 
 A chat window on your desktop. It is a single `.exe` that needs no installation. Answers come from
-[Venice.ai](https://venice.ai) and [OpenRouter](https://openrouter.ai) models, paid with your own
-key. You can use both services at once and give different tasks to different models. Conversations
-stay on your disk.
+the models of the services you choose, paid with your own key: [Venice.ai](https://venice.ai),
+[OpenRouter](https://openrouter.ai), or directly OpenAI, Anthropic (Claude), Google Gemini, xAI
+(Grok), DeepSeek, Kimi, Mistral, Z.ai (GLM), Qwen and Groq. A reseller or gateway with an
+OpenAI- or Anthropic-compatible API works too: give the program its address. You can use several
+services at once and give different tasks to different models. Conversations stay on your disk.
 
 Unlike a chat in the browser, the model here does more than write text. It has about forty tools
 on this computer: PowerShell, the registry, services and scheduled tasks, disks and SMART, the
@@ -109,14 +111,20 @@ surprise.</sup>
 page has one file, `Amarin-Admin-AI-v<version>-win-x64.exe`, and `SHA256SUMS` with its checksum.
 You don't need to install .NET: it is built in.
 
-**2. Give the program a key.** A Venice key, an OpenRouter key or both will do. Paste them into
-**Settings → Keys & spending**. The key is stored on disk encrypted by Windows, so only your user
-account can read it. You can add as many keys as you like, name them and assign each task its own
-key, and a key's menu sends it to another profile on this computer. The same page shows the
-account balances and a chart of spending by day.
+**2. Give the program a key.** A key from any of the services above will do. Paste it into
+**Settings → Keys & spending → Add key**; for most services the program recognizes the key and
+picks the service by itself. For a reseller or gateway, choose **Custom server** and paste its
+address: the program finds out which protocol it speaks without running a model. The key is
+stored on disk encrypted by Windows, so only your user account can read it. You can add as many
+keys as you like, name them and assign each task its own key, and a key's menu sends it to another
+profile on this computer. If a key came as a package of tokens, set its limit in the key's menu
+and the program shows what's left. The same page shows the account balances and a chart of
+spending by day; for services that don't report prices, the program estimates the cost from the
+tokens used.
 
-If you don't want the program to store the key, set an environment variable instead. The program
-reads it at startup and never saves it anywhere.
+If you don't want the program to store a Venice or OpenRouter key, set an environment variable
+instead. The program reads it at startup and never saves it anywhere. Keys of other services are
+not read from the environment, so one set for another program never pays for this one.
 
 ```powershell
 [Environment]::SetEnvironmentVariable('VENICE_API_KEY', 'your-key-here', 'User')
