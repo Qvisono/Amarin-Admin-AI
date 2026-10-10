@@ -79,6 +79,30 @@ public sealed class ProviderCatalogParsingTests
         Assert.Equal(0.5m, model.ModelSpec.Pricing.Output!.Usd);
     }
 
+    /// <summary>
+    /// OpenRouter называет уровни размышления модели сам. Зашитые low/medium/high отдавали
+    /// <c>deepseek-v4-flash-0731</c> уровень medium, которого у неё нет.
+    /// </summary>
+    [Fact]
+    public void OpenRouter_levels_come_from_the_catalog_in_scale_order()
+    {
+        var response = System.Text.Json.JsonSerializer.Deserialize(
+            """
+            {"data":[
+              {"id":"deepseek/deepseek-v4-flash-0731","supported_parameters":["tools","reasoning"],
+               "reasoning":{"supported_efforts":["max","LOW","high"],"default_effort":"high"}},
+              {"id":"x-ai/grok-4.7","supported_parameters":["tools","reasoning"]}
+            ]}
+            """,
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!;
+
+        var models = OpenRouterMapper.ToModels(response);
+
+        Assert.Equal(["low", "high", "max"], models[0].ModelSpec!.Capabilities!.ReasoningEffortOptions!);
+        Assert.Equal("high", models[0].ModelSpec!.Capabilities!.DefaultReasoningEffort);
+        Assert.Equal(["low", "medium", "high"], models[1].ModelSpec!.Capabilities!.ReasoningEffortOptions!);
+    }
+
     [Theory]
     [InlineData("""{"data":[{"type":"model","id":"claude-haiku-5-5"}]}""", WireProtocol.AnthropicMessages)]
     [InlineData("""{"object":"list","data":[{"id":"gpt-6-sol","object":"model"}]}""", WireProtocol.OpenAiChat)]

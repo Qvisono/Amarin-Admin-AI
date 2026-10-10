@@ -21,7 +21,10 @@ public sealed class ReasoningPolicyTests
         Assert.True(ReasoningPolicy.HasNoneOption(model));
         Assert.Equal("medium", ReasoningPolicy.ClampEffort(null, model));
         Assert.Equal("max", ReasoningPolicy.ClampEffort("MAX", model));
-        Assert.Equal("medium", ReasoningPolicy.ClampEffort("xhigh", model));
+
+        // Ближайший по шкале, при равенстве нижний, — а не заявленный моделью medium: человек
+        // просил думать много, и уровень вдвое ниже был бы уже другим выбором.
+        Assert.Equal("high", ReasoningPolicy.ClampEffort("xhigh", model));
     }
 
     [Fact]
@@ -29,7 +32,30 @@ public sealed class ReasoningPolicyTests
     {
         var model = Model(supportsEffort: true, options: null, defaultEffort: null);
         Assert.Equal(["low", "medium", "high"], ReasoningPolicy.VisibleEffortOptions(model));
-        Assert.Equal("medium", ReasoningPolicy.ClampEffort("max", model));
+        Assert.Equal("high", ReasoningPolicy.ClampEffort("max", model));
+    }
+
+    /// <summary>
+    /// У <c>deepseek-v4-flash-0731</c> уровни low, high и max, а заводское — medium. До 1.34.0
+    /// промах отдавал уровень, заявленный моделью (high), — то есть дороже, чем просили.
+    /// </summary>
+    [Fact]
+    public void A_missing_level_becomes_the_nearest_one_and_the_lower_on_a_tie()
+    {
+        var model = Model(supportsEffort: true, options: ["low", "high", "max"], defaultEffort: "high");
+
+        Assert.Equal("low", ReasoningPolicy.ClampEffort("medium", model));
+        Assert.Equal("low", ReasoningPolicy.ClampEffort("minimal", model));
+        Assert.Equal("high", ReasoningPolicy.ClampEffort("xhigh", model));
+    }
+
+    /// <summary>Незнакомое шкале слово ближайшего не имеет — остаётся заявленный уровень модели.</summary>
+    [Fact]
+    public void An_unknown_word_still_takes_the_declared_level()
+    {
+        var model = Model(supportsEffort: true, options: ["low", "high", "max"], defaultEffort: "high");
+
+        Assert.Equal("high", ReasoningPolicy.ClampEffort("turbo", model));
     }
 
     [Fact]
@@ -64,7 +90,7 @@ public sealed class ReasoningPolicyTests
 
         var wire = ReasoningPolicy.ToWire(claude, new ReasoningChoice(false, "xhigh"));
         Assert.Null(wire.DisableThinking);
-        Assert.Equal("medium", wire.ReasoningEffort);
+        Assert.Equal("high", wire.ReasoningEffort);
     }
 
     [Fact]

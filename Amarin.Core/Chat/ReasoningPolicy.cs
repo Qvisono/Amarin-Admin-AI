@@ -204,6 +204,16 @@ internal static class ReasoningPolicy
         return false;
     }
 
+    /// <summary>Уровни размышления по возрастанию — по этой шкале ищется ближайший.</summary>
+    private static readonly string[] EffortScale = ["minimal", "low", "medium", "high", "xhigh", "max"];
+
+    /// <summary>Место уровня на шкале; незнакомый — в конце.</summary>
+    public static int EffortRank(string? effort)
+    {
+        var index = Array.FindIndex(EffortScale, level => level.Equals(effort?.Trim(), StringComparison.OrdinalIgnoreCase));
+        return index < 0 ? EffortScale.Length : index;
+    }
+
     public static string? ClampEffort(string? requested, VeniceModelInfo? model, bool withTools = false)
     {
         var options = VisibleEffortOptions(model, withTools);
@@ -218,6 +228,14 @@ internal static class ReasoningPolicy
             if (match is not null)
             {
                 return match;
+            }
+
+            // Просимого уровня у модели нет — ближайший по шкале, при равенстве нижний: «medium»
+            // у модели с low/high/max становится low, а не дорогим high, который заявлен у неё
+            // уровнем по умолчанию.
+            if (Nearest(options, requested) is { } nearest)
+            {
+                return nearest;
             }
         }
 
@@ -242,6 +260,35 @@ internal static class ReasoningPolicy
         }
 
         return options[0];
+    }
+
+    private static string? Nearest(IReadOnlyList<string> options, string requested)
+    {
+        var wanted = EffortRank(requested);
+        if (wanted >= EffortScale.Length)
+        {
+            return null;
+        }
+
+        string? best = null;
+        var bestDistance = int.MaxValue;
+        foreach (var option in options)
+        {
+            var rank = EffortRank(option);
+            if (rank >= EffortScale.Length)
+            {
+                continue;
+            }
+
+            var distance = Math.Abs(rank - wanted);
+            if (distance < bestDistance || (distance == bestDistance && best is not null && rank < EffortRank(best)))
+            {
+                best = option;
+                bestDistance = distance;
+            }
+        }
+
+        return best;
     }
 
     public static ReasoningWire ToWire(

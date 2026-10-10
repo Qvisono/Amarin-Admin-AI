@@ -30,17 +30,30 @@ internal sealed class VeniceModelListCache
     /// </summary>
     internal static readonly TimeSpan DefaultLoadTimeout = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// Сколько список ждёт книгу цен. Недолго: без цен список всё равно полезен, а файл книги
+    /// с прошлого запуска читается мгновенно.
+    /// </summary>
+    private static readonly TimeSpan PriceWait = TimeSpan.FromSeconds(5);
+
     private readonly VeniceClient _venice;
     private readonly ApiKeyProvider? _keys;
+    private readonly ModelPriceBook? _prices;
     private readonly TimeSpan _loadTimeout;
     private readonly Dictionary<LlmProvider, Entry> _entries = [];
     private readonly Lock _entriesGate = new();
 
+    /// <param name="prices">Цены прямых провайдеров, которые свой список их не называет.</param>
     /// <param name="loadTimeout">Срок загрузки — параметром, чтобы тест не ждал полминуты.</param>
-    public VeniceModelListCache(VeniceClient venice, ApiKeyProvider? keys = null, TimeSpan? loadTimeout = null)
+    public VeniceModelListCache(
+        VeniceClient venice,
+        ApiKeyProvider? keys = null,
+        TimeSpan? loadTimeout = null,
+        ModelPriceBook? prices = null)
     {
         _venice = venice;
         _keys = keys;
+        _prices = prices;
         _loadTimeout = loadTimeout ?? DefaultLoadTimeout;
     }
 
@@ -75,7 +88,7 @@ internal sealed class VeniceModelListCache
             return hit;
         }
 
-        foreach (var spec in ProviderSpec.All)
+        foreach (var spec in _keys?.Providers ?? ProviderSpec.All)
         {
             if (spec.Provider != provider &&
                 ReasoningPolicy.Find(CachedFor(spec.Provider), id) is { } other)
@@ -155,8 +168,27 @@ internal sealed class VeniceModelListCache
         using var deadline = new CancellationTokenSource(_loadTimeout);
         try
         {
+            // Книгу цен спрашивают только ради провайдера, которому она нужна: у человека с
+            // одним ключом Venice программа в OpenRouter не ходит.
+            var prices = _prices is not null && ModelPriceBook.Covers(provider) ? _prices : null;
+            var pricesLoading = prices?.EnsureLoadedAsync() ?? Task.CompletedTask;
+
             var credential = _keys?.DefaultFor(provider);
             var list = await _venice.ListTextModelsAsync(credential, deadline.Token).ConfigureAwait(false);
+            if (prices is not null)
+            {
+                try
+                {
+                    await pricesLoading.WaitAsync(PriceWait, deadline.Token).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    // Книга опоздала — список без цен, следующая загрузка их возьмёт.
+                }
+
+                list = prices.Enrich(provider, list);
+            }
+
             var models = VeniceModelCatalog.FilterAgentic(list);
 
             lock (entry.Gate)
@@ -169,7 +201,7 @@ internal sealed class VeniceModelListCache
         }
         catch (Exception exception)
         {
-            var error = ProviderErrorText.ForCatalog(exception, ProviderSpec.For(provider).Name);
+            var error = ProviderErrorText.ForCatalog(exception, (_keys?.SpecFor(provider) ?? ProviderSpec.For(provider)).Name);
             lock (entry.Gate)
             {
                 entry.Error = error;

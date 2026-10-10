@@ -136,7 +136,10 @@ internal static class AppComposition
         var http = HttpClients.Create(TimeSpan.FromMinutes(5));
         var downloadHttp = HttpClients.Create(TimeSpan.FromMinutes(15), browserIdentity: true);
         var venice = new VeniceClient(http, options);
-        var models = new VeniceModelListCache(venice, keys);
+
+        // Свой клиент без ключа: каталог цен открыт, и ни один ключ туда уезжать не должен.
+        var prices = new ModelPriceBook(HttpClients.Create(HttpClients.ServiceTimeout), ModelPriceBook.DefaultCachePath);
+        var models = new VeniceModelListCache(venice, keys, prices: prices);
         venice.ResolveModelInfo = models.Find;
 
         // Всё, что читает настройки, читает их с диска того профиля, что открыт сейчас: смена

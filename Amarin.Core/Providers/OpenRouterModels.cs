@@ -43,6 +43,23 @@ internal sealed class OpenRouterModel
     /// </summary>
     [JsonPropertyName("pricing")]
     public OpenRouterPricing? Pricing { get; init; }
+
+    /// <summary>
+    /// Какие уровни размышления модель принимает и какой у неё свой. Появилось в каталоге в
+    /// 2026-м: прежде уровни приходилось знать (low/medium/high у всех), и модель, у которой
+    /// <c>medium</c> нет, молча получала соседний.
+    /// </summary>
+    [JsonPropertyName("reasoning")]
+    public OpenRouterReasoningInfo? Reasoning { get; init; }
+}
+
+internal sealed class OpenRouterReasoningInfo
+{
+    [JsonPropertyName("supported_efforts")]
+    public List<string>? SupportedEfforts { get; init; }
+
+    [JsonPropertyName("default_effort")]
+    public string? DefaultEffort { get; init; }
 }
 
 internal sealed class OpenRouterPricing
@@ -181,12 +198,34 @@ internal static class OpenRouterMapper
                     // Явное «да» здесь нужно, чтобы решение не свалилось на разбор имени
                     // модели: имена у OpenRouter те же, а поведение другое.
                     SupportsReasoningEffortWithTools = true,
-                    ReasoningEffortOptions = effort ? EffortOptions : null,
+                    ReasoningEffortOptions = effort ? Efforts(model) : null,
+                    DefaultReasoningEffort = model.Reasoning?.DefaultEffort,
                     SupportsVision = Modality(model, "image"),
                     OptimizedForCode = LooksLikeCode(model)
                 }
             }
         };
+    }
+
+    /// <summary>
+    /// Уровни размышления модели — из каталога, по возрастанию; не назвал — общие три.
+    /// </summary>
+    /// <remarks>
+    /// У <c>deepseek-v4-flash-0731</c> уровней три: low, high, max — без medium. Зашитые
+    /// low/medium/high отдали бы ей medium, который она не знает.
+    /// </remarks>
+    private static List<string> Efforts(OpenRouterModel model)
+    {
+        if (model.Reasoning?.SupportedEfforts is not { Count: > 0 } supported)
+        {
+            return EffortOptions;
+        }
+
+        return [.. supported
+            .Where(level => !string.IsNullOrWhiteSpace(level))
+            .Select(level => level.Trim().ToLowerInvariant())
+            .Distinct()
+            .OrderBy(ReasoningPolicy.EffortRank)];
     }
 
     /// <summary>
