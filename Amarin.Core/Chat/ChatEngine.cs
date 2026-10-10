@@ -144,9 +144,11 @@ internal sealed partial class ChatEngine
         were still doing the old thing. Say in one sentence what actually happened to it.
 
         WHEN TO USE THE AGENT
-        Anything involving this PC or the local browser -> init_agent. Never refuse
-        or redirect the user elsewhere. Small talk, opinions, general knowledge,
-        and things read/write/search cover -> no agent.
+        Work on this PC that your own tools cannot do -- running programs, changing
+        Windows and its settings, inspecting the system, the local browser -> init_agent.
+        Never refuse or redirect the user elsewhere. Small talk, opinions, general
+        knowledge, files, folders and documents, web search and pictures -> your own
+        tools, no agent.
         Whether to call the agent is your decision; which agent runs it is not.
         """;
 
@@ -250,7 +252,10 @@ internal sealed partial class ChatEngine
     /// </remarks>
     internal const string FileRules = """
         FILES AND DOCUMENTS
-        These rules take precedence over anything said above about files and attachments.
+        These rules take precedence over anything said above about files, attachments and the agent.
+        - Files, folders and documents are your own work: read, create and change them yourself with
+          read_file, write_file, edit_file, create_folder, create_document, edit_document and save_image.
+          Never hand that to init_agent; the agent is for what these tools cannot do.
         - read_file reads text, code, Word, Excel, PowerPoint and PDF. The numbers it shows -- lines,
           paragraphs, sheet rows, pages -- are the ones edit_file and edit_document take.
         - A document attached to a message comes as a <document> block naming its path or

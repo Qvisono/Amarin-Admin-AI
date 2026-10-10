@@ -309,6 +309,36 @@ public sealed class DeferredChatTests
             ChatEngine.DateLine(new DateTimeOffset(2026, 10, 9, 8, 0, 0, TimeSpan.FromHours(-5))));
     }
 
+    /// <summary>
+    /// «Создай Excel» уходило агенту: техпромпт отдавал ему «всё, что касается этого ПК», а из
+    /// исключений знал только прежние read/write/search. Правило «файлы — твоя работа» стоит в
+    /// блоке файлов, который доходит и до сохранённого человеком техпромпта, и в описании init_agent.
+    /// </summary>
+    [Fact]
+    public void File_work_stays_with_the_chat_even_under_a_saved_old_tech_prompt()
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.TechAiPrompt = LegacyTechPrompts.V18;
+        var options = new AgentOptions { ApiKey = "test", BaseUrl = "https://api.venice.ai/api/v1", Model = "grok-4-6", MaxToolRounds = 3 };
+        var engine = new ChatEngine(
+            new VeniceClient(new HttpClient { BaseAddress = new Uri("https://api.venice.ai/api/v1/") }, options),
+            options,
+            () => settings,
+            new Amarin.Tools.ToolRegistry([]),
+            agents: null);
+
+        var prompt = engine.CurrentSystemPrompt(new ChatSession());
+
+        Assert.Contains("Anything involving this PC", prompt, StringComparison.Ordinal);
+        Assert.Contains("Never hand that to init_agent", prompt, StringComparison.Ordinal);
+        Assert.True(
+            prompt.IndexOf("Never hand that to init_agent", StringComparison.Ordinal) >
+            prompt.IndexOf("Anything involving this PC", StringComparison.Ordinal),
+            "the file rule must come after the old agent rule it overrides");
+        Assert.Contains("Not for files, folders and documents", new Amarin.Tools.InitAgentTool(new AgentSlotLimiter(), null!).Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Anything involving this PC", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_seal_edited_by_hand_into_garbage_does_not_verify_and_does_not_throw()
     {
