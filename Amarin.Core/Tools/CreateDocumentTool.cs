@@ -45,6 +45,8 @@ public sealed class CreateDocumentTool : ITool
         "\\pagebreak, and pictures as ![caption](amarin-image:handle) or ![caption](C:\\full\\path.png). For .xlsx give " +
         "sheets: [{name, rows: [[...], ...]}] (first row is the header; numbers, dates YYYY-MM-DD, 12% and =formulas " +
         "keep their type), or Markdown tables, or CSV lines in content. An existing file is kept unless overwrite=true. " +
+        "Too big for one call: create it with the first part and add the rest with edit_document append (Word, PDF) " +
+        "or append_rows (Excel). A table wider than the page is printed in blocks of columns. " +
         "Relative paths go to the user's Downloads folder.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
@@ -94,10 +96,11 @@ public sealed class CreateDocumentTool : ITool
                 return ToolResult.Fail(stale);
             }
 
+            var aiDocument = _state?.IsAiDocument(path) == true;
             var result = await Task.Run(() => Create(path, arguments), cancellationToken).ConfigureAwait(false);
             if (result.Success)
             {
-                _state?.NoteWritten(session, path);
+                _state?.NoteWritten(session, path, aiDocument);
             }
 
             return result;
@@ -112,7 +115,7 @@ public sealed class CreateDocumentTool : ITool
         var overwrite = !createNew && FileToolPaths.Flag(arguments, "overwrite");
         if (File.Exists(path) && !overwrite)
         {
-            return ToolResult.Fail($"{path} already exists. Pick another name, or set overwrite=true to replace it (the user will be asked).");
+            return ToolResult.Fail($"{path} already exists. Pick another name, or set overwrite=true to replace it.");
         }
 
         if (Directory.Exists(path))

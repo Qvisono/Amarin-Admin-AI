@@ -86,7 +86,18 @@ internal sealed class WordBuilder(MainDocumentPart main, Func<string, byte[]?> i
                 AddList(elements, list, level: 0);
                 break;
             case DocTable table:
-                elements.Add(Table(table));
+                var blocks = MarkdownBlocks.ColumnBlocks(table, ColumnWidths(table), ContentWidthPoints);
+                for (var b = 0; b < blocks.Count; b++)
+                {
+                    // Две таблицы подряд Word склеивает в одну: между блоками нужен абзац.
+                    if (b > 0)
+                    {
+                        elements.Add(new W.Paragraph());
+                    }
+
+                    elements.Add(Table(blocks[b]));
+                }
+
                 break;
             case DocCode code:
                 foreach (var line in code.Text.Split('\n'))
@@ -248,6 +259,28 @@ internal sealed class WordBuilder(MainDocumentPart main, Func<string, byte[]?> i
         }
 
         return run;
+    }
+
+    /// <summary>Ширина текста страницы в пунктах: 9638 твипов между полями A4.</summary>
+    private const double ContentWidthPoints = 9638 / 20.0;
+
+    /// <summary>Уже этого столбец в Word не читается: буква на строку.</summary>
+    private const double MinColumnPoints = 30;
+
+    /// <summary>Прикидка ширины столбцов по самому длинному тексту — чтобы решить, помещается ли таблица.</summary>
+    private static double[] ColumnWidths(DocTable table)
+    {
+        var columns = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
+        var widths = Enumerable.Repeat(MinColumnPoints, columns).ToArray();
+        foreach (var row in table.Rows)
+        {
+            for (var c = 0; c < row.Count; c++)
+            {
+                widths[c] = Math.Min(ContentWidthPoints, Math.Max(widths[c], (MarkdownBlocks.PlainText(row[c]).Length * 6.0) + 11));
+            }
+        }
+
+        return widths;
     }
 
     private W.Table Table(DocTable table)

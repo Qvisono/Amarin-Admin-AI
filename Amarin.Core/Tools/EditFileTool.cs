@@ -69,10 +69,11 @@ public sealed class EditFileTool : ITool
                 return ToolResult.Fail(stale);
             }
 
+            var aiDocument = _state?.IsAiDocument(path) == true;
             var result = await Task.Run(() => Edit(path, arguments), cancellationToken).ConfigureAwait(false);
             if (result.Success)
             {
-                _state?.NoteWritten(session, path);
+                _state?.NoteWritten(session, path, aiDocument);
             }
 
             return result;

@@ -417,25 +417,59 @@ internal sealed class PdfLayout
         }
     }
 
+    private const double TableSize = 9.5;
+
+    /// <summary>Уже этого столбец не читается: от неё и считается, сколько столбцов помещается на странице.</summary>
+    internal const double MinColumn = 36;
+    private const double TablePadding = 4;
+
+    /// <summary>Таблица; шире страницы — блоками столбцов, один под другим.</summary>
     private void Table(DocTable table, double indent)
     {
-        const double size = 9.5;
-        const double padding = 4;
-        var columns = table.Rows.Max(row => row.Count);
-        if (columns == 0)
+        var available = ContentWidth - indent;
+        var natural = NaturalWidths(table, available);
+        if (natural.Length == 0)
         {
             return;
         }
 
-        var available = ContentWidth - indent;
+        var blocks = MarkdownBlocks.ColumnBlocks(table, [.. natural.Select(width => Math.Max(width, MinColumn))], available);
+        for (var b = 0; b < blocks.Count; b++)
+        {
+            if (b > 0)
+            {
+                _y -= TableSize * Leading;
+            }
+
+            TableBlock(blocks[b], indent);
+        }
+    }
+
+    private double[] NaturalWidths(DocTable table, double available)
+    {
+        var columns = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.Count);
         var natural = new double[columns];
         foreach (var row in table.Rows)
         {
             for (var c = 0; c < row.Count; c++)
             {
                 var text = MarkdownBlocks.PlainText(row[c]);
-                natural[c] = Math.Max(natural[c], Math.Min(available, NaturalWidth(text, size) + (2 * padding)));
+                natural[c] = Math.Max(natural[c], Math.Min(available, NaturalWidth(text, TableSize) + (2 * TablePadding)));
             }
+        }
+
+        return natural;
+    }
+
+    private void TableBlock(DocTable table, double indent)
+    {
+        const double size = TableSize;
+        const double padding = TablePadding;
+        var available = ContentWidth - indent;
+        var natural = NaturalWidths(table, available);
+        if (natural.Length == 0)
+        {
+            return;
         }
 
         var widths = Fit(natural, available);
@@ -525,7 +559,7 @@ internal sealed class PdfLayout
     /// </summary>
     internal static double[] Fit(double[] natural, double available)
     {
-        var widths = natural.Select(width => Math.Max(width, 36)).ToArray();
+        var widths = natural.Select(width => Math.Max(width, MinColumn)).ToArray();
         if (widths.Sum() <= available)
         {
             return widths;
@@ -546,7 +580,7 @@ internal sealed class PdfLayout
             {
                 foreach (var i in flexible)
                 {
-                    widths[i] = Math.Max(36, share);
+                    widths[i] = Math.Max(MinColumn, share);
                 }
 
                 break;

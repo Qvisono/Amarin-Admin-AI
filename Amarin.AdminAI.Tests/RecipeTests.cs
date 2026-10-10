@@ -196,7 +196,8 @@ public sealed class RecipeTests : IDisposable
     {
         Name = "Заметка",
         Tool = "write_file",
-        Arguments = """{"path":"C:\\Temp\\{{name}}.txt","content":"x"}""",
+        // Не документ: новый документ ИИ создаёт без вопроса, а здесь нужен вопрос.
+        Arguments = """{"path":"C:\\Temp\\{{name}}.ini","content":"x"}""",
         Parameters = [new RecipeParameter("name", "note")]
     };
 
@@ -210,7 +211,7 @@ public sealed class RecipeTests : IDisposable
 
         Assert.True(outcome.Ran);
         Assert.Equal(ApprovalSource.Auto, outcome.Approval);
-        Assert.Equal(["C:\\Temp\\note.txt", "C:\\Temp\\other.txt"], ran.Select(args => args.GetProperty("path").GetString()));
+        Assert.Equal(["C:\\Temp\\note.ini", "C:\\Temp\\other.ini"], ran.Select(args => args.GetProperty("path").GetString()));
     }
 
     [Fact]

@@ -146,8 +146,11 @@ The model works on a real system, so it has limits, and they are on by default.
 **Dangerous actions need your approval.** Registry changes, service management, installing and
 removing software, firewall rules and disk cleanup run only after you agree, and the request says
 exactly what will change. If you refuse, the model sees the refusal and looks for another way. The
-chat's own tools go through the same checks as the agent's: only a new file in Downloads or on the
-Desktop is written without asking, and nothing can write into the program's own data folder.
+chat's own tools go through the same checks as the agent's. Documents the AI makes are the one
+thing it does without asking: a new document, picture or folder outside the Windows, program and
+application-data folders, other users' profiles and network shares, and later changes to the
+documents it made. Your own files, scripts and programs are still asked about, and nothing can
+write into the program's own data folder.
 
 **You decide how much it can do.** **Settings → Security** has four access modes: normal, ask
 about everything, read only, and approve everything automatically. You can also turn off

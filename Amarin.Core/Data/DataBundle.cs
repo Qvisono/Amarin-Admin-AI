@@ -296,8 +296,9 @@ public static class DataBundle
 
         // Отложенные задачи — этого компьютера: «перезагрузи при аптайме» на другом ПК не к месту,
         // а заранее одобренные команды из чужого архива не должны выполниться без вопроса. Ключ
-        // печати и снимок открытых программ — тем более.
-        if (name is DeferredBook.FileName or DeferredBook.KeyName or SessionSnapshot.FileName)
+        // печати и снимок открытых программ — тем более. Книга документов ИИ — пути этой машины, и
+        // чужая разрешила бы молча править файлы, которых ИИ здесь не создавал.
+        if (name is DeferredBook.FileName or DeferredBook.KeyName or SessionSnapshot.FileName or AiDocumentBook.FileName)
         {
             return DataCategory.None;
         }

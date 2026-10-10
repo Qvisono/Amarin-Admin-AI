@@ -38,7 +38,10 @@ public sealed class EditDocumentTool : ITool
         "paragraph, content}, {op:\"set\", paragraph, content}, {op:\"delete\", paragraph, to}, {op:\"append\", content} - " +
         "content is Markdown. Excel (.xlsx): {op:\"set_cells\", sheet, cells:[{cell:\"B2\", value:\"12.5\"}, {cell:\"C9\", value:\"=SUM(C2:C8)\"}]}, " +
         "{op:\"append_rows\", sheet, rows}, {op:\"add_sheet\", name, rows}, {op:\"rename_sheet\", sheet, name}, " +
-        "{op:\"clear\", sheet, range}. PDF: {op:\"keep_pages\", pages:\"1-3,7\"}, {op:\"append_pdf\", files:[...]}. " +
+        "{op:\"clear\", sheet, range}. PDF: {op:\"append\", content} adds Markdown as new pages at the end, " +
+        "{op:\"keep_pages\", pages:\"1-3,7\"}, {op:\"append_pdf\", files:[...]}. " +
+        "A document too big for one call is built in parts: create it with the first part, then append the rest " +
+        "(append for Word and PDF, append_rows for Excel) call by call into the same file. " +
         "save_as writes the result to a new file and keeps the original.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
@@ -130,10 +133,11 @@ public sealed class EditDocumentTool : ITool
                 return ToolResult.Fail(stale);
             }
 
+            var aiDocument = _state?.IsAiDocument(target) == true;
             var result = await Task.Run(() => Edit(source, target, arguments), cancellationToken).ConfigureAwait(false);
             if (result.Success)
             {
-                _state?.NoteWritten(session, target);
+                _state?.NoteWritten(session, target, aiDocument);
             }
 
             return result;
@@ -164,7 +168,7 @@ public sealed class EditDocumentTool : ITool
             overwrite = !FileToolPaths.Flag(arguments, SafeZone.CreateNewFlag) && FileToolPaths.Flag(arguments, "overwrite");
             if (File.Exists(target) && !overwrite)
             {
-                return ToolResult.Fail($"{target} already exists. Pick another save_as name, or set overwrite=true (the user will be asked).");
+                return ToolResult.Fail($"{target} already exists. Pick another save_as name, or set overwrite=true.");
             }
 
             if (!string.Equals(Path.GetExtension(target), Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
@@ -327,6 +331,19 @@ public sealed class EditDocumentTool : ITool
             var op = Op(operation);
             switch (op)
             {
+                // Новые страницы в конец: так большой PDF собирается по частям в один файл, а не
+                // пачкой файлов, — одним вызовом его не написать, ответ модели на это не рассчитан.
+                case "append":
+                    var report = new PdfBuildReport();
+                    var added = PdfWriter.Render(MarkdownBlocks.Parse(Required(operation, "content", step)), DocumentImages.Resolve, report);
+                    bytes = PdfEditor.Append(bytes, [added]);
+                    foreach (var skipped in report.Skipped)
+                    {
+                        log.Append("Skipped: ").Append(skipped).Append('\n');
+                    }
+
+                    log.Append(step).Append(". appended ").Append(report.Pages).Append(" page(s), now ").Append(PdfEditor.PageCount(bytes)).Append(" pages\n");
+                    break;
                 case "keep_pages":
                     bytes = PdfEditor.KeepPages(bytes, Required(operation, "pages", step));
                     log.Append(step).Append(". kept pages, now ").Append(PdfEditor.PageCount(bytes)).Append('\n');
@@ -355,7 +372,7 @@ public sealed class EditDocumentTool : ITool
                     log.Append(step).Append(". appended ").Append(others.Count).Append(" file(s), now ").Append(PdfEditor.PageCount(bytes)).Append(" pages\n");
                     break;
                 default:
-                    throw new DocumentException($"Operation {step}: \"{op}\" is not a PDF operation. PDF takes keep_pages and append_pdf; to change its text, read it and make a new document with create_document.");
+                    throw new DocumentException($"Operation {step}: \"{op}\" is not a PDF operation. PDF takes append, keep_pages and append_pdf; to change its text, read it and make a new document with create_document.");
             }
         }
 

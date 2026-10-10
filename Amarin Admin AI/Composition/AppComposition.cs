@@ -156,7 +156,7 @@ internal static class AppComposition
         // запускают редко.
         // Что модель прочла в каждом чате и какой файл правится сейчас — одно на все файловые
         // инструменты: штамп чтения из read_file проверяет edit_file, замок держат все пишущие.
-        var fileState = new FileToolState();
+        var fileState = new FileToolState { Documents = scope.AiDocuments };
         var recipeTools = new Lazy<ToolRegistry>(() => new ToolRegistry(
         [
             .. AgentTools.Create(
@@ -229,18 +229,22 @@ internal static class AppComposition
         new CreateFolderTool(),
         new CreateDocumentTool(state),
         new EditDocumentTool(state),
-        new SaveImageTool()
+        new SaveImageTool(state)
     ];
 
     /// <summary>
-    /// Общая на процесс статика, которая смотрит на собранные службы: белый список загрузок и
-    /// отметки «только чтение» у инструментов MCP. Её читают инструменты и шлюз, переписывать
-    /// которые нельзя, поэтому она остаётся статикой — но ставится здесь, в одном месте.
+    /// Общая на процесс статика, которая смотрит на собранные службы: белый список загрузок,
+    /// отметки «только чтение» у инструментов MCP и документы, созданные ИИ. Её читают инструменты и
+    /// шлюз, переписывать которые нельзя, поэтому она остаётся статикой — но ставится здесь, в одном месте.
     /// </summary>
     public static void ApplyProcessWide(AppServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
         DownloadValidator.ConfigureAllowedDomains(services.Settings.DownloadAllowedDomains);
+
+        // Книга профиля, а не её снимок: смена профиля перекореняет ту же книгу на месте.
+        var documents = services.Profile.AiDocuments;
+        ToolGate.AiDocument = documents.Owns;
         if (services.Mcp is { } mcp)
         {
             ToolGate.McpReadOnly = name => mcp.ReadOnlyNames.Contains(name);

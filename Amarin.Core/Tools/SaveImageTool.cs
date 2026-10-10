@@ -13,6 +13,15 @@ namespace Amarin.Tools;
 /// </remarks>
 public sealed class SaveImageTool : ITool
 {
+    private readonly FileToolState? _state;
+
+    public SaveImageTool() : this(null)
+    {
+    }
+
+    /// <param name="state">Запоминает сохранённое документом ИИ: его перезапись потом не спрашивает человека.</param>
+    internal SaveImageTool(FileToolState? state) => _state = state;
+
     public string Name => "save_image";
 
     public string Description =>
@@ -35,7 +44,7 @@ public sealed class SaveImageTool : ITool
     public Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default) =>
         Task.Run(() => Save(arguments), cancellationToken);
 
-    private static ToolResult Save(JsonElement arguments)
+    private ToolResult Save(JsonElement arguments)
     {
         var handle = FileToolPaths.String(arguments, "image")?.Trim() ?? "";
         if (ChatImageRegistry.Find(handle) is not { } image)
@@ -55,9 +64,10 @@ public sealed class SaveImageTool : ITool
         }
 
         var overwrite = !FileToolPaths.Flag(arguments, SafeZone.CreateNewFlag) && FileToolPaths.Flag(arguments, "overwrite");
+        var aiDocument = _state?.IsAiDocument(path) == true;
         if (File.Exists(path) && !overwrite)
         {
-            return ToolResult.Fail($"{path} already exists. Pick another name, or set overwrite=true (the user will be asked).");
+            return ToolResult.Fail($"{path} already exists. Pick another name, or set overwrite=true.");
         }
 
         byte[] source;
@@ -90,6 +100,7 @@ public sealed class SaveImageTool : ITool
             return ToolResult.Fail($"The picture could not be written: {ex.Message}");
         }
 
+        _state?.NoteWritten(AgentRunScope.Current?.SessionId, path, aiDocument);
         return ToolResult.WithFile($"Saved the picture to {path} ({FileToolPaths.Size(bytes.Length)}).", FileToolPaths.Card(path));
     }
 

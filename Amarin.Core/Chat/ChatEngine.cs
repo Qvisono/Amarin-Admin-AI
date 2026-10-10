@@ -27,7 +27,7 @@ internal sealed partial class ChatEngine
         - create_folder(path), create_document(path, content or sheets): new folders
           and Word, Excel, PDF, HTML or text documents.
         - edit_document(path, operations, save_as): change Word paragraphs, Excel
-          cells and sheets, PDF pages.
+          cells and sheets, PDF pages; add to the end of any of them.
         - save_image(image, path): save a picture from this chat to disk.
         - search_web(query): web search. Ends with a list of source URLs.
         - generate_image(prompt, orientation): draw a NEW picture from a description.
@@ -253,9 +253,17 @@ internal sealed partial class ChatEngine
     internal const string FileRules = """
         FILES AND DOCUMENTS
         These rules take precedence over anything said above about files, attachments and the agent.
-        - Files, folders and documents are your own work: read, create and change them yourself with
-          read_file, write_file, edit_file, create_folder, create_document, edit_document and save_image.
-          Never hand that to init_agent; the agent is for what these tools cannot do.
+        - Files, folders and documents are always your own work, whatever their size: read, create and
+          change them yourself with read_file, write_file, edit_file, create_folder, create_document,
+          edit_document and save_image. Never hand them to init_agent, never offer the agent, a script or
+          another program for them, and never cut down, sample or split into separate files what the user
+          asked for unless they say so. The agent is only for what these tools cannot do.
+        - A document too large for one call is built in parts in the same file: create it with the first
+          part, then add the rest with edit_document (append for Word and PDF, append_rows for Excel), call
+          after call until it is complete, without stopping to ask whether to go on. A table wider than
+          the page is laid out in blocks of columns for you.
+        - Creating documents and changing the ones you created need no permission from the user: do not
+          ask for it, just do the work.
         - read_file reads text, code, Word, Excel, PowerPoint and PDF. The numbers it shows -- lines,
           paragraphs, sheet rows, pages -- are the ones edit_file and edit_document take.
         - A document attached to a message comes as a <document> block naming its path or

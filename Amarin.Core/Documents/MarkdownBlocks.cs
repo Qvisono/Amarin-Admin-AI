@@ -251,4 +251,45 @@ internal static class MarkdownBlocks
 
     /// <summary>Текст кусков без начертания — для подписей и поиска.</summary>
     public static string PlainText(IEnumerable<DocSpan> spans) => string.Concat(spans.Select(span => span.Text));
+
+    /// <summary>
+    /// Таблицу шире страницы — блоками столбцов, которые помещаются: первый столбец (подписи строк)
+    /// повторяется в каждом блоке. Помещается целиком — та же таблица.
+    /// </summary>
+    /// <remarks>
+    /// У столбца есть наименьшая читаемая ширина, и до этого таблица в сто столбцов просто уходила за
+    /// край страницы: в PDF всё правее обрезалось молча, в Word ячейки сжимались до буквы в строке.
+    /// </remarks>
+    /// <param name="widths">Ширина каждого столбца, уже не меньше наименьшей.</param>
+    internal static IReadOnlyList<DocTable> ColumnBlocks(DocTable table, IReadOnlyList<double> widths, double available)
+    {
+        var columns = widths.Count;
+        if (columns <= 2 || widths.Sum() <= available)
+        {
+            return [table];
+        }
+
+        var blocks = new List<DocTable>();
+        var start = 1;
+        while (start < columns)
+        {
+            var used = widths[0];
+            var end = start;
+
+            // Хотя бы один столбец в блоке, даже если вместе с подписями он шире страницы.
+            while (end < columns && (end == start || used + widths[end] <= available))
+            {
+                used += widths[end];
+                end++;
+            }
+
+            int[] keep = [0, .. Enumerable.Range(start, end - start)];
+            blocks.Add(new DocTable(
+                [.. table.Rows.Select(row => (IReadOnlyList<IReadOnlyList<DocSpan>>)[.. keep.Select(column => column < row.Count ? row[column] : [])])],
+                table.HasHeader));
+            start = end;
+        }
+
+        return blocks;
+    }
 }

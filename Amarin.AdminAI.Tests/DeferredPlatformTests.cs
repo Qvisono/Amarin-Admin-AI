@@ -330,9 +330,9 @@ public sealed class DeferredChatTests
         var prompt = engine.CurrentSystemPrompt(new ChatSession());
 
         Assert.Contains("Anything involving this PC", prompt, StringComparison.Ordinal);
-        Assert.Contains("Never hand that to init_agent", prompt, StringComparison.Ordinal);
+        Assert.Contains("Never hand them to init_agent", prompt, StringComparison.Ordinal);
         Assert.True(
-            prompt.IndexOf("Never hand that to init_agent", StringComparison.Ordinal) >
+            prompt.IndexOf("Never hand them to init_agent", StringComparison.Ordinal) >
             prompt.IndexOf("Anything involving this PC", StringComparison.Ordinal),
             "the file rule must come after the old agent rule it overrides");
         Assert.Contains("Not for files, folders and documents", new Amarin.Tools.InitAgentTool(new AgentSlotLimiter(), null!).Description, StringComparison.Ordinal);

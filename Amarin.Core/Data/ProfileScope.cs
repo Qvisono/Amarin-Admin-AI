@@ -22,6 +22,7 @@ internal sealed class ProfileScope
     private RecipeLibrary? _recipes;
     private ScheduleBook? _schedule;
     private DeferredBook? _deferred;
+    private AiDocumentBook? _aiDocuments;
     private HealthCache? _health;
     private MachineBook? _machines;
     private ChatTextIndex? _textIndex;
@@ -129,6 +130,9 @@ internal sealed class ProfileScope
         get => _deferred ??= new DeferredBook(DataRoot);
         init => _deferred = value;
     }
+
+    /// <summary>Документы, которые создал ИИ: их правка не спрашивает человека (1.33.0).</summary>
+    public AiDocumentBook AiDocuments => _aiDocuments ??= new AiDocumentBook(DataRoot);
 
     /// <summary>Последний снимок «Состояния ПК» (C4).</summary>
     public HealthCache Health
@@ -263,6 +267,7 @@ internal sealed class ProfileScope
         Recipes.UseRoot(dataRoot);
         Schedule.UseRoot(dataRoot);
         _deferred?.UseRoot(dataRoot);
+        _aiDocuments?.UseRoot(dataRoot);
         Health.UseRoot(dataRoot);
         Machines.UseRoot(dataRoot);
         Mcp?.UseRoot(dataRoot);

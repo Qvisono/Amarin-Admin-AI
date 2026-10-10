@@ -77,10 +77,11 @@ public sealed class WriteFileTool : ITool
                 return ToolResult.Fail(stale + " To change part of it, use edit_file.");
             }
 
+            var aiDocument = _state?.IsAiDocument(path) == true;
             var result = await WriteAsync(arguments, path, contentProp, cancellationToken).ConfigureAwait(false);
             if (result.Success)
             {
-                _state?.NoteWritten(session, path);
+                _state?.NoteWritten(session, path, aiDocument);
             }
 
             return result;

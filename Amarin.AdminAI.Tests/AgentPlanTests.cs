@@ -202,8 +202,9 @@ public sealed class AgentPlanTests
         var ran = new List<string>();
         var ui = new PlanUi(PlanDecision.Execute);
         var agent = CreateAgent(ui, ran, [
-            PlanRound(extra: WriteCall("w0", "C:\\\\Temp\\\\early.txt")),
-            Calls(WriteCall("w1", "C:\\\\Temp\\\\a.txt"), WriteCall("w2", "C:\\\\Temp\\\\b.txt")),
+            // Не документ: новый документ ИИ создаёт без вопроса, а здесь нужен вопрос.
+            PlanRound(extra: WriteCall("w0", "C:\\\\Temp\\\\early.ini")),
+            Calls(WriteCall("w1", "C:\\\\Temp\\\\a.ini"), WriteCall("w2", "C:\\\\Temp\\\\b.ini")),
             Final()
         ]);
 
@@ -211,9 +212,9 @@ public sealed class AgentPlanTests
 
         Assert.Single(ui.Plans);
         // Запись в фазе плана отклонена до шлюза: выполнились только два вызова после одобрения.
-        Assert.Equal(["write_file:C:\\Temp\\a.txt", "write_file:C:\\Temp\\b.txt"], ran);
+        Assert.Equal(["write_file:C:\\Temp\\a.ini", "write_file:C:\\Temp\\b.ini"], ran);
         var asked = Assert.Single(ui.Asked);
-        Assert.Contains("b.txt", asked.Arguments!.Value.GetRawText(), StringComparison.Ordinal);
+        Assert.Contains("b.ini", asked.Arguments!.Value.GetRawText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -223,7 +224,7 @@ public sealed class AgentPlanTests
         var ui = new PlanUi(PlanDecision.Execute);
         var agent = CreateAgent(ui, ran, [
             PlanRound(),
-            Calls(WriteCall("w1", "C:\\\\Temp\\\\a.txt")),
+            Calls(WriteCall("w1", "C:\\\\Temp\\\\a.ini")),
             Final()
         ]);
         agent.Guard = (_, _) => Task.FromResult(new SynGuardReport([false], null));
@@ -239,7 +240,7 @@ public sealed class AgentPlanTests
     {
         var ran = new List<string>();
         var ui = new PlanUi(PlanDecision.Cancel);
-        var agent = CreateAgent(ui, ran, [PlanRound(), Calls(WriteCall("w1", "C:\\\\Temp\\\\a.txt")), Final()]);
+        var agent = CreateAgent(ui, ran, [PlanRound(), Calls(WriteCall("w1", "C:\\\\Temp\\\\a.ini")), Final()]);
 
         var result = await agent.RunAsync("почини");
 
@@ -253,7 +254,7 @@ public sealed class AgentPlanTests
         var ran = new List<string>();
         var ui = new PlanUi(new PlanDecision(PlanVerdict.Amend, "only a.txt please"), PlanDecision.Execute);
         var bodies = new List<string>();
-        var agent = CreateAgent(ui, ran, [PlanRound(), PlanRound(), Calls(WriteCall("w1", "C:\\\\Temp\\\\a.txt")), Final()], bodies);
+        var agent = CreateAgent(ui, ran, [PlanRound(), PlanRound(), Calls(WriteCall("w1", "C:\\\\Temp\\\\a.ini")), Final()], bodies);
 
         await agent.RunAsync("почини");
 
@@ -286,7 +287,7 @@ public sealed class AgentPlanTests
             summary = "Записать файл",
             steps = new[]
             {
-                new { description = "Записать a.txt", tool = "write_file", target = "C:\\Temp\\a.txt", changes_system = true }
+                new { description = "Записать a.ini", tool = "write_file", target = "C:\\Temp\\a.ini", changes_system = true }
             }
         });
         var submit = ToolCallJson("p" + Guid.NewGuid().ToString("N"), "submit_plan", plan);

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
@@ -32,11 +33,34 @@ internal sealed class FileToolState
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
     private long _tick;
 
+    /// <summary>
+    /// Документы, которые создал ИИ, — книга профиля (<see cref="AiDocumentBook"/>). Null — не
+    /// запоминаются: тесту, которому они не нужны, своя книга ни к чему.
+    /// </summary>
+    public AiDocumentBook? Documents { get; init; }
+
     /// <summary>Модель прочла файл в этом чате: запомнить, каким он был.</summary>
     public void NoteRead(string? session, string path) => Remember(session, path);
 
+    /// <summary>
+    /// Документ ли это ИИ — спрашивать <b>до</b> записи: подмена файла готовой копией может дать
+    /// ему новое время создания, и после записи книга его уже не узнала бы.
+    /// </summary>
+    public bool IsAiDocument(string path) => !File.Exists(path) || Documents?.Owns(path) == true;
+
     /// <summary>Модель сама записала файл: он такой, каким она его сделала, — перечитывать незачем.</summary>
-    public void NoteWritten(string? session, string path) => Remember(session, path);
+    /// <param name="aiDocument">
+    /// Файл создал ИИ (до записи его не было или он уже был документом ИИ): его дальнейшая правка не
+    /// спрашивает человека. Скрипты и программы документами не считаются никогда.
+    /// </param>
+    public void NoteWritten(string? session, string path, bool aiDocument = false)
+    {
+        Remember(session, path);
+        if (aiDocument && DocumentZone.IsDocumentFile(path))
+        {
+            Documents?.Note(path);
+        }
+    }
 
     /// <summary>
     /// Можно ли править или перезаписать файл по тому, что модель о нём знает. Null — можно; иначе

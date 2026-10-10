@@ -160,11 +160,11 @@ internal static class ToolGate
             return new GateCheck(tool, args, effect, null, null, needsSnapshot);
         }
 
-        var silentNewFile = settings.ApprovalMode != ApprovalMode.AskAll && QuietNewFile(tool, args);
+        var quiet = settings.ApprovalMode == ApprovalMode.AskAll ? QuietWrite.No : Quiet(tool, args);
         var ask = settings.ApprovalMode == ApprovalMode.AskAll ||
-                  (!silentNewFile && RequiresConfirmation(tool, args));
+                  (quiet == QuietWrite.No && RequiresConfirmation(tool, args));
 
-        if (silentNewFile)
+        if (quiet == QuietWrite.NewFile)
         {
             args = WithCreateNew(args);
         }
@@ -261,37 +261,79 @@ internal static class ToolGate
     }
 
     /// <summary>
-    /// Запись без вопроса: новый файл (или копия, или перенос в новое место) внутри «Загрузок» или
-    /// «Рабочего стола». Что файла нет, проверит сама запись, — шлюз лишь ставит ей это условие.
+    /// Создал ли этот документ сам ИИ (<see cref="AiDocumentBook.Owns"/>). Ставит один раз
+    /// <c>AppComposition.ApplyProcessWide</c>; null — таких документов нет. Статическое состояние:
+    /// тест, который его меняет, возвращает прежнее.
     /// </summary>
-    private static bool QuietNewFile(string tool, JsonElement args)
+    internal static Func<string, bool>? AiDocument { get; set; }
+
+    /// <summary>Почему запись идёт без вопроса.</summary>
+    private enum QuietWrite
+    {
+        No,
+
+        /// <summary>Новый файл: запись получает условие «только если файла нет».</summary>
+        NewFile,
+
+        /// <summary>Документ, который ИИ сам создал, — его правка и перезапись.</summary>
+        OwnDocument
+    }
+
+    /// <summary>
+    /// Запись без вопроса. Документ, созданный нейросетью, разрешения не требует — так попросил
+    /// человек: новый документ создаётся молча везде, кроме системных, чужих и сетевых мест
+    /// (<see cref="DocumentZone"/>), а созданный ИИ правится молча. Прочий новый файл, копия или
+    /// перенос — молча только внутри «Загрузок» и «Рабочего стола» (<see cref="SafeZone"/>).
+    /// Что файла нет, проверит сама запись, — шлюз лишь ставит ей это условие.
+    /// </summary>
+    private static QuietWrite Quiet(string tool, JsonElement args)
     {
         var action = DangerousActionGuard.ActionOf(args);
-        var target = tool.ToLowerInvariant() switch
+        var name = tool.ToLowerInvariant();
+        var target = name switch
         {
-            "write_file" or "create_document" or "save_image" or "create_folder" => StringArg(args, "path"),
-            // Правка на месте всегда спрашивается; без вопроса — только результат в новый файл.
-            "edit_document" => StringArg(args, "save_as"),
+            "write_file" or "create_document" or "save_image" or "create_folder" or "edit_file" => StringArg(args, "path"),
+            "edit_document" => StringArg(args, "save_as") is { Length: > 0 } saveAs ? saveAs : StringArg(args, "path"),
             "filesystem" when action == "write" => StringArg(args, "path"),
             "filesystem" when action is "copy" or "move" => StringArg(args, "destination"),
             _ => null
         };
 
-        // Цель уже есть — это перезапись, о ней спрашивают. Без этой проверки повтор вызова
-        // после отказа «файл уже существует» снова шёл бы молча — и снова упирался бы в отказ.
-        if (target is null || File.Exists(target) || Directory.Exists(target))
+        if (string.IsNullOrWhiteSpace(target))
         {
-            return false;
+            return QuietWrite.No;
+        }
+
+        var documentTool = name is not "filesystem";
+        if (File.Exists(target) || Directory.Exists(target))
+        {
+            // Уже есть — это правка или перезапись: молча только документа, который создал сам ИИ.
+            // Без этой проверки повтор вызова после отказа «файл уже существует» снова шёл бы
+            // молча — и снова упирался бы в отказ.
+            return documentTool && name != "create_folder" && File.Exists(target) &&
+                   DocumentZone.IsDocumentFile(target) && AiDocument?.Invoke(target) == true
+                ? QuietWrite.OwnDocument
+                : QuietWrite.No;
+        }
+
+        // Правка на месте того, чего нет, — не создание: путь ошибочный, и инструмент откажет сам.
+        if (name == "edit_file" || (name == "edit_document" && StringArg(args, "save_as") is not { Length: > 0 }))
+        {
+            return QuietWrite.No;
+        }
+
+        if (documentTool && (name == "create_folder" || DocumentZone.IsDocumentFile(target)) && DocumentZone.Allows(target))
+        {
+            return QuietWrite.NewFile;
         }
 
         // Перенос уносит исходный файл: без вопроса — только если и исходный в зоне.
-        if (tool.Equals("filesystem", StringComparison.OrdinalIgnoreCase) && action == "move" &&
-            !SafeZone.Contains(StringArg(args, "path")))
+        if (name == "filesystem" && action == "move" && !SafeZone.Contains(StringArg(args, "path")))
         {
-            return false;
+            return QuietWrite.No;
         }
 
-        return SafeZone.Contains(target);
+        return SafeZone.Contains(target) ? QuietWrite.NewFile : QuietWrite.No;
     }
 
     /// <summary>Куда пишет вызов, если это папка данных самой программы. Иначе null.</summary>
