@@ -63,7 +63,9 @@ internal sealed class SpendLedger
     /// </remarks>
     public void Record(string? secret, VeniceCost cost, string sku)
     {
-        if (cost is null || (cost.Usd <= 0 && cost.Diem <= 0))
+        // Без денег, но с токенами — тоже запись: у провайдера, не назвавшего цену, и у ключа,
+        // выданного пакетом токенов, это единственный учёт расхода.
+        if (cost is null || (cost.Usd <= 0 && cost.Diem <= 0 && cost.InputTokens <= 0 && cost.OutputTokens <= 0))
         {
             return;
         }
@@ -96,12 +98,36 @@ internal sealed class SpendLedger
             bucket.Diem += cost.Diem;
             day.Usd += cost.Usd;
             day.Diem += cost.Diem;
+
+            var tokens = Math.Max(0, cost.InputTokens) + Math.Max(0, cost.OutputTokens);
+            if (tokens > 0)
+            {
+                bucket.InputTokens = (bucket.InputTokens ?? 0) + Math.Max(0, cost.InputTokens);
+                bucket.OutputTokens = (bucket.OutputTokens ?? 0) + Math.Max(0, cost.OutputTokens);
+                day.Tokens = (day.Tokens ?? 0) + tokens;
+            }
+
             _dirty.Add(fingerprint);
         }
 
         if (DateTime.UtcNow - _lastWrite > WriteEvery)
         {
             Flush();
+        }
+    }
+
+    /// <summary>
+    /// Сколько токенов прошло через ключ за всё время, по счёту программы.
+    /// </summary>
+    /// <remarks>
+    /// Расход ключа, выданного пакетом токенов. Счёт программы, а не перепродавца: тот списывает
+    /// с коэффициентом модели, и цифры у него будут больше — об этом говорит подсказка.
+    /// </remarks>
+    public long TokensUsed(string? secret)
+    {
+        lock (_gate)
+        {
+            return Loaded(ApiKeyStore.Fingerprint(secret)).Days.Sum(day => day.Tokens ?? 0);
         }
     }
 

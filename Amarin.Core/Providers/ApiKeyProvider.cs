@@ -6,9 +6,10 @@ namespace Amarin.Core;
 /// потоков хода чата и прогона агента, и лезть за ним в файл значило бы читать диск под ходом.
 /// </remarks>
 /// <param name="Id">Идентификатор строки в <c>keys.json</c> либо ключа из окружения.</param>
-public readonly record struct KeyHandle(string Id, LlmProvider Provider, string Secret)
+/// <param name="Endpoint">Адрес своего сервера — у его ключей.</param>
+public readonly record struct KeyHandle(string Id, LlmProvider Provider, string Secret, ProviderEndpoint? Endpoint = null)
 {
-    public ApiCredential Credential => new(Provider, Secret);
+    public ApiCredential Credential => new(Provider, Secret, Endpoint);
 }
 
 /// <summary>
@@ -43,6 +44,7 @@ public sealed class ApiKeyProvider
         _current = new Holder(
             provider,
             secret,
+            null,
             new ApiCredential(
                 LlmProvider.Venice,
                 provider == LlmProvider.Venice ? secret : string.Empty),
@@ -72,12 +74,41 @@ public sealed class ApiKeyProvider
         get
         {
             var holder = _current;
-            return new ApiCredential(holder.Provider, holder.Secret);
+            return new ApiCredential(holder.Provider, holder.Secret, holder.Endpoint);
         }
     }
 
     /// <summary>Все ключи программы одним снимком.</summary>
     public IReadOnlyList<KeyHandle> Keys => _current.All;
+
+    /// <summary>
+    /// Провайдеры, которые видит человек: встроенные и свои серверы, к которым есть ключи.
+    /// </summary>
+    /// <remarks>
+    /// Свои серверы берутся из ключей, а не из отдельного списка: сервер без ключа платить не
+    /// может, и столбец в плашке выбора у него был бы пустым.
+    /// </remarks>
+    public IReadOnlyList<ProviderSpec> Providers
+    {
+        get
+        {
+            var all = new List<ProviderSpec>(ProviderSpec.All);
+            foreach (var key in _current.All)
+            {
+                if (key.Endpoint is { } endpoint && key.Provider.IsCustom &&
+                    all.All(spec => spec.Provider != key.Provider))
+                {
+                    all.Add(ProviderSpec.ForCustom(key.Provider, endpoint));
+                }
+            }
+
+            return all;
+        }
+    }
+
+    /// <summary>Описание провайдера, в том числе своего сервера, к которому есть ключ.</summary>
+    public ProviderSpec SpecFor(LlmProvider provider) =>
+        Providers.FirstOrDefault(spec => spec.Provider == provider) ?? ProviderSpec.For(provider);
 
     /// <summary>
     /// Поднимается только при настоящей смене — ключа, провайдера, списка или всего сразу. На
@@ -137,7 +168,7 @@ public sealed class ApiKeyProvider
     {
         if (holder.Provider == provider && !string.IsNullOrWhiteSpace(holder.Secret))
         {
-            return new ApiCredential(provider, holder.Secret);
+            return new ApiCredential(provider, holder.Secret, holder.Endpoint);
         }
 
         foreach (var key in holder.All)
@@ -176,9 +207,10 @@ public sealed class ApiKeyProvider
             : new ApiCredential(LlmProvider.Venice, string.Empty);
 
         var keys = all ?? [];
-        var next = new Holder(credential.Provider, secret, venice ?? fallback, keys);
+        var next = new Holder(credential.Provider, secret, credential.Endpoint, venice ?? fallback, keys);
         var previous = _current;
         if (previous.Provider == next.Provider &&
+            previous.Endpoint == next.Endpoint &&
             string.Equals(previous.Secret, next.Secret, StringComparison.Ordinal) &&
             string.Equals(previous.Venice.Secret, next.Venice.Secret, StringComparison.Ordinal) &&
             previous.All.SequenceEqual(next.All))
@@ -187,13 +219,14 @@ public sealed class ApiKeyProvider
         }
 
         _current = next;
-        Changed?.Invoke(new ApiCredential(next.Provider, next.Secret));
+        Changed?.Invoke(new ApiCredential(next.Provider, next.Secret, next.Endpoint));
     }
 
     /// <summary>Всё разом под одной ссылкой: поменять её целиком — одно присваивание.</summary>
     private sealed record Holder(
         LlmProvider Provider,
         string Secret,
+        ProviderEndpoint? Endpoint,
         ApiCredential Venice,
         IReadOnlyList<KeyHandle> All);
 }

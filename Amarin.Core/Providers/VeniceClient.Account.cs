@@ -96,7 +96,7 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = Resolve(credentialOverride);
-        var spec = ProviderSpec.For(credential.Provider);
+        var spec = ProviderSpec.Of(credential);
         if (spec.Protocol == WireProtocol.AnthropicMessages)
         {
             return await ListAnthropicModelsAsync(credential, cancellationToken).ConfigureAwait(false);
@@ -223,7 +223,7 @@ public sealed partial class VeniceClient
         catch (JsonException ex)
         {
             throw new VeniceApiException(
-                $"{ProviderSpec.For(credential.Provider).Name} returned non-JSON models response " +
+                $"{ProviderSpec.Of(credential).Name} returned non-JSON models response " +
                 $"({ex.Message}). Body: {Preview(body)}");
         }
     }
@@ -241,7 +241,7 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = credentialOverride ?? _options.Credential;
-        var spec = ProviderSpec.For(credential.Provider);
+        var spec = ProviderSpec.Of(credential);
         if (spec.Balance == BalanceSource.OpenRouterCredits)
         {
             var open = await GetOpenRouterBalanceAsync(credential, cancellationToken)
@@ -371,13 +371,13 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = credentialOverride ?? _options.Credential;
-        if (!ProviderSpec.For(credential.Provider).HasUsageHistory)
+        if (!ProviderSpec.Of(credential).HasUsageHistory)
         {
             // Не поломка, а свойство провайдера: журнала списаний у него нет вовсе. Тем же
             // исключением, что и отказ Venice без админ-ключа, — вызывающий на оба отвечает
             // одинаково, переходом на собственный журнал программы.
             throw new VeniceAdminKeyRequiredException(
-                $"{ProviderSpec.For(credential.Provider).Name} не отдаёт журнал списаний.");
+                $"{ProviderSpec.Of(credential).Name} не отдаёт журнал списаний.");
         }
 
         var query = new List<string> { "pageSize=" + Math.Clamp(pageSize, 10, 1000) };

@@ -303,7 +303,7 @@ public static class DataBundle
             return DataCategory.None;
         }
 
-        if (name == "keys.json" ||
+        if (name is "keys.json" or ApiKeyStore.ProviderKeysFileName ||
             relative == "usage" ||
             relative.StartsWith("usage/", StringComparison.Ordinal) ||
             relative.Contains("/usage/", StringComparison.Ordinal))

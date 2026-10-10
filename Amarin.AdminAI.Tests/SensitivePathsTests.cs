@@ -42,6 +42,8 @@ public sealed class SensitivePathsTests : IDisposable
     [InlineData(@"C:\Users\Анна\AppData\Roaming\Bitwarden\data.json")]
     [InlineData(@"C:\Users\Анна\AppData\Roaming\Amarin Admin AI\keys.json")]
     [InlineData(@"C:\Users\Анна\AppData\Roaming\Amarin Admin AI\profiles\p1\keys.json")]
+    [InlineData(@"C:\Users\Анна\AppData\Roaming\Amarin Admin AI\provider-keys.json")]
+    [InlineData(@"C:\Users\Анна\AppData\Roaming\Amarin Admin AI\profiles\p1\provider-keys.json")]
     [InlineData(@"C:\Windows\System32\config\SAM")]
     [InlineData(@"C:\Windows\System32\config\SECURITY")]
     [InlineData(@"C:\Windows\System32\config\SYSTEM")]

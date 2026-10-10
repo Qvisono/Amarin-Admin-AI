@@ -16,8 +16,19 @@ namespace Amarin.Core;
 public sealed partial class VeniceClient
 {
     /// <summary>Идёт ли запрос к этой модели протоколом Anthropic.</summary>
-    private static bool UsesAnthropic(string model, ApiCredential credential) =>
-        ProviderSpec.For(ModelRef.Of(model, credential.Provider)).Protocol == WireProtocol.AnthropicMessages;
+    /// <remarks>
+    /// У своего сервера, понимающего оба протокола, — по модели: Claude идёт родным протоколом
+    /// (там подписанное размышление), остальные модели — OpenAI-совместимым.
+    /// </remarks>
+    private static bool UsesAnthropic(string model, ApiCredential credential)
+    {
+        if (credential.Provider.IsCustom && credential.Endpoint is { } endpoint)
+        {
+            return endpoint.UsesAnthropicFor(ModelRef.Bare(model));
+        }
+
+        return ProviderSpec.For(ModelRef.Of(model, credential.Provider)).Protocol == WireProtocol.AnthropicMessages;
+    }
 
     private async Task<ChatCompletionResponse> SendAnthropicAsync(
         ChatCompletionRequest request,

@@ -61,7 +61,13 @@ internal static class ApiKeyTransfer
         }
 
         var active = target.List().FirstOrDefault(key => key.IsActive)?.Id;
-        if (target.Add(entry.Label, secret, entry.Provider) is null)
+
+        // Ключ своего сервера едет вместе с адресом: без него в том профиле ключ был бы некуда
+        // предъявить.
+        var added = entry.Provider.IsCustom
+            ? entry.Endpoint is { } endpoint ? target.AddCustom(entry.Label, secret, endpoint, entry.TokenLimit) : null
+            : target.Add(entry.Label, secret, entry.Provider, entry.TokenLimit);
+        if (added is null)
         {
             return KeyTransferResult.Failed;
         }

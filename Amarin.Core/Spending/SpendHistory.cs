@@ -46,6 +46,15 @@ public sealed class SpendSkuBucket
     public decimal Diem { get; set; }
 
     public int Requests { get; set; }
+
+    /// <summary>
+    /// Токены запросов по этой статье. Необязательные: журналы прежних версий их не знают, а у
+    /// ключа, выданного пакетом токенов, только по ним и виден расход.
+    /// </summary>
+    public long? InputTokens { get; set; }
+
+    /// <summary>Токены ответов по этой статье.</summary>
+    public long? OutputTokens { get; set; }
 }
 
 /// <summary>Сутки трат — по местному времени человека.</summary>
@@ -57,6 +66,9 @@ public sealed class SpendDay
     public decimal Usd { get; set; }
 
     public decimal Diem { get; set; }
+
+    /// <summary>Токены за сутки — запросы и ответы вместе.</summary>
+    public long? Tokens { get; set; }
 
     public List<SpendSkuBucket> Skus { get; set; } = [];
 }

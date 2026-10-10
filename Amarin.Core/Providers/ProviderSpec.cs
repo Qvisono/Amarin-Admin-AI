@@ -332,6 +332,44 @@ public sealed record ProviderSpec
             }
         }
 
-        return new ProviderSpec { Provider = provider, Name = provider.ToString(), BaseUrl = "" };
+        // Свой сервер без записи под рукой (ключ удалён, разбор идёт там, где ключей нет)
+        // ведёт себя как свой сервер — только без адреса.
+        return new ProviderSpec
+        {
+            Provider = provider,
+            Name = provider.ToString(),
+            BaseUrl = "",
+            BlocksEffortWithTools = provider.IsCustom
+        };
     }
+
+    /// <summary>
+    /// Описание своего сервера человека: адрес и протоколы — из его записи, остальное — как у
+    /// OpenAI-совместимого сервера без надстроек.
+    /// </summary>
+    /// <remarks>
+    /// Усилие рядом с инструментами считается запрещённым: перепродавцы чаще всего передают
+    /// запрос OpenAI как есть. Остаток — по адресам шлюзов one-api, если сервер понимает
+    /// OpenAI-совместимый протокол; не ответит — ключ просто будет «без остатка».
+    /// </remarks>
+    public static ProviderSpec ForCustom(LlmProvider provider, ProviderEndpoint endpoint) =>
+        new()
+        {
+            Provider = provider,
+            Name = endpoint.Name,
+            BaseUrl = endpoint.BaseUrl,
+            Prefix = provider.Id + ":",
+            Protocol = endpoint.OpenAiChat ? WireProtocol.OpenAiChat : WireProtocol.AnthropicMessages,
+            Balance = endpoint.OpenAiChat ? BalanceSource.ResellerBilling : BalanceSource.None,
+            BlocksEffortWithTools = true
+        };
+
+    /// <summary>
+    /// Описание сервера, которому предъявляют эти учётные данные: у своего сервера адрес едет
+    /// вместе с ключом.
+    /// </summary>
+    public static ProviderSpec Of(ApiCredential credential) =>
+        credential.Endpoint is { } endpoint && credential.Provider.IsCustom
+            ? ForCustom(credential.Provider, endpoint)
+            : For(credential.Provider);
 }

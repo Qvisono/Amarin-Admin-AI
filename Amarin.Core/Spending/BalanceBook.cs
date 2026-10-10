@@ -40,6 +40,9 @@ internal sealed class BalanceBook
     private static readonly TimeSpan Fresh = TimeSpan.FromMinutes(5);
 
     private readonly Dictionary<string, KeyBalance> _byFingerprint = new(StringComparer.Ordinal);
+
+    /// <summary>Отпечатки ключей, чей провайдер ответил, что остатка не назовёт.</summary>
+    private readonly HashSet<string> _silent = new(StringComparer.Ordinal);
     private readonly Lock _gate = new();
 
     /// <summary>Поднимается, когда хоть одна цифра изменилась. На него подписана плашка.</summary>
@@ -104,7 +107,7 @@ internal sealed class BalanceBook
         {
             foreach (var key in keys)
             {
-                if (key.IsBroken)
+                if (key.IsBroken || !ReportsDollars(key))
                 {
                     continue;
                 }
@@ -147,7 +150,7 @@ internal sealed class BalanceBook
         {
             foreach (var key in keys)
             {
-                if (key.IsBroken)
+                if (key.IsBroken || !ReportsDollars(key))
                 {
                     continue;
                 }
@@ -162,6 +165,47 @@ internal sealed class BalanceBook
 
         return due;
     }
+
+    /// <summary>
+    /// Провайдер этого ключа остатка не сообщает — проверено ответом. Спрашивать снова незачем,
+    /// и в сумме такой ключ не числится «неизвестным».
+    /// </summary>
+    /// <remarks>
+    /// Только в памяти: перепродавец мог за это время научиться, и следующий запуск спросит снова.
+    /// </remarks>
+    public void MarkSilent(ApiCredential credential)
+    {
+        if (credential.IsEmpty)
+        {
+            return;
+        }
+
+        bool added;
+        lock (_gate)
+        {
+            added = _silent.Add(ApiKeyStore.Fingerprint(credential.Secret));
+        }
+
+        if (added)
+        {
+            Changed?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Можно ли ждать от ключа остаток в долларах.
+    /// </summary>
+    /// <remarks>
+    /// Нет — у провайдера без такого запроса (OpenAI, Anthropic и прочие), у ключа, на который
+    /// провайдер уже ответил, что остатка не назовёт, и у ключа, выданного пакетом токенов: его
+    /// расход виден в токенах, а «долларовые» поля перепродавцы таких ключей заполняют токенами.
+    /// Без этого правила такие ключи спрашивались бы после каждого ответа и вечно числились
+    /// «ещё N — цифры пока нет».
+    /// </remarks>
+    private bool ReportsDollars(ApiKeyEntry key) =>
+        key.TokenLimit is null &&
+        ProviderSpec.Of(key.Credential).Balance != BalanceSource.None &&
+        !_silent.Contains(ApiKeyStore.Fingerprint(key.Secret));
 
     /// <summary>Книга целиком — для сохранения между запусками.</summary>
     public IReadOnlyList<KeyBalance> Snapshot()

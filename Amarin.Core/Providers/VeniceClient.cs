@@ -131,7 +131,7 @@ public sealed partial class VeniceClient
     {
         var credential = credentialOverride ?? _options.Credential;
 
-        var request = new HttpRequestMessage(method, EndpointFor(credential.Provider, path))
+        var request = new HttpRequestMessage(method, EndpointFor(credential, path))
         {
             Version = HttpVersion.Version20,
             VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
@@ -139,10 +139,19 @@ public sealed partial class VeniceClient
 
         if (!string.IsNullOrWhiteSpace(credential.Secret))
         {
-            // Anthropic ключ берёт своим заголовком, а Bearer у него значит токен входа — с
-            // обычным ключом такой запрос был бы отвергнут.
-            if (ProviderSpec.For(credential.Provider).Protocol == WireProtocol.AnthropicMessages)
+            if (credential.Provider.IsCustom)
             {
+                // Свой сервер: каким заголовком он берёт ключ, заранее не узнать. Шлюзы под
+                // Claude Code ждут x-api-key, OpenAI-совместимые — Bearer, а ai.starimg.ru
+                // требует Bearer и на /v1/messages. Ключ уходит туда же, куда и так уходит.
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", credential.Secret);
+                request.Headers.Add("x-api-key", credential.Secret);
+                request.Headers.Add("anthropic-version", AnthropicMessages.ApiVersion);
+            }
+            else if (ProviderSpec.For(credential.Provider).Protocol == WireProtocol.AnthropicMessages)
+            {
+                // Anthropic ключ берёт своим заголовком, а Bearer у него значит токен входа — с
+                // обычным ключом такой запрос был бы отвергнут.
                 request.Headers.Add("x-api-key", credential.Secret);
                 request.Headers.Add("anthropic-version", AnthropicMessages.ApiVersion);
             }
@@ -163,7 +172,7 @@ public sealed partial class VeniceClient
     /// OpenRouter отправляло человека чинить не тот провайдер — ключ Venice тут ни при чём.
     /// </remarks>
     private static VeniceApiException ApiError(ApiCredential credential, int status, string message) =>
-        new($"{ProviderSpec.For(credential.Provider).Name} API error ({status}): {message}")
+        new($"{ProviderSpec.Of(credential).Name} API error ({status}): {message}")
         {
             StatusCode = status
         };
@@ -215,12 +224,13 @@ public sealed partial class VeniceClient
     /// У незнакомого провайдера адреса нет, и запрос не уходит никуда. До 1.34.0 такой
     /// провайдер получал адрес Venice — вместе с ним туда уехал бы и ключ.
     /// </remarks>
-    private Uri EndpointFor(LlmProvider provider, string path)
+    private Uri EndpointFor(ApiCredential credential, string path)
     {
         // Переопределение из appsettings.json касается только Venice; у остальных
-        // провайдеров переопределять нечего, и адрес берётся из их описания.
-        var spec = ProviderSpec.For(provider);
-        var baseUrl = provider == LlmProvider.Venice ? _options.BaseUrl : spec.BaseUrl;
+        // провайдеров переопределять нечего, и адрес берётся из их описания, а у своего
+        // сервера человека — из записи, которая едет вместе с ключом.
+        var spec = ProviderSpec.Of(credential);
+        var baseUrl = credential.Provider == LlmProvider.Venice ? _options.BaseUrl : spec.BaseUrl;
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
             throw new VeniceApiException(
@@ -398,7 +408,7 @@ public sealed partial class VeniceClient
                 .ConfigureAwait(false);
         }
 
-        var payload = BuildPayload(request, model, prepareMessages, stream: false);
+        var payload = BuildPayload(request, model, prepareMessages, stream: false, credential);
         using var response = await PostCompletionAsync(payload, model, credential, cancellationToken)
             .ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -483,7 +493,7 @@ public sealed partial class VeniceClient
                 .ConfigureAwait(false);
         }
 
-        var payload = BuildPayload(request, model, prepareMessages, stream: true);
+        var payload = BuildPayload(request, model, prepareMessages, stream: true, credential);
         var response = await PostCompletionAsync(payload, model, credential, cancellationToken)
             .ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
@@ -754,9 +764,13 @@ public sealed partial class VeniceClient
         ChatCompletionRequest request,
         string model,
         bool prepareMessages,
-        bool stream)
+        bool stream,
+        ApiCredential credential)
     {
-        var spec = ProviderSpec.For(ModelRef.Of(model, _options.Provider));
+        // Описание — по ключу запроса, если он того же провайдера, что и модель: у своего
+        // сервера человека адрес и протоколы живут рядом с ключом, а не в описании провайдера.
+        var provider = ModelRef.Of(model, _options.Provider);
+        var spec = credential.Provider == provider ? ProviderSpec.Of(credential) : ProviderSpec.For(provider);
         return spec.Dialect switch
         {
             PayloadDialect.Venice => BuildVenicePayload(request, model, prepareMessages, stream),

@@ -279,7 +279,9 @@ internal static class SensitivePaths
             }
         }
 
-        if (name.Equals("keys.json", StringComparison.OrdinalIgnoreCase) && IsProgramData(canonical))
+        if ((name.Equals("keys.json", StringComparison.OrdinalIgnoreCase) ||
+             name.Equals(ApiKeyStore.ProviderKeysFileName, StringComparison.OrdinalIgnoreCase)) &&
+            IsProgramData(canonical))
         {
             return "program-keys";
         }

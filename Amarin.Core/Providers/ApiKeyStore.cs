@@ -32,6 +32,34 @@ public sealed class ApiKeyRecord
     public LlmProvider Provider { get; set; } = LlmProvider.Venice;
 
     public DateTime AddedAt { get; set; } = DateTime.Now;
+
+    /// <summary>
+    /// Сколько токенов выдано на ключ, если его продали пакетом токенов. <c>null</c> — ключ
+    /// денежный, и остаток у него в долларах.
+    /// </summary>
+    /// <remarks>
+    /// Задаёт человек: перепродавец показывает пакет у себя на сайте, а запроса, по которому его
+    /// узнать, обычно не даёт. Прежние версии поле пропускают — оно необязательное.
+    /// </remarks>
+    public long? TokenLimit { get; set; }
+}
+
+/// <summary>
+/// Содержимое <c>provider-keys.json</c>: ключи провайдеров, которых не знают версии до 1.34.0,
+/// и описания своих серверов.
+/// </summary>
+/// <remarks>
+/// Отдельный файл, а не новое поле <c>keys.json</c>: 1.33, на которую человек может откатиться
+/// кнопкой «Вернуть v…», читает провайдера ключа перечислением и, встретив незнакомое имя,
+/// сочла бы весь <c>keys.json</c> повреждённым — ключи Venice и OpenRouter пропали бы вместе с
+/// новыми. Новое поле в том же файле не спасло бы иначе: 1.33 при первой же записи выбросила бы
+/// незнакомое ей поле. Этот файл прежняя версия не открывает вовсе.
+/// </remarks>
+public sealed class ProviderKeysFile
+{
+    public List<ApiKeyRecord> Keys { get; set; } = [];
+
+    public List<CustomEndpoint> Endpoints { get; set; } = [];
 }
 
 /// <summary>Содержимое <c>keys.json</c>.</summary>
@@ -67,7 +95,11 @@ public sealed class ApiKeyFile
 /// Пара, а не две строки рядом: ключ Venice, отправленный в OpenRouter, — это утечка секрета
 /// на посторонний сервер, и такую ошибку должен ловить тип, а не внимательность.
 /// </remarks>
-public readonly record struct ApiCredential(LlmProvider Provider, string Secret)
+/// <param name="Endpoint">
+/// Адрес своего сервера. Только у ключей своих серверов: адрес встроенного провайдера знает
+/// его описание (<see cref="ProviderSpec"/>), а у своего сервера он живёт рядом с ключом.
+/// </param>
+public readonly record struct ApiCredential(LlmProvider Provider, string Secret, ProviderEndpoint? Endpoint = null)
 {
     public bool IsEmpty => string.IsNullOrWhiteSpace(Secret);
 }
@@ -86,14 +118,21 @@ public readonly record struct ApiCredential(LlmProvider Provider, string Secret)
 /// Последним параметром со значением по умолчанию — чтобы строки, собранные одним только
 /// именем и ключом, продолжали собираться.
 /// </param>
+/// <param name="Endpoint">Адрес своего сервера — у ключа своего сервера.</param>
+/// <param name="TokenLimit">Пакет токенов, выданный на ключ, если его задал человек.</param>
 public sealed record ApiKeyEntry(
     string Id,
     string Label,
     string? Secret,
     ApiKeySource Source,
     bool IsActive,
-    LlmProvider Provider = default)
+    LlmProvider Provider = default,
+    ProviderEndpoint? Endpoint = null,
+    long? TokenLimit = null)
 {
+    /// <summary>Название провайдера для человека: у своего сервера — его собственное.</summary>
+    public string ProviderName => Endpoint?.Name ?? ProviderSpec.For(Provider).Name;
+
     /// <summary>Блоб зашифрован не этой учётной записью Windows — показать нечего.</summary>
     public bool IsBroken => Secret is null;
 
@@ -111,7 +150,7 @@ public sealed record ApiKeyEntry(
     public bool RemovalOnlyHides => Source == ApiKeySource.Environment;
 
     /// <summary>Учётные данные этой строки. Пустые, если блоб не расшифровался.</summary>
-    public ApiCredential Credential => new(Provider, Secret ?? "");
+    public ApiCredential Credential => new(Provider, Secret ?? "", Endpoint);
 }
 
 /// <summary>
@@ -159,9 +198,14 @@ internal sealed class ApiKeyStore
     /// <summary>То же для ключа OpenRouter из окружения.</summary>
     public const string OpenRouterEnvironmentId = "environment-openrouter";
 
+    /// <summary>Имя файла ключей новых провайдеров и своих серверов.</summary>
+    public const string ProviderKeysFileName = "provider-keys.json";
+
     private readonly string _path;
+    private readonly string _morePath;
     private readonly Dictionary<LlmProvider, string> _environment = [];
     private ApiKeyFile _file = new();
+    private ProviderKeysFile _more = new();
 
     public ApiKeyStore(
         string? root = null,
@@ -169,9 +213,25 @@ internal sealed class ApiKeyStore
         string openRouterEnvironmentKey = "")
     {
         _path = root is null ? AppPaths.KeysFile : Path.Combine(root, "keys.json");
+        _morePath = Path.Combine(Path.GetDirectoryName(_path) ?? "", ProviderKeysFileName);
         Remember(LlmProvider.Venice, environmentKey);
         Remember(LlmProvider.OpenRouter, openRouterEnvironmentKey);
     }
+
+    /// <summary>Все свои записи ключей: прежнего файла и нового.</summary>
+    private IEnumerable<ApiKeyRecord> Records => _file.Keys.Concat(_more.Keys);
+
+    private ApiKeyRecord? FindRecord(string? id) =>
+        Records.FirstOrDefault(record => string.Equals(record.Id, id, StringComparison.Ordinal));
+
+    /// <summary>Адрес своего сервера этого ключа. <c>null</c> — ключ встроенного провайдера.</summary>
+    private ProviderEndpoint? EndpointOf(LlmProvider provider) =>
+        provider.IsCustom
+            ? _more.Endpoints.FirstOrDefault(endpoint => endpoint.Provider == provider)?.ToEndpoint()
+            : null;
+
+    /// <summary>Свои серверы, к которым есть ключи.</summary>
+    public IReadOnlyList<CustomEndpoint> Endpoints => _more.Endpoints;
 
     private void Remember(LlmProvider provider, string? key)
     {
@@ -237,17 +297,40 @@ internal sealed class ApiKeyStore
         {
             _file = new ApiKeyFile();
         }
+
+        try
+        {
+            GuardedJsonFile.Read(_morePath, IsReadableMore, out var text);
+            _more = text is null
+                ? new ProviderKeysFile()
+                : JsonSerializer.Deserialize<ProviderKeysFile>(text, AppJson.Options) ?? new ProviderKeysFile();
+            _more.Keys ??= [];
+            _more.Endpoints ??= [];
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            _more = new ProviderKeysFile();
+        }
     }
 
     /// <summary>
     /// Best-effort, как и у остальных файлов рядом: не записавшийся список — потеря одной
     /// строки, а не повод показывать окно аварии посреди настроек.
     /// </summary>
+    /// <remarks>
+    /// Новый файл пишется, только когда в нём есть что хранить или он уже есть: у человека,
+    /// который новыми провайдерами не пользуется, в папке профиля ничего не прибавляется.
+    /// </remarks>
     public void Save()
     {
         try
         {
             GuardedJsonFile.Write(_path, JsonSerializer.Serialize(_file, AppJson.Options));
+            if (_more.Keys.Count > 0 || _more.Endpoints.Count > 0 || File.Exists(_morePath))
+            {
+                GuardedJsonFile.Write(_morePath, JsonSerializer.Serialize(_more, AppJson.Options));
+            }
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or NotSupportedException)
@@ -257,6 +340,9 @@ internal sealed class ApiKeyStore
 
     internal static bool IsReadable(string text) =>
         JsonSerializer.Deserialize<ApiKeyFile>(text, AppJson.Options) is not null;
+
+    internal static bool IsReadableMore(string text) =>
+        JsonSerializer.Deserialize<ProviderKeysFile>(text, AppJson.Options) is not null;
 
     /// <summary>Строки для списка: ключи из окружения первыми, остальные в порядке добавления.</summary>
     public IReadOnlyList<ApiKeyEntry> List()
@@ -282,15 +368,19 @@ internal sealed class ApiKeyStore
                 spec.Provider));
         }
 
-        foreach (var record in _file.Keys)
+        foreach (var record in Records)
         {
+            // Ключ своего сервера, чью запись адреса потеряли (правка файла руками), платить не
+            // может — адреса нет, — но в списке остаётся: его можно увидеть и убрать.
             entries.Add(new ApiKeyEntry(
                 record.Id,
                 record.Label,
                 DataProtector.Unprotect(record.Protected),
                 ApiKeySource.Stored,
                 string.Equals(activeId, record.Id, StringComparison.Ordinal),
-                record.Provider));
+                record.Provider,
+                EndpointOf(record.Provider),
+                record.TokenLimit));
         }
 
         return entries;
@@ -308,9 +398,10 @@ internal sealed class ApiKeyStore
 
         foreach (var entry in List())
         {
-            if (!string.IsNullOrWhiteSpace(entry.Secret))
+            // Свой сервер без записи адреса платить не может: адреса, куда предъявить ключ, нет.
+            if (!string.IsNullOrWhiteSpace(entry.Secret) && (!entry.Provider.IsCustom || entry.Endpoint is not null))
             {
-                handles.Add(new KeyHandle(entry.Id, entry.Provider, entry.Secret));
+                handles.Add(new KeyHandle(entry.Id, entry.Provider, entry.Secret, entry.Endpoint));
             }
         }
 
@@ -333,8 +424,7 @@ internal sealed class ApiKeyStore
             return new ApiCredential(fromEnvironment, EnvironmentSecret(fromEnvironment));
         }
 
-        var record = _file.Keys.FirstOrDefault(
-            item => string.Equals(item.Id, activeId, StringComparison.Ordinal));
+        var record = FindRecord(activeId);
         if (record is null)
         {
             return FirstEnvironmentCredential();
@@ -345,7 +435,8 @@ internal sealed class ApiKeyStore
         // соседнего значило бы отправить секрет на сервер, которому он не предназначен.
         return new ApiCredential(
             record.Provider,
-            DataProtector.Unprotect(record.Protected) ?? EnvironmentSecret(record.Provider));
+            DataProtector.Unprotect(record.Protected) ?? EnvironmentSecret(record.Provider),
+            EndpointOf(record.Provider));
     }
 
     /// <summary>
@@ -390,15 +481,63 @@ internal sealed class ApiKeyStore
             }
         }
 
-        secrets.AddRange(_file.Keys.Select(record => DataProtector.Unprotect(record.Protected)));
+        secrets.AddRange(Records.Select(record => DataProtector.Unprotect(record.Protected)));
         return secrets;
     }
 
     /// <summary>
-    /// Добавляет ключ и делает его активным. <c>null</c> — Windows отказалась шифровать либо
-    /// такой ключ уже есть.
+    /// Добавляет ключ встроенного провайдера и делает его активным. <c>null</c> — Windows
+    /// отказалась шифровать, такой ключ уже есть, либо это свой сервер (для него —
+    /// <see cref="AddCustom"/>).
     /// </summary>
-    public ApiKeyRecord? Add(string label, string secret, LlmProvider provider = default)
+    public ApiKeyRecord? Add(string label, string secret, LlmProvider provider = default, long? tokenLimit = null)
+    {
+        if (provider.IsCustom)
+        {
+            return null;
+        }
+
+        return Store(label, secret, provider, tokenLimit);
+    }
+
+    /// <summary>
+    /// Добавляет ключ своего сервера. Сервер с тем же адресом уже есть — ключ ложится к нему,
+    /// и в плашке выбора это один провайдер с двумя ключами, а не два одинаковых.
+    /// </summary>
+    public ApiKeyRecord? AddCustom(string label, string secret, ProviderEndpoint endpoint, long? tokenLimit = null)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+        var server = _more.Endpoints.FirstOrDefault(known =>
+            string.Equals(known.BaseUrl, endpoint.BaseUrl, StringComparison.OrdinalIgnoreCase));
+
+        if (server is null)
+        {
+            server = new CustomEndpoint
+            {
+                Name = string.IsNullOrWhiteSpace(endpoint.Name) ? EndpointAddress.HostOf(endpoint.BaseUrl) : endpoint.Name.Trim(),
+                BaseUrl = endpoint.BaseUrl,
+                OpenAiChat = endpoint.OpenAiChat,
+                AnthropicMessages = endpoint.AnthropicMessages
+            };
+            _more.Endpoints.Add(server);
+        }
+        else
+        {
+            // Проба протоколов при новом ключе свежее прежней: сервер мог научиться новому.
+            server.OpenAiChat = endpoint.OpenAiChat;
+            server.AnthropicMessages = endpoint.AnthropicMessages;
+        }
+
+        var record = Store(label, secret, server.Provider, tokenLimit);
+        if (record is null && !Records.Any(key => key.Provider == server.Provider))
+        {
+            _more.Endpoints.Remove(server);
+        }
+
+        return record;
+    }
+
+    private ApiKeyRecord? Store(string label, string secret, LlmProvider provider, long? tokenLimit)
     {
         secret = (secret ?? "").Trim();
         if (secret.Length == 0 || Contains(secret))
@@ -416,13 +555,31 @@ internal sealed class ApiKeyStore
         {
             Label = string.IsNullOrWhiteSpace(label) ? Mask(secret) : label.Trim(),
             Protected = blob,
-            Provider = provider
+            Provider = provider,
+            TokenLimit = tokenLimit is > 0 ? tokenLimit : null
         };
 
-        _file.Keys.Add(record);
+        // Ключи провайдеров, которых знает 1.33, — в её файл; остальные — в новый, которого
+        // она не открывает (см. ProviderKeysFile).
+        (ProviderSpec.For(provider).IsLegacy ? _file.Keys : _more.Keys).Add(record);
         _file.ActiveKeyId = record.Id;
         Save();
         return record;
+    }
+
+    /// <summary>
+    /// Задаёт ключу пакет токенов. Пусто или ноль — ключ денежный.
+    /// </summary>
+    public bool SetTokenLimit(string id, long? limit)
+    {
+        if (FindRecord(id) is not { } record)
+        {
+            return false;
+        }
+
+        record.TokenLimit = limit is > 0 ? limit : null;
+        Save();
+        return true;
     }
 
     /// <summary>
@@ -443,7 +600,7 @@ internal sealed class ApiKeyStore
     /// </remarks>
     public bool Contains(string secret) =>
         _environment.Values.Any(key => string.Equals(key, secret, StringComparison.Ordinal)) ||
-        _file.Keys.Any(record => string.Equals(
+        Records.Any(record => string.Equals(
             DataProtector.Unprotect(record.Protected), secret, StringComparison.Ordinal));
 
     /// <summary>
@@ -471,9 +628,19 @@ internal sealed class ApiKeyStore
             return true;
         }
 
-        if (_file.Keys.RemoveAll(record => string.Equals(record.Id, id, StringComparison.Ordinal)) == 0)
+        var removed = FindRecord(id);
+        if (removed is null)
         {
             return false;
+        }
+
+        _ = _file.Keys.Remove(removed) || _more.Keys.Remove(removed);
+
+        // Последний ключ своего сервера уносит и его запись: сервер без ключей в плашке выбора
+        // был бы столбцом, в котором ничего нельзя выбрать.
+        if (removed.Provider.IsCustom && !Records.Any(record => record.Provider == removed.Provider))
+        {
+            _more.Endpoints.RemoveAll(endpoint => endpoint.Provider == removed.Provider);
         }
 
         ForgetChoice(id);
@@ -563,8 +730,7 @@ internal sealed class ApiKeyStore
             return true;
         }
 
-        var record = _file.Keys.FirstOrDefault(
-            item => string.Equals(item.Id, id, StringComparison.Ordinal));
+        var record = FindRecord(id);
         if (record is null)
         {
             return false;
@@ -595,7 +761,7 @@ internal sealed class ApiKeyStore
                 return false;
             }
         }
-        else if (!_file.Keys.Any(record => string.Equals(record.Id, id, StringComparison.Ordinal)))
+        else if (FindRecord(id) is null)
         {
             return false;
         }
@@ -620,14 +786,14 @@ internal sealed class ApiKeyStore
                 return chosen;
             }
 
-            if (_file.Keys.Any(record => string.Equals(record.Id, chosen, StringComparison.Ordinal)))
+            if (FindRecord(chosen) is not null)
             {
                 return chosen;
             }
         }
 
         // Свой ключ вперёд переменной окружения: человек добавил его сознательно и позже.
-        return _file.Keys.Count > 0 ? _file.Keys[0].Id : FirstEnvironmentId();
+        return Records.FirstOrDefault()?.Id ?? FirstEnvironmentId();
     }
 
     private string FirstEnvironmentId()

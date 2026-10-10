@@ -118,6 +118,12 @@ namespace Amarin.UI
                         .GetRateLimitsAsync(entry.Credential, CancellationToken.None)
                         .ConfigureAwait(true);
                 }
+                catch (BalanceNotReportedException)
+                {
+                    // Провайдер остатка не называет — запоминаем, чтобы не спрашивать после
+                    // каждого ответа и не держать ключ в «цифры пока нет».
+                    _services.Balances.MarkSilent(entry.Credential);
+                }
                 catch (Exception exception) when (
                     exception is VeniceApiException or HttpRequestException)
                 {

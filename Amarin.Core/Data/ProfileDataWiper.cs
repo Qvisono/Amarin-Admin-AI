@@ -32,7 +32,7 @@ public static class ProfileDataWiper
 {
     /// <summary>Файлы профиля по умолчанию в корне данных.</summary>
     internal static readonly string[] DefaultProfileFiles =
-        ["settings.json", "keys.json", "prompts.json", "avatar.png", "balance.json", ScheduleBook.FileName, ScheduleBook.LogName,
+        ["settings.json", "keys.json", ApiKeyStore.ProviderKeysFileName, "prompts.json", "avatar.png", "balance.json", ScheduleBook.FileName, ScheduleBook.LogName,
          HealthCache.FileName, MachineBook.FileName, McpHost.FileName, DeferredBook.FileName, DeferredBook.KeyName, SessionSnapshot.FileName,
          AiDocumentBook.FileName];
 

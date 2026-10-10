@@ -64,7 +64,7 @@ public sealed partial class VeniceClient
         ApiCredential credential,
         CancellationToken cancellationToken)
     {
-        var payload = BuildPayload(request, model, prepareMessages, stream: false);
+        var payload = BuildPayload(request, model, prepareMessages, stream: false, credential);
 
         if (OpenRouterBatchPlan.UnsupportedReason(payload.Messages) is { } unsupported)
         {
