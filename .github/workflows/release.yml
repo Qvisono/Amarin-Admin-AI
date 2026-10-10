@@ -56,6 +56,25 @@ jobs:
         timeout-minutes: 25
         run: dotnet test Amarin.AdminAI.Tests/Amarin.AdminAI.Tests.csproj --filter "Category!=Wpf" --logger "trx;LogFileName=tests.trx" --logger "console;verbosity=minimal" --results-directory test-results/core
 
+      # Что именно остановило выпуск — аннотациями, как в CI: журнал и артефакт GitHub
+      # показывает только после входа, а аннотации видны всем.
+      - name: Failed tests
+        if: failure()
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem test-results/core -Recurse -Filter *.trx -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $trx) { '::error title=Tests::No test results were written.'; exit 0 }
+          [xml]$doc = Get-Content -Raw $trx.FullName
+          $ns = @{ t = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010' }
+          $failed = @(Select-Xml -Xml $doc -XPath "//t:UnitTestResult[@outcome='Failed']" -Namespace $ns | ForEach-Object Node | ForEach-Object {
+            "$($_.testName): $((("$($_.Output.ErrorInfo.Message)" -split "`n") | Select-Object -First 1).Trim())"
+          })
+          $escape = { param($text) $text -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A' }
+          $failed | Select-Object -First 9 | ForEach-Object { "::error title=Failed test::$(& $escape $_)" }
+          if ($failed.Count -gt 9) {
+            "::error title=More failed tests::$(& $escape (($failed | Select-Object -Skip 9) -join "`n"))"
+          }
+
       # Оконные тесты выпуск не останавливают (на раннере они ненадёжны), но их итог лежит
       # в артефакте test-results: смотреть его обязательно, прежде чем объявлять релиз готовым.
       - name: Test (windows)

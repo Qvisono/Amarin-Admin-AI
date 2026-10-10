@@ -53,7 +53,10 @@ jobs:
           }
           exit $process.ExitCode
 
-      # Сколько тестов прошло — чтобы «зелёно» не значило «ничего не запустилось».
+      # Сколько тестов прошло — чтобы «зелёно» не значило «ничего не запустилось». Упавшие —
+      # ещё и аннотациями: сводку шага, журнал и артефакт GitHub показывает только после входа,
+      # а аннотации видны на странице коммита и через API всем. GitHub берёт до десяти ошибок на
+      # шаг, поэтому сверх девяти — одной общей строкой.
       - name: Summary
         if: always()
         shell: pwsh
@@ -66,8 +69,14 @@ jobs:
           $line
           "### $line" >> $env:GITHUB_STEP_SUMMARY
           $ns = @{ t = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010' }
-          Select-Xml -Xml $doc -XPath "//t:UnitTestResult[@outcome='Failed']" -Namespace $ns | ForEach-Object Node | ForEach-Object {
-            "- $($_.testName): $((("$($_.Output.ErrorInfo.Message)" -split "`n") | Select-Object -First 1))" >> $env:GITHUB_STEP_SUMMARY
+          $failed = @(Select-Xml -Xml $doc -XPath "//t:UnitTestResult[@outcome='Failed']" -Namespace $ns | ForEach-Object Node | ForEach-Object {
+            "$($_.testName): $((("$($_.Output.ErrorInfo.Message)" -split "`n") | Select-Object -First 1).Trim())"
+          })
+          foreach ($test in $failed) { "- $test" >> $env:GITHUB_STEP_SUMMARY }
+          $escape = { param($text) $text -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A' }
+          $failed | Select-Object -First 9 | ForEach-Object { "::error title=Failed test::$(& $escape $_)" }
+          if ($failed.Count -gt 9) {
+            "::error title=More failed tests::$(& $escape (($failed | Select-Object -Skip 9) -join "`n"))"
           }
 
       - uses: actions/upload-artifact@v4
