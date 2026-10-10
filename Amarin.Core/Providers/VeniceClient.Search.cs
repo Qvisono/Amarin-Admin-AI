@@ -40,6 +40,37 @@ public sealed partial class VeniceClient
         return _options.Keys?.DefaultFor(provider) ?? own;
     }
 
+    /// <summary>
+    /// Чем искать, если ход идёт у провайдера без поиска в сети: первым провайдером с поиском, у
+    /// которого есть ключ, и его моделью для лёгких задач.
+    /// </summary>
+    /// <remarks>
+    /// Без ключа ни у одного из них — отказ, который читает модель: молча ответить из головы
+    /// значило бы выдать догадку за найденное в сети.
+    /// </remarks>
+    private (string Model, LlmProvider Provider, ApiCredential Credential) SearchElsewhere()
+    {
+        foreach (var spec in ProviderSpec.All)
+        {
+            if (!spec.HasWebSearch)
+            {
+                continue;
+            }
+
+            var credential = _options.Keys?.DefaultFor(spec.Provider) ?? new ApiCredential(spec.Provider, "");
+            if (!credential.IsEmpty)
+            {
+                var model = ModelSlotDefaults.Resolve(spec.Provider, ModelSlot.Lite, catalog: null);
+                return (model, spec.Provider, credential);
+            }
+        }
+
+        throw new VeniceApiException(
+            "Поиск в интернете работает через Venice или OpenRouter, а ключа ни одного из них в " +
+            "программе нет. Скажи пользователю добавить ключ Venice или OpenRouter на странице " +
+            "«Ключи и траты», если нужен поиск. Не повторяй этот вызов.");
+    }
+
     /// <param name="plan">
     /// Что человек выбрал для поиска: закреплённый провайдер с ключом (модель под него уже
     /// подобрана в <see cref="ModelSlots.WebSearch"/>) и движок OpenRouter. Пусто — искать
@@ -72,9 +103,17 @@ public sealed partial class VeniceClient
             ? RequireKey(_options.Keys?.CredentialFor(target) ?? _options.Credential, model)
             : SearchCredential(turn, provider);
 
+        // Ход у провайдера без поиска (OpenAI, Anthropic, свой сервер): обычный запрос к его
+        // модели ответил бы из головы, выдав это за найденное в сети. Ищем у того, кто умеет.
+        if (!ProviderSpec.For(provider).HasWebSearch)
+        {
+            (model, provider, credential) = SearchElsewhere();
+        }
+
         // Своя поисковая надстройка у каждого провайдера: у Venice — venice_parameters,
         // у OpenRouter — плагин. Поиск xAI живёт только у Venice.
-        var useXSearch = provider == LlmProvider.Venice &&
+        var dialect = ProviderSpec.For(provider).Dialect;
+        var useXSearch = dialect == PayloadDialect.Venice &&
                          (_options.EnableXSearch
                           ?? model.Contains("grok", StringComparison.OrdinalIgnoreCase));
 
@@ -106,7 +145,7 @@ public sealed partial class VeniceClient
                     },
                     new ChatMessage { Role = "user", Content = ChatContent.Text(query) }
                 ],
-                VeniceParameters = provider == LlmProvider.Venice
+                VeniceParameters = dialect == PayloadDialect.Venice
                     ? new VeniceParameters
                     {
                         IncludeVeniceSystemPrompt = false,
@@ -117,7 +156,7 @@ public sealed partial class VeniceClient
                     : null,
                 // Движок — только у OpenRouter: у Venice поиск один, и лишние поля он
                 // отвергает вместе со всем запросом.
-                Plugins = provider == LlmProvider.Venice
+                Plugins = dialect != PayloadDialect.OpenRouter
                     ? null
                     :
                     [

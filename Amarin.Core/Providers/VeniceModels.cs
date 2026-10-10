@@ -19,8 +19,12 @@ public sealed class ChatCompletionRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ToolChoice { get; init; }
 
+    /// <summary>
+    /// Температура. <c>null</c> — поля в теле нет: рассуждающие модели OpenAI и Claude 5.5
+    /// отвечают на любое значение, кроме своего, четырёхсоткой.
+    /// </summary>
     [JsonPropertyName("temperature")]
-    public double Temperature { get; init; } = 0.2;
+    public double? Temperature { get; init; } = 0.2;
 
     [JsonPropertyName("stream")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -41,6 +45,19 @@ public sealed class ChatCompletionRequest
     [JsonPropertyName("reasoning")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ReasoningConfig? Reasoning { get; init; }
+
+    /// <summary>
+    /// Выключатель размышления у DeepSeek, Z.ai (GLM) и Kimi K2: <c>{"type": "enabled"}</c> или
+    /// <c>"disabled"</c>.
+    /// </summary>
+    [JsonPropertyName("thinking")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ThinkingSwitch? Thinking { get; init; }
+
+    /// <summary>Выключатель размышления у Qwen (Alibaba Model Studio).</summary>
+    [JsonPropertyName("enable_thinking")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? EnableThinking { get; init; }
 
     /// <summary>
     /// Надстройки Venice. <c>null</c> — и поля в теле запроса нет вовсе.
@@ -75,6 +92,17 @@ public sealed class ChatCompletionRequest
     /// </summary>
     [JsonIgnore]
     public ReasoningChoice? ReasoningChoice { get; init; }
+}
+
+/// <summary>Выключатель размышления в виде <c>{"type": "enabled" | "disabled"}</c>.</summary>
+public sealed class ThinkingSwitch
+{
+    public static ThinkingSwitch On { get; } = new() { Type = "enabled" };
+
+    public static ThinkingSwitch Off { get; } = new() { Type = "disabled" };
+
+    [JsonPropertyName("type")]
+    public required string Type { get; init; }
 }
 
 /// <summary>Просьба к OpenRouter вернуть цену запроса вместе с токенами.</summary>
@@ -489,6 +517,13 @@ public sealed class VeniceModelSpec
     /// </summary>
     [JsonPropertyName("pricing")]
     public VeniceModelPricing? Pricing { get; init; }
+
+    /// <summary>
+    /// Потолок длины ответа, если каталог его называет. Нужен протоколу Anthropic: там
+    /// <c>max_tokens</c> обязателен, а слишком большое значение сервер отвергает.
+    /// </summary>
+    [JsonPropertyName("maxOutputTokens")]
+    public int? MaxOutputTokens { get; init; }
 }
 
 /// <summary>Цены за миллион токенов. У картинок и речи там другие поля — их здесь не читаем.</summary>

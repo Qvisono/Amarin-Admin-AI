@@ -1,80 +1,191 @@
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Amarin.Core;
 
 /// <summary>Чей сервер отвечает на запрос к модели.</summary>
 /// <remarks>
-/// Имена членов попадают в <c>keys.json</c> и в <c>settings.json</c> (см. <see cref="AppJson"/>,
-/// где стоит <c>JsonStringEnumConverter</c>), поэтому дописывать сюда можно, а переименовывать
-/// нельзя: у людей на диске лежат записи со старыми именами.
+/// До 1.34.0 это было перечисление из двух членов. Свой сервер человека (перепродавец по
+/// Base URL) перечислением не описать: таких серверов может быть сколько угодно, и каждый
+/// обязан быть отдельным провайдером — со своим каталогом моделей, столбцом в плашке выбора и
+/// ключами. Поэтому провайдер — значение с текстовым <see cref="Id"/>, а встроенные провайдеры
+/// — его готовые экземпляры. Всё, что держало провайдера ключом словаря или сравнивало через
+/// <c>==</c>, продолжает работать без правок.
+/// <para>
+/// <see cref="Id"/> пишется в <c>keys.json</c> и <c>settings.json</c> ровно той строкой, какую
+/// писал <c>JsonStringEnumConverter</c> с <c>CamelCase</c> (<c>venice</c>, <c>openRouter</c>),
+/// поэтому файлы прежних версий читаются как были, а прежние версии читают новые файлы, пока в
+/// них только эти два провайдера. Переименовывать идентификаторы нельзя: у людей на диске лежат
+/// записи со старыми.
+/// </para>
+/// <para>
+/// <c>default</c> — это Venice, как и у перечисления: незаполненное поле старого файла и
+/// необязательный параметр без значения означают то же, что и раньше.
+/// </para>
 /// </remarks>
-public enum LlmProvider
+[JsonConverter(typeof(LlmProviderJsonConverter))]
+public readonly struct LlmProvider : IEquatable<LlmProvider>
 {
+    private const string VeniceId = "venice";
+    private const string CustomPrefix = "custom-";
+
+    /// <summary>Идентификаторы встроенных провайдеров и их имена в коде и журналах.</summary>
+    private static readonly (string Id, string Name)[] Known =
+    [
+        (VeniceId, "Venice"),
+        ("openRouter", "OpenRouter"),
+        ("openAI", "OpenAI"),
+        ("anthropic", "Anthropic"),
+        ("google", "Google"),
+        ("xAi", "XAi"),
+        ("deepSeek", "DeepSeek"),
+        ("moonshot", "Moonshot"),
+        ("mistral", "Mistral"),
+        ("zAi", "ZAi"),
+        ("qwen", "Qwen"),
+        ("groq", "Groq")
+    ];
+
+    private readonly string? _id;
+
+    private LlmProvider(string id) => _id = id;
+
     /// <summary>Venice — единственный провайдер до версии 1.23.0.</summary>
-    Venice,
+    public static LlmProvider Venice => default;
 
     /// <summary>OpenRouter: OpenAI-совместимый API и общий счёт на модели разных производителей.</summary>
-    OpenRouter
+    public static LlmProvider OpenRouter { get; } = new("openRouter");
+
+    public static LlmProvider OpenAI { get; } = new("openAI");
+
+    /// <summary>Anthropic (Claude) — единственный встроенный со своим протоколом, Messages API.</summary>
+    public static LlmProvider Anthropic { get; } = new("anthropic");
+
+    /// <summary>Google Gemini через его OpenAI-совместимый вход.</summary>
+    public static LlmProvider Google { get; } = new("google");
+
+    public static LlmProvider XAi { get; } = new("xAi");
+
+    public static LlmProvider DeepSeek { get; } = new("deepSeek");
+
+    /// <summary>Moonshot AI — модели Kimi.</summary>
+    public static LlmProvider Moonshot { get; } = new("moonshot");
+
+    public static LlmProvider Mistral { get; } = new("mistral");
+
+    /// <summary>Z.ai — модели GLM.</summary>
+    public static LlmProvider ZAi { get; } = new("zAi");
+
+    /// <summary>Alibaba Cloud Model Studio — модели Qwen.</summary>
+    public static LlmProvider Qwen { get; } = new("qwen");
+
+    public static LlmProvider Groq { get; } = new("groq");
+
+    /// <summary>Строка, которой провайдер записан в файлах.</summary>
+    public string Id => _id ?? VeniceId;
+
+    /// <summary>Свой сервер человека, заданный адресом, а не встроенный провайдер.</summary>
+    public bool IsCustom => Id.StartsWith(CustomPrefix, StringComparison.Ordinal);
+
+    /// <summary>Идентификатор своего сервера без приставки. <c>null</c> — провайдер встроенный.</summary>
+    public string? CustomId => IsCustom ? Id[CustomPrefix.Length..] : null;
+
+    /// <summary>Провайдер-сервер человека с этим идентификатором.</summary>
+    public static LlmProvider Custom(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        return new LlmProvider(CustomPrefix + id.Trim().ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// Провайдер по строке из файла. Неизвестная строка не бросает: её записала, может быть,
+    /// более новая версия, и стереть такую запись при чтении значило бы потерять ключ.
+    /// </summary>
+    public static LlmProvider Parse(string? text)
+    {
+        var id = (text ?? "").Trim();
+        if (id.Length == 0)
+        {
+            return Venice;
+        }
+
+        // Номер вместо имени JsonStringEnumConverter читал наравне с именем, и такие записи
+        // могли появиться при правке файла руками: 0 — Venice, 1 — OpenRouter.
+        if (id == "0")
+        {
+            return Venice;
+        }
+
+        if (id == "1")
+        {
+            return OpenRouter;
+        }
+
+        foreach (var (known, _) in Known)
+        {
+            if (string.Equals(known, id, StringComparison.OrdinalIgnoreCase))
+            {
+                return known == VeniceId ? Venice : new LlmProvider(known);
+            }
+        }
+
+        return id.StartsWith(CustomPrefix, StringComparison.OrdinalIgnoreCase)
+            ? new LlmProvider(id.ToLowerInvariant())
+            : new LlmProvider(id);
+    }
+
+    public bool Equals(LlmProvider other) =>
+        string.Equals(Id, other.Id, StringComparison.OrdinalIgnoreCase);
+
+    public override bool Equals(object? obj) => obj is LlmProvider other && Equals(other);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Id);
+
+    /// <summary>Имя в коде и в журналах: «Venice», «OpenRouter» — как писало перечисление.</summary>
+    public override string ToString()
+    {
+        foreach (var (known, name) in Known)
+        {
+            if (string.Equals(known, Id, StringComparison.OrdinalIgnoreCase))
+            {
+                return name;
+            }
+        }
+
+        return Id;
+    }
+
+    public static bool operator ==(LlmProvider left, LlmProvider right) => left.Equals(right);
+
+    public static bool operator !=(LlmProvider left, LlmProvider right) => !left.Equals(right);
 }
 
 /// <summary>
-/// Всё, чем провайдеры отличаются друг от друга вне кода запроса: адрес, приставка к
-/// идентификаторам моделей, переменная окружения с ключом и список того, чего у провайдера нет.
+/// Провайдер в JSON — строкой <see cref="LlmProvider.Id"/>, как его писало перечисление.
 /// </summary>
-/// <param name="Prefix">
-/// Приставка к идентификатору модели. У Venice пустая: его модели лежат в настройках и
-/// переписках людей без приставки с самого начала, и трогать их значило бы переписывать чужие
-/// файлы ради красоты.
-/// </param>
-/// <param name="EnvironmentVariable">
-/// Переменная окружения, из которой берётся ключ. Своя у каждого провайдера — человек мог
-/// завести оба. Её имя служит и названием строки в списке, пока человек не дал ей своё
-/// (<see cref="ApiKeyFile.EnvironmentLabels"/>).
-/// </param>
-/// <param name="HasImages">Есть ли эндпоинт рисования картинок.</param>
-/// <param name="HasScrape">Есть ли эндпоинт чтения страницы.</param>
-/// <param name="HasUsageHistory">
-/// Отдаёт ли провайдер журнал списаний. Нет — график трат строится из собственного журнала
-/// программы (<see cref="SpendLedger"/>).
-/// </param>
-public sealed record ProviderSpec(
-    LlmProvider Provider,
-    string Name,
-    string BaseUrl,
-    string Prefix,
-    string EnvironmentVariable,
-    string KeysUrl,
-    bool HasImages,
-    bool HasScrape,
-    bool HasUsageHistory)
+internal sealed class LlmProviderJsonConverter : JsonConverter<LlmProvider>
 {
-    private static readonly ProviderSpec VeniceSpec = new(
-        LlmProvider.Venice,
-        "Venice",
-        "https://api.venice.ai/api/v1",
-        Prefix: "",
-        "VENICE_API_KEY",
-        "https://venice.ai/settings/api",
-        HasImages: true,
-        HasScrape: true,
-        HasUsageHistory: true);
+    public override LlmProvider Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+        reader.TokenType switch
+        {
+            JsonTokenType.String => LlmProvider.Parse(reader.GetString()),
+            JsonTokenType.Number => LlmProvider.Parse(reader.GetInt64().ToString(CultureInfo.InvariantCulture)),
+            _ => throw new JsonException("A provider is written as a string.")
+        };
 
-    private static readonly ProviderSpec OpenRouterSpec = new(
-        LlmProvider.OpenRouter,
-        "OpenRouter",
-        "https://openrouter.ai/api/v1",
-        Prefix: "openrouter:",
-        "OPENROUTER_API_KEY",
-        "https://openrouter.ai/settings/keys",
-        // Ни картинок, ни чтения страниц: у OpenRouter только /chat/completions и всё, что
-        // вокруг него. Инструменты, которым эти эндпоинты нужны, ходят в Venice своим ключом.
-        HasImages: false,
-        HasScrape: false,
-        // GET /activity открыт только ключам, выданным через provisioning API; обычный ключ
-        // получает отказ — как журнал Venice без админ-ключа.
-        HasUsageHistory: false);
+    public override void Write(Utf8JsonWriter writer, LlmProvider value, JsonSerializerOptions options) =>
+        writer.WriteStringValue(value.Id);
 
-    /// <summary>Все провайдеры в порядке появления. Порядок виден человеку в диалоге ключа.</summary>
-    public static IReadOnlyList<ProviderSpec> All { get; } = [VeniceSpec, OpenRouterSpec];
+    public override LlmProvider ReadAsPropertyName(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options) =>
+        LlmProvider.Parse(reader.GetString());
 
-    public static ProviderSpec For(LlmProvider provider) =>
-        provider == LlmProvider.OpenRouter ? OpenRouterSpec : VeniceSpec;
+    public override void WriteAsPropertyName(
+        Utf8JsonWriter writer,
+        LlmProvider value,
+        JsonSerializerOptions options) =>
+        writer.WritePropertyName(value.Id);
 }

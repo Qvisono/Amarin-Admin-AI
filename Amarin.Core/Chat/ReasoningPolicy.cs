@@ -332,10 +332,11 @@ internal static class ReasoningPolicy
 
     public static bool FamilyBlocksEffortWithTools(string? modelId)
     {
-        // Запрет живёт у Venice, а не у моделей: тот же GPT-5.x за OpenRouter прекрасно
-        // принимает усилие рядом с инструментами. Разбор имени модели этой разницы не видит —
-        // имена у провайдеров одни и те же, — поэтому чужие идентификаторы сюда не пускаем.
-        if (ModelRef.Of(modelId) != LlmProvider.Venice)
+        // Запрет живёт у сервера, а не у моделей: OpenAI и всё, что передаёт ему запрос как есть
+        // (Venice), отвечает на усилие рядом с инструментами отказом, а тот же GPT-5.x за
+        // OpenRouter его прекрасно принимает. Разбор имени модели этой разницы не видит — имена у
+        // провайдеров одни и те же, — поэтому решает описание провайдера.
+        if (!ProviderSpec.For(ModelRef.Of(modelId)).BlocksEffortWithTools)
         {
             return false;
         }

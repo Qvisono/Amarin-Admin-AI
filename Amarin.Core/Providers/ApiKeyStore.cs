@@ -92,7 +92,7 @@ public sealed record ApiKeyEntry(
     string? Secret,
     ApiKeySource Source,
     bool IsActive,
-    LlmProvider Provider = LlmProvider.Venice)
+    LlmProvider Provider = default)
 {
     /// <summary>Блоб зашифрован не этой учётной записью Windows — показать нечего.</summary>
     public bool IsBroken => Secret is null;
@@ -398,7 +398,7 @@ internal sealed class ApiKeyStore
     /// Добавляет ключ и делает его активным. <c>null</c> — Windows отказалась шифровать либо
     /// такой ключ уже есть.
     /// </summary>
-    public ApiKeyRecord? Add(string label, string secret, LlmProvider provider = LlmProvider.Venice)
+    public ApiKeyRecord? Add(string label, string secret, LlmProvider provider = default)
     {
         secret = (secret ?? "").Trim();
         if (secret.Length == 0 || Contains(secret))

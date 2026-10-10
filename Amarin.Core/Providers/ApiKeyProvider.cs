@@ -37,7 +37,7 @@ public sealed class ApiKeyProvider
 {
     private volatile Holder _current;
 
-    public ApiKeyProvider(string initial = "", LlmProvider provider = LlmProvider.Venice)
+    public ApiKeyProvider(string initial = "", LlmProvider provider = default)
     {
         var secret = initial ?? string.Empty;
         _current = new Holder(
@@ -151,7 +151,7 @@ public sealed class ApiKeyProvider
         return new ApiCredential(provider, string.Empty);
     }
 
-    public void Use(string? key, LlmProvider provider = LlmProvider.Venice) =>
+    public void Use(string? key, LlmProvider provider = default) =>
         Use(new ApiCredential(provider, key ?? string.Empty));
 
     /// <param name="venice">

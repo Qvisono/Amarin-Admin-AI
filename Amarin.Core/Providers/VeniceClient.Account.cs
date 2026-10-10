@@ -96,9 +96,18 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = Resolve(credentialOverride);
-        if (credential.Provider != LlmProvider.Venice)
+        var spec = ProviderSpec.For(credential.Provider);
+        if (spec.Protocol == WireProtocol.AnthropicMessages)
         {
-            return await ListOpenRouterModelsAsync(credential, cancellationToken).ConfigureAwait(false);
+            return await ListAnthropicModelsAsync(credential, cancellationToken).ConfigureAwait(false);
+        }
+
+        switch (spec.Dialect)
+        {
+            case PayloadDialect.OpenRouter:
+                return await ListOpenRouterModelsAsync(credential, cancellationToken).ConfigureAwait(false);
+            case PayloadDialect.Generic:
+                return await ListGenericModelsAsync(credential, cancellationToken).ConfigureAwait(false);
         }
 
         using var httpRequest = Request(HttpMethod.Get, "models?type=text", credential);
@@ -164,6 +173,61 @@ public sealed partial class VeniceClient
         }
     }
 
+    /// <summary>Каталог OpenAI-совместимого сервера без надстроек.</summary>
+    private async Task<IReadOnlyList<VeniceModelInfo>> ListGenericModelsAsync(
+        ApiCredential credential,
+        CancellationToken cancellationToken)
+    {
+        var body = await GetJsonAsync("models", credential, trackBalance: false, cancellationToken)
+            .ConfigureAwait(false);
+        return ParseModelList(body, credential);
+    }
+
+    /// <summary>
+    /// Каталог Anthropic. Постранично: <c>/v1/models</c> отдаёт не больше тысячи моделей за раз.
+    /// </summary>
+    private async Task<IReadOnlyList<VeniceModelInfo>> ListAnthropicModelsAsync(
+        ApiCredential credential,
+        CancellationToken cancellationToken)
+    {
+        var models = new List<VeniceModelInfo>();
+        string? after = null;
+
+        // Потолок страниц — от зацикленного ответа: сервер, повторяющий тот же last_id, иначе
+        // держал бы плашку на «Загрузка…» до срока.
+        for (var page = 0; page < 20; page++)
+        {
+            var path = after is null ? "models?limit=1000" : "models?limit=1000&after_id=" + Uri.EscapeDataString(after);
+            var body = await GetJsonAsync(path, credential, trackBalance: false, cancellationToken)
+                .ConfigureAwait(false);
+            models.AddRange(ParseModelList(body, credential));
+
+            var next = ModelListParser.NextPageAfter(body);
+            if (next is null || next == after)
+            {
+                break;
+            }
+
+            after = next;
+        }
+
+        return models;
+    }
+
+    private static IReadOnlyList<VeniceModelInfo> ParseModelList(string body, ApiCredential credential)
+    {
+        try
+        {
+            return ModelListParser.Parse(body, credential.Provider);
+        }
+        catch (JsonException ex)
+        {
+            throw new VeniceApiException(
+                $"{ProviderSpec.For(credential.Provider).Name} returned non-JSON models response " +
+                $"({ex.Message}). Body: {Preview(body)}");
+        }
+    }
+
     /// <summary>
     /// Остаток и лимиты ключа. Единственный способ узнать остаток, не потратив ни цента:
     /// заголовки ответа его несут только после настоящего запроса к модели.
@@ -177,7 +241,8 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = credentialOverride ?? _options.Credential;
-        if (credential.Provider != LlmProvider.Venice)
+        var spec = ProviderSpec.For(credential.Provider);
+        if (spec.Balance == BalanceSource.OpenRouterCredits)
         {
             var open = await GetOpenRouterBalanceAsync(credential, cancellationToken)
                 .ConfigureAwait(false);
@@ -186,6 +251,12 @@ public sealed partial class VeniceClient
             // этой строки его ключи не попадали бы в книгу остатков вовсе.
             NoteBalance(credential, open);
             return open;
+        }
+
+        if (spec.Balance != BalanceSource.VeniceRateLimits)
+        {
+            // Не отказ ключа, а свойство провайдера: спрашивать остаток не у кого.
+            throw new BalanceNotReportedException($"{spec.Name} не сообщает остаток на ключе.");
         }
 
         using var httpRequest = Request(HttpMethod.Get, "api_keys/rate_limits", credential);
@@ -240,7 +311,7 @@ public sealed partial class VeniceClient
         CancellationToken cancellationToken = default)
     {
         var credential = credentialOverride ?? _options.Credential;
-        if (credential.Provider != LlmProvider.Venice)
+        if (!ProviderSpec.For(credential.Provider).HasUsageHistory)
         {
             // Не поломка, а свойство провайдера: журнала списаний у него нет вовсе. Тем же
             // исключением, что и отказ Venice без админ-ключа, — вызывающий на оба отвечает

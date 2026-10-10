@@ -69,11 +69,11 @@ public sealed class ModelRefTests
         Assert.Equal(expected, ModelRef.WithoutBatchVariant(stored));
 
     [Theory]
-    [InlineData("grok-4-6", LlmProvider.Venice)]
-    [InlineData("openrouter:openai/gpt-5", LlmProvider.OpenRouter)]
-    [InlineData("OPENROUTER:openai/gpt-5", LlmProvider.OpenRouter)]
-    public void The_identifier_names_its_provider(string id, LlmProvider expected) =>
-        Assert.Equal(expected, ModelRef.Of(id));
+    [InlineData("grok-4-6", "venice")]
+    [InlineData("openrouter:openai/gpt-5", "openRouter")]
+    [InlineData("OPENROUTER:openai/gpt-5", "openRouter")]
+    public void The_identifier_names_its_provider(string id, string expected) =>
+        Assert.Equal(LlmProvider.Parse(expected), ModelRef.Of(id));
 
     /// <summary>
     /// «Авто» — не модель, а просьба выбрать её; пустая строка — «возьми из настроек». Ни то ни
@@ -115,15 +115,38 @@ public sealed class ProviderSpecTests
     [Fact]
     public void Every_provider_has_a_description()
     {
-        foreach (var provider in Enum.GetValues<LlmProvider>())
+        foreach (var known in ProviderSpec.All)
         {
-            var spec = ProviderSpec.For(provider);
-            Assert.Equal(provider, spec.Provider);
+            var spec = ProviderSpec.For(known.Provider);
+            Assert.Same(known, spec);
             Assert.False(string.IsNullOrWhiteSpace(spec.Name));
-            Assert.False(string.IsNullOrWhiteSpace(spec.BaseUrl));
-            Assert.False(string.IsNullOrWhiteSpace(spec.EnvironmentVariable));
-            Assert.Contains(spec, ProviderSpec.All);
+            Assert.StartsWith("https://", spec.BaseUrl, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(spec.KeysUrl));
         }
+    }
+
+    /// <summary>
+    /// Ключи окружения — только у провайдеров, которых знали прежние версии: ключ другого
+    /// провайдера в окружении ставят для других программ, и молча платить им нельзя.
+    /// </summary>
+    [Fact]
+    public void Only_the_old_providers_read_the_environment()
+    {
+        Assert.All(ProviderSpec.All, spec =>
+            Assert.Equal(spec.IsLegacy, spec.EnvironmentVariable.Length > 0));
+    }
+
+    /// <summary>
+    /// Незнакомый провайдер не получает чужого адреса: прежде ему доставалось описание Venice,
+    /// и ключ ушёл бы на сервер Venice.
+    /// </summary>
+    [Fact]
+    public void An_unknown_provider_has_no_address()
+    {
+        var spec = ProviderSpec.For(LlmProvider.Parse("fromTheFuture"));
+
+        Assert.Equal("", spec.BaseUrl);
+        Assert.Equal(LlmProvider.Parse("fromTheFuture"), spec.Provider);
     }
 
     /// <summary>

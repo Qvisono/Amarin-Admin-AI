@@ -201,13 +201,22 @@ public sealed partial class VeniceClient
             known => known.Equals(effort?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Абсолютный адрес: база провайдера плюс путь запроса.</summary>
+    /// <remarks>
+    /// У незнакомого провайдера адреса нет, и запрос не уходит никуда. До 1.34.0 такой
+    /// провайдер получал адрес Venice — вместе с ним туда уехал бы и ключ.
+    /// </remarks>
     private Uri EndpointFor(LlmProvider provider, string path)
     {
         // Переопределение из appsettings.json касается только Venice; у остальных
         // провайдеров переопределять нечего, и адрес берётся из их описания.
-        var baseUrl = provider == LlmProvider.Venice
-            ? _options.BaseUrl
-            : ProviderSpec.For(provider).BaseUrl;
+        var spec = ProviderSpec.For(provider);
+        var baseUrl = provider == LlmProvider.Venice ? _options.BaseUrl : spec.BaseUrl;
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            throw new VeniceApiException(
+                $"Провайдер {spec.Name} программе незнаком: адреса его сервера нет, и запрос не " +
+                "отправлен. Скажи пользователю выбрать модель другого провайдера. Не повторяй этот вызов.");
+        }
 
         return new Uri(baseUrl.TrimEnd('/') + "/" + path.TrimStart('/'));
     }
@@ -386,9 +395,9 @@ public sealed partial class VeniceClient
                 throw new VeniceApiException(friendly);
             }
 
-            if (ShouldRetryToolsEffortConflict(payload, model, error))
+            if (Relaxed(payload, model, (int)response.StatusCode, error) is { } relaxed)
             {
-                payload = WithReasoningEffort(payload, ReasoningPolicy.None);
+                payload = relaxed;
                 using var retry = await PostCompletionAsync(payload, model, credential, cancellationToken)
                     .ConfigureAwait(false);
                 body = await retry.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -466,12 +475,12 @@ public sealed partial class VeniceClient
                 throw new VeniceApiException(friendly);
             }
 
-            if (!ShouldRetryToolsEffortConflict(payload, model, error))
+            if (Relaxed(payload, model, status, error) is not { } relaxed)
             {
                 throw ApiError(credential, status, error);
             }
 
-            payload = WithReasoningEffort(payload, ReasoningPolicy.None);
+            payload = relaxed;
             response = await PostCompletionAsync(payload, model, credential, cancellationToken)
                 .ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
@@ -671,6 +680,10 @@ public sealed partial class VeniceClient
         return !string.Equals(payload.ReasoningEffort, ReasoningPolicy.None, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <remarks>
+    /// Копирует все поля, включая <c>stream_options</c>: до 1.34.0 оно терялось, и потоковый
+    /// повтор приходил без расхода токенов — цена этого ответа не попадала в журнал трат.
+    /// </remarks>
     private static ChatCompletionRequest WithReasoningEffort(ChatCompletionRequest request, string? effort) =>
         new()
         {
@@ -680,24 +693,182 @@ public sealed partial class VeniceClient
             ToolChoice = request.ToolChoice,
             Temperature = request.Temperature,
             Stream = request.Stream,
+            StreamOptions = request.StreamOptions,
             ReasoningEffort = effort,
             Reasoning = request.Reasoning,
+            Thinking = request.Thinking,
+            EnableThinking = request.EnableThinking,
             VeniceParameters = request.VeniceParameters,
             Usage = request.Usage,
             Plugins = request.Plugins,
             ReasoningChoice = request.ReasoningChoice
         };
 
+    /// <summary>
+    /// Тело без всего, что не обязательно: полей размышления, температуры и просьбы о расходе.
+    /// </summary>
+    private static ChatCompletionRequest WithoutOptionalFields(ChatCompletionRequest request) =>
+        new()
+        {
+            Model = request.Model,
+            Messages = request.Messages,
+            Tools = request.Tools,
+            ToolChoice = request.ToolChoice,
+            Temperature = null,
+            Stream = request.Stream,
+            StreamOptions = null,
+            ReasoningChoice = request.ReasoningChoice
+        };
+
+    /// <summary>
+    /// Тело запроса по форме, которую понимает сервер провайдера модели.
+    /// </summary>
+    /// <remarks>
+    /// Выбор по описанию провайдера, а не «Venice — иначе OpenRouter»: прежде любой третий
+    /// провайдер получил бы надстройки OpenRouter, которых его сервер не знает.
+    /// </remarks>
     private ChatCompletionRequest BuildPayload(
         ChatCompletionRequest request,
         string model,
         bool prepareMessages,
         bool stream)
     {
-        var provider = ModelRef.Of(model, _options.Provider);
-        return provider == LlmProvider.Venice
-            ? BuildVenicePayload(request, model, prepareMessages, stream)
-            : BuildOpenRouterPayload(request, model, prepareMessages, stream);
+        var spec = ProviderSpec.For(ModelRef.Of(model, _options.Provider));
+        return spec.Dialect switch
+        {
+            PayloadDialect.Venice => BuildVenicePayload(request, model, prepareMessages, stream),
+            PayloadDialect.OpenRouter => BuildOpenRouterPayload(request, model, prepareMessages, stream),
+            _ => BuildGenericPayload(request, model, spec, prepareMessages, stream)
+        };
+    }
+
+    /// <summary>
+    /// Тело для OpenAI-совместимого сервера без надстроек: OpenAI, Gemini, xAI, DeepSeek, Kimi,
+    /// Mistral, GLM, Qwen, Groq и свои серверы людей.
+    /// </summary>
+    /// <remarks>
+    /// Только поля, которые знает любой такой сервер, плюс размышление тем полем, которым его
+    /// понимает этот провайдер (<see cref="ProviderSpec.Reasoning"/>). Если сервер всё же отвергнет
+    /// необязательное поле, запрос один раз повторяется без них (<see cref="Relaxed"/>).
+    /// </remarks>
+    private ChatCompletionRequest BuildGenericPayload(
+        ChatCompletionRequest request,
+        string model,
+        ProviderSpec spec,
+        bool prepareMessages,
+        bool stream)
+    {
+        var info = ResolveModelInfo?.Invoke(model);
+        var hasTools = request.Tools is { Count: > 0 };
+        var effort = request.ReasoningEffort;
+        ThinkingSwitch? thinking = null;
+        bool? enableThinking = null;
+
+        if (request.ReasoningChoice is { } choice)
+        {
+            var on = !choice.DisableThinking;
+            effort = null;
+
+            switch (spec.Reasoning)
+            {
+                case ReasoningDialect.ThinkingSwitch:
+                    thinking = on ? ThinkingSwitch.On : ThinkingSwitch.Off;
+                    effort = on ? ReasoningPolicy.ClampEffort(choice.Effort, info, hasTools) ?? Common(choice.Effort) : null;
+                    break;
+
+                case ReasoningDialect.EnableThinking:
+                    enableThinking = on;
+                    break;
+
+                default:
+                    effort = GenericEffort(choice, info, model, hasTools, spec);
+                    break;
+            }
+        }
+
+        return new ChatCompletionRequest
+        {
+            Model = ModelRef.Bare(model),
+            Messages = prepareMessages ? ApiContextLimiter.Prepare(request.Messages) : request.Messages,
+            Tools = request.Tools,
+            ToolChoice = request.ToolChoice,
+            Temperature = spec.SendsTemperature ? request.Temperature : null,
+            Stream = stream,
+            StreamOptions = stream ? new StreamOptions() : null,
+            ReasoningEffort = effort,
+            Thinking = thinking,
+            EnableThinking = enableThinking,
+            ReasoningChoice = request.ReasoningChoice
+        };
+    }
+
+    /// <summary>
+    /// Уровень размышления для сервера, у которого оно задаётся одним полем <c>reasoning_effort</c>.
+    /// </summary>
+    /// <remarks>
+    /// «Без размышления» — значение <c>none</c>, только если модель его знает: незнакомое значение
+    /// сервер отвергает. У семейства GPT-5.4+ рядом с инструментами допустимо одно <c>none</c>
+    /// (<see cref="ReasoningPolicy.ToWire"/>), и это правило провайдер наследует от OpenAI.
+    /// </remarks>
+    private static string? GenericEffort(
+        ReasoningChoice choice,
+        VeniceModelInfo? info,
+        string model,
+        bool hasTools,
+        ProviderSpec spec)
+    {
+        if (hasTools && spec.BlocksEffortWithTools && !ReasoningPolicy.AllowsEffortWithTools(info, model))
+        {
+            return ReasoningPolicy.None;
+        }
+
+        if (choice.DisableThinking)
+        {
+            return ReasoningPolicy.HasNoneOption(info) ? ReasoningPolicy.None : null;
+        }
+
+        return ReasoningPolicy.ClampEffort(choice.Effort, info, hasTools) ?? Common(choice.Effort);
+    }
+
+    /// <summary>
+    /// Тело для повтора после отказа, если отказ можно обойти. <c>null</c> — повторять нечего.
+    /// </summary>
+    /// <remarks>
+    /// Два обхода. Отказ усилия рядом с инструментами (GPT-5.x) — повтор с <c>none</c>. Отказ
+    /// необязательного поля у сервера без надстроек — повтор без полей размышления и прочего
+    /// необязательного: у провайдеров это поле устроено по-разному даже между их же моделями
+    /// (Kimi K3 и K2, GLM-5), и перечислить все различия заранее нельзя.
+    /// </remarks>
+    private static ChatCompletionRequest? Relaxed(
+        ChatCompletionRequest payload,
+        string model,
+        int status,
+        string error)
+    {
+        if (ShouldRetryToolsEffortConflict(payload, model, error))
+        {
+            return WithReasoningEffort(payload, ReasoningPolicy.None);
+        }
+
+        var dialect = ProviderSpec.For(ModelRef.Of(model)).Dialect;
+        if (dialect == PayloadDialect.Generic && status is 400 or 422 && NamesOptionalField(payload, error))
+        {
+            return WithoutOptionalFields(payload);
+        }
+
+        return null;
+    }
+
+    /// <summary>Отказ называет одно из необязательных полей, которые есть в этом теле.</summary>
+    private static bool NamesOptionalField(ChatCompletionRequest payload, string error)
+    {
+        bool Names(string field) => error.Contains(field, StringComparison.OrdinalIgnoreCase);
+
+        return (payload.ReasoningEffort is not null && Names("reasoning_effort")) ||
+               (payload.Thinking is not null && Names("thinking")) ||
+               (payload.EnableThinking is not null && Names("enable_thinking")) ||
+               (payload.StreamOptions is not null && Names("stream_options")) ||
+               (payload.Temperature is not null && Names("temperature"));
     }
 
     private ChatCompletionRequest BuildVenicePayload(
@@ -857,3 +1028,12 @@ public class VeniceApiException(string message) : Exception(message)
 /// сбой сети и не повод показывать ошибку: программа просто берёт свой журнал трат.
 /// </remarks>
 public sealed class VeniceAdminKeyRequiredException(string message) : VeniceApiException(message);
+
+/// <summary>
+/// Провайдер остатка на ключе не сообщает вовсе — у него нет такого запроса.
+/// </summary>
+/// <remarks>
+/// Не сбой и не повод спрашивать снова после каждого ответа: плашка остатка показывает такой
+/// ключ без цифры, а страница ключей — траты по журналу программы.
+/// </remarks>
+public sealed class BalanceNotReportedException(string message) : VeniceApiException(message);

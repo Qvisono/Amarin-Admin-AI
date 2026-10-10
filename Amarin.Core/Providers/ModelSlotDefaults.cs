@@ -67,6 +67,12 @@ public static class ModelSlotDefaults
             return VeniceModelCatalog.IsSelectable(catalog, shipped) ? shipped : Pick(slot, catalog);
         }
 
+        // Чужой провайдер слагов OpenRouter не знает: ему — только подбор по его же каталогу.
+        if (provider != LlmProvider.OpenRouter)
+        {
+            return Pick(slot, catalog);
+        }
+
         var preferred = IsCheap(slot) ? OpenRouterCheap : OpenRouterStrong;
 
         // Каталога нет — судить не о чем, и первое предпочтение лучше пустоты: пустая строка

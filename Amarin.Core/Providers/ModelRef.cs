@@ -28,7 +28,7 @@ public static class ModelRef
     /// <param name="fallback">
     /// Чем считать «авто» и пустую строку. Обычно — провайдер активного ключа.
     /// </param>
-    public static LlmProvider Of(string? modelId, LlmProvider fallback = LlmProvider.Venice)
+    public static LlmProvider Of(string? modelId, LlmProvider fallback = default)
     {
         var id = (modelId ?? "").Trim();
         if (id.Length == 0 || VeniceModelCatalog.IsAuto(id))

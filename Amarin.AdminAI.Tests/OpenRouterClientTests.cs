@@ -20,9 +20,10 @@ public sealed class OpenRouterClientTests
 
     private static (VeniceClient Client, ApiKeyProvider Keys, Recorder Recorder) Build(
         Func<HttpRequestMessage, string, HttpResponseMessage> script,
-        LlmProvider provider = LlmProvider.OpenRouter,
+        LlmProvider? keyProvider = null,
         Action<string, VeniceCost, string>? spendSink = null)
     {
+        var provider = keyProvider ?? LlmProvider.OpenRouter;
         var recorder = new Recorder(script);
         var keys = new ApiKeyProvider(
             provider == LlmProvider.Venice ? VeniceKey : OpenRouterKey, provider);

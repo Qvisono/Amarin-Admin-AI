@@ -25,8 +25,16 @@ internal static class VeniceModelFallback
         "openrouter:openai/gpt-4.1-mini"
     ];
 
+    /// <remarks>
+    /// Запасные есть только у Venice и OpenRouter: у них сотни моделей одним ключом. У прочих
+    /// провайдеров свой короткий список, и перебирать за человека чужие модели не из чего —
+    /// перегрузка остаётся отказом. Прежде им доставалась цепочка Venice, то есть модели, которых
+    /// у их сервера нет.
+    /// </remarks>
     private static string[] ChainFor(LlmProvider provider) =>
-        provider == LlmProvider.OpenRouter ? OpenRouterFallbackModels : FallbackModels;
+        provider == LlmProvider.Venice ? FallbackModels
+        : provider == LlmProvider.OpenRouter ? OpenRouterFallbackModels
+        : [];
 
     /// <summary>Запрошенная модель, а следом запасные на случай её перегрузки.</summary>
     /// <remarks>
@@ -43,7 +51,7 @@ internal static class VeniceModelFallback
     /// </param>
     public static IReadOnlyList<string> BuildChain(
         string primaryModel,
-        LlmProvider fallbackProvider = LlmProvider.Venice)
+        LlmProvider fallbackProvider = default)
     {
         var chain = new List<string>();
 
@@ -76,7 +84,7 @@ internal static class VeniceModelFallback
     public static IEnumerable<string> GetModelsFrom(
         string currentModel,
         string primaryModel,
-        LlmProvider fallbackProvider = LlmProvider.Venice)
+        LlmProvider fallbackProvider = default)
     {
         var chain = BuildChain(
             primaryModel,
