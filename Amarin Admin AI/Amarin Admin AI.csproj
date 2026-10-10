@@ -8,7 +8,7 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.32.0</Version>
+    <Version>1.33.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -77,6 +77,32 @@
     <PublishReadyToRunExclude Include="Newtonsoft.Json.dll" />
     <PublishReadyToRunExclude Include="System.DirectoryServices.dll" />
     <PublishReadyToRunExclude Include="System.CodeDom.dll" />
+  </ItemGroup>
+
+  <!--
+    То же с документами (1.33.0): OpenXml и PdfPig нужны только с первым документом в чате — там
+    JIT один раз за запуск, на рабочем потоке разбора, а не на запуске программы.
+  -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PublishReadyToRunExclude Include="DocumentFormat.OpenXml.dll" />
+    <PublishReadyToRunExclude Include="DocumentFormat.OpenXml.Framework.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.Core.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.DocumentLayoutAnalysis.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.Fonts.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.Package.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.Tokenization.dll" />
+    <PublishReadyToRunExclude Include="UglyToad.PdfPig.Tokens.dll" />
+  </ItemGroup>
+
+  <!--
+    Один exe с ReadyToRun SDK собирает составным (composite), а из составной сборки исключают
+    отдельным списком: PublishReadyToRunExclude её не трогал, и разборщик PowerShell с 1.28.0
+    предкомпилировался вопреки замыслу выше. Исключённое исключается и из составной: −3,4 МБ к exe
+    (1.33.0: 106,6 → 103,2 МБ).
+  -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PublishReadyToRunCompositeExclusions Include="@(PublishReadyToRunExclude)" />
   </ItemGroup>
 
   <!--

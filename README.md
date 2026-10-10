@@ -52,6 +52,20 @@ When a message touches one of these topics, the model reads the instruction and 
 reply shows which instruction was used. Instructions are plain Markdown files. You can turn them
 off, export and import them.
 
+It works with documents. The chat reads Word, Excel, PowerPoint and PDF files, creates folders,
+Word, Excel, PDF and text files and saves pictures, and changes existing files in place: a
+paragraph, a few cells, a set of pages. Each result comes back as a card with its path that opens
+the file, shows it in its folder or copies it. An attached document reaches the model as text
+with a table of contents, and the model edits only what it read in the same chat, so it never
+works from an old version.
+
+It can do things later. Ask the chat to remind you, to run a task with the agent, to run a
+command, or to reopen the programs that were open when the computer was turned off: at a time,
+after a delay, when the computer has been on for a while, the next time it is turned on, or when
+a condition becomes true, once or on a repeat. Reminders come as cards in the corner with
+**Done** and **Snooze** and a soft chime, and results arrive in the chat where the task was set.
+If the program is closed, Windows Task Scheduler starts it when a task is due.
+
 It can also work without being asked. With **scheduled tasks**, the agent checks the computer
 daily, weekly or at startup, in read-only mode, and leaves a report as a chat. If something needs
 attention, you get a notification. The **PC health** panel shows disks, memory, protection, recent
@@ -64,7 +78,9 @@ Hundreds of chats stay easy to manage: folders, tags and an archive, full-text s
 chats, export to Markdown, HTML or PDF, per-chat settings, a separate draft for each chat, voice
 input, and the cost of the whole chat next to an estimate for the next answer. Select several
 chats by dragging a frame over the list or with Ctrl+A, and pin, move, tag, archive, share,
-export or delete them in one go; Shift+Del deletes the selection after asking.
+export or delete them in one go; Shift+Del deletes the selection after asking. A chat can be sent
+or moved to another profile on the same computer. Pressing the mouse wheel in a long chat or list
+scrolls it by itself, faster the farther you move the mouse.
 
 ---
 
@@ -167,7 +183,12 @@ BitLocker keys and passwords are never shown.
 
 **Spending has limits too.** You can set daily and monthly limits for the profile or for a single
 key, and a cap per reply. The program warns you when spending gets close to a limit and asks
-before going past it. Scheduled runs have their own cap and never ask.
+before going past it. Scheduled runs and tasks for later have their own cap and never ask.
+
+**Tasks for later don't get a free pass.** A command set to run later is approved when it is set,
+and *Approve everything automatically* never answers for it. It is sealed with a key only this
+Windows account can read, so a command changed by hand or brought in from someone else's archive
+doesn't run. Read-only mode and the hard limits still apply when it runs.
 
 **Your key stays private.** On disk it is encrypted by Windows, or it stays in an environment
 variable if you chose that. It is not in `appsettings.json`, never appears in a conversation, is
@@ -178,8 +199,9 @@ removed from crash reports, and is sent only to the provider it belongs to.
 ## Where your data lives
 
 Everything is stored in `%APPDATA%\Amarin Admin AI`: conversations (attachments are in a folder
-next to each chat), settings, drafts, recipes and scheduled tasks, interface translations, and
-your instructions (`instructions\*.md`, one file each). The program has no cloud and no accounts.
+next to each chat), settings, drafts, recipes, scheduled tasks and tasks for later, interface
+translations, and your instructions (`instructions\*.md`, one file each). Tasks for later are not
+included in the data archive. The program has no cloud and no accounts.
 Several people can share one computer: each profile has its own chats and settings, and a profile
 can be locked with a password.
 
@@ -206,7 +228,9 @@ hide the window to the tray. A global shortcut (Win+Shift+A by default) shows or
 from anywhere; two more start a chat with the clipboard text or a screenshot. The program can
 start with Windows directly to the tray, adds **Ask Amarin** to the Explorer menu for files and
 folders, and keeps recent chats in its taskbar jump list. Notifications appear as the program's
-own card or as Windows notifications, whichever you choose.
+own card or as Windows notifications, whichever you choose. While tasks for later are waiting, a
+task in Windows Task Scheduler starts the program at their due time and when you sign in; it is
+removed when nothing is left to wait for.
 
 ---
 
