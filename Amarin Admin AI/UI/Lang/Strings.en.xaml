@@ -1438,8 +1438,15 @@
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">KEY</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">Default</system:String>
     <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">The key is picked automatically: the first usable one for this provider</system:String>
+    <system:String x:Key="S.Models.LoadBusy" xml:space="preserve">{0} asks to wait: too many requests.</system:String>
+    <system:String x:Key="S.Models.LoadDenied" xml:space="preserve">{0} refused access ({1}). The key may be wrong, or the service doesn't work from your country or network.</system:String>
+    <system:String x:Key="S.Models.LoadFailed" xml:space="preserve">The {0} model list didn't load: {1}</system:String>
+    <system:String x:Key="S.Models.LoadOffline" xml:space="preserve">Couldn't reach {0}. Check your internet connection.</system:String>
+    <system:String x:Key="S.Models.LoadServer" xml:space="preserve">{0} has a server problem ({1}).</system:String>
+    <system:String x:Key="S.Models.LoadTimeout" xml:space="preserve">{0} didn't answer in time.</system:String>
     <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">There is no {0} key yet. Add one to pick models from this provider.</system:String>
     <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">PROVIDER</system:String>
+    <system:String x:Key="S.Models.Retry" xml:space="preserve">Retry</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Search…</system:String>
 
 

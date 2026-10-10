@@ -34,9 +34,7 @@ public sealed partial class VeniceClient
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            throw new VeniceApiException(
-                $"{ProviderSpec.For(credential.Provider).Name} API error " +
-                $"({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(body));
         }
 
         return body;
@@ -116,8 +114,7 @@ public sealed partial class VeniceClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new VeniceApiException(
-                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(body));
         }
 
         VeniceModelsListResponse result;
@@ -204,8 +201,7 @@ public sealed partial class VeniceClient
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new VeniceApiException(
-                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(body));
         }
 
         try
@@ -288,11 +284,13 @@ public sealed partial class VeniceClient
             if (body.Contains("Admin API key", StringComparison.OrdinalIgnoreCase))
             {
                 throw new VeniceAdminKeyRequiredException(
-                    $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+                    $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}")
+                {
+                    StatusCode = (int)response.StatusCode
+                };
             }
 
-            throw new VeniceApiException(
-                $"Venice API error ({(int)response.StatusCode}): {ExtractErrorMessage(body)}");
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(body));
         }
 
         try
@@ -310,8 +308,10 @@ public sealed partial class VeniceClient
     private static string Iso(DateTimeOffset moment) =>
         moment.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
 
+    /// <remarks>
+    /// Через <see cref="ProviderErrorText.Detail"/>: вместо JSON приходит обычно страница защиты
+    /// сайта, и её разметка в сообщении ничего не объясняет.
+    /// </remarks>
     private static string Preview(string body) =>
-        string.IsNullOrWhiteSpace(body) ? "(empty body)"
-        : body.Length > 240 ? body[..240] + "…"
-        : body;
+        string.IsNullOrWhiteSpace(body) ? "(empty body)" : ProviderErrorText.Detail(body);
 }

@@ -1438,8 +1438,15 @@
     <system:String x:Key="S.Models.KeyColumn" xml:space="preserve">КЛЮЧ</system:String>
     <system:String x:Key="S.Models.KeyDefault" xml:space="preserve">По умолчанию</system:String>
     <system:String x:Key="S.Models.KeyDefaultTip" xml:space="preserve">Ключ выберется сам: первый подходящий для этого провайдера</system:String>
+    <system:String x:Key="S.Models.LoadBusy" xml:space="preserve">{0} просит подождать: слишком много запросов.</system:String>
+    <system:String x:Key="S.Models.LoadDenied" xml:space="preserve">{0} отказал в доступе ({1}). Ключ неверен, или сервис не работает из вашей страны или сети.</system:String>
+    <system:String x:Key="S.Models.LoadFailed" xml:space="preserve">Список моделей {0} не загрузился: {1}</system:String>
+    <system:String x:Key="S.Models.LoadOffline" xml:space="preserve">Не удалось связаться с {0}. Проверьте подключение к интернету.</system:String>
+    <system:String x:Key="S.Models.LoadServer" xml:space="preserve">У {0} сбой на сервере ({1}).</system:String>
+    <system:String x:Key="S.Models.LoadTimeout" xml:space="preserve">{0} не ответил вовремя.</system:String>
     <system:String x:Key="S.Models.NoKeyHint" xml:space="preserve">Ключа {0} в программе нет. Добавьте его, чтобы выбирать модели этого провайдера.</system:String>
     <system:String x:Key="S.Models.ProviderColumn" xml:space="preserve">ПРОВАЙДЕР</system:String>
+    <system:String x:Key="S.Models.Retry" xml:space="preserve">Повторить</system:String>
     <system:String x:Key="S.Models.SearchPlaceholder" xml:space="preserve">Поиск…</system:String>
 
 

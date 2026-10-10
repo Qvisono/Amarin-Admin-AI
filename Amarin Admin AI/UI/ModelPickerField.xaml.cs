@@ -29,7 +29,10 @@ public partial class ModelPickerField : UserControl
     private ModelPickerPanel? _panel;
     private IReadOnlyList<ApiKeyEntry> _keys = [];
 
-    /// <summary>Каталог провайдера, сказанный полю; <c>Models = null</c> — идёт загрузка.</summary>
+    /// <summary>
+    /// Каталог провайдера, сказанный полю. Нет ни списка, ни ошибки — идёт загрузка; ошибка без
+    /// списка — загрузка не удалась.
+    /// </summary>
     private readonly Dictionary<LlmProvider, (IReadOnlyList<VeniceModelInfo>? Models, string? Error)> _catalogs = [];
 
     public ModelPickerField()
@@ -87,13 +90,17 @@ public partial class ModelPickerField : UserControl
         panel.SetKeys(_keys);
         foreach (var (provider, catalog) in _catalogs)
         {
-            if (catalog.Models is null)
+            if (catalog.Models is { } models)
             {
-                panel.ShowLoading(provider);
+                panel.SetCatalog(provider, models);
+            }
+            else if (catalog.Error is { } error)
+            {
+                panel.SetCatalogError(provider, error);
             }
             else
             {
-                panel.SetCatalog(provider, catalog.Models, catalog.Error);
+                panel.ShowLoading(provider);
             }
         }
 
@@ -121,17 +128,27 @@ public partial class ModelPickerField : UserControl
 
     public void ShowLoading(LlmProvider provider)
     {
-        _catalogs[provider] = (null, null);
+        // Уже загруженный список новая попытка не прячет: плашка показывает его, пока идёт запрос.
+        if (!_catalogs.TryGetValue(provider, out var known) || known.Models is null)
+        {
+            _catalogs[provider] = (null, null);
+        }
+
         _panel?.ShowLoading(provider);
     }
 
-    public void SetCatalog(
-        LlmProvider provider,
-        IReadOnlyList<VeniceModelInfo> models,
-        string? error = null)
+    public void SetCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models)
     {
-        _catalogs[provider] = (models ?? [], error);
-        _panel?.SetCatalog(provider, models ?? [], error);
+        _catalogs[provider] = (models ?? [], null);
+        _panel?.SetCatalog(provider, models ?? []);
+    }
+
+    /// <summary>Список не загрузился: плашка скажет почему и предложит повторить.</summary>
+    public void SetCatalogError(LlmProvider provider, string error)
+    {
+        var models = _catalogs.TryGetValue(provider, out var known) ? known.Models : null;
+        _catalogs[provider] = (models, error);
+        _panel?.SetCatalogError(provider, error);
     }
 
     /// <summary>
@@ -189,6 +206,11 @@ public partial class ModelPickerField : UserControl
         // Открываемся на провайдере выбранной модели. Только здесь: SetSelected зовут и при
         // открытой плашке, и оттуда это возвращало бы столбец под рукой человека.
         Panel.ShowSelectedProvider();
+
+        // Открытие — повод подвезти каталог показанного провайдера: и впервые, и после отказа.
+        // До 1.34.0 поле в настройках об открытии хозяину не говорило, и отказ в нём оставался,
+        // сколько бы его ни открывали.
+        ProviderShown?.Invoke(this, Panel.ShownProvider);
 
         if (PickerPopup.Child is FrameworkElement child)
         {

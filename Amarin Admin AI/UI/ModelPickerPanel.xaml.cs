@@ -118,6 +118,9 @@ public partial class ModelPickerPanel : UserControl
 
     public string? SelectedKeyId => _selected.KeyId;
 
+    /// <summary>Чей столбец моделей сейчас перед глазами.</summary>
+    public LlmProvider ShownProvider => _shown;
+
     /// <summary>Человек выбрал модель. Хозяин закрывает плашку: выбор сделан.</summary>
     public event EventHandler<ModelBinding>? ModelPicked;
 
@@ -209,35 +212,63 @@ public partial class ModelPickerPanel : UserControl
         return null;
     }
 
+    /// <remarks>
+    /// Уже загруженный список новая попытка не прячет: модели остаются на месте, пока идёт
+    /// запрос, — так просил человек, и так не мигает открытая плашка.
+    /// </remarks>
     public void ShowLoading(LlmProvider provider)
     {
         var state = State(provider);
+        if (state.Ready && state.Error is null)
+        {
+            return;
+        }
+
         state.Ready = false;
-        state.Status = Loc.Get("S.Common.Loading");
+        state.Error = null;
         state.Version++;
         Invalidate();
     }
 
-    public void SetCatalog(
-        LlmProvider provider,
-        IReadOnlyList<VeniceModelInfo> models,
-        string? error = null)
+    public void SetCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models)
     {
         var state = State(provider);
         var next = models ?? [];
 
         // Тот же каталог второй раз — не повод пересобирать список: хозяин раздаёт его всем
         // плашкам сразу, и открытая перестраивалась бы по разу на каждую раздачу.
-        if (state.Ready &&
-            ReferenceEquals(state.Models, next) &&
-            string.Equals(state.Status, error, StringComparison.Ordinal))
+        if (state.Ready && state.Error is null && ReferenceEquals(state.Models, next))
         {
             return;
         }
 
         state.Models = next;
         state.Ready = true;
-        state.Status = error;
+        state.Error = null;
+        state.Version++;
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Список не загрузился: вместо моделей — причина и кнопка «Повторить».
+    /// </summary>
+    /// <remarks>
+    /// Модели, загруженные раньше, остаются: отказ при повторной попытке не повод их прятать.
+    /// </remarks>
+    public void SetCatalogError(LlmProvider provider, string error)
+    {
+        var state = State(provider);
+        if (state.Models.Count > 0)
+        {
+            state.Ready = true;
+            state.Error = null;
+            state.Version++;
+            Invalidate();
+            return;
+        }
+
+        state.Ready = true;
+        state.Error = error;
         state.Version++;
         Invalidate();
     }
@@ -708,13 +739,13 @@ public partial class ModelPickerPanel : UserControl
 
         if (!state.Ready)
         {
-            ShowStatus(state.Status ?? Loc.Get("S.Common.Loading"));
+            ShowStatus(Loc.Get("S.Common.Loading"));
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(state.Status) && state.Models.Count == 0)
+        if (state.Error is { } error)
         {
-            ShowStatus(state.Status);
+            ShowStatus(error, retry: true);
             return;
         }
 
@@ -732,17 +763,33 @@ public partial class ModelPickerPanel : UserControl
             return;
         }
 
-        ModelStatus.Visibility = Visibility.Collapsed;
+        StatusPane.Visibility = Visibility.Collapsed;
         ModelItems.ItemsSource = null;
         ModelItems.ItemsSource = _rows;
         RefreshMarks();
     }
 
-    private void ShowStatus(string text)
+    private void ShowStatus(string text, bool retry = false)
     {
         ModelItems.ItemsSource = null;
         ModelStatus.Text = text;
-        ModelStatus.Visibility = Visibility.Visible;
+        RetryButton.Visibility = retry ? Visibility.Visible : Visibility.Collapsed;
+        StatusPane.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Повтор загрузки списка показанного провайдера.
+    /// </summary>
+    /// <remarks>
+    /// Кнопкой, потому что повторное нажатие на уже выбранного провайдера ничего не делает
+    /// (<see cref="ShowProvider"/>), а закрывать и открывать плашку ради повтора человек не
+    /// догадается. Сама плашка в сеть не ходит — просит хозяина тем же событием, что и смена
+    /// провайдера.
+    /// </remarks>
+    private void RetryButton_Click(object sender, RoutedEventArgs e)
+    {
+        ShowLoading(_shown);
+        ProviderShown?.Invoke(this, _shown);
     }
 
     private void RebuildKeys()
@@ -838,9 +885,11 @@ public partial class ModelPickerPanel : UserControl
     {
         public IReadOnlyList<VeniceModelInfo> Models { get; set; } = [];
 
+        /// <summary>Загрузка закончилась — удачей или отказом. Иначе идёт.</summary>
         public bool Ready { get; set; }
 
-        public string? Status { get; set; }
+        /// <summary>Почему не загрузилось. Есть только при пустом списке.</summary>
+        public string? Error { get; set; }
 
         /// <summary>Растёт при каждой настоящей смене каталога — по нему видно, что пересобирать.</summary>
         public int Version { get; set; }

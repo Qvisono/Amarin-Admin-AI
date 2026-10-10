@@ -153,7 +153,10 @@ public sealed partial class VeniceClient
     /// OpenRouter отправляло человека чинить не тот провайдер — ключ Venice тут ни при чём.
     /// </remarks>
     private static VeniceApiException ApiError(ApiCredential credential, int status, string message) =>
-        new($"{ProviderSpec.For(credential.Provider).Name} API error ({status}): {message}");
+        new($"{ProviderSpec.For(credential.Provider).Name} API error ({status}): {message}")
+        {
+            StatusCode = status
+        };
 
     /// <summary>Учётные данные запроса: свои у слота либо выбранный ключ программы.</summary>
     private ApiCredential Resolve(ApiCredential? credential) => credential ?? _options.Credential;
@@ -826,11 +829,23 @@ public sealed partial class VeniceClient
             // fall through
         }
 
-        return string.IsNullOrWhiteSpace(body) ? "No details" : body;
+        return ProviderErrorText.Detail(body);
     }
 }
 
-public class VeniceApiException(string message) : Exception(message);
+public class VeniceApiException(string message) : Exception(message)
+{
+    /// <summary>
+    /// HTTP-код отказа, если отказал сам сервер. <c>null</c> — ответа не было вовсе или он не
+    /// разобрался.
+    /// </summary>
+    /// <remarks>
+    /// Код полем, а не только числом в тексте: по нему плашка выбора модели объясняет отказ
+    /// человеку (<see cref="ProviderErrorText.ForCatalog"/>), и разбирать для этого собственную
+    /// строку исключения было бы хрупко.
+    /// </remarks>
+    public int? StatusCode { get; init; }
+}
 
 /// <summary>
 /// Venice отдаёт журнал трат только админ-ключу, а для запросов к моделям человек держит

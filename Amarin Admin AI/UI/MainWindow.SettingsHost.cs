@@ -531,20 +531,29 @@ namespace Amarin.UI
 
             foreach (var spec in ProviderSpec.All)
             {
-                if (_services.Models.CachedFor(spec.Provider) is not { } models)
+                if (_services.Models.CachedFor(spec.Provider) is { } models)
                 {
-                    continue;
+                    foreach (var field in SettingsPickers())
+                    {
+                        field.SetCatalog(spec.Provider, models);
+                    }
                 }
+                else if (_services.Models.ErrorFor(spec.Provider) is { } error)
+                {
+                    // Отказ тоже раздаётся: иначе поле страницы, построенной после него, сказало
+                    // бы «нет доступных моделей», и человек не узнал бы ни причины, ни что
+                    // повторить можно.
+                    foreach (var field in SettingsPickers())
+                    {
+                        field.SetCatalogError(spec.Provider, error);
+                    }
+                }
+            }
 
-                foreach (var field in SettingsPickers())
-                {
-                    field.SetCatalog(spec.Provider, models, error: null);
-                }
-
-                foreach (var picker in SettingsReasoningPickers())
-                {
-                    picker.SetCatalog(models);
-                }
+            var known = LoadedModels();
+            foreach (var picker in SettingsReasoningPickers())
+            {
+                picker.SetCatalog(known);
             }
         }
 

@@ -262,6 +262,61 @@ public sealed class ModelPickerPanelTests
     }
 
     /// <summary>
+    /// Новая попытка загрузки не прячет уже загруженные модели.
+    /// </summary>
+    [Fact]
+    public void A_new_attempt_keeps_the_loaded_list()
+    {
+        var count = Shown(
+            panel =>
+            {
+                panel.SetKeys(BothProviders());
+                panel.SetCatalog(LlmProvider.Venice, [new VeniceModelInfo { Id = "grok-4-6" }]);
+                panel.SetSelected("grok-4-6", null);
+                panel.ShowSelectedProvider();
+                panel.ShowLoading(LlmProvider.Venice);
+            },
+            panel => Models(panel).Items.Count);
+
+        Assert.Equal(1, count);
+    }
+
+    /// <summary>
+    /// Отказ показан словами и кнопкой «Повторить», а она просит хозяина загрузить список снова.
+    /// </summary>
+    /// <remarks>
+    /// Повторное нажатие на уже выбранного провайдера ничего не делает, и до 1.34.0 повторить
+    /// загрузку из открытой плашки было нечем.
+    /// </remarks>
+    [Fact]
+    public void A_refusal_offers_to_retry()
+    {
+        var (text, retry, asked) = Shown(
+            panel =>
+            {
+                panel.SetKeys(BothProviders());
+                panel.SetSelected("openrouter:openai/gpt-5", null);
+                panel.ShowSelectedProvider();
+                panel.SetCatalogError(LlmProvider.OpenRouter, "OpenRouter отказал в доступе (403).");
+            },
+            panel =>
+            {
+                LlmProvider? requested = null;
+                panel.ProviderShown += (_, provider) => requested = provider;
+
+                var status = ((TextBlock)panel.FindName("ModelStatus")!).Text;
+                var button = (Button)panel.FindName("RetryButton")!;
+                var visible = button.Visibility;
+                button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                return (status, visible, requested);
+            });
+
+        Assert.Equal("OpenRouter отказал в доступе (403).", text);
+        Assert.Equal(Visibility.Visible, retry);
+        Assert.Equal(LlmProvider.OpenRouter, asked);
+    }
+
+    /// <summary>
     /// Список виртуализован: из четырёхсот моделей строк создаётся десяток.
     /// </summary>
     /// <remarks>

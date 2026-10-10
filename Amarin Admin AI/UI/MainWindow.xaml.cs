@@ -1347,23 +1347,35 @@ namespace Amarin.UI
         /// Всех, а не одного: слоты теперь стоят у разных провайдеров, и лечение выбора обязано
         /// сверяться с каталогом того провайдера, которому слот принадлежит. Провайдера без
         /// ключа не трогаем — запрос без ключа вернулся бы четырёхсоткой.
+        /// <para>
+        /// Разом, а не по очереди: провайдер, который не отвечает, иначе держал бы все
+        /// остальные до истечения своего срока.
+        /// </para>
         /// </remarks>
-        private async Task LoadModelCatalogAsync()
+        private Task LoadModelCatalogAsync()
         {
             if (_services is null)
             {
-                return;
+                return Task.CompletedTask;
             }
 
+            var loads = new List<Task>();
             foreach (var spec in ProviderSpec.All)
             {
                 if (_services.Keys.HasKeyFor(spec.Provider))
                 {
-                    await LoadProviderCatalogAsync(spec.Provider);
+                    loads.Add(LoadProviderCatalogAsync(spec.Provider));
                 }
             }
+
+            return Task.WhenAll(loads);
         }
 
+        /// <remarks>
+        /// Отказ не запоминается ни здесь, ни в кэше: следующее открытие плашки или нажатие на
+        /// провайдера снова идёт в сеть. До 1.34.0 первый же отказ (например, «Access Denied»
+        /// от OpenRouter по стране) оставался в плашке до перезапуска программы.
+        /// </remarks>
         private async Task LoadProviderCatalogAsync(LlmProvider provider)
         {
             if (_services is null || !_services.Keys.HasKeyFor(provider))
@@ -1377,7 +1389,7 @@ namespace Amarin.UI
                 // проход по всему конвейеру на каждое нажатие провайдера и был тем подвисанием.
                 if (_appliedCatalogs.Add(provider))
                 {
-                    ApplyCatalog(provider, cached, error: null);
+                    ApplyCatalog(provider, cached);
                 }
 
                 return;
@@ -1389,19 +1401,32 @@ namespace Amarin.UI
                 field.ShowLoading(provider);
             }
 
-            var models = await _services.Models.GetAgenticAsync(provider);
-            _appliedCatalogs.Add(provider);
-            ApplyCatalog(provider, models, models.Count == 0 ? _services.Models.ErrorFor(provider) : null);
+            var load = await _services.Models.LoadAsync(provider);
+            if (load.Models is { } models)
+            {
+                _appliedCatalogs.Add(provider);
+                ApplyCatalog(provider, models);
+                return;
+            }
+
+            // Только плашкам: лечить выбор по несостоявшемуся списку нельзя, а поля размышления
+            // держат сведения о моделях других провайдеров, и пустой список стёр бы их.
+            var error = load.Error ?? "";
+            ChatModelPicker.SetCatalogError(provider, error);
+            foreach (var field in SettingsPickers())
+            {
+                field.SetCatalogError(provider, error);
+            }
         }
 
-        private void ApplyCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models, string? error)
+        private void ApplyCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models)
         {
             HealUnusableModelSelections(provider, models);
-            ChatModelPicker.SetCatalog(provider, models, error);
+            ChatModelPicker.SetCatalog(provider, models);
             ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
             foreach (var field in SettingsPickers())
             {
-                field.SetCatalog(provider, models, error);
+                field.SetCatalog(provider, models);
             }
 
             // Поля страницы «Customize» заполняются при открытии настроек, а каталог доезжает
@@ -1410,15 +1435,42 @@ namespace Amarin.UI
             // сброшенная настройка, хотя выбор цел.
             ShowSettingsModelSelections();
 
+            var known = LoadedModels();
             foreach (var picker in SettingsReasoningPickers())
             {
-                picker.SetCatalog(models);
+                picker.SetCatalog(known);
             }
 
-            ChatReasoningPicker.SetCatalog(models);
+            ChatReasoningPicker.SetCatalog(known);
             UpdateReasoningPicker();
             BindSettingsReasoningPickers();
             RefreshContextRing();
+        }
+
+        /// <summary>Модели всех загруженных каталогов одним списком.</summary>
+        /// <remarks>
+        /// Полям размышления: слоты стоят у разных провайдеров, а поле ищет свою модель по
+        /// идентификатору. Прежде ему отдавался список последнего доехавшего провайдера, и
+        /// поле у слота соседа теряло уровни размышления своей модели. Идентификаторы несут
+        /// приставку провайдера, поэтому в общем списке они не путаются.
+        /// </remarks>
+        private List<VeniceModelInfo> LoadedModels()
+        {
+            var all = new List<VeniceModelInfo>();
+            if (_services is null)
+            {
+                return all;
+            }
+
+            foreach (var spec in ProviderSpec.All)
+            {
+                if (_services.Models.CachedFor(spec.Provider) is { } models)
+                {
+                    all.AddRange(models);
+                }
+            }
+
+            return all;
         }
 
         /// <summary>
