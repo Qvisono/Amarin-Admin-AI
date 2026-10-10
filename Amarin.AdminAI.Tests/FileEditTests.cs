@@ -169,17 +169,32 @@ public sealed class FileEditTests : IDisposable
         Assert.Equal("int a = 1;\nint b = 3;\n", System.IO.File.ReadAllText(path));
     }
 
-    [Fact]
-    public void A_character_the_files_code_page_lacks_is_refused_not_turned_into_a_question_mark()
+    [Theory]
+    [InlineData("ru-RU", "привет мир\n", "мир")]
+    [InlineData("en-US", "café olé\n", "olé")]
+    public void A_character_the_files_code_page_lacks_is_refused_not_turned_into_a_question_mark(string culture, string text, string word)
     {
+        // Файл без метки и не в UTF-8 читается в кодовой странице ANSI по культуре, как его читает
+        // любая программа Windows: у русской это 1251, у английской 1252. Культура задана здесь
+        // явно: прежде тест писал русский текст и полагался на машину, и на раннере GitHub
+        // (английская Windows) «мир» не находился — тест падал только в CI.
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        var cp1251 = Encoding.GetEncoding(1251);
-        var path = File("old.txt", "привет мир\n", cp1251);
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo(culture);
+        try
+        {
+            var ansi = Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage);
+            var path = File("old.txt", text, ansi);
 
-        var error = Assert.Throws<DocumentException>(() => TextEdits.Replace(path, "мир", "мир ✓", all: false));
+            var error = Assert.Throws<DocumentException>(() => TextEdits.Replace(path, word, word + " ✓", all: false));
 
-        Assert.Contains("encoding", error.Message, StringComparison.Ordinal);
-        Assert.Equal("привет мир\n", cp1251.GetString(System.IO.File.ReadAllBytes(path)));
+            Assert.Contains("encoding", error.Message, StringComparison.Ordinal);
+            Assert.Equal(text, ansi.GetString(System.IO.File.ReadAllBytes(path)));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
     }
 
     [Fact]
