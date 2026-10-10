@@ -182,7 +182,7 @@ internal static partial class ExcelCells
         return created;
     }
 
-    private static void Fill(S.Cell cell, CellInput input, ExcelStyleIds styles, bool bold)
+    internal static void Fill(S.Cell cell, CellInput input, ExcelStyleIds styles, bool bold)
     {
         var existing = cell.StyleIndex?.Value;
         cell.CellFormula = null;

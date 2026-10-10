@@ -37,8 +37,11 @@ public sealed class EditDocumentTool : ITool
         "to the numbers read_file showed. Word (.docx): {op:\"replace\", find, replace, all}, {op:\"insert\", after|before: " +
         "paragraph, content}, {op:\"set\", paragraph, content}, {op:\"delete\", paragraph, to}, {op:\"append\", content} - " +
         "content is Markdown. Excel (.xlsx): {op:\"set_cells\", sheet, cells:[{cell:\"B2\", value:\"12.5\"}, {cell:\"C9\", value:\"=SUM(C2:C8)\"}]}, " +
+        "{op:\"fill\", sheet, range:\"B2:K11\", value:\"=B$1*$A2\"} fills every cell of the range, shifting relative references " +
+        "as dragging does in Excel ($ keeps them); value:\"1\" with step:1 makes a number series. " +
         "{op:\"append_rows\", sheet, rows}, {op:\"add_sheet\", name, rows}, {op:\"rename_sheet\", sheet, name}, " +
-        "{op:\"clear\", sheet, range}. PDF: {op:\"append\", content} adds Markdown as new pages at the end, " +
+        "{op:\"clear\", sheet, range}. Formulas are calculated when the file is saved. " +
+        "PDF: {op:\"append\", content} adds Markdown as new pages at the end, " +
         "{op:\"keep_pages\", pages:\"1-3,7\"}, {op:\"append_pdf\", files:[...]}. " +
         "A document too big for one call is built in parts: create it with the first part, then append the rest " +
         "(append for Word and PDF, append_rows for Excel) call by call into the same file. " +
@@ -55,7 +58,7 @@ public sealed class EditDocumentTool : ITool
               "items": {
                 "type": "object",
                 "properties": {
-                  "op": { "type": "string", "enum": ["replace", "insert", "set", "delete", "append", "set_cells", "append_rows", "add_sheet", "rename_sheet", "clear", "keep_pages", "append_pdf"] },
+                  "op": { "type": "string", "enum": ["replace", "insert", "set", "delete", "append", "set_cells", "fill", "append_rows", "add_sheet", "rename_sheet", "clear", "keep_pages", "append_pdf"] },
                   "find": { "type": "string" },
                   "replace": { "type": "string" },
                   "all": { "type": "boolean" },
@@ -79,6 +82,8 @@ public sealed class EditDocumentTool : ITool
                   "rows": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
                   "name": { "type": "string" },
                   "range": { "type": "string" },
+                  "value": { "type": "string", "description": "fill: =formula with relative references, a number to start a series, or text" },
+                  "step": { "type": "number", "description": "fill: step of a number series" },
                   "pages": { "type": "string" },
                   "files": { "type": "array", "items": { "type": "string" } }
                 },
@@ -309,17 +314,39 @@ public sealed class EditDocumentTool : ITool
                     var cleared = editor.Clear(sheet, Required(operation, "range", step));
                     log.Append(step).Append(". cleared ").Append(cleared).Append(" cell(s)\n");
                     break;
+                case "fill":
+                    var filled = editor.Fill(sheet, Fill(operation, step));
+                    log.Append(step).Append(". filled ").Append(filled).Append(" cell(s)\n");
+                    break;
                 default:
-                    throw new DocumentException($"Operation {step}: \"{op}\" is not an Excel operation. Excel takes set_cells, append_rows, add_sheet, rename_sheet, clear.");
+                    throw new DocumentException($"Operation {step}: \"{op}\" is not an Excel operation. Excel takes set_cells, fill, append_rows, add_sheet, rename_sheet, clear.");
             }
         }
 
-        if (editor.HasFormulas)
+        var report = editor.Save();
+        if (report.Computed + report.Left > 0)
         {
-            log.Append("Formula results are recalculated when the file is opened in Excel; until then read_file shows the totals saved before this change.\n");
+            log.Append("Formulas calculated: ").Append(report.Computed).Append('.');
+            if (report.Left > 0)
+            {
+                log.Append(' ').Append(report.Left).Append(" use what this program cannot calculate and keep their saved results until the file is opened in Excel.");
+            }
+
+            log.Append('\n');
+        }
+    }
+
+    /// <summary>Заполнение диапазона из операции: <c>{range, value, step}</c>.</summary>
+    internal static CellFill Fill(JsonElement operation, int step)
+    {
+        var range = Required(operation, "range", step);
+        if (!operation.TryGetProperty("value", out var value) || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            throw new DocumentException($"Operation {step} (fill) needs value: a formula such as =B$1*$A2, a number to start a series with step, or text.");
         }
 
-        editor.Save();
+        double? by = operation.TryGetProperty("step", out var stepValue) && stepValue.ValueKind == JsonValueKind.Number ? stepValue.GetDouble() : null;
+        return new CellFill(range, ExcelCells.Parse(value), by);
     }
 
     private static byte[] EditPdf(byte[] bytes, JsonElement operations, StringBuilder log)

@@ -311,8 +311,11 @@ public sealed class DeferredChatTests
 
     /// <summary>
     /// «Создай Excel» уходило агенту: техпромпт отдавал ему «всё, что касается этого ПК», а из
-    /// исключений знал только прежние read/write/search. Правило «файлы — твоя работа» стоит в
-    /// блоке файлов, который доходит и до сохранённого человеком техпромпта, и в описании init_agent.
+    /// исключений знал только прежние read/write/search. Запрет агента на документы, поставленный
+    /// следом, кончился хуже: модель стала давать человеку инструкцию «открой Excel и сохрани PDF».
+    /// Теперь правила такие: документы — своими инструментами, агенту — только шаг, которого они не
+    /// умеют, и никогда — работа человеку вручную, когда её может сделать программа. Они стоят в блоке
+    /// файлов, который доходит и до сохранённого человеком техпромпта, и в описании init_agent.
     /// </summary>
     [Fact]
     public void File_work_stays_with_the_chat_even_under_a_saved_old_tech_prompt()
@@ -329,13 +332,19 @@ public sealed class DeferredChatTests
 
         var prompt = engine.CurrentSystemPrompt(new ChatSession());
 
+        const string OwnTools = "init_agent only for a step these tools cannot do";
         Assert.Contains("Anything involving this PC", prompt, StringComparison.Ordinal);
-        Assert.Contains("Never hand them to init_agent", prompt, StringComparison.Ordinal);
+        Assert.Contains(OwnTools, prompt, StringComparison.Ordinal);
         Assert.True(
-            prompt.IndexOf("Never hand them to init_agent", StringComparison.Ordinal) >
-            prompt.IndexOf("Anything involving this PC", StringComparison.Ordinal),
+            prompt.IndexOf(OwnTools, StringComparison.Ordinal) > prompt.IndexOf("Anything involving this PC", StringComparison.Ordinal),
             "the file rule must come after the old agent rule it overrides");
-        Assert.Contains("Not for files, folders and documents", new Amarin.Tools.InitAgentTool(new AgentSlotLimiter(), null!).Description, StringComparison.Ordinal);
+
+        // Удобство человека важнее любого «нельзя»: работа, которую может сделать программа, ему не достаётся.
+        Assert.Contains("Never answer with steps for the user to carry out", prompt, StringComparison.Ordinal);
+        Assert.Contains("hand them steps to do by hand", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("never offer the agent", prompt, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("give the agent only a step they cannot do", new Amarin.Tools.InitAgentTool(new AgentSlotLimiter(), null!).Description, StringComparison.Ordinal);
         Assert.DoesNotContain("Anything involving this PC", ChatEngine.DefaultTechPrompt, StringComparison.Ordinal);
     }
 

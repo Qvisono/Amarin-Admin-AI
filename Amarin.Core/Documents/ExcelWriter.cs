@@ -7,7 +7,12 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 namespace Amarin.Core;
 
 /// <summary>Лист новой книги: имя и строки значений; первая строка — шапка, если так сказано.</summary>
-internal sealed record SheetInput(string Name, IReadOnlyList<IReadOnlyList<CellInput>> Rows, bool Header = true);
+/// <param name="Fills">Заполнения диапазонов поверх строк (<see cref="ExcelFill"/>).</param>
+internal sealed record SheetInput(
+    string Name,
+    IReadOnlyList<IReadOnlyList<CellInput>> Rows,
+    bool Header = true,
+    IReadOnlyList<CellFill>? Fills = null);
 
 /// <summary>
 /// Excel (.xlsx) из таблиц: типы значений, жирная закреплённая шапка с фильтром и ширина столбцов
@@ -43,7 +48,9 @@ internal static partial class ExcelWriter
 
             if (formulas)
             {
+                // Итоги — в файл сразу: книгу читают и переводят в PDF до того, как её откроет Excel.
                 ExcelCells.RecalculateOnOpen(workbook);
+                _ = ExcelRecalc.Apply(workbook);
             }
 
             workbook.Workbook.Save();
@@ -54,30 +61,57 @@ internal static partial class ExcelWriter
     internal static S.Worksheet Sheet(SheetInput sheet, ExcelStyleIds styles, out bool formulas)
     {
         formulas = false;
-        var data = new S.SheetData();
-        var widths = new Dictionary<int, int>();
+
+        // Строки и заполнения — в одну сетку, заполнение поверх строк: так пишется по порядку
+        // строк и ячеек, как того требует Excel, сколько бы заполнений ни перекрывались.
+        var grid = new SortedDictionary<(int Row, int Column), CellInput>();
         for (var r = 0; r < sheet.Rows.Count; r++)
         {
-            var row = sheet.Rows[r];
-            var header = sheet.Header && r == 0;
-            for (var c = 0; c < row.Count; c++)
+            for (var c = 0; c < sheet.Rows[r].Count; c++)
             {
-                var input = row[c];
-                if (input.Kind == CellInputKind.Empty)
-                {
-                    continue;
-                }
-
-                formulas |= input.Kind == CellInputKind.Formula;
-                ExcelCells.Set(data, c + 1, r + 1, input, styles, bold: header);
-                var length = input.Kind == CellInputKind.Formula ? 10 : input.Text.Length;
-                widths[c + 1] = Math.Max(widths.GetValueOrDefault(c + 1), length);
+                grid[(r + 1, c + 1)] = sheet.Rows[r][c];
             }
         }
 
+        foreach (var fill in sheet.Fills ?? [])
+        {
+            foreach (var (column, row, input) in ExcelFill.Expand(fill))
+            {
+                grid[(row, column)] = input;
+            }
+        }
+
+        var data = new S.SheetData();
+        var widths = new Dictionary<int, int>();
+        var lastRow = 0;
+        var columns = 0;
+        S.Row? line = null;
+        foreach (var ((row, column), input) in grid)
+        {
+            if (input.Kind == CellInputKind.Empty)
+            {
+                continue;
+            }
+
+            formulas |= input.Kind == CellInputKind.Formula;
+            if (line is null || row != lastRow)
+            {
+                line = new S.Row { RowIndex = (uint)row };
+                data.Append(line);
+                lastRow = row;
+            }
+
+            var cell = new S.Cell { CellReference = CellAddress.Of(column, row) };
+            line.Append(cell);
+            ExcelCells.Fill(cell, input, styles, bold: sheet.Header && row == 1);
+            var length = input.Kind == CellInputKind.Formula ? 10 : input.Text.Length;
+            widths[column] = Math.Max(widths.GetValueOrDefault(column), length);
+            columns = Math.Max(columns, column);
+        }
+
         var worksheet = new S.Worksheet();
-        var columns = sheet.Rows.Count == 0 ? 0 : sheet.Rows.Max(row => row.Count);
-        if (sheet.Header && sheet.Rows.Count > 1 && columns > 0)
+        var rows = lastRow;
+        if (sheet.Header && rows > 1 && columns > 0)
         {
             worksheet.Append(new S.SheetViews(new S.SheetView(
                 new S.Pane { VerticalSplit = 1D, TopLeftCell = "A2", ActivePane = S.PaneValues.BottomLeft, State = S.PaneStateValues.Frozen })
@@ -102,9 +136,9 @@ internal static partial class ExcelWriter
         }
 
         worksheet.Append(data);
-        if (sheet.Header && sheet.Rows.Count > 1 && columns > 0)
+        if (sheet.Header && rows > 1 && columns > 0)
         {
-            worksheet.Append(new S.AutoFilter { Reference = "A1:" + CellAddress.Of(columns, sheet.Rows.Count) });
+            worksheet.Append(new S.AutoFilter { Reference = "A1:" + CellAddress.Of(columns, rows) });
         }
 
         return worksheet;

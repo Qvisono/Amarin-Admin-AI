@@ -43,8 +43,12 @@ public sealed class CreateDocumentTool : ITool
         "Create a new Word (.docx), Excel (.xlsx), PDF, HTML or text file and get its path back. The extension of " +
         "path picks the format. content is Markdown: headings, paragraphs, bold, italic, lists, tables, code, links, " +
         "\\pagebreak, and pictures as ![caption](amarin-image:handle) or ![caption](C:\\full\\path.png). For .xlsx give " +
-        "sheets: [{name, rows: [[...], ...]}] (first row is the header; numbers, dates YYYY-MM-DD, 12% and =formulas " +
-        "keep their type), or Markdown tables, or CSV lines in content. An existing file is kept unless overwrite=true. " +
+        "sheets: [{name, rows: [[...], ...], fill: [{range, value, step}]}] (first row is the header; numbers, dates " +
+        "YYYY-MM-DD, 12% and =formulas keep their type), or Markdown tables, or CSV lines in content. fill writes a whole " +
+        "range from one formula with relative references, as dragging does in Excel ($ keeps a reference), or a number " +
+        "series from value and step - a large or regular table needs no list of every value. Formulas are calculated as " +
+        "the file is written. source makes the document from an existing one in a single call - Word, Excel (with formula " +
+        "results), PDF, PowerPoint, CSV or text - instead of retyping it. An existing file is kept unless overwrite=true. " +
         "Too big for one call: create it with the first part and add the rest with edit_document append (Word, PDF) " +
         "or append_rows (Excel). A table wider than the page is printed in blocks of columns. " +
         "Relative paths go to the user's Downloads folder.";
@@ -55,6 +59,8 @@ public sealed class CreateDocumentTool : ITool
           "properties": {
             "path": { "type": "string", "description": "New file path; the extension picks the format" },
             "content": { "type": "string", "description": "Markdown (or CSV lines for .xlsx)" },
+            "source": { "type": "string", "description": "Make this document from an existing one instead of content: a path or amarin-attachment: handle" },
+            "sheet": { "type": "string", "description": "With an Excel source: only this sheet" },
             "sheets": {
               "type": "array",
               "description": "Excel only: sheets with rows of values",
@@ -63,7 +69,20 @@ public sealed class CreateDocumentTool : ITool
                 "properties": {
                   "name": { "type": "string" },
                   "rows": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } },
-                  "header": { "type": "boolean", "description": "First row is a header (default true)" }
+                  "header": { "type": "boolean", "description": "First row is a header (default true)" },
+                  "fill": {
+                    "type": "array",
+                    "description": "Ranges filled after rows: a formula with relative references, or a number series",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "range": { "type": "string", "description": "Such as B2:K11" },
+                        "value": { "type": "string", "description": "=formula, a number to start a series, or text" },
+                        "step": { "type": "number", "description": "Step of a number series" }
+                      },
+                      "required": ["range", "value"]
+                    }
+                  }
                 }
               }
             },
@@ -126,6 +145,11 @@ public sealed class CreateDocumentTool : ITool
         var content = FileToolPaths.String(arguments, "content") ?? "";
         try
         {
+            if (FileToolPaths.String(arguments, "source") is { Length: > 0 } raw)
+            {
+                content = FromSource(raw, path, FileToolPaths.String(arguments, "sheet"));
+            }
+
             var notes = Path.GetExtension(path).ToLowerInvariant() switch
             {
                 ".docx" => WordWriter.Create(path, content, DocumentImages.Resolve, overwrite).Skipped,
@@ -161,6 +185,39 @@ public sealed class CreateDocumentTool : ITool
         }
     }
 
+    /// <summary>
+    /// Содержимое нового документа из существующего — целиком, со значениями формул Excel. Секреты
+    /// не читаются и так, куда бы ни вёл путь: перевод в PDF не должен становиться обходом запрета
+    /// на чтение.
+    /// </summary>
+    private static string FromSource(string raw, string target, string? sheet)
+    {
+        if (!FileToolPaths.TryResolveSource(raw, out var source, out var error))
+        {
+            throw new DocumentException(error ?? "Invalid source path.");
+        }
+
+        if (!source.InMemory)
+        {
+            if (SensitivePaths.IsSensitive(source.Path, out var secret))
+            {
+                throw new DocumentException(secret);
+            }
+
+            if (!File.Exists(source.Path))
+            {
+                throw new DocumentException($"Source not found: {source.Path}. Pass the full path of an existing document.");
+            }
+        }
+
+        if (DocumentKinds.Of(source) == DocumentKind.Excel && DocumentKinds.Of(target) == DocumentKind.Excel)
+        {
+            throw new DocumentException("The source is already an Excel workbook. Change it with edit_document, or save a copy with edit_document and save_as.");
+        }
+
+        return DocumentConvert.ToMarkdown(source, sheet);
+    }
+
     private static List<string> Excel(string path, JsonElement arguments, string content, bool overwrite)
     {
         var sheets = arguments.TryGetProperty("sheets", out var given) && given.ValueKind == JsonValueKind.Array && given.GetArrayLength() > 0
@@ -178,7 +235,17 @@ public sealed class CreateDocumentTool : ITool
         {
             var name = FileToolPaths.String(sheet, "name") ?? "Sheet" + index;
             var header = !sheet.TryGetProperty("header", out var flag) || flag.ValueKind != JsonValueKind.False;
-            result.Add(new SheetInput(name, Rows(sheet.TryGetProperty("rows", out var rows) ? rows : default), header));
+            var fills = new List<CellFill>();
+            if (sheet.TryGetProperty("fill", out var fill) && fill.ValueKind == JsonValueKind.Array)
+            {
+                var step = 0;
+                foreach (var item in fill.EnumerateArray())
+                {
+                    fills.Add(EditDocumentTool.Fill(item, ++step));
+                }
+            }
+
+            result.Add(new SheetInput(name, Rows(sheet.TryGetProperty("rows", out var rows) ? rows : default), header, fills));
             index++;
         }
 

@@ -258,7 +258,7 @@ internal static class ExcelReader
             return value;
         }
 
-        private string Value(S.Cell cell)
+        internal string Value(S.Cell cell)
         {
             var raw = cell.CellValue?.Text ?? "";
             var type = cell.DataType?.Value;

@@ -102,7 +102,7 @@ internal static class FileToolPaths
         }
 
         JsonObject? node = null;
-        foreach (var field in (string[])["path", "save_as"])
+        foreach (var field in (string[])["path", "save_as", "source"])
         {
             if (String(arguments, field) is not { Length: > 0 } raw || IsAttachmentHandle(raw) ||
                 !TryResolve(raw, out var resolved, out _) ||

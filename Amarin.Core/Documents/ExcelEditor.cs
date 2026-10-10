@@ -56,6 +56,21 @@ internal sealed class ExcelEditor : IDisposable
         return cells.Count;
     }
 
+    /// <summary>Заполняет диапазон формулой или рядом (<see cref="ExcelFill"/>).</summary>
+    /// <returns>Сколько ячеек записано.</returns>
+    public int Fill(string? sheet, CellFill fill)
+    {
+        var data = Data(sheet);
+        var count = 0;
+        foreach (var (column, row, input) in ExcelFill.Expand(fill))
+        {
+            ExcelCells.Set(data, column, row, input, _styles);
+            count++;
+        }
+
+        return count;
+    }
+
     /// <summary>Дописывает строки под последней занятой строкой листа.</summary>
     /// <returns>Номер первой дописанной строки.</returns>
     public int AppendRows(string? sheet, IReadOnlyList<IReadOnlyList<CellInput>> rows)
@@ -187,7 +202,8 @@ internal sealed class ExcelEditor : IDisposable
         return cleared;
     }
 
-    public void Save()
+    /// <returns>Сколько формул посчитано здесь и сколько оставлено Excel.</returns>
+    public RecalcReport Save()
     {
         if (_workbook.CalculationChainPart is { } chain)
         {
@@ -195,6 +211,7 @@ internal sealed class ExcelEditor : IDisposable
         }
 
         ExcelCells.RecalculateOnOpen(_workbook);
+        var report = ExcelRecalc.Apply(_workbook);
         _workbook.WorkbookStylesPart?.Stylesheet?.Save();
         foreach (var part in _workbook.WorksheetParts)
         {
@@ -202,6 +219,7 @@ internal sealed class ExcelEditor : IDisposable
         }
 
         _book.Save();
+        return report;
     }
 
     public void Dispose() => _document.Dispose();

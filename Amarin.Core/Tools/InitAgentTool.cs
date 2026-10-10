@@ -20,7 +20,7 @@ public sealed class InitAgentTool : ITool
 
     public string Description =>
         "Start a sysadmin agent on this PC. Invoke this as a tool call, never as chat text. " +
-        "Not for files, folders and documents: create, read and change those yourself with your file tools. " +
+        "Files, folders and documents are made with your own file tools; give the agent only a step they cannot do. " +
         "Arguments: one JSON object with the key prompt, and notes when you have something to add. " +
         "No other keys, no markdown, no text after the closing brace. " +
         "prompt restates the user's actual request in the user's language (goal, paths, what to change). " +
