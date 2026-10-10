@@ -8,7 +8,12 @@ namespace Amarin.UI;
 internal static class ModelBrand
 {
     /// <summary>Только для «Авто»: отступ внутри места логотипа (место не растёт).</summary>
-    public static readonly Thickness AutoLogoMargin = new(2);
+    /// <remarks>
+    /// С 1.34.0 нулевой: прежние искры были залиты от края до края и без отступа казались крупнее
+    /// соседних логотипов, а контурные весы держат своё поле внутри сетки 24×24 и с отступом
+    /// выходили мельче их.
+    /// </remarks>
+    public static readonly Thickness AutoLogoMargin = new(0);
 
     private static readonly DependencyProperty LogoSlotSizeProperty =
         DependencyProperty.RegisterAttached(

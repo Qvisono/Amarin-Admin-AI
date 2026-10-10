@@ -229,7 +229,7 @@ public sealed class UiShotTests : IDisposable
 
                         if (!pinned)
                         {
-                            Call(window, "OpenTransferMenu", row, (IReadOnlyList<string>)[(string)row.Tag], PlacementMode.Bottom, true);
+                            Call(window, "OpenTransferMenu", row, (IReadOnlyList<string>)[(string)row.Tag], (IReadOnlyList<string>)[], PlacementMode.Bottom, true);
                             await Settle(300);
                             if (OpenMenu() is { } transferMenu)
                             {
@@ -1222,6 +1222,36 @@ public sealed class UiShotTests : IDisposable
             });
             sheet.Children.Add(row);
         }
+
+        // «Авто» (1.34.0): крупно, в плашке автора сообщения (16 точек) и в строке плашки выбора
+        // модели — там место 15 точек с отступом ModelBrand.
+        var auto = (ImageSource)window.FindResource("Auto");
+        var autoRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 6, 0, 10) };
+        autoRow.Children.Add(new Image { Source = auto, Width = 72, Height = 72, Margin = new Thickness(4, 0, 24, 0) });
+        autoRow.Children.Add(new Border
+        {
+            Width = 28,
+            Height = 28,
+            CornerRadius = new CornerRadius(8),
+            Background = (Brush)window.FindResource("Bg.Card"),
+            BorderBrush = (Brush)window.FindResource("Border.Default"),
+            BorderThickness = new Thickness(1),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 20, 0),
+            Child = new Image { Source = auto, Width = 16, Height = 16 }
+        });
+        var pickerLogo = new Image { Source = auto, Width = 15, Height = 15, VerticalAlignment = VerticalAlignment.Center };
+        ModelBrand.ApplyLogoBox(pickerLogo, "Auto");
+        autoRow.Children.Add(pickerLogo);
+        autoRow.Children.Add(new TextBlock
+        {
+            Text = Loc.Get("S.Models.Auto"),
+            FontSize = 12,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)window.FindResource("Text.Secondary")
+        });
+        sheet.Children.Add(autoRow);
 
         var background = (Brush)window.FindResource("Bg.Window");
         var host = new Border { Child = sheet, Background = background };
