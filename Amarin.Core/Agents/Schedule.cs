@@ -328,6 +328,75 @@ internal sealed class ScheduleBook
         return entries;
     }
 
+    /// <summary>
+    /// Дописывает в журнал прогоны из архива данных, которых в нём ещё нет.
+    /// </summary>
+    /// <remarks>
+    /// Журнал — справка о том, что уже случилось, и стирать своё ради чужого незачем ни в каком
+    /// режиме импорта, как и у аудита. Прогон узнаётся по времени и задаче, поэтому тот же архив,
+    /// импортированный дважды, ничего не удвоит.
+    /// </remarks>
+    /// <returns>Сколько строк дописано.</returns>
+    public int MergeRuns(IEnumerable<ScheduleRunEntry> incoming)
+    {
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        lock (_gate)
+        {
+            var path = Path.Combine(_root, LogName);
+            var known = new HashSet<(long, string)>();
+            try
+            {
+                if (File.Exists(path))
+                {
+                    foreach (var line in File.ReadLines(path))
+                    {
+                        if (ParseRun(line) is { } entry)
+                        {
+                            known.Add((entry.Time.Ticks, entry.JobId));
+                        }
+                    }
+                }
+
+                var fresh = incoming
+                    .Where(entry => known.Add((entry.Time.Ticks, entry.JobId)))
+                    .OrderBy(entry => entry.Time)
+                    .Select(entry => JsonSerializer.Serialize(entry, CompactJson) + Environment.NewLine)
+                    .ToList();
+                if (fresh.Count > 0)
+                {
+                    File.AppendAllText(path, string.Concat(fresh));
+                }
+
+                return fresh.Count;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return 0;
+            }
+        }
+    }
+
+    /// <summary>Строка журнала прогонов; битая или пустая — null.</summary>
+    internal static ScheduleRunEntry? ParseRun(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ScheduleRunEntry>(line, CompactJson) is { JobId: not null } entry
+                ? entry
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private static readonly JsonSerializerOptions CompactJson = new(AppJson.Options) { WriteIndented = false };
 }
 

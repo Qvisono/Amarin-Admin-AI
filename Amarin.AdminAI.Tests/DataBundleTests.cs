@@ -230,8 +230,10 @@ public sealed class DataBundleTests
     // ───────────────────────── пароли и профили ─────────────────────────
 
     [Fact]
-    public void Profile_passwords_never_reach_the_archive()
+    public void Profile_passwords_travel_in_the_archive()
     {
+        // С 1.35.0 архив увозит профили вместе с паролями: человек переносит их на новую машину
+        // и ждёт там с теми же паролями. Какие из них импорт поставит, решает он сам (ниже).
         var root = NewTempRoot();
         try
         {
@@ -245,15 +247,9 @@ public sealed class DataBundleTests
                 var profile = registry.Profiles.Single();
 
                 Assert.Equal("Валера", profile.Name);
-                Assert.Null(profile.PasswordHash);
-                Assert.Null(profile.PasswordSalt);
-
-                // Замок без хэша бессмыслен, и файл не должен утверждать, что он есть.
-                Assert.False(profile.LockOnStartup);
-
-                // ZIP не шифруется: выжимка пароля не должна лежать в архиве вообще нигде.
-                var bytes = File.ReadAllBytes(archive);
-                Assert.DoesNotContain("hash-default", Encoding.UTF8.GetString(bytes), StringComparison.Ordinal);
+                Assert.Equal("hash-default", profile.PasswordHash);
+                Assert.Equal("salt-default", profile.PasswordSalt);
+                Assert.True(profile.LockOnStartup);
             }
             finally
             {
@@ -400,16 +396,19 @@ public sealed class DataBundleTests
     }
 
     [Fact]
-    public void An_imported_profile_can_never_lock_the_program()
+    public void An_imported_profile_brings_its_password_but_never_locks_the_program()
     {
         var target = NewTempRoot();
         try
         {
+            SeedProfiles(target, Profile(ProfileStore.DefaultProfileId, "Я"));
+
             var registry = new ProfileRegistry
             {
-                ActiveProfileId = ProfileStore.DefaultProfileId,
+                ActiveProfileId = "owner",
                 Profiles =
                 [
+                    new UserProfile { Id = "owner", Name = "Хозяин архива" },
                     new UserProfile
                     {
                         Id = "intruder01",
@@ -432,12 +431,18 @@ public sealed class DataBundleTests
 
                 Assert.True(result.Ok);
 
-                // Архив можно собрать руками: хэш с lockOnStartup запер бы программу насмерть.
-                var added = new ProfileStore(target).Load().Profiles.Single(p => p.Name == "Чужой");
-                Assert.Null(added.PasswordHash);
-                Assert.Null(added.PasswordSalt);
-                Assert.False(added.LockOnStartup);
-                Assert.False(added.IsLocked);
+                // Профиль, который завёл импорт, приезжает со своим паролем: так его и переносят.
+                var saved = new ProfileStore(target).Load();
+                var added = saved.Profiles.Single(p => p.Name == "Чужой");
+                Assert.Equal("not-mine", added.PasswordHash);
+                Assert.True(added.IsLocked);
+
+                // А программу он не запирает: при запуске пароль спрашивает только активный
+                // профиль, а им остаётся мой, без пароля.
+                Assert.Equal(ProfileStore.DefaultProfileId, saved.ActiveProfileId);
+                var mine = saved.Profiles.Single(p => p.Id == ProfileStore.DefaultProfileId);
+                Assert.Null(mine.PasswordHash);
+                Assert.False(mine.IsLocked);
             }
             finally
             {
@@ -446,6 +451,47 @@ public sealed class DataBundleTests
         }
         finally
         {
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void A_profile_that_is_mine_keeps_my_password()
+    {
+        // Профиль из архива с тем же id, что и мой, — это мой же профиль, возвращённый копией.
+        // Чужой хэш на него не ложится: подложенный архив запер бы мои же данные.
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            SeedProfiles(
+                source,
+                Profile(ProfileStore.DefaultProfileId, "Хозяин"),
+                new UserProfile { Id = "second12", Name = "Второй", PasswordHash = "theirs", PasswordSalt = "theirs" });
+            SeedProfiles(
+                target,
+                Profile(ProfileStore.DefaultProfileId, "Я"),
+                Profile("second12", "Мой второй", withPassword: true));
+
+            var archive = Export(source, DataCategory.All);
+            try
+            {
+                var result = new DataBundleImporter(target).Apply(archive, DataCategory.All, DataImportMode.Replace);
+                Assert.True(result.Ok);
+
+                var second = new ProfileStore(target).Load().Profiles.Single(p => p.Id == "second12");
+                Assert.Equal("hash-second12", second.PasswordHash);
+                Assert.Equal("salt-second12", second.PasswordSalt);
+                Assert.True(second.LockOnStartup);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
             Cleanup(target);
         }
     }
@@ -1049,6 +1095,315 @@ public sealed class DataBundleTests
         }
         finally
         {
+            Cleanup(target);
+        }
+    }
+
+    // ───────────────────────── траты, рецепты, расписание (1.35.0) ─────────────────────────
+
+    private const string Fingerprint = "0123456789abcdef";
+
+    private static string UsageFile(string root, string fingerprint = Fingerprint) =>
+        Path.Combine(root, SpendLedger.FolderName, fingerprint + SpendLedger.FileSuffix);
+
+    private static void SeedSpending(string root, string timeZone, params (DateTime Date, int Requests, decimal Usd)[] days)
+    {
+        var file = new SpendHistoryFile
+        {
+            TimeZoneId = timeZone,
+            Days = days.Select(day => new SpendDay
+            {
+                Date = day.Date,
+                Usd = day.Usd,
+                Skus = [new SpendSkuBucket { Sku = "venice-uncensored", Requests = day.Requests, Usd = day.Usd }]
+            }).ToList()
+        };
+
+        WriteText(UsageFile(root), JsonSerializer.Serialize(file, AppJson.Options));
+    }
+
+    private static SpendHistoryFile ReadSpending(string root) =>
+        JsonSerializer.Deserialize<SpendHistoryFile>(File.ReadAllText(UsageFile(root)), AppJson.Options)!;
+
+    [Fact]
+    public void All_time_spending_travels_with_the_settings_but_the_venice_cache_stays_home()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            SeedSpending(root, TimeZoneInfo.Local.Id, (new DateTime(2026, 9, 1), 3, 1.5m));
+            WriteText(Path.Combine(root, SpendLedger.FolderName, Fingerprint + ".json"), "{}");
+
+            var archive = Export(root, DataCategory.Settings);
+            try
+            {
+                var names = EntryNames(archive);
+                Assert.Contains($"data/usage/{Fingerprint}.local.json", names);
+
+                // Кэш журнала Venice скачивается заново, а с чужим ключом и вовсе не нужен.
+                Assert.DoesNotContain($"data/usage/{Fingerprint}.json", names);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(root);
+        }
+    }
+
+    [Fact]
+    public void Spending_merges_by_day_and_a_second_import_doubles_nothing()
+    {
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            // Архив сделан в другом поясе: сутки берутся всё равно, а файл получает местный пояс,
+            // иначе журнал при следующем чтении счёл бы его чужим и выбросил.
+            SeedSpending(source, "Foreign/Zone",
+                (new DateTime(2026, 9, 1), 5, 3m),
+                (new DateTime(2026, 9, 2), 1, 0.5m));
+            SeedSpending(target, TimeZoneInfo.Local.Id,
+                (new DateTime(2026, 9, 1), 2, 1m),
+                (new DateTime(2026, 9, 3), 4, 2m));
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                Assert.True(new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Merge).Ok);
+                var first = ReadSpending(target);
+
+                // Сутки, которых не было, приехали; общие — те, где запросов больше; свои остались.
+                Assert.Equal(TimeZoneInfo.Local.Id, first.TimeZoneId);
+                (DateTime, decimal)[] expected =
+                    [(new DateTime(2026, 9, 1), 3m), (new DateTime(2026, 9, 2), 0.5m), (new DateTime(2026, 9, 3), 2m)];
+                Assert.Equal(expected, first.Days.Select(day => (day.Date, day.Usd)).ToArray());
+
+                Assert.True(new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Replace).Ok);
+                Assert.Equal(
+                    first.Days.Select(day => (day.Date, day.Usd)).ToList(),
+                    ReadSpending(target).Days.Select(day => (day.Date, day.Usd)).ToList());
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void Spending_arrives_through_the_live_ledger()
+    {
+        // Журнал открытого профиля держит сегодняшние траты в памяти. Файл, записанный мимо
+        // него, он затёр бы при следующем сбросе — и импортированные сутки пропали бы.
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            const string secret = "sk-live-test";
+            var fingerprint = ApiKeyStore.Fingerprint(secret);
+            var file = new SpendHistoryFile
+            {
+                TimeZoneId = TimeZoneInfo.Local.Id,
+                Days = [new SpendDay { Date = new DateTime(2026, 8, 1), Usd = 4m, Skus = [new SpendSkuBucket { Sku = "m", Requests = 2, Usd = 4m }] }]
+            };
+            WriteText(UsageFile(source, fingerprint), JsonSerializer.Serialize(file, AppJson.Options));
+
+            var live = new SpendLedger(target);
+            live.Record(secret, new VeniceCost { Usd = 0.25m, HasData = true }, "chat");
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                var result = new DataBundleImporter(target) { LiveLedger = live }
+                    .Apply(archive, DataCategory.Settings, DataImportMode.Merge);
+                Assert.True(result.Ok);
+
+                var dates = live.Read(secret).Days.Select(day => day.Date).ToList();
+                Assert.Contains(new DateTime(2026, 8, 1), dates);
+                Assert.Contains(DateTime.Now.Date, dates);
+
+                live.Flush();
+                var onDisk = JsonSerializer.Deserialize<SpendHistoryFile>(
+                    File.ReadAllText(UsageFile(target, fingerprint)), AppJson.Options)!;
+                Assert.Equal(2, onDisk.Days.Count);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void Recipes_and_scheduled_tasks_arrive_and_the_tasks_arrive_turned_off()
+    {
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            new RecipeLibrary(source).Save(new Recipe
+            {
+                Id = "disk1",
+                Name = "Свободное место",
+                Tool = "run_powershell",
+                Arguments = """{"script":"Get-PSDrive {{drive}}"}""",
+                LastRun = new DateTime(2026, 9, 1)
+            });
+
+            var book = new ScheduleBook(source);
+            book.Save([new ScheduledJob
+            {
+                Id = "morning",
+                Name = "Утренняя проверка",
+                Prompt = "Проверь диски",
+                Enabled = true,
+                Created = new DateTime(2025, 1, 1),
+                LastRun = new DateTime(2026, 9, 1),
+                LastStatus = ScheduleStatus.Ok,
+                LastChatId = "chat1"
+            }]);
+            book.Append(new ScheduleRunEntry(new DateTime(2026, 9, 1, 9, 0, 0), "morning", "Утренняя проверка", ScheduleStatus.Ok, 0.01m, "chat1"));
+
+            new ScheduleBook(target).Save([new ScheduledJob { Id = "mine", Name = "Моя", Prompt = "Моё задание" }]);
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                var result = new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Merge);
+                Assert.True(result.Ok);
+                Assert.Equal(1, result.JobsImported);
+
+                var recipe = new RecipeLibrary(target).Find("disk1");
+                Assert.NotNull(recipe);
+                Assert.Null(recipe.LastRun);
+
+                // Задача запускает агента без человека и тратит деньги: включить её — дело
+                // человека на этой машине. Срок отсчитывается от сегодня, а не от даты в архиве,
+                // иначе «ежедневно в 9:00» сработала бы в миг включения.
+                var jobs = new ScheduleBook(target).Load();
+                var imported = jobs.Single(job => job.Id == "morning");
+                Assert.False(imported.Enabled);
+                Assert.Null(imported.LastRun);
+                Assert.Null(imported.LastStatus);
+                Assert.Null(imported.LastChatId);
+                Assert.True(imported.Created > DateTime.Now.AddMinutes(-5));
+                Assert.Contains(jobs, job => job.Id == "mine");
+                Assert.Single(new ScheduleBook(target).Recent(10));
+
+                // Второй раз тот же архив ничего не удваивает.
+                var again = new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Merge);
+                Assert.Equal(0, again.JobsImported);
+                Assert.Equal(2, new ScheduleBook(target).Load().Count);
+                Assert.Single(new RecipeLibrary(target).All());
+                Assert.Single(new ScheduleBook(target).Recent(10));
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void Replacing_swaps_my_recipes_for_the_archives()
+    {
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            new RecipeLibrary(source).Save(new Recipe { Id = "theirs", Name = "Из архива", Tool = "list_processes" });
+            new RecipeLibrary(target).Save(new Recipe { Id = "mine", Name = "Мой", Tool = "list_services" });
+
+            var archive = Export(source, DataCategory.Settings);
+            try
+            {
+                Assert.True(new DataBundleImporter(target).Apply(archive, DataCategory.Settings, DataImportMode.Replace).Ok);
+
+                Assert.Equal(new[] { "theirs" }, new RecipeLibrary(target).All().Select(recipe => recipe.Id).ToArray());
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
+    [Fact]
+    public void A_profile_the_import_creates_takes_its_protection_from_the_archive()
+    {
+        // Человек переносит профиль на новую машину: своих настроек защиты у нового профиля ещё
+        // нет, и они приезжают целиком. Кроме «подтверждать всё автоматически» — это выбор,
+        // который делают здесь, а не в файле.
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            SeedProfiles(source, Profile(ProfileStore.DefaultProfileId, "Хозяин"), Profile("work0001", "Работа"));
+            var work = Path.Combine(source, DataBundle.ProfilesFolder, "work0001");
+            new AppSettingsStore(work).Save(new AppSettings
+            {
+                DownloadAllowedDomains = ["files.example"],
+                ApprovalMode = ApprovalMode.AlwaysApprove,
+                EncryptChats = true,
+                AutoLockMinutes = 15
+            });
+            SeedChat(work, "secret", "Секретный чат");
+
+            SeedProfiles(target, Profile(ProfileStore.DefaultProfileId, "Я"));
+            new AppSettingsStore(target).Save(new AppSettings { ApprovalMode = ApprovalMode.AskAll });
+
+            var archive = Export(source, DataCategory.All);
+            try
+            {
+                Assert.True(new DataBundleImporter(target).Apply(archive, DataCategory.All, DataImportMode.Merge).Ok);
+
+                var store = new ProfileStore(target);
+                var added = store.Load().Profiles.Single(p => p.Name == "Работа");
+                var root = store.DataRootFor(added.Id);
+                var settings = new AppSettingsStore(root).Load();
+                Assert.Contains("files.example", settings.DownloadAllowedDomains ?? []);
+                Assert.Equal(ApprovalMode.Normal, settings.ApprovalMode);
+                Assert.True(settings.EncryptChats);
+                Assert.Equal(15, settings.AutoLockMinutes);
+
+                // Настройки ложатся раньше чатов, поэтому чаты нового профиля сразу зашифрованы.
+                Assert.True(AtRestCipher.IsEncrypted(File.ReadAllBytes(Path.Combine(root, "chats", "secret.json"))));
+
+                // Мой профиль не тронут.
+                Assert.Equal(ApprovalMode.AskAll, new AppSettingsStore(target).Load().ApprovalMode);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
             Cleanup(target);
         }
     }

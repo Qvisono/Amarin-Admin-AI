@@ -217,8 +217,10 @@ namespace Amarin.UI
             try
             {
                 // Экспорт читает чаты прямо с диска, а хранилище пишет их в фоне: без этого
-                // в архив попала бы переписка без последнего ответа.
+                // в архив попала бы переписка без последнего ответа. Журнал трат так же копит
+                // списания в памяти.
                 _services.ChatStore.Flush();
+                _services.Ledger.Flush();
                 await Task.Run(() => WriteExport(root, profileId, path, chosen, password));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
@@ -484,8 +486,9 @@ namespace Amarin.UI
                 // Раскладка подменяет файлы чатов мимо хранилища. Отложенная запись, застигнутая
                 // ею врасплох, легла бы поверх только что импортированного.
                 _services.ChatStore.Flush();
+                var ledger = _services.Ledger;
                 result = await Task.Run(() =>
-                    new DataBundleImporter(root, profileId).Apply(archive, chosen, mode));
+                    new DataBundleImporter(root, profileId) { LiveLedger = ledger }.Apply(archive, chosen, mode));
             }
             finally
             {
@@ -546,6 +549,11 @@ namespace Amarin.UI
             if (result.ProfilesAdded > 0)
             {
                 text += Environment.NewLine + Loc.Get("S.Bundle.Import.ProfilesNote");
+            }
+
+            if (result.JobsImported > 0)
+            {
+                text += Environment.NewLine + Loc.Format("S.Bundle.Import.JobsOff", result.JobsImported);
             }
 
             return text;

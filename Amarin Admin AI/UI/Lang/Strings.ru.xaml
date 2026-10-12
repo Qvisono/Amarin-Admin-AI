@@ -307,9 +307,9 @@
     <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Языки интерфейса</system:String>
     <system:String x:Key="S.Bundle.Cat.LanguagesDesc" xml:space="preserve">Переводы, добавленные к встроенным</system:String>
     <system:String x:Key="S.Bundle.Cat.Profiles" xml:space="preserve">Профили</system:String>
-    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">Список профилей и данные остальных профилей. Пароли не переносятся</system:String>
+    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">Список профилей и данные остальных профилей вместе с паролями</system:String>
     <system:String x:Key="S.Bundle.Cat.Settings" xml:space="preserve">Настройки</system:String>
-    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Модели, промпты, поведение и масштаб интерфейса</system:String>
+    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Модели, промпты, поведение, масштаб интерфейса и траты за всё время</system:String>
     <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">В архиве нет данных.</system:String>
     <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">Архив сделан более новой версией программы. Обновитесь и попробуйте снова.</system:String>
     <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">Это не архив. Выберите файл, сделанный кнопкой «Экспорт».</system:String>
@@ -343,6 +343,7 @@
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Выберите архив с данными</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Готово. Перенесено: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">В архиве нет ничего нового, данные не изменились.</system:String>
+    <system:String x:Key="S.Bundle.Import.JobsOff" xml:space="preserve">Задачи по расписанию приехали выключенными ({0}): включите нужные в «Автоматизации».</system:String>
     <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">языков: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Добавить к моим</system:String>
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Ваши данные останутся. Добавится только то, чего у вас нет; настройки не изменятся.</system:String>

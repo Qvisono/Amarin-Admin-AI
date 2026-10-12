@@ -188,9 +188,11 @@ public sealed class DataBundleExporter
             return sources;
         }
 
-        // Реестр не копируется байтами: из него вычищаются пароли (см. Sanitize).
-        var sanitized = JsonSerializer.Serialize(Sanitize(registry), AppJson.Options);
-        var payload = Encoding.UTF8.GetBytes(sanitized);
+        // Реестр — из хранилища, а не байтами с диска: так в архив едет то, что программа
+        // прочла и признала, а не запасная копия или недописанный файл. С 1.35.0 — вместе с
+        // паролями профилей: человек переносит профили на новую машину и ждёт их там с теми же
+        // паролями. Какой пароль импорт поставит, а какой нет, решает DataBundleImporter.Adopt.
+        var payload = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(registry, AppJson.Options));
         sources.Add(new Source(
             "",
             DataBundle.DataPrefix + "profiles.json",
@@ -263,8 +265,8 @@ public sealed class DataBundleExporter
                 continue;
             }
 
-            // Реестр профилей едет отдельно и не байтами: в нём чистятся пароли. Забрать его
-            // здесь заодно значило бы положить в архив вторую, нетронутую копию — с хэшами.
+            // Реестр профилей едет отдельно, прочитанным из хранилища (см. Collect): забрать его
+            // здесь заодно значило бы положить в архив вторую копию того же файла.
             if (string.Equals(relative, "profiles.json", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -285,35 +287,6 @@ public sealed class DataBundleExporter
     }
 
     private string DataRootFor(string profileId) => new ProfileStore(_root).DataRootFor(profileId);
-
-    /// <summary>
-    /// Копия реестра без всего, что связано с паролями.
-    /// </summary>
-    /// <remarks>
-    /// ZIP не шифруется, и человек положит его в облако или на флешку. PasswordHash — это
-    /// PBKDF2-выжимка от пароля, который люди переиспользуют: отдавать её в переносимый файл
-    /// значит создать мишень для оффлайн-перебора там, где её раньше не было. Пользы при этом
-    /// почти нет — пароль на новой машине ставится за три секунды, а вот запертый чужим паролем
-    /// экземпляр программы это потеря доступа к собственным данным.
-    /// </remarks>
-    private static ProfileRegistry Sanitize(ProfileRegistry registry) => new()
-    {
-        ActiveProfileId = registry.ActiveProfileId,
-        Profiles = registry.Profiles
-            .Select(profile => new UserProfile
-            {
-                Id = profile.Id,
-                Name = profile.Name,
-                AvatarFileName = profile.AvatarFileName,
-                CreatedAt = profile.CreatedAt,
-
-                // Замок без хэша бессмыслен, и файл не должен врать, что он есть.
-                LockOnStartup = false,
-                PasswordHash = null,
-                PasswordSalt = null
-            })
-            .ToList()
-    };
 
     /// <summary>Место категории в списке — чтобы сводка шла в том же порядке, что и галочки.</summary>
     private static int Order(DataCategory category)

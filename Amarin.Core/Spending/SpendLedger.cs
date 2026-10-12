@@ -23,6 +23,15 @@ namespace Amarin.Core;
 /// </remarks>
 internal sealed class SpendLedger
 {
+    /// <summary>Папка журналов в папке профиля.</summary>
+    internal const string FolderName = "usage";
+
+    /// <summary>
+    /// Окончание файла журнала ключа. Рядом в той же папке лежит кэш истории Venice
+    /// (<c>&lt;отпечаток&gt;.json</c>, <see cref="SpendHistoryStore"/>), и различаются они только им.
+    /// </summary>
+    internal const string FileSuffix = ".local.json";
+
     /// <summary>Реже трогать диск незачем, чаще — уже слышно на ходу.</summary>
     private static readonly TimeSpan WriteEvery = TimeSpan.FromSeconds(20);
 
@@ -52,7 +61,7 @@ internal sealed class SpendLedger
     }
 
     private string PathFor(string fingerprint) =>
-        Path.Combine(_root, "usage", fingerprint + ".local.json");
+        Path.Combine(_root, FolderName, fingerprint + FileSuffix);
 
     /// <summary>
     /// Записывает списание в сегодняшнюю корзину.
@@ -169,6 +178,128 @@ internal sealed class SpendLedger
     }
 
     /// <summary>
+    /// Вливает журнал ключа из архива данных.
+    /// </summary>
+    /// <remarks>
+    /// Через сам журнал и под его замком, а не файлом в обход: журнал держит ключи в памяти и
+    /// сбрасывает их на диск раз в двадцать секунд, и записанный мимо него файл он затёр бы своей
+    /// прежней копией. Правило слияния — <see cref="MergeInto"/>.
+    /// </remarks>
+    /// <returns>Сколько суток добавилось или заменилось.</returns>
+    public int Merge(string fingerprint, SpendHistoryFile incoming)
+    {
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        int changed;
+        lock (_gate)
+        {
+            changed = MergeInto(Loaded(fingerprint), incoming);
+            if (changed > 0)
+            {
+                _dirty.Add(fingerprint);
+            }
+        }
+
+        if (changed > 0)
+        {
+            Flush();
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// Слияние двух журналов одного ключа по суткам.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// В журнале лежат суточные корзины без номеров записей, поэтому точного объединения не
+    /// бывает: те же сутки в двух файлах — это либо одни и те же деньги (архив своей же машины),
+    /// либо разные (ключ работал на двух ПК). Сложить их значило бы удваивать траты на каждом
+    /// повторном импорте одного и того же архива. Поэтому сутки, которых здесь нет, берутся из
+    /// архива, а сутки с обеих сторон — целиком те, где запросов больше (поровну — где больше
+    /// денег): так повторный импорт ничего не меняет, а сутки остаются согласованы со своими
+    /// корзинами. Цена правила — ключ, в один день работавший на двух ПК, покажет за этот день
+    /// большее из двух.
+    /// </para>
+    /// <para>
+    /// Пояс файла из архива не проверяется: чужие сутки сдвинуты на часы, но это лучше, чем
+    /// потерять их; при записи файл получает местный пояс.
+    /// </para>
+    /// </remarks>
+    internal static int MergeInto(SpendHistoryFile mine, SpendHistoryFile incoming)
+    {
+        var changed = 0;
+        foreach (var day in incoming.Days ?? [])
+        {
+            if (day?.Skus is null || day.Date == default)
+            {
+                continue;
+            }
+
+            var date = day.Date.Date;
+            var local = mine.Days.FirstOrDefault(item => item.Date.Date == date);
+            if (local is not null && !Richer(day, local))
+            {
+                continue;
+            }
+
+            if (local is not null)
+            {
+                mine.Days.Remove(local);
+            }
+
+            mine.Days.Add(CopyDay(day, date));
+            changed++;
+        }
+
+        // Перенос из переписок считается сделанным с самой ранней отметки: позже он только
+        // удвоил бы то, что уже лежит в корзинах.
+        if (incoming.BackfilledAt is { } stamp && (mine.BackfilledAt is null || stamp < mine.BackfilledAt))
+        {
+            mine.BackfilledAt = stamp;
+            changed++;
+        }
+
+        mine.Days.Sort((left, right) => left.Date.CompareTo(right.Date));
+        return changed;
+    }
+
+    private static bool Richer(SpendDay candidate, SpendDay local)
+    {
+        var theirs = candidate.Skus.Sum(bucket => bucket?.Requests ?? 0);
+        var ours = local.Skus.Sum(bucket => bucket?.Requests ?? 0);
+        return theirs != ours ? theirs > ours : candidate.Usd > local.Usd;
+    }
+
+    private static SpendDay CopyDay(SpendDay day, DateTime date) => new()
+    {
+        Date = date,
+        Usd = Math.Max(0m, day.Usd),
+        Diem = Math.Max(0m, day.Diem),
+        Tokens = day.Tokens,
+        Skus = day.Skus
+            .Where(bucket => bucket is not null)
+            .Select(bucket => new SpendSkuBucket
+            {
+                Sku = bucket.Sku ?? SpendFold.OtherSku,
+                Usd = Math.Max(0m, bucket.Usd),
+                Diem = Math.Max(0m, bucket.Diem),
+                Requests = Math.Max(0, bucket.Requests),
+                InputTokens = bucket.InputTokens,
+                OutputTokens = bucket.OutputTokens
+            })
+            .ToList()
+    };
+
+    /// <summary>
+    /// Годится ли имя файла журнала: отпечаток ключа (<see cref="ApiKeyStore.Fingerprint"/>) —
+    /// шестнадцать строчных шестнадцатеричных знаков или «none» у запросов без ключа.
+    /// </summary>
+    internal static bool IsFingerprint(string? name) =>
+        name == "none" || (name is { Length: 16 } && name.All(char.IsAsciiHexDigitLower));
+
+    /// <summary>
     /// Потрачено сегодня и в этом календарном месяце: ключом <paramref name="secret"/> и всеми
     /// ключами профиля. Для лимитов трат (E1).
     /// </summary>
@@ -232,19 +363,18 @@ internal sealed class SpendLedger
         }
 
         _scanned = true;
-        const string suffix = ".local.json";
         try
         {
-            var folder = Path.Combine(_root, "usage");
+            var folder = Path.Combine(_root, FolderName);
             if (!Directory.Exists(folder))
             {
                 return;
             }
 
-            foreach (var path in Directory.EnumerateFiles(folder, "*" + suffix))
+            foreach (var path in Directory.EnumerateFiles(folder, "*" + FileSuffix))
             {
                 var name = Path.GetFileName(path);
-                Loaded(name[..^suffix.Length]);
+                Loaded(name[..^FileSuffix.Length]);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -352,9 +482,9 @@ internal sealed class SpendLedger
         List<string> paths;
         try
         {
-            var folder = Path.Combine(_root, "usage");
+            var folder = Path.Combine(_root, FolderName);
             paths = Directory.Exists(folder)
-                ? [.. Directory.EnumerateFiles(folder, "*.local.json")]
+                ? [.. Directory.EnumerateFiles(folder, "*" + FileSuffix)]
                 : [];
         }
         catch (Exception exception) when (
@@ -363,13 +493,12 @@ internal sealed class SpendLedger
             return marked;
         }
 
-        const string Suffix = ".local.json";
         lock (_gate)
         {
             foreach (var path in paths)
             {
                 var name = Path.GetFileName(path);
-                if (name.Length <= Suffix.Length)
+                if (name.Length <= FileSuffix.Length)
                 {
                     continue;
                 }
@@ -377,9 +506,9 @@ internal sealed class SpendLedger
                 // Через тот же кэш, что и всё остальное: у ключа, с которого сейчас платят,
                 // в памяти лежат ещё не записанные корзины, и читать его файл с диска значило
                 // бы чинить устаревшую копию.
-                if (Loaded(name[..^Suffix.Length]).BackfilledAt is { } stamp)
+                if (Loaded(name[..^FileSuffix.Length]).BackfilledAt is { } stamp)
                 {
-                    marked.Add((name[..^Suffix.Length], stamp));
+                    marked.Add((name[..^FileSuffix.Length], stamp));
                 }
             }
         }
@@ -530,7 +659,7 @@ internal sealed class SpendLedger
         {
             try
             {
-                Directory.CreateDirectory(Path.Combine(_root, "usage"));
+                Directory.CreateDirectory(Path.Combine(_root, FolderName));
                 AppDataFile.WriteAtomic(PathFor(fingerprint), json);
             }
             catch (Exception exception) when (

@@ -138,7 +138,10 @@ public static class DataUsage
         // Инструкции и рецепты — тоже личная настройка того, как программа работает, и уезжают
         // вместе с заготовками промптов. Без этой строки папка ушла бы в «прочее», а прочее экспорт
         // не берёт.
-        if (InFolder(relative, InstructionLibrary.FolderName) || InFolder(relative, RecipeLibrary.FolderName))
+        // Траты за всё время (usage/) — тоже настройки для человека: их журнал едет в архиве
+        // вместе с настройками и, как они, не растёт без предела.
+        if (InFolder(relative, InstructionLibrary.FolderName) || InFolder(relative, RecipeLibrary.FolderName) ||
+            InFolder(relative, SpendLedger.FolderName))
         {
             return SettingsKey;
         }

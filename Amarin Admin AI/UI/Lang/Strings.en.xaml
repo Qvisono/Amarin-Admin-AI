@@ -307,9 +307,9 @@
     <system:String x:Key="S.Bundle.Cat.Languages" xml:space="preserve">Interface languages</system:String>
     <system:String x:Key="S.Bundle.Cat.LanguagesDesc" xml:space="preserve">Translations added on top of the built-in ones</system:String>
     <system:String x:Key="S.Bundle.Cat.Profiles" xml:space="preserve">Profiles</system:String>
-    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">The profile list and the other profiles' data. Passwords are not carried over</system:String>
+    <system:String x:Key="S.Bundle.Cat.ProfilesDesc" xml:space="preserve">The profile list and the other profiles' data, passwords included</system:String>
     <system:String x:Key="S.Bundle.Cat.Settings" xml:space="preserve">Settings</system:String>
-    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Models, prompts, behaviour and interface scale</system:String>
+    <system:String x:Key="S.Bundle.Cat.SettingsDesc" xml:space="preserve">Models, prompts, behaviour, interface scale and all-time spending</system:String>
     <system:String x:Key="S.Bundle.Error.EmptyArchive" xml:space="preserve">The archive holds no data.</system:String>
     <system:String x:Key="S.Bundle.Error.NewerFormat" xml:space="preserve">The archive was made by a newer version of the app. Update and try again.</system:String>
     <system:String x:Key="S.Bundle.Error.NotAZip" xml:space="preserve">This is not an archive. Choose a file made by the Export button.</system:String>
@@ -343,6 +343,7 @@
     <system:String x:Key="S.Bundle.Import.DialogTitle" xml:space="preserve">Choose a data archive</system:String>
     <system:String x:Key="S.Bundle.Import.Done" xml:space="preserve">Done. Imported: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.DoneNothing" xml:space="preserve">Nothing new in the archive; your data is unchanged.</system:String>
+    <system:String x:Key="S.Bundle.Import.JobsOff" xml:space="preserve">Scheduled tasks arrived turned off ({0}): turn on the ones you need in Automation.</system:String>
     <system:String x:Key="S.Bundle.Import.LanguagesCount" xml:space="preserve">languages: {0}</system:String>
     <system:String x:Key="S.Bundle.Import.Merge" xml:space="preserve">Add to mine</system:String>
     <system:String x:Key="S.Bundle.Import.MergeDesc" xml:space="preserve">Your data stays. Only what you don't have is added; settings stay as they are.</system:String>

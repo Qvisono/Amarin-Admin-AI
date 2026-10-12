@@ -22,6 +22,10 @@ public sealed record DataBundleInspection(
 
 /// <summary>Что импорт сделал. Числа отсюда человек читает в окне «готово».</summary>
 /// <param name="Skipped">Повреждённые файлы, которые пропустили поштучно.</param>
+/// <param name="JobsImported">
+/// Задачи по расписанию, приехавшие выключенными (см. <c>DataBundleImporter.ApplySchedule</c>):
+/// человеку надо сказать, что их нужно включить.
+/// </param>
 public sealed record DataImportResult(
     DataBundleError Error,
     int ChatsAdded,
@@ -30,7 +34,8 @@ public sealed record DataImportResult(
     int LanguagesAdded,
     bool SettingsChanged,
     bool AppearanceChanged,
-    int Skipped)
+    int Skipped,
+    int JobsImported = 0)
 {
     public bool Ok => Error == DataBundleError.None;
 
@@ -80,6 +85,13 @@ public sealed class DataBundleImporter
         _limits = limits ?? DataBundleLimits.Default;
         _profiles = new ProfileStore(_root);
     }
+
+    /// <summary>
+    /// Живой журнал трат открытого профиля. Траты активного профиля вливаются через него, а не
+    /// файлом в обход: журнал держит их в памяти и при следующей записи затёр бы файл своей
+    /// копией. Null — журнал не открыт (тесты, импорт без окна), и годится новый на ту же папку.
+    /// </summary>
+    internal SpendLedger? LiveLedger { get; init; }
 
     /// <summary>
     /// Читает одну только опись. Не бросает: чужой или битый файл — обычный ответ, а не авария.
@@ -379,12 +391,14 @@ public sealed class DataBundleImporter
         // в какую папку раскладывать его чаты.
         var map = ApplyProfiles(data, registry, categories, mode, state);
 
+        var activeRoot = _profiles.DataRootFor(_activeProfileId);
         ApplyTree(
             data,
-            _profiles.DataRootFor(_activeProfileId),
+            activeRoot,
             categories,
             mode,
             isNewProfile: false,
+            LiveLedger ?? new SpendLedger(activeRoot),
             state,
             cancellationToken);
 
@@ -395,12 +409,14 @@ public sealed class DataBundleImporter
             var folder = Path.Combine(data, DataBundle.ProfilesFolder, archiveId);
             if (Directory.Exists(folder))
             {
+                var root = _profiles.DataRootFor(localId);
                 ApplyTree(
                     folder,
-                    _profiles.DataRootFor(localId),
+                    root,
                     categories,
                     mode,
                     isNewProfile: true,
+                    new SpendLedger(root),
                     state,
                     cancellationToken);
             }
@@ -419,7 +435,8 @@ public sealed class DataBundleImporter
             state.LanguagesAdded,
             state.SettingsChanged,
             state.AppearanceChanged,
-            state.Skipped);
+            state.Skipped,
+            state.JobsImported);
     }
 
     /// <summary>
@@ -515,12 +532,15 @@ public sealed class DataBundleImporter
             AvatarFileName = profile.AvatarFileName,
             CreatedAt = profile.CreatedAt == default ? DateTime.Now : profile.CreatedAt,
 
-            // Пароль — свойство этой машины и этого человека, а не переносимых данных. Свой
-            // возвращаем, чужой не берём никогда: архив мог быть собран руками, и подсунутый
-            // хэш с lockOnStartup запер бы программу насмерть.
-            PasswordHash = mine?.PasswordHash,
-            PasswordSalt = mine?.PasswordSalt,
-            LockOnStartup = mine?.LockOnStartup ?? false
+            // Пароль (1.35.0): профиль, который заводит этот импорт, приезжает со своим паролем
+            // из архива — так решил человек, переносящий профили на новую машину. У профиля,
+            // совпавшего с моим по id, остаётся мой: чужой хэш на мой профиль не ложится
+            // никогда, иначе подложенный архив запер бы мои же данные. Программу целиком чужой
+            // пароль не запирает: при запуске спрашивает только активный профиль, а им
+            // приехавший не становится.
+            PasswordHash = mine is null ? profile.PasswordHash : mine.PasswordHash,
+            PasswordSalt = mine is null ? profile.PasswordSalt : mine.PasswordSalt,
+            LockOnStartup = mine?.LockOnStartup ?? (profile.HasPassword && profile.LockOnStartup)
         };
     }
 
@@ -529,12 +549,14 @@ public sealed class DataBundleImporter
     /// Профиль только что заведён импортом. В слиянии это и есть условие, при котором настройки
     /// и оформление применяются: своё человек менять не просил.
     /// </param>
+    /// <param name="ledger">Журнал трат этого профиля — живой у открытого, новый у остальных.</param>
     private static void ApplyTree(
         string source,
         string targetRoot,
         DataCategory categories,
         DataImportMode mode,
         bool isNewProfile,
+        SpendLedger ledger,
         ImportState state,
         CancellationToken cancellationToken)
     {
@@ -545,14 +567,16 @@ public sealed class DataBundleImporter
 
         var overwrite = mode == DataImportMode.Replace || isNewProfile;
 
+        // Настройки раньше чатов: заведённый импортом профиль получает шифрование из архива, и
+        // его чаты должны лечь на диск уже по этому правилу, а не открытым текстом.
+        if (categories.HasFlag(DataCategory.Settings) && overwrite)
+        {
+            ApplySettings(Path.Combine(source, "settings.json"), targetRoot, isNewProfile, state);
+        }
+
         if (categories.HasFlag(DataCategory.Chats))
         {
             ApplyChats(Path.Combine(source, "chats"), targetRoot, mode, state, cancellationToken);
-        }
-
-        if (categories.HasFlag(DataCategory.Settings) && overwrite)
-        {
-            ApplySettings(Path.Combine(source, "settings.json"), targetRoot, state);
         }
 
         // Заготовки промптов — список, а не набор полей, поэтому они переносятся и в слиянии,
@@ -565,6 +589,16 @@ public sealed class DataBundleImporter
             // Инструкции — такой же список, и правило у них то же: в слиянии добавить недостающие.
             ApplyInstructions(
                 Path.Combine(source, InstructionLibrary.FolderName), targetRoot, mode, state);
+
+            // Рецепты и задачи по расписанию — тоже списки. До 1.35.0 экспорт их увозил, а
+            // импорт молча выбрасывал.
+            ApplyRecipes(Path.Combine(source, RecipeLibrary.FolderName), targetRoot, mode, state);
+            ApplySchedule(Path.Combine(source, ScheduleBook.FileName), targetRoot, mode, state);
+            ApplyScheduleRuns(Path.Combine(source, ScheduleBook.LogName), targetRoot, state);
+
+            // Траты за всё время — деньги, которые уже ушли, и лимиты считаются от них: только
+            // дописываются, в обоих режимах, как журнал аудита.
+            ApplyUsage(Path.Combine(source, SpendLedger.FolderName), ledger, state);
         }
 
         if (categories.HasFlag(DataCategory.Appearance) && overwrite)
@@ -702,7 +736,12 @@ public sealed class DataBundleImporter
         store.Flush();
     }
 
-    private static void ApplySettings(string file, string targetRoot, ImportState state)
+    /// <param name="isNewProfile">
+    /// Профиль заведён этим импортом. Своих настроек защиты у него ещё нет, и человек переносит
+    /// их вместе с профилем (1.35.0), поэтому они приезжают целиком, кроме «подтверждать всё
+    /// автоматически»: этот выбор делают на этой машине, а не в чужом файле.
+    /// </param>
+    private static void ApplySettings(string file, string targetRoot, bool isNewProfile, ImportState state)
     {
         var incoming = ReadJson<AppSettings>(file, state);
         if (incoming is null)
@@ -711,6 +750,18 @@ public sealed class DataBundleImporter
         }
 
         var store = new AppSettingsStore(targetRoot);
+        if (isNewProfile)
+        {
+            if (incoming.ApprovalMode == ApprovalMode.AlwaysApprove)
+            {
+                incoming.ApprovalMode = ApprovalMode.Normal;
+            }
+
+            store.Save(incoming);
+            state.SettingsChanged = true;
+            return;
+        }
+
         var mine = store.Load();
 
         // Белый список загрузок — это настройка безопасности: он решает, откуда агенту разрешено
@@ -901,6 +952,205 @@ public sealed class DataBundleImporter
         }
     }
 
+    /// <summary>
+    /// Рецепты из архива — по правилу заготовок промпта: в слиянии совпавшие по id или по
+    /// содержимому пропускаются, при замене прежние рецепты профиля убираются.
+    /// </summary>
+    /// <remarks>
+    /// Отметка прошлого запуска не переносится: она про ту машину. Сами рецепты без человека
+    /// ничего не исполняют — каждый запуск идёт через шлюз инструментов, как вызов модели.
+    /// </remarks>
+    private static void ApplyRecipes(string source, string targetRoot, DataImportMode mode, ImportState state)
+    {
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+
+        var files = Directory.EnumerateFiles(source, "*.json").ToList();
+        if (files.Count == 0)
+        {
+            return;
+        }
+
+        var library = new RecipeLibrary(targetRoot);
+        var changed = false;
+        if (mode == DataImportMode.Replace)
+        {
+            foreach (var old in library.All())
+            {
+                changed |= library.Delete(old.Id);
+            }
+        }
+
+        var existing = library.All();
+        var ids = existing.Select(recipe => recipe.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var bodies = existing.Select(RecipeBody).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var file in files)
+        {
+            var recipe = ReadJson<Recipe>(file, state);
+            if (recipe is null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(recipe.Name) || string.IsNullOrWhiteSpace(recipe.Tool) ||
+                !RecipeTemplate.IsValid(recipe.Arguments))
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            if (ids.Contains(recipe.Id) || !bodies.Add(RecipeBody(recipe)))
+            {
+                continue;
+            }
+
+            recipe.LastRun = null;
+            if (library.Save(recipe) is not { } saved)
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            ids.Add(saved.Id);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            state.SettingsChanged = true;
+        }
+    }
+
+    private static string RecipeBody(Recipe recipe) =>
+        recipe.Name.Trim() + "\n" + recipe.Tool + "\n" + recipe.Arguments;
+
+    /// <summary>
+    /// Задачи по расписанию из архива — по правилу списков: в слиянии совпавшие по id или по паре
+    /// «название + задание» пропускаются, при замене прежние задачи профиля убираются.
+    /// </summary>
+    /// <remarks>
+    /// Приехавшая задача всегда выключена и без отметок прошлых прогонов. Она запускает агента
+    /// без человека и тратит деньги, а задание в ней написано на другой машине или вовсе
+    /// подложено: включить её должен человек, глядя на неё здесь. По той же причине отложенные
+    /// задачи в архив не едут вовсе. Дата создания — сегодняшняя: срок «ежедневно в 9:00»
+    /// отсчитывается от неё, и задача из старого архива иначе сработала бы в миг включения.
+    /// </remarks>
+    private static void ApplySchedule(string file, string targetRoot, DataImportMode mode, ImportState state)
+    {
+        var incoming = ReadJson<List<ScheduledJob>>(file, state);
+        if (incoming is null || incoming.Count == 0)
+        {
+            return;
+        }
+
+        var book = new ScheduleBook(targetRoot);
+        List<ScheduledJob> result = mode == DataImportMode.Replace ? [] : book.Load();
+        var ids = result.Select(job => job.Id).ToHashSet(StringComparer.Ordinal);
+        var bodies = result.Select(JobBody).ToHashSet(StringComparer.Ordinal);
+
+        var added = 0;
+        foreach (var job in incoming)
+        {
+            if (job is null || string.IsNullOrWhiteSpace(job.Prompt))
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(job.Id))
+            {
+                job.Id = Guid.NewGuid().ToString("N")[..12];
+            }
+
+            if (!ids.Add(job.Id) || !bodies.Add(JobBody(job)))
+            {
+                continue;
+            }
+
+            job.Enabled = false;
+            job.Created = DateTime.Now;
+            job.LastRun = null;
+            job.LastStatus = null;
+            job.LastChatId = null;
+            result.Add(job);
+            added++;
+        }
+
+        if (added == 0 && mode != DataImportMode.Replace)
+        {
+            return;
+        }
+
+        if (book.Save(result))
+        {
+            state.JobsImported += added;
+            state.SettingsChanged = true;
+        }
+    }
+
+    private static string JobBody(ScheduledJob job) => job.Name + "\n" + job.Prompt;
+
+    /// <summary>Журнал прогонов расписания только дописывается — см. <see cref="ScheduleBook.MergeRuns"/>.</summary>
+    private static void ApplyScheduleRuns(string file, string targetRoot, ImportState state)
+    {
+        if (!File.Exists(file))
+        {
+            return;
+        }
+
+        var incoming = new List<ScheduleRunEntry>();
+        foreach (var line in File.ReadLines(file))
+        {
+            if (ScheduleBook.ParseRun(line) is { } entry)
+            {
+                incoming.Add(entry);
+            }
+            else if (!string.IsNullOrWhiteSpace(line))
+            {
+                state.Skipped++;
+            }
+        }
+
+        if (new ScheduleBook(targetRoot).MergeRuns(incoming) > 0)
+        {
+            state.SettingsChanged = true;
+        }
+    }
+
+    /// <summary>
+    /// Траты за всё время — по файлу на ключ, слиянием по суткам (<see cref="SpendLedger.MergeInto"/>).
+    /// </summary>
+    /// <remarks>
+    /// Кэша истории Venice (<c>&lt;отпечаток&gt;.json</c>) в архиве нет — он скачивается заново;
+    /// файл с именем не того вида подложен и пропускается.
+    /// </remarks>
+    private static void ApplyUsage(string source, SpendLedger ledger, ImportState state)
+    {
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(source, "*" + SpendLedger.FileSuffix))
+        {
+            var fingerprint = Path.GetFileName(file)[..^SpendLedger.FileSuffix.Length];
+            if (!SpendLedger.IsFingerprint(fingerprint))
+            {
+                state.Skipped++;
+                continue;
+            }
+
+            if (ReadJson<SpendHistoryFile>(file, state) is { } incoming &&
+                ledger.Merge(fingerprint, incoming) > 0)
+            {
+                state.SettingsChanged = true;
+            }
+        }
+    }
+
     private static void ApplyAppearance(string source, string targetRoot, ImportState state)
     {
         foreach (var file in Directory.EnumerateFiles(source))
@@ -990,6 +1240,7 @@ public sealed class DataBundleImporter
         public bool SettingsChanged;
         public bool AppearanceChanged;
         public int Skipped;
+        public int JobsImported;
     }
 
     /// <summary>Разбирает файл из временной папки. Битый — не авария, а «пропущено».</summary>

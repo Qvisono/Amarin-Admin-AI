@@ -87,6 +87,46 @@ public sealed class DataBundleCoverageTests
         }
     }
 
+    [Fact]
+    public void Every_setting_survives_into_a_profile_the_import_creates()
+    {
+        // Профиль, который заводит импорт, получает и настройки защиты (1.35.0): своих у него
+        // ещё нет. Единственное исключение — «подтверждать всё автоматически».
+        var source = NewRoot();
+        var target = NewRoot();
+        var archive = Path.Combine(Path.GetTempPath(), "amarin-new-" + Guid.NewGuid().ToString("N") + DataBundle.FileExtension);
+
+        try
+        {
+            var store = new ProfileStore(source);
+            store.Save(new ProfileRegistry
+            {
+                ActiveProfileId = ProfileStore.DefaultProfileId,
+                Profiles = [new UserProfile { Id = ProfileStore.DefaultProfileId }, new UserProfile { Id = "work0001" }]
+            });
+
+            var work = store.DataRootFor("work0001");
+            var mutated = AppSettings.CreateDefault();
+            Mutate(mutated);
+            mutated.ApprovalMode = ApprovalMode.ReadOnly;
+            new AppSettingsStore(work).Save(mutated);
+            var original = new AppSettingsStore(work).Load();
+
+            new DataBundleExporter(source).Write(archive, DataCategory.All);
+            var result = new DataBundleImporter(target).Apply(archive, DataCategory.All, DataImportMode.Merge);
+            Assert.True(result.Ok, result.Error.ToString());
+
+            var restored = new AppSettingsStore(new ProfileStore(target).DataRootFor("work0001")).Load();
+            Assert.Equal(Json(original), Json(restored));
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+            TryDeleteFile(archive);
+        }
+    }
+
     [Theory]
     [InlineData("settings.json", DataCategory.Settings)]
     [InlineData("prompts.json", DataCategory.Settings)]
@@ -98,6 +138,13 @@ public sealed class DataBundleCoverageTests
     [InlineData("avatar.png", DataCategory.Appearance)]
     [InlineData("background.jpg", DataCategory.Appearance)]
     [InlineData("audit/2026-09.jsonl", DataCategory.Audit)]
+    // До 1.35.0 рецепты и расписание уезжали в архив, но импорт их выбрасывал, а траты не
+    // уезжали вовсе.
+    [InlineData("recipes/disk1.json", DataCategory.Settings)]
+    [InlineData("schedule.json", DataCategory.Settings)]
+    [InlineData("schedule-runs.jsonl", DataCategory.Settings)]
+    [InlineData("usage/0123456789abcdef.local.json", DataCategory.Settings)]
+    [InlineData("profiles/work0001/usage/0123456789abcdef.local.json", DataCategory.Settings)]
     public void Every_kind_of_file_the_app_writes_has_a_category(string relative, DataCategory expected) =>
         Assert.Equal(expected, CategoryOf(relative));
 
@@ -112,6 +159,9 @@ public sealed class DataBundleCoverageTests
     [InlineData("settings.json.tmp")]
     // Вложения, вынесенные из чата (F4): экспорт возвращает их внутрь файла чата.
     [InlineData("chats/abc/attachments/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.bin")]
+    // Ключи — секреты; кэш журнала Venice рядом с журналом трат скачивается заново.
+    [InlineData("keys.json")]
+    [InlineData("usage/0123456789abcdef.json")]
     public void What_stays_out_of_the_archive_stays_out(string relative) =>
         Assert.Equal(DataCategory.None, CategoryOf(relative));
 
@@ -139,9 +189,16 @@ public sealed class DataBundleCoverageTests
             File.WriteAllBytes(Path.Combine(root, "background.jpg"), [4, 5, 6]);
             Directory.CreateDirectory(Path.Combine(root, "audit"));
             File.WriteAllText(Path.Combine(root, "audit", "2026-09.jsonl"), "{}\n");
+            Directory.CreateDirectory(Path.Combine(root, "recipes"));
+            File.WriteAllText(Path.Combine(root, "recipes", "disk1.json"), "{}");
+            File.WriteAllText(Path.Combine(root, "schedule.json"), "[]");
+            File.WriteAllText(Path.Combine(root, "schedule-runs.jsonl"), "{}\n");
+            Directory.CreateDirectory(Path.Combine(root, "usage"));
+            File.WriteAllText(Path.Combine(root, "usage", "0123456789abcdef.local.json"), "{}");
 
             // А это остаётся дома, и каждое по своей причине — см. What_stays_out_of_the_archive.
             File.WriteAllText(Path.Combine(root, "balance.json"), "{}");
+            File.WriteAllText(Path.Combine(root, "usage", "0123456789abcdef.json"), "{}");
             Directory.CreateDirectory(Path.Combine(root, "shared"));
             File.WriteAllText(Path.Combine(root, "shared", "chat-1.json"), "{}");
             Directory.CreateDirectory(Path.Combine(root, "handoff"));
@@ -162,7 +219,11 @@ public sealed class DataBundleCoverageTests
                     "data/languages/de.json",
                     "data/profiles.json",
                     "data/prompts.json",
-                    "data/settings.json"
+                    "data/recipes/disk1.json",
+                    "data/schedule-runs.jsonl",
+                    "data/schedule.json",
+                    "data/settings.json",
+                    "data/usage/0123456789abcdef.local.json"
                 },
                 new SortedSet<string>(manifest.Entries.Select(entry => entry.Path), StringComparer.Ordinal));
         }

@@ -303,12 +303,20 @@ public static class DataBundle
             return DataCategory.None;
         }
 
-        if (name is "keys.json" or ApiKeyStore.ProviderKeysFileName ||
-            relative == "usage" ||
-            relative.StartsWith("usage/", StringComparison.Ordinal) ||
-            relative.Contains("/usage/", StringComparison.Ordinal))
+        if (name is "keys.json" or ApiKeyStore.ProviderKeysFileName)
         {
             return DataCategory.None;
+        }
+
+        // Траты за всё время (1.35.0) — собственный журнал программы, по файлу на ключ: в имени
+        // отпечаток ключа, а не сам ключ, и вместе с настройками он едет туда же, куда человек
+        // переносит профиль. Кэш истории Venice рядом с ним — нет: он скачивается заново.
+        if (relative.StartsWith(SpendLedger.FolderName + "/", StringComparison.Ordinal) ||
+            relative.Contains("/" + SpendLedger.FolderName + "/", StringComparison.Ordinal))
+        {
+            return name.EndsWith(SpendLedger.FileSuffix, StringComparison.Ordinal)
+                ? DataCategory.Settings
+                : DataCategory.None;
         }
 
         // Недописанный файл: AppDataFile.WriteAtomic держит «.tmp» рядом с настоящим, и попасть в
