@@ -31,7 +31,7 @@ BASE_CSS = """
   *{box-sizing:border-box}
   body{margin:0;background:#f6f3f2;font:15px/1.4 "Segoe UI",system-ui,sans-serif;color:#1d1b1c}
   h1{margin:0 0 4px} .sub{color:#6f6a6c;margin:0 0 22px}
-  .badge{width:26px;height:26px;border-radius:8px;background:#E4373C;color:#fff;font-size:15px;font-weight:700;display:grid;place-items:center}
+  .badge{width:26px;height:26px;border-radius:8px;background:#DC2B3A;color:#fff;font-size:15px;font-weight:700;display:grid;place-items:center}
   .light{background:#EBEBEC} .dark{background:#131313}
 """
 
@@ -66,8 +66,8 @@ def overview(out, work):
   .foot{{color:#6f6a6c;font-size:13px;margin-top:16px}}
 </style></head><body>
   <h1>Лис для Amarin Admin AI: три варианта</h1>
-  <p class="sub">Красный, плоский, 2D. Ушки опущены и прижаты, ротик приоткрыт. Без подложки: фон прозрачный,
-  лис стоит прямо на окне программы. Справа внизу настоящие размеры 48, 32, 24 и 16 px.</p>
+  <p class="sub">Плоский красный, как нынешняя «A»: только её оттенки, без белого и чёрного. Ушки опущены и отведены
+  в стороны, ротик приоткрыт. Фон прозрачный, лис стоит прямо на окне программы. Справа внизу настоящие размеры 48, 32, 24 и 16 px.</p>
   <div class="grid">{''.join(cols)}</div>
   <p class="foot">Рамка лиса квадратная, поэтому поля одинаковые со всех четырёх сторон: 64 из 1024, на 256 px это 16 px.</p>
 </body></html>"""
@@ -157,8 +157,8 @@ def preview(out, work, margin, canvas):
   .grid p{{margin:0 0 6px;color:#6f6a6c}}
 </style></head><body>
   <h1>Новый значок Amarin Admin AI</h1>
-  <p class="sub">Красный, плоский, 2D: милый лис с опущенными ушками и приоткрытым ротиком. Фон прозрачный.
-  Мелкие размеры нарисованы отдельно, а не ужаты из большого.</p>
+  <p class="sub">Плоский красный, 2D: милый лис с опущенными ушками и приоткрытым ротиком, только оттенки
+  красного. Фон прозрачный. Мелкие размеры нарисованы отдельно, а не ужаты из большого.</p>
   {cards}
   <section class="card"><div class="grid">
     {img(guides, 260)}

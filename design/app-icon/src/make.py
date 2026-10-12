@@ -23,7 +23,7 @@ sys.path.insert(0, HERE)
 from PIL import Image  # noqa: E402
 
 import sheet  # noqa: E402
-from fox_icons import DESIGNS, FULL, S, XS, fox  # noqa: E402
+from fox_icons import DESIGNS, FULL, S, XS, draw  # noqa: E402
 
 CANVAS = 1024
 MARGIN = 64  # поле со всех четырёх сторон: рамка лиса квадратная, поэтому поля равны (на 256 px — 16 px)
@@ -39,7 +39,12 @@ def detail_for(size):
 
 
 def mark(key, detail):
-    return fox(DESIGNS[key]["eyes"], detail).fit((MARGIN, MARGIN, CANVAS - MARGIN, CANVAS - MARGIN))
+    full = draw(key, FULL).bounds()
+    w, h = full[2] - full[0], full[3] - full[1]
+    # Поля равны со всех сторон, только пока рамка рисунка квадратная: правка пропорций в
+    # fox_icons.py, которая её ломает, должна остановить сборку, а не тихо дать неровные поля.
+    assert abs(w - h) < 1, f"рамка лиса {key} не квадратная: {w:.1f}x{h:.1f}"
+    return draw(key, detail).fit((MARGIN, MARGIN, CANVAS - MARGIN, CANVAS - MARGIN), bounds=full)
 
 
 def bmp_frame(img: Image.Image) -> bytes:

@@ -204,9 +204,13 @@ class Art:
     def transformed(self, m):
         return Art([Layer(layer.shape.transformed(m), layer.fill, layer.name) for layer in self.layers])
 
-    def fit(self, box):
-        """Вписать рисунок в box = (x0, y0, x1, y1) целиком и поставить ровно в его середину."""
-        bx0, by0, bx1, by1 = self.bounds()
+    def fit(self, box, bounds=None):
+        """Вписать рисунок в box = (x0, y0, x1, y1) целиком и поставить ровно в его середину.
+
+        bounds — чужая рамка вместо своей: мелкие уровни детализации ставятся по рамке полного
+        рисунка, чтобы кадры ICO разных размеров не разъезжались ни на точку.
+        """
+        bx0, by0, bx1, by1 = bounds or self.bounds()
         x0, y0, x1, y1 = box
         s = min((x1 - x0) / (bx1 - bx0), (y1 - y0) / (by1 - by0))
         tx = (x0 + x1) / 2 - s * (bx0 + bx1) / 2
