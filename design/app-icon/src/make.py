@@ -2,7 +2,7 @@
 
     python3 design/app-icon/src/make.py [папка]      # по умолчанию design/app-icon
 
-Нужны Python-пакеты skia-pathops и Pillow и Node.js с playwright (Chromium рисует SVG в PNG).
+Нужны Python-пакеты skia-pathops, numpy и Pillow и Node.js с playwright (Chromium рисует SVG в PNG).
 
 Кадры ICO рисуются из вектора под каждый размер, а не ужимаются из 256: мелкие — упрощённым
 рисунком (уровни детализации — в fox_icons.py).
@@ -23,11 +23,10 @@ sys.path.insert(0, HERE)
 from PIL import Image  # noqa: E402
 
 import sheet  # noqa: E402
-from foxlib import tile  # noqa: E402
-from fox_icons import DESIGNS, FULL, S, XS  # noqa: E402
+from fox_icons import DESIGNS, FULL, S, XS, fox  # noqa: E402
 
 CANVAS = 1024
-MARGIN = 40  # поле вокруг плитки и по бокам знака: одинаковое со всех сторон, 40/1024
+MARGIN = 64  # поле со всех четырёх сторон: рамка лиса квадратная, поэтому поля равны (на 256 px — 16 px)
 ICO_SIZES = [256, 128, 96, 64, 48, 40, 32, 24, 20, 16]
 
 
@@ -39,12 +38,8 @@ def detail_for(size):
     return FULL
 
 
-def forms(d):
-    return {
-        "tile": lambda det: tile(d["tile_art"](det), d["tile_bg"], canvas=CANVAS, margin=MARGIN, pad=d["tile_pad"]),
-        "mark": lambda det: d["mark"](det).fit((MARGIN, MARGIN, CANVAS - MARGIN, CANVAS - MARGIN)),
-        "tile-alt": lambda det: tile(d["alt_art"](det), d["alt_bg"], canvas=CANVAS, margin=MARGIN, pad=d["tile_pad"]),
-    }
+def mark(key, detail):
+    return fox(DESIGNS[key]["eyes"], detail).fit((MARGIN, MARGIN, CANVAS - MARGIN, CANVAS - MARGIN))
 
 
 def bmp_frame(img: Image.Image) -> bytes:
@@ -95,26 +90,22 @@ def main(out):
     with tempfile.TemporaryDirectory() as work:
         jobs, frames = [], {}
         for key, d in DESIGNS.items():
-            for form, make in forms(d).items():
-                svgs = {}
-                for det in (FULL, S, XS):
-                    name = f"fox-{key}-{form}" + ("" if det == FULL else f"-{det}")
-                    path = os.path.join(out if det == FULL else work, name + ".svg")
-                    with open(path, "w") as f:
-                        f.write(make(det).svg(title=f"Amarin Admin AI: {d['name']}"))
-                    svgs[det] = path
-                for s in ICO_SIZES:
-                    png = os.path.join(work, f"fox-{key}-{form}-{s}.png")
-                    jobs.append({"svg": svgs[detail_for(s)], "out": png, "size": s})
-                    frames.setdefault((key, form), {})[s] = png
+            svgs = {}
+            for det in (FULL, S, XS):
+                path = os.path.join(out if det == FULL else work, f"fox-{key}" + ("" if det == FULL else f"-{det}") + ".svg")
+                with open(path, "w") as f:
+                    f.write(mark(key, det).svg(title=f"Amarin Admin AI: {d['name']}"))
+                svgs[det] = path
+            for s in ICO_SIZES:
+                png = os.path.join(work, f"fox-{key}-{s}.png")
+                jobs.append({"svg": svgs[detail_for(s)], "out": png, "size": s})
+                frames.setdefault(key, {})[s] = png
         with open(os.path.join(work, "frames.json"), "w") as f:
             json.dump(jobs, f)
         subprocess.run(["node", os.path.join(HERE, "render.mjs"), os.path.join(work, "frames.json")], check=True)
 
-        for (key, form), pngs in frames.items():
-            if form != "tile-alt":
-                write_ico(os.path.join(out, f"fox-{key}-{form}.ico"),
-                          {s: Image.open(p).convert("RGBA") for s, p in pngs.items()})
+        for key, pngs in frames.items():
+            write_ico(os.path.join(out, f"fox-{key}.ico"), {s: Image.open(p).convert("RGBA") for s, p in pngs.items()})
 
         sheet.overview(out, work)
         sheet.preview(out, work, MARGIN, CANVAS)

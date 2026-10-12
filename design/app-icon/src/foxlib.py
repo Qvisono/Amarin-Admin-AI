@@ -3,8 +3,7 @@
 
 Итоговый SVG — только залитые пути, без масок, клипов и обводок. Слои режутся друг о друга
 булевыми операциями, а не накрываются: иначе у общего края сглаживание нижнего слоя
-проступает каймой (у светлой мордочки на красной голове была розовая бахрома), и такой путь
-нельзя без переделки перенести в XAML.
+проступает каймой, и такой путь нельзя без переделки перенести в XAML.
 """
 from __future__ import annotations
 
@@ -86,11 +85,6 @@ class Shape:
     def translate(self, dx, dy):
         return self.transformed((1, 0, 0, 1, dx, dy))
 
-    def rotate(self, deg, ox=0.0, oy=0.0):
-        r = math.radians(deg)
-        c, s = math.cos(r), math.sin(r)
-        return self.transformed((c, s, -s, c, ox - c * ox + s * oy, oy - s * ox - c * oy))
-
     def stroke_outline(self, width):
         """Обводка с круглыми концами — как залитая фигура."""
         q = self.copy().p
@@ -129,13 +123,23 @@ def _quads(pts):
         yield cp, nxt
 
 
+def grow(s: Shape, r: float) -> Shape:
+    """Расширить фигуру на r во все стороны."""
+    return s | s.stroke_outline(2 * r)
+
+
+def shrink(s: Shape, r: float) -> Shape:
+    """Сжать фигуру на r внутрь — для каймы одной ширины по всему краю."""
+    return s - s.stroke_outline(2 * r)
+
+
 # ------------------------------------------------------------------ примитивы
 
 K = 0.5522847498  # ручки кубической четверти окружности
 
 
-def ellipse(cx, cy, rx, ry, rot=0.0):
-    s = Shape.from_cubics(
+def ellipse(cx, cy, rx, ry):
+    return Shape.from_cubics(
         (cx + rx, cy),
         [
             ((cx + rx, cy + K * ry), (cx + K * rx, cy + ry), (cx, cy + ry)),
@@ -144,67 +148,10 @@ def ellipse(cx, cy, rx, ry, rot=0.0):
             ((cx + K * rx, cy - ry), (cx + rx, cy - K * ry), (cx + rx, cy)),
         ],
     )
-    return s.rotate(rot, cx, cy) if rot else s
 
 
 def circle(cx, cy, r):
     return ellipse(cx, cy, r, r)
-
-
-def rect(x, y, w, h):
-    return Shape.from_cubics((x, y), [((x + w, y),), ((x + w, y + h),), ((x, y + h),)])
-
-
-def smooth(points, closed=True, corners=(), handles=None):
-    """Гладкий контур через точки (Catmull-Rom -> кубические кривые).
-
-    corners — индексы острых точек; handles — {индекс: множитель длины ручек}.
-    """
-    n = len(points)
-    handles = handles or {}
-    corners = set(corners)
-
-    def tangent(i):
-        if i in corners:
-            return (0.0, 0.0)
-        if closed:
-            p0, p2 = points[(i - 1) % n], points[(i + 1) % n]
-        else:
-            p0, p2 = points[max(i - 1, 0)], points[min(i + 1, n - 1)]
-        k = handles.get(i, 1.0) / 6.0
-        return ((p2[0] - p0[0]) * k, (p2[1] - p0[1]) * k)
-
-    tans = [tangent(i) for i in range(n)]
-    segs = []
-    for i in range(n if closed else n - 1):
-        a, b = points[i], points[(i + 1) % n]
-        ta, tb = tans[i], tans[(i + 1) % n]
-        segs.append(((a[0] + ta[0], a[1] + ta[1]), (b[0] - tb[0], b[1] - tb[1]), b))
-    return Shape.from_cubics(points[0], segs, close=closed)
-
-
-def smooth_open(points, corners=(), handles=None):
-    return smooth(points, closed=False, corners=corners, handles=handles)
-
-
-def symmetric(right_half, corners=(), handles=None, cx=CX):
-    """Правая половина от точки на оси сверху до точки на оси снизу -> симметричный контур.
-
-    Индексы corners и handles — по правой половине, левая получает зеркальные.
-    """
-    left = [(2 * cx - x, y) for x, y in reversed(right_half[1:-1])]
-    pts = list(right_half) + left
-    n_r, n = len(right_half), len(pts)
-    cs, hs = set(), {}
-    for i in corners:
-        cs.add(i)
-        if 0 < i < n_r - 1:
-            cs.add(n - i)
-    for i, v in (handles or {}).items():
-        hs[i] = v
-        if 0 < i < n_r - 1:
-            hs[n - i] = v
-    return smooth(pts, closed=True, corners=cs, handles=hs)
 
 
 def rounded_polygon(points, radius):
@@ -231,46 +178,6 @@ def rounded_polygon(points, radius):
     return Shape.from_cubics(corners[0][0], segs)
 
 
-def ios_rounded_rect(x, y, w, h, r):
-    """Квадрат с «непрерывными» углами, как маска значков iOS.
-
-    Коэффициенты — известный разбор маски UIKit (iOS 7+): угол начинается в 1,5287·r от
-    вершины и меняет кривизну плавно, без излома, как у обычного скругления дугой.
-    """
-    r = min(r, min(w, h) / 2 / 1.52866483)
-
-    def tl(px, py):
-        return (x + px * r, y + py * r)
-
-    def tr(px, py):
-        return (x + w - px * r, y + py * r)
-
-    def br(px, py):
-        return (x + w - px * r, y + h - py * r)
-
-    def bl(px, py):
-        return (x + px * r, y + h - py * r)
-
-    def corner(f, along_x):
-        # Обход по часовой. Правый верхний и левый нижний углы начинаются с горизонтального
-        # ребра, два других — с вертикального: числа те же, оси меняются местами.
-        def p(u, v):
-            return f(u, v) if along_x else f(v, u)
-
-        return [
-            (p(1.08849323, 0), p(0.86840689, 0), p(0.66993427, 0.06549600)),
-            (p(0.63149399, 0.07491100),),
-            (p(0.37282392, 0.16905899), p(0.16906013, 0.37282401), p(0.07491176, 0.63149399)),
-            (p(0, 0.86840701), p(0, 1.08849299), p(0, 1.52866483)),
-        ]
-
-    segs = [(tr(1.52866471, 0),)] + corner(tr, True)
-    segs += [(br(0, 1.52866471),)] + corner(br, False)
-    segs += [(bl(1.52866471, 0),)] + corner(bl, True)
-    segs += [(tl(0, 1.52866471),)] + corner(tl, False)
-    return Shape.from_cubics(tl(1.52866483, 0), segs)
-
-
 # ------------------------------------------------------------------ сцена
 
 
@@ -278,7 +185,6 @@ def ios_rounded_rect(x, y, w, h, r):
 class Layer:
     shape: Shape
     fill: str
-    opacity: float = 1.0
     name: str = ""
 
 
@@ -286,23 +192,17 @@ class Layer:
 class Art:
     layers: list = field(default_factory=list)
 
-    def add(self, shape, fill, opacity=1.0, name=""):
+    def add(self, shape, fill, name=""):
         if shape is not None and not shape.empty():
-            self.layers.append(Layer(shape, fill, opacity, name))
+            self.layers.append(Layer(shape, fill, name))
         return self
 
     def bounds(self):
         boxes = [layer.shape.bounds() for layer in self.layers]
         return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
 
-    def silhouette(self):
-        s = Shape()
-        for layer in self.layers:
-            s = s | layer.shape
-        return s
-
     def transformed(self, m):
-        return Art([Layer(layer.shape.transformed(m), layer.fill, layer.opacity, layer.name) for layer in self.layers])
+        return Art([Layer(layer.shape.transformed(m), layer.fill, layer.name) for layer in self.layers])
 
     def fit(self, box):
         """Вписать рисунок в box = (x0, y0, x1, y1) целиком и поставить ровно в его середину."""
@@ -315,24 +215,9 @@ class Art:
 
     def svg(self, size=1024, title=None):
         parts = [f"<title>{title}</title>"] if title else []
-        for layer in self.layers:
-            op = f' fill-opacity="{fmt(layer.opacity)}"' if layer.opacity != 1.0 else ""
-            parts.append(f'<path fill="{layer.fill}"{op} d="{layer.shape.d()}"/>')
+        parts += [f'<path fill="{layer.fill}" d="{layer.shape.d()}"/>' for layer in self.layers]
         body = "\n  ".join(parts)
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" width="{size}" height="{size}">\n  '
             f"{body}\n</svg>\n"
         )
-
-
-def tile(art, bg, canvas=1024, margin=40, radius=0.2237, pad=0.13):
-    """Плитка в духе iOS: квадрат с непрерывными углами и прозрачными уголками, рисунок по центру.
-
-    margin — поле вокруг плитки, одинаковое со всех сторон; pad — поле рисунка внутри плитки
-    (доля её стороны) по более длинной стороне рисунка.
-    """
-    size = canvas - 2 * margin
-    sq = ios_rounded_rect(margin, margin, size, size, size * radius)
-    p = pad * size
-    fitted = art.fit((margin + p, margin + p, canvas - margin - p, canvas - margin - p))
-    return Art([Layer(sq, bg, 1.0, "tile")] + fitted.layers)
