@@ -60,6 +60,8 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
+    <!-- Лисёнок Роза (1.35.0): загружается через пять секунд после первого кадра, см. FoxWindowHost. -->
+    <ProjectReference Include="..\ProjectFox\ProjectFox.csproj" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">

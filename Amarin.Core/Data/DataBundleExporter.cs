@@ -307,9 +307,11 @@ public sealed class DataBundleExporter
 
     private static int CountItems(DataCategory category, IEnumerable<Source> sources) => category switch
     {
-        // Индекс — служебный файл, человек считает чатами переписки.
+        // Индекс — служебный файл, человек считает чатами переписки. Память и дневник Розы едут
+        // в той же категории, но чатами не считаются.
         DataCategory.Chats => sources.Count(source =>
-            !source.ArchivePath.EndsWith("/index.json", StringComparison.Ordinal)),
+            !source.ArchivePath.EndsWith("/index.json", StringComparison.Ordinal) &&
+            !source.ArchivePath.Contains("/" + FoxData.FolderName + "/", StringComparison.Ordinal)),
         _ => sources.Count()
     };
 

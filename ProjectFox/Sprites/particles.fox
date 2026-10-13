@@ -1,0 +1,130 @@
+# Частицы вокруг Розы: сердечки, сон, вопрос, испуг, капля, нотка, «хмф», искра.
+# Каждая — маленькая сетка в той же палитре; точка — прозрачно.
+
+particle heart
+.kk.kk.
+kmlkmmk
+kmmmmmk
+.kmmmk.
+..kmk..
+...k...
+
+particle z
+kkkkkk
+kllllk
+kkklk.
+.klk..
+klkkk.
+kllllk
+kkkkkk
+
+particle question
+.kkk.
+klllk
+kkklk
+.klk.
+.kk..
+.klk.
+.kkk.
+
+particle exclaim
+kkk
+klk
+klk
+klk
+kkk
+klk
+kkk
+
+particle drop
+.k..
+klk.
+kllk
+kllk
+.kk.
+
+particle note
+..kkk
+..klk
+..kk.
+.kk..
+klk..
+kkk..
+
+particle puff
+.kkk..
+kwwwkk
+kwwwwwk
+.kgwwgk
+..kkkk.
+
+particle spark
+..k..
+.klk.
+klklk
+.klk.
+..k..
+
+particle heartbreak
+.kk.kk.
+kmlkmmk
+km.kmmk
+.km.mk.
+..kmk..
+...k...
+
+particle bulb
+.kkk.
+kYYlk
+kYYYk
+kYAYk
+.kAk.
+.kkk.
+..k..
+
+particle dots
+.......
+k.k.k..
+.......
+
+particle vein
+k.k..
+.kk.k
+k..kk
+.k.k.
+
+particle steam
+..k..
+.kwk.
+kwgwk
+.kwk.
+..k..
+
+particle bite
+k.k.k
+.k.k.
+.....
+.k.k.
+k.k.k
+
+particle paw
+.k.k.
+k.k.k
+.....
+.kkk.
+kdddk
+.kkk.
+
+particle fly
+k.k.
+.kk.
+kkkk
+.kk.
+
+particle star
+...k...
+..kYk..
+kkYYYkk
+.kYYYk.
+.kYkYk.
+.k...k.

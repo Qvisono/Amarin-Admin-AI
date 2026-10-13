@@ -1,0 +1,61 @@
+# Предметы Розы. «at x y» — левый верхний угол предмета от якоря головы кадра (верхний левый угол
+# глаза): колпак — на макушке между ушами, цветочек и монетка — во рту, лупа и книжка — у лапок.
+
+item hat
+at 2 -16
+...kk..
+..kYYk.
+...kk..
+..kZk..
+.kZbZk.
+.kbZbk.
+kZbZbZk
+kkkkkkk
+
+item flower
+at -11 2
+.kbk..
+kbYbk.
+.kbkG.
+...kGk
+....kG
+
+item coin
+at -9 3
+.kkk.
+kYAYk
+kYYAk
+kAYYk
+.kkk.
+
+item ball
+at -12 2
+.kkkk.
+kZZwZk
+kZwZZk
+kwwwwk
+kZZwZk
+.kkkk.
+
+item magnifier
+at -13 -4
+..kkkk..
+.kLLLlk.
+kLLLLLLk
+kLLlLLLk
+kLLLLLLk
+.kLLLLk.
+..kkkkk.
+.....kAk
+......kAk
+.......kk
+
+item book
+at -11 13
+kkkkkkkkk
+kBBBBBwwk
+kBCBBBwvk
+kBBBBBwvk
+kBBBBBwwk
+kCCCCCCCk
+kkkkkkkkk

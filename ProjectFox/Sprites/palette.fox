@@ -1,0 +1,36 @@
+# Палитра Розы: символ, роль, цвет. Тона меха взяты с 7-й картинки (её позы — основа рисунка).
+# У глаза два цвета: первый — тёплые (розовые) глаза, второй — холодные (синие); рисунок один.
+. clear
+, erase
+o outline #8c4a52
+w cream #fae5dc
+v creamShade #f2c7c1
+h furLight #faa2a2
+g creamGrey #dcb4ae
+p fur #fc9e9f
+q fur2 #f09c9d
+f fur3 #f79698
+c furMid #ee8d90
+y furMuted #d09d9a
+s shade #e28184
+t shade2 #d97077
+u shadeMuted #b38481
+x shadeDeep #c9676e
+r line #a45256
+d sock #7b3939
+n dark #542426
+l glint #daebf1
+e iris #e0629a #5a99a2
+E irisDeep #8a2652 #1b505f
+k lash #3a1a24
+b blush #ff7f9e
+m mouth #c4506a
+# Предметы и частицы: золото, листва, стекло, синий, обложка книжки.
+Y gold #f4c44e
+A goldDeep #c98a2a
+G leaf #6fbf73
+V leafDeep #3f8a4b
+L glass #bfe3f2
+Z blue #5aa0d8
+B cover #7a5bd1
+C coverDeep #4f3a9e

@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Лисёнок Роза (1.35.0): мозг, разум, хранилище, кадры и сцена. Отдельной сборкой, а не папкой
+    приложения: окно знает о ней только через переходник FoxWindowHost и зовёт её через пять секунд
+    после первого кадра, поэтому до этого сборка даже не загружается — запуск программы она не
+    трогает. Brain, Mind и Storage обходятся без WPF; View — только код, стили окна живут в UI/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Amarin.Fox</AssemblyName>
+    <RootNamespace>Amarin.Fox</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatform>windows</SupportedOSPlatform>
+  </PropertyGroup>
+
+  <!-- Версия одна на программу — из csproj приложения, как у Amarin.Core. Совпадение сторожит тест. -->
+  <PropertyGroup>
+    <AmarinAppProject>$(MSBuildThisFileDirectory)..\Amarin Admin AI\Amarin Admin AI.csproj</AmarinAppProject>
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(AmarinAppProject)')), '(?&lt;=&lt;Version&gt;)[^&lt;]+(?=&lt;/Version&gt;)').Value.Trim())</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Кадры Розы — текстовые сетки (формат описан в Sprites/palette.fox и FoxSprites). Ресурсом,
+      а не файлами рядом с exe: релиз — один exe. Маской: новая анимация — новый файл, и
+      забытый Include означал бы молча пропавшую позу.
+    -->
+    <EmbeddedResource Include="Sprites\*.fox" LogicalName="Amarin.Fox.Sprites.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Amarin Admin AI" />
+    <InternalsVisibleTo Include="Amarin.AdminAI.Tests" />
+  </ItemGroup>
+
+  <!-- Как в приложении: System.Windows.Shapes.Path сталкивается с System.IO.Path. -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Remove="System.Windows" />
+    <Using Remove="System.Windows.Controls" />
+    <Using Remove="System.Windows.Data" />
+    <Using Remove="System.Windows.Documents" />
+    <Using Remove="System.Windows.Input" />
+    <Using Remove="System.Windows.Media" />
+    <Using Remove="System.Windows.Media.Imaging" />
+    <Using Remove="System.Windows.Navigation" />
+    <Using Remove="System.Windows.Shapes" />
+  </ItemGroup>
+
+</Project>

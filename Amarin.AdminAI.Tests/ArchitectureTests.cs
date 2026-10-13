@@ -79,6 +79,10 @@ public sealed partial class ArchitectureTests
         Assert.Equal(RuntimeContext.AppVersion, UpdateChecker.VersionOf(typeof(ChatEngine).Assembly));
     }
 
+    [Fact]
+    public void Rosa_carries_the_app_version_too() =>
+        Assert.Equal(RuntimeContext.AppVersion, UpdateChecker.VersionOf(typeof(Amarin.Fox.FoxStore).Assembly));
+
     private static HashSet<string> AssemblyReferences(Assembly assembly)
     {
         using var stream = File.OpenRead(assembly.Location);

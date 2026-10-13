@@ -146,8 +146,9 @@ public static class DataUsage
             return SettingsKey;
         }
 
-        // Черновики (D12) — недописанные сообщения чатов: считаются вместе с чатами.
-        if (InFolder(relative, "chats") || InFolder(relative, DraftStore.FolderName))
+        // Черновики (D12) — недописанные сообщения чатов: считаются вместе с чатами. Память и
+        // дневник Розы (1.35.0) — тоже: дневник пересказывает переписку и едет с ней в архиве.
+        if (InFolder(relative, "chats") || InFolder(relative, DraftStore.FolderName) || InFolder(relative, FoxData.FolderName))
         {
             return ChatsKey;
         }

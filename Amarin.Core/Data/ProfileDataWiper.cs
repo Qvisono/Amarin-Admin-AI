@@ -41,7 +41,7 @@ public static class ProfileDataWiper
     /// оставить их значило бы оставить переписку, которую человек велел удалить.
     /// </summary>
     internal static readonly string[] DefaultProfileFolders =
-        ["chats", "usage", InstructionLibrary.FolderName, RecipeLibrary.FolderName, "shared", DraftStore.FolderName];
+        ["chats", "usage", InstructionLibrary.FolderName, RecipeLibrary.FolderName, "shared", DraftStore.FolderName, FoxData.FolderName];
 
     internal const string AuditFolder = "audit";
 

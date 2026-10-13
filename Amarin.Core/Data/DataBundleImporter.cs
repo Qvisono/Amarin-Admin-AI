@@ -577,6 +577,7 @@ public sealed class DataBundleImporter
         if (categories.HasFlag(DataCategory.Chats))
         {
             ApplyChats(Path.Combine(source, "chats"), targetRoot, mode, state, cancellationToken);
+            ApplyFox(Path.Combine(source, FoxData.FolderName), targetRoot, overwrite);
         }
 
         // Заготовки промптов — список, а не набор полей, поэтому они переносятся и в слиянии,
@@ -734,6 +735,38 @@ public sealed class DataBundleImporter
         // Хранилище пишет в фоне, а это хранилище тут же выбрасывается: без этого импорт
         // возвращал бы «готово» ещё до того, как чаты легли на диск.
         store.Flush();
+    }
+
+    /// <summary>
+    /// Память и дневник лисёнка Розы (1.35.0).
+    /// </summary>
+    /// <remarks>
+    /// Память — как настройки: при замене и в новый профиль приезжает целиком, в слиянии своя
+    /// остаётся — отношения с Розой у каждого профиля свои, и чужие не должны их переписать. Нет
+    /// своей — берётся архивная. Дневник сливается по дням: недостающие дни добавляются всегда,
+    /// у совпавших при замене берётся запись архива. Пишется по правилу шифрования того профиля,
+    /// куда ложится: дневник пересказывает переписку.
+    /// </remarks>
+    private static void ApplyFox(string source, string targetRoot, bool overwrite)
+    {
+        if (!Directory.Exists(source))
+        {
+            return;
+        }
+
+        var encrypt = EncryptsAtRest(targetRoot);
+        var incomingState = FoxData.Read(Path.Combine(source, FoxData.StateFileName));
+        if (incomingState is not null && (overwrite || !File.Exists(FoxData.StatePath(targetRoot))))
+        {
+            FoxData.Write(FoxData.StatePath(targetRoot), incomingState, encrypt);
+        }
+
+        var incomingDiary = FoxData.Read(Path.Combine(source, FoxData.DiaryFileName));
+        if (incomingDiary is not null)
+        {
+            var merged = FoxData.MergeDiary(FoxData.Read(FoxData.DiaryPath(targetRoot)), incomingDiary, incomingWins: overwrite);
+            FoxData.Write(FoxData.DiaryPath(targetRoot), merged, encrypt);
+        }
     }
 
     /// <param name="isNewProfile">
@@ -1291,7 +1324,8 @@ public sealed class DataBundleImporter
         category switch
         {
             DataCategory.Chats => entries.Count(entry =>
-                !entry.Path.EndsWith("/index.json", StringComparison.Ordinal)),
+                !entry.Path.EndsWith("/index.json", StringComparison.Ordinal) &&
+                !entry.Path.Contains("/" + FoxData.FolderName + "/", StringComparison.Ordinal)),
             _ => entries.Count()
         };
 

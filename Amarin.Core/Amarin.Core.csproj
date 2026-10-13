@@ -71,6 +71,8 @@
     <InternalsVisibleTo Include="Amarin Admin AI" />
     <InternalsVisibleTo Include="Amarin.AdminAI.Tests" />
     <InternalsVisibleTo Include="Amarin.AdminAI.Benchmarks" />
+    <!-- Лисёнок Роза: шифрование на диске, чтение JSON, клиент модели. -->
+    <InternalsVisibleTo Include="Amarin.Fox" />
   </ItemGroup>
 
 </Project>

@@ -10,7 +10,7 @@ namespace Amarin.AdminAI.Tests;
 internal static class SourceTree
 {
     /// <summary>Имена папок рабочих проектов — тех, чей код уходит в программу.</summary>
-    private static readonly string[] Projects = ["Amarin Admin AI", "Amarin.Core"];
+    private static readonly string[] Projects = ["Amarin Admin AI", "Amarin.Core", "ProjectFox"];
 
     /// <summary>Корень репозитория: папка с файлом решения, найденная вверх от сборки тестов.</summary>
     public static string RepositoryRoot { get; } = FindRoot();

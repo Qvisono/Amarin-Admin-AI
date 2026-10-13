@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Amarin.Core\Amarin.Core.csproj" />
     <ProjectReference Include="..\Amarin Admin AI\Amarin Admin AI.csproj" />
+    <ProjectReference Include="..\ProjectFox\ProjectFox.csproj" />
   </ItemGroup>
 
   <!-- testhost.exe (core apphost) exits immediately under Microsoft.WindowsDesktop.App; vstest then uses testhost.dll. -->

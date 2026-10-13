@@ -1,0 +1,263 @@
+# Мордочки для головы в профиль. Каждая — заплатки поверх кадра: «at x y» — левый верхний угол
+# заплатки от якоря головы кадра (строка «frame … head x y» — верхний левый угол глаза).
+# Точка — оставить как в кадре, запятая — стереть до прозрачного. Обычная мордочка — сам кадр.
+# Рот — под кончиком мордочки, «at -3 4»; румянец — под глазом.
+
+face blink
+at 0 0
+tcct
+nkkk
+hhgu
+
+face happy
+at 0 0
+tkkt
+kcck
+hbbu
+at -3 4
+km
+
+face excited
+at 0 -1
+kkkk
+klek
+leel
+cEEu
+at -3 4
+kmk
+
+face love
+at 0 0
+ecek
+leek
+cEcu
+at 0 2
+.bb.
+
+face blush
+at -1 2
+bbbb
+.bb.
+
+face sparkle
+at 0 0
+kkkk
+llek
+elEu
+at -1 2
+bb..
+
+face smart
+at -2 -1
+..kkkl....
+.k....k...
+kkk...kkkk
+.k....k...
+..kkkk....
+
+face thinking
+at 0 0
+kkkk
+celk
+hhgu
+at -3 5
+kk
+
+face curious
+at 0 -1
+kkkk
+klek
+keek
+cEEu
+
+face surprised
+at 0 -1
+kkkk
+klek
+keEk
+cwwu
+at -3 4
+.k.
+kmk
+.k.
+
+face puzzled
+at 1 -1
+kk
+at 0 1
+wlek
+vwEu
+
+face sad
+at 0 -1
+k...
+ckkk
+keEk
+hEEu
+at -3 5
+k
+
+face pity
+at 0 -1
+k...
+ckkk
+keEk
+hEEu
+at 0 3
+l
+l
+
+face bored
+at 0 0
+kkkk
+kkkk
+eEEu
+at -3 5
+kk
+
+face sleepy
+at 0 0
+tcct
+kkkk
+EEEu
+
+face fear
+at -1 -1
+.kkkk.
+kwwwwk
+kwEwwk
+.wwwk.
+at -3 4
+kk
+k.k
+
+face offended
+at 0 0
+tcct
+nkkk
+hbbu
+at -3 4
+k
+
+face angry
+at 1 -1
+.kk
+at 0 0
+kkkk
+eeEk
+hhgu
+at -3 4
+wkw
+
+face growl
+at 1 -1
+.kk
+at 0 0
+kkkk
+eeEk
+hhgu
+at -4 3
+wkwk
+kwkw
+
+face sly
+at 0 0
+kkkk
+kkek
+hhgu
+at -2 4
+k
+at -3 5
+k
+
+face proud
+at 0 0
+tkkt
+kcck
+hhgu
+at -3 4
+k.
+.k
+
+face shy
+at 0 0
+tcct
+nkkk
+bbbu
+at -1 3
+bb
+
+face dizzy
+at 0 0
+kttk
+ckkc
+kttk
+at -3 5
+k.k
+
+face presneeze
+at 0 0
+tcct
+kkkk
+hhgu
+at -4 2
+k
+at -3 4
+km
+
+face purr
+at 0 0
+tkkt
+kcck
+hbbu
+
+face lonely
+at 0 0
+kkkk
+kEEk
+heeu
+
+face puppy
+at 0 -1
+kkkk
+klle
+keel
+cEEu
+at -1 2
+b
+
+face relief
+at 0 0
+tcct
+nkkk
+hhgu
+at -3 4
+km
+
+face yawn
+at 0 0
+tcct
+kkkk
+hhgu
+at -4 3
+kmmk
+.kk.
+
+face lick
+at 0 0
+tkkt
+kcck
+hhgu
+at -4 4
+mk
+
+face bite
+at 1 -1
+.kk
+at 0 0
+kkkk
+eeEk
+hhgu
+at -4 3
+kwk
+k.k
