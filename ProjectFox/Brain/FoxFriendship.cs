@@ -188,7 +188,8 @@ internal static class FoxPhrases
         ["Escape"] = 2,
         ["Return"] = 2,
         ["Hide"] = 2,
-        ["Mischief"] = 3
+        ["Mischief"] = 3,
+        ["Mute"] = 2
     };
 
     /// <summary>Ключ случайного варианта фразы.</summary>

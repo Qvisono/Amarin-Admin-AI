@@ -151,6 +151,32 @@ public sealed class FoxWindowTests : IDisposable
         Assert.NotEqual(FoxMode.Drag, after);
     }
 
+    /// <summary>
+    /// Поле разговора с Розой — обычное поле с текстом: окно не перекладывает набранное в поле
+    /// сообщения (иначе разговор с лисёнком ушёл бы в чат с моделью), а Esc закрывает его.
+    /// </summary>
+    [Fact]
+    public void The_talk_field_keeps_its_text_and_escape_closes_it()
+    {
+        var (takes, above, closed) = With(window =>
+        {
+            var sprite = Arrive(window);
+            var stage = Stage(window);
+            stage.OpenTalk();
+            window.UpdateLayout();
+            var field = Layer(window).Children.OfType<Border>().Single(border => border.Child is TextBox);
+            var box = (TextBox)field.Child;
+            var fieldBottom = field.TransformToAncestor(window).TransformBounds(new Rect(field.RenderSize)).Bottom;
+            var spriteTop = sprite.TransformToAncestor(window).TransformBounds(new Rect(sprite.RenderSize)).Top;
+            stage.LetGo();
+            return (MainWindow.TakesTypedText(box), fieldBottom <= spriteTop + 1, field.Visibility == Visibility.Collapsed);
+        });
+
+        Assert.True(takes);
+        Assert.True(above);
+        Assert.True(closed);
+    }
+
     [Fact]
     public void Stopping_rosa_empties_and_collapses_the_layer()
     {

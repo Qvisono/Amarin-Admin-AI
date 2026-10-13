@@ -2375,5 +2375,31 @@
     <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Laser pointer</system:String>
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Hide for an hour</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Hide until tomorrow</system:String>
+    <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Talk</system:String>
+    <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Say something to Rosa…</system:String>
+    <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">My words ran away… Pet me?</system:String>
+    <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">My thoughts got tangled like a tail. Ask me later?</system:String>
+    <system:String x:Key="S.Fox.Diary.Quiet" xml:space="preserve">A quiet day: we barely saw each other, and I missed you a little.</system:String>
+    <system:String x:Key="S.Fox.Diary.Messages" xml:space="preserve">Messages in the chat today: {0}.</system:String>
+    <system:String x:Key="S.Fox.Diary.Topics" xml:space="preserve">Mostly it was about: {0}.</system:String>
+    <system:String x:Key="S.Fox.Diary.Virus" xml:space="preserve">Viruses scared me, I was trembling all over.</system:String>
+    <system:String x:Key="S.Fox.Diary.Pets" xml:space="preserve">Pets today: {0}. Purr!</system:String>
+    <system:String x:Key="S.Fox.Diary.Games" xml:space="preserve">We played, and it was great.</system:String>
+    <system:String x:Key="S.Fox.Diary.Hurt" xml:space="preserve">Some things hurt, but I am almost done sulking.</system:String>
+    <system:String x:Key="S.Fox.Diary.Warmer" xml:space="preserve">By evening I liked you a little more.</system:String>
+    <system:String x:Key="S.Fox.Diary.Colder" xml:space="preserve">By the end of the day I was sulking at you a bit.</system:String>
+    <system:String x:Key="S.Fox.Diary.Same" xml:space="preserve">Things between us stayed the same.</system:String>
+    <system:String x:Key="S.Fox.Topic.science" xml:space="preserve">science</system:String>
+    <system:String x:Key="S.Fox.Topic.code" xml:space="preserve">code</system:String>
+    <system:String x:Key="S.Fox.Topic.virus" xml:space="preserve">viruses</system:String>
+    <system:String x:Key="S.Fox.Topic.scam" xml:space="preserve">scams</system:String>
+    <system:String x:Key="S.Fox.Topic.sad" xml:space="preserve">sadness</system:String>
+    <system:String x:Key="S.Fox.Topic.happy" xml:space="preserve">joy</system:String>
+    <system:String x:Key="S.Fox.Topic.thanks" xml:space="preserve">thanks</system:String>
+    <system:String x:Key="S.Fox.Topic.rude" xml:space="preserve">rudeness</system:String>
+    <system:String x:Key="S.Fox.Topic.rude-to-fox" xml:space="preserve">being mean to me</system:String>
+    <system:String x:Key="S.Fox.Topic.praise" xml:space="preserve">praise for me</system:String>
+    <system:String x:Key="S.Fox.Topic.nonsense" xml:space="preserve">gibberish</system:String>
+    <system:String x:Key="S.Fox.Topic.long" xml:space="preserve">long texts</system:String>
 
 </ResourceDictionary>

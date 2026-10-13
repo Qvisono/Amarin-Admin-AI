@@ -86,6 +86,7 @@ internal sealed partial class FoxStage
     public void LetGo()
     {
         StopLaser();
+        CloseTalk();
         if (_mode != FoxMode.Drag)
         {
             return;

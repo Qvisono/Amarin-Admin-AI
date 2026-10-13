@@ -2375,5 +2375,31 @@
     <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Лазерная указка</system:String>
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Спрятать на час</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Спрятать до завтра</system:String>
+    <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Поговорить</system:String>
+    <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Скажи Розе что-нибудь…</system:String>
+    <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">Слова куда-то убежали… Погладишь меня?</system:String>
+    <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">Мысли запутались, как хвостик. Спроси попозже?</system:String>
+    <system:String x:Key="S.Fox.Diary.Quiet" xml:space="preserve">Тихий день: мы почти не виделись, и я немножко скучал.</system:String>
+    <system:String x:Key="S.Fox.Diary.Messages" xml:space="preserve">Сообщений в чате за день: {0}.</system:String>
+    <system:String x:Key="S.Fox.Diary.Topics" xml:space="preserve">Больше всего было про: {0}.</system:String>
+    <system:String x:Key="S.Fox.Diary.Virus" xml:space="preserve">Было страшно из-за вирусов, я весь дрожал.</system:String>
+    <system:String x:Key="S.Fox.Diary.Pets" xml:space="preserve">Поглаживаний за день: {0}. Мур!</system:String>
+    <system:String x:Key="S.Fox.Diary.Games" xml:space="preserve">Мы играли, и это было здорово.</system:String>
+    <system:String x:Key="S.Fox.Diary.Hurt" xml:space="preserve">Было и обидное, но я уже почти не дуюсь.</system:String>
+    <system:String x:Key="S.Fox.Diary.Warmer" xml:space="preserve">К вечеру я полюбил тебя ещё чуточку больше.</system:String>
+    <system:String x:Key="S.Fox.Diary.Colder" xml:space="preserve">Под конец дня я на тебя немножко дулся.</system:String>
+    <system:String x:Key="S.Fox.Diary.Same" xml:space="preserve">Между нами всё по-прежнему.</system:String>
+    <system:String x:Key="S.Fox.Topic.science" xml:space="preserve">наука</system:String>
+    <system:String x:Key="S.Fox.Topic.code" xml:space="preserve">код</system:String>
+    <system:String x:Key="S.Fox.Topic.virus" xml:space="preserve">вирусы</system:String>
+    <system:String x:Key="S.Fox.Topic.scam" xml:space="preserve">обман</system:String>
+    <system:String x:Key="S.Fox.Topic.sad" xml:space="preserve">грусть</system:String>
+    <system:String x:Key="S.Fox.Topic.happy" xml:space="preserve">радость</system:String>
+    <system:String x:Key="S.Fox.Topic.thanks" xml:space="preserve">благодарности</system:String>
+    <system:String x:Key="S.Fox.Topic.rude" xml:space="preserve">грубости</system:String>
+    <system:String x:Key="S.Fox.Topic.rude-to-fox" xml:space="preserve">обидное мне</system:String>
+    <system:String x:Key="S.Fox.Topic.praise" xml:space="preserve">похвала мне</system:String>
+    <system:String x:Key="S.Fox.Topic.nonsense" xml:space="preserve">абракадабра</system:String>
+    <system:String x:Key="S.Fox.Topic.long" xml:space="preserve">длинные тексты</system:String>
 
 </ResourceDictionary>

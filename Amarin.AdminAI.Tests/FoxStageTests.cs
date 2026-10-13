@@ -293,5 +293,9 @@ public sealed class FoxStageTests : IDisposable
         public void ShowMenu(FoxStage stage)
         {
         }
+
+        public void TalkClosed()
+        {
+        }
     }
 }

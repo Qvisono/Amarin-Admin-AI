@@ -642,7 +642,8 @@ internal sealed partial class FoxStage
     /// <summary>Привычки: моргнуть, вильнуть хвостом, умыться, почесаться, пройтись, прилечь — раз в несколько секунд.</summary>
     private void Habit(DateTime now)
     {
-        if (now < _nextHabit || _anim != BasePose() || (_face is not null && _faceUntil > now))
+        if (now < _nextHabit || _anim != BasePose() || (_face is not null && _faceUntil > now) ||
+            _talk is { Visibility: System.Windows.Visibility.Visible })
         {
             return;
         }

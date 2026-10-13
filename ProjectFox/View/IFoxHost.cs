@@ -59,4 +59,7 @@ internal interface IFoxHost
 
     /// <summary>Меню Розы по правому щелчку: собирает окно, его стилями.</summary>
     void ShowMenu(FoxStage stage);
+
+    /// <summary>Поле разговора закрылось: фокус — обратно туда, где человек печатает.</summary>
+    void TalkClosed();
 }

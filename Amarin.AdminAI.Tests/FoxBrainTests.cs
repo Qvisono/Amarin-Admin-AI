@@ -27,6 +27,18 @@ public sealed class FoxBrainTests
     private static IEnumerable<string> Said(IEnumerable<FoxAction> actions) =>
         actions.Where(action => action.Kind == FoxActionKind.Say).Select(action => Regex.Replace(action.Name, @"\.\d+$", ""));
 
+    /// <summary>Своя модель не ответила на разговор — «слова убежали», без перемен в дружбе.</summary>
+    [Fact]
+    public void A_mute_mind_says_so_and_changes_nothing()
+    {
+        var state = Known();
+        var actions = Run(state, new FoxSignal(FoxSignalKind.MindReaction, Name: "mute"));
+
+        Assert.Equal(["S.Fox.Say.Mute"], Said(actions));
+        Assert.Equal(40, state.Affection);
+        Assert.Equal(0, state.Resentment);
+    }
+
     [Fact]
     public void The_first_meeting_is_remembered_and_greeted()
     {

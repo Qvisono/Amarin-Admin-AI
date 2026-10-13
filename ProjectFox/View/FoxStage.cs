@@ -181,8 +181,8 @@ internal sealed partial class FoxStage
     /// <summary>Сам элемент Розы — окну, чтобы узнать его среди источников нажатия.</summary>
     public FrameworkElement Element => _sprite;
 
-    /// <summary>Роза в руках или в игре: Esc в это время отпускает его, а не останавливает ответ.</summary>
-    public bool Holding => _mode == FoxMode.Drag || _laserUntil > _clock();
+    /// <summary>Роза в руках, в игре или с ним говорят: Esc в это время отпускает его, а не останавливает ответ.</summary>
+    public bool Holding => _mode == FoxMode.Drag || _laserUntil > _clock() || Talking;
 
     /// <summary>Приходит в окно: выбегает к полю ввода справа или сразу садится, если анимации выключены.</summary>
     public void Start()
@@ -234,6 +234,13 @@ internal sealed partial class FoxStage
         {
             _host.Layer.Children.Remove(_bubble);
             _bubble = null;
+        }
+
+        if (_talk is not null)
+        {
+            _host.Layer.Children.Remove(_talk);
+            _talk = null;
+            _talkInput = null;
         }
 
         _store.Flush();
@@ -439,6 +446,11 @@ internal sealed partial class FoxStage
                     Mischief(action.Name);
                     break;
                 case FoxActionKind.AskMind:
+                    if (action.Name == "talk" && visible)
+                    {
+                        Ponder();
+                    }
+
                     MindRequested?.Invoke(action.Name, action.Text);
                     break;
                 case FoxActionKind.Diary:
@@ -651,6 +663,7 @@ internal sealed partial class FoxStage
         _sprite.Show(_bitmaps.Frame(animation, frame, face, item, _cold, _flip), () => _sprites.Compose(animation.Frames[frame], face, item), _flip);
         Place();
         PlaceBubble();
+        PlaceTalk();
     }
 
     /// <summary>Ставит угол кадра по лапам (на кромке) или по <c>_x</c>/<c>_y</c> (в воздухе), с выравниванием по пикселям экрана.</summary>

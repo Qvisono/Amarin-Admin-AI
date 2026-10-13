@@ -35,6 +35,7 @@ namespace Amarin.UI
             private readonly DispatcherTimer _inactive;
             private FoxStore? _store;
             private FoxStage? _stage;
+            private FoxMind? _mind;
             private string _root = "";
             private DateTime? _typedAt;
             private DateTime? _minimizedAt;
@@ -87,9 +88,42 @@ namespace Amarin.UI
 
                 _window.FoxLayer.Visibility = Visibility.Visible;
                 _stage = new FoxStage(this, store, sprites, () => DateTime.Now, new Random());
+                _mind = CreateMind(services, store);
+                _stage.MindRequested += (kind, text) => _mind?.Ask(kind, text);
+                _stage.DiaryDue += () => _mind?.WriteDiary();
                 Subscribe();
                 _stage.Start();
                 UpdatePause();
+            }
+
+            /// <summary>Своя модель Розы; ответы приходят с рабочего потока и переносятся в поток окна.</summary>
+            private FoxMind CreateMind(AppServices services, FoxStore store) =>
+                new(services.Http, services.Options, () => services.Settings, store, reply =>
+                    _window.Dispatcher.BeginInvoke(() => Deliver(reply), DispatcherPriority.Background));
+
+            /// <summary>Ответ своей модели — сигналом мозгу: реплика, мордочка и сдвиг дружбы, потом побег.</summary>
+            private void Deliver(FoxReply reply)
+            {
+                if (_stage is null)
+                {
+                    return;
+                }
+
+                if (reply.Failed)
+                {
+                    _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Name: "mute"));
+                    return;
+                }
+
+                if (reply.Line.Length > 0 || reply.Emotion.Length > 0 || reply.Mood != 0)
+                {
+                    _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: reply.Line, Value: reply.Mood, Name: reply.Emotion));
+                }
+
+                if (reply.EscapeMinutes > 0)
+                {
+                    _stage.Signal(new FoxSignal(FoxSignalKind.MindEscape, Value: reply.EscapeMinutes));
+                }
             }
 
             private void Subscribe()
@@ -258,11 +292,14 @@ namespace Amarin.UI
                 menu.Items.Add(AppMenu.Divider(_window));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Ball"), () => stage.PlayBall(at)));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Laser"), stage.PlayLaser));
+                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Talk"), stage.OpenTalk));
                 menu.Items.Add(AppMenu.Divider(_window));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideHour"), () => stage.HideFor(1)));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideDay"), () => stage.HideFor(0)));
                 menu.IsOpen = true;
             }
+
+            public void TalkClosed() => _window.FocusMessageInput();
 
             /// <summary>Прямоугольник элемента в координатах слоя Розы; пустой — элемент не в окне.</summary>
             private Rect Bounds(FrameworkElement element)
@@ -357,7 +394,11 @@ namespace Amarin.UI
 
                 _root = root;
                 _stage.Stop();
+
+                // Начатое для прежнего профиля туда и не попадёт: разум — новый.
+                _mind?.Dispose();
                 _store.UseRoot(root, () => services.Settings.EncryptChats);
+                _mind = CreateMind(services, _store);
                 _stage.Start();
             }
 
@@ -385,6 +426,8 @@ namespace Amarin.UI
             {
                 _stopped = true;
                 _inactive.Stop();
+                _mind?.Dispose();
+                _mind = null;
                 if (_stage is not null)
                 {
                     Unsubscribe();

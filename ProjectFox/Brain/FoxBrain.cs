@@ -350,6 +350,12 @@ internal static class FoxBrain
                 say("Danger");
                 break;
 
+            case FoxSignalKind.MindReaction when signal.Name == "mute":
+                // Своя модель не ответила на разговор: ключа нет, лимит, сеть. Без упрёков — слова убежали.
+                actions.Add(FoxAction.Face("shy", 2000));
+                say("Mute");
+                break;
+
             case FoxSignalKind.MindReaction:
                 FoxFriendship.Change(state, Math.Clamp(signal.Value, -3, 3));
                 if (signal.Value < 0)
