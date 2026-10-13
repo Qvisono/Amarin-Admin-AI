@@ -146,7 +146,7 @@ internal sealed partial class FoxStage
         for (var i = 0; i < Math.Min(count, 6); i++)
         {
             var image = Pixels(source);
-            var x = center - Px(source.PixelWidth / 2.0) + ((_random.NextDouble() - 0.5) * Px(18));
+            var x = center - (image.Width / 2) + ((_random.NextDouble() - 0.5) * Px(18));
             var mote = new Mote(
                 image,
                 x,
@@ -165,16 +165,17 @@ internal sealed partial class FoxStage
     /// <summary>Картинка рисунка в слое: пиксель рисунка — те же целые пиксели экрана, что у Розы.</summary>
     private Image Pixels(BitmapSource source)
     {
+        // Картинка уже увеличена заранее (Prescale): в точках рисунка она во столько же раз меньше.
         var image = new Image
         {
             Source = source,
-            Width = Px(source.PixelWidth),
-            Height = Px(source.PixelHeight),
+            Width = Px(source.PixelWidth / (double)_bitmaps.Prescale),
+            Height = Px(source.PixelHeight / (double)_bitmaps.Prescale),
             IsHitTestVisible = false,
             Focusable = false,
             RenderTransform = new TranslateTransform()
         };
-        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+        RenderOptions.SetBitmapScalingMode(image, _bitmaps.Prescale == 1 ? BitmapScalingMode.NearestNeighbor : BitmapScalingMode.HighQuality);
         return image;
     }
 
@@ -342,7 +343,7 @@ internal sealed partial class FoxStage
         }
 
         Replan();
-        _laser ??= Pixels(FoxBitmaps.Render([[',', 'b', ','], ['b', 'b', 'b'], [',', 'b', ',']], _sprites.Palette, cold: false, flip: false));
+        _laser ??= Pixels(FoxBitmaps.Render([[',', 'b', ','], ['b', 'b', 'b'], [',', 'b', ',']], _sprites.Palette, cold: false, flip: false, _bitmaps.Prescale));
         if (!_host.Layer.Children.Contains(_laser))
         {
             _host.Layer.Children.Add(_laser);
@@ -615,7 +616,7 @@ internal sealed partial class FoxStage
     {
         var source = _bitmaps.Particle("paw");
         var image = Pixels(source);
-        var mote = new Mote(image, x - Px(source.PixelWidth / 2.0), _edgeY + Px(3), 0, 0, 4000);
+        var mote = new Mote(image, x - (image.Width / 2), _edgeY + Px(3), 0, 0, 4000);
         _motes.Add(mote);
         _host.Layer.Children.Add(image);
         Move(mote);

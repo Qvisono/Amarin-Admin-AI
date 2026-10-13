@@ -33,8 +33,9 @@ public partial class FoxSettingsBlock : UserControl
         {
             var fox = services.Settings.Fox;
             ShowToggle.IsChecked = fox.Enabled;
-            SizeSmall.IsChecked = fox.Size < FoxSettings.LargeSize;
-            SizeLarge.IsChecked = fox.Size >= FoxSettings.LargeSize;
+            SizeSmall.IsChecked = fox.Size == FoxSettings.SmallSize;
+            SizeMedium.IsChecked = fox.Size == FoxSettings.MediumSize;
+            SizeLarge.IsChecked = fox.Size == FoxSettings.LargeSize;
             MischiefToggle.IsChecked = fox.Mischief;
             ReadChatToggle.IsChecked = fox.ReadChat;
             SearchToggle.IsChecked = fox.WebSearch;
@@ -84,7 +85,10 @@ public partial class FoxSettingsBlock : UserControl
     }
 
     private void Size_Checked(object sender, RoutedEventArgs e) =>
-        Save(fox => fox.Size = ReferenceEquals(sender, SizeLarge) ? FoxSettings.LargeSize : FoxSettings.SmallSize);
+        Save(fox => fox.Size =
+            ReferenceEquals(sender, SizeLarge) ? FoxSettings.LargeSize
+            : ReferenceEquals(sender, SizeMedium) ? FoxSettings.MediumSize
+            : FoxSettings.SmallSize);
 
     private void FriendshipButton_Click(object sender, RoutedEventArgs e) =>
         Detached.Run(_window?.ShowFoxFriendshipAsync() ?? Task.CompletedTask, "fox_friendship");

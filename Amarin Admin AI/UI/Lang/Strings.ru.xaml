@@ -2410,6 +2410,7 @@
     <system:String x:Key="S.FoxSettings.ShowDesc" xml:space="preserve">Живёт на кромке поля ввода и отзывается на то, что вы делаете</system:String>
     <system:String x:Key="S.FoxSettings.Size" xml:space="preserve">Размер</system:String>
     <system:String x:Key="S.FoxSettings.SizeSmall" xml:space="preserve">Маленький</system:String>
+    <system:String x:Key="S.FoxSettings.SizeMedium" xml:space="preserve">Средний</system:String>
     <system:String x:Key="S.FoxSettings.SizeLarge" xml:space="preserve">Крупный</system:String>
     <system:String x:Key="S.FoxSettings.Mischief" xml:space="preserve">Шалости</system:String>
     <system:String x:Key="S.FoxSettings.MischiefDesc" xml:space="preserve">Может ткнуть «Новый чат» или толкнуть список чатов, пока вы не печатаете</system:String>

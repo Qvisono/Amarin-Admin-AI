@@ -378,6 +378,7 @@ internal sealed partial class FoxStage
     {
         var dpi = VisualTreeHelper.GetDpi(_host.Layer).DpiScaleX;
         _sprite.Fit(_host.Size(), dpi);
+        _bitmaps.Prescale = _sprite.Prescale;
         _squash.CenterX = _sprite.Side / 2;
         _squash.CenterY = _sprite.Side;
     }

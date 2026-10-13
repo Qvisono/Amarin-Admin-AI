@@ -2410,6 +2410,7 @@
     <system:String x:Key="S.FoxSettings.ShowDesc" xml:space="preserve">Lives on the edge of the message box and reacts to what you do</system:String>
     <system:String x:Key="S.FoxSettings.Size" xml:space="preserve">Size</system:String>
     <system:String x:Key="S.FoxSettings.SizeSmall" xml:space="preserve">Small</system:String>
+    <system:String x:Key="S.FoxSettings.SizeMedium" xml:space="preserve">Medium</system:String>
     <system:String x:Key="S.FoxSettings.SizeLarge" xml:space="preserve">Large</system:String>
     <system:String x:Key="S.FoxSettings.Mischief" xml:space="preserve">Mischief</system:String>
     <system:String x:Key="S.FoxSettings.MischiefDesc" xml:space="preserve">May poke New chat or nudge the chat list while you are not typing</system:String>

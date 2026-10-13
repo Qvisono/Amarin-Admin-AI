@@ -110,6 +110,41 @@ public sealed class FoxSpriteTests
         Assert.Equal(Enum.Parse<FoxRegion>(expected), FoxStage.RegionOf((x, y), sit.Head));
     }
 
+    /// <summary>
+    /// Целый масштаб рисуется как есть; дробный — из картинки, заранее увеличенной целым числом
+    /// (масштаб вверх), чтобы фильтр только ужимал её и пиксели вышли одного размера.
+    /// </summary>
+    [Theory]
+    [InlineData(48, 1.0, 1.0, 1)]
+    [InlineData(72, 1.0, 1.5, 2)]
+    [InlineData(96, 1.0, 2.0, 1)]
+    [InlineData(48, 1.25, 1.25, 2)]
+    [InlineData(72, 1.5, 2.25, 3)]
+    [InlineData(96, 1.5, 3.0, 1)]
+    [InlineData(48, 1.02, 1.0, 1)]
+    public void Fractional_scales_are_drawn_from_a_whole_prescaled_picture(int size, double dpi, double device, int prescale)
+    {
+        var (actualDevice, actualPrescale) = FoxSprite.ScaleFor(size, dpi);
+
+        Assert.Equal(device, actualDevice, 3);
+        Assert.Equal(prescale, actualPrescale);
+    }
+
+    [Fact]
+    public void A_prescaled_picture_repeats_each_pixel_as_a_square()
+    {
+        char[][] rows = [['o', '.'], ['.', 'o']];
+        var once = FoxBitmaps.Render(rows, Sprites.Palette, cold: false, flip: false);
+        var twice = FoxBitmaps.Render(rows, Sprites.Palette, cold: false, flip: false, scale: 3);
+
+        Assert.Equal((2, 2), (once.PixelWidth, once.PixelHeight));
+        Assert.Equal((6, 6), (twice.PixelWidth, twice.PixelHeight));
+        var pixels = new uint[36];
+        twice.CopyPixels(pixels, 24, 0);
+        Assert.All((int[])[0, 1, 2, 6, 7, 8, 12, 13, 14], index => Assert.NotEqual(0u, pixels[index]));
+        Assert.All((int[])[3, 4, 5, 9, 10, 11, 15, 16, 17], index => Assert.Equal(0u, pixels[index]));
+    }
+
     [Fact]
     public void A_pose_without_a_head_anchor_is_all_back()
     {

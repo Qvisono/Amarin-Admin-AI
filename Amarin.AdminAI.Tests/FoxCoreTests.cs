@@ -57,7 +57,7 @@ public sealed class FoxCoreTests : IDisposable
         var settings = new AppSettingsStore(_root).Load();
 
         Assert.True(settings.Fox.Enabled);
-        Assert.Equal(FoxSettings.SmallSize, settings.Fox.Size);
+        Assert.Equal(FoxSettings.MediumSize, settings.Fox.Size);
         Assert.True(settings.Fox.Mischief);
         Assert.True(settings.Fox.ReadChat);
         Assert.True(settings.Fox.WebSearch);
@@ -80,10 +80,13 @@ public sealed class FoxCoreTests : IDisposable
 
     [Theory]
     [InlineData(48, 48)]
+    [InlineData(72, 72)]
     [InlineData(96, 96)]
     [InlineData(0, 48)]
-    [InlineData(70, 48)]
-    [InlineData(80, 96)]
+    [InlineData(60, 48)]
+    [InlineData(70, 72)]
+    [InlineData(80, 72)]
+    [InlineData(85, 96)]
     [InlineData(500, 96)]
     public void A_hand_edited_size_snaps_to_a_supported_one(int written, int expected)
     {

@@ -42,6 +42,8 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <RadioButton x:Name="SizeSmall" Style="{StaticResource SettingsSegment}" GroupName="FoxSize"
                                      Content="{DynamicResource S.FoxSettings.SizeSmall}" Checked="Size_Checked"/>
+                        <RadioButton x:Name="SizeMedium" Style="{StaticResource SettingsSegment}" GroupName="FoxSize"
+                                     Content="{DynamicResource S.FoxSettings.SizeMedium}" Checked="Size_Checked"/>
                         <RadioButton x:Name="SizeLarge" Style="{StaticResource SettingsSegment}" GroupName="FoxSize"
                                      Content="{DynamicResource S.FoxSettings.SizeLarge}" Checked="Size_Checked"/>
                     </StackPanel>

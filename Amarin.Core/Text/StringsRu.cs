@@ -2375,6 +2375,7 @@ internal static class StringsRu
             ["S.FoxSettings.ShowDesc"] = "Живёт на кромке поля ввода и отзывается на то, что вы делаете",
             ["S.FoxSettings.Size"] = "Размер",
             ["S.FoxSettings.SizeSmall"] = "Маленький",
+            ["S.FoxSettings.SizeMedium"] = "Средний",
             ["S.FoxSettings.SizeLarge"] = "Крупный",
             ["S.FoxSettings.Mischief"] = "Шалости",
             ["S.FoxSettings.MischiefDesc"] = "Может ткнуть «Новый чат» или толкнуть список чатов, пока вы не печатаете",
