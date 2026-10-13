@@ -59,6 +59,9 @@ internal static class VeniceSku
     /// <summary>Разбор фактов в отчёте о работе (D7).</summary>
     public const string WorkReport = "work-report-request";
 
+    /// <summary>Лисёнок Роза (1.35.0): реплики, разговор и дневник одной строкой.</summary>
+    public const string Fox = "fox-request";
+
     /// <summary>
     /// Наши собственные пометки — разбираются точным совпадением, а не вхождением подстроки.
     /// </summary>
@@ -85,6 +88,7 @@ internal static class VeniceSku
         [FollowUp] = "S.Spend.Kind.FollowUp",
         [Infographic] = "S.Spend.Kind.Infographic",
         [WorkReport] = "S.Spend.Kind.WorkReport",
+        [Fox] = "S.Spend.Kind.Fox",
         [ContextCompact] = "S.Cost.Compact",
         [Transcription] = "S.Spend.Kind.Transcription"
     };

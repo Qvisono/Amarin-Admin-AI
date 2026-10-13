@@ -1795,6 +1795,7 @@
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Video</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Web search</system:String>
     <system:String x:Key="S.Spend.Kind.WorkReport" xml:space="preserve">Work report</system:String>
+    <system:String x:Key="S.Spend.Kind.Fox" xml:space="preserve">Rosa</system:String>
     <system:String x:Key="S.Spend.Loading" xml:space="preserve">Adding up the spending…</system:String>
     <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">The breakdown shows up once there is spending</system:String>
     <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">Where it went</system:String>

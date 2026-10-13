@@ -1795,6 +1795,7 @@
     <system:String x:Key="S.Spend.Kind.Video" xml:space="preserve">Видео</system:String>
     <system:String x:Key="S.Spend.Kind.WebSearch" xml:space="preserve">Поиск в интернете</system:String>
     <system:String x:Key="S.Spend.Kind.WorkReport" xml:space="preserve">Отчёт о работе</system:String>
+    <system:String x:Key="S.Spend.Kind.Fox" xml:space="preserve">Роза</system:String>
     <system:String x:Key="S.Spend.Loading" xml:space="preserve">Считаю траты…</system:String>
     <system:String x:Key="S.Spend.Models.Empty" xml:space="preserve">Разбивка появится, когда будут траты</system:String>
     <system:String x:Key="S.Spend.Models.Title" xml:space="preserve">На что ушло</system:String>

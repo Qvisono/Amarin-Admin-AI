@@ -18,7 +18,10 @@ public enum ModelSlot
     SynGuard,
 
     /// <summary>Скрытая сводка переписки. До 1.23.0 делил слот с быстрым агентом.</summary>
-    Summary
+    Summary,
+
+    /// <summary>Лисёнок Роза (1.35.0): реакции, разговор и дневник.</summary>
+    Fox
 }
 
 /// <summary>
@@ -42,7 +45,8 @@ public static class ModelSlots
         (ModelSlot.AgentLite, s => s.AgentLiteModelId, (s, v) => s.AgentLiteModelId = v),
         (ModelSlot.AgentHeavy, s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v),
         (ModelSlot.SynGuard, s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v),
-        (ModelSlot.Summary, s => s.SummaryModelId, (s, v) => s.SummaryModelId = v)
+        (ModelSlot.Summary, s => s.SummaryModelId, (s, v) => s.SummaryModelId = v),
+        (ModelSlot.Fox, s => s.FoxModelId, (s, v) => s.FoxModelId = v)
     ];
 
     /// <summary>

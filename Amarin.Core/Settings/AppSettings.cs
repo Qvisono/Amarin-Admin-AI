@@ -412,6 +412,22 @@ public sealed class AppSettings
     };
 
     /// <summary>
+    /// Модель лисёнка Розы (1.35.0): реплики на переписку, разговор с ним и дневник.
+    /// </summary>
+    /// <remarks>
+    /// Заводская — лёгкая: Роза отвечает одной-двумя фразами, а зовут его часто. В отличие от
+    /// сводки пустое значение здесь ничего не переносит — слот новый, и старый файл просто
+    /// получает начальное значение свойства.
+    /// </remarks>
+    public string FoxModelId { get; set; } = FactoryLiteModelId;
+
+    /// <summary>Размышление Розы. Выключено: реплика в пару слов размышления не окупает.</summary>
+    public ReasoningSettings FoxReasoning { get; set; } = new() { DisableThinking = true };
+
+    /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
+    public FoxSettings Fox { get; set; } = new();
+
+    /// <summary>
     /// Через кого искать в интернете. <c>null</c> — там же, где идёт разговор.
     /// </summary>
     /// <remarks>

@@ -70,6 +70,9 @@ public sealed class AppSettingsStore
             changed |= MigrateSynGuardReasoning(settings);
             settings.SummaryReasoning ??= new ReasoningSettings();
             changed |= MigrateSummarySlot(settings);
+            settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
+            settings.Fox ??= new FoxSettings();
+            changed |= settings.Fox.Normalize();
 
             // После переноса сводки: та берёт модель быстрого агента, и заводскую 1.33 у обоих
             // слотов замена должна увидеть.

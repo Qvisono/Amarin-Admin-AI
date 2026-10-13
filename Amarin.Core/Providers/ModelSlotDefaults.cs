@@ -21,7 +21,7 @@ public static class ModelSlotDefaults
     private static readonly ModelSlot[] CheapSlots =
     [
         ModelSlot.Lite, ModelSlot.Router, ModelSlot.Title, ModelSlot.AgentFast,
-        ModelSlot.AgentLite, ModelSlot.SynGuard, ModelSlot.Summary
+        ModelSlot.AgentLite, ModelSlot.SynGuard, ModelSlot.Summary, ModelSlot.Fox
     ];
 
     /// <summary>Приметы дешёвой модели в идентификаторе — на случай, когда список не подошёл.</summary>

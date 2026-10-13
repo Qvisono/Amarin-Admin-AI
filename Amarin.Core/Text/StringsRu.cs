@@ -1767,6 +1767,7 @@ internal static class StringsRu
             ["S.Spend.Kind.Video"] = "Видео",
             ["S.Spend.Kind.WebSearch"] = "Поиск в интернете",
             ["S.Spend.Kind.WorkReport"] = "Отчёт о работе",
+            ["S.Spend.Kind.Fox"] = "Роза",
             ["S.Spend.Loading"] = "Считаю траты…",
             ["S.Spend.Models.Empty"] = "Разбивка появится, когда будут траты",
             ["S.Spend.Models.Title"] = "На что ушло",
