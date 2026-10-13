@@ -252,6 +252,7 @@ public sealed class PerfBenchTests : IDisposable
         results.AddRange(await ToggleSidebar(window));
         results.AddRange(await MaximizeAndRestore(window));
         results.AddRange(await OpenOverlays(window));
+        results.AddRange(await RosaOverBigChat(window));
 
         window.Close();
         await Settle(200);
@@ -697,6 +698,57 @@ public sealed class PerfBenchTests : IDisposable
     private const int SwpNoMove = 0x0002;
     private const int SwpNoZOrder = 0x0004;
     private const int SwpNoActivate = 0x0010;
+
+    /// <summary>
+    /// Лисёнок Роза (1.35.0) над чатом в 1200 сообщений: простой с сидящим Розой против простоя без
+    /// него (строка «idle CPU over 5 s, big chat» выше) и падение с высоты окна с отскоками —
+    /// самый тяжёлый для кадров случай: покадровая отрисовка, сжатие, частицы.
+    /// </summary>
+    private static async Task<List<(string Name, double Value, string Unit)>> RosaOverBigChat(MainWindow window)
+    {
+        var results = new List<(string Name, double Value, string Unit)>();
+        window.StartFox(inTests: true, delay: TimeSpan.FromMilliseconds(1));
+        var layer = (Canvas)window.FindName("FoxLayer")!;
+        var watch = Stopwatch.StartNew();
+        while (!layer.Children.OfType<Amarin.Fox.FoxSprite>().Any(sprite => sprite.IsVisible) && watch.Elapsed < TimeSpan.FromSeconds(10))
+        {
+            await Task.Delay(15);
+        }
+
+        results.Add(("rosa: arrived after start", watch.Elapsed.TotalMilliseconds, "ms"));
+
+        // Окно замера не активируется (не отнимает фокус у человека), а неактивное окно Розу
+        // усыпляет. Мерим живого — как в окне, на которое смотрят.
+        var host = window.Fox!;
+        var stage = (Amarin.Fox.FoxStage)host.GetType().GetField("_stage", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+        stage.SetPaused(false);
+        await Settle(4000);
+
+        var idle = new FrameGaps();
+        idle.CountOnly();
+        var before = UiCpuMs();
+        results.Add(("rosa: idle CPU over 5 s, big chat", await IdleCpu(), "ms"));
+        results.Add(("rosa: idle UI cpu over 5 s", UiCpuMs() - before, "ms"));
+        results.Add(("rosa: idle UI wakeups over 5 s", idle.Stop(), ""));
+
+        var frames = new FrameGaps();
+        frames.Start();
+        var cpu = UiCpuMs();
+        stage.BeginDrag(new Point(80, 40));
+        stage.Release();
+        watch.Restart();
+        while (stage.Mode == Amarin.Fox.FoxMode.Fly && watch.Elapsed < TimeSpan.FromSeconds(5))
+        {
+            await Task.Delay(15);
+        }
+
+        results.Add(("rosa: fall and bounces until seated", watch.Elapsed.TotalMilliseconds, "ms"));
+        results.Add(("rosa: fall UI cpu", UiCpuMs() - cpu, "ms"));
+        frames.Stop();
+        results.Add(("rosa: fall max frame gap", frames.MaxGap, "ms"));
+        window.StopFox();
+        return results;
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);

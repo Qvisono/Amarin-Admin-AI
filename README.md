@@ -84,6 +84,19 @@ export or delete them in one go; Shift+Del deletes the selection after asking. A
 or moved to another profile on the same computer. Pressing the mouse wheel in a long chat or list
 scrolls it by itself, faster the farther you move the mouse.
 
+And there is **Rosa**, a small pink pixel fox who sits on the edge of the message box. He follows
+the cursor, reads along (a smart face for code and science, trembling at a virus, comfort when you
+were scammed or feel sad), gets bored, sleepy and offended, and knows that your messages in the
+chat are for the assistant, not for him. Stroke his head to pet him, boop his nose, pick him up
+and throw him, play ball or chase a laser dot, or talk to him. Each profile has its own Rosa with
+its own friendship: pink eyes when he likes you, blue when he doesn't. Forget him for days and he
+sulks and demands attention; annoy him and he may press **New chat** or push the chat list, never
+while you type. Every day he writes a short diary entry about you. He has his own model slot and
+only two tools of his own, web search and running away, with no access to the program's tools.
+His model sees only the text you send, never attachments or answers, and that can be turned off.
+**Settings → Models → Rosa the fox** hides him, changes his size and shows your friendship and his
+diary.
+
 ---
 
 ## What it looks like
@@ -211,8 +224,9 @@ removed from crash reports, and is sent only to the provider it belongs to.
 
 Everything is stored in `%APPDATA%\Amarin Admin AI`: conversations (attachments are in a folder
 next to each chat), settings, drafts, recipes, scheduled tasks and tasks for later, interface
-translations, and your instructions (`instructions\*.md`, one file each). Tasks for later are not
-included in the data archive. The program has no cloud and no accounts.
+translations, your instructions (`instructions\*.md`, one file each) and Rosa's memory and diary
+(`fox\`). Tasks for later are not included in the data archive. The program has no cloud and no
+accounts.
 Several people can share one computer: each profile has its own chats and settings, and a profile
 can be locked with a password.
 
@@ -220,7 +234,9 @@ Conversations can be stored encrypted by Windows (**Settings → Security**), so
 account can read them. A profile with a password can lock itself after a few minutes of
 inactivity, or when you ask.
 
-All data can be exported to one archive and imported back, with an optional password. A single
+All data can be exported to one archive and imported back, with an optional password: chats,
+settings, spending for all time, recipes and scheduled tasks (they arrive turned off), Rosa's
+memory and diary, and the password of a profile that the import creates. A single
 chat can be saved as JSON or shared as a code you can send to someone. **Delete all data** erases
 the current profile and starts it fresh.
 
