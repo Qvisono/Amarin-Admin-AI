@@ -29,6 +29,8 @@
       забытый Include означал бы молча пропавшую позу.
     -->
     <EmbeddedResource Include="Sprites\*.fox" LogicalName="Amarin.Fox.Sprites.%(Filename)%(Extension)" />
+    <!-- Слова инстинкта: темы и приметы бреда (FoxInstinct). -->
+    <EmbeddedResource Include="Brain\Words\*.txt" LogicalName="Amarin.Fox.Words.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

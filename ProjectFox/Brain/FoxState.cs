@@ -39,8 +39,20 @@ public sealed class FoxState
     /// <summary>Когда окно с Розой последний раз было открыто: по нему он понимает, что «скучал».</summary>
     public DateTime? LastSeenAt { get; set; }
 
-    /// <summary>Когда его последний раз гладили или с ним играли: по нему растёт обида на забвение.</summary>
+    /// <summary>Когда его последний раз гладили или с ним играли.</summary>
     public DateTime? LastAttentionAt { get; set; }
+
+    /// <summary>
+    /// Сколько дней подряд программа была открыта, а Розу не гладили и с ним не играли. Дни, когда
+    /// программу не открывали вовсе, сюда не входят: тогда он не обижен, а «скучал».
+    /// </summary>
+    public int NeglectDays { get; set; }
+
+    /// <summary>Когда он последний раз требовал внимания: не чаще раза в несколько минут.</summary>
+    public DateTime? LastDemandAt { get; set; }
+
+    /// <summary>Когда последний раз шалил: шалостей не больше нескольких в час.</summary>
+    public DateTime? LastMischiefAt { get; set; }
 
     /// <summary>Сколько раз его гладили за всё время — ради отметки «сотое поглаживание».</summary>
     public int PetsTotal { get; set; }
@@ -112,6 +124,21 @@ public sealed class FoxDay
 
     /// <summary>Заметные события дня ключами (<c>scared-virus</c>, <c>praised</c>…), без повторов, не больше 16.</summary>
     public List<string> Events { get; set; } = [];
+
+    /// <summary>Сколько сообщений-бреда подряд: с третьего Роза фыркает, а не недоумевает.</summary>
+    public int NonsenseStreak { get; set; }
+
+    /// <summary>Отмечает событие дня один раз. <c>true</c> — его ещё не было.</summary>
+    public bool Note(string key)
+    {
+        if (Events.Contains(key) || Events.Count >= 16)
+        {
+            return false;
+        }
+
+        Events.Add(key);
+        return true;
+    }
 
     /// <summary>Был ли день вообще: открыто окно, хоть что-то случилось.</summary>
     public bool IsEmpty =>

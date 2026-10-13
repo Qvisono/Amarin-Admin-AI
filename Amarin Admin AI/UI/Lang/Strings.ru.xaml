@@ -2220,4 +2220,152 @@
     <system:String x:Key="S.Wipe.Title" xml:space="preserve">Удалить все данные профиля «{0}»?</system:String>
     <system:String x:Key="S.Wipe.Word" xml:space="preserve">УДАЛИТЬ</system:String>
 
+    <!-- Лисёнок Роза (1.35.0): фразы с вариантами и уровни дружбы. -->
+    <system:String x:Key="S.Fox.Say.FirstMeet.1" xml:space="preserve">Привет! Я Роза. Будем дружить?</system:String>
+    <system:String x:Key="S.Fox.Say.FirstMeet.2" xml:space="preserve">Ой, человек! Я Роза, а ты?</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Warm.1" xml:space="preserve">Привет-привет!</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Warm.2" xml:space="preserve">Ты пришёл! Я ждал.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Warm.3" xml:space="preserve">Ура, это ты!</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Warm.4" xml:space="preserve">Я соскучился чуть-чуть.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Cold.1" xml:space="preserve">Хмф.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Cold.2" xml:space="preserve">А, это ты.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Cold.3" xml:space="preserve">Не жди, что я обрадуюсь.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Sulk.1" xml:space="preserve">Я с тобой не разговариваю.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Sulk.2" xml:space="preserve">Вспомнил про меня?</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Sulk.3" xml:space="preserve">…</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Missed.1" xml:space="preserve">Где ты был?! Я так скучал!</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Missed.2" xml:space="preserve">Ты вернулся! Не уходи так надолго.</system:String>
+    <system:String x:Key="S.Fox.Say.Greet.Missed.3" xml:space="preserve">Я думал, ты меня забыл…</system:String>
+    <system:String x:Key="S.Fox.Say.Morning.1" xml:space="preserve">Доброе утро! Потянемся?</system:String>
+    <system:String x:Key="S.Fox.Say.Morning.2" xml:space="preserve">Утро! Я уже проснулся.</system:String>
+    <system:String x:Key="S.Fox.Say.Night.1" xml:space="preserve">Уже ночь. Спать пора…</system:String>
+    <system:String x:Key="S.Fox.Say.Night.2" xml:space="preserve">Ты ещё не спишь? Я зеваю.</system:String>
+    <system:String x:Key="S.Fox.Say.Back.Warm.1" xml:space="preserve">Ты вернулся!</system:String>
+    <system:String x:Key="S.Fox.Say.Back.Warm.2" xml:space="preserve">О, привет снова!</system:String>
+    <system:String x:Key="S.Fox.Say.Back.Cold.1" xml:space="preserve">Фыр.</system:String>
+    <system:String x:Key="S.Fox.Say.Back.Cold.2" xml:space="preserve">Ну и где ты был?</system:String>
+    <system:String x:Key="S.Fox.Say.Boop.1" xml:space="preserve">Бип!</system:String>
+    <system:String x:Key="S.Fox.Say.Boop.2" xml:space="preserve">Апчхи!</system:String>
+    <system:String x:Key="S.Fox.Say.Boop.3" xml:space="preserve">Это мой нос!</system:String>
+    <system:String x:Key="S.Fox.Say.BoopAngry.1" xml:space="preserve">Ну хватит уже!</system:String>
+    <system:String x:Key="S.Fox.Say.BoopAngry.2" xml:space="preserve">Ещё раз, и укушу.</system:String>
+    <system:String x:Key="S.Fox.Say.Bite.1" xml:space="preserve">Кусь!</system:String>
+    <system:String x:Key="S.Fox.Say.Bite.2" xml:space="preserve">Ам!</system:String>
+    <system:String x:Key="S.Fox.Say.Growl.1" xml:space="preserve">Ррр…</system:String>
+    <system:String x:Key="S.Fox.Say.Growl.2" xml:space="preserve">Не подходи.</system:String>
+    <system:String x:Key="S.Fox.Say.Pet.1" xml:space="preserve">Мур…</system:String>
+    <system:String x:Key="S.Fox.Say.Pet.2" xml:space="preserve">Ещё, пожалуйста.</system:String>
+    <system:String x:Key="S.Fox.Say.Pet.3" xml:space="preserve">Как хорошо…</system:String>
+    <system:String x:Key="S.Fox.Say.PetSulk.1" xml:space="preserve">Не трогай… ну ладно, чуть-чуть.</system:String>
+    <system:String x:Key="S.Fox.Say.PetSulk.2" xml:space="preserve">Я всё ещё обижен.</system:String>
+    <system:String x:Key="S.Fox.Say.MakeUp.1" xml:space="preserve">Ладно, мир.</system:String>
+    <system:String x:Key="S.Fox.Say.MakeUp.2" xml:space="preserve">Я больше не дуюсь.</system:String>
+    <system:String x:Key="S.Fox.Say.Tail.1" xml:space="preserve">Ай! Хвост!</system:String>
+    <system:String x:Key="S.Fox.Say.Tail.2" xml:space="preserve">За хвост нельзя!</system:String>
+    <system:String x:Key="S.Fox.Say.Ear.1" xml:space="preserve">Щекотно!</system:String>
+    <system:String x:Key="S.Fox.Say.Ear.2" xml:space="preserve">Ушки не трогать!</system:String>
+    <system:String x:Key="S.Fox.Say.HoldWarm.1" xml:space="preserve">Ой! Куда несёшь?</system:String>
+    <system:String x:Key="S.Fox.Say.HoldWarm.2" xml:space="preserve">Уиии, высоко!</system:String>
+    <system:String x:Key="S.Fox.Say.HoldCold.1" xml:space="preserve">Пусти!</system:String>
+    <system:String x:Key="S.Fox.Say.HoldCold.2" xml:space="preserve">Поставь где взял!</system:String>
+    <system:String x:Key="S.Fox.Say.ThrowWarm.1" xml:space="preserve">Ещё!</system:String>
+    <system:String x:Key="S.Fox.Say.ThrowWarm.2" xml:space="preserve">Уиии! Давай ещё раз!</system:String>
+    <system:String x:Key="S.Fox.Say.ThrowCold.1" xml:space="preserve">Грр! Не смей!</system:String>
+    <system:String x:Key="S.Fox.Say.ThrowCold.2" xml:space="preserve">Я тебе не мячик.</system:String>
+    <system:String x:Key="S.Fox.Say.Dizzy.1" xml:space="preserve">Всё кружится…</system:String>
+    <system:String x:Key="S.Fox.Say.Dizzy.2" xml:space="preserve">Где верх?..</system:String>
+    <system:String x:Key="S.Fox.Say.Treat.1" xml:space="preserve">Ням!</system:String>
+    <system:String x:Key="S.Fox.Say.Treat.2" xml:space="preserve">Вкусно! Спасибо!</system:String>
+    <system:String x:Key="S.Fox.Say.Treat.3" xml:space="preserve">Это мне? Ура!</system:String>
+    <system:String x:Key="S.Fox.Say.TreatFull.1" xml:space="preserve">Я сейчас лопну…</system:String>
+    <system:String x:Key="S.Fox.Say.TreatFull.2" xml:space="preserve">Больше не влезет.</system:String>
+    <system:String x:Key="S.Fox.Say.Play.1" xml:space="preserve">Играем!</system:String>
+    <system:String x:Key="S.Fox.Say.Play.2" xml:space="preserve">Поймаю!</system:String>
+    <system:String x:Key="S.Fox.Say.Science.1" xml:space="preserve">Ооо, наука!</system:String>
+    <system:String x:Key="S.Fox.Say.Science.2" xml:space="preserve">Так, сейчас подумаю…</system:String>
+    <system:String x:Key="S.Fox.Say.Science.3" xml:space="preserve">Умное что-то. Надену очки.</system:String>
+    <system:String x:Key="S.Fox.Say.Code.1" xml:space="preserve">Читаю код…</system:String>
+    <system:String x:Key="S.Fox.Say.Code.2" xml:space="preserve">Сколько скобочек!</system:String>
+    <system:String x:Key="S.Fox.Say.Virus.1" xml:space="preserve">Вирус?! Мне страшно…</system:String>
+    <system:String x:Key="S.Fox.Say.Virus.2" xml:space="preserve">Ой-ой, он нас не съест?</system:String>
+    <system:String x:Key="S.Fox.Say.Virus.3" xml:space="preserve">Я спрячусь, а ты проверь!</system:String>
+    <system:String x:Key="S.Fox.Say.VirusClear.1" xml:space="preserve">Фух, обошлось!</system:String>
+    <system:String x:Key="S.Fox.Say.VirusClear.2" xml:space="preserve">Можно вылезать?</system:String>
+    <system:String x:Key="S.Fox.Say.Scam.1" xml:space="preserve">Тебя обманули? Иди сюда.</system:String>
+    <system:String x:Key="S.Fox.Say.Scam.2" xml:space="preserve">Мне так жаль…</system:String>
+    <system:String x:Key="S.Fox.Say.Scam.3" xml:space="preserve">Плохие люди. Я с тобой.</system:String>
+    <system:String x:Key="S.Fox.Say.Sad.1" xml:space="preserve">Не грусти, я рядом.</system:String>
+    <system:String x:Key="S.Fox.Say.Sad.2" xml:space="preserve">Можно я тебя пожалею?</system:String>
+    <system:String x:Key="S.Fox.Say.Sad.3" xml:space="preserve">Давай посидим вместе.</system:String>
+    <system:String x:Key="S.Fox.Say.Happy.1" xml:space="preserve">Ура!</system:String>
+    <system:String x:Key="S.Fox.Say.Happy.2" xml:space="preserve">Получилось!</system:String>
+    <system:String x:Key="S.Fox.Say.Thanks.1" xml:space="preserve">Как вежливо!</system:String>
+    <system:String x:Key="S.Fox.Say.Thanks.2" xml:space="preserve">Ты такой милый.</system:String>
+    <system:String x:Key="S.Fox.Say.Rude.1" xml:space="preserve">Эй…</system:String>
+    <system:String x:Key="S.Fox.Say.Rude.2" xml:space="preserve">Ой, грубо.</system:String>
+    <system:String x:Key="S.Fox.Say.RudeToMe.1" xml:space="preserve">Я обиделся.</system:String>
+    <system:String x:Key="S.Fox.Say.RudeToMe.2" xml:space="preserve">Не говори так со мной.</system:String>
+    <system:String x:Key="S.Fox.Say.Praise.1" xml:space="preserve">Ой… спасибо.</system:String>
+    <system:String x:Key="S.Fox.Say.Praise.2" xml:space="preserve">Я покраснел.</system:String>
+    <system:String x:Key="S.Fox.Say.Nonsense.1" xml:space="preserve">Что?..</system:String>
+    <system:String x:Key="S.Fox.Say.Nonsense.2" xml:space="preserve">Это на каком языке?</system:String>
+    <system:String x:Key="S.Fox.Say.Nonsense.3" xml:space="preserve">Я ничего не понял.</system:String>
+    <system:String x:Key="S.Fox.Say.NonsenseMany.1" xml:space="preserve">Хмф, опять бред.</system:String>
+    <system:String x:Key="S.Fox.Say.NonsenseMany.2" xml:space="preserve">Ты по клавиатуре сел?</system:String>
+    <system:String x:Key="S.Fox.Say.WrongLayout.1" xml:space="preserve">Раскладку переключи!</system:String>
+    <system:String x:Key="S.Fox.Say.WrongLayout.2" xml:space="preserve">Кажется, не та раскладка.</system:String>
+    <system:String x:Key="S.Fox.Say.Long.1" xml:space="preserve">Ох, сколько…</system:String>
+    <system:String x:Key="S.Fox.Say.Long.2" xml:space="preserve">Целое письмо!</system:String>
+    <system:String x:Key="S.Fox.Say.Reading.1" xml:space="preserve">Читаю…</system:String>
+    <system:String x:Key="S.Fox.Say.Reading.2" xml:space="preserve">Интересно…</system:String>
+    <system:String x:Key="S.Fox.Say.Error.1" xml:space="preserve">Ой… не получилось.</system:String>
+    <system:String x:Key="S.Fox.Say.Error.2" xml:space="preserve">Бывает. Попробуем ещё?</system:String>
+    <system:String x:Key="S.Fox.Say.LongWait.1" xml:space="preserve">Долго думает…</system:String>
+    <system:String x:Key="S.Fox.Say.LongWait.2" xml:space="preserve">Я подожду. Зевну пока.</system:String>
+    <system:String x:Key="S.Fox.Say.Agent.1" xml:space="preserve">Агент что-то делает…</system:String>
+    <system:String x:Key="S.Fox.Say.Agent.2" xml:space="preserve">Смотрю, как он работает.</system:String>
+    <system:String x:Key="S.Fox.Say.Spend.1" xml:space="preserve">Ой, траты…</system:String>
+    <system:String x:Key="S.Fox.Say.Spend.2" xml:space="preserve">Денежки тают!</system:String>
+    <system:String x:Key="S.Fox.Say.Danger.1" xml:space="preserve">Это опасно? Подумай!</system:String>
+    <system:String x:Key="S.Fox.Say.Danger.2" xml:space="preserve">Мне тревожно…</system:String>
+    <system:String x:Key="S.Fox.Say.NewChat.1" xml:space="preserve">Новый чат? Интересно!</system:String>
+    <system:String x:Key="S.Fox.Say.NewChat.2" xml:space="preserve">Чистый лист.</system:String>
+    <system:String x:Key="S.Fox.Say.DeleteOne.1" xml:space="preserve">Пока-пока!</system:String>
+    <system:String x:Key="S.Fox.Say.DeleteOne.2" xml:space="preserve">Прощай, чатик.</system:String>
+    <system:String x:Key="S.Fox.Say.DeleteMany.1" xml:space="preserve">Ого, сколько удалил!</system:String>
+    <system:String x:Key="S.Fox.Say.DeleteMany.2" xml:space="preserve">Большая уборка?</system:String>
+    <system:String x:Key="S.Fox.Say.Theme.1" xml:space="preserve">Ооо, красиво!</system:String>
+    <system:String x:Key="S.Fox.Say.Theme.2" xml:space="preserve">Всё стало другим!</system:String>
+    <system:String x:Key="S.Fox.Say.Settings.1" xml:space="preserve">Что тут у нас?</system:String>
+    <system:String x:Key="S.Fox.Say.Settings.2" xml:space="preserve">Я посмотрю, можно?</system:String>
+    <system:String x:Key="S.Fox.Say.Keys.1" xml:space="preserve">Не смотрю, не смотрю!</system:String>
+    <system:String x:Key="S.Fox.Say.Keys.2" xml:space="preserve">Это секрет, я понял.</system:String>
+    <system:String x:Key="S.Fox.Say.Bored.1" xml:space="preserve">Скучно…</system:String>
+    <system:String x:Key="S.Fox.Say.Bored.2" xml:space="preserve">Поиграй со мной?</system:String>
+    <system:String x:Key="S.Fox.Say.Bored.3" xml:space="preserve">Я тут, если что.</system:String>
+    <system:String x:Key="S.Fox.Say.Attention.1" xml:space="preserve">Эй! Погладь меня!</system:String>
+    <system:String x:Key="S.Fox.Say.Attention.2" xml:space="preserve">Ты про меня забыл!</system:String>
+    <system:String x:Key="S.Fox.Say.Attention.3" xml:space="preserve">Ну посмотри на меня…</system:String>
+    <system:String x:Key="S.Fox.Say.Gift.1" xml:space="preserve">Это тебе.</system:String>
+    <system:String x:Key="S.Fox.Say.Gift.2" xml:space="preserve">Нашёл цветочек. Держи!</system:String>
+    <system:String x:Key="S.Fox.Say.Anniversary.1" xml:space="preserve">У нас годовщина! Праздник!</system:String>
+    <system:String x:Key="S.Fox.Say.Anniversary.2" xml:space="preserve">Год вместе! Ура!</system:String>
+    <system:String x:Key="S.Fox.Say.Pets100.1" xml:space="preserve">Сотое поглаживание! Я счастлив.</system:String>
+    <system:String x:Key="S.Fox.Say.Escape.1" xml:space="preserve">Всё, я ухожу!</system:String>
+    <system:String x:Key="S.Fox.Say.Escape.2" xml:space="preserve">Не ищи меня!</system:String>
+    <system:String x:Key="S.Fox.Say.Return.1" xml:space="preserve">Я вернулся… но я всё ещё обижен.</system:String>
+    <system:String x:Key="S.Fox.Say.Return.2" xml:space="preserve">Ладно, ты позвал.</system:String>
+    <system:String x:Key="S.Fox.Say.Hide.1" xml:space="preserve">Ладно, спрячусь.</system:String>
+    <system:String x:Key="S.Fox.Say.Hide.2" xml:space="preserve">До встречи!</system:String>
+    <system:String x:Key="S.Fox.Say.Mischief.1" xml:space="preserve">Хи-хи.</system:String>
+    <system:String x:Key="S.Fox.Say.Mischief.2" xml:space="preserve">Я ничего не делал!</system:String>
+    <system:String x:Key="S.Fox.Say.Mischief.3" xml:space="preserve">Упс.</system:String>
+    <system:String x:Key="S.Fox.Level.Hiss" xml:space="preserve">Шипит</system:String>
+    <system:String x:Key="S.Fox.Level.Prickly" xml:space="preserve">Колючий</system:String>
+    <system:String x:Key="S.Fox.Level.Wary" xml:space="preserve">Насторожен</system:String>
+    <system:String x:Key="S.Fox.Level.Acquaintance" xml:space="preserve">Знакомый</system:String>
+    <system:String x:Key="S.Fox.Level.Pal" xml:space="preserve">Приятель</system:String>
+    <system:String x:Key="S.Fox.Level.Friend" xml:space="preserve">Друг</system:String>
+    <system:String x:Key="S.Fox.Level.Best" xml:space="preserve">Лучший друг</system:String>
+
 </ResourceDictionary>
