@@ -28,6 +28,14 @@ internal sealed partial class FoxStage
     private double _vy;
     private double _squashLeft;
 
+    /// <summary>Самый сильный удар этого полёта и сколько раз уже отскочил.</summary>
+    private double _impact;
+    private int _bounces;
+
+    /// <summary>Быстрее этого (вниз, точек в мс) коснувшийся кромки отскакивает, а не садится.</summary>
+    private const double BounceSpeed = 0.45;
+    private const int MaxBounces = 3;
+
     private (double X, double Y) _jumpFrom;
     private (double X, double Y) _jumpTo;
     private double _jumpHeight;
@@ -259,7 +267,12 @@ internal sealed partial class FoxStage
         _mode = FoxMode.Fly;
         _vx = vx;
         _vy = vy;
-        _tilt.Angle = 0;
+        _impact = 0;
+        _bounces = 0;
+
+        // В полёте кренится вокруг середины, а не вокруг шкирки, за которую висел.
+        _tilt.CenterX = _sprite.Side / 2;
+        _tilt.CenterY = _sprite.Side / 2;
         Play("fly", "fly");
         if (!_host.Motion())
         {
@@ -275,8 +288,12 @@ internal sealed partial class FoxStage
     {
         var feetBefore = _y + Px(Ground(_anim));
         _vy += Gravity * ms;
+
+        // Воздух чуть гасит бег по горизонтали: без этого брошенный вбок скользил бы, как шайба.
+        _vx *= Math.Pow(0.9993, ms);
         _x += _vx * ms;
         _y += _vy * ms;
+        _tilt.Angle += (Math.Clamp(_vx * 22, -35, 35) - _tilt.Angle) * Math.Min(1, ms / 120);
         var right = _host.Width() - _sprite.Side;
         if (_x < 0 || _x > right)
         {
@@ -312,16 +329,37 @@ internal sealed partial class FoxStage
                 var edge = EdgeOf(spot);
                 if (edge.Contains(foot) && feetBefore <= edge.Y + Px(14) && feet >= edge.Y)
                 {
-                    Settle(spot, foot, speed);
+                    Touch(spot, edge.Y, foot, speed);
                     return;
                 }
             }
         }
 
-        if (feet >= _host.Floor())
+        var floor = _host.Floor();
+        if (feet >= floor)
         {
-            Settle("floor", foot, speed);
+            Touch("floor", floor, foot, speed);
         }
+    }
+
+    /// <summary>
+    /// Коснулся кромки: с размаху — отскакивает (каждый раз ниже), тихо — садится. Мозгу уходит
+    /// самый сильный удар полёта, а не последний мягкий: кружится голова от первого.
+    /// </summary>
+    private void Touch(string spot, double edgeY, double foot, double speed)
+    {
+        _impact = Math.Max(_impact, speed);
+        if (_vy > BounceSpeed && _bounces < MaxBounces && _host.Motion())
+        {
+            _bounces++;
+            _y = edgeY - Px(Ground(_anim));
+            _vy = -_vy * 0.32;
+            _vx *= 0.7;
+            Squash();
+            return;
+        }
+
+        Settle(spot, foot, _impact);
     }
 
     /// <summary>Сел после полёта: сказать мозгу, как сильно приложился.</summary>

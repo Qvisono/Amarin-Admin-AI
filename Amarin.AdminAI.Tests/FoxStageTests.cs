@@ -184,6 +184,99 @@ public sealed class FoxStageTests : IDisposable
         Assert.All(FoxMischief.Visual, kind => Assert.Equal((0, 0), calls[kind]));
     }
 
+    /// <summary>Отпущенный на ходу летит в ту сторону, куда его несла рука, а не падает отвесно.</summary>
+    [Fact]
+    public void Let_go_on_the_move_he_keeps_the_hand_speed()
+    {
+        var (fromX, flewTo, mode) = With((stage, _, _) =>
+        {
+            stage.BeginDrag(new Point(300, 150));
+            Thread.Sleep(15);
+            stage.Hold(new Point(330, 140));
+            Thread.Sleep(15);
+            stage.Hold(new Point(360, 130));
+            var start = stage.Corner.X;
+            stage.Release();
+            for (var i = 0; i < 10; i++)
+            {
+                stage.Advance(16);
+            }
+
+            return (start, stage.Corner.X, stage.Mode);
+        });
+
+        Assert.Equal(FoxMode.Fly, mode);
+        Assert.True(flewTo - fromX > 60, $"улетел только на {flewTo - fromX:0} точек");
+    }
+
+    [Fact]
+    public void The_release_speed_is_the_last_moment_of_the_hand_and_a_still_hand_gives_none()
+    {
+        var now = TimeSpan.FromSeconds(10);
+        (TimeSpan, double, double)[] moving = [(now - TimeSpan.FromMilliseconds(200), 0, 0), (now - TimeSpan.FromMilliseconds(60), 100, 0), (now - TimeSpan.FromMilliseconds(10), 150, -20)];
+        var (vx, vy) = FoxStage.ReleaseVelocity(moving, now, 160, -24);
+        Assert.InRange(vx, 0.9, 1.1);
+        Assert.InRange(vy, -0.5, -0.3);
+
+        (TimeSpan, double, double)[] still = [(now - TimeSpan.FromMilliseconds(400), 0, 0), (now - TimeSpan.FromMilliseconds(300), 50, 0)];
+        Assert.Equal((0d, 0d), FoxStage.ReleaseVelocity(still, now, 50, 0));
+    }
+
+    /// <summary>С высоты он отскакивает — каждый раз ниже, — и только потом садится.</summary>
+    [Fact]
+    public void A_fall_from_high_bounces_lower_each_time_before_he_sits()
+    {
+        var (bounced, mode, spot) = With((stage, _, _) =>
+        {
+            stage.BeginDrag(new Point(60, 20));
+            stage.Release();
+            var lowest = double.MinValue;
+            var rises = 0;
+            var previous = stage.Corner.Y;
+            for (var i = 0; i < 600 && stage.Mode == FoxMode.Fly; i++)
+            {
+                stage.Advance(16);
+                if (stage.Corner.Y < previous - 0.5 && previous >= lowest - 1)
+                {
+                    rises++;
+                }
+
+                lowest = Math.Max(lowest, stage.Corner.Y);
+                previous = stage.Corner.Y;
+            }
+
+            return (rises, stage.Mode, stage.Spot);
+        });
+
+        Assert.True(bounced > 0, "не отскочил ни разу");
+        Assert.Equal(FoxMode.Idle, mode);
+        Assert.Equal("floor", spot);
+    }
+
+    /// <summary>
+    /// Водить курсором туда-сюда по голове — гладить, даже если концы движения выходят за контур
+    /// рисунка: прежде уход курсора сбрасывал счёт, и погладить не удавалось вовсе.
+    /// </summary>
+    [Fact]
+    public void Stroking_his_head_back_and_forth_pets_him()
+    {
+        var pets = With((stage, host, store) =>
+        {
+            var corner = stage.Corner;
+            Point At(double cell) => new(stage.Side * cell / FoxSprites.FrameSize, stage.Side * 13.5 / FoxSprites.FrameSize);
+            foreach (var cell in (double[])[13, 15, 17, 19, 21, 19, 17, 15, 13, 15, 17, 19, 21, 19, 17])
+            {
+                host.Now = host.Now.AddMilliseconds(60);
+                var onSprite = At(cell);
+                _ = stage.Stroke(onSprite, new Point(corner.X + onSprite.X, corner.Y + onSprite.Y));
+            }
+
+            return store.Snapshot().Today.Pets;
+        }, motion: false);
+
+        Assert.Equal(1, pets);
+    }
+
     [Fact]
     public void Hidden_he_leaves_the_window_and_comes_back_on_time()
     {

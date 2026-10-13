@@ -50,6 +50,10 @@ public sealed class FoxMindTests : IDisposable
         Assert.False(request.InTurn, "запрос Розы ушёл внутри хода");
         Assert.False(request.Metered, "запрос Розы попал в счёт хода");
         Assert.Contains("спасибо, всё заработало", request.Body);
+
+        // «Спасибо» ассистенту — не Розе: это сказано и в правилах, и прямо над сообщением.
+        Assert.Contains("Сообщения человека ИИ-ассистенту в чате. Они не тебе", request.Body);
+        Assert.Contains("а не к тебе", request.Body);
         Assert.Contains("\"escape\"", request.Body);
         Assert.DoesNotContain("\"web_search\"", request.Body);
         Assert.Contains(VeniceSku.Fox, charged);
@@ -167,7 +171,10 @@ public sealed class FoxMindTests : IDisposable
         run.Mind.Ask("talk", "сколько весит Луна?");
         await run.Mind.IdleAsync();
 
-        Assert.DoesNotContain("\"web_search\"", Assert.Single(server.Requests).Body);
+        var body = Assert.Single(server.Requests).Body;
+        Assert.DoesNotContain("\"web_search\"", body);
+        Assert.Contains("Человек говорит тебе", body);
+        Assert.DoesNotContain("Они не тебе", body);
     }
 
     [Fact]

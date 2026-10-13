@@ -222,7 +222,7 @@ internal sealed class FoxMind : IDisposable
         List<ChatMessage> history =
         [
             new() { Role = "system", Content = ChatContent.Text(FoxPrompt.TalkSystem(language, state, search)) },
-            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.ReactUser([text])) }
+            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.TalkUser(text)) }
         ];
 
         List<ToolDefinition> tools = search ? [EscapeTool(), SearchTool()] : [EscapeTool()];

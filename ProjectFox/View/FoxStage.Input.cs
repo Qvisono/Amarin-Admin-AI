@@ -18,14 +18,26 @@ internal sealed partial class FoxStage
     /// <summary>Сколько сдвинуть мышь с зажатой кнопкой, чтобы взять на руки, а не щёлкнуть.</summary>
     private const double DragThreshold = 4;
 
-    /// <summary>Быстрее этого (точек в мс) отпущенный Роза летит брошенным, а не падает.</summary>
+    /// <summary>Быстрее этого (точек в мс) отпущенный Роза считается брошенным — мозгу это отдельный сигнал.</summary>
     private const double ThrowSpeed = 0.35;
+
+    /// <summary>Скорость броска считается по последним стольким миллисекундам пути: раньше — уже другое движение руки.</summary>
+    private static readonly TimeSpan ThrowWindow = TimeSpan.FromMilliseconds(80);
+
+    /// <summary>За сколько последних секунд считаются развороты поглаживания.</summary>
+    private static readonly TimeSpan StrokeWindow = TimeSpan.FromSeconds(1.5);
 
     private readonly List<DateTime> _boops = [];
     private readonly List<DateTime> _clicks = [];
     private readonly List<(TimeSpan At, double X, double Y)> _trail = [];
     private Point _press;
     private bool _pressed;
+
+    /// <summary>Нажали на голову: пока рука не увела курсор далеко, это почёсывание, а не перенос.</summary>
+    private bool _rubbing;
+
+    /// <summary>За это нажатие уже погладили — отпускание кнопки щелчком не считается.</summary>
+    private bool _rubbed;
     private bool _shaken;
     private int _reversals;
     private TimeSpan _firstReversal;
@@ -36,11 +48,10 @@ internal sealed partial class FoxStage
     private DateTime _lastHoverStart;
     private bool _hoverStartSaid;
     private bool _hoverLongSaid;
+    private readonly List<(DateTime At, double Path, bool Turn)> _strokes = [];
     private Point _strokeLast;
-    private double _strokePath;
-    private int _strokeTurns;
     private double _strokeDx;
-    private DateTime _strokeSince;
+    private double _strokeDy;
     private DateTime _lastPet;
 
     private void HookInput()
@@ -48,6 +59,8 @@ internal sealed partial class FoxStage
         _sprite.MouseLeftButtonDown += OnPress;
         _sprite.MouseMove += OnMove;
         _sprite.MouseLeftButtonUp += OnRelease;
+        // Мышь отняли посреди переноса (Alt+Tab, окно поверх) — падает, где висел. Своё отпускание
+        // кнопки сюда не доходит: OnRelease сперва бросает и только потом отдаёт мышь.
         _sprite.LostMouseCapture += (_, _) =>
         {
             if (_mode == FoxMode.Drag)
@@ -65,12 +78,9 @@ internal sealed partial class FoxStage
             _hoverLongSaid = false;
             ScheduleFrame();
         };
-        _sprite.MouseLeave += (_, _) =>
-        {
-            _hovering = false;
-            _strokePath = 0;
-            _strokeTurns = 0;
-        };
+        // Поглаживание уходом курсора не сбрасывается: концы движения по шерсти то и дело выходят за
+        // контур рисунка, и прежний сброс на каждом выходе не давал набрать ни одного поглаживания.
+        _sprite.MouseLeave += (_, _) => _hovering = false;
         _sprite.MouseRightButtonDown += (_, e) => e.Handled = true;
         _sprite.MouseRightButtonUp += (_, e) =>
         {
@@ -111,6 +121,9 @@ internal sealed partial class FoxStage
 
         _pressed = true;
         _press = e.GetPosition(_host.Layer);
+        _strokeLast = _press;
+        _rubbing = Region(e.GetPosition(_sprite)) is FoxRegion.Head or FoxRegion.Ear or FoxRegion.Chin;
+        _rubbed = false;
         _sprite.CaptureMouse();
     }
 
@@ -119,9 +132,16 @@ internal sealed partial class FoxStage
         var point = e.GetPosition(_host.Layer);
         if (_pressed && e.LeftButton == MouseButtonState.Pressed)
         {
-            if (_mode != FoxMode.Drag && (point - _press).Length > DragThreshold && _mode is not (FoxMode.Off or FoxMode.Fly))
+            // Нажали на голову — трут её: на руки берётся, только когда курсор увели от места
+            // нажатия дальше, чем трут. Нажали на спину или хвост — берут сразу.
+            var threshold = _rubbing ? Px(18) : DragThreshold;
+            if (_mode != FoxMode.Drag && (point - _press).Length > threshold && _mode is not (FoxMode.Off or FoxMode.Fly))
             {
                 BeginDrag(point);
+            }
+            else if (_rubbing && _mode != FoxMode.Drag)
+            {
+                _rubbed |= Stroke(e.GetPosition(_sprite), point);
             }
 
             if (_mode == FoxMode.Drag)
@@ -138,23 +158,27 @@ internal sealed partial class FoxStage
         }
     }
 
+    /// <remarks>
+    /// Сперва бросок, потом мышь: снятый раньше захват поднимал <c>LostMouseCapture</c>, тот видел
+    /// Розу ещё в руках и ронял его с нулевой скоростью — и отпущенный с размаху падал камнем.
+    /// </remarks>
     private void OnRelease(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
         var wasPressed = _pressed;
         _pressed = false;
+        var dragged = _mode == FoxMode.Drag;
+        if (dragged)
+        {
+            Release();
+        }
+
         if (_sprite.IsMouseCaptured)
         {
             _sprite.ReleaseMouseCapture();
         }
 
-        if (_mode == FoxMode.Drag)
-        {
-            Release();
-            return;
-        }
-
-        if (wasPressed)
+        if (!dragged && wasPressed && !_rubbed)
         {
             Click(e.GetPosition(_sprite));
         }
@@ -239,27 +263,51 @@ internal sealed partial class FoxStage
         _trail.RemoveAll(entry => _watch.Elapsed - entry.At > TimeSpan.FromMilliseconds(120));
     }
 
+    /// <summary>
+    /// Отпустили: летит с той скоростью, с какой его несла рука в последние <see cref="ThrowWindow"/>.
+    /// Медленно отпущенный тоже летит своей скоростью — просто тихо; «бросили» мозгу говорится,
+    /// только когда с размаху.
+    /// </summary>
     internal void Release()
     {
-        double vx = 0, vy = 0;
-        if (_trail.Count >= 2)
-        {
-            var (at, x, y) = _trail[0];
-            var span = Math.Max(1, (_watch.Elapsed - at).TotalMilliseconds);
-            vx = Math.Clamp((_x - x) / span, -3, 3);
-            vy = Math.Clamp((_y - y) / span, -3, 3);
-        }
-
+        var (vx, vy) = ReleaseVelocity(_trail, _watch.Elapsed, _x, _y);
+        Throw(vx, vy);
         var speed = Math.Sqrt((vx * vx) + (vy * vy));
         if (speed > ThrowSpeed)
         {
-            Throw(vx, vy);
             Signal(new FoxSignal(FoxSignalKind.Thrown, Value: speed));
         }
-        else
+    }
+
+    /// <summary>
+    /// Скорость руки в миг отпускания (точек в мс): от точки пути, что была <see cref="ThrowWindow"/>
+    /// назад, до нынешней. Рука, замершая перед отпусканием, даёт ноль — Роза просто падает.
+    /// </summary>
+    internal static (double Vx, double Vy) ReleaseVelocity(IReadOnlyList<(TimeSpan At, double X, double Y)> trail, TimeSpan now, double x, double y)
+    {
+        if (trail.Count < 2)
         {
-            Throw(0, 0);
+            return (0, 0);
         }
+
+        var from = trail[0];
+        foreach (var point in trail)
+        {
+            if (now - point.At <= ThrowWindow)
+            {
+                from = point;
+                break;
+            }
+        }
+
+        // Последняя точка пути старше окна — рука стоит.
+        if (now - trail[^1].At > ThrowWindow)
+        {
+            return (0, 0);
+        }
+
+        var span = Math.Max(8, (now - from.At).TotalMilliseconds);
+        return (Math.Clamp((x - from.X) / span, -3, 3), Math.Clamp((y - from.Y) / span, -3, 3));
     }
 
     /// <summary>Щелчок без переноса: по месту на рисунке, двойной и тройной — отдельно.</summary>
@@ -319,52 +367,55 @@ internal sealed partial class FoxStage
     }
 
     /// <summary>
-    /// Поглаживание — водить курсором туда-сюда по голове или спине, без кнопки. Два разворота на
-    /// сорока точках пути за полторы секунды — одно поглаживание; подбородок и ухо — почесать.
+    /// Поглаживание — водить курсором туда-сюда по голове или спине: без кнопки или с кнопкой,
+    /// нажатой на голове. Два разворота (по любой оси) и путь в треть кадра за последние полторы
+    /// секунды — одно поглаживание; подбородок и ухо — почесать. <c>true</c> — погладили.
     /// </summary>
-    private void Stroke(Point onSprite, Point onLayer)
+    internal bool Stroke(Point onSprite, Point onLayer)
     {
         if (_mode is not (FoxMode.Idle or FoxMode.Sleep or FoxMode.Peek))
         {
-            return;
+            return false;
         }
 
         var now = _clock();
-        if (now - _strokeSince > TimeSpan.FromSeconds(1.5))
-        {
-            _strokeSince = now;
-            _strokePath = 0;
-            _strokeTurns = 0;
-        }
-
         var delta = onLayer - _strokeLast;
         _strokeLast = onLayer;
-        if (delta.Length > 40)
+        if (delta.Length < 0.5 || delta.Length > Px(30))
         {
-            // Курсор только что вошёл: прыжок с прошлого места — не движение по шерсти.
-            return;
+            // Курсор не сдвинулся или только что вернулся издалека — это не движение по шерсти.
+            return false;
         }
 
-        _strokePath += delta.Length;
-        if (Math.Abs(delta.X) > 1.5)
+        var turn = false;
+        if (Math.Abs(delta.X) >= 1)
         {
-            if (_strokeDx != 0 && Math.Sign(delta.X) != Math.Sign(_strokeDx))
-            {
-                _strokeTurns++;
-            }
-
+            turn |= _strokeDx != 0 && Math.Sign(delta.X) != Math.Sign(_strokeDx);
             _strokeDx = delta.X;
         }
 
-        var region = Region(onSprite);
-        if (_strokeTurns >= 2 && _strokePath >= 40 && now - _lastPet > TimeSpan.FromSeconds(1.5) &&
-            region is FoxRegion.Head or FoxRegion.Back or FoxRegion.Chin or FoxRegion.Ear)
+        if (Math.Abs(delta.Y) >= 1)
         {
-            _lastPet = now;
-            _strokePath = 0;
-            _strokeTurns = 0;
-            Signal(region is FoxRegion.Chin or FoxRegion.Ear ? FoxSignalKind.Scratch : FoxSignalKind.Pet);
+            turn |= _strokeDy != 0 && Math.Sign(delta.Y) != Math.Sign(_strokeDy);
+            _strokeDy = delta.Y;
         }
+
+        _strokes.Add((now, delta.Length, turn));
+        _strokes.RemoveAll(stroke => now - stroke.At > StrokeWindow);
+
+        var region = Region(onSprite);
+        if (region is not (FoxRegion.Head or FoxRegion.Back or FoxRegion.Chin or FoxRegion.Ear) ||
+            _strokes.Count(stroke => stroke.Turn) < 2 ||
+            _strokes.Sum(stroke => stroke.Path) < Px(16) ||
+            now - _lastPet < TimeSpan.FromSeconds(1.2))
+        {
+            return false;
+        }
+
+        _lastPet = now;
+        _strokes.Clear();
+        Signal(region is FoxRegion.Chin or FoxRegion.Ear ? FoxSignalKind.Scratch : FoxSignalKind.Pet);
+        return true;
     }
 
     /// <summary>Наведение: тёплый виляет хвостом, холодный рычит, а задержишь курсор — кусает.</summary>
