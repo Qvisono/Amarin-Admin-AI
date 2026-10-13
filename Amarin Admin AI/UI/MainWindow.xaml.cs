@@ -1207,6 +1207,11 @@ namespace Amarin.UI
                 return settings.SummaryReasoning ??= new ReasoningSettings();
             }
 
+            if (ReferenceEquals(sender, models?.FoxReasoningPicker))
+            {
+                return settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
+            }
+
             return null;
         }
 
@@ -1601,7 +1606,8 @@ namespace Amarin.UI
                     (ModelSlot.AgentFast, models.AgentFastModelPicker, models.AgentFastReasoningPicker),
                     (ModelSlot.AgentLite, models.AgentLiteModelPicker, models.AgentLiteReasoningPicker),
                     (ModelSlot.AgentHeavy, models.AgentHeavyModelPicker, models.AgentHeavyReasoningPicker),
-                    (ModelSlot.Summary, models.SummaryModelPicker, models.SummaryReasoningPicker)
+                    (ModelSlot.Summary, models.SummaryModelPicker, models.SummaryReasoningPicker),
+                    (ModelSlot.Fox, models.FoxModelPicker, models.FoxReasoningPicker)
                 ]);
             }
 
@@ -3268,6 +3274,7 @@ namespace Amarin.UI
                 BindSlot(models.AgentLiteReasoningPicker, settings.AgentLiteModelId, settings.AgentLiteReasoning);
                 BindSlot(models.AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
                 BindSlot(models.SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
+                BindSlot(models.FoxReasoningPicker, settings.FoxModelId, settings.FoxReasoning);
             }
 
             if (BuiltPage<SettingsSecurityPage>() is { } security)

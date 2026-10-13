@@ -177,6 +177,61 @@ public sealed class FoxWindowTests : IDisposable
         Assert.True(closed);
     }
 
+    /// <summary>Подстраница «Лисёнок Роза» отражает его настройки и пишет их; выключили — уходит из окна.</summary>
+    [Fact]
+    public void The_rosa_subpage_writes_his_settings_and_turning_him_off_removes_him()
+    {
+        var (loaded, size, mischief, fox, children) = With(window =>
+        {
+            Arrive(window);
+            var services = Services(window);
+            var block = (FoxSettingsBlock)window.FindSetting("FoxSettings");
+            var loadedShow = block.ShowToggle.IsChecked == true;
+            block.SizeLarge.IsChecked = true;
+            block.MischiefToggle.IsChecked = false;
+            block.ShowToggle.IsChecked = false;
+            var saved = services.SettingsStore.Load().Fox;
+            return (loadedShow, saved.Size, saved.Mischief, window.Fox, Layer(window).Children.Count);
+        });
+
+        Assert.True(loaded);
+        Assert.Equal(FoxSettings.LargeSize, size);
+        Assert.False(mischief);
+        Assert.Null(fox);
+        Assert.Equal(0, children);
+    }
+
+    /// <summary>Дружба и дневник видны и у выключенного Розы — из его файлов; «Начать заново» дневник не трогает.</summary>
+    [Fact]
+    public void Friendship_and_diary_read_his_files_and_a_reset_keeps_the_diary()
+    {
+        var (friendship, diary, affection, entries) = With(window =>
+        {
+            var services = Services(window);
+            using (var store = new FoxStore(services.Profile.DataRoot, () => false))
+            {
+                store.Update(state =>
+                {
+                    state.MetAt = new DateTime(2026, 9, 1);
+                    state.Affection = 90;
+                });
+                store.Write(new FoxDiaryEntry { Date = "2026-10-11", Text = "старая запись", Annoyed = 1, Pleased = 5 });
+                store.Write(new FoxDiaryEntry { Date = "2026-10-12", Text = "свежая запись", Annoyed = 0, Pleased = 9 });
+            }
+
+            var friendshipText = Texts(FoxPanels.Friendship(window, services));
+            var diaryText = Texts(FoxPanels.Diary(window, services));
+            FoxPanels.ResetOnDisk(services);
+            using var after = new FoxStore(services.Profile.DataRoot, () => false);
+            return (friendshipText, diaryText, after.Snapshot().Affection, after.Diary().Count);
+        });
+
+        Assert.Contains(Loc.Get("S.Fox.Level.Best"), friendship);
+        Assert.True(diary.IndexOf("свежая запись", StringComparison.Ordinal) < diary.IndexOf("старая запись", StringComparison.Ordinal));
+        Assert.Equal(FoxState.StartAffection, affection);
+        Assert.Equal(2, entries);
+    }
+
     [Fact]
     public void Stopping_rosa_empties_and_collapses_the_layer()
     {
@@ -222,8 +277,10 @@ public sealed class FoxWindowTests : IDisposable
                      .Where(path => !path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) &&
                                     !path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)))
         {
+            // Переходник и окна дружбы и дневника грузятся только по делу — когда Роза пришёл или
+            // человек открыл одно из окон.
             var name = Path.GetFileName(file);
-            if (name == "MainWindow.FoxHost.cs")
+            if (name is "MainWindow.FoxHost.cs" or "FoxPanels.cs")
             {
                 continue;
             }
@@ -251,6 +308,30 @@ public sealed class FoxWindowTests : IDisposable
     }
 
     private static Canvas Layer(MainWindow window) => (Canvas)window.FindName("FoxLayer")!;
+
+    private static AppServices Services(MainWindow window) =>
+        (AppServices)typeof(MainWindow).GetField("_services", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+
+    /// <summary>Весь текст элемента подряд — сверять, что показано.</summary>
+    private static string Texts(DependencyObject root)
+    {
+        var text = new System.Text.StringBuilder();
+        void Walk(DependencyObject node)
+        {
+            if (node is TextBlock block)
+            {
+                text.AppendLine(block.Text);
+            }
+
+            foreach (var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())
+            {
+                Walk(child);
+            }
+        }
+
+        Walk(root);
+        return text.ToString();
+    }
 
     private static bool IsWithin(DependencyObject? hit, DependencyObject target)
     {

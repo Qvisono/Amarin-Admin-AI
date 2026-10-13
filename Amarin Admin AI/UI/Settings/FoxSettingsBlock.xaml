@@ -1,0 +1,151 @@
+<UserControl x:Class="Amarin.UI.FoxSettingsBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Amarin.UI">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <local:SharedDictionary Path="UI/SettingsPageStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        Подстраница «Лисёнок Роза» на «Моделях» (1.35.0): показ, размер, шалости, что уходит его
+        модели, поиск; ниже — дружба: «Наша дружба», дневник, позвать, начать заново. Модель и
+        размышление Розы — строкой слота на самой странице, рядом с остальными служебными.
+    -->
+    <StackPanel>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Show}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.ShowDesc}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="ShowToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                              AutomationProperties.Name="{DynamicResource S.FoxSettings.Show}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Size}"
+                               VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <RadioButton x:Name="SizeSmall" Style="{StaticResource SettingsSegment}" GroupName="FoxSize"
+                                     Content="{DynamicResource S.FoxSettings.SizeSmall}" Checked="Size_Checked"/>
+                        <RadioButton x:Name="SizeLarge" Style="{StaticResource SettingsSegment}" GroupName="FoxSize"
+                                     Content="{DynamicResource S.FoxSettings.SizeLarge}" Checked="Size_Checked"/>
+                    </StackPanel>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Mischief}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.MischiefDesc}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="MischiefToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                              AutomationProperties.Name="{DynamicResource S.FoxSettings.Mischief}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.ReadChat}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.ReadChatDesc}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="ReadChatToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                              AutomationProperties.Name="{DynamicResource S.FoxSettings.ReadChat}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Search}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.SearchDesc}"/>
+                    </StackPanel>
+                    <CheckBox x:Name="SearchToggle" Grid.Column="1" Style="{StaticResource SettingsToggle}"
+                              AutomationProperties.Name="{DynamicResource S.FoxSettings.Search}"
+                              Checked="Toggle_Changed" Unchecked="Toggle_Changed"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.FoxSettings.Friendship}"/>
+        <Border Style="{StaticResource SettingsGroup}">
+            <StackPanel>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Ours}"
+                               VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Button x:Name="FriendshipButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.FoxSettings.Open}" Click="FriendshipButton_Click"
+                            AutomationProperties.Name="{DynamicResource S.FoxSettings.Ours}"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Diary}"
+                               VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <Button x:Name="DiaryButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.FoxSettings.Open}" Click="DiaryButton_Click"
+                            AutomationProperties.Name="{DynamicResource S.FoxSettings.Diary}"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Call}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.CallDesc}"/>
+                    </StackPanel>
+                    <Button x:Name="CallButton" Grid.Column="1" Style="{StaticResource SecondaryButton}"
+                            Content="{DynamicResource S.FoxSettings.CallButton}" Click="CallButton_Click"
+                            AutomationProperties.Name="{DynamicResource S.FoxSettings.Call}"/>
+                </Grid>
+                <Border Style="{StaticResource GroupDivider}"/>
+                <Grid Style="{StaticResource GroupRow}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Reset}"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.FoxSettings.ResetDesc}"/>
+                    </StackPanel>
+                    <Button x:Name="ResetButton" Grid.Column="1" Style="{StaticResource DangerButton}"
+                            Content="{DynamicResource S.FoxSettings.ResetButton}" Click="ResetButton_Click"
+                            AutomationProperties.Name="{DynamicResource S.FoxSettings.Reset}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

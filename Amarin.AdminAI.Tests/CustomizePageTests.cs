@@ -242,8 +242,12 @@ public sealed class CustomizePageTests
     /// От прокрутки, а не от родителя поля: поля лежат внутри карточек, и их прямой родитель —
     /// уже не страница.
     /// </remarks>
-    private static Panel Page(MainWindow window, string scroll) =>
-        (Panel)((ScrollViewer)window.FindSetting(scroll)!).Content;
+    private static Panel Page(MainWindow window, string scroll)
+    {
+        // Страница с подстраницами — хост SettingsDrill: её строки лежат в первом ребёнке, корне.
+        var content = (Panel)((ScrollViewer)window.FindSetting(scroll)!).Content;
+        return SettingsDrill.GetIsHost(content) ? (Panel)content.Children[0] : content;
+    }
 
     /// <summary>Номер строки страницы, в которой лежит элемент; −1 — элемента на странице нет.</summary>
     private static int IndexOf(Panel page, UIElement element)

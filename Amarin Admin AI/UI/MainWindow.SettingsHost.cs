@@ -287,6 +287,10 @@ namespace Amarin.UI
                     models.AgentFastReasoningPicker.SetUsesTools(true);
                     models.AgentLiteReasoningPicker.SetUsesTools(true);
                     models.AgentHeavyReasoningPicker.SetUsesTools(true);
+
+                    // У Розы два своих инструмента — побег и поиск.
+                    models.FoxReasoningPicker.SetUsesTools(true);
+                    models.FoxSettings.Changed += RefreshFoxLink;
                     break;
                 case SettingsPromptsPage prompts:
                     Wire(prompts);
@@ -469,13 +473,15 @@ namespace Amarin.UI
                     case SettingsProfilePage:
                         LoadAccountUi();
                         break;
-                    case SettingsModelsPage:
+                    case SettingsModelsPage models:
                         // Ключи до выбора моделей: без них правый столбец плашки пуст, а в подписи
                         // поля вместо имени ключа осталась бы пустота.
                         PushKeysToPickers();
                         ApplyCachedCatalogs();
                         ShowSettingsModelSelections();
                         BindSettingsReasoningPickers();
+                        models.FoxSettings.Load(this, _services);
+                        RefreshFoxLink();
                         break;
                     case SettingsPromptsPage prompts:
                         prompts.MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -639,7 +645,8 @@ namespace Amarin.UI
                          (p.AgentLiteModelPicker, p.AgentLiteReasoningPicker),
                          (p.AgentHeavyModelPicker, p.AgentHeavyReasoningPicker),
                          (p.TitleModelPicker, p.TitleReasoningPicker),
-                         (p.SummaryModelPicker, p.SummaryReasoningPicker)
+                         (p.SummaryModelPicker, p.SummaryReasoningPicker),
+                         (p.FoxModelPicker, p.FoxReasoningPicker)
                      })
             {
                 WireSlot(picker, reasoning);

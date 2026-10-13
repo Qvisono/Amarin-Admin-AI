@@ -2401,5 +2401,44 @@
     <system:String x:Key="S.Fox.Topic.praise" xml:space="preserve">praise for me</system:String>
     <system:String x:Key="S.Fox.Topic.nonsense" xml:space="preserve">gibberish</system:String>
     <system:String x:Key="S.Fox.Topic.long" xml:space="preserve">long texts</system:String>
+    <system:String x:Key="S.Fox.Menu.Settings" xml:space="preserve">Rosa settings</system:String>
+    <system:String x:Key="S.FoxSettings.Title" xml:space="preserve">Rosa the fox</system:String>
+    <system:String x:Key="S.FoxSettings.Model" xml:space="preserve">Rosa</system:String>
+    <system:String x:Key="S.FoxSettings.On" xml:space="preserve">On</system:String>
+    <system:String x:Key="S.FoxSettings.Off" xml:space="preserve">Off</system:String>
+    <system:String x:Key="S.FoxSettings.Show" xml:space="preserve">Show Rosa</system:String>
+    <system:String x:Key="S.FoxSettings.ShowDesc" xml:space="preserve">Lives on the edge of the message box and reacts to what you do</system:String>
+    <system:String x:Key="S.FoxSettings.Size" xml:space="preserve">Size</system:String>
+    <system:String x:Key="S.FoxSettings.SizeSmall" xml:space="preserve">Small</system:String>
+    <system:String x:Key="S.FoxSettings.SizeLarge" xml:space="preserve">Large</system:String>
+    <system:String x:Key="S.FoxSettings.Mischief" xml:space="preserve">Mischief</system:String>
+    <system:String x:Key="S.FoxSettings.MischiefDesc" xml:space="preserve">May poke New chat or nudge the chat list while you are not typing</system:String>
+    <system:String x:Key="S.FoxSettings.ReadChat" xml:space="preserve">Read messages with his own model</system:String>
+    <system:String x:Key="S.FoxSettings.ReadChatDesc" xml:space="preserve">Only your text is sent, without attachments or replies. Off: he reacts to keywords</system:String>
+    <system:String x:Key="S.FoxSettings.Search" xml:space="preserve">Web search in conversation</system:String>
+    <system:String x:Key="S.FoxSettings.SearchDesc" xml:space="preserve">No more than five searches a day</system:String>
+    <system:String x:Key="S.FoxSettings.Friendship" xml:space="preserve">Friendship</system:String>
+    <system:String x:Key="S.FoxSettings.Ours" xml:space="preserve">Our friendship</system:String>
+    <system:String x:Key="S.FoxSettings.Diary" xml:space="preserve">Rosa's diary</system:String>
+    <system:String x:Key="S.FoxSettings.Open" xml:space="preserve">Open</system:String>
+    <system:String x:Key="S.FoxSettings.Call" xml:space="preserve">Call Rosa</system:String>
+    <system:String x:Key="S.FoxSettings.CallDesc" xml:space="preserve">If he is hiding or ran away</system:String>
+    <system:String x:Key="S.FoxSettings.CallButton" xml:space="preserve">Call</system:String>
+    <system:String x:Key="S.FoxSettings.Reset" xml:space="preserve">Start the friendship over</system:String>
+    <system:String x:Key="S.FoxSettings.ResetDesc" xml:space="preserve">Rosa forgets everything except the diary</system:String>
+    <system:String x:Key="S.FoxSettings.ResetButton" xml:space="preserve">Start over</system:String>
+    <system:String x:Key="S.FoxSettings.ResetTitle" xml:space="preserve">Start the friendship over?</system:String>
+    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Affection, grudges and milestones will reset. The diary stays.</system:String>
+    <system:String x:Key="S.FoxSettings.NotMet" xml:space="preserve">You have not met yet.</system:String>
+    <system:String x:Key="S.FoxSettings.Level" xml:space="preserve">Level: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Affection" xml:space="preserve">Affection: {0} of 100</system:String>
+    <system:String x:Key="S.FoxSettings.EyesWarm" xml:space="preserve">Pink eyes: he feels warm toward you.</system:String>
+    <system:String x:Key="S.FoxSettings.EyesCold" xml:space="preserve">Blue eyes: he is cold toward you.</system:String>
+    <system:String x:Key="S.FoxSettings.Sulking" xml:space="preserve">Sulking right now.</system:String>
+    <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Days together: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Friends since {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Today: pets {0}, games {1}, treats {2}, nose boops {3}</system:String>
+    <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">No entries yet: the diary is written the next day.</system:String>
+    <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Annoyed: {0} of 10 · pleased: {1} of 10</system:String>
 
 </ResourceDictionary>

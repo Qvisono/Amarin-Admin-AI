@@ -364,13 +364,13 @@ internal sealed partial class FoxStage
         }
     }
 
-    /// <summary>Достаёт спрятанного раньше срока — из меню или настроек Розы.</summary>
+    /// <summary>Зовёт спрятанного или убежавшего раньше срока — из настроек Розы.</summary>
     public void Unhide()
     {
         _store.Update(state => state.HiddenUntil = null);
-        if (_mode == FoxMode.Hidden)
+        if (_mode is FoxMode.Hidden or FoxMode.Away)
         {
-            Arrive(greet: true);
+            Arrive(greet: _mode == FoxMode.Hidden);
         }
     }
 

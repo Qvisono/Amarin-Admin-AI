@@ -59,7 +59,8 @@ public sealed class SettingsInventoryTests
             "RouterModelPicker", "RouterReasoningPicker",
             "AgentFastModelPicker", "AgentFastReasoningPicker", "AgentLiteModelPicker", "AgentLiteReasoningPicker",
             "AgentHeavyModelPicker", "AgentHeavyReasoningPicker",
-            "TitleModelPicker", "TitleReasoningPicker", "SummaryModelPicker", "SummaryReasoningPicker", "WebSearchField"
+            "TitleModelPicker", "TitleReasoningPicker", "SummaryModelPicker", "SummaryReasoningPicker",
+            "FoxModelPicker", "FoxReasoningPicker", "WebSearchField", "FoxLinkRow", "FoxSettings"
         ]),
         ("NavPrompts",
         [

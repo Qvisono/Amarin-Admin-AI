@@ -2401,5 +2401,44 @@
     <system:String x:Key="S.Fox.Topic.praise" xml:space="preserve">похвала мне</system:String>
     <system:String x:Key="S.Fox.Topic.nonsense" xml:space="preserve">абракадабра</system:String>
     <system:String x:Key="S.Fox.Topic.long" xml:space="preserve">длинные тексты</system:String>
+    <system:String x:Key="S.Fox.Menu.Settings" xml:space="preserve">Настройки Розы</system:String>
+    <system:String x:Key="S.FoxSettings.Title" xml:space="preserve">Лисёнок Роза</system:String>
+    <system:String x:Key="S.FoxSettings.Model" xml:space="preserve">Роза</system:String>
+    <system:String x:Key="S.FoxSettings.On" xml:space="preserve">Включён</system:String>
+    <system:String x:Key="S.FoxSettings.Off" xml:space="preserve">Выключен</system:String>
+    <system:String x:Key="S.FoxSettings.Show" xml:space="preserve">Показывать Розу</system:String>
+    <system:String x:Key="S.FoxSettings.ShowDesc" xml:space="preserve">Живёт на кромке поля ввода и отзывается на то, что вы делаете</system:String>
+    <system:String x:Key="S.FoxSettings.Size" xml:space="preserve">Размер</system:String>
+    <system:String x:Key="S.FoxSettings.SizeSmall" xml:space="preserve">Маленький</system:String>
+    <system:String x:Key="S.FoxSettings.SizeLarge" xml:space="preserve">Крупный</system:String>
+    <system:String x:Key="S.FoxSettings.Mischief" xml:space="preserve">Шалости</system:String>
+    <system:String x:Key="S.FoxSettings.MischiefDesc" xml:space="preserve">Может ткнуть «Новый чат» или толкнуть список чатов, пока вы не печатаете</system:String>
+    <system:String x:Key="S.FoxSettings.ReadChat" xml:space="preserve">Читать сообщения своей моделью</system:String>
+    <system:String x:Key="S.FoxSettings.ReadChatDesc" xml:space="preserve">Уходит только ваш текст, без вложений и ответов. Выключено: отзывается по словам</system:String>
+    <system:String x:Key="S.FoxSettings.Search" xml:space="preserve">Поиск в сети в разговоре</system:String>
+    <system:String x:Key="S.FoxSettings.SearchDesc" xml:space="preserve">Не больше пяти поисков в день</system:String>
+    <system:String x:Key="S.FoxSettings.Friendship" xml:space="preserve">Дружба</system:String>
+    <system:String x:Key="S.FoxSettings.Ours" xml:space="preserve">Наша дружба</system:String>
+    <system:String x:Key="S.FoxSettings.Diary" xml:space="preserve">Дневник Розы</system:String>
+    <system:String x:Key="S.FoxSettings.Open" xml:space="preserve">Открыть</system:String>
+    <system:String x:Key="S.FoxSettings.Call" xml:space="preserve">Позвать Розу</system:String>
+    <system:String x:Key="S.FoxSettings.CallDesc" xml:space="preserve">Если спрятался или убежал</system:String>
+    <system:String x:Key="S.FoxSettings.CallButton" xml:space="preserve">Позвать</system:String>
+    <system:String x:Key="S.FoxSettings.Reset" xml:space="preserve">Начать дружбу заново</system:String>
+    <system:String x:Key="S.FoxSettings.ResetDesc" xml:space="preserve">Роза забудет всё, кроме дневника</system:String>
+    <system:String x:Key="S.FoxSettings.ResetButton" xml:space="preserve">Начать заново</system:String>
+    <system:String x:Key="S.FoxSettings.ResetTitle" xml:space="preserve">Начать дружбу заново?</system:String>
+    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Привязанность, обиды и памятные даты сбросятся. Дневник останется.</system:String>
+    <system:String x:Key="S.FoxSettings.NotMet" xml:space="preserve">Вы ещё не познакомились.</system:String>
+    <system:String x:Key="S.FoxSettings.Level" xml:space="preserve">Уровень: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Affection" xml:space="preserve">Привязанность: {0} из 100</system:String>
+    <system:String x:Key="S.FoxSettings.EyesWarm" xml:space="preserve">Глаза розовые: он к вам тепло.</system:String>
+    <system:String x:Key="S.FoxSettings.EyesCold" xml:space="preserve">Глаза синие: он к вам холоден.</system:String>
+    <system:String x:Key="S.FoxSettings.Sulking" xml:space="preserve">Сейчас дуется.</system:String>
+    <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Дней вместе: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Знакомы с {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Сегодня: поглаживаний {0}, игр {1}, вкусняшек {2}, тыков в нос {3}</system:String>
+    <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">Пока ни одной записи: дневник пишется на следующий день.</system:String>
+    <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Бесили: {0} из 10 · радовали: {1} из 10</system:String>
 
 </ResourceDictionary>

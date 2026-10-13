@@ -21,6 +21,7 @@
         страницей: три больших редактора стояли под десятью строками моделей.
     -->
     <ScrollViewer x:Name="ModelsPageScroll" VerticalScrollBarVisibility="Auto" local:UiMotion.FadeOnShow="True">
+        <Grid local:SettingsDrill.IsHost="True">
         <StackPanel Margin="20,14,20,16">
             <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Settings.Models.Title}"/>
 
@@ -137,6 +138,19 @@
                         <local:ModelPickerField x:Name="SummaryModelPicker" Grid.Column="2"/>
                     </Grid>
                     <Border Style="{StaticResource GroupDivider}"/>
+                    <!-- Своя модель лисёнка Розы (1.35.0): реакции, разговор, дневник. -->
+                    <Grid Style="{StaticResource GroupRowDense}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Model}" TextWrapping="Wrap" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <local:ReasoningPicker x:Name="FoxReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                               Margin="8,0" VerticalAlignment="Center"/>
+                        <local:ModelPickerField x:Name="FoxModelPicker" Grid.Column="2"/>
+                    </Grid>
+                    <Border Style="{StaticResource GroupDivider}"/>
                     <!-- Поиск в интернете — настройка инструмента, а не модели:
                          человек выбирает, через кого искать и чьим ключом платить,
                          а модель под них программа подбирает сама. -->
@@ -154,6 +168,21 @@
                     </Grid>
                 </StackPanel>
             </Border>
+
+            <!-- Лисёнок Роза: всё, кроме модели, — своей подстраницей. -->
+            <Border Style="{StaticResource SettingsGroup}">
+                <Button x:Name="FoxLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                        local:SettingsDrill.Opens="{Binding ElementName=ModelsFoxSub}"
+                        AutomationProperties.Name="{DynamicResource S.FoxSettings.Title}">
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.FoxSettings.Title}"/>
+                </Button>
+            </Border>
         </StackPanel>
+
+        <StackPanel x:Name="ModelsFoxSub" Margin="20,14,20,16" Visibility="Collapsed">
+            <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.FoxSettings.Title}"/>
+            <local:FoxSettingsBlock x:Name="FoxSettings"/>
+        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

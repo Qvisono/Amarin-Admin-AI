@@ -294,8 +294,12 @@ namespace Amarin.UI
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Laser"), stage.PlayLaser));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Talk"), stage.OpenTalk));
                 menu.Items.Add(AppMenu.Divider(_window));
+                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.FoxSettings.Ours"), () => Detached.Run(_window.ShowFoxFriendshipAsync(), "fox_friendship")));
+                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.FoxSettings.Diary"), () => Detached.Run(_window.ShowFoxDiaryAsync(), "fox_diary")));
+                menu.Items.Add(AppMenu.Divider(_window));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideHour"), () => stage.HideFor(1)));
                 menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideDay"), () => stage.HideFor(0)));
+                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Settings"), _window.OpenFoxSettings));
                 menu.IsOpen = true;
             }
 
@@ -366,6 +370,24 @@ namespace Amarin.UI
             }
 
             public void DangerAsked() => _stage?.Signal(FoxSignalKind.DangerAsked);
+
+            public void SettingsChanged() => _stage?.Relayout();
+
+            public void Flush() => _store?.Flush();
+
+            public void Unhide() => _stage?.Unhide();
+
+            public void ResetFriendship()
+            {
+                if (_store is null || _stage is null)
+                {
+                    return;
+                }
+
+                _stage.Stop();
+                _store.Reset(DateTime.Now);
+                _stage.Start();
+            }
 
             public void Locked(bool locked)
             {
