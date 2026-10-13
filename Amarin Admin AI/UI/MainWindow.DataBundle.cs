@@ -484,7 +484,8 @@ namespace Amarin.UI
             try
             {
                 // Раскладка подменяет файлы чатов мимо хранилища. Отложенная запись, застигнутая
-                // ею врасплох, легла бы поверх только что импортированного.
+                // ею врасплох, легла бы поверх только что импортированного. Память Розы — так же.
+                _fox?.BeginImport();
                 _services.ChatStore.Flush();
                 var ledger = _services.Ledger;
                 result = await Task.Run(() =>
@@ -493,6 +494,7 @@ namespace Amarin.UI
             finally
             {
                 _bundleBusy = false;
+                _fox?.EndImport();
                 DataImportCancelButton.IsEnabled = true;
                 ImportChoicePanel.IsEnabled = true;
             }
@@ -576,6 +578,7 @@ namespace Amarin.UI
             _services.ProfileRegistry = _services.Profiles.Load();
             _services.UseProfile(ProfileStore.DataRootFor(_services.ProfileRegistry.ActiveProfileId));
             OnDeferredProfileChanged();
+            _fox?.ProfileChanged();
             StartTextIndexBuild();
 
             // Кэш держит прежний фон объектом, и без сброса на экране остался бы старый.

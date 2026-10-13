@@ -445,6 +445,11 @@ public sealed class UiShotTests : IDisposable
                 ShootIcons(window, folder);
             }
 
+            if (Wanted(only, "fox"))
+            {
+                await ShootFox(window, folder);
+            }
+
             // Последними: съёмка подставляет автомату свои состояния, а настройки уже пройдены.
             if (Wanted(only, "updates"))
             {
@@ -454,6 +459,66 @@ public sealed class UiShotTests : IDisposable
         finally
         {
             window.Close();
+        }
+    }
+
+    /// <summary>
+    /// Лисёнок Роза (1.35.0) в настоящем окне — на сверку с образцом в браузере: на кромке поля
+    /// ввода при 100 и 150 % и крупно, на карточке настроек. Снимается в пикселях экрана того
+    /// масштаба (<c>scale</c> — DPI слоя), иначе пиксели рисунка вышли бы неровными не из-за
+    /// программы, а из-за снимка.
+    /// </summary>
+    private static async Task ShootFox(MainWindow window, string folder)
+    {
+        var motion = UiMotion.Enabled;
+        var root = (FrameworkElement)window.FindName("ScaledRoot")!;
+        var layer = (Canvas)window.FindName("FoxLayer")!;
+        UiMotion.Enabled = false;
+        try
+        {
+            // Лист страниц настроек оставляет их открытыми, а Роза снимается сперва над чатом.
+            if (((UIElement)window.FindName("SettingsOverlay")!).IsVisible)
+            {
+                Call(window, "SettingsCloseButton_Click", window, new RoutedEventArgs());
+                await Settle(300);
+            }
+
+            window.StartFox(inTests: true, delay: TimeSpan.FromMilliseconds(1));
+            for (var i = 0; i < 400 && !layer.Children.OfType<Amarin.Fox.FoxSprite>().Any(sprite => sprite.IsVisible); i++)
+            {
+                await Settle(20);
+            }
+
+            var content = (FrameworkElement)window.Content;
+            foreach (var percent in (int[])[100, 150])
+            {
+                UiScale.Apply(window, root, percent);
+                await Settle(400);
+                var dpi = VisualTreeHelper.GetDpi(layer).DpiScaleX;
+                Save(content, Path.Combine(folder, $"fox-{percent}.png"), null, scale: dpi);
+
+                var sprite = layer.Children.OfType<Amarin.Fox.FoxSprite>().First();
+                var box = sprite.TransformToAncestor(content).TransformBounds(new Rect(sprite.RenderSize));
+                var near = new Rect(box.X - 180, box.Y - 110, 300, 190);
+                near.Intersect(new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                Save(content, Path.Combine(folder, $"fox-{percent}-close.png"), null, near, dpi * 3);
+            }
+
+            UiScale.Apply(window, root, 100);
+            window.OpenSettings();
+
+            // Открытие настроек заново ставит оформление окна, а с ним и анимации.
+            UiMotion.Enabled = false;
+            await Settle(1500);
+            Save(content, Path.Combine(folder, "fox-settings.png"), null, scale: VisualTreeHelper.GetDpi(layer).DpiScaleX);
+            Call(window, "SettingsCloseButton_Click", window, new RoutedEventArgs());
+            await Settle(300);
+        }
+        finally
+        {
+            window.StopFox();
+            UiScale.Apply(window, root, 100);
+            UiMotion.Enabled = motion;
         }
     }
 

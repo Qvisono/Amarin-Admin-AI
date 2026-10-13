@@ -226,6 +226,8 @@ namespace Amarin.UI
                 {
                     LoadSettingsPage(page);
                 }
+
+                _fox?.SettingsPage(page is SettingsKeyPage ? "keys" : "page");
             };
             SettingsOverlay.Children.Add(view);
 

@@ -29,6 +29,13 @@ internal sealed class FoxStore : IDisposable
     /// <summary>Пауза между последней переменой и записью.</summary>
     internal static readonly TimeSpan DefaultWriteDelay = TimeSpan.FromSeconds(3);
 
+    /// <summary>
+    /// Пауза для мелких перемен — тика скуки и забвения раз в десять секунд. Писать их сразу значило
+    /// бы переписывать файл (под DPAPI, если чаты шифруются) шесть раз в минуту без всякой пользы:
+    /// при сворачивании и закрытии всё равно сбрасывается всё.
+    /// </summary>
+    internal static readonly TimeSpan LazyWriteDelay = TimeSpan.FromMinutes(2);
+
     private readonly TimeSpan _writeDelay;
     private readonly Lock _gate = new();
     private readonly Timer _timer;
@@ -39,6 +46,9 @@ internal sealed class FoxStore : IDisposable
     private bool _stateDirty;
     private bool _diaryDirty;
     private int _importing;
+
+    /// <summary>Когда (по <see cref="Environment.TickCount64"/>) назначена запись; <c>long.MaxValue</c> — не назначена.</summary>
+    private long _due = long.MaxValue;
 
     /// <param name="writeDelay">Пауза перед записью; тестам — короче заводской.</param>
     public FoxStore(string root, Func<bool> encrypt, TimeSpan? writeDelay = null)
@@ -72,7 +82,8 @@ internal sealed class FoxStore : IDisposable
     }
 
     /// <summary>Меняет состояние под замком и ставит запись в очередь.</summary>
-    public void Update(Action<FoxState> change)
+    /// <param name="lazy">Мелкая перемена: записать не позже чем через <see cref="LazyWriteDelay"/>.</param>
+    public void Update(Action<FoxState> change, bool lazy = false)
     {
         lock (_gate)
         {
@@ -80,7 +91,7 @@ internal sealed class FoxStore : IDisposable
             _stateDirty = true;
         }
 
-        Schedule();
+        Schedule(lazy ? LazyWriteDelay : _writeDelay);
     }
 
     /// <summary>Дневник по дате, от старых записей к новым.</summary>
@@ -104,7 +115,7 @@ internal sealed class FoxStore : IDisposable
             _diaryDirty = true;
         }
 
-        Schedule();
+        Schedule(_writeDelay);
     }
 
     /// <summary>«Начать дружбу заново»: знакомство с нуля. Дневник остаётся — это память человека.</summary>
@@ -119,7 +130,7 @@ internal sealed class FoxStore : IDisposable
             _stateDirty = true;
         }
 
-        Schedule();
+        Schedule(_writeDelay);
     }
 
     /// <summary>Записывает отложенное сейчас. Безопасно звать с любого потока.</summary>
@@ -131,6 +142,7 @@ internal sealed class FoxStore : IDisposable
         bool encrypt;
         lock (_gate)
         {
+            _due = long.MaxValue;
             if (_importing > 0)
             {
                 return;
@@ -193,7 +205,22 @@ internal sealed class FoxStore : IDisposable
         Flush();
     }
 
-    private void Schedule() => _timer.Change(_writeDelay, Timeout.InfiniteTimeSpan);
+    /// <summary>Назначает запись не позже чем через <paramref name="delay"/>; назначенную раньше не отодвигает.</summary>
+    private void Schedule(TimeSpan delay)
+    {
+        var due = Environment.TickCount64 + (long)delay.TotalMilliseconds;
+        lock (_gate)
+        {
+            if (due >= _due)
+            {
+                return;
+            }
+
+            _due = due;
+        }
+
+        _timer.Change(delay, Timeout.InfiniteTimeSpan);
+    }
 
     private void MarkDirty(bool state)
     {

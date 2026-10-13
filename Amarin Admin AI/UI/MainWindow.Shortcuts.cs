@@ -28,6 +28,13 @@ namespace Amarin.UI
         /// </summary>
         private bool TryStopByEscape(KeyEventArgs e)
         {
+            // Роза в руках или в игре: Esc отпускает его, а ответ пусть идёт.
+            if (e.Key == Key.Escape && _fox is { Holding: true } fox)
+            {
+                fox.LetGo();
+                return true;
+            }
+
             if (e.Key != Key.Escape || Keyboard.Modifiers != ModifierKeys.None ||
                 _services is null || ChatCoveredByOverlay() || !IsBusy(_session.Id))
             {

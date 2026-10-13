@@ -299,9 +299,14 @@ namespace Amarin.UI
         }
 
         /// <summary>Окно в обычном виде: нет блокировки и ничего не лежит поверх ленты и колонки.</summary>
+        /// <remarks>
+        /// Слой Розы не в счёт: он лежит поверх окна всё время, пока Роза здесь, но ничего не
+        /// закрывает — мышь ловят только пиксели самого лисёнка.
+        /// </remarks>
         private bool MainLayoutUncovered() =>
             _services is not null && !IsLocked && !ChatBlocked &&
-            !ScaledRoot.Children.OfType<UIElement>().Skip(1).Any(layer => layer.Visibility == Visibility.Visible);
+            !ScaledRoot.Children.OfType<UIElement>().Skip(1).Any(layer =>
+                layer.Visibility == Visibility.Visible && !ReferenceEquals(layer, FoxLayer));
 
         /// <summary>
         /// Нажатие мышью вне списка чатов — в ленте, в поле ввода, на кнопках боковой панели —

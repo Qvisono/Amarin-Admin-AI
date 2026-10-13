@@ -2332,5 +2332,13 @@ internal static class StringsRu
             ["S.Fox.Level.Pal"] = "Приятель",
             ["S.Fox.Level.Friend"] = "Друг",
             ["S.Fox.Level.Best"] = "Лучший друг",
+            ["S.Fox.Call"] = "Позвать Розу",
+            ["S.Fox.Menu.Pet"] = "Погладить",
+            ["S.Fox.Menu.Scratch"] = "Почесать за ушком",
+            ["S.Fox.Menu.Treat"] = "Вкусняшка",
+            ["S.Fox.Menu.Ball"] = "Кинуть мячик",
+            ["S.Fox.Menu.Laser"] = "Лазерная указка",
+            ["S.Fox.Menu.HideHour"] = "Спрятать на час",
+            ["S.Fox.Menu.HideDay"] = "Спрятать до завтра",
         };
 }

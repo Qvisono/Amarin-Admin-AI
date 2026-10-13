@@ -704,6 +704,7 @@ namespace Amarin.UI
             ProfileStore.Save(registry);
             _services.UseProfile(ProfileStore.DataRootFor(target.Id));
             OnDeferredProfileChanged();
+            _fox?.ProfileChanged();
             StartTextIndexBuild();
 
             ProfileOverlay.Visibility = Visibility.Collapsed;

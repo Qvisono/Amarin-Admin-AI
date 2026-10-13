@@ -326,6 +326,7 @@ namespace Amarin.UI
             }
 
             RemoveChats(ids, folders);
+            _fox?.ChatsDeleted(ids.Count);
         }
 
         /// <summary>

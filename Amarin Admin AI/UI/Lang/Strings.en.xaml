@@ -2367,5 +2367,13 @@
     <system:String x:Key="S.Fox.Level.Pal" xml:space="preserve">Pal</system:String>
     <system:String x:Key="S.Fox.Level.Friend" xml:space="preserve">Friend</system:String>
     <system:String x:Key="S.Fox.Level.Best" xml:space="preserve">Best friend</system:String>
+    <system:String x:Key="S.Fox.Call" xml:space="preserve">Call Rosa</system:String>
+    <system:String x:Key="S.Fox.Menu.Pet" xml:space="preserve">Pet</system:String>
+    <system:String x:Key="S.Fox.Menu.Scratch" xml:space="preserve">Scratch behind the ear</system:String>
+    <system:String x:Key="S.Fox.Menu.Treat" xml:space="preserve">Give a treat</system:String>
+    <system:String x:Key="S.Fox.Menu.Ball" xml:space="preserve">Throw the ball</system:String>
+    <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Laser pointer</system:String>
+    <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Hide for an hour</system:String>
+    <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Hide until tomorrow</system:String>
 
 </ResourceDictionary>

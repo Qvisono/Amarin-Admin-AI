@@ -110,6 +110,7 @@ namespace Amarin.UI
             LockOverlay.Visibility = Visibility.Visible;
             LockOverlay.FocusPassword();
             RefillReminders();
+            _fox?.Locked(true);
         }
 
         /// <remarks>
@@ -151,6 +152,7 @@ namespace Amarin.UI
             RefillReminders();
             NoteInput();
             FocusMessageInput();
+            _fox?.Locked(false);
         }
 
         /// <summary>

@@ -24,7 +24,11 @@ namespace Amarin.UI
 
             // Без ожидания: предупреждение приходит из точки учёта, посреди обработки ответа, и
             // держать там сетевой поток, пока окно рисует строку, незачем.
-            services.SpendGuard.Warned = breach => UiAsync(() => NotifyStatus(SpendPrompts.Warning(breach)));
+            services.SpendGuard.Warned = breach => UiAsync(() =>
+            {
+                NotifyStatus(SpendPrompts.Warning(breach));
+                _fox?.SpendWarning();
+            });
         }
 
         /// <summary>Остаток перешёл порог вниз (E4).</summary>

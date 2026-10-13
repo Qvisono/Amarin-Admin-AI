@@ -344,6 +344,7 @@ namespace Amarin.UI
             Detached.Run(LoadModelCatalogAsync(), "load_model_catalog");
             StartSchedule();
             StartDeferred();
+            StartFox();
             StartBackups();
             StartTextIndexBuild();
 
@@ -627,6 +628,7 @@ namespace Amarin.UI
             // сидит на ресурсах и перекрашивается само, а перестройка стоила бы повторного
             // разбора всей переписки — это и был лаг при переключении темы.
             ThemeImages.Refresh(this);
+            _fox?.ThemeChanged();
         }
 
         // ───────────────────────── Уведомление о завершении ответа ─────────────────────────
@@ -1851,6 +1853,7 @@ namespace Amarin.UI
             RenderSession();
             RefreshChatList();
             MessageTextBox.Focus();
+            _fox?.ChatCreated();
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -2248,6 +2251,7 @@ namespace Amarin.UI
             var quotes = _pendingQuotes.Count == 0 ? null : _pendingQuotes.ToArray();
             ClearPendingAttachments();
             ForgetDraft(_session);
+            _fox?.Sent(text);
 
             var session = _session;
             if (plan is { Verdict: SendVerdict.Agent, Command: { } agent })
@@ -2723,6 +2727,7 @@ namespace Amarin.UI
             var queued = ChatQuotes.Wrap(text, user.Quotes, _session.Messages, _session.Messages.Count - 1);
             ClearPendingAttachments();
             ForgetDraft(_session);
+            _fox?.Sent(text);
 
             var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
@@ -3492,6 +3497,7 @@ namespace Amarin.UI
             }
 
             _workingStarted = turn.StartedAt;
+            _fox?.AnswerStarted();
             var view = ChatMessageViews.CreateAssistant(
                 this, assistant, CreateMessageActions(turn.Session), ActiveDateFormat);
             _liveAssistant = view;
@@ -3577,6 +3583,11 @@ namespace Amarin.UI
 
             _liveAssistant?.UpdateTools(assistant);
             MaybeAutoscroll();
+            if (_fox is not null && assistant.ToolRounds.Any(round => round.Calls.Any(call =>
+                    call.Name == "init_agent" && call.Status == ToolCallStatus.Running)))
+            {
+                _fox.AgentWorking();
+            }
         });
 
         void IChatTurnUi.TurnAssistantCompleted(RunningTurn turn, ChatDisplayMessage assistant) => Ui(() =>
@@ -3584,6 +3595,7 @@ namespace Amarin.UI
             if (IsVisibleTurn(turn))
             {
                 CloseVisibleAnswer(assistant, autoscroll: true);
+                _fox?.AnswerFinished(assistant.Text);
             }
 
             // Сводка дописывается на каждом закрытом ответе — и у фонового хода тоже: искать
@@ -3647,6 +3659,7 @@ namespace Amarin.UI
             if (IsVisibleTurn(turn))
             {
                 CloseVisibleAnswer(assistant, autoscroll: false);
+                _fox?.AnswerCancelled();
             }
         });
 
@@ -3659,6 +3672,8 @@ namespace Amarin.UI
 
             if (IsVisibleTurn(turn))
             {
+                _fox?.AnswerFailed();
+
                 // Своим окном, а не MessageBox (см. памятку). Переполненный контекст — не авария,
                 // а повод сжать переписку (D10): так и предлагаем.
                 Detached.Run(
@@ -3717,6 +3732,7 @@ namespace Amarin.UI
             Detached.Run(ProbeConfirmationAsync(request), "confirmation_whatif");
             ConfirmationOverlay.Visibility = Visibility.Visible;
             ChatBlocked = true;
+            _fox?.DangerAsked();
         }
 
         /// <summary>

@@ -2367,5 +2367,13 @@
     <system:String x:Key="S.Fox.Level.Pal" xml:space="preserve">Приятель</system:String>
     <system:String x:Key="S.Fox.Level.Friend" xml:space="preserve">Друг</system:String>
     <system:String x:Key="S.Fox.Level.Best" xml:space="preserve">Лучший друг</system:String>
+    <system:String x:Key="S.Fox.Call" xml:space="preserve">Позвать Розу</system:String>
+    <system:String x:Key="S.Fox.Menu.Pet" xml:space="preserve">Погладить</system:String>
+    <system:String x:Key="S.Fox.Menu.Scratch" xml:space="preserve">Почесать за ушком</system:String>
+    <system:String x:Key="S.Fox.Menu.Treat" xml:space="preserve">Вкусняшка</system:String>
+    <system:String x:Key="S.Fox.Menu.Ball" xml:space="preserve">Кинуть мячик</system:String>
+    <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Лазерная указка</system:String>
+    <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Спрятать на час</system:String>
+    <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Спрятать до завтра</system:String>
 
 </ResourceDictionary>
