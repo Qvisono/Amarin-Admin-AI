@@ -91,10 +91,11 @@ a small icon over his head and a pose, gets bored, sleepy and offended, and know
 messages in the chat are for the assistant, not for him. Stroke his head to pet him, boop his
 nose, pick him up and throw him, play ball, chase a laser dot, play hide and seek or tag, or talk
 to him. Left alone, he finds something to do: lies down, struts, chases his own tail or invites
-you to play, never while you type. Each profile has its own Rosa with its own friendship: pink
-eyes when he likes you, blue when he doesn't. Forget him for days and he sulks and demands
-attention; annoy him and he may bite the cursor, press **New chat** or push the chat list, never
-while you type. Every day he writes a short diary entry about you. He has his own model slot and
+you to play, never while you type, and now and then he thinks on his own. He remembers your
+talks with him and keeps short notes about you, which you can read and erase. Each profile has
+its own Rosa with its own friendship: pink eyes when he likes you, blue when he doesn't. Forget
+him for days and he sulks and demands attention; annoy him and he may bite the cursor, press
+**New chat** or tap the chat list, never while you type. Every day he writes a short diary entry about you. He has his own model slot and
 only two tools of his own, web search and running away, with no access to the program's tools.
 His model sees only the text you send, never attachments or answers, and that can be turned off.
 **Settings → Models → Rosa the fox** hides him, changes his size and shows your friendship and his
