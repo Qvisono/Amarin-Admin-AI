@@ -29,7 +29,17 @@ internal static class VeniceModelCatalog
         !string.IsNullOrWhiteSpace(modelId) &&
         modelId.Equals(AutoId, StringComparison.OrdinalIgnoreCase);
 
-    public static IReadOnlyList<VeniceModelInfo> FilterAgentic(IEnumerable<VeniceModelInfo> models)
+    public static bool IsDecisionModel(VeniceModelInfo? model) =>
+        model is not null && ModelRef.Of(model.Id) == LlmProvider.OpenRouter &&
+        string.Equals(model.Type, "decisions", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Decisions доступны маршрутизатору и SynGuard; остальные слоты ведут разговор.</summary>
+    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot) =>
+        slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
+            ? models : [.. models.Where(model => !IsDecisionModel(model))];
+
+    public static IReadOnlyList<VeniceModelInfo> FilterAgentic(
+        IEnumerable<VeniceModelInfo> models, bool includeDecisions = false)
     {
         var result = new List<VeniceModelInfo>();
         foreach (var model in models)
@@ -49,6 +59,16 @@ internal static class VeniceModelCatalog
 
             if (model.ModelSpec?.Offline == true)
             {
+                continue;
+            }
+
+            if (IsDecisionModel(model))
+            {
+                if (includeDecisions)
+                {
+                    result.Add(model);
+                }
+
                 continue;
             }
 

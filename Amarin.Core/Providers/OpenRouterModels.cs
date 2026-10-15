@@ -153,7 +153,14 @@ internal static class OpenRouterMapper
         var models = new List<VeniceModelInfo>(response.Data.Count);
         foreach (var model in response.Data)
         {
-            if (string.IsNullOrWhiteSpace(model.Id))
+            if (string.IsNullOrWhiteSpace(model.Id) ||
+                (model.Architecture?.InputModalities is { Count: > 0 } && !Modality(model, "text")))
+            {
+                continue;
+            }
+
+            var outputs = model.Architecture?.OutputModalities;
+            if (outputs is { Count: > 0 } && !Has(outputs, "text") && !Has(outputs, "decisions"))
             {
                 continue;
             }
@@ -174,7 +181,8 @@ internal static class OpenRouterMapper
         {
             Id = ModelRef.Qualify(LlmProvider.OpenRouter, model.Id),
             Object = "model",
-            Type = "text",
+            Type = model.Architecture?.OutputModalities is { } outputs && Has(outputs, "decisions")
+                ? "decisions" : "text",
             OwnedBy = Vendor(model.Id),
             Created = model.Created,
             ContextLength = model.ContextLength,

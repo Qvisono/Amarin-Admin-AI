@@ -40,7 +40,7 @@
     <system:String x:Key="S.Access.ContrastDesc" xml:space="preserve">Включать контрастную тему, когда она включена в Windows</system:String>
     <system:String x:Key="S.Access.FontSize" xml:space="preserve">Размер текста в чате</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Обычный</system:String>
-    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Спрашивает перед опасными действиями. Чтение - без вопросов.</system:String>
+    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Модель SynGuard решает, нужно ли подтверждение действия. Чтение без вопросов.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Только чтение</system:String>
     <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">Модель может только смотреть: любое изменение отклоняется.</system:String>
     <system:String x:Key="S.Access.SizeHuge" xml:space="preserve">Очень крупный</system:String>
@@ -1144,7 +1144,7 @@
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Технический промпт агента</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Заголовки чатов</system:String>
     <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Проверяет каждый скрипт и действие агента до запуска и останавливает то, в чём видит вредный замысел: кражу паролей, отправку данных наружу, закрепление в системе, обход защиты.</system:String>
-    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Модель защиты</system:String>
+    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Модель защиты и обычного режима</system:String>
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Тяжёлые задачи</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Лёгкие задачи</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Основной промпт ИИ</system:String>

@@ -156,18 +156,12 @@ internal static class AgentTierRouter
         using var charge = VeniceClient.ChargeAs(VeniceSku.Router);
         try
         {
-            var response = await client.CreateChatCompletionAsync(
+            var response = await client.CreateRoutingCompletionAsync(
                     modelId,
-                    [
-                        new ChatMessage { Role = "system", Content = ChatContent.Text(system) },
-                        new ChatMessage
-                        {
-                            Role = "user",
-                            Content = ChatContent.Text(BuildUserMessage(prompt, notes))
-                        }
-                    ],
-                    tools: null,
-                    toolChoice: null,
+                    system,
+                    BuildUserMessage(prompt, notes),
+                    ["fast", "lite", "heavy"],
+                    RoutingDecisions.AgentQuestion(modelsBlock),
                     new VeniceParameters
                     {
                         IncludeVeniceSystemPrompt = false,

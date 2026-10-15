@@ -69,6 +69,7 @@ public static class ModelSlotDefaults
         ModelSlot slot,
         IReadOnlyList<VeniceModelInfo>? catalog)
     {
+        catalog = catalog is null ? null : VeniceModelCatalog.ForSlot(catalog, slot);
         var shipped = Shipped(slot);
         if (provider == LlmProvider.Venice)
         {

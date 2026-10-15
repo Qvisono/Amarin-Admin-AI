@@ -85,6 +85,23 @@ internal static class ToolGate
     /// </summary>
     public static bool ScopedReadOnly => ReadOnlyForced.Value;
 
+    /// <summary>Вердикт общей модели безопасности о необходимости подтверждения в обычном режиме.</summary>
+    internal static GateCheck ApplyNormalReview(GateCheck check, AppSettings settings, bool? withoutApproval)
+    {
+        if (settings.ApprovalMode != ApprovalMode.Normal || withoutApproval is null ||
+            check.Refusal is not null || check.Effect == ToolEffect.Read)
+        {
+            return check;
+        }
+
+        return check with
+        {
+            Question = withoutApproval.Value ? null :
+                (check.Question ?? DangerousActionGuard.DescribeDetailed(check.ToolName, check.Arguments))
+                with { AlwaysAsk = true, Target = check.Question?.Target ?? ExecutionTarget.Current?.Name }
+        };
+    }
+
     private sealed class ReadOnlyRestore(bool previous) : IDisposable
     {
         public void Dispose() => ReadOnlyForced.Value = previous;

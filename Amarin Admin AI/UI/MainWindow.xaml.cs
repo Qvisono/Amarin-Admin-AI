@@ -1429,11 +1429,11 @@ namespace Amarin.UI
         private void ApplyCatalog(LlmProvider provider, IReadOnlyList<VeniceModelInfo> models)
         {
             HealUnusableModelSelections(provider, models);
-            ChatModelPicker.SetCatalog(provider, models);
+            ChatModelPicker.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, ModelSlot.Chat));
             ChatModelPicker.SetSelected(CurrentModelId(), CurrentKeyId());
-            foreach (var field in SettingsPickers())
+            foreach (var (slot, field, _) in SettingsSlots())
             {
-                field.SetCatalog(provider, models);
+                field.SetCatalog(provider, VeniceModelCatalog.ForSlot(models, slot));
             }
 
             // Поля страницы «Customize» заполняются при открытии настроек, а каталог доезжает
@@ -1502,7 +1502,8 @@ namespace Amarin.UI
             var settings = _services.Settings;
 
             if (Belongs(_session.SelectedModelId, provider) &&
-                !VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId))
+                (!VeniceModelCatalog.IsSelectable(models, _session.SelectedModelId) ||
+                 VeniceModelCatalog.IsDecisionModel(ReasoningPolicy.Find(models, _session.SelectedModelId))))
             {
                 // Пустая строка — «бери из настроек», а не «нет модели».
                 _session.SelectedModelId = "";

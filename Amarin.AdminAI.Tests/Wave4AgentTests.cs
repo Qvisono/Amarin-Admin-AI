@@ -7,12 +7,12 @@ namespace Amarin.AdminAI.Tests;
 public sealed class Wave4AgentTests
 {
     [Fact]
-    public void Forced_agent_model_is_grok_and_has_logo()
+    public void Forced_agent_model_is_claude_and_has_logo()
     {
         // Запас пустого слота — заводская модель тяжёлого агента, а не отдельная устаревшая.
         Assert.Equal(AppSettings.FactoryAgentHeavyModelId, AgentHost.ForcedAgentModelId);
-        Assert.Equal("Grok", VeniceModelCatalog.GetLogoResourceKey(AgentHost.ForcedAgentModelId));
-        Assert.Equal("Grok 4.7", VeniceModelCatalog.GetDisplayName(AgentHost.ForcedAgentModelId));
+        Assert.Equal("Claude", VeniceModelCatalog.GetLogoResourceKey(AgentHost.ForcedAgentModelId));
+        Assert.Equal("Claude Sonnet 5.5", VeniceModelCatalog.GetDisplayName(AgentHost.ForcedAgentModelId));
     }
 
     [Fact]

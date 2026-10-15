@@ -531,6 +531,30 @@ public sealed class SynGuardTests
             Task.FromException<HttpResponseMessage>(error);
     }
 
+    [Fact]
+    public async Task A_negative_decision_blocks_without_an_override_question()
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => true };
+        await RunRoundAsync(ui, ran, new SynGuardReport([false, true], null, BlockUnsafe: true));
+        Assert.Equal(["read_file"], ran);
+        Assert.Empty(ui.Asked);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Normal_decision_controls_agent_confirmation(bool withoutApproval)
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => false };
+        await RunRoundAsync(ui, ran, new SynGuardReport([true, true], null,
+            WithoutApproval: [withoutApproval, true], BlockUnsafe: true));
+        Assert.Equal(withoutApproval, ran.Contains("run_powershell"));
+        Assert.Contains("read_file", ran);
+        Assert.Equal(withoutApproval ? 0 : 1, ui.Asked.Count);
+    }
+
     // ───────────────────────── helpers ─────────────────────────
 
     /// <summary>Раунд из run_powershell и read_file с готовым вердиктом защитника.</summary>

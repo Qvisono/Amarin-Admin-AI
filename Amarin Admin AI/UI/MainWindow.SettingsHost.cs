@@ -541,9 +541,9 @@ namespace Amarin.UI
             {
                 if (_services.Models.CachedFor(spec.Provider) is { } models)
                 {
-                    foreach (var field in SettingsPickers())
+                    foreach (var (slot, field, _) in SettingsSlots())
                     {
-                        field.SetCatalog(spec.Provider, models);
+                        field.SetCatalog(spec.Provider, VeniceModelCatalog.ForSlot(models, slot));
                     }
                 }
                 else if (_services.Models.ErrorFor(spec.Provider) is { } error)

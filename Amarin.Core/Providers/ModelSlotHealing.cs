@@ -35,16 +35,19 @@ internal static class ModelSlotHealing
         var changed = false;
         foreach (var (slot, read, write) in ModelSlots.All)
         {
+            var available = VeniceModelCatalog.ForSlot(models, slot);
             var current = read(settings) ?? "";
             var owner = Owner(current, currentProvider);
 
             if (owner != provider)
             {
-                changed |= MoveFromKeyless(settings, slot, write, current, owner, provider, models, currentProvider, hasKey);
+                changed |= MoveFromKeyless(settings, slot, write, current, owner, provider, available, currentProvider, hasKey);
                 continue;
             }
 
-            if (VeniceModelCatalog.IsSelectable(models, current))
+            var wrongType = slot is not (ModelSlot.Router or ModelSlot.SynGuard) &&
+                            VeniceModelCatalog.IsDecisionModel(ReasoningPolicy.Find(models, current));
+            if (!wrongType && VeniceModelCatalog.IsSelectable(available, current))
             {
                 // Модель на месте, а вот назначенный ключ мог исчезнуть вместе с удалённой
                 // строкой: возвращаем слот к ключу по умолчанию, а не к отказу в запросе.
@@ -68,7 +71,7 @@ internal static class ModelSlotHealing
                 continue;
             }
 
-            var replacement = ModelSlotDefaults.Resolve(provider, slot, models);
+            var replacement = ModelSlotDefaults.Resolve(provider, slot, available);
             if (replacement.Length == 0)
             {
                 continue;

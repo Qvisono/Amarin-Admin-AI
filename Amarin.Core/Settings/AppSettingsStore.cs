@@ -53,6 +53,12 @@ public sealed class AppSettingsStore
 
             var settings = JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options)
                            ?? AppSettings.CreateDefault();
+            using var document = JsonDocument.Parse(text);
+            if (!document.RootElement.EnumerateObject().Any(property =>
+                    property.Name.Equals(nameof(AppSettings.FactoryModelsRevision), StringComparison.OrdinalIgnoreCase)))
+            {
+                settings.FactoryModelsRevision = 0;
+            }
             var changed = MigrateLegacyChatPrompts(settings);
             changed |= SeedDownloadAllowedDomains(settings);
             settings.Appearance ??= new AppearanceSettings();
@@ -61,13 +67,19 @@ public sealed class AppSettingsStore
             settings.LiteReasoning ??= new ReasoningSettings();
             settings.HeavyReasoning ??= new ReasoningSettings();
             settings.RouterReasoning ??= new ReasoningSettings();
-            changed |= MigrateRouterReasoning(settings);
+            if (settings.FactoryModelsRevision < AppSettings.CurrentFactoryModels)
+            {
+                changed |= MigrateRouterReasoning(settings);
+            }
             settings.TitleReasoning ??= new ReasoningSettings();
             settings.AgentFastReasoning ??= new ReasoningSettings();
             settings.AgentLiteReasoning ??= new ReasoningSettings();
             settings.AgentHeavyReasoning ??= new ReasoningSettings();
             settings.SynGuardReasoning ??= new ReasoningSettings();
-            changed |= MigrateSynGuardReasoning(settings);
+            if (settings.FactoryModelsRevision < AppSettings.CurrentFactoryModels)
+            {
+                changed |= MigrateSynGuardReasoning(settings);
+            }
             settings.SummaryReasoning ??= new ReasoningSettings();
             changed |= MigrateSummarySlot(settings);
             settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
@@ -244,31 +256,8 @@ public sealed class AppSettingsStore
     }
 
     /// <summary>
-    /// Заводские модели 1.33.0 и то, чем их заменить в 1.34.0: слот, прежняя модель и её
-    /// размышление, новая модель и её размышление.
+    /// Разовая замена всех моделей и уровней размышления на заводские 1.35 Beta.
     /// </summary>
-    private static readonly (ModelSlot Slot, string Old, bool OldOff, string? OldEffort, string New, bool NewOff, string? NewEffort)[] FactoryModels =
-    [
-        (ModelSlot.Lite, "openai-gpt-56-luna", false, null, AppSettings.FactoryLiteModelId, false, "medium"),
-        (ModelSlot.Heavy, "grok-4-6", false, "medium", AppSettings.FactoryHeavyModelId, false, "low"),
-        (ModelSlot.Router, "openai-gpt-56-luna", true, null, AppSettings.DefaultFastModelId, true, null),
-        (ModelSlot.Title, "openai-gpt-56-luna", true, null, AppSettings.DefaultFastModelId, true, null),
-        (ModelSlot.AgentFast, "deepseek-v4-flash-0731-fast", true, null, AppSettings.DefaultFastModelId, false, "medium"),
-        (ModelSlot.AgentLite, "openai-gpt-56-luna", false, null, AppSettings.FactoryLiteModelId, false, "low"),
-        (ModelSlot.AgentHeavy, "grok-4-6", false, "high", AppSettings.FactoryAgentHeavyModelId, false, "medium"),
-        (ModelSlot.Summary, "deepseek-v4-flash-0731-fast", true, null, AppSettings.FactoryLiteModelId, false, "low")
-    ];
-
-    /// <summary>
-    /// Разово ставит новые заводские модели там, где стоят заводские 1.33.0.
-    /// </summary>
-    /// <remarks>
-    /// Меняется только слот, где ровно прежняя заводская модель; размышление — только если и оно
-    /// заводское: выбранное человеком не трогается. Ключ слота не трогается никогда — новая модель
-    /// того же провайдера. В отличие от <see cref="MigrateRouterReasoning"/> здесь есть отметка
-    /// (<see cref="AppSettings.FactoryModelsRevision"/>): без неё человек, сам вернувший себе
-    /// прежнюю модель, получал бы подмену обратно на каждом запуске.
-    /// </remarks>
     internal static bool MigrateFactoryModels(AppSettings settings)
     {
         if (settings.FactoryModelsRevision >= AppSettings.CurrentFactoryModels)
@@ -276,41 +265,31 @@ public sealed class AppSettingsStore
             return false;
         }
 
-        foreach (var (slot, old, oldOff, oldEffort, replacement, newOff, newEffort) in FactoryModels)
+        // 1.35 Beta: по требованию выпуска заменяем даже ручной выбор, ровно один раз на профиль.
+        var defaults = AppSettings.CreateDefault();
+        foreach (var (_, read, write) in ModelSlots.All)
         {
-            var entry = ModelSlots.All.First(candidate => candidate.Slot == slot);
-            if (!string.Equals(entry.Read(settings)?.Trim(), old, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            entry.Write(settings, replacement);
-            var effort = ReasoningOf(settings, slot)?.ReasoningEffort?.Trim();
-            if (ReasoningOf(settings, slot) is { } reasoning &&
-                reasoning.DisableThinking == oldOff &&
-                string.Equals(string.IsNullOrEmpty(effort) ? null : effort, oldEffort, StringComparison.OrdinalIgnoreCase))
-            {
-                reasoning.DisableThinking = newOff;
-                reasoning.ReasoningEffort = newEffort;
-            }
+            write(settings, read(defaults));
         }
 
+        settings.ChatReasoning = defaults.ChatReasoning;
+        settings.LiteReasoning = defaults.LiteReasoning;
+        settings.HeavyReasoning = defaults.HeavyReasoning;
+        settings.RouterReasoning = defaults.RouterReasoning;
+        settings.TitleReasoning = defaults.TitleReasoning;
+        settings.AgentFastReasoning = defaults.AgentFastReasoning;
+        settings.AgentLiteReasoning = defaults.AgentLiteReasoning;
+        settings.AgentHeavyReasoning = defaults.AgentHeavyReasoning;
+        settings.SynGuardReasoning = defaults.SynGuardReasoning;
+        settings.SummaryReasoning = defaults.SummaryReasoning;
+        settings.FoxReasoning = defaults.FoxReasoning;
+        settings.ModelKeys = null;
+        settings.WebSearchProvider = null;
+        settings.WebSearchKeyId = null;
+        settings.SynGuardEnabled = true;
         settings.FactoryModelsRevision = AppSettings.CurrentFactoryModels;
         return true;
     }
-
-    private static ReasoningSettings? ReasoningOf(AppSettings settings, ModelSlot slot) => slot switch
-    {
-        ModelSlot.Lite => settings.LiteReasoning,
-        ModelSlot.Heavy => settings.HeavyReasoning,
-        ModelSlot.Router => settings.RouterReasoning,
-        ModelSlot.Title => settings.TitleReasoning,
-        ModelSlot.AgentFast => settings.AgentFastReasoning,
-        ModelSlot.AgentLite => settings.AgentLiteReasoning,
-        ModelSlot.AgentHeavy => settings.AgentHeavyReasoning,
-        ModelSlot.Summary => settings.SummaryReasoning,
-        _ => null
-    };
 
     internal static bool MigrateLegacyChatPrompts(AppSettings settings)
     {

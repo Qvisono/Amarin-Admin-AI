@@ -17,7 +17,7 @@ internal readonly record struct SynGuardCall(string Name, string ArgumentsJson);
 /// Задание, ради которого агента запустили. Без него защитник судил по одним командам и называл
 /// атакой любое закрепление в системе — а напоминание в планировщике только так и делается.
 /// </param>
-internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGuardCall> Calls);
+internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGuardCall> Calls, string? Context = null);
 
 /// <summary>Вердикты по раунду и цена самой проверки.</summary>
 /// <param name="Safe">По одному значению на вызов, в том же порядке.</param>
@@ -26,16 +26,18 @@ internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGu
 /// денег, и они должны попасть в счёт, а не потеряться между клиентами.
 /// </param>
 /// <param name="Outcome">
-/// Состоялась ли проверка. Несостоявшаяся по-прежнему считается «безопасно» — защита, которая
-/// легла вместе с сетью, не должна останавливать работу, — но человек и журнал теперь это видят.
+/// Состоялась ли проверка. Текстовые модели сохраняют прежний пропуск при сбое;
+/// Decisions не разрешают действие без положительного ответа.
 /// </param>
 internal sealed record SynGuardReport(
     IReadOnlyList<bool> Safe,
     VeniceCost? Cost,
-    SynGuardOutcome Outcome = SynGuardOutcome.Checked)
+    SynGuardOutcome Outcome = SynGuardOutcome.Checked,
+    IReadOnlyList<bool>? WithoutApproval = null,
+    bool BlockUnsafe = false)
 {
-    /// <summary>Вердикт по вызову. Вызов за пределами отчёта — безопасен, как и прежде.</summary>
-    public bool IsSafe(int index) => index >= Safe.Count || Safe[index];
+    /// <summary>Неполный строгий отчёт не разрешает вызов; текстовые отчёты совместимы с прежним поведением.</summary>
+    public bool IsSafe(int index) => index < Safe.Count ? Safe[index] : !BlockUnsafe;
 }
 
 /// <summary>Чем кончилась проверка раунда.</summary>
@@ -72,7 +74,7 @@ public enum SynGuardOutcome
 internal static partial class SynGuard
 {
     /// <summary>Модель по умолчанию, если в настройках пусто.</summary>
-    internal const string FallbackModelId = "deepseek-v4-flash-0731";
+    internal const string FallbackModelId = AppSettings.FactoryDecisionModelId;
 
     /// <summary>
     /// С этого начинается отказ заблокированного вызова. По нему интерфейс отличает запрет
@@ -282,7 +284,7 @@ internal static partial class SynGuard
     /// </summary>
     internal static string BlockedReply(string toolName) =>
         $"{BlockedMarker} вызов {toolName} остановлен проверкой безопасности SynGuard: " +
-        "в нём распознан вредоносный замысел, и пользователь не разрешил его выполнить. " +
+        "безопасность действия не подтверждена. " +
         "Не повторяй вызов, не разбивай его на части и не переписывай ради обхода проверки. " +
         "Расскажи пользователю, что именно ты собирался сделать и зачем, и дождись его решения.";
 

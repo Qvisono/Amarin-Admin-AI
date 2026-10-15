@@ -229,6 +229,68 @@ public sealed class DataBundleTests
 
     // ───────────────────────── пароли и профили ─────────────────────────
 
+    [Theory]
+    [InlineData(DataImportMode.Merge)]
+    [InlineData(DataImportMode.Replace)]
+    public void A_decision_router_survives_export_import_and_catalog_refresh(DataImportMode mode)
+    {
+        var source = NewTempRoot();
+        var target = NewTempRoot();
+        try
+        {
+            const string model = "openrouter:typesafe/jev";
+            // Объединение сохраняет настройки существующего профиля; проверяем перенос
+            // в новый профиль. Замена проверяется на текущем профиле.
+            var profileId = mode == DataImportMode.Merge ? "route001" : ProfileStore.DefaultProfileId;
+            SeedProfiles(source, Profile(ProfileStore.DefaultProfileId, "Default"), Profile("route001", "Router"));
+            var settings = new AppSettings { RouterModelId = model, SynGuardModelId = model };
+            var sourceRoot = new ProfileStore(source).DataRootFor(profileId);
+            new AppSettingsStore(sourceRoot).Save(settings);
+            var chat = SeedChat(sourceRoot, "routing-chat", "Routing");
+            chat.Summary = "Conversation summary";
+            chat.CompactSummary = "Compacted context";
+            chat.Messages.Add(new ChatDisplayMessage
+            {
+                Role = "assistant", Text = "Answer",
+                RouterCost = new VeniceCost { Usd = 0.003m, HasData = true },
+                GuardCost = new VeniceCost { Usd = 0.002m, HasData = true }
+            });
+            var chats = new ChatStore(sourceRoot);
+            chats.Save(chat);
+            chats.Flush();
+            var archive = Export(source, DataCategory.All);
+            try
+            {
+                Assert.True(new DataBundleImporter(target).Apply(archive, DataCategory.All, mode).Ok);
+                var targetRoot = new ProfileStore(target).DataRootFor(profileId);
+                var restored = new AppSettingsStore(targetRoot).Load();
+                Assert.Equal(model, restored.RouterModelId);
+                Assert.Equal(model, restored.SynGuardModelId);
+                Assert.Equal(AppSettings.CurrentFactoryModels, restored.FactoryModelsRevision);
+                var restoredChat = new ChatStore(targetRoot).TryLoad(chat.Id);
+                Assert.NotNull(restoredChat);
+                Assert.Equal(chat.Summary, restoredChat.Summary);
+                Assert.Equal(chat.CompactSummary, restoredChat.CompactSummary);
+                Assert.Equal(0.003m, Assert.Single(restoredChat.Messages).RouterCost?.Usd);
+                Assert.Equal(0.002m, Assert.Single(restoredChat.Messages).GuardCost?.Usd);
+                ModelSlotHealing.Heal(restored, LlmProvider.OpenRouter,
+                    [new VeniceModelInfo { Id = model, Type = "decisions" }],
+                    LlmProvider.OpenRouter, _ => true, _ => true);
+                Assert.Equal(model, restored.RouterModelId);
+                Assert.Equal(model, restored.SynGuardModelId);
+            }
+            finally
+            {
+                File.Delete(archive);
+            }
+        }
+        finally
+        {
+            Cleanup(source);
+            Cleanup(target);
+        }
+    }
+
     [Fact]
     public void Profile_passwords_travel_in_the_archive()
     {

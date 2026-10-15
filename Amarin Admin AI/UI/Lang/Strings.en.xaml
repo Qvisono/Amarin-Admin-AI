@@ -40,7 +40,7 @@
     <system:String x:Key="S.Access.ContrastDesc" xml:space="preserve">Use the high-contrast theme when Windows uses it</system:String>
     <system:String x:Key="S.Access.FontSize" xml:space="preserve">Chat text size</system:String>
     <system:String x:Key="S.Access.Normal" xml:space="preserve">Normal</system:String>
-    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">Asks before risky actions. Reading needs no approval.</system:String>
+    <system:String x:Key="S.Access.NormalDesc" xml:space="preserve">The SynGuard model decides whether an action needs approval. Reading needs no approval.</system:String>
     <system:String x:Key="S.Access.ReadOnly" xml:space="preserve">Read only</system:String>
     <system:String x:Key="S.Access.ReadOnlyDesc" xml:space="preserve">The model can only look. Every change is refused.</system:String>
     <system:String x:Key="S.Access.SizeHuge" xml:space="preserve">Extra large</system:String>
@@ -1144,7 +1144,7 @@
     <system:String x:Key="S.Customize.AgentPrompt" xml:space="preserve">Technical agent prompt</system:String>
     <system:String x:Key="S.Customize.ChatTitles" xml:space="preserve">Chat titles</system:String>
     <system:String x:Key="S.Customize.GuardDesc" xml:space="preserve">Checks every script and agent action before it runs, and stops anything with a harmful intent: stealing passwords, sending data out, persisting in the system, or evading defences.</system:String>
-    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Protection model</system:String>
+    <system:String x:Key="S.Customize.GuardModel" xml:space="preserve">Protection and normal mode model</system:String>
     <system:String x:Key="S.Customize.Heavy" xml:space="preserve">Heavy tasks</system:String>
     <system:String x:Key="S.Customize.Light" xml:space="preserve">Light tasks</system:String>
     <system:String x:Key="S.Customize.MainPrompt" xml:space="preserve">Main AI prompt</system:String>

@@ -128,3 +128,137 @@ kkYYYkk
 .kYYYk.
 .kYkYk.
 .k...k.
+
+# Значки эмоций (1.35.0): пузырь «emote» над головой и значок «emote-…» в его середину.
+# Мордочка — пара пикселей на глазу, на 48 точках её не прочесть; значок говорит, что Роза чувствует.
+
+particle emote
+.oooooooooooo.
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+owwwwwwwwwwwwo
+.oowwoooooooo.
+..owo.........
+...o..........
+
+particle emote-heart
+.mm.mm.
+mbbmbbm
+mbbbbbm
+.mbbbm.
+..mbm..
+...m...
+
+particle emote-note
+...kk..
+...kkk.
+...k.kk
+...k...
+.kkk...
+kkkk...
+.kk....
+
+particle emote-sparkle
+...Y...
+...Y...
+..YAY..
+YYAAAYY
+..YAY..
+...Y...
+...Y...
+
+particle emote-bulb
+.kkk.
+kYYYk
+kYlYk
+kYYYk
+.kYk.
+.kkk.
+.kAk.
+
+particle emote-dots
+........
+kk.kk.kk
+kk.kk.kk
+
+particle emote-question
+.kkk.
+kk.kk
+...kk
+..kk.
+..k..
+.....
+..k..
+
+particle emote-exclaim
+mm
+mm
+mm
+mm
+..
+mm
+
+particle emote-tear
+..Z..
+..Z..
+.ZLZ.
+ZLLLZ
+ZLLLZ
+.ZZZ.
+
+particle emote-sweat
+.....Z.
+....ZLZ
+k..ZLLZ
+.k.ZLLZ
+....ZZ.
+
+particle emote-fright
+mm.mm
+mm.mm
+mm.mm
+mm.mm
+.....
+mm.mm
+
+particle emote-anger
+.m...m.
+mm...mm
+.......
+mm...mm
+.m...m.
+
+particle emote-hmph
+..uuu...
+.uyyyuu.
+uyyyyyyu
+.uuuuuu.
+
+particle emote-zzz
+BBBB...
+..B....
+.B.BBB.
+BBBB.B.
+...BBB.
+
+particle emote-sigh
+.ZZ..ZZ.
+Z..ZZ..Z
+........
+.ZZ..ZZ.
+Z..ZZ..Z
+
+particle emote-scheme
+.BBBB.
+B....B
+B.BB.B
+B.B..B
+B.BBBB
+B.....
+.BBBB.

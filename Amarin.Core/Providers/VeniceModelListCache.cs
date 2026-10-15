@@ -189,7 +189,7 @@ internal sealed class VeniceModelListCache
                 list = prices.Enrich(provider, list);
             }
 
-            var models = VeniceModelCatalog.FilterAgentic(list);
+            var models = VeniceModelCatalog.FilterAgentic(list, includeDecisions: true);
 
             lock (entry.Gate)
             {

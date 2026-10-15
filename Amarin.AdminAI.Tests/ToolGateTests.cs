@@ -464,6 +464,37 @@ public sealed class ToolGateTests : IDisposable
         Assert.Equal(ApprovalSource.NotRequired, entry.ApprovedBy);
     }
 
+    [Theory]
+    [InlineData(true, true, true, 0)]
+    [InlineData(true, false, false, 1)]
+    [InlineData(false, true, false, 0)]
+    public async Task Chat_decisions_keep_safety_and_approval_separate(bool safe, bool withoutApproval, bool written, int questions)
+    {
+        var path = Path.Combine(_downloads, "decision.txt");
+        var settings = Mode(ApprovalMode.Normal);
+        var queue = new ConfirmationQueue(() => settings);
+        var asked = 0;
+        queue.Changed += () =>
+        {
+            if (queue.TryPeek(out var request))
+            {
+                asked++;
+                queue.Complete(request, approved: false);
+            }
+        };
+        var audit = new AuditLog(Path.Combine(_temp, "profile"));
+        await RunChatAsync(settings, queue, path, "text", guard: (_, _) => Task.FromResult(
+            new SynGuardReport([safe], null, WithoutApproval: [withoutApproval], BlockUnsafe: true)), audit: audit);
+        Assert.Equal(written, File.Exists(path));
+        Assert.Equal(questions, asked);
+        if (!safe)
+        {
+            var entry = Assert.Single(audit.ReadAll());
+            Assert.Equal(AuditGuard.Flagged, entry.Guard);
+            Assert.Equal(ApprovalSource.NotRequired, entry.ApprovedBy);
+        }
+    }
+
     private static async Task<ChatSession> RunChatAsync(
         AppSettings settings,
         ConfirmationQueue? queue,

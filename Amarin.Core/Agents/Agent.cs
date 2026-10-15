@@ -244,7 +244,9 @@ Paths on this machine - use these exact values, never wildcards:
     private readonly record struct GuardVerdicts(
         HashSet<string> Refused,
         HashSet<string> Approved,
-        SynGuardOutcome? Outcome = null)
+        SynGuardOutcome? Outcome = null,
+        IReadOnlyDictionary<string, bool>? WithoutApproval = null,
+        bool ModelBlocked = false)
     {
         public static GuardVerdicts Empty => new(
             new HashSet<string>(StringComparer.Ordinal),
@@ -273,10 +275,8 @@ Paths on this machine - use these exact values, never wildcards:
     /// </summary>
     /// <remarks>
     /// Весь раунд одним запросом: шесть инструментов иначе стоили бы шести проверок, а связку
-    /// из двух безобидных по отдельности вызовов не увидел бы никто. Помеченный вызов не
-    /// запрещается молча: защитник ошибается — тот же планировщик он читает как закрепление в
-    /// системе, — и без вопроса его ошибка становится тупиком, из которого человек не выведет
-    /// работу иначе как выключив защиту целиком.
+    /// из двух безобидных по отдельности вызовов не увидел бы никто. Текстовые модели сохраняют
+    /// ручное подтверждение помеченных вызовов; строгий отчёт Decisions блокирует их напрямую.
     /// </remarks>
     private async Task<GuardVerdicts> AskGuardAsync(
         string task,
@@ -297,7 +297,8 @@ Paths on this machine - use these exact values, never wildcards:
 
         var report = await _ui.RunBusyAsync(
                 Loc.Get("S.AgentRun.GuardCheck"),
-                () => guard(new SynGuardRequest(task ?? "", calls), cancellationToken),
+                () => guard(new SynGuardRequest(task ?? "", calls,
+                    "The AI agent proposes this round of tool calls to carry out its assigned task."), cancellationToken),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -311,7 +312,15 @@ Paths on this machine - use these exact values, never wildcards:
             ? SynGuardOutcome.Unparsed
             : report.Outcome;
         _ui.GuardChecked(outcome);
-        verdicts = verdicts with { Outcome = outcome };
+        verdicts = verdicts with
+        {
+            Outcome = outcome,
+            ModelBlocked = report.BlockUnsafe,
+            WithoutApproval = report.WithoutApproval is { } approvals
+                ? toolCalls.Select((call, i) => (call.Id, Safe: i < approvals.Count && approvals[i]))
+                    .ToDictionary(item => item.Id, item => item.Safe, StringComparer.Ordinal)
+                : null
+        };
 
         for (var i = 0; i < toolCalls.Count; i++)
         {
@@ -321,6 +330,13 @@ Paths on this machine - use these exact values, never wildcards:
             }
 
             var toolCall = toolCalls[i];
+            if (report.BlockUnsafe)
+            {
+                _ui.Warn(SynGuard.BlockedReply(toolCall.Function.Name));
+                verdicts.Refused.Add(toolCall.Id);
+                continue;
+            }
+
             _ui.Warn(Loc.Format("S.AgentRun.GuardFlagged", toolCall.Function.Name));
 
             var approved = await _ui.ConfirmDangerousActionAsync(
@@ -745,7 +761,7 @@ Paths on this machine - use these exact values, never wildcards:
         {
             if (verdicts.Refused.Contains(toolCall.Id))
             {
-                RefuseBlockedCall(toolCall, messages);
+                RefuseBlockedCall(toolCall, messages, verdicts.ModelBlocked);
                 continue;
             }
 
@@ -759,14 +775,15 @@ Paths on this machine - use these exact values, never wildcards:
     }
 
     /// <summary>Отвечает за запрещённый вызов так же, как за неудачный: отказом с объяснением.</summary>
-    private void RefuseBlockedCall(ToolCall toolCall, List<ChatMessage> messages)
+    private void RefuseBlockedCall(ToolCall toolCall, List<ChatMessage> messages, bool modelBlocked)
     {
         var toolName = toolCall.Function.Name;
         _ui.ToolCall(toolName, toolCall.Function.Arguments);
         var result = ToolResult.Fail(SynGuard.BlockedReply(toolName));
         _ui.ToolResult(toolName, result);
         messages.Add(BuildToolMessage(toolCall, result));
-        Audit(toolCall, ToolEffect.Write, AuditOutcome.Refused, ApprovalSource.SynGuardHuman, AuditGuard.Flagged, result);
+        Audit(toolCall, ToolEffect.Write, AuditOutcome.Refused,
+            modelBlocked ? ApprovalSource.NotRequired : ApprovalSource.SynGuardHuman, AuditGuard.Flagged, result);
     }
 
     /// <summary>Строка журнала аудита про вызов. Удачные чтения журнал отбросит сам.</summary>
@@ -820,7 +837,8 @@ Paths on this machine - use these exact values, never wildcards:
             }
 
             var toolName = toolCall.Function.Name;
-            var check = ToolGate.Check(toolName, arguments, settings);
+            var check = ToolGate.ApplyNormalReview(ToolGate.Check(toolName, arguments, settings), settings,
+                verdicts.WithoutApproval?.GetValueOrDefault(toolCall.Id));
             if (!IsParallelSafeToolCall(toolName, arguments) ||
                 check.Refusal is not null || check.Question is not null || check.NeedsSnapshot)
             {
@@ -935,8 +953,10 @@ Paths on this machine - use these exact values, never wildcards:
 
         // Шлюз: выключенный инструмент, режим «только чтение», жёсткие запреты (последний
         // администратор, данные программы) — отказ до всякого вопроса; дальше вопрос, если нужен.
+        var settings = CurrentSettings();
         var decision = await ToolGate.DecideAsync(
-                ToolGate.Check(toolName, arguments, CurrentSettings()),
+                ToolGate.ApplyNormalReview(ToolGate.Check(toolName, arguments, settings), settings,
+                    verdicts.WithoutApproval?.GetValueOrDefault(toolCall.Id)),
                 AskAsync,
                 guardApproved,
                 cancellationToken)

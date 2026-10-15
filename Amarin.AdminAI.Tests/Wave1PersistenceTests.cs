@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Windows;
 using Amarin.Core;
 using Amarin.Tools;
@@ -20,12 +20,12 @@ public sealed class Wave1PersistenceTests
 
     [Theory]
     // Прежнее заводское значение — переписываем.
-    [InlineData(false, "medium", true, null)]
+    [InlineData(false, "medium", false, "medium")]
     // Выбранное руками — не трогаем ни в каком виде.
     [InlineData(false, "high", false, "high")]
     [InlineData(false, null, false, null)]
     [InlineData(true, "medium", true, "medium")]
-    public void The_old_router_default_stops_thinking_and_a_chosen_one_does_not(
+    public void Current_router_reasoning_survives_restarts(
         bool disableThinking,
         string? effort,
         bool expectedDisabled,
@@ -54,13 +54,13 @@ public sealed class Wave1PersistenceTests
     [Theory]
     // Прежнее заводское значение — переписываем: иначе правка досталась бы только новым
     // профилям, а у всех остальных защитник продолжил бы судить по словам в команде.
-    [InlineData(true, null, false, "low")]
-    [InlineData(true, "", false, "low")]
+    [InlineData(true, null, true, null)]
+    [InlineData(true, "", true, "")]
     // Выбранное руками — не трогаем ни в каком виде.
     [InlineData(true, "high", true, "high")]
     [InlineData(false, "medium", false, "medium")]
     [InlineData(false, null, false, null)]
-    public void The_old_guard_default_starts_thinking_and_a_chosen_one_does_not(
+    public void Current_guard_reasoning_survives_restarts(
         bool disableThinking,
         string? effort,
         bool expectedDisabled,
@@ -126,16 +126,16 @@ public sealed class Wave1PersistenceTests
             Assert.Equal("low", loaded.HeavyReasoning.ReasoningEffort);
             Assert.Equal("claude-haiku-5-5", loaded.LiteModelId);
             Assert.Equal("medium", loaded.LiteReasoning.ReasoningEffort);
-            Assert.Equal("deepseek-v4-flash-0731", loaded.RouterModelId);
+            Assert.Equal(AppSettings.FactoryDecisionModelId, loaded.RouterModelId);
             Assert.True(loaded.RouterReasoning.DisableThinking);
             Assert.Equal("deepseek-v4-flash-0731", loaded.TitleModelId);
             Assert.True(loaded.TitleReasoning.DisableThinking);
-            Assert.Equal("deepseek-v4-flash-0731", loaded.AgentFastModelId);
-            Assert.Equal("medium", loaded.AgentFastReasoning.ReasoningEffort);
+            Assert.Equal(AppSettings.FactoryLiteModelId, loaded.AgentFastModelId);
+            Assert.True(loaded.AgentFastReasoning.DisableThinking);
             Assert.Equal("claude-haiku-5-5", loaded.AgentLiteModelId);
-            Assert.Equal("low", loaded.AgentLiteReasoning.ReasoningEffort);
-            Assert.Equal("grok-4-7", loaded.AgentHeavyModelId);
-            Assert.Equal("medium", loaded.AgentHeavyReasoning.ReasoningEffort);
+            Assert.Equal("medium", loaded.AgentLiteReasoning.ReasoningEffort);
+            Assert.Equal(AppSettings.FactoryHeavyModelId, loaded.AgentHeavyModelId);
+            Assert.Equal("high", loaded.AgentHeavyReasoning.ReasoningEffort);
             Assert.Equal("claude-haiku-5-5", loaded.SummaryModelId);
             Assert.Equal("low", loaded.SummaryReasoning.ReasoningEffort);
             Assert.Null(loaded.WebSearchProvider);
@@ -144,9 +144,9 @@ public sealed class Wave1PersistenceTests
             // запроса на раунд инструментов агента.
             Assert.True(loaded.SynGuardEnabled);
             Assert.True(AppSettings.CreateDefault().SynGuardEnabled);
-            Assert.Equal("deepseek-v4-flash-0731", loaded.SynGuardModelId);
-            Assert.False(loaded.SynGuardReasoning.DisableThinking);
-            Assert.Equal("low", loaded.SynGuardReasoning.ReasoningEffort);
+            Assert.Equal(AppSettings.FactoryDecisionModelId, loaded.SynGuardModelId);
+            Assert.True(loaded.SynGuardReasoning.DisableThinking);
+            Assert.Null(loaded.SynGuardReasoning.ReasoningEffort);
             Assert.True(AppSettings.CreateDefault().AutoScroll);
             Assert.Equal(ApprovalMode.Normal, AppSettings.CreateDefault().ApprovalMode);
             Assert.Equal("", AppSettings.CreateDefault().MainPrompt);

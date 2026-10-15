@@ -104,10 +104,11 @@ internal sealed partial class ChatEngine
 
         // Маршрутизатор судит о трудности - значит должен знать, между кем выбирает. Блок идёт
         // последним: последний абзац промпта обещает, что модели названы ниже.
+        var models = ModelBriefing.ForRouter(liteId, heavyId, _venice.ResolveModelInfo);
         var system = RouterSystemPrompt
                      + Environment.NewLine
                      + Environment.NewLine
-                     + ModelBriefing.ForRouter(liteId, heavyId, _venice.ResolveModelInfo);
+                     + models;
 
         // Прежде здесь стоял SetActiveModel(routerId): маршрутизатор на время своего запроса
         // подменял активную модель всему приложению. Модель запроса и так уходит параметром, а
@@ -115,18 +116,12 @@ internal sealed partial class ChatEngine
         using var charge = VeniceClient.ChargeAs(VeniceSku.Router);
         try
         {
-            var response = await _venice.CreateChatCompletionAsync(
+            var response = await _venice.CreateRoutingCompletionAsync(
                     routerId,
-                    [
-                        new ChatMessage { Role = "system", Content = ChatContent.Text(system) },
-                        new ChatMessage
-                        {
-                            Role = "user",
-                            Content = ChatContent.Text(BuildRouterUserMessage(userText, previousUserText))
-                        }
-                    ],
-                    tools: null,
-                    toolChoice: null,
+                    system,
+                    BuildRouterUserMessage(userText, previousUserText),
+                    ["lite", "heavy"],
+                    RoutingDecisions.ChatQuestion(models),
                     BuildVeniceParameters(_options),
                     cancellationToken,
                     (settings.RouterReasoning ?? new ReasoningSettings()).ToChoice(),

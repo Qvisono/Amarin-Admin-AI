@@ -95,14 +95,18 @@ public sealed class FoxSpriteTests
         Assert.NotEqual('.', ball[2][2]);
     }
 
-    /// <summary>Части тела меряются от глаза сидящего Розы: нос слева ниже глаза, уши над ним, хвост обвивает лапы спереди.</summary>
+    /// <summary>
+    /// Части тела меряются от глаза сидящего Розы: нос слева ниже глаза, уши над ним, хвост лежит на
+    /// полу позади крупа. Низ крупа у пола — спина, а не хвост: дёрнуть за хвост там нельзя.
+    /// </summary>
     [Theory]
-    [InlineData(7, 18, "Nose")]
-    [InlineData(10, 4, "Ear")]
-    [InlineData(12, 20, "Chin")]
-    [InlineData(16, 13, "Head")]
-    [InlineData(22, 30, "Back")]
-    [InlineData(25, 42, "Tail")]
+    [InlineData(7, 23, "Nose")]
+    [InlineData(10, 9, "Ear")]
+    [InlineData(12, 25, "Chin")]
+    [InlineData(16, 18, "Head")]
+    [InlineData(22, 35, "Back")]
+    [InlineData(26, 44, "Back")]
+    [InlineData(40, 44, "Tail")]
     public void Regions_of_the_sitting_fox_are_measured_from_the_eye(int x, int y, string expected)
     {
         var sit = Sprites.Animations["sit"].Frames[0];

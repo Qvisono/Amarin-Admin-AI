@@ -489,8 +489,8 @@ internal sealed partial class FoxStage
             return FoxRegion.Head;
         }
 
-        // Хвост обвивает лапы спереди снизу — так нарисован сидящий Роза.
-        return dy >= 23 && dx >= 7 ? FoxRegion.Tail : FoxRegion.Back;
+        // Хвост лежит на полу позади крупа — так нарисован сидящий Роза; низ крупа у пола — ещё спина.
+        return dy >= 20 && dx >= 20 ? FoxRegion.Tail : FoxRegion.Back;
     }
 
     /// <summary>Погладить из меню.</summary>

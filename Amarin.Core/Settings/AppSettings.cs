@@ -273,20 +273,22 @@ public sealed class AppSettings
 
     public const string FactoryHeavyModelId = "claude-sonnet-5-5";
 
-    public const string FactoryAgentHeavyModelId = "grok-4-7";
+    public const string FactoryAgentHeavyModelId = FactoryHeavyModelId;
+
+    public const string FactoryDecisionModelId = "openrouter:typesafe/jev-1.13";
 
     /// <summary>
     /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
     /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз.
     /// </summary>
-    public const int CurrentFactoryModels = 1;
+    public const int CurrentFactoryModels = 2;
 
     /// <summary>
     /// Какие заводские модели уже стоят у этого профиля. Отметка нужна, потому что заводская
     /// модель 1.33 неотличима от выбранной вручную той же: без отметки человек, сам вернувший
     /// себе прежнюю модель, получал бы подмену на каждом запуске.
     /// </summary>
-    public int FactoryModelsRevision { get; set; }
+    public int FactoryModelsRevision { get; set; } = CurrentFactoryModels;
 
     /// <summary>
     /// Модель чата. <c>auto</c> — маршрутизатор выбирает между лёгким и тяжёлым слотом.
@@ -316,7 +318,7 @@ public sealed class AppSettings
         ReasoningEffort = "low"
     };
 
-    public string RouterModelId { get; set; } = DefaultFastModelId;
+    public string RouterModelId { get; set; } = FactoryDecisionModelId;
 
     /// <summary>
     /// Маршрутизатор отвечает одним словом, и размышление перед ним только оплачивается.
@@ -330,7 +332,7 @@ public sealed class AppSettings
 
     public string TitleModelId { get; set; } = DefaultFastModelId;
 
-    public ReasoningSettings TitleReasoning { get; set; } = new();
+    public ReasoningSettings TitleReasoning { get; set; } = new() { DisableThinking = true };
 
     /// <summary>
     /// Быстрая дешёвая модель: маршрутизатор, заголовки и быстрый уровень агента.
@@ -338,16 +340,13 @@ public sealed class AppSettings
     public const string DefaultFastModelId = "deepseek-v4-flash-0731";
 
     /// <summary>
-    /// Дешёвый уровень — для работы, которой не нужен флагман, или когда человек просит быстрее.
-    /// Размышление «medium»: у этой модели уровня medium нет, и он сводится к ближайшему (low),
-    /// но выбранный человеком уровень остаётся записанным, если модель сменят.
+    /// Быстрый уровень: Claude Haiku без размышления.
     /// </summary>
-    public string AgentFastModelId { get; set; } = DefaultFastModelId;
+    public string AgentFastModelId { get; set; } = FactoryLiteModelId;
 
     public ReasoningSettings AgentFastReasoning { get; set; } = new()
     {
-        DisableThinking = false,
-        ReasoningEffort = "medium"
+        DisableThinking = true
     };
 
     public string AgentLiteModelId { get; set; } = FactoryLiteModelId;
@@ -355,7 +354,7 @@ public sealed class AppSettings
     public ReasoningSettings AgentLiteReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "low"
+        ReasoningEffort = "medium"
     };
 
     public string AgentHeavyModelId { get; set; } = FactoryAgentHeavyModelId;
@@ -363,7 +362,7 @@ public sealed class AppSettings
     public ReasoningSettings AgentHeavyReasoning { get; set; } = new()
     {
         DisableThinking = false,
-        ReasoningEffort = "medium"
+        ReasoningEffort = "high"
     };
 
     /// <summary>
@@ -379,15 +378,11 @@ public sealed class AppSettings
     public string SynGuardModelId { get; set; } = SynGuard.FallbackModelId;
 
     /// <summary>
-    /// Защитник отвечает одним словом на вызов, но решает при этом, вредонос перед ним или
-    /// работа: дешёвая модель без размышления судила по словам в команде — «планировщик»,
-    /// «Hidden», «Bypass», — и останавливала то, о чём человек сам и просил. Отсюда «low»:
-    /// подумать перед вердиктом, но не оплачивать долгое размышление на каждом раунде.
+    /// Decisions возвращает оценку без отдельного текстового размышления.
     /// </summary>
     public ReasoningSettings SynGuardReasoning { get; set; } = new()
     {
-        DisableThinking = false,
-        ReasoningEffort = "low"
+        DisableThinking = true
     };
 
     /// <summary>

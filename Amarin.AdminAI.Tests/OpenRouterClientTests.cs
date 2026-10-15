@@ -252,18 +252,40 @@ public sealed class OpenRouterClientTests
     // ───────────────────────── каталог ─────────────────────────
 
     /// <summary>
-    /// Отбор по поддержке инструментов делает сам сервер: без них модель этой программе
-    /// бесполезна, а полный список — под четыре сотни строк на каждое обновление.
+    /// Общий каталог включает Decisions без инструментов: отбор зависит от слота.
     /// </summary>
     [Fact]
-    public async Task The_catalogue_is_filtered_on_the_server()
+    public async Task The_catalogue_includes_models_without_tools_for_the_router()
     {
         var (client, _, recorder) = Build((_, _) => Json(Models()));
 
         await client.ListTextModelsAsync();
 
-        Assert.Contains("supported_parameters=tools", recorder.Urls[0], StringComparison.Ordinal);
-        Assert.StartsWith("https://openrouter.ai/api/v1/", recorder.Urls[0], StringComparison.Ordinal);
+        Assert.Equal("https://openrouter.ai/api/v1/models?output_modalities=text,decisions", recorder.Urls[0]);
+    }
+
+    [Fact]
+    public async Task Decision_models_are_requested_explicitly_and_reach_both_decision_slots()
+    {
+        const string id = "openrouter:microsoft/microsoft-decision-1";
+        var (client, keys, _) = Build((request, _) =>
+            Json(request.RequestUri!.Query == "?output_modalities=text,decisions"
+                ? """
+                  {"data":[
+                    {"id":"vendor/chat","architecture":{"input_modalities":["text"],"output_modalities":["text"]},"supported_parameters":["tools"]},
+                    {"id":"microsoft/microsoft-decision-1","architecture":{"input_modalities":["text"],"output_modalities":["decisions"]},"supported_parameters":[]}
+                  ]}
+                  """
+                : Models()));
+        var cache = new VeniceModelListCache(client, keys);
+        await cache.LoadAsync(LlmProvider.OpenRouter);
+        var models = Assert.IsAssignableFrom<IReadOnlyList<VeniceModelInfo>>(cache.CachedFor(LlmProvider.OpenRouter));
+        Assert.Contains(models, model => model.Id == "openrouter:vendor/chat");
+        foreach (var slot in new[] { ModelSlot.Router, ModelSlot.SynGuard })
+        {
+            Assert.Contains(VeniceModelCatalog.ForSlot(models, slot), model => model.Id == id && model.Type == "decisions");
+        }
+        Assert.DoesNotContain(VeniceModelCatalog.ForSlot(models, ModelSlot.Chat), model => model.Id == id);
     }
 
     [Fact]

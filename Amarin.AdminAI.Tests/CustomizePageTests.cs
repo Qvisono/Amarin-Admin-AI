@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Amarin.UI;
+using Amarin.Core;
 
 namespace Amarin.AdminAI.Tests;
 
@@ -133,7 +134,7 @@ public sealed class CustomizePageTests
         Assert.True(unfolded, "пункт раскрыли, а выбора модели под ним нет");
 
         // Именно голый ID: строка служебная, и в ней важно точно знать, что стоит в настройке.
-        Assert.Equal("deepseek-v4-flash-0731", label);
+        Assert.Equal(AppSettings.FactoryDecisionModelId, label);
     }
 
     [Fact]

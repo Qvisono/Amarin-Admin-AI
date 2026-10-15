@@ -66,6 +66,29 @@ public sealed class ModelPickerPanelTests
     private static ItemsControl Models(ModelPickerPanel panel) =>
         (ItemsControl)panel.FindName("ModelItems")!;
 
+    [Theory]
+    [InlineData(ModelSlot.Router, true)]
+    [InlineData(ModelSlot.SynGuard, true)]
+    [InlineData(ModelSlot.Chat, false)]
+    public void Decision_models_appear_and_keep_selection_only_in_the_router_catalog(ModelSlot slot, bool expected)
+    {
+        const string id = "openrouter:typesafe/jev";
+        var rows = Shown(panel =>
+        {
+            panel.SetKeys(BothProviders());
+            panel.SetCatalog(LlmProvider.OpenRouter, VeniceModelCatalog.ForSlot(
+                [new VeniceModelInfo { Id = id, Type = "decisions" },
+                 new VeniceModelInfo { Id = "openrouter:vendor/chat", Type = "text" }], slot));
+            panel.SetSelected(id, "o1");
+            panel.ShowSelectedProvider();
+        }, panel => Models(panel).Items.OfType<ModelPickerRow>().Select(row => (row.Id, row.IsSelected)).ToList());
+        Assert.Equal(expected, rows.Any(row => row.Id == id));
+        if (expected)
+        {
+            Assert.True(rows.Single(row => row.Id == id).IsSelected);
+        }
+    }
+
     private static IEnumerable<string> Labels(Panel panel) =>
         panel.Children
             .OfType<ContentControl>()

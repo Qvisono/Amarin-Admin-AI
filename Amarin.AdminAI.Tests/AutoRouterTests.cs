@@ -135,19 +135,65 @@ public sealed class AutoRouterTests
         return routed;
     }
 
-    private static (ChatEngine Engine, ChatSession Session) Engine(ScriptedHandler handler, AppSettings settings)
+    [Theory]
+    [InlineData("lite", "openrouter:vendor/lite")]
+    [InlineData("heavy", "openrouter:vendor/heavy")]
+    [InlineData("unexpected", "openrouter:vendor/lite")]
+    public async Task Decision_router_selects_the_chat_model_and_preserves_its_cost(string choice, string expected)
+    {
+        const string routerId = "openrouter:typesafe/jev";
+        string? actual = null;
+        var handler = new ScriptedHandler((request, body) =>
+        {
+            if (request.RequestUri?.AbsolutePath == "/api/alpha/decisions")
+            {
+                using var json = JsonDocument.Parse(body);
+                var question = json.RootElement.GetProperty("questions").GetProperty("tier");
+                Assert.StartsWith(RoutingDecisions.ChatInstructions, question.GetProperty("instructions").GetString());
+                Assert.DoesNotContain("Reply with exactly one word", question.GetProperty("instructions").GetString());
+                Assert.Equal(RoutingDecisions.ChatLite, question.GetProperty("criteria").GetProperty("lite").GetString());
+                Assert.Equal(["lite", "heavy"], json.RootElement.GetProperty("questions").GetProperty("tier")
+                    .GetProperty("criteria").EnumerateObject().Select(p => p.Name));
+                return Json("{\"answers\":{\"tier\":{\"type\":\"choice\",\"choice\":\"" + choice +
+                    "\"}},\"usage\":{\"cost\":0.003,\"input_tokens\":40,\"output_tokens\":2}}");
+            }
+
+            if (body.Contains("\"stream\":true", StringComparison.Ordinal))
+            {
+                using var json = JsonDocument.Parse(body);
+                actual = "openrouter:" + json.RootElement.GetProperty("model").GetString();
+                return Sse("Готово");
+            }
+
+            return Json("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"title\"}}]}");
+        });
+        var (engine, session) = Engine(handler, new AppSettings
+        {
+            ChatModelId = "auto", LiteModelId = "openrouter:vendor/lite",
+            HeavyModelId = "openrouter:vendor/heavy", RouterModelId = routerId
+        }, new VeniceModelInfo { Id = routerId, Type = "decisions" });
+        await engine.RunTurnAsync(session, "user request", new SilentObserver(), CancellationToken.None);
+        Assert.Equal(expected, actual);
+        Assert.Equal(0.003m, session.Messages.Last(message => message.Role == "assistant").RouterCost?.Usd);
+    }
+
+    private static (ChatEngine Engine, ChatSession Session) Engine(
+        ScriptedHandler handler, AppSettings settings, VeniceModelInfo? router = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
         var options = new AgentOptions
         {
             ApiKey = "test",
+            Binding = router is null ? null : new ApiCredential(LlmProvider.OpenRouter, "test"),
             BaseUrl = "https://api.venice.ai/api/v1",
             Model = "grok-4-6",
             MaxToolRounds = 2
         };
 
         return (
-            new ChatEngine(new VeniceClient(http, options), options, () => settings, new ToolRegistry([])),
+            new ChatEngine(new VeniceClient(http, options)
+            { ResolveModelInfo = router is null ? null : id => id == router.Id ? router : null },
+                options, () => settings, new ToolRegistry([])),
             new ChatSession { Id = "s1", SelectedModelId = "auto" });
     }
 

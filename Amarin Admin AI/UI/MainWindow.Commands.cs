@@ -77,7 +77,7 @@ namespace Amarin.UI
             var candidates = new List<(string Id, string Name)> { ("auto", VeniceModelCatalog.GetDisplayName("auto")) };
             foreach (var provider in _services.Keys.Providers.Select(spec => spec.Provider))
             {
-                foreach (var model in _services.Models.CachedFor(provider) ?? [])
+                foreach (var model in VeniceModelCatalog.ForSlot(_services.Models.CachedFor(provider) ?? [], ModelSlot.Chat))
                 {
                     var id = ModelRef.Qualify(provider, model.Id);
                     candidates.Add((id, VeniceModelCatalog.GetDisplayName(id)));

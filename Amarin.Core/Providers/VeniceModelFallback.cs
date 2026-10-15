@@ -5,7 +5,7 @@ internal static class VeniceModelFallback
     public static readonly string[] FallbackModels =
     [
         AppSettings.FactoryHeavyModelId,
-        AppSettings.FactoryAgentHeavyModelId,
+        "grok-4-7",
         "openai-gpt-53-codex",
         "kimi-k2-7-code"
     ];

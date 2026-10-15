@@ -148,16 +148,16 @@ public sealed partial class VeniceClient
     /// Каталог OpenRouter, приведённый к тому же виду, что и каталог Venice.
     /// </summary>
     /// <remarks>
-    /// Отбор по <c>supported_parameters=tools</c> делает сам OpenRouter: без вызова
-    /// инструментов модель этой программе не нужна вовсе, а список без отбора — под четыре
-    /// сотни строк, которые пришлось бы качать и разбирать целиком на каждое обновление.
+    /// Каталог общий для всех слотов: фильтр tools исключил бы Decisions, которые нужны
+    /// маршрутизатору и SynGuard. Без output_modalities OpenRouter возвращает только текстовые
+    /// модели, поэтому обе выходные модальности запрашиваем явно.
     /// </remarks>
     private async Task<IReadOnlyList<VeniceModelInfo>> ListOpenRouterModelsAsync(
         ApiCredential credential,
         CancellationToken cancellationToken)
     {
         var body = await GetJsonAsync(
-                "models?supported_parameters=tools", credential, trackBalance: false, cancellationToken)
+                "models?output_modalities=text,decisions", credential, trackBalance: false, cancellationToken)
             .ConfigureAwait(false);
 
         try

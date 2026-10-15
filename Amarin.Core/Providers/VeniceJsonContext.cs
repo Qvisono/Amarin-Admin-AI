@@ -16,6 +16,7 @@ namespace Amarin.Core;
 [JsonSerializable(typeof(VeniceUsagePage))]
 [JsonSerializable(typeof(VeniceRateLimitsResponse))]
 [JsonSerializable(typeof(OpenRouterModelsResponse))]
+[JsonSerializable(typeof(OpenRouterDecisionResponse))]
 [JsonSerializable(typeof(OpenRouterBatchSubmit))]
 [JsonSerializable(typeof(OpenRouterBatchObject))]
 [JsonSerializable(typeof(OpenRouterKeyResponse))]
