@@ -52,6 +52,44 @@ public sealed class FoxSpriteTests
         }
     }
 
+    /// <summary>Позы лёжа: опора у них — бок и живот, а не лапы.</summary>
+    private static readonly HashSet<string> Lying = ["lie", "liedown", "liewag", "stretch", "sleep"];
+
+    /// <summary>
+    /// Опора кадра — нижняя строка рисунка, и это должны быть лапы. У испуга и злости ниже лап свисал
+    /// кончик хвоста, сцена ставила его на кромку, и Роза балансировал на хвосте (D4).
+    /// </summary>
+    [Fact]
+    public void Every_pose_on_an_edge_stands_on_its_paws_not_on_its_tail()
+    {
+        foreach (var (name, animation) in Sprites.Animations.Where(pair => !Unground.Contains(pair.Key) && !Lying.Contains(pair.Key)))
+        {
+            for (var i = 0; i < animation.Frames.Count; i++)
+            {
+                var rows = animation.Frames[i].Rows;
+                var ground = Array.FindLastIndex(rows, row => row.AsSpan().ContainsAnyExcept('.'));
+                var paws = rows[ground] + rows[ground - 1];
+                Assert.True(paws.Contains('d') || paws.Contains('n'), $"{name} #{i}: на опоре нет лап");
+            }
+        }
+    }
+
+    /// <summary>Рисунок не упирается в правый край кадра: хвост там обрывался без обводки (D4).</summary>
+    [Fact]
+    public void Nothing_is_cut_by_the_right_edge_of_the_frame()
+    {
+        foreach (var (name, animation) in Sprites.Animations)
+        {
+            Assert.All(animation.Frames, frame => Assert.All(frame.Rows, row =>
+                Assert.True(row.Length < FoxSprites.FrameSize || row[^1] == '.', name)));
+        }
+    }
+
+    /// <summary>Лапки на глазах: мордочка легла бы поверх них, поэтому якоря у кадра нет.</summary>
+    [Fact]
+    public void Covering_the_eyes_carries_no_face_anchor() =>
+        Assert.All(Sprites.Animations["cover"].Frames, frame => Assert.Null(frame.Head));
+
     /// <summary>Лица кладутся на якорь головы: у сидячих реакций он обязан быть, иначе мордочка не ляжет.</summary>
     [Fact]
     public void Reactions_that_carry_a_face_have_a_head_anchor()
@@ -74,7 +112,7 @@ public sealed class FoxSpriteTests
         var anims = Names(@"(?:FoxAction\.Anim|Play|React)\(""([a-z]+)""")
             .Concat(Names(@"Play\(""[a-z]+"", ""([a-z]+)""\)"));
         var faces = Names(@"FoxAction\.Face\(""([a-z]+)""").Concat(Names(@"_face = ""([a-z]+)"""));
-        var particles = Names(@"(?:FoxAction\.Particle|Burst)\(""([a-z]+)""").Concat(Names(@"Particle\(""([a-z]+)""\)"));
+        var particles = Names(@"(?:FoxAction\.Particle|Burst)\(""([a-z-]+)""").Concat(Names(@"Particle\(""([a-z-]+)""\)"));
         var items = Names(@"FoxAction\.Item\(""([a-z]+)""").Concat(Names(@"_item = ""([a-z]+)""")).Concat(Names(@"\.Item\(""([a-z]+)""\)"));
 
         Assert.All(anims, name => Assert.True(Sprites.Animations.ContainsKey(name), "анимация " + name));

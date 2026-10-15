@@ -262,3 +262,63 @@ B.B..B
 B.BBBB
 B.....
 .BBBB.
+
+# Эффекты (1.35.0, D4): волны дрожи по бокам, зубы большого куся (сцена смыкает их над курсором
+# полупрозрачными), следы когтей, полосы скорости.
+
+particle tremble-l
+..r..r
+.r..r.
+r..r..
+r..r..
+r..r..
+.r..r.
+..r..r
+
+particle tremble-r
+r..r..
+.r..r.
+..r..r
+..r..r
+..r..r
+.r..r.
+r..r..
+
+particle jaws-top
+.oooooooooooooooooooo.
+ommmmmmmmmmmmmmmmmmmmo
+ommmmmmmmmmmmmmmmmmmmo
+owwwvwwwvwwwvwwwvwwwvo
+owwwvwwwvwwwvwwwvwwwvo
+.owwoowwoowwoowwoowwo.
+.owwo.oo..oo..oo.owwo.
+.owwo............owwo.
+..oo..............oo..
+
+particle jaws-bottom
+..oo..............oo..
+.owwo.oo..oo..oo.owwo.
+.owwoowwoowwoowwoowwo.
+owwwvwwwvwwwvwwwvwwwvo
+owwwvwwwvwwwvwwwvwwwvo
+ommmmmmmmmmmmmmmmmmmmo
+ommmmmmmmmmmmmmmmmmmmo
+.oooooooooooooooooooo.
+
+particle claw
+.......o..o..o.
+......owoowoowo
+.....owoowoowo.
+....owoowoowo..
+...owoowoowo...
+..owoowoowo....
+.owoowoowo.....
+owoowoowo......
+.o..o..o.......
+
+particle speed
+rrrr....
+........
+..rrrrrr
+........
+rrrrr...
