@@ -60,7 +60,10 @@ public sealed class FactoryModelsTests : IDisposable
         Assert.Equal(VeniceModelCatalog.AutoId, settings.ChatModelId);
         Assert.Equal(("claude-haiku-5-5", "medium"), (settings.LiteModelId, settings.LiteReasoning.ReasoningEffort));
         Assert.Equal(("claude-sonnet-5-5", "low"), (settings.HeavyModelId, settings.HeavyReasoning.ReasoningEffort));
-        Assert.Equal(("openrouter:typesafe/jev-1.13", true), (settings.RouterModelId, settings.RouterReasoning.DisableThinking));
+        Assert.Equal(("openrouter:typesafe/jev-1.14", true), (settings.RouterModelId, settings.RouterReasoning.DisableThinking));
+        Assert.Equal(("openrouter:typesafe/jev-1.14", true), (settings.SynGuardModelId, settings.SynGuardReasoning.DisableThinking));
+        Assert.Equal(("openrouter:aion-labs/aion-3.5-mini", "low"), (settings.FoxModelId, settings.FoxReasoning.ReasoningEffort));
+        Assert.False(settings.FoxReasoning.DisableThinking);
         Assert.Equal(("claude-haiku-5-5", true), (settings.AgentFastModelId, settings.AgentFastReasoning.DisableThinking));
         Assert.Equal(("claude-haiku-5-5", "medium"), (settings.AgentLiteModelId, settings.AgentLiteReasoning.ReasoningEffort));
         Assert.Equal(("claude-sonnet-5-5", "high"), (settings.AgentHeavyModelId, settings.AgentHeavyReasoning.ReasoningEffort));
@@ -154,9 +157,11 @@ public sealed class FactoryModelsTests : IDisposable
     private static List<VeniceModelInfo> Catalog(params string[] ids) =>
         [.. ids.Select(id => new VeniceModelInfo { Id = id })];
 
+    /// <remarks>Ревизия 2 — профиль, уже прошедший замену beta.1: beta.2 меняет его модели ещё раз.</remarks>
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
+    [InlineData(2)]
     public void Beta_resets_every_slot_in_each_profile_once_and_preserves_other_settings(int revision)
     {
         foreach (var profile in new[] { "first", "second" })
@@ -291,7 +296,7 @@ public sealed class FactoryModelsTests : IDisposable
     public void Slots_move_only_to_the_chosen_key_provider()
     {
         var settings = AppSettings.CreateDefault();
-        var openRouter = Catalog("openrouter:anthropic/claude-haiku-5.5", AppSettings.FactoryDecisionModelId);
+        var openRouter = Catalog("openrouter:anthropic/claude-haiku-5.5", AppSettings.FactoryDecisionModelId, AppSettings.FactoryFoxModelId);
 
         var changed = ModelSlotHealing.Heal(
             settings, LlmProvider.OpenRouter, openRouter, LlmProvider.Anthropic,

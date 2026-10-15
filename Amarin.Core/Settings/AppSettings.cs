@@ -277,13 +277,18 @@ public sealed class AppSettings : IJsonOnDeserializing
 
     public const string FactoryAgentHeavyModelId = FactoryHeavyModelId;
 
-    public const string FactoryDecisionModelId = "openrouter:typesafe/jev-1.13";
+    public const string FactoryDecisionModelId = "openrouter:typesafe/jev-1.14";
+
+    /// <summary>Заводская модель Розы (1.35.0-beta.2): ролевая и дешёвая, у OpenRouter.</summary>
+    public const string FactoryFoxModelId = "openrouter:aion-labs/aion-3.5-mini";
 
     /// <summary>
     /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
-    /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз.
+    /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз. Номер
+    /// растёт с каждой новой заменой: 2 — 1.35.0-beta.1 (Claude, Jev 1.13), 3 — beta.2 (Jev 1.14,
+    /// Aion 3.5 Mini у Розы); профиль, прошедший прежнюю, проходит и новую.
     /// </summary>
-    public const int CurrentFactoryModels = 2;
+    public const int CurrentFactoryModels = 3;
 
     /// <summary>
     /// Какие заводские модели уже стоят у этого профиля. Отметка нужна, потому что заводская
@@ -417,14 +422,19 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// Модель лисёнка Розы (1.35.0): реплики на переписку, разговор с ним и дневник.
     /// </summary>
     /// <remarks>
-    /// Заводская — лёгкая: Роза отвечает одной-двумя фразами, а зовут его часто. В отличие от
-    /// сводки пустое значение здесь ничего не переносит — слот новый, и старый файл просто
-    /// получает начальное значение свойства.
+    /// Заводская — <see cref="FactoryFoxModelId"/>: Роза отвечает одной-двумя фразами, а зовут
+    /// его часто. В отличие от сводки пустое значение здесь ничего не переносит — слот новый, и
+    /// старый файл просто получает начальное значение свойства.
     /// </remarks>
-    public string FoxModelId { get; set; } = FactoryLiteModelId;
+    public string FoxModelId { get; set; } = FactoryFoxModelId;
 
-    /// <summary>Размышление Розы. Выключено: реплика в пару слов размышления не окупает.</summary>
-    public ReasoningSettings FoxReasoning { get; set; } = new() { DisableThinking = true };
+    /// <summary>
+    /// Размышление Розы — нижний уровень. Реплика в пару слов размышления не окупает, но
+    /// заводская модель не думать не умеет, а без уровня думала бы на своём high.
+    /// </summary>
+    public ReasoningSettings FoxReasoning { get; set; } = FactoryFoxReasoning();
+
+    internal static ReasoningSettings FactoryFoxReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
 
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();

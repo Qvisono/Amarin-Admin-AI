@@ -996,6 +996,15 @@ public sealed partial class VeniceClient
                 ? new ReasoningConfig { Enabled = true }
                 : new ReasoningConfig { Effort = effort };
         }
+        else if (choice is { DisableThinking: true } &&
+                 info?.ModelSpec?.Capabilities is { ReasoningMandatory: true } &&
+                 ReasoningPolicy.VisibleEffortOptions(info, withTools: true) is [var lowest, ..])
+        {
+            // Выключить нельзя, а без поля модель думает на своём уровне по умолчанию — у Aion
+            // 3.5 Mini это high, и «без размышления» становилось самым дорогим. Ближе всего к
+            // просьбе — нижний уровень.
+            reasoning = new ReasoningConfig { Effort = lowest };
+        }
         else if (choice is null && request.Reasoning is { } asked)
         {
             reasoning = asked;

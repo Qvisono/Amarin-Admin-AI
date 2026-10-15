@@ -47,7 +47,7 @@ public sealed class FoxCoreTests : IDisposable
 
     /// <summary>
     /// Файл прежней версии ничего о Розе не знает: он получает заводского Розу — включённого,
-    /// маленького, с лёгкой моделью без размышления, — и никаких переносов.
+    /// среднего, с заводской моделью и нижним уровнем размышления, — и никаких переносов.
     /// </summary>
     [Fact]
     public void Settings_of_an_older_version_get_the_factory_fox()
@@ -61,8 +61,8 @@ public sealed class FoxCoreTests : IDisposable
         Assert.True(settings.Fox.Mischief);
         Assert.True(settings.Fox.ReadChat);
         Assert.True(settings.Fox.WebSearch);
-        Assert.Equal(AppSettings.FactoryLiteModelId, settings.FoxModelId);
-        Assert.True(settings.FoxReasoning.DisableThinking);
+        Assert.Equal(AppSettings.FactoryFoxModelId, settings.FoxModelId);
+        Assert.Equal((false, "low"), (settings.FoxReasoning.DisableThinking, settings.FoxReasoning.ReasoningEffort));
     }
 
     /// <summary>Пустые объекты в руками поправленном файле не роняют чтение: Роза заводской.</summary>
@@ -75,7 +75,7 @@ public sealed class FoxCoreTests : IDisposable
 
         Assert.NotNull(settings.Fox);
         Assert.NotNull(settings.FoxReasoning);
-        Assert.True(settings.FoxReasoning.DisableThinking);
+        Assert.Equal("low", settings.FoxReasoning.ReasoningEffort);
     }
 
     [Theory]

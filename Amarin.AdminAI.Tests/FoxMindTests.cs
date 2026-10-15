@@ -355,6 +355,14 @@ public sealed class FoxMindTests : IDisposable
         var store = new FoxStore(Path.Combine(_root, Guid.NewGuid().ToString("N")), () => false, TimeSpan.FromMilliseconds(10));
         var replies = new ConcurrentQueue<FoxReply>();
         var current = settings ?? new AppSettings();
+
+        // Подставной сервер — Venice; заводская модель Розы — у OpenRouter, и без его ключа
+        // запрос не ушёл бы вовсе.
+        if (ModelRef.Of(current.FoxModelId) != LlmProvider.Venice)
+        {
+            current.FoxModelId = AppSettings.FactoryLiteModelId;
+        }
+
         var mind = new FoxMind(http, options, () => current, store, replies.Enqueue, pause ?? TimeSpan.Zero);
         return new Run(mind, store, replies, http);
     }

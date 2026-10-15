@@ -146,6 +146,36 @@ public sealed class OpenRouterClientTests
     }
 
     /// <summary>
+    /// Модель, у которой размышление не выключается, без поля думает на своём уровне по
+    /// умолчанию (у Aion 3.5 Mini — high). «Без размышления» для неё — нижний уровень из каталога.
+    /// </summary>
+    [Fact]
+    public async Task Disabled_thinking_of_a_model_that_must_think_asks_for_the_lowest_level()
+    {
+        var models = OpenRouterMapper.ToModels(JsonSerializer.Deserialize(
+            """
+            {"data":[{"id":"aion-labs/aion-3.5-mini","supported_parameters":["tools","reasoning","reasoning_effort"],
+              "reasoning":{"mandatory":true,"supported_efforts":["max","high","low"],"default_effort":"high"}}]}
+            """,
+            VeniceJsonContext.Default.OpenRouterModelsResponse)!);
+        var (client, _, recorder) = Build((_, _) => Json(Completion()));
+        client.ResolveModelInfo = id => ReasoningPolicy.Find(models, id);
+
+        await client.CreateChatCompletionAsync(
+            "openrouter:aion-labs/aion-3.5-mini",
+            [User("привет")],
+            tools: null,
+            toolChoice: null,
+            new VeniceParameters(),
+            CancellationToken.None,
+            ReasoningChoice.Disabled);
+
+        Assert.True(models[0].ModelSpec!.Capabilities!.ReasoningMandatory);
+        using var body = JsonDocument.Parse(recorder.Bodies[0]);
+        Assert.Equal("low", body.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
+    }
+
+    /// <summary>
     /// Запрет усилия рядом с инструментами — свойство Venice, а не моделей: тот же GPT-5.x за
     /// OpenRouter принимает и то и другое. Разбор имени этой разницы не видит, имена у
     /// провайдеров одни и те же.

@@ -60,6 +60,10 @@ internal sealed class OpenRouterReasoningInfo
 
     [JsonPropertyName("default_effort")]
     public string? DefaultEffort { get; init; }
+
+    /// <summary>Размышление не выключается: без поля <c>reasoning</c> модель думает на своём уровне.</summary>
+    [JsonPropertyName("mandatory")]
+    public bool Mandatory { get; init; }
 }
 
 internal sealed class OpenRouterPricing
@@ -208,6 +212,7 @@ internal static class OpenRouterMapper
                     SupportsReasoningEffortWithTools = true,
                     ReasoningEffortOptions = effort ? Efforts(model) : null,
                     DefaultReasoningEffort = model.Reasoning?.DefaultEffort,
+                    ReasoningMandatory = model.Reasoning?.Mandatory == true,
                     SupportsVision = Modality(model, "image"),
                     OptimizedForCode = LooksLikeCode(model)
                 }

@@ -637,6 +637,13 @@ public sealed class VeniceModelCapabilities
     [JsonPropertyName("defaultReasoningEffort")]
     public string? DefaultReasoningEffort { get; init; }
 
+    /// <summary>
+    /// Размышление у модели не выключается (каталог OpenRouter, <c>reasoning.mandatory</c>), и
+    /// «без размышления» для неё — самый низкий уровень, а не уровень по умолчанию.
+    /// </summary>
+    [JsonPropertyName("reasoningMandatory")]
+    public bool ReasoningMandatory { get; init; }
+
     [JsonPropertyName("supportsVision")]
     public bool SupportsVision { get; init; }
 

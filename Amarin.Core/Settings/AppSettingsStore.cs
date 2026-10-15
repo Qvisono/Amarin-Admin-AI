@@ -68,7 +68,7 @@ public sealed class AppSettingsStore
             settings.SynGuardReasoning ??= new ReasoningSettings();
             settings.SummaryReasoning ??= new ReasoningSettings();
             changed |= MigrateSummarySlot(settings);
-            settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
+            settings.FoxReasoning ??= AppSettings.FactoryFoxReasoning();
             settings.Fox ??= new FoxSettings();
             changed |= settings.Fox.Normalize();
 
@@ -200,7 +200,8 @@ public sealed class AppSettingsStore
             return false;
         }
 
-        // 1.35 Beta: по требованию выпуска заменяем даже ручной выбор, ровно один раз на профиль.
+        // 1.35 Beta: по требованию выпуска заменяем даже ручной выбор, ровно один раз на профиль
+        // за ревизию.
         var defaults = AppSettings.CreateDefault();
         foreach (var (_, read, write) in ModelSlots.All)
         {
