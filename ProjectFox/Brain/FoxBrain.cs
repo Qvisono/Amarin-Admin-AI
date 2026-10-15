@@ -234,6 +234,7 @@ internal static class FoxBrain
 
             case FoxSignalKind.PlayBall:
             case FoxSignalKind.PlayLaser:
+                state.Energy = Math.Max(0, state.Energy - 10);
                 FoxFriendship.Change(state, FoxFriendship.Gain(2, day.Games));
                 day.Games++;
                 day.Joy += 1;
@@ -376,7 +377,18 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.SettingsClosed:
+            case FoxSignalKind.ViewerClosed:
                 actions.Add(FoxAction.Go("home"));
+                break;
+
+            case FoxSignalKind.ViewerOpened:
+                actions.Add(FoxAction.Go("viewer"));
+                actions.Add(FoxAction.Face("curious", 1800));
+                if (random.Next(2) == 0)
+                {
+                    say("Viewer");
+                }
+
                 break;
 
             case FoxSignalKind.DangerAsked:
@@ -519,6 +531,10 @@ internal static class FoxBrain
         var minutes = Math.Clamp(seconds, 0, 600) / 60;
         state.LastSeenAt = now;
 
+        // Силы: во сне копятся, наяву понемногу тают, ночью быстрее.
+        var drain = situation.Asleep ? -3 : now.Hour is >= 22 or < 7 ? 0.5 : 0.2;
+        state.Energy = Math.Clamp(state.Energy - (drain * minutes), 0, 100);
+
         // Обида проходит сама: десять делений в час — сильная держится полдня.
         FoxFriendship.Resent(state, -minutes * 10 / 60);
         if (situation.WindowActive && !situation.Covered && !situation.Away)
@@ -570,6 +586,7 @@ internal static class FoxBrain
         // Своя воля: чем заняться, пока никто не трогает. Слово к занятию — не всегда.
         if (FoxWill.Choose(state, situation, now, random) is { } activity)
         {
+            Tire(state, activity);
             actions.Add(FoxAction.Do(activity));
             if (ActivityPhrase(activity) is { } reason && random.Next(2) == 0)
             {
@@ -812,6 +829,10 @@ internal static class FoxBrain
         actions.Add(FoxAction.Face("curious", 1400));
     }
 
+    /// <summary>Занятие забирает силы (или, отдых, возвращает).</summary>
+    private static void Tire(FoxState state, string activity) =>
+        state.Energy = Math.Clamp(state.Energy - FoxWill.Cost(activity), 0, 100);
+
     private static void Mischief(FoxState state, DateTime now, List<FoxAction> actions, Action<string> say, Random random)
     {
         state.LastMischiefAt = now;
@@ -857,12 +878,16 @@ internal static class FoxBrain
                 break;
             case FoxActs.Play when situation.Motion && !situation.Holding:
                 string[] games = [FoxWill.Fetch, FoxWill.HideSeek, FoxWill.Catch];
-                actions.Add(FoxAction.Do(games[random.Next(games.Length)]));
+                var game = games[random.Next(games.Length)];
+                Tire(state, game);
+                actions.Add(FoxAction.Do(game));
                 break;
             case FoxActs.Strut when situation.Motion && !situation.Holding:
+                Tire(state, FoxWill.Strut);
                 actions.Add(FoxAction.Do(FoxWill.Strut));
                 break;
             case FoxActs.Wander when situation.Motion && !situation.Holding:
+                Tire(state, FoxWill.Wander);
                 actions.Add(FoxAction.Do(FoxWill.Wander));
                 break;
         }

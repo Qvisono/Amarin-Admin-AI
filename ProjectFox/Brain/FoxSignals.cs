@@ -96,7 +96,11 @@ internal enum FoxSignalKind
     Caught,
 
     /// <summary>Роза принёс мячик и звал играть, а мячик не бросили.</summary>
-    GameIgnored
+    GameIgnored,
+
+    /// <summary>Открыли журнал действий или «Состояние ПК»: выглядывает из-за верха карточки.</summary>
+    ViewerOpened,
+    ViewerClosed
 }
 
 /// <summary>Сигнал мозгу: вид и необязательные текст, имя и число.</summary>

@@ -114,6 +114,45 @@ public sealed class FoxWillTests
         Assert.Equal([FoxWill.Lie], FoxWill.Weights(state, Calm with { Motion = false }, Noon).Select(option => option.Activity));
     }
 
+    /// <summary>Уставший лежит и засыпает охотнее, чем бегает, — и без анимаций может вздремнуть.</summary>
+    [Fact]
+    public void A_tired_fox_rests_and_a_lively_one_plays()
+    {
+        var tired = Known();
+        tired.Energy = 10;
+        tired.Boredom = 60;
+        var lively = Known();
+        lively.Energy = 95;
+        lively.Boredom = 60;
+
+        double Weight(FoxState state, string activity, FoxSituation? situation = null) =>
+            FoxWill.Weights(state, situation ?? Calm, Noon).Where(option => option.Activity == activity).Sum(option => option.Weight);
+
+        Assert.True(Weight(tired, FoxWill.Lie) > Weight(lively, FoxWill.Lie));
+        Assert.True(Weight(tired, FoxActs.Nap) > 0);
+        Assert.Equal(0, Weight(lively, FoxActs.Nap));
+        Assert.True(Weight(tired, FoxWill.Chase) < Weight(lively, FoxWill.Chase));
+        Assert.True(Weight(tired, FoxActs.Nap, Calm with { Motion = false }) > 0);
+    }
+
+    /// <summary>Силы копятся во сне и тают наяву; беготня забирает больше, отдых возвращает.</summary>
+    [Fact]
+    public void Energy_grows_in_sleep_and_drains_awake()
+    {
+        var asleep = Known();
+        asleep.Energy = 50;
+        Run(asleep, new FoxSignal(FoxSignalKind.Tick, Value: 600), Calm with { Asleep = true, Thoughts = false, WindowActive = false });
+        Assert.True(asleep.Energy > 50);
+
+        var awake = Known();
+        awake.Energy = 50;
+        Run(awake, new FoxSignal(FoxSignalKind.Tick, Value: 600), Calm with { WindowActive = false });
+        Assert.True(awake.Energy < 50);
+
+        Assert.True(FoxWill.Cost(FoxWill.Chase) > FoxWill.Cost(FoxWill.Strut));
+        Assert.True(FoxWill.Cost(FoxWill.Lie) < 0);
+    }
+
     [Fact]
     public void He_does_not_pester_someone_who_just_paid_attention()
     {

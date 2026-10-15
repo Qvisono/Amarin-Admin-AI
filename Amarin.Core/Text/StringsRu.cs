@@ -2306,6 +2306,8 @@ internal static class StringsRu
             ["S.Fox.Say.Theme.2"] = "Всё стало другим!",
             ["S.Fox.Say.Settings.1"] = "Что тут у нас?",
             ["S.Fox.Say.Settings.2"] = "Я посмотрю, можно?",
+            ["S.Fox.Say.Viewer.1"] = "Ого, сколько ты всего сделал!",
+            ["S.Fox.Say.Viewer.2"] = "Дай я тоже посмотрю.",
             ["S.Fox.Say.Keys.1"] = "Не смотрю, не смотрю!",
             ["S.Fox.Say.Keys.2"] = "Это секрет, я понял.",
             ["S.Fox.Say.Bored.1"] = "Скучно…",

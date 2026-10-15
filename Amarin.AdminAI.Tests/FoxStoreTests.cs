@@ -42,6 +42,7 @@ public sealed class FoxStoreTests : IDisposable
 
                 // D4: воля, отказы прийти, кусь — то же state.json, и архив увозит его целиком.
                 state.NextActivityAt = new DateTime(2026, 10, 13, 12, 5, 0);
+                state.Energy = 33;
                 state.RefusedCalls = 1;
                 state.Today.Bites = 2;
                 state.Today.CallRefusals = 1;
@@ -61,6 +62,7 @@ public sealed class FoxStoreTests : IDisposable
         Assert.Equal(["first-meet"], snapshot.Milestones);
         Assert.Equal(3, snapshot.Today.Topics["science"]);
         Assert.Equal(new DateTime(2026, 10, 13, 12, 5, 0), snapshot.NextActivityAt);
+        Assert.Equal(33, snapshot.Energy);
         Assert.Equal(1, snapshot.RefusedCalls);
         Assert.Equal((2, 1), (snapshot.Today.Bites, snapshot.Today.CallRefusals));
         Assert.Equal(("как дела?", "Отлично!"), (snapshot.Conversation[0].Human, snapshot.Conversation[0].Rosa));

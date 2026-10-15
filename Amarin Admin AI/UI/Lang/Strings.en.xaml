@@ -2341,6 +2341,8 @@
     <system:String x:Key="S.Fox.Say.Theme.2" xml:space="preserve">Everything changed!</system:String>
     <system:String x:Key="S.Fox.Say.Settings.1" xml:space="preserve">What do we have here?</system:String>
     <system:String x:Key="S.Fox.Say.Settings.2" xml:space="preserve">Can I watch?</system:String>
+    <system:String x:Key="S.Fox.Say.Viewer.1" xml:space="preserve">Wow, look at everything you did!</system:String>
+    <system:String x:Key="S.Fox.Say.Viewer.2" xml:space="preserve">Let me have a look too.</system:String>
     <system:String x:Key="S.Fox.Say.Keys.1" xml:space="preserve">Not looking, not looking!</system:String>
     <system:String x:Key="S.Fox.Say.Keys.2" xml:space="preserve">It's a secret, got it.</system:String>
     <system:String x:Key="S.Fox.Say.Bored.1" xml:space="preserve">Bored…</system:String>

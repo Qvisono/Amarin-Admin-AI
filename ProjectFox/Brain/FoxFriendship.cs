@@ -179,6 +179,7 @@ internal static class FoxPhrases
         ["DeleteMany"] = 2,
         ["Theme"] = 2,
         ["Settings"] = 2,
+        ["Viewer"] = 2,
         ["Keys"] = 2,
         ["Bored"] = 3,
         ["Attention"] = 3,

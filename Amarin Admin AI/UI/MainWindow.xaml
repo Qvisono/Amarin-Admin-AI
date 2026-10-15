@@ -1981,7 +1981,7 @@
             </Border>
 
             <Viewbox Stretch="Uniform" StretchDirection="DownOnly" Margin="24">
-                <Border Width="760" Height="560" Background="{DynamicResource Bg.Panel}"
+                <Border x:Name="JournalCard" Width="760" Height="560" Background="{DynamicResource Bg.Panel}"
                         BorderBrush="{DynamicResource Border.Default}" BorderThickness="1" CornerRadius="10"
                         Padding="20,18">
                     <Grid>

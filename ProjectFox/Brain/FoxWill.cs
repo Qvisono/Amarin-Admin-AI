@@ -66,31 +66,53 @@ internal static class FoxWill
         return options[^1].Activity;
     }
 
-    /// <summary>Веса занятий. Без анимаций — только прилечь.</summary>
+    /// <summary>Ниже этих сил Роза устал: лежит и засыпает охотнее, чем бегает.</summary>
+    public const double Tired = 30;
+
+    /// <summary>Выше этих сил Роза бодр: игры весят больше.</summary>
+    public const double Lively = 70;
+
+    /// <summary>Сколько сил забирает занятие; отрицательное — отдых.</summary>
+    public static double Cost(string activity) => activity switch
+    {
+        Chase or Catch or Fetch => 12,
+        Strut or Wander or HideSeek or Tease or Pester => 6,
+        Lie => -4,
+        _ => 0
+    };
+
+    /// <summary>Веса занятий. Без анимаций — только прилечь и, уставшим, вздремнуть.</summary>
     internal static IEnumerable<(string Activity, double Weight)> Weights(FoxState state, FoxSituation situation, DateTime now)
     {
         var night = now.Hour is >= 22 or < 7;
-        yield return (Lie, 2 + (night ? 2 : 0) + (state.Boredom < 30 ? 1 : 0));
+        var tired = state.Energy < Tired;
+        yield return (Lie, 2 + (night ? 2 : 0) + (state.Boredom < 30 ? 1 : 0) + (tired ? 4 : 0));
+        if (tired)
+        {
+            yield return (FoxActs.Nap, 3 + (night ? 2 : 0));
+        }
+
         if (!situation.Motion)
         {
             yield break;
         }
 
         var bored = state.Boredom / 100;
+        var pep = tired ? 0.3 : state.Energy > Lively ? 1.3 : 1;
         yield return (Wander, 2);
         if (!state.Cold)
         {
-            yield return (Chase, 1 + (bored * 2));
+            yield return (Chase, (1 + (bored * 2)) * pep);
             if (state.Affection >= 0)
             {
-                yield return (Strut, 1 + bored);
+                yield return (Strut, (1 + bored) * pep);
             }
 
             if (state.Affection >= 10 && state.Boredom >= 30)
             {
-                yield return (Fetch, 0.6 + bored);
-                yield return (HideSeek, 0.6 + bored);
-                yield return (Catch, 0.6 + bored);
+                yield return (Fetch, (0.6 + bored) * pep);
+                yield return (HideSeek, (0.6 + bored) * pep);
+                yield return (Catch, (0.6 + bored) * pep);
             }
         }
 

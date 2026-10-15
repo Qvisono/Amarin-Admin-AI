@@ -163,7 +163,7 @@ public sealed class FoxStageTests : IDisposable
     [InlineData(false)]
     public void Only_two_mischiefs_touch_the_program(bool motion)
     {
-        var calls = new Dictionary<string, (int NewChat, int Nudge)>();
+        var calls = new Dictionary<string, (int NewChat, int Paws)>();
         foreach (var kind in FoxMischief.Acting.Concat(FoxMischief.Visual))
         {
             calls[kind] = With((stage, host, _) =>
@@ -175,12 +175,13 @@ public sealed class FoxStageTests : IDisposable
                     stage.Advance(16);
                 }
 
-                return (host.NewChats, host.Nudges);
+                return (host.NewChats, host.Paws);
             }, motion);
         }
 
+        // Толчок колонки — два тыка лапкой (анимация pawtap тыкает дважды), а не один бросок.
         Assert.Equal((1, 0), calls[FoxMischief.NewChat]);
-        Assert.Equal((0, 1), calls[FoxMischief.PushColumn]);
+        Assert.Equal((0, 2), calls[FoxMischief.PushColumn]);
         Assert.All(FoxMischief.Visual, kind => Assert.Equal((0, 0), calls[kind]));
     }
 
@@ -507,6 +508,39 @@ public sealed class FoxStageTests : IDisposable
         Assert.True(anim);
     }
 
+    /// <summary>Открыли журнал — Роза прыгает на верх карточки и выглядывает из-за неё; закрыли — домой.</summary>
+    [Fact]
+    public void Over_an_open_journal_he_peeks_from_behind_the_card_and_comes_home_when_it_closes()
+    {
+        var (peeking, spot, home) = With((stage, host, _) =>
+        {
+            host.ViewerEdge = new FoxEdge(150, 650, 160);
+            stage.Signal(FoxSignalKind.ViewerOpened);
+            var peek = false;
+            for (var i = 0; i < 300 && !peek; i++)
+            {
+                host.Now = host.Now.AddMilliseconds(50);
+                stage.Advance(16);
+                peek = stage.Mode == FoxMode.Peek;
+            }
+
+            var on = stage.Spot;
+            host.ViewerEdge = null;
+            stage.Signal(FoxSignalKind.ViewerClosed);
+            for (var i = 0; i < 300 && stage.Spot != "home"; i++)
+            {
+                host.Now = host.Now.AddMilliseconds(50);
+                stage.Advance(16);
+            }
+
+            return (peek, on, stage.Spot);
+        });
+
+        Assert.True(peeking, "не выглянул из-за карточки");
+        Assert.Equal("viewer", spot);
+        Assert.Equal("home", home);
+    }
+
     /// <summary>Желание модели «вздремнуть» доходит до сцены через мозг: Роза засыпает.</summary>
     [Fact]
     public void A_wish_to_nap_puts_him_to_sleep()
@@ -639,7 +673,7 @@ public sealed class FoxStageTests : IDisposable
 
         public int NewChats { get; private set; }
 
-        public int Nudges { get; private set; }
+        public int Paws { get; private set; }
 
         /// <summary>Сколько человек не печатал: по умолчанию ноль, и воля молчит.</summary>
         public TimeSpan SinceTyping { get; set; }
@@ -673,7 +707,12 @@ public sealed class FoxStageTests : IDisposable
 
         public void NewChat() => NewChats++;
 
-        public void NudgeChatList() => Nudges++;
+        public void PawChats() => Paws++;
+
+        /// <summary>Верх карточки журнала, пока журнал «открыт».</summary>
+        public FoxEdge? ViewerEdge { get; set; }
+
+        public FoxEdge? Viewer() => ViewerEdge;
 
         public Rect SendButton() => new(640, 520, 32, 32);
 

@@ -31,6 +31,19 @@ namespace Amarin.UI
             /// <summary>Неактивное столько окно усыпляет Розу совсем: он не тратит кадры на окно, на которое не смотрят.</summary>
             private static readonly TimeSpan InactivePause = TimeSpan.FromMinutes(2);
 
+            /// <summary>Слой Розы обычно: выше настроек (без Z, объявлены раньше) и ниже всех вопросов.</summary>
+            private const int LayerZ = 27;
+
+            /// <summary>
+            /// Пока открыт журнал (34) или «Состояние ПК» (33), слой поднимается выше них, чтобы Роза
+            /// выглядывал из-за карточки. Вопрос о домене тоже 35, но объявлен позже и остаётся выше;
+            /// остальные вопросы — 36 и выше.
+            /// </summary>
+            private const int ViewerZ = 35;
+
+            /// <summary>Скорость тыка лапкой по колонке: строка-другая, а не экран, как прежний бросок на 900.</summary>
+            private const double PawFling = 280;
+
             /// <summary>
             /// Словарь значков меню Розы — с именем сборки: голый «/UI/…» разрешается от
             /// Application.ResourceAssembly, а под тест-раннером это не наша сборка.
@@ -155,6 +168,8 @@ namespace Amarin.UI
                 _window.Activated += OnActivated;
                 _window.Deactivated += OnDeactivated;
                 _window.SettingsOverlay.IsVisibleChanged += OnSettingsVisible;
+                _window.JournalOverlay.IsVisibleChanged += OnViewerVisible;
+                _window.HealthOverlay.IsVisibleChanged += OnViewerVisible;
             }
 
             private void Unsubscribe()
@@ -168,6 +183,9 @@ namespace Amarin.UI
                 _window.Activated -= OnActivated;
                 _window.Deactivated -= OnDeactivated;
                 _window.SettingsOverlay.IsVisibleChanged -= OnSettingsVisible;
+                _window.JournalOverlay.IsVisibleChanged -= OnViewerVisible;
+                _window.HealthOverlay.IsVisibleChanged -= OnViewerVisible;
+                Panel.SetZIndex(_window.FoxLayer, LayerZ);
             }
 
             private void OnTyped(object sender, TextChangedEventArgs e) => _typedAt = DateTime.Now;
@@ -228,6 +246,17 @@ namespace Amarin.UI
 
                 _settingsShown = false;
                 _stage?.Signal(FoxSignalKind.SettingsClosed);
+            }
+
+            /// <summary>Открыли журнал или «Состояние ПК» — выше их и на карточку; закрыли — на место.</summary>
+            private void OnViewerVisible(object sender, DependencyPropertyChangedEventArgs e)
+            {
+                var open = _window.JournalOverlay.IsVisible || _window.HealthOverlay.IsVisible;
+                Panel.SetZIndex(_window.FoxLayer, open ? ViewerZ : LayerZ);
+                if (e.NewValue is true || !open)
+                {
+                    _stage?.Signal(open ? FoxSignalKind.ViewerOpened : FoxSignalKind.ViewerClosed);
+                }
             }
 
             public FoxSituation Situation()
@@ -309,6 +338,16 @@ namespace Amarin.UI
             }
 
             /// <summary>Верх нижнего блока колонки (профиль и шестерёнка); у свёрнутой колонки его нет.</summary>
+            public FoxEdge? Viewer()
+            {
+                var card = _window.JournalOverlay.IsVisible ? Bounds(_window.JournalCard)
+                    : _window.HealthOverlay.IsVisible ? Bounds(_window.HealthOverlay.Card)
+                    : Rect.Empty;
+
+                // Правый край — мимо крестика, как у карточки настроек.
+                return card.IsEmpty || card.Width < 200 ? null : new FoxEdge(card.Left + 24, card.Right - 64, card.Top);
+            }
+
             public FoxEdge? Column()
             {
                 var footer = Bounds(_window.SidebarFooter);
@@ -333,12 +372,20 @@ namespace Amarin.UI
             /// <summary>Шалость: «Новый чат» — тем же путём, что кнопка; черновик открытого чата прячется, как при обычном переходе.</summary>
             public void NewChat() => _window.StartNewChatFromUi();
 
-            /// <summary>Шалость: толкнуть колонку чатов — бросок прокрутки с её же инерцией и резинкой.</summary>
-            public void NudgeChatList()
+            /// <summary>
+            /// Шалость: тык лапкой в колонку — бросок прокрутки с её же инерцией, но малый. Курсор над
+            /// колонкой — человек ею занят, и лапка её не трогает.
+            /// </summary>
+            public void PawChats()
             {
                 var list = _window.SideBarScrollViewer;
+                if (!list.IsVisible || list.ScrollableHeight <= 0 || list.IsMouseOver)
+                {
+                    return;
+                }
+
                 var down = list.VerticalOffset < list.ScrollableHeight - 1;
-                SmoothScroll.Fling(list, down ? 900 : -900);
+                SmoothScroll.Fling(list, down ? PawFling : -PawFling);
             }
 
             public void ShowMenu(FoxStage stage)

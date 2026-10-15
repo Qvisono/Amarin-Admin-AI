@@ -122,7 +122,8 @@ internal static class FoxPrompt
         return string.Join('\n',
             "time: " + now.ToString("dddd HH:mm", invariant),
             "affection: " + state.Affection.ToString("0", invariant) + " (scale -100..100), resentment: " +
-                state.Resentment.ToString("0", invariant) + ", boredom: " + state.Boredom.ToString("0", invariant) + " (0..100)",
+                state.Resentment.ToString("0", invariant) + ", boredom: " + state.Boredom.ToString("0", invariant) +
+                ", energy: " + state.Energy.ToString("0", invariant) + " (0..100)",
             "last_attention: " + attention,
             "today: messages " + day.Messages.ToString(invariant) + ", pets " + day.Pets.ToString(invariant) +
                 ", games " + day.Games.ToString(invariant) + ", talks " + day.Talks.ToString(invariant),

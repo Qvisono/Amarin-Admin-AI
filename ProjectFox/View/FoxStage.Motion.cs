@@ -403,6 +403,11 @@ internal sealed partial class FoxStage
         {
             yield return "column";
         }
+
+        if (_host.Viewer() is not null)
+        {
+            yield return "viewer";
+        }
     }
 
     /// <summary>Свободный промежуток пола, ближайший к <paramref name="foot"/>; null — свободных нет.</summary>
@@ -521,6 +526,10 @@ internal sealed partial class FoxStage
             case "settings" when _host.Card() is { } card:
                 JumpTo("settings", card.Right - 120);
                 break;
+            case "viewer" when _host.Viewer() is { } viewer:
+                // На верх карточки — и сразу за неё: выглядывает, потом садится сверху.
+                JumpTo("viewer", viewer.Right - 120, () => Peek(TimeSpan.FromSeconds(6)));
+                break;
             case "center":
                 var middle = _host.Home();
                 GoHomeEdge((middle.Left + middle.Right) / 2, run: true);
@@ -553,7 +562,7 @@ internal sealed partial class FoxStage
     /// <summary>Прячется за поле ввода и выглядывает <paramref name="duration"/>.</summary>
     private void Peek(TimeSpan duration)
     {
-        if (_mode != FoxMode.Idle || _spot != "home")
+        if (_mode != FoxMode.Idle || _spot is not ("home" or "viewer"))
         {
             return;
         }
@@ -649,6 +658,8 @@ internal sealed partial class FoxStage
                 return new FoxEdge(0, _host.Width(), _host.Floor());
             case "column" when _host.Column() is { } column:
                 return column;
+            case "viewer" when _host.Viewer() is { } viewer:
+                return viewer;
             case "send":
             case "chip":
                 var rect = spot == "send" ? _host.SendButton() : _host.ModelChip();

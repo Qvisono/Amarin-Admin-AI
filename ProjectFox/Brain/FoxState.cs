@@ -33,6 +33,12 @@ public sealed class FoxState
     /// <summary>Скука: 0…100. Копится, пока на Розу не обращают внимания при открытом окне.</summary>
     public double Boredom { get; set; }
 
+    /// <summary>
+    /// Силы: 0…100. Тают от беготни и к ночи, копятся во сне. Уставший чаще лежит и засыпает,
+    /// бодрый охотнее играет (<see cref="FoxWill"/>).
+    /// </summary>
+    public double Energy { get; set; } = 80;
+
     /// <summary>Глаза синие — холодный и жёсткий. Меняется с запасом, см. <see cref="FoxFriendship"/>.</summary>
     public bool Cold { get; set; }
 

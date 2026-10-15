@@ -565,6 +565,17 @@ internal sealed partial class FoxStage
             After(TimeSpan.FromMilliseconds(260), act);
         }
 
+        // Анимация pawtap тыкает дважды (кадры с 0,4 и 0,9 с), и на каждый тык колонка чуть
+        // прокручивается. Прежде был один бросок прокрутки — колонка улетала на экран.
+        void PawTap()
+        {
+            Play("pawtap", "sit");
+            _face = "sly";
+            _faceUntil = _clock().AddMilliseconds(1800);
+            After(TimeSpan.FromMilliseconds(450), _host.PawChats);
+            After(TimeSpan.FromMilliseconds(950), _host.PawChats);
+        }
+
         var motion = _host.Motion();
         switch (kind)
         {
@@ -576,13 +587,13 @@ internal sealed partial class FoxStage
                 WalkTo(home.Left, run: true, then: () =>
                 {
                     _flip = false;
-                    Poke(_host.NudgeChatList);
+                    PawTap();
                     Back(4);
                 });
                 break;
 
             case FoxMischief.PushColumn:
-                Poke(_host.NudgeChatList);
+                PawTap();
                 break;
 
             case FoxMischief.SitOnSend when motion && !_host.SendButton().IsEmpty:

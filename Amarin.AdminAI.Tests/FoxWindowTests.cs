@@ -151,6 +151,40 @@ public sealed class FoxWindowTests : IDisposable
         Assert.All(others, layer => Assert.True(layer.Z > fox, $"{layer.Name} ({layer.Z}) лежит под Розой"));
     }
 
+    /// <summary>
+    /// Открыт журнал — слой Розы поднимается выше него и выше «Состояния ПК», чтобы он выглядывал
+    /// из-за карточки; под ним остаётся только то, что и так под журналом. Вопрос о домене той же
+    /// высоты объявлен позже и остаётся выше, остальные вопросы — выше по числу. Закрыли — обратно.
+    /// </summary>
+    [Fact]
+    public void Over_the_journal_the_layer_rises_and_still_stays_under_every_question()
+    {
+        var (raised, below, domainAfter, lowered) = With(window =>
+        {
+            Arrive(window);
+            var root = (Grid)window.FindName("ScaledRoot")!;
+            var layer = Layer(window);
+            var journal = (UIElement)window.FindName("JournalOverlay")!;
+            journal.Visibility = Visibility.Visible;
+            window.UpdateLayout();
+            var z = Panel.GetZIndex(layer);
+            var children = root.Children.OfType<UIElement>().ToList();
+            var under = children
+                .Where(child => !ReferenceEquals(child, layer) && Panel.GetZIndex(child) >= 33 && Panel.GetZIndex(child) < z)
+                .Select(child => (child as FrameworkElement)?.Name ?? "")
+                .ToList();
+            var domain = (UIElement)window.FindName("DomainOverlay")!;
+            var after = Panel.GetZIndex(domain) == z && children.IndexOf(domain) > children.IndexOf(layer);
+            journal.Visibility = Visibility.Collapsed;
+            return (z, under, after, Panel.GetZIndex(layer));
+        });
+
+        Assert.Equal(35, raised);
+        Assert.Equal(["HealthOverlay", "JournalOverlay"], below.Order());
+        Assert.True(domainAfter, "вопрос о домене оказался под Розой");
+        Assert.Equal(27, lowered);
+    }
+
     /// <summary>Слой Розы виден всегда, пока он здесь, но ничего не закрывает: Ctrl+A и Shift+Del в колонке работают.</summary>
     [Fact]
     public void With_rosa_in_the_window_the_main_layout_still_counts_as_uncovered()
