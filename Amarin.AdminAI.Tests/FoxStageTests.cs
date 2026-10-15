@@ -418,6 +418,95 @@ public sealed class FoxStageTests : IDisposable
         Assert.True(teeth);
     }
 
+    /// <summary>Указка гаснет через своё время, как бы ни метался курсор, и Роза садится.</summary>
+    [Fact]
+    public void The_laser_ends_on_time_and_he_stops_chasing()
+    {
+        var (during, laserAfter, modeAfter, anim) = With((stage, host, _) =>
+        {
+            stage.PlayLaser();
+            var holding = false;
+            for (var i = 0; i < 400; i++)
+            {
+                host.PointerAt = new Point(i % 20 < 10 ? 250 : 650, 470);
+                host.Now = host.Now.AddMilliseconds(100);
+                stage.Advance(16);
+                holding |= stage.Holding;
+            }
+
+            return (holding, stage.LaserShown, stage.Mode, stage.Anim);
+        });
+
+        Assert.True(during);
+        Assert.False(laserAfter);
+        Assert.Equal(FoxMode.Idle, modeAfter);
+        Assert.DoesNotContain(anim, (string[])["run", "walk"]);
+    }
+
+    /// <summary>
+    /// За указкой Роза бегает прямо под курсором, и махание ею — игра, а не дразнилка. Прежде оно
+    /// затевало драку с курсором или кусь, а через 20 с — снова, и погоня не кончалась.
+    /// </summary>
+    [Fact]
+    public void Waving_the_laser_over_him_is_play_not_teasing()
+    {
+        var (game, teeth, laser) = With((stage, host, store) =>
+        {
+            store.Update(state => state.Resentment = 60);
+            stage.PlayLaser();
+            for (var i = 0; i < 8; i++)
+            {
+                host.Now = host.Now.AddMilliseconds(100);
+                var x = i % 2 == 0 ? 300 : 340;
+                stage.MovedOver(new Point(20, 30), new Point(x, 460));
+            }
+
+            return (stage.Game, stage.ChompShown, stage.LaserShown);
+        });
+
+        Assert.Null(game);
+        Assert.False(teeth);
+        Assert.True(laser);
+    }
+
+    /// <summary>Игра из меню сменяет указку: обе сразу тянули бы Розу к курсору и от него.</summary>
+    [Fact]
+    public void A_game_from_the_menu_replaces_the_laser()
+    {
+        var (laser, game) = With((stage, _, _) =>
+        {
+            stage.PlayLaser();
+            stage.PlayGame(FoxWill.Catch);
+            return (stage.LaserShown, stage.Game);
+        });
+
+        Assert.False(laser);
+        Assert.Equal(FoxWill.Catch, game);
+    }
+
+    /// <summary>Пока идёт игра человека, воля своего не затевает.</summary>
+    [Fact]
+    public void The_will_starts_nothing_over_a_laser()
+    {
+        var (chosen, game, anim) = With((stage, host, store) =>
+        {
+            host.SinceTyping = TimeSpan.FromMinutes(5);
+            store.Update(state =>
+            {
+                state.Boredom = 90;
+                state.NextActivityAt = null;
+            });
+            stage.PlayLaser();
+            var before = stage.Anim;
+            stage.Signal(new FoxSignal(FoxSignalKind.Tick, Value: 10));
+            return (store.Snapshot().NextActivityAt is not null, stage.Game, stage.Anim == before);
+        });
+
+        Assert.True(chosen, "воля так и не выбирала");
+        Assert.Null(game);
+        Assert.True(anim);
+    }
+
     /// <summary>Принёс мячик, а его не бросили за двенадцать секунд — уносит и обижается.</summary>
     [Fact]
     public void A_ball_he_brought_and_nobody_threw_makes_him_sulk()
@@ -539,7 +628,10 @@ public sealed class FoxStageTests : IDisposable
 
         public int Nudges { get; private set; }
 
-        public FoxSituation Situation() => new() { WindowActive = true, MischiefEnabled = true, ReadChat = false };
+        /// <summary>Сколько человек не печатал: по умолчанию ноль, и воля молчит.</summary>
+        public TimeSpan SinceTyping { get; set; }
+
+        public FoxSituation Situation() => new() { WindowActive = true, MischiefEnabled = true, ReadChat = false, SinceTyping = SinceTyping, Motion = Moving };
 
         public FoxEdge Home() => Edge;
 

@@ -155,9 +155,21 @@ internal sealed partial class FoxStage
 
         if (!_pressed)
         {
-            Stroke(e.GetPosition(_sprite), point);
-            Wiggle(point);
+            Hover(e.GetPosition(_sprite), point);
         }
+    }
+
+    /// <summary>Курсор водят над Розой: поглаживание и дразнилка. Во время игры курсор — её часть.</summary>
+    private void Hover(Point onSprite, Point onLayer)
+    {
+        if (Playing)
+        {
+            _wiggles.Clear();
+            return;
+        }
+
+        Stroke(onSprite, onLayer);
+        Wiggle(onLayer);
     }
 
     /// <remarks>

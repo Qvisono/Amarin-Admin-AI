@@ -40,15 +40,29 @@ internal sealed partial class FoxStage
     /// <summary>Идущая игра — тестам.</summary>
     internal string? Game => _game;
 
+    /// <summary>Нынешняя анимация — тестам.</summary>
+    internal string Anim => _anim;
+
+    /// <summary>Курсор над Розой без нажатия — тестам, без настоящей мыши.</summary>
+    internal void MovedOver(Point onSprite, Point onLayer) => Hover(onSprite, onLayer);
+
+    /// <summary>
+    /// Идёт игра: своя, указка или мячик. Пока идёт, воля своего не затевает, а курсор над Розой —
+    /// часть игры: за указкой он бегает прямо под курсором, и махание ею читалось как дразнилка —
+    /// драка с курсором, а через 20 с новая, и погоня не кончалась.
+    /// </summary>
+    private bool Playing => _game is not null || _laser is not null || _ball is not null;
+
     /// <summary>Принесённый мячик лежит и ждёт броска — тестам.</summary>
     internal bool BallWaiting => _ballWaiting;
 
     /// <summary>Щелчок по точке рисунка без мыши — тестам.</summary>
     internal void ClickAt(Point onSprite) => Click(onSprite);
 
-    /// <summary>Игра из меню: «Прятки» и «Догонялки».</summary>
+    /// <summary>Игра из меню: «Прятки» и «Догонялки». Сменяет прежнюю игру, а не ждёт её конца.</summary>
     public void PlayGame(string game)
     {
+        EndPlay();
         if (_mode == FoxMode.Sleep)
         {
             Wake();
@@ -69,7 +83,7 @@ internal sealed partial class FoxStage
     /// <summary>Занятие от воли или из меню. Занятой (в руках, в игре, на ходу) ничего не начинает.</summary>
     private void Do(string activity)
     {
-        if (_mode != FoxMode.Idle || _game is not null || Talking)
+        if (_mode != FoxMode.Idle || Playing || Talking)
         {
             return;
         }
@@ -127,6 +141,17 @@ internal sealed partial class FoxStage
         _game = game;
         _gameUntil = _clock() + length;
         StartRendering();
+    }
+
+    /// <summary>
+    /// Новая игра из меню сменяет любую прежнюю: две сразу тянули бы Розу к курсору и от него
+    /// (указка и догонялки).
+    /// </summary>
+    private void EndPlay()
+    {
+        StopGame();
+        StopLaser();
+        RemoveBall();
     }
 
     /// <summary>Игра кончилась: время вышло, Esc, взяли на руки, окно свернули.</summary>

@@ -35,6 +35,9 @@ internal sealed partial class FoxStage
     private DateTime _laserUntil;
     private DateTime _nextPounce;
 
+    /// <summary>Точка лазера на слое — тестам.</summary>
+    internal bool LaserShown => _laser is not null;
+
     private sealed class Mote(Image image, double x, double y, double vx, double vy, double life)
     {
         public Image Image { get; } = image;
@@ -333,8 +336,10 @@ internal sealed partial class FoxStage
             EndPeek();
         }
 
+        // Сперва конец прежней игры, потом новый план: конец указки ставит возврат домой, и
+        // он увёл бы Розу посреди мячика.
+        EndPlay();
         Replan();
-        RemoveBall();
         _ball = Pixels(_bitmaps.Item("ball"));
         _ballX = from.X;
         _ballY = from.Y;
@@ -359,6 +364,7 @@ internal sealed partial class FoxStage
             EndPeek();
         }
 
+        EndPlay();
         Replan();
         _laser ??= Pixels(FoxBitmaps.Render([[',', 'b', ','], ['b', 'b', 'b'], [',', 'b', ',']], _sprites.Palette, cold: false, flip: false, _bitmaps.Prescale));
         if (!_host.Layer.Children.Contains(_laser))
