@@ -701,8 +701,9 @@ public sealed class PerfBenchTests : IDisposable
 
     /// <summary>
     /// Лисёнок Роза (1.35.0) над чатом в 1200 сообщений: простой с сидящим Розой против простоя без
-    /// него (строка «idle CPU over 5 s, big chat» выше) и падение с высоты окна с отскоками —
-    /// самый тяжёлый для кадров случай: покадровая отрисовка, сжатие, частицы.
+    /// него (строка «idle CPU over 5 s, big chat» выше), падение с высоты окна с отскоками —
+    /// самый тяжёлый для кадров случай: покадровая отрисовка, сжатие, частицы — и самое подвижное
+    /// занятие воли.
     /// </summary>
     private static async Task<List<(string Name, double Value, string Unit)>> RosaOverBigChat(MainWindow window)
     {
@@ -746,6 +747,17 @@ public sealed class PerfBenchTests : IDisposable
         results.Add(("rosa: fall UI cpu", UiCpuMs() - cpu, "ms"));
         frames.Stop();
         results.Add(("rosa: fall max frame gap", frames.MaxGap, "ms"));
+
+        // Занятие воли (1.35.0-beta.2) — самое подвижное: бег по кромке с разворотами, пыль и
+        // полосы скорости. Пять секунд, как простой выше: разница — цена занятия.
+        frames = new FrameGaps();
+        frames.Start();
+        cpu = UiCpuMs();
+        stage.PlayGame(Amarin.Fox.FoxWill.Chase);
+        await Settle(5000);
+        results.Add(("rosa: chasing its tail, UI cpu over 5 s", UiCpuMs() - cpu, "ms"));
+        frames.Stop();
+        results.Add(("rosa: chasing its tail, max frame gap", frames.MaxGap, "ms"));
         window.StopFox();
         return results;
     }

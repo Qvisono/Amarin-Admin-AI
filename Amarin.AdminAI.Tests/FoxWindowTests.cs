@@ -58,6 +58,49 @@ public sealed class FoxWindowTests : IDisposable
         Assert.InRange(gap, 0, 4);
     }
 
+    /// <summary>
+    /// Кромки настоящего окна (D4): пол — в промежутках без кнопок поля ввода, верх нижнего блока
+    /// колонки — пока колонка развёрнута. Подставной хозяин сцены этого не проверяет: здесь
+    /// координаты считаются по живой раскладке, и переименованный элемент окна дал бы пустой пол
+    /// или кромку поверх кнопок.
+    /// </summary>
+    [Fact]
+    public void The_floor_avoids_the_composer_buttons_and_the_column_edge_goes_with_the_sidebar()
+    {
+        var (spans, buttons, floor, column, collapsed) = With(window =>
+        {
+            Arrive(window);
+            var host = (IFoxHost)window.Fox!;
+            Rect Bounds(string name)
+            {
+                var element = (FrameworkElement)window.FindName(name)!;
+                return element.IsVisible
+                    ? element.TransformToVisual(Layer(window)).TransformBounds(new Rect(element.RenderSize))
+                    : Rect.Empty;
+            }
+
+            var shown = host.FloorSpans();
+            Rect[] row = [Bounds("ModelButton"), Bounds("MicButton"), Bounds("SendButton")];
+            var edge = host.Column();
+            Call(window, "SetSidebarCollapsed", true);
+            window.UpdateLayout();
+            return (shown, row.Where(rect => !rect.IsEmpty).ToList(), host.Floor(), edge, host.Column());
+        });
+
+        Assert.Equal(3, spans.Count);
+        Assert.NotEmpty(buttons);
+        Assert.All(spans, span =>
+        {
+            Assert.Equal(floor, span.Y);
+            Assert.All(buttons, button => Assert.True(span.Right <= button.Left || span.Left >= button.Right,
+                $"{span.Left:0}..{span.Right:0} накрывает кнопку {button.Left:0}..{button.Right:0}"));
+        });
+
+        Assert.NotNull(column);
+        Assert.True(column.Value.Y < floor);
+        Assert.Null(collapsed);
+    }
+
     /// <summary>Выше настроек — он садится на их карточку; ниже всех вопросов: у каждого затемнение на весь слой.</summary>
     [Fact]
     public void The_fox_layer_lies_above_settings_and_below_every_question()
@@ -308,6 +351,9 @@ public sealed class FoxWindowTests : IDisposable
     }
 
     private static Canvas Layer(MainWindow window) => (Canvas)window.FindName("FoxLayer")!;
+
+    private static void Call(MainWindow window, string method, params object[] args) =>
+        _ = typeof(MainWindow).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, args);
 
     private static AppServices Services(MainWindow window) =>
         (AppServices)typeof(MainWindow).GetField("_services", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
