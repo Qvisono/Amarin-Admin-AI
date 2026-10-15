@@ -251,6 +251,8 @@ internal sealed class FoxStore : IDisposable
         _state.Unwritten ??= [];
         _state.Today.Topics ??= new Dictionary<string, int>(StringComparer.Ordinal);
         _state.Today.Events ??= [];
+        _state.Conversation ??= [];
+        _state.Notes ??= [];
         return _state;
     }
 

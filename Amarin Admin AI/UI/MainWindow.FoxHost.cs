@@ -453,6 +453,8 @@ namespace Amarin.UI
                 _stage.Start();
             }
 
+            public void ForgetMemory() => _store?.Update(FoxMemory.Forget);
+
             public void Locked(bool locked)
             {
                 _locked = locked;

@@ -58,6 +58,9 @@ namespace Amarin.UI
         /// <summary>«Начать дружбу заново»: память с нуля, дневник остаётся.</summary>
         void ResetFriendship();
 
+        /// <summary>«Забыть» в «Нашей дружбе»: заметки и разговоры, дружба остаётся.</summary>
+        void ForgetMemory();
+
         void Locked(bool locked);
 
         void ProfileChanged();
@@ -184,6 +187,30 @@ namespace Amarin.UI
             else
             {
                 FoxPanels.ResetOnDisk(_services);
+            }
+        }
+
+        /// <summary>«Забыть» в «Нашей дружбе» — с вопросом: заметки и разговоры не вернуть.</summary>
+        internal async Task ForgetFoxMemoryAsync()
+        {
+            if (_services is null ||
+                !await ShowNoticeAsync(
+                    Loc.Get("S.FoxSettings.ForgetTitle"),
+                    Loc.Get("S.FoxSettings.ForgetText"),
+                    Loc.Get("S.FoxSettings.Forget"),
+                    Loc.Get("S.Common.Cancel"),
+                    NoticeTone.Danger))
+            {
+                return;
+            }
+
+            if (_fox is not null)
+            {
+                _fox.ForgetMemory();
+            }
+            else
+            {
+                FoxPanels.ForgetOnDisk(_services);
             }
         }
 

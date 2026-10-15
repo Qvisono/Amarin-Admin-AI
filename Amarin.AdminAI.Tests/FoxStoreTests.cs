@@ -45,6 +45,10 @@ public sealed class FoxStoreTests : IDisposable
                 state.RefusedCalls = 1;
                 state.Today.Bites = 2;
                 state.Today.CallRefusals = 1;
+
+                // Вторая волна: память для общения — тот же state.json.
+                FoxMemory.AddExchange(state, "как дела?", "Отлично!", new DateTime(2026, 10, 13, 11, 0, 0));
+                FoxMemory.Remember(state, "Любит дождь", new DateTime(2026, 10, 13, 11, 1, 0));
             });
             store.Write(Entry("2026-10-12", "Today he talked about stars."));
             store.Write(Entry("2026-10-11", "Quiet day."));
@@ -59,6 +63,8 @@ public sealed class FoxStoreTests : IDisposable
         Assert.Equal(new DateTime(2026, 10, 13, 12, 5, 0), snapshot.NextActivityAt);
         Assert.Equal(1, snapshot.RefusedCalls);
         Assert.Equal((2, 1), (snapshot.Today.Bites, snapshot.Today.CallRefusals));
+        Assert.Equal(("как дела?", "Отлично!"), (snapshot.Conversation[0].Human, snapshot.Conversation[0].Rosa));
+        Assert.Equal("Любит дождь", Assert.Single(snapshot.Notes).Text);
         Assert.Equal(["2026-10-11", "2026-10-12"], again.Diary().Select(entry => entry.Date));
     }
 
@@ -177,6 +183,7 @@ public sealed class FoxStoreTests : IDisposable
             state.Affection = -80;
             state.Cold = true;
             state.Milestones.Add("pets-100");
+            FoxMemory.Remember(state, "Любит дождь", DateTime.Now);
         });
         store.Write(Entry("2026-10-12", "He threw me again."));
 
@@ -187,6 +194,7 @@ public sealed class FoxStoreTests : IDisposable
         Assert.Equal(FoxState.StartAffection, snapshot.Affection);
         Assert.False(snapshot.Cold);
         Assert.Empty(snapshot.Milestones);
+        Assert.Empty(snapshot.Notes);
         Assert.Equal(now, snapshot.MetAt);
         Assert.Single(store.Diary());
     }

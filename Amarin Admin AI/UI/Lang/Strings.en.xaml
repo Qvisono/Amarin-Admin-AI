@@ -2463,7 +2463,7 @@
     <system:String x:Key="S.FoxSettings.ResetDesc" xml:space="preserve">Rosa forgets everything except the diary</system:String>
     <system:String x:Key="S.FoxSettings.ResetButton" xml:space="preserve">Start over</system:String>
     <system:String x:Key="S.FoxSettings.ResetTitle" xml:space="preserve">Start the friendship over?</system:String>
-    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Affection, grudges and milestones will reset. The diary stays.</system:String>
+    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Affection, grudges, milestones and everything Rosa remembers about you will reset. The diary stays.</system:String>
     <system:String x:Key="S.FoxSettings.NotMet" xml:space="preserve">You have not met yet.</system:String>
     <system:String x:Key="S.FoxSettings.Level" xml:space="preserve">Level: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Affection" xml:space="preserve">Affection: {0} of 100</system:String>
@@ -2473,6 +2473,12 @@
     <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Days together: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Friends since {0}</system:String>
     <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Today: pets {0}, games {1}, treats {2}, nose boops {3}</system:String>
+    <system:String x:Key="S.FoxSettings.Memory" xml:space="preserve">What Rosa remembers</system:String>
+    <system:String x:Key="S.FoxSettings.MemoryEmpty" xml:space="preserve">Nothing yet.</system:String>
+    <system:String x:Key="S.FoxSettings.MemoryTalks" xml:space="preserve">Talks he remembers: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Forget" xml:space="preserve">Forget</system:String>
+    <system:String x:Key="S.FoxSettings.ForgetTitle" xml:space="preserve">Erase Rosa's memory?</system:String>
+    <system:String x:Key="S.FoxSettings.ForgetText" xml:space="preserve">His notes about you and your talks with him will be erased. Your friendship and his diary stay.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">No entries yet: the diary is written the next day.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Annoyed: {0} of 10 · pleased: {1} of 10</system:String>
 

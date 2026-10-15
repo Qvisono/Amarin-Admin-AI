@@ -50,7 +50,47 @@ internal static class FoxPanels
             today.Games.ToString(CultureInfo.CurrentCulture),
             today.Treats.ToString(CultureInfo.CurrentCulture),
             today.Boops.ToString(CultureInfo.CurrentCulture))));
+        panel.Children.Add(Memory(window, state));
         return panel;
+    }
+
+    /// <summary>
+    /// «Что Роза помнит»: заметки о человеке и сколько разговоров, и «Забыть». Человек видит всё,
+    /// что лисёнок о нём записал, и может это стереть, не теряя дружбы.
+    /// </summary>
+    private static FrameworkElement Memory(MainWindow window, FoxState state)
+    {
+        var section = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+        section.Children.Add(Text(Loc.Get("S.FoxSettings.Memory"), "DialogLabel"));
+        if (state.Notes.Count == 0 && state.Conversation.Count == 0)
+        {
+            section.Children.Add(Text(Loc.Get("S.FoxSettings.MemoryEmpty")));
+            return section;
+        }
+
+        var notes = new StackPanel();
+        foreach (var note in state.Notes)
+        {
+            notes.Children.Add(Text("• " + note.Text));
+        }
+
+        section.Children.Add(new ScrollViewer
+        {
+            Content = notes,
+            MaxHeight = 160,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Focusable = false
+        });
+        if (state.Conversation.Count > 0)
+        {
+            section.Children.Add(Text(Loc.Format("S.FoxSettings.MemoryTalks", state.Conversation.Count.ToString(CultureInfo.CurrentCulture))));
+        }
+
+        var forget = new Button { Content = Loc.Get("S.FoxSettings.Forget"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 6, 0, 0) };
+        forget.SetResourceReference(FrameworkElement.StyleProperty, "DialogSecondaryButton");
+        forget.Click += (_, _) => Detached.Run(window.ForgetFoxMemoryAsync(), "fox_forget");
+        section.Children.Add(forget);
+        return section;
     }
 
     public static FrameworkElement Diary(MainWindow window, AppServices services)
@@ -90,6 +130,13 @@ internal static class FoxPanels
     {
         using var store = new FoxStore(services.Profile.DataRoot, () => services.Settings.EncryptChats);
         store.Reset(DateTime.Now);
+    }
+
+    /// <summary>«Забыть» для Розы, которого в окне нет (выключен): прямо в его файлах.</summary>
+    public static void ForgetOnDisk(AppServices services)
+    {
+        using var store = new FoxStore(services.Profile.DataRoot, () => services.Settings.EncryptChats);
+        store.Update(FoxMemory.Forget);
     }
 
     private static (FoxState State, IReadOnlyList<FoxDiaryEntry> Diary) Read(MainWindow window, AppServices services)

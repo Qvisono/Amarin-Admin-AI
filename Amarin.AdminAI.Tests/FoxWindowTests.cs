@@ -101,6 +101,35 @@ public sealed class FoxWindowTests : IDisposable
         Assert.Null(collapsed);
     }
 
+    /// <summary>
+    /// «Что Роза помнит» в «Нашей дружбе»: заметки видны человеку, и «Забыть» стирает их и у
+    /// выключенного Розы — прямо в его файле.
+    /// </summary>
+    [Fact]
+    public void Our_friendship_shows_his_notes_and_forgetting_erases_them()
+    {
+        var (shown, left) = With(window =>
+        {
+            var services = Services(window);
+            using (var store = new FoxStore(services.Profile.DataRoot, () => false))
+            {
+                store.Update(state =>
+                {
+                    state.MetAt = DateTime.Now.AddDays(-3);
+                    FoxMemory.Remember(state, "Любит дождь", DateTime.Now);
+                });
+            }
+
+            var text = Texts(FoxPanels.Friendship(window, services));
+            FoxPanels.ForgetOnDisk(services);
+            using var again = new FoxStore(services.Profile.DataRoot, () => false);
+            return (text, again.Snapshot().Notes.Count);
+        });
+
+        Assert.Contains("Любит дождь", shown);
+        Assert.Equal(0, left);
+    }
+
     /// <summary>Выше настроек — он садится на их карточку; ниже всех вопросов: у каждого затемнение на весь слой.</summary>
     [Fact]
     public void The_fox_layer_lies_above_settings_and_below_every_question()

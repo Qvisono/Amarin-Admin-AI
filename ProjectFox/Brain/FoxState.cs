@@ -80,6 +80,30 @@ public sealed class FoxState
     /// Не больше трёх: дальше дневник по ним не догоняется.
     /// </summary>
     public List<FoxDay> Unwritten { get; set; } = [];
+
+    /// <summary>Последние разговоры с Розой, старые — первыми (<see cref="FoxMemory"/>).</summary>
+    public List<FoxExchange> Conversation { get; set; } = [];
+
+    /// <summary>Что Роза решил запомнить о человеке. Видно и стирается в «Нашей дружбе».</summary>
+    public List<FoxNote> Notes { get; set; } = [];
+}
+
+/// <summary>Один разговор: что сказал человек и что ответил Роза.</summary>
+public sealed class FoxExchange
+{
+    public string Human { get; set; } = "";
+
+    public string Rosa { get; set; } = "";
+
+    public DateTime At { get; set; }
+}
+
+/// <summary>Заметка о человеке, которую Роза записал сам, своими словами.</summary>
+public sealed class FoxNote
+{
+    public string Text { get; set; } = "";
+
+    public DateTime At { get; set; }
 }
 
 /// <summary>Один день с Розой: что было и сколько раз — сырьё для записи дневника и дневные потолки.</summary>

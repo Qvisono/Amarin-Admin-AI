@@ -2463,7 +2463,7 @@
     <system:String x:Key="S.FoxSettings.ResetDesc" xml:space="preserve">Роза забудет всё, кроме дневника</system:String>
     <system:String x:Key="S.FoxSettings.ResetButton" xml:space="preserve">Начать заново</system:String>
     <system:String x:Key="S.FoxSettings.ResetTitle" xml:space="preserve">Начать дружбу заново?</system:String>
-    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Привязанность, обиды и памятные даты сбросятся. Дневник останется.</system:String>
+    <system:String x:Key="S.FoxSettings.ResetText" xml:space="preserve">Привязанность, обиды, памятные даты и всё, что Роза запомнил о вас, сбросятся. Дневник останется.</system:String>
     <system:String x:Key="S.FoxSettings.NotMet" xml:space="preserve">Вы ещё не познакомились.</system:String>
     <system:String x:Key="S.FoxSettings.Level" xml:space="preserve">Уровень: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Affection" xml:space="preserve">Привязанность: {0} из 100</system:String>
@@ -2473,6 +2473,12 @@
     <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Дней вместе: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Знакомы с {0}</system:String>
     <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Сегодня: поглаживаний {0}, игр {1}, вкусняшек {2}, тыков в нос {3}</system:String>
+    <system:String x:Key="S.FoxSettings.Memory" xml:space="preserve">Что Роза помнит</system:String>
+    <system:String x:Key="S.FoxSettings.MemoryEmpty" xml:space="preserve">Пока ничего не запомнил.</system:String>
+    <system:String x:Key="S.FoxSettings.MemoryTalks" xml:space="preserve">Помнит разговоров: {0}</system:String>
+    <system:String x:Key="S.FoxSettings.Forget" xml:space="preserve">Забыть</system:String>
+    <system:String x:Key="S.FoxSettings.ForgetTitle" xml:space="preserve">Стереть память Розы?</system:String>
+    <system:String x:Key="S.FoxSettings.ForgetText" xml:space="preserve">Заметки о вас и ваши разговоры с ним сотрутся. Дружба и дневник останутся.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">Пока ни одной записи: дневник пишется на следующий день.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Бесили: {0} из 10 · радовали: {1} из 10</system:String>
 

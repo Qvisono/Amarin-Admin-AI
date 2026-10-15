@@ -22,9 +22,9 @@ namespace Amarin.Fox;
 /// между реакциями держится пауза. Разговор паузы не ждёт — человек ждёт ответа.
 /// </para>
 /// <para>
-/// Инструментов у Розы два и только свои: <c>escape</c> (убежать за край окна) и в разговоре
-/// <c>web_search</c>. Инструменты программы, её шлюз и агент отсюда недосягаемы — это сторожит
-/// тест метаданных сборки.
+/// Инструменты у Розы только свои: <c>escape</c> (убежать за край окна), а в разговоре ещё
+/// <c>remember</c> (заметка о человеке в его память) и <c>web_search</c>. Инструменты программы, её
+/// шлюз и агент отсюда недосягаемы — это сторожит тест метаданных сборки.
 /// </para>
 /// </remarks>
 internal sealed class FoxMind : IDisposable
@@ -41,12 +41,19 @@ internal sealed class FoxMind : IDisposable
     /// <summary>Сколько найденного в сети уходит модели.</summary>
     private const int FoundLimit = 2000;
 
+    /// <summary>Сколько заметок модель может записать за один разговор.</summary>
+    private const int NotesPerTalk = 2;
+
     private static readonly JsonElement EscapeSchema = Schema("""
         {"type":"object","properties":{"minutes":{"type":"integer","minimum":1,"maximum":30},"line":{"type":"string"}},"required":["minutes"]}
         """);
 
     private static readonly JsonElement SearchSchema = Schema("""
         {"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}
+        """);
+
+    private static readonly JsonElement RememberSchema = Schema("""
+        {"type":"object","properties":{"note":{"type":"string"}},"required":["note"]}
         """);
 
     private readonly HttpClient _http;
@@ -218,7 +225,10 @@ internal sealed class FoxMind : IDisposable
         return reply.Line.Length == 0 && escapeLine.Length > 0 ? reply with { Line = escapeLine } : reply;
     }
 
-    /// <summary>Разговор: до двух раундов — поиск в сети и ответ. Без ответа — «слова убежали».</summary>
+    /// <summary>
+    /// Разговор: до двух раундов — поиск в сети или заметка в память, потом ответ. Без ответа —
+    /// «слова убежали». Удачный разговор ложится в память Розы.
+    /// </summary>
     private async Task<FoxReply> TalkAsync(string text, CancellationToken token)
     {
         var failed = new FoxReply("talk", "", "", 0, 0, Failed: true);
@@ -226,18 +236,20 @@ internal sealed class FoxMind : IDisposable
         var settings = _settings();
         var search = settings.Fox.WebSearch && FoxBrain.MaySearch(state);
         var language = Loc.Get(Loc.LanguageNameKey);
+        var recent = state.Conversation.TakeLast(FoxMemory.ExchangesInTalk).ToList();
         List<ChatMessage> history =
         [
             new() { Role = "system", Content = ChatContent.Text(FoxPrompt.TalkSystem(language, state, search)) },
-            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.TalkUser(text)) }
+            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.TalkUser(text, recent)) }
         ];
 
-        List<ToolDefinition> tools = search ? [EscapeTool(), SearchTool()] : [EscapeTool()];
+        List<ToolDefinition> tools = search ? [EscapeTool(), RememberTool(), SearchTool()] : [EscapeTool(), RememberTool()];
         if (await CallAsync(history, tools, token).ConfigureAwait(false) is not { } message)
         {
             return failed;
         }
 
+        var remembered = Remember(message);
         var lookup = search ? message.ToolCalls?.FirstOrDefault(call => call.Function.Name == "web_search") : null;
         var query = lookup is null ? null : Str(ToolArguments.Parse(lookup.Function.Arguments), "query");
         if (lookup is not null && !string.IsNullOrWhiteSpace(query))
@@ -262,6 +274,24 @@ internal sealed class FoxMind : IDisposable
 
             message = answer;
         }
+        else if (remembered.Count > 0 && FoxPrompt.ParseReply("talk", ReadText(message)).Line.Length == 0 && Escape(message).Minutes == 0)
+        {
+            // Модель только записала заметку, а ответить не успела: второй раунд, уже без заметок.
+            history.Add(new ChatMessage { Role = "assistant", Content = message.Content, ToolCalls = remembered });
+            history.AddRange(remembered.Select(call => new ChatMessage
+            {
+                Role = "tool",
+                ToolCallId = call.Id,
+                Content = ChatContent.Text("Запомнил. Теперь ответь человеку.")
+            }));
+
+            if (await CallAsync(history, [EscapeTool()], token).ConfigureAwait(false) is not { } answer)
+            {
+                return failed;
+            }
+
+            message = answer;
+        }
 
         var (minutes, escapeLine) = Escape(message);
         var reply = FoxPrompt.ParseReply("talk", ReadText(message), minutes);
@@ -270,7 +300,29 @@ internal sealed class FoxMind : IDisposable
             reply = reply with { Line = escapeLine };
         }
 
-        return reply.Line.Length == 0 && reply.EscapeMinutes == 0 ? failed : reply;
+        if (reply.Line.Length == 0 && reply.EscapeMinutes == 0)
+        {
+            return failed;
+        }
+
+        _store.Update(s => FoxMemory.AddExchange(s, text, reply.Line, _clock()));
+        return reply;
+    }
+
+    /// <summary>Заметки, которые модель решила записать: не больше двух за разговор, каждая — через правила памяти.</summary>
+    private List<ToolCall> Remember(ChatMessage message)
+    {
+        var calls = message.ToolCalls?.Where(call => call.Function.Name == "remember").Take(NotesPerTalk).ToList() ?? [];
+        foreach (var call in calls)
+        {
+            var note = FoxPrompt.Clean(Str(ToolArguments.Parse(call.Function.Arguments), "note"), FoxMemory.NoteLimit);
+            if (note.Length > 0)
+            {
+                _store.Update(s => _ = FoxMemory.Remember(s, note, _clock()));
+            }
+        }
+
+        return calls;
     }
 
     /// <summary>
@@ -440,6 +492,18 @@ internal sealed class FoxMind : IDisposable
                 "Убежать за край окна и спрятаться на minutes минут (1-30). Только когда человек всерьёз тебя обидел или напугал. " +
                 "line — что ты скажешь, убегая, не длиннее 100 знаков; можно пустую.",
             Parameters = EscapeSchema
+        }
+    };
+
+    private static ToolDefinition RememberTool() => new()
+    {
+        Function = new FunctionDefinition
+        {
+            Name = "remember",
+            Description =
+                "Запомнить о человеке короткую заметку своими словами, до 120 знаков, чтобы помнить её в следующих разговорах. " +
+                "Не больше двух за разговор. Секреты, данные для входа и оплаты не запоминаются.",
+            Parameters = RememberSchema
         }
     };
 
