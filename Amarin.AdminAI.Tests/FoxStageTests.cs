@@ -209,6 +209,31 @@ public sealed class FoxStageTests : IDisposable
         Assert.True(flewTo - fromX > 60, $"улетел только на {flewTo - fromX:0} точек");
     }
 
+    /// <summary>
+    /// За шкирку — маятник: рука вправо, а низ тела отстаёт влево (поворот по часовой), и наоборот.
+    /// Прежде знак был обратным, и тело летело вперёд руки.
+    /// </summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void In_the_hand_the_body_lags_behind_the_hand(int direction)
+    {
+        var tilt = With((stage, _, _) =>
+        {
+            stage.BeginDrag(new Point(400, 150));
+            for (var i = 1; i <= 4; i++)
+            {
+                Thread.Sleep(10);
+                stage.Hold(new Point(400 + (direction * i * 20), 150));
+                stage.Advance(16);
+            }
+
+            return stage.Tilt;
+        });
+
+        Assert.True(direction * tilt > 5, $"наклон {tilt:0.0}° при руке {(direction > 0 ? "вправо" : "влево")}");
+    }
+
     [Fact]
     public void The_release_speed_is_the_last_moment_of_the_hand_and_a_still_hand_gives_none()
     {

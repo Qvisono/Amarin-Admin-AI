@@ -178,6 +178,9 @@ internal sealed partial class FoxStage
     /// <summary>Сторона кадра на слое.</summary>
     internal double Side => _sprite.Side;
 
+    /// <summary>Наклон в руках и в полёте, градусы по часовой.</summary>
+    internal double Tilt => _tilt.Angle;
+
     /// <summary>Сам элемент Розы — окну, чтобы узнать его среди источников нажатия.</summary>
     public FrameworkElement Element => _sprite;
 

@@ -247,7 +247,11 @@ internal sealed partial class FoxStage
         Draw();
     }
 
-    /// <summary>Болтается в руках: наклон за движением, без рывков.</summary>
+    /// <summary>
+    /// Болтается в руках, как маятник на шкирке: тело отстаёт от руки. Рука вправо — низ уходит влево,
+    /// то есть поворот по часовой (положительный угол). Прежде знак был обратным, и тело летело вперёд
+    /// руки.
+    /// </summary>
     private void StepDrag(double ms)
     {
         var vx = 0.0;
@@ -258,7 +262,7 @@ internal sealed partial class FoxStage
             vx = (_x - x) / span;
         }
 
-        var target = Math.Clamp(-vx * 30, -30, 30);
+        var target = Math.Clamp(vx * 30, -30, 30);
         _tilt.Angle += (target - _tilt.Angle) * Math.Min(1, ms / 90);
         _trail.RemoveAll(entry => _watch.Elapsed - entry.At > TimeSpan.FromMilliseconds(120));
     }
