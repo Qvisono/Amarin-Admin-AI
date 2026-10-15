@@ -2379,9 +2379,38 @@
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Спрятать на час</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Спрятать до завтра</system:String>
     <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Поговорить</system:String>
+    <system:String x:Key="S.Fox.Menu.HideSeek" xml:space="preserve">Прятки</system:String>
+    <system:String x:Key="S.Fox.Menu.Chase" xml:space="preserve">Догонялки</system:String>
     <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Скажи Розе что-нибудь…</system:String>
     <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">Слова куда-то убежали… Погладишь меня?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">Мысли запутались, как хвостик. Спроси попозже?</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.1" xml:space="preserve">Иди на х**!</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.2" xml:space="preserve">Не дождёшься. Иди на х**!</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.3" xml:space="preserve">Отстань! Иди на х**!</system:String>
+    <system:String x:Key="S.Fox.Say.Found.1" xml:space="preserve">Ой, нашли!</system:String>
+    <system:String x:Key="S.Fox.Say.Found.2" xml:space="preserve">Эх, попался!</system:String>
+    <system:String x:Key="S.Fox.Say.Caught.1" xml:space="preserve">Поймали!</system:String>
+    <system:String x:Key="S.Fox.Say.Caught.2" xml:space="preserve">Ладно, ладно, поймали!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchAsk.1" xml:space="preserve">Кинь мячик!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchAsk.2" xml:space="preserve">Ну кинь! Ну пожалуйста!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchIgnored.1" xml:space="preserve">Ну и ладно, сам поиграю.</system:String>
+    <system:String x:Key="S.Fox.Say.FetchIgnored.2" xml:space="preserve">Скучно с тобой.</system:String>
+    <system:String x:Key="S.Fox.Say.Strut.1" xml:space="preserve">Смотри, как я умею!</system:String>
+    <system:String x:Key="S.Fox.Say.Strut.2" xml:space="preserve">Модельной походкой!</system:String>
+    <system:String x:Key="S.Fox.Say.Chase.1" xml:space="preserve">Хвост, стой!</system:String>
+    <system:String x:Key="S.Fox.Say.Chase.2" xml:space="preserve">Почти поймал!</system:String>
+    <system:String x:Key="S.Fox.Say.Tease.1" xml:space="preserve">Бе-бе-бе!</system:String>
+    <system:String x:Key="S.Fox.Say.Tease.2" xml:space="preserve">А вот и не поймаешь!</system:String>
+    <system:String x:Key="S.Fox.Say.Pester.1" xml:space="preserve">Погладь! Погладь! Погладь!</system:String>
+    <system:String x:Key="S.Fox.Say.Pester.2" xml:space="preserve">Ну обрати на меня внимание!</system:String>
+    <system:String x:Key="S.Fox.Say.HideSeek.1" xml:space="preserve">Ищи меня!</system:String>
+    <system:String x:Key="S.Fox.Say.HideSeek.2" xml:space="preserve">Раз, два, три, ищи!</system:String>
+    <system:String x:Key="S.Fox.Say.Catch.1" xml:space="preserve">Догони!</system:String>
+    <system:String x:Key="S.Fox.Say.Catch.2" xml:space="preserve">А ну догони!</system:String>
+    <system:String x:Key="S.Fox.Say.Fight.1" xml:space="preserve">Ну держись!</system:String>
+    <system:String x:Key="S.Fox.Say.Fight.2" xml:space="preserve">Сейчас поймаю!</system:String>
+    <system:String x:Key="S.Fox.Say.FightWin.1" xml:space="preserve">Я победил!</system:String>
+    <system:String x:Key="S.Fox.Say.FightWin.2" xml:space="preserve">Ещё хочешь?</system:String>
     <system:String x:Key="S.Fox.Diary.Quiet" xml:space="preserve">Тихий день: мы почти не виделись, и я немножко скучал.</system:String>
     <system:String x:Key="S.Fox.Diary.Messages" xml:space="preserve">Сообщений в чате за день: {0}.</system:String>
     <system:String x:Key="S.Fox.Diary.Topics" xml:space="preserve">Больше всего было про: {0}.</system:String>
@@ -2389,6 +2418,8 @@
     <system:String x:Key="S.Fox.Diary.Pets" xml:space="preserve">Поглаживаний за день: {0}. Мур!</system:String>
     <system:String x:Key="S.Fox.Diary.Games" xml:space="preserve">Мы играли, и это было здорово.</system:String>
     <system:String x:Key="S.Fox.Diary.Hurt" xml:space="preserve">Было и обидное, но я уже почти не дуюсь.</system:String>
+    <system:String x:Key="S.Fox.Diary.Bit" xml:space="preserve">Я кусал твой курсор. Сам виноват, нечего было дразнить.</system:String>
+    <system:String x:Key="S.Fox.Diary.ToldOff" xml:space="preserve">Меня звали, а я не пришёл и послал куда подальше.</system:String>
     <system:String x:Key="S.Fox.Diary.Warmer" xml:space="preserve">К вечеру я полюбил тебя ещё чуточку больше.</system:String>
     <system:String x:Key="S.Fox.Diary.Colder" xml:space="preserve">Под конец дня я на тебя немножко дулся.</system:String>
     <system:String x:Key="S.Fox.Diary.Same" xml:space="preserve">Между нами всё по-прежнему.</system:String>

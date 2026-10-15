@@ -57,6 +57,41 @@ internal sealed class FoxBitmaps
         return bitmap;
     }
 
+    /// <summary>
+    /// Значок эмоции: пузырь <c>emote</c> и значок <c>emote-…</c> по середине его поля 12×9 — так же
+    /// собирает его страница-образец. Незнакомый значок — пустой пузырь, а не авария.
+    /// </summary>
+    public BitmapSource Emote(string name)
+    {
+        var key = "emote|" + name + "|" + Prescale;
+        if (_cache.TryGetValue(key, out var bitmap))
+        {
+            return bitmap;
+        }
+
+        var bubble = _sprites.Particles.TryGetValue("emote", out var grid) ? grid : ["."];
+        var rows = bubble.Select(row => row.ToCharArray()).ToArray();
+        if (_sprites.Particles.TryGetValue("emote-" + name, out var icon))
+        {
+            var x0 = 1 + ((12 - icon.Max(row => row.Length)) / 2);
+            var y0 = 1 + ((9 - icon.Length) / 2);
+            for (var dy = 0; dy < icon.Length; dy++)
+            {
+                for (var dx = 0; dx < icon[dy].Length; dx++)
+                {
+                    if (icon[dy][dx] != '.' && y0 + dy < rows.Length && x0 + dx < rows[y0 + dy].Length)
+                    {
+                        rows[y0 + dy][x0 + dx] = icon[dy][dx];
+                    }
+                }
+            }
+        }
+
+        bitmap = Render(rows, _sprites.Palette, cold: false, flip: false, Prescale);
+        _cache[key] = bitmap;
+        return bitmap;
+    }
+
     /// <summary>Предмет сам по себе, без Розы: мячик, брошенный человеком.</summary>
     public BitmapSource Item(string name)
     {

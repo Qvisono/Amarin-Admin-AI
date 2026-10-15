@@ -22,6 +22,9 @@ internal static class FoxBrain
     public const int MaxSearches = 5;
     public const int MaxEscapes = 3;
 
+    /// <summary>Сколько раз подряд обиженный может не прийти на «Позвать»: на следующий раз приходит всегда.</summary>
+    public const int MaxRefusedCalls = 2;
+
     /// <summary>Как часто требует внимания, когда забыт.</summary>
     public static readonly TimeSpan DemandEvery = TimeSpan.FromMinutes(8);
 
@@ -29,6 +32,7 @@ internal static class FoxBrain
     {
         var actions = new List<FoxAction>();
         var say = (string reason) => actions.Add(FoxAction.Say(FoxPhrases.Pick(reason, random)));
+        var feel = (string emotion, int ms) => actions.AddRange(FoxEmotions.Feel(emotion, ms));
 
         if (FoxDays.Roll(state, now) && state.Unwritten.Count > 0)
         {
@@ -67,18 +71,20 @@ internal static class FoxBrain
                 day.Boops++;
                 if (state.Cold)
                 {
-                    actions.Add(FoxAction.Anim("bite"));
-                    actions.Add(FoxAction.Face("bite", 900));
-                    say("Bite");
+                    Bite(state, actions, say);
                     FoxFriendship.Change(state, -0.5);
                 }
                 else if (situation.RecentBoops >= 4)
                 {
-                    actions.Add(FoxAction.Face("angry", 1800));
+                    feel("angry", 1800);
                     actions.Add(FoxAction.Particle("vein"));
                     say("BoopAngry");
                     FoxFriendship.Resent(state, 6);
                     day.Annoyance += 0.5;
+                    if (FoxMischief.Angry(state))
+                    {
+                        Bite(state, actions, say);
+                    }
                 }
                 else
                 {
@@ -100,10 +106,14 @@ internal static class FoxBrain
                 FoxFriendship.Change(state, -3);
                 FoxFriendship.Resent(state, 12);
                 day.Annoyance += 1.5;
-                actions.Add(FoxAction.Anim("surprised"));
-                actions.Add(FoxAction.Face("angry", 2000));
+                feel("angry", 2000);
                 actions.Add(FoxAction.Particle("vein"));
                 say("Tail");
+                if (FoxMischief.Angry(state))
+                {
+                    Bite(state, actions, say);
+                }
+
                 break;
 
             case FoxSignalKind.EarTouch:
@@ -130,7 +140,7 @@ internal static class FoxBrain
             case FoxSignalKind.HoverStart:
                 if (state.Cold)
                 {
-                    actions.Add(FoxAction.Face("growl", 1500));
+                    feel("growl", 1500);
                     say("Growl");
                 }
                 else
@@ -144,12 +154,41 @@ internal static class FoxBrain
             case FoxSignalKind.HoverLong:
                 if (state.Cold)
                 {
-                    actions.Add(FoxAction.Anim("bite"));
-                    actions.Add(FoxAction.Face("bite", 900));
-                    actions.Add(FoxAction.Particle("bite"));
-                    say("Bite");
+                    Bite(state, actions, say);
                 }
 
+                break;
+
+            case FoxSignalKind.Teased:
+                // Курсор дразнит под носом: злой кусает его, остальные затевают драку.
+                if (FoxMischief.Angry(state))
+                {
+                    Bite(state, actions, say);
+                }
+                else
+                {
+                    actions.Add(FoxAction.Do(FoxWill.Fight));
+                    say("Fight");
+                }
+
+                break;
+
+            case FoxSignalKind.Found:
+            case FoxSignalKind.Caught:
+                FoxFriendship.Change(state, FoxFriendship.Gain(1.5, day.Games));
+                day.Games++;
+                day.Joy += 1;
+                state.Boredom = Math.Max(0, state.Boredom - 40);
+                Attended(state, now);
+                feel("excited", 1600);
+                actions.Add(FoxAction.Particle("heart", 2));
+                say(signal.Kind == FoxSignalKind.Found ? "Found" : "Caught");
+                break;
+
+            case FoxSignalKind.GameIgnored:
+                FoxFriendship.Resent(state, 3);
+                feel("offended", 2200);
+                say("FetchIgnored");
                 break;
 
             case FoxSignalKind.Grab:
@@ -188,7 +227,7 @@ internal static class FoxBrain
                 day.Treats++;
                 day.Joy += 1;
                 Attended(state, now);
-                actions.Add(FoxAction.Face("excited", 1600));
+                feel("love", 1800);
                 actions.Add(FoxAction.Particle("heart", 2));
                 say("Treat");
                 break;
@@ -227,10 +266,7 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.Call:
-                FoxFriendship.Resent(state, Math.Max(0, 40 - state.Resentment));
-                actions.Add(FoxAction.Go("home"));
-                actions.Add(FoxAction.Face("offended", 2600));
-                say("Return");
+                Call(state, actions, say, feel, random);
                 break;
 
             case FoxSignalKind.UserSent:
@@ -264,7 +300,7 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.AssistantFailed:
-                actions.Add(FoxAction.Face("pity", 2200));
+                actions.AddRange(FoxEmotions.Feel("pity", 2200, pose: false));
                 say("Error");
                 break;
 
@@ -284,8 +320,7 @@ internal static class FoxBrain
 
             case FoxSignalKind.SpendWarning:
                 actions.Add(FoxAction.Item("coin"));
-                actions.Add(FoxAction.Face("fear", 2400));
-                actions.Add(FoxAction.Shake(700));
+                feel("fear", 2400);
                 say("Spend");
                 break;
 
@@ -345,8 +380,7 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.DangerAsked:
-                actions.Add(FoxAction.Face("fear", 2600));
-                actions.Add(FoxAction.Shake(900));
+                feel("fear", 2600);
                 say("Danger");
                 break;
 
@@ -369,7 +403,8 @@ internal static class FoxBrain
 
                 if (signal.Name.Length > 0)
                 {
-                    actions.Add(FoxAction.Face(signal.Name, 2600));
+                    // Эмоция своей модели выглядит так же, как эмоция инстинкта: значок, поза, эффект.
+                    feel(signal.Name, 2600);
                 }
 
                 if (signal.Text.Length > 0)
@@ -440,7 +475,7 @@ internal static class FoxBrain
         if (state.Resentment >= 40 || state.NeglectDays >= 2)
         {
             actions.Add(FoxAction.TurnAway());
-            actions.Add(FoxAction.Face("offended", 2600));
+            actions.AddRange(FoxEmotions.Feel("offended", 2600));
             say("Greet.Sulk");
             return;
         }
@@ -520,6 +555,18 @@ internal static class FoxBrain
             state.Today.Mischief++;
             actions.Add(FoxAction.Mischief(kind));
             say("Mischief");
+            return;
+        }
+
+        // Своя воля: чем заняться, пока никто не трогает. Слово к занятию — не всегда.
+        if (FoxWill.Choose(state, situation, now, random) is { } activity)
+        {
+            actions.Add(FoxAction.Do(activity));
+            if (ActivityPhrase(activity) is { } reason && random.Next(2) == 0)
+            {
+                say(reason);
+            }
+
             return;
         }
 
@@ -650,14 +697,16 @@ internal static class FoxBrain
     private static void React(FoxState state, FoxReading reading, List<FoxAction> actions, Action<string> say)
     {
         var day = state.Today;
+        var feel = (string emotion, int ms) => actions.AddRange(FoxEmotions.Feel(emotion, ms));
         if (reading.Has(FoxTopic.Virus))
         {
             day.Note("scared-virus");
             day.Annoyance += 0.2;
-            actions.Add(FoxAction.Anim("surprised"));
-            actions.Add(FoxAction.Face("fear", 3000));
-            actions.Add(FoxAction.Shake(1500));
+            feel("fear", 3000);
             actions.Add(FoxAction.Particle("drop"));
+
+            // Сильный испуг: прячется за поле ввода и выглядывает оттуда.
+            actions.Add(FoxAction.Go("peek"));
             say("Virus");
             return;
         }
@@ -665,8 +714,7 @@ internal static class FoxBrain
         if (reading.Has(FoxTopic.Scam))
         {
             day.Note("scammed");
-            actions.Add(FoxAction.Anim("nuzzle"));
-            actions.Add(FoxAction.Face("pity", 3000));
+            feel("pity", 3000);
             say("Scam");
             return;
         }
@@ -677,7 +725,7 @@ internal static class FoxBrain
             FoxFriendship.Change(state, -6);
             FoxFriendship.Resent(state, 20);
             day.Annoyance += 2;
-            actions.Add(FoxAction.Face("offended", 3000));
+            feel("offended", 3000);
             actions.Add(FoxAction.TurnAway());
             actions.Add(FoxAction.Particle("heartbreak"));
             say("RudeToMe");
@@ -689,7 +737,7 @@ internal static class FoxBrain
             day.Note("praised");
             FoxFriendship.Change(state, 3);
             day.Joy += 1.5;
-            actions.Add(FoxAction.Face("blush", 2600));
+            feel("blush", 2600);
             actions.Add(FoxAction.Particle("heart", 2));
             say("Praise");
             return;
@@ -698,8 +746,7 @@ internal static class FoxBrain
         if (reading.Has(FoxTopic.Sad))
         {
             day.Note("sad");
-            actions.Add(FoxAction.Anim("nuzzle"));
-            actions.Add(FoxAction.Face("pity", 2600));
+            feel("pity", 2600);
             say("Sad");
             return;
         }
@@ -715,8 +762,7 @@ internal static class FoxBrain
                 return;
             }
 
-            actions.Add(FoxAction.Face("puzzled", 2400));
-            actions.Add(FoxAction.Particle("question"));
+            feel("puzzled", 2400);
             say(reading.WrongLayout ? "WrongLayout" : "Nonsense");
             return;
         }
@@ -724,17 +770,15 @@ internal static class FoxBrain
         if (reading.Has(FoxTopic.Rude))
         {
             day.Annoyance += 0.5;
+            actions.AddRange(FoxEmotions.Feel("surprised", 1500, pose: false));
             actions.Add(FoxAction.Shake(400));
-            actions.Add(FoxAction.Face("surprised", 1500));
             say("Rude");
             return;
         }
 
         if (reading.Has(FoxTopic.Science) || reading.Has(FoxTopic.Code))
         {
-            actions.Add(FoxAction.Anim("think"));
-            actions.Add(FoxAction.Face("smart", 2600));
-            actions.Add(FoxAction.Particle("bulb"));
+            feel("smart", 2600);
             say(reading.Has(FoxTopic.Science) ? "Science" : "Code");
             return;
         }
@@ -742,22 +786,80 @@ internal static class FoxBrain
         if (reading.Has(FoxTopic.Thanks) || reading.Has(FoxTopic.Happy))
         {
             day.Joy += 0.5;
-            actions.Add(FoxAction.Anim("jump"));
-            actions.Add(FoxAction.Face("excited", 1600));
+            feel("excited", 1600);
             say(reading.Has(FoxTopic.Thanks) ? "Thanks" : "Happy");
             return;
         }
 
         if (reading.Has(FoxTopic.Long))
         {
-            actions.Add(FoxAction.Face("surprised", 1800));
+            actions.AddRange(FoxEmotions.Feel("surprised", 1800, pose: false));
             say("Long");
             return;
         }
 
+        // Обычное сообщение — без значка: значок над каждым сообщением перестал бы что-то значить.
         actions.Add(FoxAction.Anim("nod"));
         actions.Add(FoxAction.Face("curious", 1400));
     }
+
+    /// <summary>
+    /// Большой кусь: рывок вперёд, пасть, зубы смыкаются над курсором (эффект <c>chomp</c>).
+    /// </summary>
+    private static void Bite(FoxState state, List<FoxAction> actions, Action<string> say)
+    {
+        state.Today.Bites++;
+        actions.Add(FoxAction.Anim("lunge"));
+        actions.Add(FoxAction.Face("bite", 1000));
+        actions.Add(FoxAction.Emote("anger", 1200));
+        actions.Add(FoxAction.Effect("chomp", 820));
+        say("Bite");
+    }
+
+    /// <summary>
+    /// «Позвать» убежавшего. Обиженный (холодный или с обидой от 60) может отказаться и послать
+    /// человека — из-за края окна, у следа лапки. Каждый отказ смягчает обиду, второй вероятнее
+    /// уступает, а третий раз он приходит всегда: вернуть его должно быть можно.
+    /// </summary>
+    private static void Call(FoxState state, List<FoxAction> actions, Action<string> say, Action<string, int> feel, Random random)
+    {
+        var offended = state.Cold || state.Resentment >= 60;
+        if (offended && state.RefusedCalls < MaxRefusedCalls &&
+            random.NextDouble() < (state.RefusedCalls == 0 ? 0.8 : 0.5))
+        {
+            state.RefusedCalls++;
+            state.Today.CallRefusals++;
+            state.Today.Note("told-off");
+            FoxFriendship.Resent(state, -15);
+            actions.Add(FoxAction.Shout(FoxPhrases.Pick("CallRefuse", random)));
+            return;
+        }
+
+        state.RefusedCalls = 0;
+        actions.Add(FoxAction.Go("home"));
+        if (state.Resentment >= 40)
+        {
+            feel("offended", 2600);
+            say("Return");
+        }
+        else
+        {
+            actions.Add(FoxAction.Face("happy", 1600));
+            say("Back.Warm");
+        }
+    }
+
+    /// <summary>Что сказать, берясь за занятие воли. Игры говорят сами — когда позовут играть.</summary>
+    private static string? ActivityPhrase(string activity) => activity switch
+    {
+        FoxWill.Strut => "Strut",
+        FoxWill.Chase => "Chase",
+        FoxWill.Tease => "Tease",
+        FoxWill.Pester => "Pester",
+        FoxWill.HideSeek => "HideSeek",
+        FoxWill.Catch => "Catch",
+        _ => null
+    };
 
     private static void TryEscape(FoxState state, DateTime now, double minutes, List<FoxAction> actions, Action<string> say)
     {
@@ -770,6 +872,7 @@ internal static class FoxBrain
 
         state.Today.Escapes++;
         state.Today.Note("escaped");
+        state.RefusedCalls = 0;
         actions.Add(FoxAction.Face("offended", 1500));
         say("Escape");
         actions.Add(FoxAction.Escape(TimeSpan.FromMinutes(Math.Clamp(minutes, 1, 30))));

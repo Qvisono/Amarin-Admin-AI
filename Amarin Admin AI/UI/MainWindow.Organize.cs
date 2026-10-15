@@ -898,7 +898,7 @@ namespace Amarin.UI
 
             menu.Items.Add(CheckItem(Loc.Get("S.ChatList.NoFolder"), current is null, null, () => MoveChats(ids, null)));
             menu.Items.Add(Divider());
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewFolder") + "…", () => CreateFolder(ids)));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewFolder") + "…", () => CreateFolder(ids), icon: "Icon.Menu.NewFolder"));
             menu.IsOpen = true;
         }
 
@@ -928,44 +928,50 @@ namespace Amarin.UI
                 menu.Items.Add(Divider());
             }
 
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewTag") + "…", () => CreateTag(ids)));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewTag") + "…", () => CreateTag(ids), icon: "Icon.Menu.NewTag"));
             menu.IsOpen = true;
         }
 
         private static ContextMenu NewMenu(FrameworkElement anchor, PlacementMode placement = PlacementMode.Bottom) =>
             AppMenu.At(anchor, placement);
 
-        /// <summary>Пункт с местом под галочку слева и, для тегов, точкой цвета.</summary>
+        /// <summary>Пункт с галочкой справа, значком слева и, для тегов, точкой цвета.</summary>
+        /// <remarks>
+        /// Галочка справа (1.35.0): левую колонку меню занимают значки, как у остальных меню
+        /// программы, а пустое место под галочку раньше сдвигало все подписи.
+        /// </remarks>
         /// <param name="tag">Тег пункта: справа у него кнопка «⋯» — изменить или удалить.</param>
-        private MenuItem CheckItem(string text, bool check, string? color, Action invoke, ChatTag? tag = null)
+        /// <param name="icon">Ключ значка <c>Icon.Menu.*</c>; null — без значка.</param>
+        private MenuItem CheckItem(string text, bool check, string? color, Action invoke, ChatTag? tag = null, string? icon = null)
         {
-            var mark = new TextBlock
-            {
-                Text = check ? "✓" : "",
-                Width = 16,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            mark.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
-
             var header = new Grid();
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            header.Children.Add(mark);
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             if (color is not null)
             {
                 var dot = new Ellipse { Width = 7, Height = 7, Margin = new Thickness(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center };
                 dot.SetResourceReference(Shape.FillProperty, color);
-                Grid.SetColumn(dot, 1);
                 header.Children.Add(dot);
             }
 
             var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 240, TextTrimming = TextTrimming.CharacterEllipsis };
-            Grid.SetColumn(label, 2);
+            Grid.SetColumn(label, 1);
             header.Children.Add(label);
 
-            var item = MenuItemFor("", invoke);
+            var mark = new TextBlock
+            {
+                Text = check ? "✓" : "",
+                MinWidth = 12,
+                Margin = new Thickness(14, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            mark.SetResourceReference(TextBlock.ForegroundProperty, "Accent.Fill");
+            Grid.SetColumn(mark, 2);
+            header.Children.Add(mark);
+
+            var item = MenuItemFor("", invoke, icon: icon);
             item.Header = header;
             if (tag is not null)
             {
@@ -1234,15 +1240,15 @@ namespace Amarin.UI
             var menu = NewMenu(ListOptionsButton);
             var sort = _services.Settings.ChatSort;
             menu.Items.Add(MenuSection(Loc.Get("S.ChatList.SortSection")));
-            foreach (var (value, key) in new[]
+            foreach (var (value, key, icon) in new[]
                      {
-                         (ChatSort.Updated, "S.ChatList.SortUpdated"),
-                         (ChatSort.Created, "S.ChatList.SortCreated"),
-                         (ChatSort.Title, "S.ChatList.SortTitle"),
-                         (ChatSort.Cost, "S.ChatList.SortCost")
+                         (ChatSort.Updated, "S.ChatList.SortUpdated", "Icon.Menu.SortUpdated"),
+                         (ChatSort.Created, "S.ChatList.SortCreated", "Icon.Menu.SortCreated"),
+                         (ChatSort.Title, "S.ChatList.SortTitle", "Icon.Menu.SortTitle"),
+                         (ChatSort.Cost, "S.ChatList.SortCost", "Icon.Menu.SortCost")
                      })
             {
-                menu.Items.Add(CheckItem(Loc.Get(key), sort == value, null, () => SetChatSort(value)));
+                menu.Items.Add(CheckItem(Loc.Get(key), sort == value, null, () => SetChatSort(value), icon: icon));
             }
 
             var tags = _services.Organizer.Snapshot().Tags;
@@ -1259,8 +1265,8 @@ namespace Amarin.UI
             }
 
             menu.Items.Add(Divider());
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewFolder") + "…", () => CreateFolder(null)));
-            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewTag") + "…", () => CreateTag(null)));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewFolder") + "…", () => CreateFolder(null), icon: "Icon.Menu.NewFolder"));
+            menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.NewTag") + "…", () => CreateTag(null), icon: "Icon.Menu.NewTag"));
 
             menu.IsOpen = true;
         }

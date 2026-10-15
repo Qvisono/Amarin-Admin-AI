@@ -81,7 +81,19 @@ internal enum FoxSignalKind
     MindReaction,
 
     /// <summary>Модель Розы решила сбежать на <see cref="FoxSignal.Value"/> минут.</summary>
-    MindEscape
+    MindEscape,
+
+    /// <summary>Курсор крутится и дёргается рядом с Розой — дразнят.</summary>
+    Teased,
+
+    /// <summary>Прятки: человек нашёл выглядывающего Розу.</summary>
+    Found,
+
+    /// <summary>Догонялки: человек поймал убегающего Розу.</summary>
+    Caught,
+
+    /// <summary>Роза принёс мячик и звал играть, а мячик не бросили.</summary>
+    GameIgnored
 }
 
 /// <summary>Сигнал мозгу: вид и необязательные текст, имя и число.</summary>
@@ -136,7 +148,22 @@ internal enum FoxActionKind
     AskMind,
 
     /// <summary>Написать дневник за дни из <see cref="FoxState.Unwritten"/>.</summary>
-    Diary
+    Diary,
+
+    /// <summary>Значок эмоции в пузыре над головой: <see cref="FoxAction.Name"/> — значок, <see cref="FoxAction.Ms"/> — сколько.</summary>
+    Emote,
+
+    /// <summary>
+    /// Эффект вокруг Розы: <c>tremble</c> — дрожь и волны по бокам, <c>chomp</c> — зубы смыкаются над
+    /// курсором; <see cref="FoxAction.Ms"/> — сколько.
+    /// </summary>
+    Effect,
+
+    /// <summary>Занятие, которое выбрала воля (<see cref="FoxWill"/>): <see cref="FoxAction.Name"/> — какое.</summary>
+    Do,
+
+    /// <summary>Фраза из-за края окна, у следа «Позвать»: Роза убежал и отказывается прийти.</summary>
+    Shout
 }
 
 internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 0, string Text = "")
@@ -170,6 +197,14 @@ internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 
     public static FoxAction AskMind(string kind, string text) => new(FoxActionKind.AskMind, kind, 0, text);
 
     public static FoxAction Diary() => new(FoxActionKind.Diary);
+
+    public static FoxAction Emote(string name, int ms = 2000) => new(FoxActionKind.Emote, name, ms);
+
+    public static FoxAction Effect(string name, int ms = 0) => new(FoxActionKind.Effect, name, ms);
+
+    public static FoxAction Do(string activity) => new(FoxActionKind.Do, activity);
+
+    public static FoxAction Shout(string key) => new(FoxActionKind.Shout, key, 2200);
 }
 
 /// <summary>
@@ -207,4 +242,7 @@ internal sealed record FoxSituation
 
     /// <summary>Роза сейчас за краем окна — убежал.</summary>
     public bool Away { get; init; }
+
+    /// <summary>Двигаться плавно можно: без анимаций воля выбирает только смену позы.</summary>
+    public bool Motion { get; init; } = true;
 }

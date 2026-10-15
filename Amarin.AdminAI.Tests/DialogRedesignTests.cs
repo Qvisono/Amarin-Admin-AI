@@ -134,7 +134,7 @@ public sealed class DialogRedesignTests : IDisposable
         {
             var tag = services.Organizer.CreateTag("work", ChatOrganizer.TagColors[0]);
             var fired = false;
-            var item = (MenuItem)Call(window, "CheckItem", "work", false, tag.Color, (Action)(() => fired = true), tag)!;
+            var item = (MenuItem)Call(window, "CheckItem", "work", false, tag.Color, (Action)(() => fired = true), tag, null)!;
             var button = ((Grid)item.Header).Children.OfType<Button>().SingleOrDefault();
             button?.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
             return (fired, button is not null);

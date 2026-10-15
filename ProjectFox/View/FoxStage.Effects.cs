@@ -98,7 +98,7 @@ internal sealed partial class FoxStage
             return;
         }
 
-        if (_mode is FoxMode.Off or FoxMode.Away or FoxMode.Hidden)
+        if (_mode is FoxMode.Off or FoxMode.Hidden || (_mode == FoxMode.Away && _callMark is not { Visibility: Visibility.Visible }))
         {
             _bubble.Visibility = Visibility.Collapsed;
             _bubbleFade = 0;
@@ -107,9 +107,22 @@ internal sealed partial class FoxStage
 
         _bubble.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var size = _bubble.DesiredSize;
+        if (_mode == FoxMode.Away && _callMark is { Visibility: Visibility.Visible } mark)
+        {
+            // Убежавший ругается из-за края: фраза — над следом «Позвать».
+            mark.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var markLeft = Canvas.GetLeft(mark);
+            Canvas.SetLeft(_bubble, Math.Round(Math.Clamp(markLeft + mark.DesiredSize.Width - size.Width, 8, Math.Max(8, _host.Width() - size.Width - 8))));
+            Canvas.SetTop(_bubble, Math.Round(Math.Max(34, Canvas.GetTop(mark) - size.Height - 6)));
+            return;
+        }
+
         var head = _move.Y + (_mode == FoxMode.Peek ? Px(20) : Px(2));
         var left = Math.Clamp(_move.X + (_sprite.Side / 2) - (size.Width / 2), 8, Math.Max(8, _host.Width() - size.Width - 8));
-        var top = Math.Max(34, head - size.Height - 4);
+
+        // Над значком эмоции, а не поверх него.
+        var raise = _emote is { Visibility: Visibility.Visible } ? Px(12) : 0;
+        var top = Math.Max(34, head - size.Height - 4 - raise);
         Canvas.SetLeft(_bubble, Math.Round(left));
         Canvas.SetTop(_bubble, Math.Round(top));
     }
@@ -206,6 +219,8 @@ internal sealed partial class FoxStage
             Move(mote);
         }
 
+        StepChomp();
+        StepCallShake();
         if (_bubble is not null && _bubbleFade != 0)
         {
             _bubble.Opacity = Math.Clamp(_bubble.Opacity + (_bubbleFade * ms / 140), 0, 1);
@@ -232,6 +247,8 @@ internal sealed partial class FoxStage
         _motes.Clear();
         RemoveBall();
         StopLaser();
+        StopGame();
+        ClearFeelings();
         if (_bubble is not null)
         {
             _bubble.Visibility = Visibility.Collapsed;
@@ -389,6 +406,8 @@ internal sealed partial class FoxStage
         {
             StepLaser();
         }
+
+        StepGame();
     }
 
     private void StepBall(double ms)
@@ -426,7 +445,12 @@ internal sealed partial class FoxStage
                     else
                     {
                         _ballSpot = spot;
-                        Fetch(spot, center);
+
+                        // Принесённый мячик лежит и ждёт, пока человек его бросит.
+                        if (!_ballWaiting)
+                        {
+                            Fetch(spot, center);
+                        }
                     }
 
                     break;
@@ -495,7 +519,12 @@ internal sealed partial class FoxStage
             else
             {
                 _walkTo = target;
-                _running = Math.Abs(target - _foot) > Px(30);
+                var gait = Math.Abs(target - _foot) > Px(30) ? "run" : "walk";
+                if (gait != _gait)
+                {
+                    _gait = gait;
+                    Play(gait, gait);
+                }
             }
         }
         else if (_mode == FoxMode.Idle && now >= _nextPounce && Math.Abs(pointer.Y - _edgeY) < _sprite.Side * 1.5)
@@ -578,8 +607,7 @@ internal sealed partial class FoxStage
             case FoxMischief.TailInInput when motion && _spot == "home":
                 WalkTo((home.Left + home.Right) / 2, run: false, then: () =>
                 {
-                    Play("liedown", "lie");
-                    _lying = true;
+                    LieDown(wag: true);
                     After(TimeSpan.FromSeconds(20), () =>
                     {
                         _lying = false;

@@ -61,6 +61,16 @@ internal static class FoxDiaryTemplate
             lines.Add(Loc.Get("S.Fox.Diary.Hurt"));
         }
 
+        if (day.Bites > 0)
+        {
+            lines.Add(Loc.Get("S.Fox.Diary.Bit"));
+        }
+
+        if (day.CallRefusals > 0)
+        {
+            lines.Add(Loc.Get("S.Fox.Diary.ToldOff"));
+        }
+
         var delta = affectionNow - day.AffectionAtStart;
         lines.Add(Loc.Get(delta >= 2 ? "S.Fox.Diary.Warmer" : delta <= -2 ? "S.Fox.Diary.Colder" : "S.Fox.Diary.Same"));
 

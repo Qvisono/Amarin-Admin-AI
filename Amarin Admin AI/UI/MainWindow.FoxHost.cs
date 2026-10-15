@@ -31,6 +31,17 @@ namespace Amarin.UI
             /// <summary>Неактивное столько окно усыпляет Розу совсем: он не тратит кадры на окно, на которое не смотрят.</summary>
             private static readonly TimeSpan InactivePause = TimeSpan.FromMinutes(2);
 
+            /// <summary>
+            /// Словарь значков меню Розы — с именем сборки: голый «/UI/…» разрешается от
+            /// Application.ResourceAssembly, а под тест-раннером это не наша сборка.
+            /// </summary>
+            private static readonly Uri IconsUri = new(
+                "pack://application:,,,/" + Uri.EscapeDataString(typeof(MainWindow).Assembly.GetName().Name ?? "") +
+                ";component/UI/FoxIcons.xaml", UriKind.Absolute);
+
+            /// <summary>Значки меню Розы: читаются при первом открытии меню, а не при запуске окна.</summary>
+            private ResourceDictionary? _icons;
+
             private readonly MainWindow _window;
             private readonly DispatcherTimer _inactive;
             private FoxStore? _store;
@@ -229,7 +240,8 @@ namespace Amarin.UI
                              w._chatZoom?.IsZoomed == true || w.IsRecording || w.SearchBox.Text.Length > 0 ||
                              w.FindBar.Visibility == Visibility.Visible,
                     MischiefEnabled = fox?.Mischief ?? false,
-                    ReadChat = fox?.ReadChat ?? false
+                    ReadChat = fox?.ReadChat ?? false,
+                    Motion = Motion()
                 };
             }
 
@@ -255,6 +267,46 @@ namespace Amarin.UI
             }
 
             public double Floor() => Math.Max(0, _window.FoxLayer.ActualHeight - 2);
+
+            /// <summary>
+            /// Пол без кнопок: щель между колонкой и полем ввода, место справа от поля и пустая середина
+            /// его нижнего ряда — правее плашки модели и левее микрофона и отправки. Поле стоит на 20
+            /// точек выше края окна, и сидящий на полу закрыл бы собой его нижний ряд.
+            /// </summary>
+            public IReadOnlyList<FoxEdge> FloorSpans()
+            {
+                var floor = Floor();
+                var sidebar = Bounds(_window.SidebarBorder);
+                var left = sidebar.IsEmpty ? 0 : sidebar.Right;
+                var box = Bounds(_window.ComposerBorder);
+                if (box.IsEmpty)
+                {
+                    return [new FoxEdge(left, Width(), floor)];
+                }
+
+                var chip = Bounds(_window.ModelButton);
+                var from = chip.IsEmpty ? box.Left + 60 : chip.Right + 8;
+                var to = ((Rect[])[Bounds(_window.MicButton), Bounds(_window.SendButton)])
+                    .Where(rect => !rect.IsEmpty)
+                    .Select(rect => rect.Left - 8)
+                    .DefaultIfEmpty(box.Right - 60)
+                    .Min();
+                return ((FoxEdge[])
+                    [
+                        new FoxEdge(left + 4, box.Left - 4, floor),
+                        new FoxEdge(from, to, floor),
+                        new FoxEdge(box.Right + 4, Width() - 4, floor)
+                    ])
+                    .Where(span => span.Right > span.Left)
+                    .ToList();
+            }
+
+            /// <summary>Верх нижнего блока колонки (профиль и шестерёнка); у свёрнутой колонки его нет.</summary>
+            public FoxEdge? Column()
+            {
+                var footer = Bounds(_window.SidebarFooter);
+                return footer.IsEmpty || footer.Width < 120 ? null : new FoxEdge(footer.Left + 8, footer.Right - 8, footer.Top);
+            }
 
             public double Width() => _window.FoxLayer.ActualWidth;
 
@@ -287,21 +339,32 @@ namespace Amarin.UI
                 var anchor = (FrameworkElement)stage.Element;
                 var at = Mouse.GetPosition(_window.FoxLayer);
                 var menu = AppMenu.At(anchor, PlacementMode.MousePoint);
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Pet"), stage.Pet));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Scratch"), stage.Scratch));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Treat"), stage.Treat));
+                menu.Items.Add(Item("S.Fox.Menu.Pet", stage.Pet, "FoxIcon.Pet"));
+                menu.Items.Add(Item("S.Fox.Menu.Scratch", stage.Scratch, "FoxIcon.Scratch"));
+                menu.Items.Add(Item("S.Fox.Menu.Treat", stage.Treat, "FoxIcon.Treat"));
                 menu.Items.Add(AppMenu.Divider(_window));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Ball"), () => stage.PlayBall(at)));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Laser"), stage.PlayLaser));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Talk"), stage.OpenTalk));
+                menu.Items.Add(Item("S.Fox.Menu.Ball", () => stage.PlayBall(at), "FoxIcon.Ball"));
+                menu.Items.Add(Item("S.Fox.Menu.Laser", stage.PlayLaser, "FoxIcon.Laser"));
+                menu.Items.Add(Item("S.Fox.Menu.HideSeek", () => stage.PlayGame(FoxWill.HideSeek), "FoxIcon.HideSeek"));
+                menu.Items.Add(Item("S.Fox.Menu.Chase", () => stage.PlayGame(FoxWill.Catch), "FoxIcon.Chase"));
+                menu.Items.Add(Item("S.Fox.Menu.Talk", stage.OpenTalk, "FoxIcon.Talk"));
                 menu.Items.Add(AppMenu.Divider(_window));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.FoxSettings.Ours"), () => Detached.Run(_window.ShowFoxFriendshipAsync(), "fox_friendship")));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.FoxSettings.Diary"), () => Detached.Run(_window.ShowFoxDiaryAsync(), "fox_diary")));
+                menu.Items.Add(Item("S.FoxSettings.Ours", () => Detached.Run(_window.ShowFoxFriendshipAsync(), "fox_friendship"), "FoxIcon.Friendship"));
+                menu.Items.Add(Item("S.FoxSettings.Diary", () => Detached.Run(_window.ShowFoxDiaryAsync(), "fox_diary"), "FoxIcon.Diary"));
                 menu.Items.Add(AppMenu.Divider(_window));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideHour"), () => stage.HideFor(1)));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.HideDay"), () => stage.HideFor(0)));
-                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Settings"), _window.OpenFoxSettings));
+                menu.Items.Add(Item("S.Fox.Menu.HideHour", () => stage.HideFor(1), "FoxIcon.HideHour"));
+                menu.Items.Add(Item("S.Fox.Menu.HideDay", () => stage.HideFor(0), "FoxIcon.HideDay"));
+                menu.Items.Add(AppMenu.Item(_window, Loc.Get("S.Fox.Menu.Settings"), _window.OpenFoxSettings, icon: "Icon.Menu.ChatSettings"));
                 menu.IsOpen = true;
+            }
+
+            /// <summary>Пункт меню Розы со значком из её словаря.</summary>
+            private MenuItem Item(string key, Action invoke, string icon)
+            {
+                var item = AppMenu.Item(_window, Loc.Get(key), invoke);
+                _icons ??= new ResourceDictionary { Source = IconsUri };
+                MenuIcon.SetData(item, (Geometry)_icons[icon]);
+                return item;
             }
 
             public void TalkClosed() => _window.FocusMessageInput();

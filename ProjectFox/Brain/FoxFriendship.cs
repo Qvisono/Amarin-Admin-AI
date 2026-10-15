@@ -189,7 +189,20 @@ internal static class FoxPhrases
         ["Return"] = 2,
         ["Hide"] = 2,
         ["Mischief"] = 3,
-        ["Mute"] = 2
+        ["Mute"] = 2,
+        ["CallRefuse"] = 3,
+        ["Found"] = 2,
+        ["Caught"] = 2,
+        ["FetchAsk"] = 2,
+        ["FetchIgnored"] = 2,
+        ["Strut"] = 2,
+        ["Chase"] = 2,
+        ["Tease"] = 2,
+        ["Pester"] = 2,
+        ["HideSeek"] = 2,
+        ["Catch"] = 2,
+        ["Fight"] = 2,
+        ["FightWin"] = 2
     };
 
     /// <summary>Ключ случайного варианта фразы.</summary>

@@ -130,7 +130,8 @@ internal static class FoxPrompt
             "new_chats: " + day.NewChats.ToString(invariant) + ", deleted_chats: " + day.DeletedChats.ToString(invariant),
             "pets: " + day.Pets.ToString(invariant) + ", treats: " + day.Treats.ToString(invariant) + ", games: " + day.Games.ToString(invariant) + ", talks: " + day.Talks.ToString(invariant),
             "nose_boops: " + day.Boops.ToString(invariant) + ", tail_pulls: " + day.TailPulls.ToString(invariant) + ", throws: " + day.Throws.ToString(invariant),
-            "my_mischief: " + day.Mischief.ToString(invariant) + ", my_escapes: " + day.Escapes.ToString(invariant),
+            "my_mischief: " + day.Mischief.ToString(invariant) + ", my_escapes: " + day.Escapes.ToString(invariant) +
+                ", i_bit_the_cursor: " + day.Bites.ToString(invariant) + ", i_refused_to_come_when_called: " + day.CallRefusals.ToString(invariant),
             "topics: " + topics,
             "events: " + (day.Events.Count == 0 ? "-" : string.Join(", ", day.Events)),
             "annoyance_points: " + day.Annoyance.ToString("0.#", invariant) + ", joy_points: " + day.Joy.ToString("0.#", invariant),

@@ -39,6 +39,12 @@ public sealed class FoxStoreTests : IDisposable
                 state.Milestones.Add("first-meet");
                 state.Today.Date = "2026-10-13";
                 state.Today.Topics["science"] = 3;
+
+                // D4: воля, отказы прийти, кусь — то же state.json, и архив увозит его целиком.
+                state.NextActivityAt = new DateTime(2026, 10, 13, 12, 5, 0);
+                state.RefusedCalls = 1;
+                state.Today.Bites = 2;
+                state.Today.CallRefusals = 1;
             });
             store.Write(Entry("2026-10-12", "Today he talked about stars."));
             store.Write(Entry("2026-10-11", "Quiet day."));
@@ -50,6 +56,9 @@ public sealed class FoxStoreTests : IDisposable
         Assert.Equal(7, snapshot.PetsTotal);
         Assert.Equal(["first-meet"], snapshot.Milestones);
         Assert.Equal(3, snapshot.Today.Topics["science"]);
+        Assert.Equal(new DateTime(2026, 10, 13, 12, 5, 0), snapshot.NextActivityAt);
+        Assert.Equal(1, snapshot.RefusedCalls);
+        Assert.Equal((2, 1), (snapshot.Today.Bites, snapshot.Today.CallRefusals));
         Assert.Equal(["2026-10-11", "2026-10-12"], again.Diary().Select(entry => entry.Date));
     }
 

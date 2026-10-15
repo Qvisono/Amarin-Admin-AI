@@ -8,15 +8,20 @@ internal sealed partial class FoxStage
     /// <summary>Шаг и бег — точек слоя в миллисекунду при размере 48; крупный Роза ходит пропорционально быстрее.</summary>
     private const double WalkSpeed = 0.06;
     private const double RunSpeed = 0.2;
+    private const double SneakSpeed = 0.035;
 
     /// <summary>Ускорение падения, точек в мс². С трёхсот точек Роза падает со скоростью 1,2 — порог головокружения.</summary>
     private const double Gravity = 0.0024;
 
     private double? _walkTo;
-    private bool _running;
+
+    /// <summary>Походка: <c>walk</c>, <c>run</c>, <c>strut</c> (catwalk) или <c>sneak</c> — это и анимация, и скорость.</summary>
+    private string _gait = "walk";
     private bool _lying;
+
+    /// <summary>Лёжа: просто лежит (<c>lie</c>) или виляет хвостом (<c>liewag</c>).</summary>
+    private string _lieAnim = "lie";
     private Action? _arrived;
-    private DateTime _settledAt;
     private DateTime _backAt;
     private DateTime _nextHabit;
     private DateTime _reactUntil = DateTime.MaxValue;
@@ -110,7 +115,6 @@ internal sealed partial class FoxStage
             _foot = seat;
             _flip = false;
             Play("sit", "sit");
-            _settledAt = _clock();
             Draw();
             Greet();
             ScheduleFrame();
@@ -123,7 +127,11 @@ internal sealed partial class FoxStage
     }
 
     /// <summary>Идёт по своей кромке до <paramref name="foot"/>; на месте садится и делает <paramref name="then"/>.</summary>
-    private void WalkTo(double foot, bool run, Action? then = null, bool clamp = true)
+    private void WalkTo(double foot, bool run, Action? then = null, bool clamp = true) =>
+        WalkTo(foot, run ? "run" : "walk", then, clamp);
+
+    /// <summary>То же походкой <paramref name="gait"/>: <c>walk</c>, <c>run</c>, <c>strut</c>, <c>sneak</c>.</summary>
+    private void WalkTo(double foot, string gait, Action? then = null, bool clamp = true)
     {
         if (clamp)
         {
@@ -141,9 +149,9 @@ internal sealed partial class FoxStage
 
         _mode = FoxMode.Walk;
         _walkTo = foot;
-        _running = run;
+        _gait = gait;
         _flip = foot > _foot;
-        Play(run ? "run" : "walk", run ? "run" : "walk");
+        Play(gait, gait);
         StartRendering();
     }
 
@@ -155,7 +163,13 @@ internal sealed partial class FoxStage
             return;
         }
 
-        var speed = (_running ? RunSpeed : WalkSpeed) * _sprite.Side / FoxSprites.FrameSize;
+        var pace = _gait switch
+        {
+            "run" => RunSpeed,
+            "sneak" => SneakSpeed,
+            _ => WalkSpeed
+        };
+        var speed = pace * _sprite.Side / FoxSprites.FrameSize;
         var left = target - _foot;
         _flip = left > 0;
         _foot += Math.Sign(left) * Math.Min(Math.Abs(left), speed * ms);
@@ -172,12 +186,11 @@ internal sealed partial class FoxStage
         var wasWalking = _mode == FoxMode.Walk;
         _walkTo = null;
         _mode = FoxMode.Idle;
-        _settledAt = _clock();
         if (wasWalking)
         {
             Play("sitdown", "sit");
         }
-        else if (_anim is "walk" or "run")
+        else if (_anim is "walk" or "run" or "strut" or "sneak")
         {
             Play("sit", "sit");
         }
@@ -257,7 +270,6 @@ internal sealed partial class FoxStage
         _tilt.Angle = 0;
         _lying = false;
         _arrived = null;
-        _settledAt = _clock();
         Play("sit", "sit");
     }
 
@@ -317,13 +329,8 @@ internal sealed partial class FoxStage
         var speed = Math.Sqrt((_vx * _vx) + (_vy * _vy));
         if (_vy > 0)
         {
-            foreach (var spot in (string[])["home", "settings"])
+            foreach (var spot in Ledges())
             {
-                if (spot == "settings" && _host.Card() is null)
-                {
-                    continue;
-                }
-
                 // Запас вниз — на того, кого держали за шкирку прямо над его местом: лапы висят
                 // чуть ниже кромки, и без запаса отпущенный провалился бы сквозь поле ввода.
                 var edge = EdgeOf(spot);
@@ -362,7 +369,10 @@ internal sealed partial class FoxStage
         Settle(spot, foot, _impact);
     }
 
-    /// <summary>Сел после полёта: сказать мозгу, как сильно приложился.</summary>
+    /// <summary>
+    /// Сел после полёта: сказать мозгу, как сильно приложился. Где положили, там и сидит; на полу —
+    /// только отходит с кнопок поля ввода в ближайший свободный промежуток.
+    /// </summary>
     private void Settle(string spot, double foot, double speed)
     {
         Seat(spot, foot);
@@ -374,6 +384,55 @@ internal sealed partial class FoxStage
 
         Squash();
         Signal(new FoxSignal(FoxSignalKind.Landed, Value: speed));
+        if (spot == "floor")
+        {
+            OffTheButtons();
+        }
+    }
+
+    /// <summary>Кромки, на которые можно сесть с лёта; пол — отдельно, он под всеми.</summary>
+    private IEnumerable<string> Ledges()
+    {
+        yield return "home";
+        if (_host.Card() is not null)
+        {
+            yield return "settings";
+        }
+
+        if (_host.Column() is not null)
+        {
+            yield return "column";
+        }
+    }
+
+    /// <summary>Свободный промежуток пола, ближайший к <paramref name="foot"/>; null — свободных нет.</summary>
+    private double? FreeFloorFoot(double foot)
+    {
+        double? best = null;
+        foreach (var span in _host.FloorSpans())
+        {
+            if (span.Right - span.Left < Px(34))
+            {
+                continue;
+            }
+
+            var at = ClampFoot(span, foot);
+            if (best is not { } found || Math.Abs(at - foot) < Math.Abs(found - foot))
+            {
+                best = at;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>Сидит на полу над кнопкой — отходит в свободный промежуток.</summary>
+    private void OffTheButtons()
+    {
+        if (_spot == "floor" && FreeFloorFoot(_foot) is { } free && Math.Abs(free - _foot) > Px(2))
+        {
+            WalkTo(free, run: false, clamp: false);
+        }
     }
 
     /// <summary>Под какой кромкой Роза сейчас: туда он сядет, если окно свернут посреди полёта.</summary>
@@ -383,13 +442,8 @@ internal sealed partial class FoxStage
         var feet = (Airborne ? _y : _edgeY - Px(Ground(_anim))) + Px(Ground(_anim));
         var best = "floor";
         var bestY = _host.Floor();
-        foreach (var spot in (string[])["home", "settings"])
+        foreach (var spot in Ledges())
         {
-            if (spot == "settings" && _host.Card() is null)
-            {
-                continue;
-            }
-
             var edge = EdgeOf(spot);
             if (edge.Contains(foot) && edge.Y >= feet - Px(6) && edge.Y < bestY)
             {
@@ -447,6 +501,13 @@ internal sealed partial class FoxStage
         if (_mode == FoxMode.Sleep)
         {
             Wake();
+        }
+
+        if (spot == "peek")
+        {
+            // Сильный испуг: прячется за поле ввода и выглядывает оттуда — если сидит на нём.
+            Peek(TimeSpan.FromSeconds(8));
+            return;
         }
 
         if (_mode == FoxMode.Peek)
@@ -507,7 +568,6 @@ internal sealed partial class FoxStage
     private void EndPeek()
     {
         _mode = FoxMode.Idle;
-        _settledAt = _clock();
         Play("sitdown", "sit");
         Squash();
     }
@@ -524,7 +584,6 @@ internal sealed partial class FoxStage
     private void Wake()
     {
         _mode = FoxMode.Idle;
-        _settledAt = _clock();
         Play("stretch", "sit");
         _face = "sleepy";
         _faceUntil = _clock().AddMilliseconds(1400);
@@ -588,6 +647,8 @@ internal sealed partial class FoxStage
                 return card;
             case "floor":
                 return new FoxEdge(0, _host.Width(), _host.Floor());
+            case "column" when _host.Column() is { } column:
+                return column;
             case "send":
             case "chip":
                 var rect = spot == "send" ? _host.SendButton() : _host.ModelChip();
@@ -614,7 +675,7 @@ internal sealed partial class FoxStage
                 {
                     Play("peekdown", "hide");
                 }
-                else if (_anim == "hide")
+                else if (_anim == "hide" && !NextSeekRound())
                 {
                     EndPeek();
                 }
@@ -649,7 +710,7 @@ internal sealed partial class FoxStage
     /// <summary>Смотрит на курсор, на поле ввода, пока человек печатает, или от человека, если дуется.</summary>
     private void Gaze(DateTime now)
     {
-        if (_anim is not ("sit" or "lie" or "tail" or "earflick" or "think" or "nod"))
+        if (_anim is not ("sit" or "lie" or "liewag" or "tail" or "earflick" or "think" or "nod"))
         {
             return;
         }
@@ -688,21 +749,10 @@ internal sealed partial class FoxStage
 
         _nextHabit = now.AddMilliseconds(3000 + _random.Next(4000));
 
-        if (_spot is "floor" && now - _settledAt > TimeSpan.FromSeconds(8))
-        {
-            JumpTo("home", HomeFoot(_host.Home()));
-            return;
-        }
-
-        if (_spot == "home" && Math.Abs(_foot - HomeFoot(_host.Home())) > Px(6) && now - _settledAt > TimeSpan.FromSeconds(25))
-        {
-            WalkTo(HomeFoot(_host.Home()), run: false);
-            return;
-        }
-
+        // Домой он больше не тянется: где положили, там и сидит. Сменить место — дело воли.
         if (_lying)
         {
-            if (_random.Next(3) == 0)
+            if (_random.Next(_lieAnim == "liewag" ? 2 : 3) == 0)
             {
                 _lying = false;
                 Play("stretch", "sit");
@@ -747,19 +797,25 @@ internal sealed partial class FoxStage
             case < 82:
                 Play("stretch", "sit");
                 break;
-            case < 85 when _spot is "home" or "settings":
-                Play("liedown", "lie");
-                _lying = true;
+            case < 85:
+                LieDown(wag: false);
                 break;
-            case < 92 when _spot is "home" or "settings" && _host.Motion():
+            case < 92 when _host.Motion() && _spot != "floor":
                 var step = Px(16 + _random.Next(32)) * (_random.Next(2) == 0 ? -1 : 1);
                 WalkTo(_foot + step, run: false);
-                _settledAt = now;
                 break;
             default:
                 Blink(now);
                 break;
         }
+    }
+
+    /// <summary>Ложится: просто полежать или повилять хвостом.</summary>
+    private void LieDown(bool wag)
+    {
+        _lieAnim = wag ? "liewag" : "lie";
+        Play("liedown", _lieAnim);
+        _lying = true;
     }
 
     private void Blink(DateTime now)
@@ -795,7 +851,8 @@ internal sealed partial class FoxStage
     /// <summary>Есть ли что двигать каждый кадр; иначе хватает таймера кадров.</summary>
     private bool Moving =>
         _mode is FoxMode.Walk or FoxMode.Jump or FoxMode.Fly or FoxMode.Drag ||
-        _squashLeft > 0 || _motes.Count > 0 || _shakeUntil > _clock() || _ball is not null || _laser is not null || _bubbleFade != 0;
+        _squashLeft > 0 || _motes.Count > 0 || _shakeUntil > _clock() || _ball is not null || _laser is not null || _bubbleFade != 0 ||
+        _chomp is not null || _callShakeUntil > _clock() || _game is FoxWill.Fight or FoxWill.Catch;
 
     private void OnRendering(object? sender, EventArgs e)
     {

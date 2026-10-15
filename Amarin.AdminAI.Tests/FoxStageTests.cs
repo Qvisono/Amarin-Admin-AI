@@ -325,6 +325,161 @@ public sealed class FoxStageTests : IDisposable
         Assert.Equal(FoxMode.Idle, back);
     }
 
+    /// <summary>Упал на пол над кнопками поля ввода — отходит в свободный промежуток, а не накрывает их.</summary>
+    [Fact]
+    public void Dropped_on_the_floor_he_steps_off_the_buttons()
+    {
+        var (spot, corner) = With((stage, host, _) =>
+        {
+            host.Spans = [new FoxEdge(0, 150, 598), new FoxEdge(750, 800, 598)];
+            stage.BeginDrag(new Point(165, 420));
+            stage.Release();
+            Fly(stage);
+            Settle(stage);
+            return (stage.Spot, stage.Corner.X);
+        });
+
+        Assert.Equal("floor", spot);
+        Assert.True(corner < 150, $"сидит у {corner:0}, а свободно до 150");
+    }
+
+    /// <summary>
+    /// Где положили, там и сидит: прежде через 25 секунд он сам уходил в любимый угол справа, а
+    /// с пола — через 8.
+    /// </summary>
+    [Fact]
+    public void Put_down_on_the_composer_he_stays_there()
+    {
+        var (before, after) = With((stage, host, _) =>
+        {
+            stage.BeginDrag(new Point(280, host.Edge.Y - 30));
+            stage.Release();
+            Fly(stage);
+            Settle(stage);
+            var at = stage.Corner.X;
+            for (var i = 0; i < 60; i++)
+            {
+                host.Now = host.Now.AddSeconds(1);
+                stage.Advance(16);
+            }
+
+            Settle(stage);
+            return (at, stage.Corner.X);
+        });
+
+        Assert.True(Math.Abs(after - before) < 80, $"ушёл с {before:0} на {after:0}");
+    }
+
+    [Fact]
+    public void The_top_of_the_chat_column_footer_is_an_edge_too()
+    {
+        var spot = With((stage, host, _) =>
+        {
+            host.ColumnEdge = new FoxEdge(20, 180, 300);
+            stage.BeginDrag(new Point(90, 200));
+            stage.Release();
+            Fly(stage);
+            return stage.Spot;
+        });
+
+        Assert.Equal("column", spot);
+    }
+
+    /// <summary>Страх видно сразу: значок над головой и волны по бокам тела.</summary>
+    [Fact]
+    public void Fear_shows_an_emote_and_waves_beside_him()
+    {
+        var (emote, waves) = With((stage, _, _) =>
+        {
+            stage.Signal(FoxSignalKind.DangerAsked);
+            stage.Advance(16);
+            return (stage.EmoteShown, stage.TrembleShown);
+        });
+
+        Assert.True(emote, "нет значка страха");
+        Assert.True(waves, "нет волн дрожи");
+    }
+
+    [Fact]
+    public void A_cold_fox_snaps_big_teeth_at_a_lingering_cursor()
+    {
+        var teeth = With((stage, host, store) =>
+        {
+            store.Update(state =>
+            {
+                state.Affection = -60;
+                state.Cold = true;
+            });
+            host.PointerAt = new Point(stage.Corner.X - 10, stage.Corner.Y + 20);
+            stage.Signal(FoxSignalKind.HoverLong);
+            return stage.ChompShown;
+        });
+
+        Assert.True(teeth);
+    }
+
+    /// <summary>Принёс мячик, а его не бросили за двенадцать секунд — уносит и обижается.</summary>
+    [Fact]
+    public void A_ball_he_brought_and_nobody_threw_makes_him_sulk()
+    {
+        var (waited, after, resentment) = With((stage, host, store) =>
+        {
+            stage.PlayGame(FoxWill.Fetch);
+            for (var i = 0; i < 800 && !stage.BallWaiting; i++)
+            {
+                stage.Advance(16);
+            }
+
+            var waiting = stage.BallWaiting;
+            host.Now = host.Now.AddSeconds(13);
+            stage.Advance(16);
+            return (waiting, stage.BallWaiting, store.Snapshot().Resentment);
+        });
+
+        Assert.True(waited, "мячик так и не лёг");
+        Assert.False(after);
+        Assert.True(resentment >= 3);
+    }
+
+    [Fact]
+    public void Hide_and_seek_ends_when_he_is_found()
+    {
+        var (peeking, mode, games) = With((stage, _, store) =>
+        {
+            stage.PlayGame(FoxWill.HideSeek);
+            var peek = stage.Mode == FoxMode.Peek;
+            stage.ClickAt(new Point(20, 20));
+            return (peek, stage.Mode, store.Snapshot().Today.Games);
+        });
+
+        Assert.True(peeking);
+        Assert.Equal(FoxMode.Idle, mode);
+        Assert.Equal(1, games);
+    }
+
+    [Fact]
+    public void In_tag_he_runs_from_a_close_cursor()
+    {
+        var mode = With((stage, host, _) =>
+        {
+            stage.PlayGame(FoxWill.Catch);
+            host.PointerAt = new Point(stage.Corner.X + (stage.Side / 2), stage.Corner.Y + (stage.Side / 2));
+            stage.Advance(16);
+            return stage.Mode;
+        });
+
+        Assert.Equal(FoxMode.Walk, mode);
+    }
+
+    /// <summary>Доходит, куда шёл, и садится: не больше десяти секунд кадров.</summary>
+    private static void Settle(FoxStage stage)
+    {
+        for (var i = 0; i < 600 && stage.Mode != FoxMode.Idle; i++)
+        {
+            stage.Advance(16);
+        }
+    }
+
     /// <summary>Падает, пока не сядет: не больше десяти секунд кадров.</summary>
     private static void Fly(FoxStage stage)
     {
@@ -392,13 +547,24 @@ public sealed class FoxStageTests : IDisposable
 
         public double Floor() => 598;
 
+        /// <summary>Пол: левый промежуток и правый, а середина над кнопками (300–600) занята.</summary>
+        public List<FoxEdge> Spans { get; set; } = [new(0, 300, 598), new(600, 800, 598)];
+
+        public IReadOnlyList<FoxEdge> FloorSpans() => Spans;
+
+        public FoxEdge? Column() => ColumnEdge;
+
+        public FoxEdge? ColumnEdge { get; set; }
+
+        public Point? PointerAt { get; set; }
+
         public double Width() => 800;
 
         public int Size() => 48;
 
         public bool Motion() => Moving;
 
-        public Point? Pointer() => null;
+        public Point? Pointer() => PointerAt;
 
         public void NewChat() => NewChats++;
 

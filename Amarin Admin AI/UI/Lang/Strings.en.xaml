@@ -2379,9 +2379,38 @@
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Hide for an hour</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Hide until tomorrow</system:String>
     <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Talk</system:String>
+    <system:String x:Key="S.Fox.Menu.HideSeek" xml:space="preserve">Hide and seek</system:String>
+    <system:String x:Key="S.Fox.Menu.Chase" xml:space="preserve">Tag</system:String>
     <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Say something to Rosa…</system:String>
     <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">My words ran away… Pet me?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">My thoughts got tangled like a tail. Ask me later?</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.1" xml:space="preserve">F*** off!</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.2" xml:space="preserve">Not a chance. F*** off!</system:String>
+    <system:String x:Key="S.Fox.Say.CallRefuse.3" xml:space="preserve">Leave me alone! F*** off!</system:String>
+    <system:String x:Key="S.Fox.Say.Found.1" xml:space="preserve">Oh, you found me!</system:String>
+    <system:String x:Key="S.Fox.Say.Found.2" xml:space="preserve">Caught me peeking!</system:String>
+    <system:String x:Key="S.Fox.Say.Caught.1" xml:space="preserve">You got me!</system:String>
+    <system:String x:Key="S.Fox.Say.Caught.2" xml:space="preserve">Okay, okay, you got me!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchAsk.1" xml:space="preserve">Throw the ball!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchAsk.2" xml:space="preserve">Throw it! Please!</system:String>
+    <system:String x:Key="S.Fox.Say.FetchIgnored.1" xml:space="preserve">Fine, I'll play by myself.</system:String>
+    <system:String x:Key="S.Fox.Say.FetchIgnored.2" xml:space="preserve">You're no fun.</system:String>
+    <system:String x:Key="S.Fox.Say.Strut.1" xml:space="preserve">Look at me go!</system:String>
+    <system:String x:Key="S.Fox.Say.Strut.2" xml:space="preserve">Catwalk time!</system:String>
+    <system:String x:Key="S.Fox.Say.Chase.1" xml:space="preserve">Tail, come back!</system:String>
+    <system:String x:Key="S.Fox.Say.Chase.2" xml:space="preserve">Almost got it!</system:String>
+    <system:String x:Key="S.Fox.Say.Tease.1" xml:space="preserve">Nyah-nyah!</system:String>
+    <system:String x:Key="S.Fox.Say.Tease.2" xml:space="preserve">Can't catch me!</system:String>
+    <system:String x:Key="S.Fox.Say.Pester.1" xml:space="preserve">Pet me! Pet me! Pet me!</system:String>
+    <system:String x:Key="S.Fox.Say.Pester.2" xml:space="preserve">Pay attention to me!</system:String>
+    <system:String x:Key="S.Fox.Say.HideSeek.1" xml:space="preserve">Come find me!</system:String>
+    <system:String x:Key="S.Fox.Say.HideSeek.2" xml:space="preserve">One, two, three, come find me!</system:String>
+    <system:String x:Key="S.Fox.Say.Catch.1" xml:space="preserve">Catch me!</system:String>
+    <system:String x:Key="S.Fox.Say.Catch.2" xml:space="preserve">Bet you can't catch me!</system:String>
+    <system:String x:Key="S.Fox.Say.Fight.1" xml:space="preserve">Bring it on!</system:String>
+    <system:String x:Key="S.Fox.Say.Fight.2" xml:space="preserve">I'll get you!</system:String>
+    <system:String x:Key="S.Fox.Say.FightWin.1" xml:space="preserve">I win!</system:String>
+    <system:String x:Key="S.Fox.Say.FightWin.2" xml:space="preserve">Want some more?</system:String>
     <system:String x:Key="S.Fox.Diary.Quiet" xml:space="preserve">A quiet day: we barely saw each other, and I missed you a little.</system:String>
     <system:String x:Key="S.Fox.Diary.Messages" xml:space="preserve">Messages in the chat today: {0}.</system:String>
     <system:String x:Key="S.Fox.Diary.Topics" xml:space="preserve">Mostly it was about: {0}.</system:String>
@@ -2389,6 +2418,8 @@
     <system:String x:Key="S.Fox.Diary.Pets" xml:space="preserve">Pets today: {0}. Purr!</system:String>
     <system:String x:Key="S.Fox.Diary.Games" xml:space="preserve">We played, and it was great.</system:String>
     <system:String x:Key="S.Fox.Diary.Hurt" xml:space="preserve">Some things hurt, but I am almost done sulking.</system:String>
+    <system:String x:Key="S.Fox.Diary.Bit" xml:space="preserve">I bit your cursor. It had it coming.</system:String>
+    <system:String x:Key="S.Fox.Diary.ToldOff" xml:space="preserve">You called me, and I told you where to go instead of coming.</system:String>
     <system:String x:Key="S.Fox.Diary.Warmer" xml:space="preserve">By evening I liked you a little more.</system:String>
     <system:String x:Key="S.Fox.Diary.Colder" xml:space="preserve">By the end of the day I was sulking at you a bit.</system:String>
     <system:String x:Key="S.Fox.Diary.Same" xml:space="preserve">Things between us stayed the same.</system:String>

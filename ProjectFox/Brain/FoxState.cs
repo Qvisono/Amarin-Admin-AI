@@ -54,6 +54,15 @@ public sealed class FoxState
     /// <summary>Когда последний раз шалил: шалостей не больше нескольких в час.</summary>
     public DateTime? LastMischiefAt { get; set; }
 
+    /// <summary>Раньше этого воля (<see cref="FoxWill"/>) нового занятия не выбирает: занятия не чаще раза в минуту-две.</summary>
+    public DateTime? NextActivityAt { get; set; }
+
+    /// <summary>
+    /// Сколько раз подряд он отказался прийти на «Позвать» в этом побеге. На третий раз приходит
+    /// всегда: обида не делает из него того, кого не вернуть.
+    /// </summary>
+    public int RefusedCalls { get; set; }
+
     /// <summary>Сколько раз его гладили за всё время — ради отметки «сотое поглаживание».</summary>
     public int PetsTotal { get; set; }
 
@@ -111,6 +120,12 @@ public sealed class FoxDay
 
     public int Mischief { get; set; }
 
+    /// <summary>Сколько раз за день кусал курсор человека.</summary>
+    public int Bites { get; set; }
+
+    /// <summary>Сколько раз за день отказался прийти на «Позвать» и послал человека.</summary>
+    public int CallRefusals { get; set; }
+
     /// <summary>Сколько раз за день Роза спрашивал свою модель — дневной потолок трат.</summary>
     public int ModelCalls { get; set; }
 
@@ -143,7 +158,7 @@ public sealed class FoxDay
     /// <summary>Был ли день вообще: открыто окно, хоть что-то случилось.</summary>
     public bool IsEmpty =>
         Messages == 0 && Pets == 0 && Boops == 0 && TailPulls == 0 && Throws == 0 && Treats == 0 && Games == 0 &&
-        Talks == 0 && NewChats == 0 && DeletedChats == 0 && Events.Count == 0;
+        Talks == 0 && NewChats == 0 && DeletedChats == 0 && Bites == 0 && CallRefusals == 0 && Events.Count == 0;
 }
 
 /// <summary>Запись дневника Розы за день, от первого лица. Лежит в <c>fox/diary.json</c> массивом.</summary>

@@ -185,7 +185,7 @@ internal sealed partial class FoxStage
     public FrameworkElement Element => _sprite;
 
     /// <summary>Роза в руках, в игре или с ним говорят: Esc в это время отпускает его, а не останавливает ответ.</summary>
-    public bool Holding => _mode == FoxMode.Drag || _laserUntil > _clock() || Talking;
+    public bool Holding => _mode == FoxMode.Drag || _laserUntil > _clock() || Talking || _game is not null;
 
     /// <summary>Приходит в окно: выбегает к полю ввода справа или сразу садится, если анимации выключены.</summary>
     public void Start()
@@ -225,6 +225,7 @@ internal sealed partial class FoxStage
         _ticks.Stop();
         StopRendering();
         ClearEffects();
+        ClearFeelings(detach: true);
         _sprite.Visibility = Visibility.Collapsed;
         _host.Layer.Children.Remove(_sprite);
         if (_callMark is not null)
@@ -313,6 +314,12 @@ internal sealed partial class FoxStage
             }
         }
 
+        if (signal.Kind is FoxSignalKind.Pet or FoxSignalKind.Scratch or FoxSignalKind.Treat)
+        {
+            // Бесячество ждёт ласки: погладили — дальше не топает и не дразнит.
+            _pettedAt = _clock();
+        }
+
         var situation = _host.Situation() with
         {
             RecentBoops = RecentBoops(),
@@ -332,7 +339,12 @@ internal sealed partial class FoxStage
         }
 
         Refit();
-        if (!Airborne)
+        if (_spot == "column" && _host.Column() is null && !Airborne)
+        {
+            // Колонку свернули из-под лап: перебирается на поле ввода.
+            JumpTo("home", HomeFoot(_host.Home()));
+        }
+        else if (!Airborne)
         {
             // Кромка уехала или сменила ширину: место держится от её правого конца.
             // Кто ещё выбегает из-за края (лапы правее кромки), того не трогаем: он сам добежит.
@@ -354,6 +366,10 @@ internal sealed partial class FoxStage
 
         Draw();
         PlaceCallMark();
+        if (_mode == FoxMode.Idle)
+        {
+            OffTheButtons();
+        }
     }
 
     /// <summary>Сменился профиль: другая память — другой Роза. Приходит заново.</summary>
@@ -367,13 +383,22 @@ internal sealed partial class FoxStage
         }
     }
 
-    /// <summary>Зовёт спрятанного или убежавшего раньше срока — из настроек Розы.</summary>
+    /// <summary>
+    /// Зовёт раньше срока — из настроек Розы. Спрятанного по просьбе человека — сразу; убежавшего —
+    /// как следом лапки: обиженный может и не прийти.
+    /// </summary>
     public void Unhide()
     {
-        _store.Update(state => state.HiddenUntil = null);
-        if (_mode is FoxMode.Hidden or FoxMode.Away)
+        if (_mode == FoxMode.Away)
         {
-            Arrive(greet: _mode == FoxMode.Hidden);
+            Signal(FoxSignalKind.Call);
+            return;
+        }
+
+        _store.Update(state => state.HiddenUntil = null);
+        if (_mode == FoxMode.Hidden)
+        {
+            Arrive(greet: true);
         }
     }
 
@@ -419,13 +444,19 @@ internal sealed partial class FoxStage
                     break;
                 case FoxActionKind.Shake when visible:
                     _shakeUntil = now.AddMilliseconds(action.Ms);
-                    if (action.Ms >= 1500 && _mode == FoxMode.Idle && _spot == "home")
-                    {
-                        // Сильный испуг: прячется за поле ввода и выглядывает оттуда.
-                        Peek(TimeSpan.FromSeconds(8));
-                    }
-
                     StartRendering();
+                    break;
+                case FoxActionKind.Emote when visible:
+                    ShowEmote(action.Name, action.Ms);
+                    break;
+                case FoxActionKind.Effect when visible:
+                    Effect(action.Name, action.Ms);
+                    break;
+                case FoxActionKind.Do when visible:
+                    Do(action.Name);
+                    break;
+                case FoxActionKind.Shout:
+                    Shout(Loc.Get(action.Name), action.Ms);
                     break;
                 case FoxActionKind.Eyes:
                     // Смена глаз — с морганием: закрыл одними, открыл уже другими.
@@ -546,8 +577,8 @@ internal sealed partial class FoxStage
         FoxMode.Sleep => "sleep",
         FoxMode.Drag => "hang",
         FoxMode.Fly => "fly",
-        FoxMode.Walk => _running ? "run" : "walk",
-        _ => _lying ? "lie" : "sit"
+        FoxMode.Walk => _gait,
+        _ => _lying ? _lieAnim : "sit"
     };
 
     private void OnFrameTimer()
@@ -572,7 +603,9 @@ internal sealed partial class FoxStage
     /// </summary>
     private void ScheduleFrame()
     {
-        if (_paused || _mode is FoxMode.Off or FoxMode.Hidden or FoxMode.Away || _rendering)
+        // Убежавший кадров не листает, но фразу у следа «Позвать» таймер должен убрать вовремя.
+        var shouting = _mode == FoxMode.Away && _bubble is { Visibility: Visibility.Visible };
+        if (_paused || _mode is FoxMode.Off or FoxMode.Hidden || (_mode == FoxMode.Away && !shouting) || _rendering)
         {
             _frames.Stop();
             return;
@@ -582,7 +615,7 @@ internal sealed partial class FoxStage
         var wait = animation.HoldOf(Math.Min(_frame, animation.Frames.Count - 1)) - _elapsed;
         var now = _clock();
         var soon = _later.Count > 0 ? _later.Min(entry => entry.Due) : DateTime.MaxValue;
-        foreach (var until in (DateTime[])[_faceUntil, _itemUntil, _eyesAt ?? DateTime.MinValue, _nextHabit, _reactUntil, _bubbleUntil, _peekUntil, soon])
+        foreach (var until in (DateTime[])[_faceUntil, _itemUntil, _eyesAt ?? DateTime.MinValue, _nextHabit, _reactUntil, _bubbleUntil, _peekUntil, _emoteUntil, soon])
         {
             if (until > now && until - now < wait)
             {
@@ -645,14 +678,16 @@ internal sealed partial class FoxStage
     /// <summary>Рисует кадр (картинка берётся из кэша и не перерисовывается, если та же) и ставит Розу на место.</summary>
     private void Draw()
     {
+        var now = _clock();
         if (_mode is FoxMode.Off or FoxMode.Hidden or FoxMode.Away)
         {
             _sprite.Visibility = Visibility.Collapsed;
             PlaceBubble();
+            PlaceEmote(now);
+            PlaceTremble(now);
             return;
         }
 
-        var now = _clock();
         if (_eyesAt is { } eyesAt && eyesAt <= now)
         {
             _eyesAt = null;
@@ -668,6 +703,8 @@ internal sealed partial class FoxStage
         Place();
         PlaceBubble();
         PlaceTalk();
+        PlaceEmote(now);
+        PlaceTremble(now);
     }
 
     /// <summary>Ставит угол кадра по лапам (на кромке) или по <c>_x</c>/<c>_y</c> (в воздухе), с выравниванием по пикселям экрана.</summary>

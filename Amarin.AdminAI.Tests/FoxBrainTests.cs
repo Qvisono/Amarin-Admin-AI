@@ -196,7 +196,12 @@ public sealed class FoxBrainTests
     {
         var state = Known();
         var scared = Run(state, new FoxSignal(FoxSignalKind.UserSent, "у меня на пк вирус?"), new FoxSituation { ReadChat = false });
-        Assert.Contains(scared, action => action.Kind == FoxActionKind.Shake);
+
+        // Страх целиком: поза, дрожь с волнами, значок — и прячется за поле ввода явной командой.
+        Assert.Contains(scared, action => action is { Kind: FoxActionKind.Anim, Name: "fear" });
+        Assert.Contains(scared, action => action is { Kind: FoxActionKind.Effect, Name: "tremble" });
+        Assert.Contains(scared, action => action is { Kind: FoxActionKind.Emote, Name: "fright" });
+        Assert.Contains(scared, action => action is { Kind: FoxActionKind.Go, Name: "peek" });
         Assert.Equal(["S.Fox.Say.Virus"], Said(scared));
 
         var relief = Run(state, new FoxSignal(FoxSignalKind.AssistantCompleted, "Проверил: угроз не обнаружено."));

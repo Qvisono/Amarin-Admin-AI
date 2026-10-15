@@ -97,6 +97,7 @@ internal sealed partial class FoxStage
     {
         StopLaser();
         CloseTalk();
+        StopGame();
         if (_mode != FoxMode.Drag)
         {
             return;
@@ -155,6 +156,7 @@ internal sealed partial class FoxStage
         if (!_pressed)
         {
             Stroke(e.GetPosition(_sprite), point);
+            Wiggle(point);
         }
     }
 
@@ -187,6 +189,7 @@ internal sealed partial class FoxStage
     internal void BeginDrag(Point point)
     {
         Replan();
+        StopGame();
         if (_mode == FoxMode.Sleep)
         {
             Wake();
@@ -323,7 +326,21 @@ internal sealed partial class FoxStage
 
         if (_mode == FoxMode.Peek)
         {
+            var seeking = _game == FoxWill.HideSeek;
+            StopGame();
             EndPeek();
+            if (seeking)
+            {
+                Signal(FoxSignalKind.Found);
+            }
+
+            return;
+        }
+
+        if (_game == FoxWill.Catch)
+        {
+            StopGame();
+            Signal(FoxSignalKind.Caught);
             return;
         }
 
