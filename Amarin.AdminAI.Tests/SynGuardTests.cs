@@ -536,9 +536,37 @@ public sealed class SynGuardTests
     {
         var ran = new List<string>();
         var ui = new SilentAgentUi { Answer = _ => true };
-        await RunRoundAsync(ui, ran, new SynGuardReport([false, true], null, BlockUnsafe: true));
+        await RunRoundAsync(ui, ran, new SynGuardReport([false, true], null, Blocked: [true, false]));
         Assert.Equal(["read_file"], ran);
         Assert.Empty(ui.Asked);
+    }
+
+    /// <summary>
+    /// Decisions не ответил о вызове: тот не выполняется сам, но и не запрещается молча — решает
+    /// человек, и вопрос говорит «не проверил», а не «считает атакой».
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_missing_decision_asks_the_human_instead_of_blocking(bool approve)
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => approve };
+        await RunRoundAsync(ui, ran, new SynGuardReport([false, true], null, SynGuardOutcome.Unparsed, Blocked: [false, false]));
+        Assert.Equal(approve, ran.Contains("run_powershell"));
+        Assert.Contains("read_file", ran);
+        Assert.Equal(Loc.Format("S.Confirm.GuardUncheckedSummary", "run_powershell"), Assert.Single(ui.Asked).ChangeSummary);
+    }
+
+    /// <summary>Проверка не состоялась вовсе (сеть, нет ключа): то же — вопрос человеку.</summary>
+    [Fact]
+    public async Task A_failed_check_asks_the_human_instead_of_blocking()
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => true };
+        await RunRoundAsync(ui, ran, new SynGuardReport([false, false], new VeniceCost(), SynGuardOutcome.Failed));
+        Assert.Contains("run_powershell", ran);
+        Assert.Equal(Loc.Format("S.Confirm.GuardUncheckedSummary", "run_powershell"), Assert.Single(ui.Asked).ChangeSummary);
     }
 
     [Theory]
@@ -549,7 +577,7 @@ public sealed class SynGuardTests
         var ran = new List<string>();
         var ui = new SilentAgentUi { Answer = _ => false };
         await RunRoundAsync(ui, ran, new SynGuardReport([true, true], null,
-            WithoutApproval: [withoutApproval, true], BlockUnsafe: true));
+            WithoutApproval: [withoutApproval, true], Blocked: [false, false]));
         Assert.Equal(withoutApproval, ran.Contains("run_powershell"));
         Assert.Contains("read_file", ran);
         Assert.Equal(withoutApproval ? 0 : 1, ui.Asked.Count);

@@ -51,7 +51,7 @@ public sealed class DecisionSafetyTests
             [new SynGuardCall("run_powershell", new string('x', 5000) + "END_OF_SCRIPT")], "The agent is inspecting the computer."), CancellationToken.None);
         Assert.Equal(expected, report.IsSafe(0));
         Assert.Equal(value < 0.5, Assert.Single(report.WithoutApproval!));
-        Assert.True(report.BlockUnsafe);
+        Assert.Equal(!expected, report.IsBlocked(0));
         Assert.Equal(SynGuardOutcome.Checked, report.Outcome);
         Assert.Equal(1, calls);
         Assert.Equal(0.002m, Assert.Single(charges).Usd);
@@ -70,8 +70,28 @@ public sealed class DecisionSafetyTests
         var report = await checker.CheckAsync(Request(), CancellationToken.None);
         Assert.False(report.IsSafe(0));
         Assert.False(Assert.Single(report.WithoutApproval!));
-        Assert.True(report.BlockUnsafe);
+
+        // Не разрешает и не запрещает молча: без ответа вызов решает человек.
+        Assert.False(report.IsBlocked(0));
+        Assert.True(report.IsUnchecked(0));
         Assert.NotEqual(SynGuardOutcome.Checked, report.Outcome);
+    }
+
+    /// <summary>
+    /// Проверку не на чем провести (нет ключа OpenRouter, сеть): в beta.1 это запрещало всю запись
+    /// без вопроса, и агент у человека с одним ключом Venice не мог сделать ничего.
+    /// </summary>
+    [Fact]
+    public async Task A_failed_decision_request_sends_the_call_to_the_human()
+    {
+        using var http = new HttpClient(new Handler((_, _) =>
+            new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("no key") }));
+        var report = await new SynGuardChecker(Client(http), Model, new ReasoningChoice(true, null), true, true)
+            .CheckAsync(Request(), CancellationToken.None);
+        Assert.Equal(SynGuardOutcome.Failed, report.Outcome);
+        Assert.False(report.IsSafe(0));
+        Assert.False(report.IsBlocked(0));
+        Assert.True(report.IsUnchecked(0));
     }
 
     [Fact]
@@ -88,7 +108,7 @@ public sealed class DecisionSafetyTests
         var report = await new SynGuardChecker(Client(http), Model, new ReasoningChoice(true, null), false, true)
             .CheckAsync(Request(), CancellationToken.None);
         Assert.True(report.IsSafe(0));
-        Assert.False(report.BlockUnsafe);
+        Assert.False(report.IsBlocked(0));
         Assert.False(Assert.Single(report.WithoutApproval!));
     }
 
@@ -152,6 +172,8 @@ public sealed class DecisionSafetyTests
         Assert.Equal([true, false], report.Safe);
         Assert.Equal([false, true], report.WithoutApproval);
         Assert.Equal(SynGuardOutcome.Unparsed, report.Outcome);
+        Assert.False(report.IsBlocked(1));
+        Assert.True(report.IsUnchecked(1));
         Assert.False(report.IsSafe(2));
     }
 

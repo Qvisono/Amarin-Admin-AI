@@ -53,12 +53,6 @@ public sealed class AppSettingsStore
 
             var settings = JsonSerializer.Deserialize<AppSettings>(text, AppJson.Options)
                            ?? AppSettings.CreateDefault();
-            using var document = JsonDocument.Parse(text);
-            if (!document.RootElement.EnumerateObject().Any(property =>
-                    property.Name.Equals(nameof(AppSettings.FactoryModelsRevision), StringComparison.OrdinalIgnoreCase)))
-            {
-                settings.FactoryModelsRevision = 0;
-            }
             var changed = MigrateLegacyChatPrompts(settings);
             changed |= SeedDownloadAllowedDomains(settings);
             settings.Appearance ??= new AppearanceSettings();
@@ -67,27 +61,19 @@ public sealed class AppSettingsStore
             settings.LiteReasoning ??= new ReasoningSettings();
             settings.HeavyReasoning ??= new ReasoningSettings();
             settings.RouterReasoning ??= new ReasoningSettings();
-            if (settings.FactoryModelsRevision < AppSettings.CurrentFactoryModels)
-            {
-                changed |= MigrateRouterReasoning(settings);
-            }
             settings.TitleReasoning ??= new ReasoningSettings();
             settings.AgentFastReasoning ??= new ReasoningSettings();
             settings.AgentLiteReasoning ??= new ReasoningSettings();
             settings.AgentHeavyReasoning ??= new ReasoningSettings();
             settings.SynGuardReasoning ??= new ReasoningSettings();
-            if (settings.FactoryModelsRevision < AppSettings.CurrentFactoryModels)
-            {
-                changed |= MigrateSynGuardReasoning(settings);
-            }
             settings.SummaryReasoning ??= new ReasoningSettings();
             changed |= MigrateSummarySlot(settings);
             settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
             settings.Fox ??= new FoxSettings();
             changed |= settings.Fox.Normalize();
 
-            // После переноса сводки: та берёт модель быстрого агента, и заводскую 1.33 у обоих
-            // слотов замена должна увидеть.
+            // Последней: она переписывает все слоты и размышление разом, и прежние разовые
+            // поправки размышления маршрутизатора и защиты (1.19.4, 1.21.1) ей больше не нужны.
             changed |= MigrateFactoryModels(settings);
             if (changed)
             {
@@ -178,57 +164,6 @@ public sealed class AppSettingsStore
         Не используй эмодзи и цветные пиктограммы. Вместо них - обычный текст: скобки и текстовые эмоции вроде :) :( :D ;) ^_^.
         """
     ];
-
-    /// <summary>
-    /// До 1.19.4 маршрутизатор по умолчанию думал на «medium». Сохранённый файл держит это
-    /// значение и после смены умолчания, поэтому прежнее умолчание переписывается один раз.
-    /// </summary>
-    /// <remarks>
-    /// Отличающее условие — ровно та пара, что отгружалась: размышление включено и сила
-    /// «medium». Всё остальное человек выставил руками в настройках, и трогать это нельзя.
-    /// Откуда взялось значение, в settings.json не записано, так что осознанный выбор «думает,
-    /// medium» неотличим от нетронутого слота и один раз потеряется — это принятый размен
-    /// против флага-маркера, который остался бы в настройках навсегда ради одного релиза.
-    /// Вызывается после заживления null: пустой слот и так означает «размышление выключено»,
-    /// и считать его требующим миграции значило бы переписывать файл при каждом запуске.
-    /// </remarks>
-    internal static bool MigrateRouterReasoning(AppSettings settings)
-    {
-        var slot = settings.RouterReasoning;
-        if (slot is null || slot.DisableThinking ||
-            !string.Equals(slot.ReasoningEffort?.Trim(), "medium", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        slot.DisableThinking = true;
-        slot.ReasoningEffort = null;
-        return true;
-    }
-
-    /// <summary>
-    /// До 1.21.1 защитник отвечал без размышления. Сохранённый файл держит это значение и после
-    /// смены умолчания, поэтому прежнее умолчание переписывается один раз.
-    /// </summary>
-    /// <remarks>
-    /// Тот же размен, что и в <see cref="MigrateRouterReasoning"/>, только зеркальный: прежнее
-    /// умолчание — «размышление выключено, сила не выбрана», и осознанный выбор «не думать»
-    /// неотличим от нетронутого слота, поэтому один раз потеряется. Иначе правка, ради которой
-    /// всё и делалось, не дошла бы ни до кого, кроме новых профилей: судить по словам в команде
-    /// защитник продолжил бы у всех, кто уже пользуется программой.
-    /// </remarks>
-    internal static bool MigrateSynGuardReasoning(AppSettings settings)
-    {
-        var slot = settings.SynGuardReasoning;
-        if (slot is null || !slot.DisableThinking || !string.IsNullOrWhiteSpace(slot.ReasoningEffort))
-        {
-            return false;
-        }
-
-        slot.DisableThinking = false;
-        slot.ReasoningEffort = "low";
-        return true;
-    }
 
     /// <summary>
     /// Переносит сводкам чата то, чем они пользовались до появления своего слота.

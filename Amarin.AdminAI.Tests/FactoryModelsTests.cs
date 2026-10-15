@@ -135,6 +135,22 @@ public sealed class FactoryModelsTests : IDisposable
         Assert.Null(ModelSlots.ReadKey(settings, ModelSlot.Heavy));
     }
 
+    /// <summary>
+    /// Ревизию без поля в файле узнаёт сама десериализация: файл без отметки — нулевой и проходит
+    /// замену один раз, а объект, собранный в коде, — нынешний. В beta.1 ради этого файл
+    /// настроек разбирался на каждом запуске второй раз.
+    /// </summary>
+    [Fact]
+    public void A_file_without_the_mark_is_revision_zero_and_settings_built_in_code_are_current()
+    {
+        Assert.Equal(0, System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{}", AppJson.Options)!.FactoryModelsRevision);
+        Assert.Equal(AppSettings.CurrentFactoryModels, new AppSettings().FactoryModelsRevision);
+        Assert.Equal(AppSettings.CurrentFactoryModels, AppSettings.CreateDefault().FactoryModelsRevision);
+
+        new AppSettingsStore(_root).Save(new AppSettings { RouterModelId = "my-router" });
+        Assert.Equal("my-router", new AppSettingsStore(_root).Load().RouterModelId);
+    }
+
     private static List<VeniceModelInfo> Catalog(params string[] ids) =>
         [.. ids.Select(id => new VeniceModelInfo { Id = id })];
 

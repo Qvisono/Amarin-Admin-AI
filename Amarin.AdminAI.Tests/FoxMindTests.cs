@@ -292,6 +292,56 @@ public sealed class FoxMindTests : IDisposable
         Assert.Contains("Amarin.Core.VeniceClient", referenced);
     }
 
+    /// <summary>
+    /// Прямой провайдер цену не называет — её оценивает клиент по каталогу. Клиент Розы прежде
+    /// сведений о модели не получал, и её траты на ключе OpenAI или Anthropic в журнал не попадали.
+    /// </summary>
+    [Fact]
+    public async Task A_direct_provider_reply_is_priced_from_the_catalog()
+    {
+        const string model = "openAI:gpt-test";
+        var server = new Server(_ => Json(new
+        {
+            choices = new[] { new { message = new { role = "assistant", content = """{"emotion":"happy","line":"","mood":0}""" } } },
+            usage = new { prompt_tokens = 1_000_000, completion_tokens = 0 }
+        }));
+        var costs = new ConcurrentBag<VeniceCost>();
+        var http = new HttpClient(server);
+        var options = new AgentOptions
+        {
+            Model = model,
+            Keys = new ApiKeyProvider("sk-test", LlmProvider.OpenAI),
+            SpendSink = (_, cost, sku) =>
+            {
+                if (sku == VeniceSku.Fox)
+                {
+                    costs.Add(cost);
+                }
+            }
+        };
+        var store = new FoxStore(Path.Combine(_root, "direct"), () => false, TimeSpan.FromMilliseconds(10));
+        var settings = new AppSettings { FoxModelId = model };
+        var info = new VeniceModelInfo
+        {
+            Id = model,
+            ModelSpec = new VeniceModelSpec
+            {
+                Pricing = new VeniceModelPricing { Input = new VeniceUnitPrice { Usd = 2m }, Output = new VeniceUnitPrice { Usd = 8m } }
+            }
+        };
+        await using var run = new Run(
+            new FoxMind(http, options, () => settings, store, _ => { }, TimeSpan.Zero, resolveModelInfo: id => id == model ? info : null),
+            store, new ConcurrentQueue<FoxReply>(), http);
+
+        run.Mind.Ask("react", "спасибо");
+        await run.Mind.IdleAsync();
+
+        Assert.Single(server.Requests);
+        var cost = Assert.Single(costs);
+        Assert.Equal(2m, cost.Usd);
+        Assert.True(cost.Estimated);
+    }
+
     private Run Start(Server server, string key = "vk-test", AppSettings? settings = null, TimeSpan? pause = null, ConcurrentBag<string>? charged = null)
     {
         var http = new HttpClient(server) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };

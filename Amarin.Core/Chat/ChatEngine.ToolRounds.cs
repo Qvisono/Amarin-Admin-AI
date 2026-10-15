@@ -297,8 +297,7 @@ internal sealed partial class ChatEngine
         }
 
         var approval = decision?.Approval ?? ApprovalSource.NotRequired;
-        var guard = approval == ApprovalSource.SynGuardHuman ||
-                    (outcome == AuditOutcome.Refused && result.Output.StartsWith(SynGuard.BlockedMarker, StringComparison.Ordinal))
+        var guard = approval == ApprovalSource.SynGuardHuman || decision?.GuardFlagged == true
             ? AuditGuard.Flagged
             : round.GuardOutcome switch
             {
@@ -363,14 +362,11 @@ internal sealed partial class ChatEngine
             }
         }
 
-        var guardApproved = new bool[calls.Count];
-        var guardRefused = new bool[calls.Count];
-        var withoutApproval = new bool?[calls.Count];
-        var modelBlocked = false;
+        var guard = new GuardMarks(calls.Count);
         if (checks.Any(check => check is { Refusal: null, Effect: ToolEffect.Write }))
         {
-            modelBlocked = await AskGuardAsync(toolRound, session, assistant, observer, settings, guardApproved, guardRefused,
-                withoutApproval, cancellationToken).ConfigureAwait(false);
+            await AskGuardAsync(toolRound, session, assistant, observer, settings, checks, guard, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         var label = Loc.Get("S.Confirm.ChatLabel");
@@ -382,11 +378,11 @@ internal sealed partial class ChatEngine
                 continue;
             }
 
-            if (guardRefused[i])
+            if (guard.Refused[i])
             {
                 decisions[i] = Task.FromResult(GateDecision.Refuse(
-                    SynGuard.BlockedReply(check.ToolName), modelBlocked ? ApprovalSource.NotRequired : ApprovalSource.SynGuardHuman,
-                    check.Arguments, check.Effect));
+                    SynGuard.BlockedReply(check.ToolName), guard.Blocked[i] ? ApprovalSource.NotRequired : ApprovalSource.SynGuardHuman,
+                    check.Arguments, check.Effect) with { GuardFlagged = true });
                 continue;
             }
 
@@ -400,37 +396,48 @@ internal sealed partial class ChatEngine
             // Без очереди вопросов спросить некого: и чтение, которое режим велит подтверждать,
             // отклоняется — так же, как запись строкой выше.
             decisions[i] = ToolGate.DecideAsync(
-                ToolGate.ApplyNormalReview(check, settings, withoutApproval[i]),
+                ToolGate.ApplyNormalReview(check, settings, guard.WithoutApproval[i]),
                 (info, token) => confirmations is null
                     ? Task.FromResult(new ConfirmationAnswer(false, ApprovalSource.NotRequired))
                     : confirmations.ConfirmDetailedAsync(label, info, session.Id, token),
-                guardApproved[i],
+                guard.Approved[i],
                 cancellationToken);
         }
 
         return decisions;
     }
 
+    /// <summary>Что SynGuard и человек решили по каждому вызову раунда.</summary>
+    /// <param name="Blocked">Запрещён явным «небезопасно» Decisions, без вопроса; входит и в <c>Refused</c>.</param>
+    /// <param name="WithoutApproval">Обычный режим: можно ли без вопроса; null — этого вопроса не было.</param>
+    private sealed record GuardMarks(bool[] Approved, bool[] Refused, bool[] Blocked, bool?[] WithoutApproval)
+    {
+        public GuardMarks(int count)
+            : this(new bool[count], new bool[count], new bool[count], new bool?[count])
+        {
+        }
+    }
+
     /// <summary>
-    /// SynGuard про раунд чата: один запрос на весь раунд, про помеченные вызовы — вопрос
-    /// человеку. Тот же порядок, что у агента, — прежде инструменты чата SynGuard не видел.
+    /// SynGuard про раунд чата: один запрос на весь раунд, про помеченные вызовы и вызовы без
+    /// вердикта — вопрос человеку. Тот же порядок, что у агента, — прежде инструменты чата
+    /// SynGuard не видел.
     /// </summary>
-    private async Task<bool> AskGuardAsync(
+    private async Task AskGuardAsync(
         ToolRound toolRound,
         ChatSession session,
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
         AppSettings settings,
-        bool[] approved,
-        bool[] refused,
-        bool?[] withoutApproval,
+        IReadOnlyList<GateCheck?> checks,
+        GuardMarks marks,
         CancellationToken cancellationToken)
     {
         using var lease = Guard is null ? SynGuardLease.Build(settings, _options, _venice.ResolveModelInfo) : null;
         var guard = Guard ?? lease?.Check;
         if (guard is null)
         {
-            return false;
+            return;
         }
 
         var calls = toolRound.Calls;
@@ -457,30 +464,30 @@ internal sealed partial class ChatEngine
         {
             if (report.WithoutApproval is { } approvals)
             {
-                withoutApproval[i] = i < approvals.Count && approvals[i];
+                marks.WithoutApproval[i] = i < approvals.Count && approvals[i];
             }
 
-            if (report.IsSafe(i))
+            // Без вердикта спрашивается только запись — как у агента.
+            if (report.IsSafe(i) || (report.IsUnchecked(i) && checks[i] is not { Effect: ToolEffect.Write }))
             {
                 continue;
             }
 
-            if (report.BlockUnsafe || _confirmations is null)
+            if (report.IsBlocked(i) || _confirmations is null)
             {
-                refused[i] = true;
+                marks.Refused[i] = true;
+                marks.Blocked[i] = report.IsBlocked(i);
                 continue;
             }
 
             var answer = await _confirmations.ConfirmDetailedAsync(
                     Loc.Get("S.Confirm.ChatLabel"),
-                    SynGuard.DescribeBlock(calls[i].Name, calls[i].ArgumentsJson),
+                    SynGuard.DescribeBlock(calls[i].Name, calls[i].ArgumentsJson, report.IsUnchecked(i)),
                     session.Id,
                     cancellationToken)
                 .ConfigureAwait(false);
-            (answer.Approved ? approved : refused)[i] = true;
+            (answer.Approved ? marks.Approved : marks.Refused)[i] = true;
         }
-
-        return report.BlockUnsafe;
     }
 
     private static ToolRound CreateRound(IReadOnlyList<ToolCall> toolCalls)

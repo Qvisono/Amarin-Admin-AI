@@ -56,6 +56,7 @@ internal sealed class FoxMind : IDisposable
     private readonly Action<FoxReply> _deliver;
     private readonly TimeSpan _pause;
     private readonly Func<DateTime> _clock;
+    private readonly Func<string, VeniceModelInfo?>? _resolveModelInfo;
     private readonly Channel<(string Kind, string Text)> _jobs =
         Channel.CreateBounded<(string, string)>(new BoundedChannelOptions(8) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
     private readonly CancellationTokenSource _stop = new();
@@ -66,6 +67,10 @@ internal sealed class FoxMind : IDisposable
 
     /// <param name="deliver">Готовый ответ. Зовётся с рабочего потока — окно переносит его к себе.</param>
     /// <param name="pause">Пауза между реакциями; тестам — ноль.</param>
+    /// <param name="resolveModelInfo">
+    /// Сведения о модели из общего каталога. Без них прямой провайдер (Anthropic, OpenAI…) не
+    /// называет цену, клиент не может её оценить, и траты Розы туда не попадали вовсе.
+    /// </param>
     public FoxMind(
         HttpClient http,
         AgentOptions options,
@@ -73,7 +78,8 @@ internal sealed class FoxMind : IDisposable
         FoxStore store,
         Action<FoxReply> deliver,
         TimeSpan? pause = null,
-        Func<DateTime>? clock = null)
+        Func<DateTime>? clock = null,
+        Func<string, VeniceModelInfo?>? resolveModelInfo = null)
     {
         _http = http;
         _options = options;
@@ -82,6 +88,7 @@ internal sealed class FoxMind : IDisposable
         _deliver = deliver;
         _pause = pause ?? DefaultPause;
         _clock = clock ?? (() => DateTime.Now);
+        _resolveModelInfo = resolveModelInfo;
     }
 
     /// <summary>Просьба мозга: <c>react</c> — отозваться на сообщение, <c>talk</c> — ответить человеку.</summary>
@@ -338,7 +345,7 @@ internal sealed class FoxMind : IDisposable
 
         try
         {
-            var response = await new VeniceClient(_http, options).CreateChatCompletionAsync(
+            var response = await Client(options).CreateChatCompletionAsync(
                     model,
                     messages,
                     tools,
@@ -378,7 +385,7 @@ internal sealed class FoxMind : IDisposable
 
         try
         {
-            var found = await new VeniceClient(_http, options)
+            var found = await Client(options)
                 .SearchWebAsync(query.Trim(), ModelSlots.WebSearch(settings), token)
                 .ConfigureAwait(false);
             return string.IsNullOrWhiteSpace(found) ? null : found;
@@ -392,6 +399,8 @@ internal sealed class FoxMind : IDisposable
             return null;
         }
     }
+
+    private VeniceClient Client(AgentOptions options) => new(_http, options) { ResolveModelInfo = _resolveModelInfo };
 
     /// <summary>Модель слота «Роза»; пустой или «Авто» — лёгкая модель по умолчанию.</summary>
     internal static string Model(AppSettings settings) =>

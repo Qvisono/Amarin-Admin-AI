@@ -26,18 +26,43 @@ internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGu
 /// денег, и они должны попасть в счёт, а не потеряться между клиентами.
 /// </param>
 /// <param name="Outcome">
-/// Состоялась ли проверка. Текстовые модели сохраняют прежний пропуск при сбое;
-/// Decisions не разрешают действие без положительного ответа.
+/// Состоялась ли проверка. Текстовая модель при сбое пропускает раунд, как и прежде; у Decisions
+/// и при сбое, когда тип модели неизвестен, вызов без положительного ответа идёт к человеку.
 /// </param>
+/// <param name="WithoutApproval">
+/// Обычный режим: можно ли выполнить вызов без вопроса. Null — этот вопрос не задавали.
+/// </param>
+/// <param name="Blocked">
+/// Явное «небезопасно» от Decisions: такой вызов запрещается без вопроса человеку. Null — у
+/// текстовой модели и при сбое: там помеченный вызов решает человек.
+/// </param>
+/// <remarks>
+/// Запрещает без вопроса только явный ответ, а не его отсутствие. В beta.1 сбой (сеть, нет ключа
+/// OpenRouter, модель промолчала) запрещал весь раунд, и агент у человека только с ключом Venice
+/// не мог записать ничего, пока слот защиты не переедет к его провайдеру.
+/// </remarks>
 internal sealed record SynGuardReport(
     IReadOnlyList<bool> Safe,
     VeniceCost? Cost,
     SynGuardOutcome Outcome = SynGuardOutcome.Checked,
     IReadOnlyList<bool>? WithoutApproval = null,
-    bool BlockUnsafe = false)
+    IReadOnlyList<bool>? Blocked = null)
 {
-    /// <summary>Неполный строгий отчёт не разрешает вызов; текстовые отчёты совместимы с прежним поведением.</summary>
-    public bool IsSafe(int index) => index < Safe.Count ? Safe[index] : !BlockUnsafe;
+    /// <summary>
+    /// Вердикт по вызову. Вызов за пределами отчёта текстовой модели — безопасен, как и прежде; у
+    /// Decisions ответа на него нет, и он уходит человеку.
+    /// </summary>
+    public bool IsSafe(int index) => index < Safe.Count ? Safe[index] : Blocked is null;
+
+    /// <summary>Защитник прямо назвал вызов небезопасным: запрет без вопроса.</summary>
+    public bool IsBlocked(int index) => Blocked is { } blocked && index < blocked.Count && blocked[index];
+
+    /// <summary>
+    /// Вердикта нет вовсе — проверка не состоялась или Decisions не ответил. Человеку тогда
+    /// говорится «не проверил», а не «считает атакой».
+    /// </summary>
+    public bool IsUnchecked(int index) =>
+        !IsSafe(index) && !IsBlocked(index) && (Outcome == SynGuardOutcome.Failed || Blocked is not null);
 }
 
 /// <summary>Чем кончилась проверка раунда.</summary>
@@ -262,17 +287,18 @@ internal static partial class SynGuard
     /// как не обходит он и белый список загрузок. Аргументы кладутся целиком и необрезанными:
     /// тот, кто разрешает, вправе видеть всё, что разрешает.
     /// </remarks>
-    internal static DangerousActionInfo DescribeBlock(string toolName, string? argumentsJson)
+    /// <param name="checkFailed">Вердикта нет (<see cref="SynGuardReport.IsUnchecked"/>): вопрос говорит «не проверил».</param>
+    internal static DangerousActionInfo DescribeBlock(string toolName, string? argumentsJson, bool checkFailed = false)
     {
         var arguments = argumentsJson?.Trim() ?? "";
         return new DangerousActionInfo(
             toolName,
-            Loc.Format("S.Confirm.GuardSummary", toolName),
+            Loc.Format(checkFailed ? "S.Confirm.GuardUncheckedSummary" : "S.Confirm.GuardSummary", toolName),
             // Подробностей отдельной строкой нет: аргументы уже лежат раскрытым блоком кода, а
             // те же самые буквы во втором свёрнутом разделе только прячут их от читающего.
             "",
             DangerousRiskLevel.Critical,
-            Loc.Get("S.Confirm.GuardDesc"),
+            Loc.Get(checkFailed ? "S.Confirm.GuardUncheckedDesc" : "S.Confirm.GuardDesc"),
             arguments,
             "json",
             AlwaysAsk: true);

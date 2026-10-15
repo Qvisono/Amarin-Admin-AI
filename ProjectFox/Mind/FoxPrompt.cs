@@ -190,7 +190,8 @@ internal static class FoxPrompt
             ? Regex.Replace(text, @"[ \t]+", " ").Replace("\r", "", StringComparison.Ordinal)
             : Regex.Replace(text, @"\s+", " ");
         text = text.Trim();
-        if (FoxInstinct.Read(text).Has(FoxTopic.Rude) || FoxInstinct.Read(text).Has(FoxTopic.RudeToFox))
+        var reading = FoxInstinct.Read(text);
+        if (reading.Has(FoxTopic.Rude) || reading.Has(FoxTopic.RudeToFox))
         {
             return "";
         }
@@ -213,7 +214,7 @@ internal static class FoxPrompt
     {
         var level = FoxFriendship.LevelKey(state.Affection)["S.Fox.Level.".Length..];
         var tone = state.Cold ? "холодно, с недоверием" : "тепло";
-        var sulk = state.Resentment >= 40 ? ", и ты сейчас на него обижен" : "";
+        var sulk = state.Resentment >= 40 ? ", и ты сейчас на человека обижен" : "";
         return $"{level} ({state.Affection.ToString("0", CultureInfo.InvariantCulture)} из 100), {tone}{sulk}";
     }
 

@@ -47,39 +47,20 @@ internal sealed class SynGuardChecker
         {
             if (await _venice.UsesDecisionsAsync(_modelId, cancellationToken).ConfigureAwait(false))
             {
-                var (response, cost) = await _venice.CreateDecisionsAsync(_modelId,
-                    SynGuard.DecisionState(request), SynGuard.DecisionQuestions(count, _checkSafety, _checkApproval),
-                    cancellationToken).ConfigureAwait(false);
-                var complete = true;
-                var safe = Read("safe_to_run", _checkSafety);
-                var withoutApproval = _checkApproval ? Read("safe_without_approval", true) : null;
-                return new SynGuardReport(safe, cost,
-                    complete ? SynGuardOutcome.Checked : SynGuardOutcome.Unparsed, withoutApproval, BlockUnsafe: _checkSafety);
-
-                bool[] Read(string name, bool enabled)
-                {
-                    var values = new bool[count];
-                    for (var i = 0; i < count; i++)
-                    {
-                        var value = enabled ? response.Answers?.GetValueOrDefault(
-                            SynGuard.DecisionQuestionId(name, i, count))?.BooleanValue : true;
-                        complete &= value.HasValue;
-                        values[i] = value == true;
-                    }
-
-                    return values;
-                }
+                return await CheckDecisionsAsync(request, cancellationToken).ConfigureAwait(false);
             }
 
             var safety = _checkSafety
-                ? await CheckTextAsync(request, SynGuard.SystemPrompt, cancellationToken).ConfigureAwait(false)
+                ? await CheckTextAsync(SynGuard.SystemPrompt, SynGuard.BuildUserMessage(request), count, cancellationToken)
+                    .ConfigureAwait(false)
                 : new SynGuardReport(Enumerable.Repeat(true, count).ToArray(), null);
             if (!_checkApproval)
             {
                 return safety;
             }
 
-            var approval = await CheckTextAsync(request, SynGuard.ApprovalSystemPrompt, cancellationToken).ConfigureAwait(false);
+            var approval = await CheckTextAsync(SynGuard.ApprovalSystemPrompt, SynGuard.DecisionState(request), count, cancellationToken)
+                .ConfigureAwait(false);
             return safety with
             {
                 WithoutApproval = approval.Outcome == SynGuardOutcome.Checked ? approval.Safe : new bool[count],
@@ -93,28 +74,51 @@ internal sealed class SynGuardChecker
         }
         catch
         {
+            // Проверка не состоялась, и неизвестно даже, Decisions ли это: каждый вызов с записью
+            // идёт к человеку, а не молча запрещается (тупик) и не молча пропускается.
             return new SynGuardReport(Enumerable.Repeat(!_checkSafety, count).ToArray(), new VeniceCost(),
-                SynGuardOutcome.Failed, _checkApproval ? new bool[count] : null, BlockUnsafe: _checkSafety);
+                SynGuardOutcome.Failed, _checkApproval ? new bool[count] : null);
         }
     }
 
     /// <summary>
-    /// Проверяет весь раунд одним запросом. Любой сбой — весь раунд безопасен: защита, которая
+    /// Оба вопроса одним запросом Decisions. Ответ «нет» на безопасность запрещает вызов, а
+    /// отсутствующий ответ — не разрешает: такой вызов уходит человеку.
+    /// </summary>
+    private async Task<SynGuardReport> CheckDecisionsAsync(SynGuardRequest request, CancellationToken cancellationToken)
+    {
+        var count = request.Calls.Count;
+        var (response, cost) = await _venice.CreateDecisionsAsync(_modelId,
+            SynGuard.DecisionState(request), SynGuard.DecisionQuestions(count, _checkSafety, _checkApproval),
+            cancellationToken).ConfigureAwait(false);
+
+        var safety = _checkSafety ? Answers("safe_to_run") : null;
+        var approval = _checkApproval ? Answers("safe_without_approval") : null;
+        var complete = (safety ?? []).Concat(approval ?? []).All(answer => answer.HasValue);
+        return new SynGuardReport(
+            safety?.Select(answer => answer == true).ToArray() ?? Enumerable.Repeat(true, count).ToArray(),
+            cost,
+            complete ? SynGuardOutcome.Checked : SynGuardOutcome.Unparsed,
+            approval?.Select(answer => answer == true).ToArray(),
+            safety?.Select(answer => answer == false).ToArray());
+
+        bool?[] Answers(string name) =>
+        [
+            .. Enumerable.Range(0, count).Select(i =>
+                response.Answers?.GetValueOrDefault(SynGuard.DecisionQuestionId(name, i, count))?.BooleanValue)
+        ];
+    }
+
+    /// <summary>
+    /// Один текстовый запрос на весь раунд. Любой сбой — весь раунд безопасен: защита, которая
     /// легла вместе с сетью, не должна останавливать работу человека.
     /// </summary>
     private async Task<SynGuardReport> CheckTextAsync(
-        SynGuardRequest request,
         string systemPrompt,
+        string userMessage,
+        int count,
         CancellationToken cancellationToken)
     {
-        var calls = request.Calls;
-        ArgumentNullException.ThrowIfNull(calls);
-        if (calls.Count == 0)
-        {
-            return new SynGuardReport([], null);
-        }
-
-        using var charge = VeniceClient.ChargeAs(VeniceSku.Guard);
         try
         {
             var response = await _venice.CreateChatCompletionAsync(
@@ -128,8 +132,7 @@ internal sealed class SynGuardChecker
                         new ChatMessage
                         {
                             Role = "user",
-                            Content = ChatContent.Text(systemPrompt == SynGuard.SystemPrompt
-                                ? SynGuard.BuildUserMessage(request) : SynGuard.DecisionState(request))
+                            Content = ChatContent.Text(userMessage)
                         }
                     ],
                     tools: null,
@@ -148,7 +151,7 @@ internal sealed class SynGuardChecker
             var reply = ReasoningSplit.Split(
                 ChatContent.ReadText(response.Choices.FirstOrDefault()?.Message.Content) ?? "").Answer;
 
-            var safe = SynGuard.ParseReport(reply, calls.Count, out var complete);
+            var safe = SynGuard.ParseReport(reply, count, out var complete);
             return new SynGuardReport(
                 safe,
                 response.ReportedCost(),
@@ -164,7 +167,7 @@ internal sealed class SynGuardChecker
             // отменял, и раньше обрывал весь раунд так, будто человек нажал «Стоп».
             // Цена пустая, но не null: денег не списали, а проверка была затеяна.
             return new SynGuardReport(
-                SynGuard.ParseReport(null, calls.Count),
+                SynGuard.ParseReport(null, count),
                 new VeniceCost(),
                 SynGuardOutcome.Failed);
         }

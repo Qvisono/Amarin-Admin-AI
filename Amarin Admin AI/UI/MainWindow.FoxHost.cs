@@ -99,7 +99,8 @@ namespace Amarin.UI
             /// <summary>Своя модель Розы; ответы приходят с рабочего потока и переносятся в поток окна.</summary>
             private FoxMind CreateMind(AppServices services, FoxStore store) =>
                 new(services.Http, services.Options, () => services.Settings, store, reply =>
-                    _window.Dispatcher.BeginInvoke(() => Deliver(reply), DispatcherPriority.Background));
+                    _window.Dispatcher.BeginInvoke(() => Deliver(reply), DispatcherPriority.Background),
+                    resolveModelInfo: services.Models.Find);
 
             /// <summary>Ответ своей модели — сигналом мозгу: реплика, мордочка и сдвиг дружбы, потом побег.</summary>
             private void Deliver(FoxReply reply)

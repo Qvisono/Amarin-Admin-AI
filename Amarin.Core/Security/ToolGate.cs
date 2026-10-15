@@ -11,13 +11,18 @@ namespace Amarin.Core;
 /// </param>
 /// <param name="Refusal">Отказ без вопроса — текст для модели. Null — вызов не запрещён.</param>
 /// <param name="Question">Что показать человеку. Null — спрашивать не нужно.</param>
+/// <param name="Quiet">
+/// Запись без вопроса по правилу человека: новый файл в «Загрузках» или на «Рабочем столе», новый
+/// документ, правка документа, созданного ИИ. Обзор обычного режима её в вопрос не превращает.
+/// </param>
 internal sealed record GateCheck(
     string ToolName,
     JsonElement Arguments,
     ToolEffect Effect,
     string? Refusal,
     DangerousActionInfo? Question,
-    bool NeedsSnapshot);
+    bool NeedsSnapshot,
+    bool Quiet = false);
 
 /// <summary>Итог шлюза для одного вызова.</summary>
 internal sealed record GateDecision(
@@ -28,6 +33,12 @@ internal sealed record GateDecision(
     ToolEffect Effect,
     bool NeedsSnapshot)
 {
+    /// <summary>
+    /// Вызов пометил SynGuard: человек решал по его вопросу или Decisions запретил сам. Для
+    /// журнала аудита — отметка «помечен», а не вывод по тексту отказа.
+    /// </summary>
+    public bool GuardFlagged { get; init; }
+
     public static GateDecision Refuse(string refusal, ApprovalSource source, JsonElement arguments, ToolEffect effect) =>
         new(false, refusal, source, arguments, effect, NeedsSnapshot: false);
 }
@@ -85,11 +96,18 @@ internal static class ToolGate
     /// </summary>
     public static bool ScopedReadOnly => ReadOnlyForced.Value;
 
-    /// <summary>Вердикт общей модели безопасности о необходимости подтверждения в обычном режиме.</summary>
+    /// <summary>
+    /// Обычный режим: нужен ли вопрос, решает модель SynGuard (<paramref name="withoutApproval"/>).
+    /// «Можно без вопроса» снимает вопрос правил, «нужно подтверждение» ставит обязательный.
+    /// </summary>
+    /// <remarks>
+    /// Тихую запись (<see cref="GateCheck.Quiet"/>) модель в вопрос не превращает: что документ,
+    /// созданный ИИ, и новый файл в «Загрузках» разрешения не требуют, решил человек (1.33.0).
+    /// </remarks>
     internal static GateCheck ApplyNormalReview(GateCheck check, AppSettings settings, bool? withoutApproval)
     {
         if (settings.ApprovalMode != ApprovalMode.Normal || withoutApproval is null ||
-            check.Refusal is not null || check.Effect == ToolEffect.Read)
+            check.Refusal is not null || check.Effect == ToolEffect.Read || check.Quiet)
         {
             return check;
         }
@@ -192,7 +210,8 @@ internal static class ToolGate
             effect,
             null,
             ask ? DangerousActionGuard.DescribeDetailed(tool, args) with { Target = remote?.Name } : null,
-            needsSnapshot);
+            needsSnapshot,
+            Quiet: quiet != QuietWrite.No);
 
         GateCheck Refused(string reason) => new(tool, args, effect, reason, null, false);
     }

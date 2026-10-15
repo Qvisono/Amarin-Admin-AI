@@ -241,14 +241,16 @@ Paths on this machine - use these exact values, never wildcards:
     /// Оба множества пусты, когда защита выключена или ничего не помечено.
     /// </summary>
     /// <param name="Outcome">Чем кончилась проверка раунда; null — её не было.</param>
+    /// <param name="Blocked">Запрещённые явным «небезопасно» Decisions, без вопроса человеку; входят и в <c>Refused</c>.</param>
     private readonly record struct GuardVerdicts(
         HashSet<string> Refused,
         HashSet<string> Approved,
+        HashSet<string> Blocked,
         SynGuardOutcome? Outcome = null,
-        IReadOnlyDictionary<string, bool>? WithoutApproval = null,
-        bool ModelBlocked = false)
+        IReadOnlyDictionary<string, bool>? WithoutApproval = null)
     {
         public static GuardVerdicts Empty => new(
+            new HashSet<string>(StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal),
             new HashSet<string>(StringComparer.Ordinal));
 
@@ -275,8 +277,9 @@ Paths on this machine - use these exact values, never wildcards:
     /// </summary>
     /// <remarks>
     /// Весь раунд одним запросом: шесть инструментов иначе стоили бы шести проверок, а связку
-    /// из двух безобидных по отдельности вызовов не увидел бы никто. Текстовые модели сохраняют
-    /// ручное подтверждение помеченных вызовов; строгий отчёт Decisions блокирует их напрямую.
+    /// из двух безобидных по отдельности вызовов не увидел бы никто. Помеченный вызов и вызов без
+    /// вердикта решает человек: защитник ошибается и падает вместе с сетью, и без вопроса это был
+    /// бы тупик. Без вопроса запрещает только явное «небезопасно» от Decisions.
     /// </remarks>
     private async Task<GuardVerdicts> AskGuardAsync(
         string task,
@@ -315,7 +318,6 @@ Paths on this machine - use these exact values, never wildcards:
         verdicts = verdicts with
         {
             Outcome = outcome,
-            ModelBlocked = report.BlockUnsafe,
             WithoutApproval = report.WithoutApproval is { } approvals
                 ? toolCalls.Select((call, i) => (call.Id, Safe: i < approvals.Count && approvals[i]))
                     .ToDictionary(item => item.Id, item => item.Safe, StringComparer.Ordinal)
@@ -330,17 +332,27 @@ Paths on this machine - use these exact values, never wildcards:
             }
 
             var toolCall = toolCalls[i];
-            if (report.BlockUnsafe)
+            if (report.IsBlocked(i))
             {
                 _ui.Warn(SynGuard.BlockedReply(toolCall.Function.Name));
                 verdicts.Refused.Add(toolCall.Id);
+                verdicts.Blocked.Add(toolCall.Id);
                 continue;
             }
 
-            _ui.Warn(Loc.Format("S.AgentRun.GuardFlagged", toolCall.Function.Name));
+            // Без вердикта спрашивается только запись: чтение и без защитника идёт без вопроса, а
+            // при упавшей сети вопрос на каждое чтение раунда был бы просто шумом.
+            var checkFailed = report.IsUnchecked(i);
+            if (checkFailed &&
+                ToolEffects.Classify(toolCall.Function.Name, ParseArgumentsSafe(toolCall.Function.Arguments)) == ToolEffect.Read)
+            {
+                continue;
+            }
+
+            _ui.Warn(Loc.Format(checkFailed ? "S.AgentRun.GuardUnchecked" : "S.AgentRun.GuardFlagged", toolCall.Function.Name));
 
             var approved = await _ui.ConfirmDangerousActionAsync(
-                    SynGuard.DescribeBlock(toolCall.Function.Name, toolCall.Function.Arguments),
+                    SynGuard.DescribeBlock(toolCall.Function.Name, toolCall.Function.Arguments, checkFailed),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -761,7 +773,7 @@ Paths on this machine - use these exact values, never wildcards:
         {
             if (verdicts.Refused.Contains(toolCall.Id))
             {
-                RefuseBlockedCall(toolCall, messages, verdicts.ModelBlocked);
+                RefuseBlockedCall(toolCall, messages, verdicts.Blocked.Contains(toolCall.Id));
                 continue;
             }
 

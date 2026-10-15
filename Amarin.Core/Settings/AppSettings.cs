@@ -1,4 +1,6 @@
-﻿namespace Amarin.Core;
+﻿using System.Text.Json.Serialization;
+
+namespace Amarin.Core;
 
 /// <summary>Режим доступа модели к системе.</summary>
 /// <remarks>
@@ -122,7 +124,7 @@ public enum AppTheme
     Almond
 }
 
-public sealed class AppSettings
+public sealed class AppSettings : IJsonOnDeserializing
 {
     public bool AutoScroll { get; set; } = true;
 
@@ -288,6 +290,11 @@ public sealed class AppSettings
     /// модель 1.33 неотличима от выбранной вручную той же: без отметки человек, сам вернувший
     /// себе прежнюю модель, получал бы подмену на каждом запуске.
     /// </summary>
+    /// <remarks>
+    /// Новый объект — нынешней ревизии, а прочитанный файл без этого поля — нулевой
+    /// (<see cref="IJsonOnDeserializing.OnDeserializing"/>): так файл до ревизий проходит замену один раз, а
+    /// настройки, собранные в коде, не сбрасываются ею при следующем чтении.
+    /// </remarks>
     public int FactoryModelsRevision { get; set; } = CurrentFactoryModels;
 
     /// <summary>
@@ -568,6 +575,12 @@ public sealed class AppSettings
     /// <summary>Окно было закрыто развёрнутым.</summary>
     public bool WindowMaximized { get; set; }
 
+    /// <summary>
+    /// До чтения полей: если в файле нет <see cref="FactoryModelsRevision"/>, остаётся 0. Иначе
+    /// пришлось бы разбирать файл второй раз, чтобы узнать, было ли поле.
+    /// </summary>
+    void IJsonOnDeserializing.OnDeserializing() => FactoryModelsRevision = 0;
+
     /// <summary>Настройки нового профиля.</summary>
     /// <remarks>
     /// Модель чата и сводки ставятся здесь, а не начальными значениями свойств: пустые значения
@@ -578,7 +591,6 @@ public sealed class AppSettings
         DownloadAllowedDomains = [.. new DownloadOptions().AllowedDomains],
         ChatModelId = VeniceModelCatalog.AutoId,
         SummaryModelId = FactoryLiteModelId,
-        SummaryReasoning = FactorySummaryReasoning(),
-        FactoryModelsRevision = CurrentFactoryModels
+        SummaryReasoning = FactorySummaryReasoning()
     };
 }

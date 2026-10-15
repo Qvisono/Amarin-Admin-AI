@@ -95,6 +95,7 @@
     <system:String x:Key="S.AgentRun.Finalizing" xml:space="preserve">Writing the final reply…</system:String>
     <system:String x:Key="S.AgentRun.GuardCheck" xml:space="preserve">Checking safety…</system:String>
     <system:String x:Key="S.AgentRun.GuardFlagged" xml:space="preserve">SynGuard flags {0} as an attack. Asking for permission.</system:String>
+    <system:String x:Key="S.AgentRun.GuardUnchecked" xml:space="preserve">SynGuard could not check {0}. Asking for permission.</system:String>
     <system:String x:Key="S.AgentRun.ModelOverloaded" xml:space="preserve">Model {0} is overloaded, switched to {1}.</system:String>
     <system:String x:Key="S.AgentRun.NoText" xml:space="preserve">The model sent no text. Please try again.</system:String>
     <system:String x:Key="S.AgentRun.PrepareFailed" xml:space="preserve">Could not prepare the request: {0}</system:String>
@@ -1107,6 +1108,8 @@
     <system:String x:Key="S.Confirm.FromChat" xml:space="preserve">chat "{0}"</system:String>
     <system:String x:Key="S.Confirm.GuardDesc" xml:space="preserve">SynGuard read this call as an attack on your computer. Read the whole command and allow it only if you understand it.</system:String>
     <system:String x:Key="S.Confirm.GuardSummary" xml:space="preserve">SynGuard reads the {0} call as an attack</system:String>
+    <system:String x:Key="S.Confirm.GuardUncheckedSummary" xml:space="preserve">SynGuard could not check the {0} call</system:String>
+    <system:String x:Key="S.Confirm.GuardUncheckedDesc" xml:space="preserve">The safety check did not finish or the model gave no answer. Read the whole command and allow it only if you understand it.</system:String>
     <system:String x:Key="S.Confirm.Title" xml:space="preserve">Allow this action?</system:String>
 
     <system:String x:Key="S.Context.Auto" xml:space="preserve">Auto: the model is chosen while answering, so the smaller of the two ceilings is shown.</system:String>

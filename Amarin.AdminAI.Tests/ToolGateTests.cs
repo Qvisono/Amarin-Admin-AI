@@ -470,7 +470,8 @@ public sealed class ToolGateTests : IDisposable
     [InlineData(false, true, false, 0)]
     public async Task Chat_decisions_keep_safety_and_approval_separate(bool safe, bool withoutApproval, bool written, int questions)
     {
-        var path = Path.Combine(_downloads, "decision.txt");
+        // Вне «Загрузок»: новый файл там — тихая запись, и вопроса о ней не бывает вовсе.
+        var path = Path.Combine(_temp, "decision.txt");
         var settings = Mode(ApprovalMode.Normal);
         var queue = new ConfirmationQueue(() => settings);
         var asked = 0;
@@ -484,7 +485,7 @@ public sealed class ToolGateTests : IDisposable
         };
         var audit = new AuditLog(Path.Combine(_temp, "profile"));
         await RunChatAsync(settings, queue, path, "text", guard: (_, _) => Task.FromResult(
-            new SynGuardReport([safe], null, WithoutApproval: [withoutApproval], BlockUnsafe: true)), audit: audit);
+            new SynGuardReport([safe], null, WithoutApproval: [withoutApproval], Blocked: [!safe])), audit: audit);
         Assert.Equal(written, File.Exists(path));
         Assert.Equal(questions, asked);
         if (!safe)
@@ -493,6 +494,33 @@ public sealed class ToolGateTests : IDisposable
             Assert.Equal(AuditGuard.Flagged, entry.Guard);
             Assert.Equal(ApprovalSource.NotRequired, entry.ApprovedBy);
         }
+    }
+
+    /// <summary>
+    /// «Нужно подтверждение» от модели обычного режима не превращает тихую запись в вопрос: новый
+    /// файл в «Загрузках» и документ, созданный ИИ, разрешения не требуют — так решил человек.
+    /// </summary>
+    [Fact]
+    public async Task A_quiet_write_stays_quiet_when_the_model_wants_approval()
+    {
+        var path = Path.Combine(_downloads, "quiet.txt");
+        var settings = Mode(ApprovalMode.Normal);
+        var queue = new ConfirmationQueue(() => settings);
+        var asked = 0;
+        queue.Changed += () =>
+        {
+            if (queue.TryPeek(out var request))
+            {
+                asked++;
+                queue.Complete(request, approved: false);
+            }
+        };
+
+        await RunChatAsync(settings, queue, path, "text", guard: (_, _) => Task.FromResult(
+            new SynGuardReport([true], null, WithoutApproval: [false], Blocked: [false])));
+
+        Assert.Equal(0, asked);
+        Assert.Equal("text", File.ReadAllText(path));
     }
 
     private static async Task<ChatSession> RunChatAsync(
