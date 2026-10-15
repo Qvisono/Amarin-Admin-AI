@@ -3159,6 +3159,7 @@ namespace Amarin.UI
             LoadSession(loaded);
             RestoreDraft(loaded);
             RefreshChatList();
+            _fox?.ChatOpened(DisplayTitle(loaded.Title), loaded.Messages.Count);
         }
 
         /// <summary>Сворачивает или разворачивает боковую панель; лента перекладывается по видимому.</summary>

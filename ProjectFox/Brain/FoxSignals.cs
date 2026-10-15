@@ -100,7 +100,19 @@ internal enum FoxSignalKind
 
     /// <summary>Открыли журнал действий или «Состояние ПК»: выглядывает из-за верха карточки.</summary>
     ViewerOpened,
-    ViewerClosed
+    ViewerClosed,
+
+    /// <summary>Открыли другой чат: <see cref="FoxSignal.Text"/> — заголовок, <see cref="FoxSignal.Value"/> — сколько в нём сообщений.</summary>
+    ChatOpened,
+
+    /// <summary>Человек начал говорить голосом: уши торчком.</summary>
+    RecordingStarted,
+
+    /// <summary>Человек ищет по чатам: принюхивается.</summary>
+    SearchTyping,
+
+    /// <summary>К сообщению прикрепили файл или картинку.</summary>
+    AttachmentAdded
 }
 
 /// <summary>Сигнал мозгу: вид и необязательные текст, имя и число.</summary>

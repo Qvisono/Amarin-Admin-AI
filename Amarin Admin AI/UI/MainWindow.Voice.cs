@@ -133,6 +133,7 @@ namespace Amarin.UI
             };
             recorder.LimitReached += () => Detached.Run(FinishRecordingAsync(), "voice_limit");
             _recorder = recorder;
+            _fox?.RecordingStarted();
             VoiceTimer.Text = "0:00";
             VoiceTimer.Visibility = Visibility.Visible;
             MicButton.SetResourceReference(BackgroundProperty, "Status.DangerStrong");

@@ -44,6 +44,9 @@ namespace Amarin.UI
             /// <summary>Скорость тыка лапкой по колонке: строка-другая, а не экран, как прежний бросок на 900.</summary>
             private const double PawFling = 280;
 
+            /// <summary>Принюхивается к поиску по чатам не чаще этого: иначе каждая буква запроса была бы событием.</summary>
+            private static readonly TimeSpan SniffEvery = TimeSpan.FromSeconds(20);
+
             /// <summary>
             /// Словарь значков меню Розы — с именем сборки: голый «/UI/…» разрешается от
             /// Application.ResourceAssembly, а под тест-раннером это не наша сборка.
@@ -62,6 +65,7 @@ namespace Amarin.UI
             private FoxMind? _mind;
             private string _root = "";
             private DateTime? _typedAt;
+            private DateTime _sniffedAt;
             private DateTime? _minimizedAt;
             private bool _stopped;
             private bool _locked;
@@ -160,6 +164,7 @@ namespace Amarin.UI
             private void Subscribe()
             {
                 _window.MessageTextBox.TextChanged += OnTyped;
+                _window.SearchBox.TextChanged += OnSearchTyped;
                 _window.ComposerBorder.SizeChanged += OnLayout;
                 _window.FoxLayer.SizeChanged += OnLayout;
                 _window.DpiChanged += OnDpi;
@@ -175,6 +180,7 @@ namespace Amarin.UI
             private void Unsubscribe()
             {
                 _window.MessageTextBox.TextChanged -= OnTyped;
+                _window.SearchBox.TextChanged -= OnSearchTyped;
                 _window.ComposerBorder.SizeChanged -= OnLayout;
                 _window.FoxLayer.SizeChanged -= OnLayout;
                 _window.DpiChanged -= OnDpi;
@@ -189,6 +195,16 @@ namespace Amarin.UI
             }
 
             private void OnTyped(object sender, TextChangedEventArgs e) => _typedAt = DateTime.Now;
+
+            private void OnSearchTyped(object sender, TextChangedEventArgs e)
+            {
+                var now = DateTime.Now;
+                if (_window.SearchBox.Text.Length > 0 && now - _sniffedAt >= SniffEvery)
+                {
+                    _sniffedAt = now;
+                    _stage?.Signal(FoxSignalKind.SearchTyping);
+                }
+            }
 
             private void OnLayout(object sender, SizeChangedEventArgs e) => _stage?.Relayout();
 
@@ -508,6 +524,13 @@ namespace Amarin.UI
             }
 
             public void ForgetMemory() => _store?.Update(FoxMemory.Forget);
+
+            public void ChatOpened(string title, int messages) =>
+                _stage?.Signal(new FoxSignal(FoxSignalKind.ChatOpened, Text: title, Value: messages));
+
+            public void RecordingStarted() => _stage?.Signal(FoxSignalKind.RecordingStarted);
+
+            public void AttachmentAdded() => _stage?.Signal(FoxSignalKind.AttachmentAdded);
 
             public void Locked(bool locked)
             {

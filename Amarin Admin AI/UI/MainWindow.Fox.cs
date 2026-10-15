@@ -61,6 +61,15 @@ namespace Amarin.UI
         /// <summary>«Забыть» в «Нашей дружбе»: заметки и разговоры, дружба остаётся.</summary>
         void ForgetMemory();
 
+        /// <summary>Открыт другой чат: заголовок (его читает только инстинкт) и сколько в нём сообщений.</summary>
+        void ChatOpened(string title, int messages);
+
+        /// <summary>Началась запись голоса.</summary>
+        void RecordingStarted();
+
+        /// <summary>К сообщению прикрепили файл или картинку.</summary>
+        void AttachmentAdded();
+
         void Locked(bool locked);
 
         void ProfileChanged();

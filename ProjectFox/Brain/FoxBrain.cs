@@ -293,9 +293,61 @@ internal static class FoxBrain
                     actions.Add(FoxAction.Face("smart", 2200));
                     say("Code");
                 }
+                else if (FoxInstinct.Read(Head(signal.Text)).Has(FoxTopic.Science))
+                {
+                    actions.Add(FoxAction.Face("smart", 2200));
+                    if (random.Next(2) == 0)
+                    {
+                        say("Science");
+                    }
+                }
                 else
                 {
                     actions.Add(FoxAction.Face("happy", 1200));
+                }
+
+                break;
+
+            case FoxSignalKind.ChatOpened:
+                // Заголовок читает только инстинкт: модели он не уходит.
+                actions.Add(FoxAction.Anim("lookback"));
+                if (signal.Value >= LongChat)
+                {
+                    actions.AddRange(FoxEmotions.Feel("surprised", 1600, pose: false));
+                    if (random.Next(2) == 0)
+                    {
+                        say("LongChat");
+                    }
+                }
+                else
+                {
+                    var topic = FoxInstinct.Read(signal.Text);
+                    actions.Add(FoxAction.Face(topic.Has(FoxTopic.Science) || topic.Has(FoxTopic.Code) ? "smart" : "curious", 1400));
+                }
+
+                break;
+
+            case FoxSignalKind.RecordingStarted:
+                actions.Add(FoxAction.Anim("earflick"));
+                actions.Add(FoxAction.Face("curious", 3000));
+                if (random.Next(2) == 0)
+                {
+                    say("Listen");
+                }
+
+                break;
+
+            case FoxSignalKind.SearchTyping:
+                actions.Add(FoxAction.Anim("sniff"));
+                actions.Add(FoxAction.Face("curious", 1400));
+                break;
+
+            case FoxSignalKind.AttachmentAdded:
+                actions.Add(FoxAction.Anim("sniff"));
+                actions.Add(FoxAction.Face("curious", 1600));
+                if (random.Next(3) == 0)
+                {
+                    say("Attachment");
                 }
 
                 break;
@@ -828,6 +880,12 @@ internal static class FoxBrain
         actions.Add(FoxAction.Anim("nod"));
         actions.Add(FoxAction.Face("curious", 1400));
     }
+
+    /// <summary>Сколько сообщений в чате удивляют Розу при открытии.</summary>
+    private const int LongChat = 200;
+
+    /// <summary>Начало ответа: инстинкту хватает его, а ответ бывает на десятки тысяч знаков.</summary>
+    private static string Head(string text) => text.Length <= 2000 ? text : text[..2000];
 
     /// <summary>Занятие забирает силы (или, отдых, возвращает).</summary>
     private static void Tire(FoxState state, string activity) =>

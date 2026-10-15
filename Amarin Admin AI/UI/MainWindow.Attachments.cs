@@ -148,6 +148,7 @@ namespace Amarin.UI
         private void AddAttachments(IEnumerable<string> paths)
         {
             _attachmentNotes.Clear();
+            var before = _pendingImages.Count + _pendingFiles.Count;
             foreach (var path in paths)
             {
                 if (ImageHelpers.IsImageFile(path))
@@ -169,6 +170,10 @@ namespace Amarin.UI
             }
 
             RefreshAttachments();
+            if (_pendingImages.Count + _pendingFiles.Count > before)
+            {
+                _fox?.AttachmentAdded();
+            }
         }
 
         private void AddImageFile(string path)
@@ -277,6 +282,7 @@ namespace Amarin.UI
             else
             {
                 _pendingImages.Add(attachment);
+                _fox?.AttachmentAdded();
             }
 
             RefreshAttachments();

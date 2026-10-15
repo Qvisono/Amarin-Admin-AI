@@ -2343,6 +2343,12 @@
     <system:String x:Key="S.Fox.Say.Settings.2" xml:space="preserve">Я посмотрю, можно?</system:String>
     <system:String x:Key="S.Fox.Say.Viewer.1" xml:space="preserve">Ого, сколько ты всего сделал!</system:String>
     <system:String x:Key="S.Fox.Say.Viewer.2" xml:space="preserve">Дай я тоже посмотрю.</system:String>
+    <system:String x:Key="S.Fox.Say.LongChat.1" xml:space="preserve">Ничего себе, какой длинный разговор!</system:String>
+    <system:String x:Key="S.Fox.Say.LongChat.2" xml:space="preserve">Сколько вы тут наговорили!</system:String>
+    <system:String x:Key="S.Fox.Say.Listen.1" xml:space="preserve">Я тоже слушаю!</system:String>
+    <system:String x:Key="S.Fox.Say.Listen.2" xml:space="preserve">Тсс, ушки на макушке.</system:String>
+    <system:String x:Key="S.Fox.Say.Attachment.1" xml:space="preserve">А что там в файлике?</system:String>
+    <system:String x:Key="S.Fox.Say.Attachment.2" xml:space="preserve">Дай понюхать!</system:String>
     <system:String x:Key="S.Fox.Say.Keys.1" xml:space="preserve">Не смотрю, не смотрю!</system:String>
     <system:String x:Key="S.Fox.Say.Keys.2" xml:space="preserve">Это секрет, я понял.</system:String>
     <system:String x:Key="S.Fox.Say.Bored.1" xml:space="preserve">Скучно…</system:String>
