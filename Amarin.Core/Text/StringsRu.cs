@@ -2417,6 +2417,8 @@ internal static class StringsRu
             ["S.FoxSettings.ReadChatDesc"] = "Уходит только ваш текст, без вложений и ответов. Выключено: отзывается по словам",
             ["S.FoxSettings.Search"] = "Поиск в сети в разговоре",
             ["S.FoxSettings.SearchDesc"] = "Не больше пяти поисков в день",
+            ["S.FoxSettings.Thoughts"] = "Свои мысли",
+            ["S.FoxSettings.ThoughtsDesc"] = "Иногда думает о своём своей моделью, не чаще раза в 20 минут",
             ["S.FoxSettings.Friendship"] = "Дружба",
             ["S.FoxSettings.Ours"] = "Наша дружба",
             ["S.FoxSettings.Diary"] = "Дневник Розы",

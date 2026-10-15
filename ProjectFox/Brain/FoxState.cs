@@ -57,6 +57,12 @@ public sealed class FoxState
     /// <summary>Раньше этого воля (<see cref="FoxWill"/>) нового занятия не выбирает: занятия не чаще раза в минуту-две.</summary>
     public DateTime? NextActivityAt { get; set; }
 
+    /// <summary>Когда последний раз исполнилось желание своей модели (<see cref="FoxActs"/>).</summary>
+    public DateTime? LastActAt { get; set; }
+
+    /// <summary>Когда последний раз думал о своём своей моделью.</summary>
+    public DateTime? LastThoughtAt { get; set; }
+
     /// <summary>
     /// Сколько раз подряд он отказался прийти на «Позвать» в этом побеге. На третий раз приходит
     /// всегда: обида не делает из него того, кого не вернуть.
@@ -152,6 +158,9 @@ public sealed class FoxDay
 
     /// <summary>Сколько раз за день Роза спрашивал свою модель — дневной потолок трат.</summary>
     public int ModelCalls { get; set; }
+
+    /// <summary>Сколько раз за день думал о своём — свой потолок (<see cref="FoxActs.MaxThoughts"/>).</summary>
+    public int Thoughts { get; set; }
 
     /// <summary>О чём шла речь: тема из <see cref="FoxTopic"/> → сколько раз.</summary>
     public Dictionary<string, int> Topics { get; set; } = new(StringComparer.Ordinal);

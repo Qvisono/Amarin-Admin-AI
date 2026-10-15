@@ -232,6 +232,55 @@ public sealed class FoxMindTests : IDisposable
         Assert.Equal(["Любит котиков"], run.Store.Snapshot().Notes.Select(note => note.Text));
     }
 
+    /// <summary>
+    /// Своя мысль: один инструмент — act, без побега; слов человека в запросе нет, дружбу мысль не
+    /// двигает, а желание доезжает до мозга одно из списка.
+    /// </summary>
+    [Fact]
+    public async Task A_thought_offers_only_act_and_carries_no_chat_text()
+    {
+        var server = new Server(body => body.Contains("собственная мысль", StringComparison.Ordinal)
+            ? Json(new
+            {
+                choices = new[]
+                {
+                    new
+                    {
+                        message = new
+                        {
+                            role = "assistant",
+                            content = """{"emotion":"bored","line":"","mood":3}""",
+                            tool_calls = new[]
+                            {
+                                new { id = "call_1", type = "function", function = new { name = "act", arguments = """{"action":"play","line":"Поиграем?"}""" } },
+                                new { id = "call_2", type = "function", function = new { name = "act", arguments = """{"action":"delete_everything"}""" } }
+                            }
+                        }
+                    }
+                },
+                cost = new { usd = 0.0001 }
+            })
+            : Answer("""{"emotion":"happy","line":"","mood":0}"""));
+        await using var run = Start(server);
+
+        run.Mind.Ask("react", "TopSecretChatMarker");
+        await run.Mind.IdleAsync();
+        run.Mind.Ask("think", "");
+        await run.Mind.IdleAsync();
+
+        var thought = server.Requests[^1].Body;
+        Assert.Contains("собственная мысль", thought);
+        Assert.Contains("\"act\"", thought);
+        Assert.DoesNotContain("\"escape\"", thought);
+        Assert.DoesNotContain("TopSecretChatMarker", thought);
+
+        var reply = run.Replies.Last();
+        Assert.Equal("think", reply.Kind);
+        Assert.Equal(["play"], reply.Acts);
+        Assert.Equal(0, reply.Mood);
+        Assert.Equal("Поиграем?", reply.Line);
+    }
+
     [Fact]
     public async Task Without_web_search_in_settings_a_talk_offers_no_search()
     {
@@ -326,6 +375,7 @@ public sealed class FoxMindTests : IDisposable
         foreach (var prompt in (string[])[
                      FoxPrompt.ReactSystem("русский", state),
                      FoxPrompt.TalkSystem("русский", state, search: true),
+                     FoxPrompt.ThinkSystem("русский", state),
                      FoxPrompt.DiarySystem("русский", state)])
         {
             Assert.Contains("безумно нежный, самый милый и искренний, весьма обидчивый и достаточно игривый", prompt);

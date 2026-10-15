@@ -127,6 +127,9 @@ internal sealed partial class FoxStage
                 StartGame(FoxWill.Catch, TimeSpan.FromSeconds(15));
                 Feel("sly", 1800);
                 break;
+            case FoxActs.Nap:
+                Sleep();
+                break;
             case FoxWill.Fight:
                 StartGame(FoxWill.Fight, TimeSpan.FromSeconds(8));
                 _swipes = 0;

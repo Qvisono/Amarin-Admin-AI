@@ -507,6 +507,19 @@ public sealed class FoxStageTests : IDisposable
         Assert.True(anim);
     }
 
+    /// <summary>Желание модели «вздремнуть» доходит до сцены через мозг: Роза засыпает.</summary>
+    [Fact]
+    public void A_wish_to_nap_puts_him_to_sleep()
+    {
+        var mode = With((stage, _, _) =>
+        {
+            stage.Signal(new FoxSignal(FoxSignalKind.MindAct, Name: FoxActs.Nap));
+            return stage.Mode;
+        });
+
+        Assert.Equal(FoxMode.Sleep, mode);
+    }
+
     /// <summary>Принёс мячик, а его не бросили за двенадцать секунд — уносит и обижается.</summary>
     [Fact]
     public void A_ball_he_brought_and_nobody_threw_makes_him_sulk()

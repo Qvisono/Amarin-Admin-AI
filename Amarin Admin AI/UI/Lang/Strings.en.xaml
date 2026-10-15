@@ -2452,6 +2452,8 @@
     <system:String x:Key="S.FoxSettings.ReadChatDesc" xml:space="preserve">Only your text is sent, without attachments or replies. Off: he reacts to keywords</system:String>
     <system:String x:Key="S.FoxSettings.Search" xml:space="preserve">Web search in conversation</system:String>
     <system:String x:Key="S.FoxSettings.SearchDesc" xml:space="preserve">No more than five searches a day</system:String>
+    <system:String x:Key="S.FoxSettings.Thoughts" xml:space="preserve">His own thoughts</system:String>
+    <system:String x:Key="S.FoxSettings.ThoughtsDesc" xml:space="preserve">Now and then he thinks with his own model, at most once every 20 minutes</system:String>
     <system:String x:Key="S.FoxSettings.Friendship" xml:space="preserve">Friendship</system:String>
     <system:String x:Key="S.FoxSettings.Ours" xml:space="preserve">Our friendship</system:String>
     <system:String x:Key="S.FoxSettings.Diary" xml:space="preserve">Rosa's diary</system:String>

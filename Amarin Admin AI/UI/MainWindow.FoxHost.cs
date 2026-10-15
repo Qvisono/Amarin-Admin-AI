@@ -135,6 +135,12 @@ namespace Amarin.UI
                 if (reply.EscapeMinutes > 0)
                 {
                     _stage.Signal(new FoxSignal(FoxSignalKind.MindEscape, Value: reply.EscapeMinutes));
+                    return;
+                }
+
+                foreach (var act in reply.Acts)
+                {
+                    _stage.Signal(new FoxSignal(FoxSignalKind.MindAct, Name: act));
                 }
             }
 
@@ -241,6 +247,7 @@ namespace Amarin.UI
                              w.FindBar.Visibility == Visibility.Visible,
                     MischiefEnabled = fox?.Mischief ?? false,
                     ReadChat = fox?.ReadChat ?? false,
+                    Thoughts = fox?.Thoughts ?? false,
                     Motion = Motion()
                 };
             }

@@ -417,6 +417,10 @@ internal static class FoxBrain
             case FoxSignalKind.MindEscape:
                 TryEscape(state, now, signal.Value, actions, say);
                 break;
+
+            case FoxSignalKind.MindAct:
+                Act(state, situation, now, signal.Name, actions, say, feel, random);
+                break;
         }
 
         if (FoxFriendship.UpdateEyes(state))
@@ -550,11 +554,16 @@ internal static class FoxBrain
         if (FoxMischief.Allowed(state, situation, now) &&
             (state.Boredom >= 70 || FoxMischief.Angry(state)) && random.Next(FoxMischief.Angry(state) ? 4 : 8) == 0)
         {
-            var kind = FoxMischief.Choose(state, random);
-            state.LastMischiefAt = now;
-            state.Today.Mischief++;
-            actions.Add(FoxAction.Mischief(kind));
-            say("Mischief");
+            Mischief(state, now, actions, say, random);
+            return;
+        }
+
+        // Своя мысль модели — реже всего прочего и только при галочке: каждая стоит денег.
+        if (FoxActs.MayThink(state, situation, now))
+        {
+            state.LastThoughtAt = now;
+            state.Today.Thoughts++;
+            actions.Add(FoxAction.AskMind("think", ""));
             return;
         }
 
@@ -801,6 +810,62 @@ internal static class FoxBrain
         // Обычное сообщение — без значка: значок над каждым сообщением перестал бы что-то значить.
         actions.Add(FoxAction.Anim("nod"));
         actions.Add(FoxAction.Face("curious", 1400));
+    }
+
+    private static void Mischief(FoxState state, DateTime now, List<FoxAction> actions, Action<string> say, Random random)
+    {
+        state.LastMischiefAt = now;
+        state.Today.Mischief++;
+        actions.Add(FoxAction.Mischief(FoxMischief.Choose(state, random)));
+        say("Mischief");
+    }
+
+    /// <summary>
+    /// Желание своей модели. Модель желает, мозг разрешает (см. <see cref="FoxActs"/>): нельзя —
+    /// шалость оборачивается капризом, остальное просто не случается.
+    /// </summary>
+    private static void Act(
+        FoxState state, FoxSituation situation, DateTime now, string act, List<FoxAction> actions,
+        Action<string> say, Action<string, int> feel, Random random)
+    {
+        if (!FoxActs.All.Contains(act) || situation.Away || (state.LastActAt is { } last && now - last < FoxActs.Every))
+        {
+            return;
+        }
+
+        state.LastActAt = now;
+        switch (act)
+        {
+            case FoxActs.Mischief when FoxMischief.Allowed(state, situation, now):
+                Mischief(state, now, actions, say, random);
+                break;
+            case FoxActs.Mischief:
+            case FoxActs.Sulk:
+                feel("offended", 2400);
+                actions.Add(FoxAction.TurnAway());
+                break;
+            case FoxActs.Cuddle:
+                feel("love", 2000);
+                actions.Add(FoxAction.Anim("nuzzle"));
+                actions.Add(FoxAction.Particle("heart", 2));
+                break;
+            case FoxActs.Peek when !situation.Holding:
+                actions.Add(FoxAction.Go("peek"));
+                break;
+            case FoxActs.Nap when !situation.Holding && !situation.Asleep:
+                actions.Add(FoxAction.Do(FoxActs.Nap));
+                break;
+            case FoxActs.Play when situation.Motion && !situation.Holding:
+                string[] games = [FoxWill.Fetch, FoxWill.HideSeek, FoxWill.Catch];
+                actions.Add(FoxAction.Do(games[random.Next(games.Length)]));
+                break;
+            case FoxActs.Strut when situation.Motion && !situation.Holding:
+                actions.Add(FoxAction.Do(FoxWill.Strut));
+                break;
+            case FoxActs.Wander when situation.Motion && !situation.Holding:
+                actions.Add(FoxAction.Do(FoxWill.Wander));
+                break;
+        }
     }
 
     /// <summary>

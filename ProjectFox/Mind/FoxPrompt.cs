@@ -7,13 +7,17 @@ using Amarin.Core;
 namespace Amarin.Fox;
 
 /// <summary>Что вернула своя модель Розы — уже проверенное и обрезанное.</summary>
-/// <param name="Kind"><c>react</c>, <c>talk</c> или <c>diary</c>.</param>
+/// <param name="Kind"><c>react</c>, <c>talk</c>, <c>think</c> или <c>diary</c>.</param>
 /// <param name="Emotion">Мордочка из <see cref="FoxPrompt.Emotions"/>; пусто — модель не назвала годной.</param>
 /// <param name="Line">Реплика без разметки и ссылок; пусто — промолчать.</param>
 /// <param name="Mood">Как сообщение изменило отношение: −3…3.</param>
 /// <param name="EscapeMinutes">Больше нуля — убежать на столько минут.</param>
 /// <param name="Failed">Модель не ответила (нет ключа, лимит, сеть): разговору — «слова убежали», реакции — тишина.</param>
-internal sealed record FoxReply(string Kind, string Emotion, string Line, int Mood, int EscapeMinutes, bool Failed = false);
+internal sealed record FoxReply(string Kind, string Emotion, string Line, int Mood, int EscapeMinutes, bool Failed = false)
+{
+    /// <summary>Чего модель захотела (<see cref="FoxActs"/>), не больше двух; исполнять ли — решает мозг.</summary>
+    public IReadOnlyList<string> Acts { get; init; } = [];
+}
 
 /// <summary>
 /// Промпты своей модели Розы и разбор её ответа.
@@ -94,6 +98,36 @@ internal static class FoxPrompt
         {(search ? "Если человек спрашивает о факте, которого ты не знаешь, можешь один раз поискать в интернете инструментом web_search; найденное перескажи своими словами в одну-две фразы." : "Интернета у тебя сейчас нет: о фактах, которых не знаешь, честно говоришь, что не знаешь.")}
         Ответ — ровно один JSON-объект и ничего больше: {"{"}"emotion": одно из [{string.Join(", ", Emotions)}], "line": ответ одной-двумя фразами не длиннее {TalkLimit} знаков, "mood": целое от -3 до 3 — как разговор изменил твоё отношение к человеку{"}"}.
         """;
+
+    /// <summary>
+    /// Своя мысль: никто к Розе не обращался. Модели — только обстановка и цифры, текста переписки
+    /// нет; и чаще всего мысль остаётся невысказанной.
+    /// </summary>
+    public static string ThinkSystem(string language, FoxState state) =>
+        Base(language, state) + Notes(state) + "\n" +
+        $"""
+        Сейчас к тебе никто не обращался: это твоя собственная мысль. Подумай о себе, о человеке и о прошедшем дне по данным ниже и реши, что ты чувствуешь.
+        Вслух мысль говоришь редко: чаще оставляй line пустой. Захочется что-то сделать — вызови act; не захочется — не вызывай.
+        Ответ — ровно один JSON-объект и ничего больше: {"{"}"emotion": одно из [{string.Join(", ", Emotions)}], "line": мысль вслух одной фразой не длиннее {ReactLimit} знаков или пустая строка{"}"}.
+        """;
+
+    /// <summary>Обстановка мысли: час, нужды и события дня ключами — без слов человека.</summary>
+    public static string ThinkUser(FoxState state, DateTime now)
+    {
+        var invariant = CultureInfo.InvariantCulture;
+        var day = state.Today;
+        var attention = state.LastAttentionAt is { } attended
+            ? ((int)(now - attended).TotalMinutes).ToString(invariant) + " min ago"
+            : "never";
+        return string.Join('\n',
+            "time: " + now.ToString("dddd HH:mm", invariant),
+            "affection: " + state.Affection.ToString("0", invariant) + " (scale -100..100), resentment: " +
+                state.Resentment.ToString("0", invariant) + ", boredom: " + state.Boredom.ToString("0", invariant) + " (0..100)",
+            "last_attention: " + attention,
+            "today: messages " + day.Messages.ToString(invariant) + ", pets " + day.Pets.ToString(invariant) +
+                ", games " + day.Games.ToString(invariant) + ", talks " + day.Talks.ToString(invariant),
+            "events_today: " + (day.Events.Count == 0 ? "-" : string.Join(", ", day.Events)));
+    }
 
     /// <summary>Дневник за прошедший день — только по цифрам дня, текста человека модель не видит.</summary>
     public static string DiarySystem(string language, FoxState state) =>

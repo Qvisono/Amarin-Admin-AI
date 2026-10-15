@@ -305,7 +305,7 @@ internal sealed partial class FoxStage
             return;
         }
 
-        if (signal.Kind is not (FoxSignalKind.Tick or FoxSignalKind.MindReaction or FoxSignalKind.MindEscape))
+        if (signal.Kind is not (FoxSignalKind.Tick or FoxSignalKind.MindReaction or FoxSignalKind.MindEscape or FoxSignalKind.MindAct))
         {
             _lastInput = _clock();
             if (_mode == FoxMode.Sleep)
@@ -323,7 +323,9 @@ internal sealed partial class FoxStage
         var situation = _host.Situation() with
         {
             RecentBoops = RecentBoops(),
-            Away = _mode is FoxMode.Away or FoxMode.Hidden
+            Away = _mode is FoxMode.Away or FoxMode.Hidden,
+            Holding = Holding,
+            Asleep = _mode == FoxMode.Sleep
         };
         List<FoxAction> actions = [];
         _store.Update(state => actions = FoxBrain.Next(state, signal, situation, _clock(), _random), lazy: signal.Kind == FoxSignalKind.Tick);

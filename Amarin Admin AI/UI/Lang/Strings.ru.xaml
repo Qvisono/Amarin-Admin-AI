@@ -2452,6 +2452,8 @@
     <system:String x:Key="S.FoxSettings.ReadChatDesc" xml:space="preserve">Уходит только ваш текст, без вложений и ответов. Выключено: отзывается по словам</system:String>
     <system:String x:Key="S.FoxSettings.Search" xml:space="preserve">Поиск в сети в разговоре</system:String>
     <system:String x:Key="S.FoxSettings.SearchDesc" xml:space="preserve">Не больше пяти поисков в день</system:String>
+    <system:String x:Key="S.FoxSettings.Thoughts" xml:space="preserve">Свои мысли</system:String>
+    <system:String x:Key="S.FoxSettings.ThoughtsDesc" xml:space="preserve">Иногда думает о своём своей моделью, не чаще раза в 20 минут</system:String>
     <system:String x:Key="S.FoxSettings.Friendship" xml:space="preserve">Дружба</system:String>
     <system:String x:Key="S.FoxSettings.Ours" xml:space="preserve">Наша дружба</system:String>
     <system:String x:Key="S.FoxSettings.Diary" xml:space="preserve">Дневник Розы</system:String>

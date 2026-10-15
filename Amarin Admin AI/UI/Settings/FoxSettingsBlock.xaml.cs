@@ -39,6 +39,7 @@ public partial class FoxSettingsBlock : UserControl
             MischiefToggle.IsChecked = fox.Mischief;
             ReadChatToggle.IsChecked = fox.ReadChat;
             SearchToggle.IsChecked = fox.WebSearch;
+            ThoughtsToggle.IsChecked = fox.Thoughts;
         }
         finally
         {
@@ -81,6 +82,10 @@ public partial class FoxSettingsBlock : UserControl
         else if (ReferenceEquals(sender, SearchToggle))
         {
             Save(fox => fox.WebSearch = on);
+        }
+        else if (ReferenceEquals(sender, ThoughtsToggle))
+        {
+            Save(fox => fox.Thoughts = on);
         }
     }
 

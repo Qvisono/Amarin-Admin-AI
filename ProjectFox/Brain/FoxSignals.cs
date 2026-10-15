@@ -83,6 +83,9 @@ internal enum FoxSignalKind
     /// <summary>Модель Розы решила сбежать на <see cref="FoxSignal.Value"/> минут.</summary>
     MindEscape,
 
+    /// <summary>Модель Розы чего-то захотела (<see cref="FoxActs"/>): <see cref="FoxSignal.Name"/> — что. Решает мозг.</summary>
+    MindAct,
+
     /// <summary>Курсор крутится и дёргается рядом с Розой — дразнят.</summary>
     Teased,
 
@@ -245,4 +248,13 @@ internal sealed record FoxSituation
 
     /// <summary>Двигаться плавно можно: без анимаций воля выбирает только смену позы.</summary>
     public bool Motion { get; init; } = true;
+
+    /// <summary>Свои мысли модели включены в настройках Розы. В обстановке по умолчанию — нет: мысль стоит денег.</summary>
+    public bool Thoughts { get; init; }
+
+    /// <summary>Роза занят человеком: в руках, в игре, в разговоре.</summary>
+    public bool Holding { get; init; }
+
+    /// <summary>Роза спит.</summary>
+    public bool Asleep { get; init; }
 }

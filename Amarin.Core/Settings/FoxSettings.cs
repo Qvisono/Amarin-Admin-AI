@@ -41,6 +41,12 @@ public sealed class FoxSettings
     public bool WebSearch { get; set; } = true;
 
     /// <summary>
+    /// Думать о своём своей моделью: не чаще раза в 20 минут и не больше 24 раз в день, без
+    /// текста переписки. Каждая мысль — запрос, поэтому выключатель отдельный.
+    /// </summary>
+    public bool Thoughts { get; set; } = true;
+
+    /// <summary>
     /// Приводит руками поправленный файл к допустимым значениям. <c>true</c> — что-то поменялось.
     /// </summary>
     public bool Normalize()
