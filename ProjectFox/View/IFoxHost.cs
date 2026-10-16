@@ -45,7 +45,7 @@ internal interface IFoxHost
     /// <summary>Ширина слоя.</summary>
     double Width();
 
-    /// <summary>Размер Розы из настроек: 48 или 96 точек.</summary>
+    /// <summary>Размер Розы из настроек: 48, 72 или 96 точек.</summary>
     int Size();
 
     /// <summary>Можно двигаться плавно: анимации включены, сеанс не удалённый, отрисовка аппаратная.</summary>

@@ -168,7 +168,6 @@ internal static class FoxPhrases
         ["NonsenseMany"] = 2,
         ["WrongLayout"] = 2,
         ["Long"] = 2,
-        ["Reading"] = 2,
         ["Error"] = 2,
         ["LongWait"] = 2,
         ["Agent"] = 2,

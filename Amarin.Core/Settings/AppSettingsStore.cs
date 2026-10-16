@@ -191,8 +191,15 @@ public sealed class AppSettingsStore
     }
 
     /// <summary>
-    /// Разовая замена всех моделей и уровней размышления на заводские 1.35 Beta.
+    /// Разовая замена всех моделей и уровней размышления на заводские нынешней ревизии
+    /// (<see cref="AppSettings.CurrentFactoryModels"/>).
     /// </summary>
+    /// <remarks>
+    /// Меняется и выбранное руками — так решил человек к выпуску 1.35.0: маршрутизатор и защита
+    /// переехали на модели Decisions, и старый выбор у них не работает. Ровно один раз на профиль
+    /// за ревизию, поэтому выбор, сделанный после замены, остаётся. Ключи не трогаются, снимаются
+    /// только их привязки к слотам: заводская модель могла уехать к другому провайдеру.
+    /// </remarks>
     internal static bool MigrateFactoryModels(AppSettings settings)
     {
         if (settings.FactoryModelsRevision >= AppSettings.CurrentFactoryModels)
@@ -200,8 +207,6 @@ public sealed class AppSettingsStore
             return false;
         }
 
-        // 1.35 Beta: по требованию выпуска заменяем даже ручной выбор, ровно один раз на профиль
-        // за ревизию.
         var defaults = AppSettings.CreateDefault();
         foreach (var (_, read, write) in ModelSlots.All)
         {

@@ -28,23 +28,27 @@ namespace Amarin.UI
         /// </summary>
         private bool TryStopByEscape(KeyEventArgs e)
         {
-            // Роза в руках или в игре: Esc отпускает его, а ответ пусть идёт.
-            if (e.Key == Key.Escape && _fox is { Holding: true } fox)
+            if (e.Key != Key.Escape)
+            {
+                return false;
+            }
+
+            var stopsAnswer = Keyboard.Modifiers == ModifierKeys.None &&
+                              _services is not null && !ChatCoveredByOverlay() && IsBusy(_session.Id) &&
+                              MessageTextBox.Text.Length == 0 &&
+                              !FindBar.IsKeyboardFocusWithin &&
+                              !SearchBox.IsKeyboardFocusWithin &&
+                              !QuoteSuggestPopup.IsOpen;
+
+            // Роза в руках, с ним говорят или (когда ответа Esc не остановит) он в игре: Esc
+            // отпускает его. Свою игру Роза затевает и пока человек ждёт ответа — тот важнее.
+            if (_fox is { } fox && fox.TakesEscape(stopsAnswer))
             {
                 fox.LetGo();
                 return true;
             }
 
-            if (e.Key != Key.Escape || Keyboard.Modifiers != ModifierKeys.None ||
-                _services is null || ChatCoveredByOverlay() || !IsBusy(_session.Id))
-            {
-                return false;
-            }
-
-            if (MessageTextBox.Text.Length > 0 ||
-                FindBar.IsKeyboardFocusWithin ||
-                SearchBox.IsKeyboardFocusWithin ||
-                QuoteSuggestPopup.IsOpen)
+            if (!stopsAnswer)
             {
                 return false;
             }

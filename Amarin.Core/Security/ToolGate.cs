@@ -101,13 +101,25 @@ internal static class ToolGate
     /// «Можно без вопроса» снимает вопрос правил, «нужно подтверждение» ставит обязательный.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Тихую запись (<see cref="GateCheck.Quiet"/>) модель в вопрос не превращает: что документ,
     /// созданный ИИ, и новый файл в «Загрузках» разрешения не требуют, решил человек (1.33.0).
+    /// </para>
+    /// <para>
+    /// И не снимает вопрос, который правила задают всегда. Отложенную команду выполнят без
+    /// человека, и печать на неё ставится по этому согласию — его не минует даже «подтверждать всё
+    /// автоматически». Что делает инструмент MCP, знает только его сервер, а не модель защиты.
+    /// </para>
     /// </remarks>
     internal static GateCheck ApplyNormalReview(GateCheck check, AppSettings settings, bool? withoutApproval)
     {
         if (settings.ApprovalMode != ApprovalMode.Normal || withoutApproval is null ||
             check.Refusal is not null || check.Effect == ToolEffect.Read || check.Quiet)
+        {
+            return check;
+        }
+
+        if (withoutApproval.Value && check.Question is { } asked && (asked.Standing || McpNames.IsMcp(check.ToolName)))
         {
             return check;
         }

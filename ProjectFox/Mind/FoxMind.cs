@@ -170,12 +170,10 @@ internal sealed class FoxMind : IDisposable
                         continue;
                     }
 
-                    // Пауза между реакциями: пришедшее за неё склеивается в ту же реплику.
                     var wait = _pause - (_clock() - _lastReact);
                     if (wait > TimeSpan.Zero)
                     {
-                        await Task.Delay(wait, token).ConfigureAwait(false);
-                        await DrainAsync(reacts, token).ConfigureAwait(false);
+                        await GlueAsync(reacts, wait, token).ConfigureAwait(false);
                     }
 
                     _lastReact = _clock();
@@ -193,6 +191,27 @@ internal sealed class FoxMind : IDisposable
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
+        }
+    }
+
+    /// <summary>
+    /// Пауза между реакциями: пришедшее за неё склеивается в ту же реплику. Разговор, мысль и
+    /// дневник паузы не ждут — их исполняет Drain, как только они пришли: человек ждёт ответа.
+    /// </summary>
+    private async Task GlueAsync(List<string> reacts, TimeSpan wait, CancellationToken token)
+    {
+        using var pause = CancellationTokenSource.CreateLinkedTokenSource(token);
+        pause.CancelAfter(wait);
+        try
+        {
+            while (await _jobs.Reader.WaitToReadAsync(pause.Token).ConfigureAwait(false))
+            {
+                await DrainAsync(reacts, token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            // Пауза вышла: пора отозваться на всё, что набралось.
         }
     }
 

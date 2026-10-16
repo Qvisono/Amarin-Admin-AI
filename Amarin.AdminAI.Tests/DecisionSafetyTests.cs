@@ -134,6 +134,32 @@ public sealed class DecisionSafetyTests
         }
     }
 
+    /// <summary>
+    /// «Можно без вопроса» снимает только вопрос, который правила задают по усмотрению. Отложенную
+    /// команду и возврат программ выполнят потом без человека — согласие берётся сейчас, — а что
+    /// делает инструмент MCP, модель защиты знать не может. В beta.2 модель снимала и их.
+    /// </summary>
+    [Theory]
+    [InlineData("deferred_task", """{"action":"run_command","title":"t","command":"New-Item -ItemType Directory -Path C:/Temp/x"}""")]
+    [InlineData("deferred_task", """{"action":"restore_programs","title":"t"}""")]
+    [InlineData("server__do_thing", """{"x":1}""")]
+    public async Task Model_approval_never_lifts_a_question_the_rules_always_ask(string tool, string arguments)
+    {
+        var settings = new AppSettings { ApprovalMode = ApprovalMode.Normal };
+        var check = ToolGate.Check(tool, JsonSchema.Parse(arguments), settings);
+        Assert.NotNull(check.Question);
+
+        var questions = 0;
+        var decision = await ToolGate.DecideAsync(ToolGate.ApplyNormalReview(check, settings, withoutApproval: true), (_, _) =>
+        {
+            questions++;
+            return Task.FromResult(new ConfirmationAnswer(false, ApprovalSource.Human));
+        }, false, CancellationToken.None);
+
+        Assert.Equal(1, questions);
+        Assert.False(decision.Allowed);
+    }
+
     [Fact]
     public void Decision_approval_cannot_override_readonly_or_disabled_tools_or_ask_all()
     {

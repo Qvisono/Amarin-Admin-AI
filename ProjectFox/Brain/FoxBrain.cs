@@ -411,7 +411,7 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.SettingsOpened:
-                actions.Add(FoxAction.Go("settings"));
+                actions.Add(FoxAction.Go(FoxSpot.Settings));
                 if (signal.Text == "keys")
                 {
                     actions.Add(FoxAction.Anim("cover"));
@@ -430,11 +430,11 @@ internal static class FoxBrain
 
             case FoxSignalKind.SettingsClosed:
             case FoxSignalKind.ViewerClosed:
-                actions.Add(FoxAction.Go("home"));
+                actions.Add(FoxAction.Go(FoxSpot.Home));
                 break;
 
             case FoxSignalKind.ViewerOpened:
-                actions.Add(FoxAction.Go("viewer"));
+                actions.Add(FoxAction.Go(FoxSpot.Viewer));
                 actions.Add(FoxAction.Face("curious", 1800));
                 if (random.Next(2) == 0)
                 {
@@ -495,7 +495,7 @@ internal static class FoxBrain
         return actions;
     }
 
-    /// <summary>Сколько ещё реакций своей модели можно сегодня.</summary>
+    /// <summary>Можно ли сегодня ещё раз спросить свою модель о реакции: дневной потолок не выбран.</summary>
     public static bool MayReact(FoxState state) => state.Today.ModelCalls < MaxReactions;
 
     public static bool MaySearch(FoxState state) => state.Today.Searches < MaxSearches;
@@ -604,7 +604,7 @@ internal static class FoxBrain
             (state.LastDemandAt is not { } demanded || now - demanded >= DemandEvery))
         {
             state.LastDemandAt = now;
-            actions.Add(FoxAction.Go("center"));
+            actions.Add(FoxAction.Go(FoxSpot.Center));
             actions.Add(FoxAction.Anim("stomp"));
             actions.Add(FoxAction.Face("puppy", 3000));
             actions.Add(FoxAction.Particle("exclaim"));
@@ -784,7 +784,7 @@ internal static class FoxBrain
             actions.Add(FoxAction.Particle("drop"));
 
             // Сильный испуг: прячется за поле ввода и выглядывает оттуда.
-            actions.Add(FoxAction.Go("peek"));
+            actions.Add(FoxAction.Go(FoxSpot.Peek));
             say("Virus");
             return;
         }
@@ -929,10 +929,10 @@ internal static class FoxBrain
                 actions.Add(FoxAction.Particle("heart", 2));
                 break;
             case FoxActs.Peek when !situation.Holding:
-                actions.Add(FoxAction.Go("peek"));
+                actions.Add(FoxAction.Go(FoxSpot.Peek));
                 break;
             case FoxActs.Nap when !situation.Holding && !situation.Asleep:
-                actions.Add(FoxAction.Do(FoxActs.Nap));
+                actions.Add(FoxAction.Do(FoxWill.Nap));
                 break;
             case FoxActs.Play when situation.Motion && !situation.Holding:
                 string[] games = [FoxWill.Fetch, FoxWill.HideSeek, FoxWill.Catch];
@@ -984,7 +984,7 @@ internal static class FoxBrain
         }
 
         state.RefusedCalls = 0;
-        actions.Add(FoxAction.Go("home"));
+        actions.Add(FoxAction.Go(FoxSpot.Home));
         if (state.Resentment >= 40)
         {
             feel("offended", 2600);

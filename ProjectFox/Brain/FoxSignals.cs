@@ -148,7 +148,7 @@ internal enum FoxActionKind
     /// <summary>Сменить глаза: <see cref="FoxAction.Name"/> — <c>cold</c> или <c>warm</c>, с морганием.</summary>
     Eyes,
 
-    /// <summary>Перейти в место: <c>home</c>, <c>settings</c>, <c>center</c> (требует внимания).</summary>
+    /// <summary>Перейти в место из <see cref="FoxSpot"/>: домой, на карточку, в середину поля ввода, за поле ввода.</summary>
     Go,
 
     /// <summary>Отвернуться от человека.</summary>
@@ -224,6 +224,40 @@ internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 
     public static FoxAction Do(string activity) => new(FoxActionKind.Do, activity);
 
     public static FoxAction Shout(string key) => new(FoxActionKind.Shout, key, 2200);
+}
+
+/// <summary>
+/// Места Розы: кромки, на которых он сидит, и цели, куда его зовёт мозг (<see cref="FoxActionKind.Go"/>).
+/// </summary>
+/// <remarks>Строками, как занятия и шалости: мозг передаёт место сцене именем в действии.</remarks>
+internal static class FoxSpot
+{
+    /// <summary>Верхняя кромка поля ввода — дом.</summary>
+    public const string Home = "home";
+
+    /// <summary>Верх карточки настроек.</summary>
+    public const string Settings = "settings";
+
+    /// <summary>Верх карточки журнала или «Состояния ПК».</summary>
+    public const string Viewer = "viewer";
+
+    /// <summary>Верх нижнего блока колонки чатов.</summary>
+    public const string Column = "column";
+
+    /// <summary>Низ окна.</summary>
+    public const string Floor = "floor";
+
+    /// <summary>Кнопка отправки — шалость «сесть на неё».</summary>
+    public const string Send = "send";
+
+    /// <summary>Плашка модели — шалость «погрызть».</summary>
+    public const string Chip = "chip";
+
+    /// <summary>Только цель: середина поля ввода, где забытый требует внимания.</summary>
+    public const string Center = "center";
+
+    /// <summary>Только цель: спрятаться за поле ввода и выглядывать.</summary>
+    public const string Peek = "peek";
 }
 
 /// <summary>

@@ -96,6 +96,7 @@
     <system:String x:Key="S.AgentRun.GuardCheck" xml:space="preserve">Проверяю безопасность…</system:String>
     <system:String x:Key="S.AgentRun.GuardFlagged" xml:space="preserve">SynGuard считает {0} атакой. Спрашиваю разрешения.</system:String>
     <system:String x:Key="S.AgentRun.GuardUnchecked" xml:space="preserve">SynGuard не проверил {0}. Спрашиваю разрешения.</system:String>
+    <system:String x:Key="S.AgentRun.GuardBlocked" xml:space="preserve">SynGuard запретил {0}: модель защиты сочла вызов небезопасным.</system:String>
     <system:String x:Key="S.AgentRun.ModelOverloaded" xml:space="preserve">Модель {0} перегружена, переключился на {1}.</system:String>
     <system:String x:Key="S.AgentRun.NoText" xml:space="preserve">Модель не прислала текст ответа. Повторите запрос.</system:String>
     <system:String x:Key="S.AgentRun.PrepareFailed" xml:space="preserve">Не удалось подготовить запрос: {0}</system:String>
@@ -2319,8 +2320,6 @@
     <system:String x:Key="S.Fox.Say.WrongLayout.2" xml:space="preserve">Кажется, не та раскладка.</system:String>
     <system:String x:Key="S.Fox.Say.Long.1" xml:space="preserve">Ох, сколько…</system:String>
     <system:String x:Key="S.Fox.Say.Long.2" xml:space="preserve">Целое письмо!</system:String>
-    <system:String x:Key="S.Fox.Say.Reading.1" xml:space="preserve">Читаю…</system:String>
-    <system:String x:Key="S.Fox.Say.Reading.2" xml:space="preserve">Интересно…</system:String>
     <system:String x:Key="S.Fox.Say.Error.1" xml:space="preserve">Ой… не получилось.</system:String>
     <system:String x:Key="S.Fox.Say.Error.2" xml:space="preserve">Бывает. Попробуем ещё?</system:String>
     <system:String x:Key="S.Fox.Say.LongWait.1" xml:space="preserve">Долго думает…</system:String>

@@ -117,6 +117,40 @@ public sealed class FoxMindTests : IDisposable
         Assert.Contains("четвёртое", glued);
     }
 
+    /// <summary>
+    /// Разговор паузы реакций не ждёт: пришёл, пока склеиваются сообщения чата, — ответ сразу, а
+    /// реакция выходит, когда пауза кончится. Прежде разговор стоял в очереди до конца паузы.
+    /// </summary>
+    [Fact]
+    public async Task A_talk_does_not_wait_for_the_reaction_pause()
+    {
+        var server = new Server(body => Answer(body.Contains("Человек говорит тебе", StringComparison.Ordinal)
+            ? """{"emotion":"happy","line":"Привет!","mood":1}"""
+            : """{"emotion":"curious","line":"","mood":0}"""));
+        await using var run = Start(server, pause: TimeSpan.FromSeconds(30));
+
+        run.Mind.Ask("react", "первое");
+        await Until(() => !run.Replies.IsEmpty);
+        run.Mind.Ask("react", "второе");
+        await Task.Delay(100);
+        run.Mind.Ask("talk", "привет, Роза");
+
+        await Until(() => run.Replies.Any(reply => reply.Kind == "talk"));
+        Assert.Equal(["react", "talk"], run.Replies.Select(reply => reply.Kind));
+        Assert.Equal(2, server.Requests.Count);
+    }
+
+    /// <summary>Ждёт условия до пяти секунд — дольше, чем нужно рабочему потоку, и куда меньше паузы.</summary>
+    private static async Task Until(Func<bool> done)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (!done())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "не дождался");
+            await Task.Delay(10);
+        }
+    }
+
     [Fact]
     public async Task Escape_comes_back_as_minutes_with_its_line()
     {

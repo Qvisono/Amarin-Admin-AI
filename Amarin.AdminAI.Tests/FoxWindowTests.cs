@@ -234,27 +234,45 @@ public sealed class FoxWindowTests : IDisposable
         Assert.True(handled);
     }
 
-    /// <summary>Роза в руках: Esc отпускает его и не останавливает ответ.</summary>
+    /// <summary>Роза в руках: Esc отпускает его и не останавливает идущий ответ.</summary>
     [Fact]
     public void Escape_lets_go_of_a_held_rosa()
     {
-        var (holding, stopped, after) = With(window =>
+        var (handled, after, cancelled) = With(window =>
         {
             Arrive(window);
             var stage = Stage(window);
+            var turn = StartTurn(window);
             stage.BeginDrag(new Point(300, 200));
-            var held = window.Fox!.Holding;
-            var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, 0, Key.Escape)
-            {
-                RoutedEvent = UIElement.PreviewKeyDownEvent
-            };
-            var result = (bool)typeof(MainWindow).GetMethod("TryStopByEscape", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, [args])!;
-            return (held, result, stage.Mode);
+            return (PressEscape(window), stage.Mode, turn.Cancellation.IsCancellationRequested);
         });
 
-        Assert.True(holding);
-        Assert.True(stopped);
+        Assert.True(handled);
         Assert.NotEqual(FoxMode.Drag, after);
+        Assert.False(cancelled);
+    }
+
+    /// <summary>
+    /// Пока идёт ответ, игра Esc не забирает: её Роза затевает и сам, пока человек ждёт, — а Esc
+    /// человек жмёт, чтобы остановить ответ. Без ответа тот же Esc заканчивает игру.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void During_an_answer_escape_stops_the_answer_and_not_the_game(bool answering)
+    {
+        var (handled, game, cancelled) = With(window =>
+        {
+            Arrive(window);
+            var stage = Stage(window);
+            var turn = answering ? StartTurn(window) : null;
+            stage.PlayGame(FoxWill.Catch);
+            return (PressEscape(window), stage.Game, turn?.Cancellation.IsCancellationRequested == true);
+        });
+
+        Assert.True(handled);
+        Assert.Equal(answering, cancelled);
+        Assert.Equal(answering ? FoxWill.Catch : null, game);
     }
 
     /// <summary>
@@ -414,6 +432,23 @@ public sealed class FoxWindowTests : IDisposable
     }
 
     private static Canvas Layer(MainWindow window) => (Canvas)window.FindName("FoxLayer")!;
+
+    /// <summary>Ход открытого чата — вручную, без движка: так видно, что Esc сделал с ответом.</summary>
+    private static RunningTurn StartTurn(MainWindow window)
+    {
+        var session = (ChatSession)typeof(MainWindow).GetField("_session", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(window)!;
+        return window.Turns.TryStart(session, TurnKind.Send, DateTime.Now).Turn ?? throw new InvalidOperationException("ход не завёлся");
+    }
+
+    /// <summary>Esc, как его разбирает окно: <c>true</c> — нажатие кто-то забрал.</summary>
+    private static bool PressEscape(MainWindow window)
+    {
+        var args = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, 0, Key.Escape)
+        {
+            RoutedEvent = UIElement.PreviewKeyDownEvent
+        };
+        return (bool)typeof(MainWindow).GetMethod("TryStopByEscape", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, [args])!;
+    }
 
     private static void Call(MainWindow window, string method, params object[] args) =>
         _ = typeof(MainWindow).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(window, args);

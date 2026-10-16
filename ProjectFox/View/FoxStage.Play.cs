@@ -127,7 +127,7 @@ internal sealed partial class FoxStage
                 StartGame(FoxWill.Catch, TimeSpan.FromSeconds(15));
                 Feel("sly", 1800);
                 break;
-            case FoxActs.Nap:
+            case FoxWill.Nap:
                 Sleep();
                 break;
             case FoxWill.Fight:
@@ -187,20 +187,20 @@ internal sealed partial class FoxStage
         }
 
         List<Action> options = [() => WalkTo(RandomFoot(EdgeOf(_spot)), run: false)];
-        if (_spot != "home" || Math.Abs(_foot - HomeFoot(_host.Home())) > Px(20))
+        if (_spot != FoxSpot.Home || Math.Abs(_foot - HomeFoot(_host.Home())) > Px(20))
         {
             options.Add(() => GoHomeEdge(HomeFoot(_host.Home()), run: false));
             options.Add(() => GoHomeEdge(HomeFoot(_host.Home()), run: false));
         }
 
-        if (_spot != "floor" && _host.FloorSpans().Where(span => span.Right - span.Left >= Px(34)).ToList() is { Count: > 0 } spans)
+        if (_spot != FoxSpot.Floor && _host.FloorSpans().Where(span => span.Right - span.Left >= Px(34)).ToList() is { Count: > 0 } spans)
         {
-            options.Add(() => JumpTo("floor", RandomFoot(spans[_random.Next(spans.Count)])));
+            options.Add(() => JumpTo(FoxSpot.Floor, RandomFoot(spans[_random.Next(spans.Count)])));
         }
 
-        if (_spot != "column" && _host.Column() is { } column)
+        if (_spot != FoxSpot.Column && _host.Column() is { } column)
         {
-            options.Add(() => JumpTo("column", RandomFoot(column)));
+            options.Add(() => JumpTo(FoxSpot.Column, RandomFoot(column)));
         }
 
         options[_random.Next(options.Count)]();
@@ -409,7 +409,7 @@ internal sealed partial class FoxStage
     /// <summary>Прятки: прячется за поле ввода и выглядывает в разных местах; щелчок — нашёл.</summary>
     private void StartHideSeek()
     {
-        if (_spot != "home")
+        if (_spot != FoxSpot.Home)
         {
             GoHomeEdge(HomeFoot(_host.Home()), run: true, then: StartHideSeek);
             return;

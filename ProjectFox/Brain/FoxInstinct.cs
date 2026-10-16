@@ -17,10 +17,10 @@ internal static class FoxTopic
     public const string Long = "long";
 }
 
-/// <summary>Что инстинкт понял из сообщения: темы, бред, обращение к Розе.</summary>
+/// <summary>Что инстинкт понял из сообщения: темы и бред.</summary>
 /// <param name="Topics">Темы из <see cref="FoxTopic"/>.</param>
 /// <param name="WrongLayout">Бред оказался русским в английской раскладке (или наоборот).</param>
-internal sealed record FoxReading(IReadOnlySet<string> Topics, bool WrongLayout, bool AboutFox)
+internal sealed record FoxReading(IReadOnlySet<string> Topics, bool WrongLayout)
 {
     public bool Has(string topic) => Topics.Contains(topic);
 }
@@ -71,7 +71,7 @@ internal static class FoxInstinct
         var raw = message ?? "";
         if (raw.Trim().Length == 0)
         {
-            return new FoxReading(topics, false, false);
+            return new FoxReading(topics, false);
         }
 
         var text = new FoxText(raw);
@@ -115,7 +115,7 @@ internal static class FoxInstinct
             topics.Add(FoxTopic.Nonsense);
         }
 
-        return new FoxReading(topics, wrongLayout, aboutFox);
+        return new FoxReading(topics, wrongLayout);
     }
 
     /// <summary>Ответ ассистента говорит, что угроз нет: облегчение после испуга.</summary>

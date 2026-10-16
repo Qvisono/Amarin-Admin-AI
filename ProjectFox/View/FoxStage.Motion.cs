@@ -46,7 +46,7 @@ internal sealed partial class FoxStage
     private double _jumpHeight;
     private double _jumpElapsed;
     private double _jumpLength;
-    private string _jumpSpot = "home";
+    private string _jumpSpot = FoxSpot.Home;
     private double _jumpFoot;
 
     /// <summary>
@@ -89,7 +89,7 @@ internal sealed partial class FoxStage
     {
         Replan();
         HideCallMark();
-        _spot = "home";
+        _spot = FoxSpot.Home;
         _lying = false;
         var edge = _host.Home();
         _edgeY = edge.Y;
@@ -345,7 +345,7 @@ internal sealed partial class FoxStage
         var floor = _host.Floor();
         if (feet >= floor)
         {
-            Touch("floor", floor, foot, speed);
+            Touch(FoxSpot.Floor, floor, foot, speed);
         }
     }
 
@@ -376,7 +376,7 @@ internal sealed partial class FoxStage
     private void Settle(string spot, double foot, double speed)
     {
         Seat(spot, foot);
-        if (spot == "home")
+        if (spot == FoxSpot.Home)
         {
             // Посадил человек — тут и будет его место, пока программа открыта.
             _homeFromRight = _edgeRight - _foot;
@@ -384,7 +384,7 @@ internal sealed partial class FoxStage
 
         Squash();
         Signal(new FoxSignal(FoxSignalKind.Landed, Value: speed));
-        if (spot == "floor")
+        if (spot == FoxSpot.Floor)
         {
             OffTheButtons();
         }
@@ -393,20 +393,20 @@ internal sealed partial class FoxStage
     /// <summary>Кромки, на которые можно сесть с лёта; пол — отдельно, он под всеми.</summary>
     private IEnumerable<string> Ledges()
     {
-        yield return "home";
+        yield return FoxSpot.Home;
         if (_host.Card() is not null)
         {
-            yield return "settings";
+            yield return FoxSpot.Settings;
         }
 
         if (_host.Column() is not null)
         {
-            yield return "column";
+            yield return FoxSpot.Column;
         }
 
         if (_host.Viewer() is not null)
         {
-            yield return "viewer";
+            yield return FoxSpot.Viewer;
         }
     }
 
@@ -434,7 +434,7 @@ internal sealed partial class FoxStage
     /// <summary>Сидит на полу над кнопкой — отходит в свободный промежуток.</summary>
     private void OffTheButtons()
     {
-        if (_spot == "floor" && FreeFloorFoot(_foot) is { } free && Math.Abs(free - _foot) > Px(2))
+        if (_spot == FoxSpot.Floor && FreeFloorFoot(_foot) is { } free && Math.Abs(free - _foot) > Px(2))
         {
             WalkTo(free, run: false, clamp: false);
         }
@@ -445,7 +445,7 @@ internal sealed partial class FoxStage
     {
         var foot = (Airborne ? _x : CornerAt(_foot, _edgeY, _flip).X) + Px(_flip ? FoxSprites.FrameSize - 1 - FootColumn : FootColumn);
         var feet = (Airborne ? _y : _edgeY - Px(Ground(_anim))) + Px(Ground(_anim));
-        var best = "floor";
+        var best = FoxSpot.Floor;
         var bestY = _host.Floor();
         foreach (var spot in Ledges())
         {
@@ -495,7 +495,7 @@ internal sealed partial class FoxStage
 
         if (_mode is FoxMode.Away or FoxMode.Hidden)
         {
-            if (spot == "home")
+            if (spot == FoxSpot.Home)
             {
                 Arrive(greet: false);
             }
@@ -508,7 +508,7 @@ internal sealed partial class FoxStage
             Wake();
         }
 
-        if (spot == "peek")
+        if (spot == FoxSpot.Peek)
         {
             // Сильный испуг: прячется за поле ввода и выглядывает оттуда — если сидит на нём.
             Peek(TimeSpan.FromSeconds(8));
@@ -523,19 +523,19 @@ internal sealed partial class FoxStage
         Replan();
         switch (spot)
         {
-            case "settings" when _host.Card() is { } card:
-                JumpTo("settings", card.Right - 120);
+            case FoxSpot.Settings when _host.Card() is { } card:
+                JumpTo(FoxSpot.Settings, card.Right - 120);
                 break;
-            case "viewer" when _host.Viewer() is { } viewer:
+            case FoxSpot.Viewer when _host.Viewer() is { } viewer:
                 // На верх карточки — и сразу за неё: выглядывает, потом садится сверху.
-                JumpTo("viewer", viewer.Right - 120, () => Peek(TimeSpan.FromSeconds(6)));
+                JumpTo(FoxSpot.Viewer, viewer.Right - 120, () => Peek(TimeSpan.FromSeconds(6)));
                 break;
-            case "center":
+            case FoxSpot.Center:
                 var middle = _host.Home();
                 GoHomeEdge((middle.Left + middle.Right) / 2, run: true);
                 After(TimeSpan.FromSeconds(30), () => GoHomeEdge(HomeFoot(_host.Home()), run: false));
                 break;
-            case "home":
+            case FoxSpot.Home:
                 GoHomeEdge(HomeFoot(_host.Home()), run: false);
                 break;
         }
@@ -549,20 +549,20 @@ internal sealed partial class FoxStage
             EndPeek();
         }
 
-        if (_spot == "home" && !Airborne)
+        if (_spot == FoxSpot.Home && !Airborne)
         {
             WalkTo(foot, run || Math.Abs(foot - _foot) > Px(120), then);
         }
         else
         {
-            JumpTo("home", foot, then);
+            JumpTo(FoxSpot.Home, foot, then);
         }
     }
 
     /// <summary>Прячется за поле ввода и выглядывает <paramref name="duration"/>.</summary>
     private void Peek(TimeSpan duration)
     {
-        if (_mode != FoxMode.Idle || _spot is not ("home" or "viewer"))
+        if (_mode != FoxMode.Idle || _spot is not (FoxSpot.Home or FoxSpot.Viewer))
         {
             return;
         }
@@ -621,7 +621,7 @@ internal sealed partial class FoxStage
             Seat(spot, foot);
         }
 
-        if (!_host.Motion() || _spot != "home")
+        if (!_host.Motion() || _spot != FoxSpot.Home)
         {
             Burst("puff", 2);
             Gone();
@@ -652,17 +652,17 @@ internal sealed partial class FoxStage
     {
         switch (spot)
         {
-            case "settings" when _host.Card() is { } card:
+            case FoxSpot.Settings when _host.Card() is { } card:
                 return card;
-            case "floor":
+            case FoxSpot.Floor:
                 return new FoxEdge(0, _host.Width(), _host.Floor());
-            case "column" when _host.Column() is { } column:
+            case FoxSpot.Column when _host.Column() is { } column:
                 return column;
-            case "viewer" when _host.Viewer() is { } viewer:
+            case FoxSpot.Viewer when _host.Viewer() is { } viewer:
                 return viewer;
-            case "send":
-            case "chip":
-                var rect = spot == "send" ? _host.SendButton() : _host.ModelChip();
+            case FoxSpot.Send:
+            case FoxSpot.Chip:
+                var rect = spot == FoxSpot.Send ? _host.SendButton() : _host.ModelChip();
                 return rect.IsEmpty || rect.Width < 1
                     ? _host.Home()
                     : new FoxEdge(rect.Left, rect.Right, rect.Top + (rect.Height * 0.7));
@@ -727,7 +727,7 @@ internal sealed partial class FoxStage
         }
 
         var situation = _host.Situation();
-        if (situation.SinceTyping < TimeSpan.FromSeconds(2) && _spot == "home")
+        if (situation.SinceTyping < TimeSpan.FromSeconds(2) && _spot == FoxSpot.Home)
         {
             // Поле ввода — слева от его места: смотрит, как человек пишет.
             _flip = false;
@@ -811,7 +811,7 @@ internal sealed partial class FoxStage
             case < 85:
                 LieDown(wag: false);
                 break;
-            case < 92 when _host.Motion() && _spot != "floor":
+            case < 92 when _host.Motion() && _spot != FoxSpot.Floor:
                 var step = Px(16 + _random.Next(32)) * (_random.Next(2) == 0 ? -1 : 1);
                 WalkTo(_foot + step, run: false);
                 break;

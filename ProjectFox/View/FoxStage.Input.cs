@@ -356,14 +356,14 @@ internal sealed partial class FoxStage
             return;
         }
 
-        if (_spot is "send" or "chip")
+        if (_spot is FoxSpot.Send or FoxSpot.Chip)
         {
             // Прогнали с кнопки отправки или с плашки модели: уходит домой надутым.
             Replan();
             _face = "offended";
             _faceUntil = now.AddSeconds(2);
             Burst("puff", 1);
-            JumpTo("home", HomeFoot(_host.Home()));
+            JumpTo(FoxSpot.Home, HomeFoot(_host.Home()));
             return;
         }
 

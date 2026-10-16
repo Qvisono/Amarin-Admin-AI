@@ -386,7 +386,7 @@ internal sealed partial class FoxStage
         _host.Layer.Children.Remove(_laser);
         _laser = null;
         _laserUntil = default;
-        if (_mode is FoxMode.Idle or FoxMode.Walk && _spot == "home")
+        if (_mode is FoxMode.Idle or FoxMode.Walk && _spot == FoxSpot.Home)
         {
             After(TimeSpan.FromSeconds(2), () => GoHomeEdge(HomeFoot(_host.Home()), run: false));
         }
@@ -432,9 +432,9 @@ internal sealed partial class FoxStage
             }
 
             var center = _ballX + (size / 2);
-            foreach (var spot in (string[])["home", "settings", "floor"])
+            foreach (var spot in (string[])[FoxSpot.Home, FoxSpot.Settings, FoxSpot.Floor])
             {
-                if (spot == "settings" && _host.Card() is null)
+                if (spot == FoxSpot.Settings && _host.Card() is null)
                 {
                     continue;
                 }
@@ -583,7 +583,7 @@ internal sealed partial class FoxStage
                 Poke(_host.NewChat);
                 break;
 
-            case FoxMischief.PushColumn when motion && _spot == "home":
+            case FoxMischief.PushColumn when motion && _spot == FoxSpot.Home:
                 WalkTo(home.Left, run: true, then: () =>
                 {
                     _flip = false;
@@ -597,16 +597,16 @@ internal sealed partial class FoxStage
                 break;
 
             case FoxMischief.SitOnSend when motion && !_host.SendButton().IsEmpty:
-                JumpTo("send", _host.SendButton().Left + (_host.SendButton().Width / 2), () =>
+                JumpTo(FoxSpot.Send, _host.SendButton().Left + (_host.SendButton().Width / 2), () =>
                 {
                     _face = "sly";
                     _faceUntil = _clock().AddSeconds(3);
-                    After(TimeSpan.FromSeconds(25), () => JumpTo("home", seat));
+                    After(TimeSpan.FromSeconds(25), () => JumpTo(FoxSpot.Home, seat));
                 });
                 break;
 
             case FoxMischief.ChewChip when motion && !_host.ModelChip().IsEmpty:
-                JumpTo("chip", _host.ModelChip().Left + (_host.ModelChip().Width / 2), () =>
+                JumpTo(FoxSpot.Chip, _host.ModelChip().Left + (_host.ModelChip().Width / 2), () =>
                 {
                     for (var i = 0; i < 3; i++)
                     {
@@ -617,11 +617,11 @@ internal sealed partial class FoxStage
                         });
                     }
 
-                    After(TimeSpan.FromSeconds(4), () => JumpTo("home", seat));
+                    After(TimeSpan.FromSeconds(4), () => JumpTo(FoxSpot.Home, seat));
                 });
                 break;
 
-            case FoxMischief.TailInInput when motion && _spot == "home":
+            case FoxMischief.TailInInput when motion && _spot == FoxSpot.Home:
                 WalkTo((home.Left + home.Right) / 2, run: false, then: () =>
                 {
                     LieDown(wag: true);
@@ -634,7 +634,7 @@ internal sealed partial class FoxStage
                 });
                 break;
 
-            case FoxMischief.Footprints when motion && _spot == "home":
+            case FoxMischief.Footprints when motion && _spot == FoxSpot.Home:
                 var from = _foot;
                 var to = Math.Max(home.Left + Px(17), _foot - Px(150));
                 for (var i = 1; i <= 8; i++)
@@ -646,7 +646,7 @@ internal sealed partial class FoxStage
                 WalkTo(to, run: false, then: () => Back(1.5));
                 break;
 
-            case FoxMischief.PeekColumn when motion && _spot == "home":
+            case FoxMischief.PeekColumn when motion && _spot == FoxSpot.Home:
                 WalkTo(home.Left, run: true, then: () =>
                 {
                     Peek(TimeSpan.FromSeconds(10));

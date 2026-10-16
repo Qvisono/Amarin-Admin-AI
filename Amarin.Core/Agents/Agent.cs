@@ -318,9 +318,13 @@ Paths on this machine - use these exact values, never wildcards:
         verdicts = verdicts with
         {
             Outcome = outcome,
+
+            // Модель может повторить id вызова: тогда без вопроса — только если вопроса не просит
+            // ни один из вызовов с этим id.
             WithoutApproval = report.WithoutApproval is { } approvals
                 ? toolCalls.Select((call, i) => (call.Id, Safe: i < approvals.Count && approvals[i]))
-                    .ToDictionary(item => item.Id, item => item.Safe, StringComparer.Ordinal)
+                    .GroupBy(item => item.Id, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.All(item => item.Safe), StringComparer.Ordinal)
                 : null
         };
 
@@ -334,7 +338,7 @@ Paths on this machine - use these exact values, never wildcards:
             var toolCall = toolCalls[i];
             if (report.IsBlocked(i))
             {
-                _ui.Warn(SynGuard.BlockedReply(toolCall.Function.Name));
+                _ui.Warn(Loc.Format("S.AgentRun.GuardBlocked", toolCall.Function.Name));
                 verdicts.Refused.Add(toolCall.Id);
                 verdicts.Blocked.Add(toolCall.Id);
                 continue;

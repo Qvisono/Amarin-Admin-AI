@@ -122,13 +122,10 @@ internal sealed class FoxText
 
         Words = words;
         Joined = " " + string.Join(' ', words) + " ";
-        Raw = text;
     }
 
     public IReadOnlyList<string> Words { get; }
 
     /// <summary>Слова через пробел с пробелами по краям — для поиска фраз.</summary>
     public string Joined { get; }
-
-    public string Raw { get; }
 }

@@ -87,7 +87,12 @@ namespace Amarin.UI
 
             public Canvas Layer => _window.FoxLayer;
 
-            public bool Holding => _stage?.Holding == true;
+            /// <summary>
+            /// Esc — Розе, когда человек держит его или пишет ему. Игру Esc заканчивает, только если
+            /// не останавливает им ответ: игру мог затеять и сам Роза, а ответа человек ждёт.
+            /// </summary>
+            public bool TakesEscape(bool stopsAnswer) =>
+                _stage is { } stage && (stage.InHands || (!stopsAnswer && stage.Holding));
 
             private async Task StartAsync()
             {

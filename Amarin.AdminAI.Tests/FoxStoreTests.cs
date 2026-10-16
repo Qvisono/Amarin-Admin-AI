@@ -121,6 +121,74 @@ public sealed class FoxStoreTests : IDisposable
         Assert.Single(Directory.GetFiles(Path.Combine(_root, FoxData.FolderName), FoxData.StateFileName + ".broken-*"));
     }
 
+    /// <summary>
+    /// Файл, зашифрованный не для этой учётной записи Windows, тоже откладывается рядом: прежде он
+    /// молча затирался первой же записью новой памяти.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_state_file_is_kept_aside_and_not_overwritten()
+    {
+        Directory.CreateDirectory(Path.Combine(_root, FoxData.FolderName));
+        byte[] foreign = [.. AtRestCipher.FileMagic, 1, 2, 3, 4, 5, 6, 7, 8];
+        File.WriteAllBytes(FoxData.StatePath(_root), foreign);
+
+        using (var store = new FoxStore(_root, () => false))
+        {
+            Assert.Equal(FoxState.StartAffection, store.Snapshot().Affection);
+            store.Update(state => state.Affection = 33);
+        }
+
+        var aside = Assert.Single(Directory.GetFiles(Path.Combine(_root, FoxData.FolderName), FoxData.StateFileName + ".broken-*"));
+        Assert.Equal(foreign, File.ReadAllBytes(aside));
+        Assert.Equal(33, new FoxStore(_root, () => false).Snapshot().Affection);
+    }
+
+    /// <summary>
+    /// Сбросы идут по одной: снимок, снятый раньше, не ложится на диск поверх более нового, даже
+    /// если его запись застряла, пока второй сброс уже снял свой.
+    /// </summary>
+    [Fact]
+    public void A_slow_flush_never_lands_after_a_newer_one()
+    {
+        var written = new List<string>();
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        bool Write(string path, string text, bool encrypt)
+        {
+            if (!entered.IsSet)
+            {
+                entered.Set();
+                release.Wait(TimeSpan.FromSeconds(10));
+            }
+
+            lock (written)
+            {
+                written.Add(text);
+            }
+
+            return true;
+        }
+
+        using var store = new FoxStore(_root, () => false, TimeSpan.FromHours(1), Write);
+        store.Update(state => state.Boredom = 1);
+        var older = new Thread(store.Flush);
+        older.Start();
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+
+        store.Update(state => state.Boredom = 2);
+        var newer = new Thread(store.Flush);
+        newer.Start();
+
+        // Без очереди сбросов второй успел бы записать своё, пока первый стоит.
+        _ = newer.Join(TimeSpan.FromMilliseconds(300));
+        release.Set();
+        older.Join();
+        newer.Join();
+
+        var last = System.Text.Json.JsonSerializer.Deserialize<FoxState>(written[^1], AppJson.Options)!;
+        Assert.Equal(2, last.Boredom);
+    }
+
     /// <summary>Смена профиля уносит отложенное в прежний и начинает читать новый.</summary>
     [Fact]
     public void Switching_profiles_writes_the_old_one_and_reads_the_new_one()

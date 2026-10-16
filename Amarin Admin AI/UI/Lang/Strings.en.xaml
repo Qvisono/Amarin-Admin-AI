@@ -96,6 +96,7 @@
     <system:String x:Key="S.AgentRun.GuardCheck" xml:space="preserve">Checking safety…</system:String>
     <system:String x:Key="S.AgentRun.GuardFlagged" xml:space="preserve">SynGuard flags {0} as an attack. Asking for permission.</system:String>
     <system:String x:Key="S.AgentRun.GuardUnchecked" xml:space="preserve">SynGuard could not check {0}. Asking for permission.</system:String>
+    <system:String x:Key="S.AgentRun.GuardBlocked" xml:space="preserve">SynGuard blocked {0}: the protection model found the call unsafe.</system:String>
     <system:String x:Key="S.AgentRun.ModelOverloaded" xml:space="preserve">Model {0} is overloaded, switched to {1}.</system:String>
     <system:String x:Key="S.AgentRun.NoText" xml:space="preserve">The model sent no text. Please try again.</system:String>
     <system:String x:Key="S.AgentRun.PrepareFailed" xml:space="preserve">Could not prepare the request: {0}</system:String>
@@ -2319,8 +2320,6 @@
     <system:String x:Key="S.Fox.Say.WrongLayout.2" xml:space="preserve">Looks like the wrong layout.</system:String>
     <system:String x:Key="S.Fox.Say.Long.1" xml:space="preserve">Whoa, that's a lot…</system:String>
     <system:String x:Key="S.Fox.Say.Long.2" xml:space="preserve">A whole letter!</system:String>
-    <system:String x:Key="S.Fox.Say.Reading.1" xml:space="preserve">Reading…</system:String>
-    <system:String x:Key="S.Fox.Say.Reading.2" xml:space="preserve">Interesting…</system:String>
     <system:String x:Key="S.Fox.Say.Error.1" xml:space="preserve">Oh… that didn't work.</system:String>
     <system:String x:Key="S.Fox.Say.Error.2" xml:space="preserve">It happens. Try again?</system:String>
     <system:String x:Key="S.Fox.Say.LongWait.1" xml:space="preserve">Thinking for a while…</system:String>

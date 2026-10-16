@@ -15,8 +15,11 @@ namespace Amarin.UI
     /// </remarks>
     internal interface IFoxHooks
     {
-        /// <summary>Роза в руках или гоняется за лазером: Esc отпускает его, а не останавливает ответ.</summary>
-        bool Holding { get; }
+        /// <summary>
+        /// Esc сейчас — Розе: он в руках, с ним говорят или (когда Esc не останавливает ответ) он в
+        /// игре. <paramref name="stopsAnswer"/> — иначе Esc остановил бы ход открытого чата.
+        /// </summary>
+        bool TakesEscape(bool stopsAnswer);
 
         void LetGo();
 

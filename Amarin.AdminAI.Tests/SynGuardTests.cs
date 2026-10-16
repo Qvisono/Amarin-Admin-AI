@@ -539,6 +539,25 @@ public sealed class SynGuardTests
         await RunRoundAsync(ui, ran, new SynGuardReport([false, true], null, Blocked: [true, false]));
         Assert.Equal(["read_file"], ran);
         Assert.Empty(ui.Asked);
+
+        // Человеку — своя строка интерфейса, а не отказ для модели («не повторяй вызов…»): тот
+        // по-русски и в английском интерфейсе и обращён не к нему.
+        Assert.Equal(Loc.Format("S.AgentRun.GuardBlocked", "run_powershell"), Assert.Single(ui.Warnings));
+    }
+
+    /// <summary>
+    /// Модель повторила id вызова: раунд не падает, а вопрос задаётся, если его просит хоть один
+    /// из вызовов с этим id.
+    /// </summary>
+    [Fact]
+    public async Task A_repeated_call_id_does_not_break_the_normal_review()
+    {
+        var ran = new List<string>();
+        var ui = new SilentAgentUi { Answer = _ => false };
+        await RunRoundAsync(ui, ran, new SynGuardReport([true, true], null,
+            WithoutApproval: [true, false], Blocked: [false, false]), TwoCalls(secondId: "c1"));
+        Assert.Equal(["read_file"], ran);
+        Assert.Single(ui.Asked);
     }
 
     /// <summary>
@@ -586,11 +605,11 @@ public sealed class SynGuardTests
     // ───────────────────────── helpers ─────────────────────────
 
     /// <summary>Раунд из run_powershell и read_file с готовым вердиктом защитника.</summary>
-    private static async Task RunRoundAsync(SilentAgentUi ui, List<string> ran, SynGuardReport report)
+    private static async Task RunRoundAsync(SilentAgentUi ui, List<string> ran, SynGuardReport report, string? calls = null)
     {
         var round = 0;
         var handler = new ScriptedHandler(() => Interlocked.Increment(ref round) == 1
-            ? TwoCalls()
+            ? calls ?? TwoCalls()
             : """{"choices":[{"message":{"role":"assistant","content":"Готово."}}]}""");
 
         var options = Options();
@@ -619,11 +638,11 @@ public sealed class SynGuardTests
           "finish_reason":"tool_calls"}]}
         """;
 
-    private static string TwoCalls() =>
-        """
+    private static string TwoCalls(string secondId = "c2") =>
+        $$$"""
         {"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[
           {"id":"c1","type":"function","function":{"name":"run_powershell","arguments":"{}"}},
-          {"id":"c2","type":"function","function":{"name":"read_file","arguments":"{}"}}]},
+          {"id":"{{{secondId}}}","type":"function","function":{"name":"read_file","arguments":"{}"}}]},
           "finish_reason":"tool_calls"}]}
         """;
 
@@ -673,8 +692,15 @@ public sealed class SynGuardTests
 
         public void GuardChecked(SynGuardOutcome outcome) => GuardOutcomes.Add(outcome);
 
+        /// <summary>Предупреждения, показанные человеку в ленте агента.</summary>
+        public List<string> Warnings { get; } = [];
+
         public void Warn(string message)
         {
+            lock (Warnings)
+            {
+                Warnings.Add(message);
+            }
         }
 
         public void Error(string message)

@@ -125,8 +125,8 @@ internal sealed partial class FoxStage
     private double _x;
     private double _y;
 
-    /// <summary>Где сидит: <c>home</c> — кромка поля ввода, <c>settings</c> — карточка настроек, <c>floor</c> — низ окна.</summary>
-    private string _spot = "home";
+    /// <summary>Где сидит: кромка из <see cref="FoxSpot"/>.</summary>
+    private string _spot = FoxSpot.Home;
 
     /// <summary>
     /// Насколько левее правого конца поля ввода он сидит, если его туда принесли; <c>null</c> —
@@ -169,7 +169,7 @@ internal sealed partial class FoxStage
 
     public FoxMode Mode => _mode;
 
-    /// <summary>Где сидит: <c>home</c>, <c>settings</c>, <c>floor</c>, <c>send</c>, <c>chip</c>.</summary>
+    /// <summary>Где сидит (<see cref="FoxSpot"/>).</summary>
     internal string Spot => _spot;
 
     /// <summary>Угол кадра на слое, как его поставил последний кадр.</summary>
@@ -184,8 +184,11 @@ internal sealed partial class FoxStage
     /// <summary>Сам элемент Розы — окну, чтобы узнать его среди источников нажатия.</summary>
     public FrameworkElement Element => _sprite;
 
-    /// <summary>Роза в руках, в игре или с ним говорят: Esc в это время отпускает его, а не останавливает ответ.</summary>
-    public bool Holding => _mode == FoxMode.Drag || _laserUntil > _clock() || Talking || _game is not null;
+    /// <summary>Человек держит Розу или пишет ему: Esc — Розе, даже пока идёт ответ.</summary>
+    public bool InHands => _mode == FoxMode.Drag || Talking;
+
+    /// <summary>Роза занят человеком: в руках, в разговоре или в игре — своей, указкой.</summary>
+    public bool Holding => InHands || _laserUntil > _clock() || _game is not null;
 
     /// <summary>Приходит в окно: выбегает к полю ввода справа или сразу садится, если анимации выключены.</summary>
     public void Start()
@@ -341,10 +344,10 @@ internal sealed partial class FoxStage
         }
 
         Refit();
-        if (_spot == "column" && _host.Column() is null && !Airborne)
+        if (_spot == FoxSpot.Column && _host.Column() is null && !Airborne)
         {
             // Колонку свернули из-под лап: перебирается на поле ввода.
-            JumpTo("home", HomeFoot(_host.Home()));
+            JumpTo(FoxSpot.Home, HomeFoot(_host.Home()));
         }
         else if (!Airborne)
         {

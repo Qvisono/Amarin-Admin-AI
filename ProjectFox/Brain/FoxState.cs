@@ -19,8 +19,6 @@ public sealed class FoxState
     /// <summary>С чего начинается знакомство: дружелюбно, глаза розовые, но не лучший друг.</summary>
     public const double StartAffection = 20;
 
-    public int Version { get; set; } = 1;
-
     /// <summary>Первое появление Розы в этом профиле: от него считаются «дни вместе» и годовщина.</summary>
     public DateTime? MetAt { get; set; }
 

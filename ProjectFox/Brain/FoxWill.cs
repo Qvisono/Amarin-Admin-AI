@@ -27,6 +27,9 @@ internal static class FoxWill
     public const string HideSeek = "hideseek";
     public const string Catch = "catch";
 
+    /// <summary>Вздремнуть: уставший — сам, бодрый — только по желанию своей модели (<see cref="FoxActs.Nap"/>).</summary>
+    public const string Nap = "nap";
+
     /// <summary>Драка с курсором: её затевает не воля, а курсор, дразнящий под носом (<see cref="FoxSignalKind.Teased"/>).</summary>
     public const string Fight = "fight";
 
@@ -89,7 +92,7 @@ internal static class FoxWill
         yield return (Lie, 2 + (night ? 2 : 0) + (state.Boredom < 30 ? 1 : 0) + (tired ? 4 : 0));
         if (tired)
         {
-            yield return (FoxActs.Nap, 3 + (night ? 2 : 0));
+            yield return (Nap, 3 + (night ? 2 : 0));
         }
 
         if (!situation.Motion)

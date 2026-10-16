@@ -15,8 +15,8 @@ namespace Amarin.Fox;
 /// <para>
 /// Шифруется тем же DPAPI, что и переписка (<see cref="AppSettings.EncryptChats"/>): дневник
 /// пересказывает разговоры, и лежать открытым рядом с зашифрованными чатами ему незачем.
-/// Повреждённый файл не роняет Розу: он откладывается рядом (<c>…broken-…</c>, архив такие не
-/// берёт), а Роза начинает знакомство заново.
+/// Повреждённый или нечитаемый файл не роняет Розу: он откладывается рядом (<c>…broken-…</c>,
+/// архив такие не берёт), а Роза начинает знакомство заново.
 /// </para>
 /// <para>
 /// Пока идёт импорт архива (<see cref="BeginImport"/>), запись стоит: иначе живая Роза затёрла бы
@@ -38,6 +38,10 @@ internal sealed class FoxStore : IDisposable
 
     private readonly TimeSpan _writeDelay;
     private readonly Lock _gate = new();
+
+    /// <summary>Записи на диск — по одной (<see cref="Flush"/>).</summary>
+    private readonly Lock _disk = new();
+    private readonly Func<string, string, bool, bool> _write;
     private readonly Timer _timer;
     private string _root;
     private Func<bool> _encrypt;
@@ -51,11 +55,13 @@ internal sealed class FoxStore : IDisposable
     private long _due = long.MaxValue;
 
     /// <param name="writeDelay">Пауза перед записью; тестам — короче заводской.</param>
-    public FoxStore(string root, Func<bool> encrypt, TimeSpan? writeDelay = null)
+    /// <param name="write">Запись файла (путь, текст, шифровать ли); тестам — своя, медленная.</param>
+    public FoxStore(string root, Func<bool> encrypt, TimeSpan? writeDelay = null, Func<string, string, bool, bool>? write = null)
     {
         _root = root;
         _encrypt = encrypt;
         _writeDelay = writeDelay ?? DefaultWriteDelay;
+        _write = write ?? FoxData.Write;
         _timer = new Timer(_ => Flush(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
@@ -134,45 +140,52 @@ internal sealed class FoxStore : IDisposable
     }
 
     /// <summary>Записывает отложенное сейчас. Безопасно звать с любого потока.</summary>
+    /// <remarks>
+    /// Сбросы идут по одной: таймер и сворачивание окна сбрасывают память одновременно, и снимок,
+    /// снятый раньше, иначе мог лечь на диск поверх более нового.
+    /// </remarks>
     public void Flush()
     {
-        string? stateJson = null;
-        string? diaryJson = null;
-        string root;
-        bool encrypt;
-        lock (_gate)
+        lock (_disk)
         {
-            _due = long.MaxValue;
-            if (_importing > 0)
+            string? stateJson = null;
+            string? diaryJson = null;
+            string root;
+            bool encrypt;
+            lock (_gate)
             {
-                return;
+                _due = long.MaxValue;
+                if (_importing > 0)
+                {
+                    return;
+                }
+
+                if (_stateDirty && _state is not null)
+                {
+                    stateJson = JsonSerializer.Serialize(_state, AppJson.Options);
+                    _stateDirty = false;
+                }
+
+                if (_diaryDirty && _diary is not null)
+                {
+                    diaryJson = JsonSerializer.Serialize(_diary, AppJson.Options);
+                    _diaryDirty = false;
+                }
+
+                root = _root;
+                encrypt = _encrypt();
             }
 
-            if (_stateDirty && _state is not null)
+            // Сам диск — вне замка памяти: Update с потока окна не должен ждать запись файла.
+            if (stateJson is not null && !_write(FoxData.StatePath(root), stateJson, encrypt))
             {
-                stateJson = JsonSerializer.Serialize(_state, AppJson.Options);
-                _stateDirty = false;
+                MarkDirty(state: true);
             }
 
-            if (_diaryDirty && _diary is not null)
+            if (diaryJson is not null && !_write(FoxData.DiaryPath(root), diaryJson, encrypt))
             {
-                diaryJson = JsonSerializer.Serialize(_diary, AppJson.Options);
-                _diaryDirty = false;
+                MarkDirty(state: false);
             }
-
-            root = _root;
-            encrypt = _encrypt();
-        }
-
-        // Сам диск — вне замка: Update с потока окна не должен ждать запись файла.
-        if (stateJson is not null && !FoxData.Write(FoxData.StatePath(root), stateJson, encrypt))
-        {
-            MarkDirty(state: true);
-        }
-
-        if (diaryJson is not null && !FoxData.Write(FoxData.DiaryPath(root), diaryJson, encrypt))
-        {
-            MarkDirty(state: false);
         }
     }
 
@@ -270,8 +283,9 @@ internal sealed class FoxStore : IDisposable
     }
 
     /// <summary>
-    /// Читает файл; повреждённый откладывает рядом и отвечает <c>null</c>. Файл, зашифрованный
-    /// не для этой учётной записи, не трогается: его владелец, может быть, ещё вернётся.
+    /// Читает файл. Нечитаемый — повреждённый или зашифрованный для другой учётной записи
+    /// Windows — откладывается рядом и даёт <c>null</c>: Роза начинает знакомство заново, а первая
+    /// же запись не затирает память, владелец которой, может быть, ещё вернётся.
     /// </summary>
     private static T? Parse<T>(string path) where T : class
     {
@@ -280,27 +294,28 @@ internal sealed class FoxStore : IDisposable
             return null;
         }
 
-        if (FoxData.Read(path) is not { } text)
+        var text = FoxData.Read(path);
+        try
         {
-            return null;
+            if (text is not null)
+            {
+                return JsonSerializer.Deserialize<T>(text, AppJson.Options);
+            }
+        }
+        catch (JsonException)
+        {
+            // Битый откладывается так же, как нечитаемый.
         }
 
         try
         {
-            return JsonSerializer.Deserialize<T>(text, AppJson.Options);
+            File.Move(path, path + ".broken-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture), overwrite: true);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            try
-            {
-                File.Move(path, path + ".broken-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture), overwrite: true);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-            }
-
-            return null;
         }
+
+        return null;
     }
 
     private static FoxState Clone(FoxState state) =>

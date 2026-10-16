@@ -22,10 +22,12 @@ internal static class FoxActs
     public const string Mischief = "mischief";
     public const string Peek = "peek";
     public const string Play = "play";
-    public const string Nap = "nap";
     public const string Cuddle = "cuddle";
-    public const string Strut = "strut";
-    public const string Wander = "wander";
+
+    // Эти желания — занятия воли под тем же именем: мозг исполняет их этими занятиями.
+    public const string Nap = FoxWill.Nap;
+    public const string Strut = FoxWill.Strut;
+    public const string Wander = FoxWill.Wander;
 
     /// <summary>Всё, что модель может пожелать; остальное отбрасывается при разборе ответа.</summary>
     public static readonly string[] All = [Sulk, Mischief, Peek, Play, Nap, Cuddle, Strut, Wander];
