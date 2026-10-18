@@ -1573,6 +1573,7 @@ internal static class StringsRu
             ["S.Computer.Failed"] = "Действие не удалось: {0}. Посмотри окно заново, прежде чем повторять.",
             ["S.Computer.Step.Look"] = "Смотрит окно «{0}»",
             ["S.Computer.Step.Screen"] = "Смотрит на экран",
+            ["S.Computer.Label"] = "Оператор ПК {0}",
             ["S.Report.AnalysisFailed"] = "Выводы написать не удалось. Факты ниже приведены полностью.",
             ["S.Report.Analyzing"] = "Модель разбирает факты и пишет выводы…",
             ["S.Report.ByAllowance"] = "по разрешению на ответ или чат",

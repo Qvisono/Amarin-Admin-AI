@@ -28,7 +28,8 @@ public sealed partial class ChatPromptRuleTests
         { nameof(ChatEngine.DefaultTechPrompt), ChatEngine.DefaultTechPrompt },
         { nameof(ChatEngine.FormulaRules), ChatEngine.FormulaRules },
         { nameof(ChatEngine.FileRules), ChatEngine.FileRules },
-        { nameof(ChatEngine.DeferredRules), ChatEngine.DeferredRules }
+        { nameof(ChatEngine.DeferredRules), ChatEngine.DeferredRules },
+        { nameof(ChatEngine.ComputerRules), ChatEngine.ComputerRules }
     };
 
     [Theory]

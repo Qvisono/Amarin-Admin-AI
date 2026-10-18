@@ -76,9 +76,12 @@ public sealed class AgentPromptTests
     [Fact]
     public void An_untouched_saved_copy_of_an_old_agent_prompt_gives_way_to_the_new_one()
     {
+        // Версии до 1.28.0 несли «Yandex policy», которую 1.28.0 убрала; после неё каждая следующая
+        // хотя бы отличается от нынешнего умолчания — иначе сброс вернул бы человеку то же самое.
+        Assert.All(LegacyAgentPrompts.All.Take(4), legacy => Assert.Contains("Yandex", legacy, StringComparison.Ordinal));
         foreach (var legacy in LegacyAgentPrompts.All)
         {
-            Assert.Contains("Yandex", legacy, StringComparison.Ordinal);
+            Assert.NotEqual(Agent.BaseSystemPrompt, legacy);
 
             // Поле настроек отдаёт текст с CRLF, а исходник мог быть взят из git с любыми
             // переводами строк — сравнение обязано их не различать.

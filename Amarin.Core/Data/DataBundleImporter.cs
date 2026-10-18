@@ -790,6 +790,9 @@ public sealed class DataBundleImporter
                 incoming.ApprovalMode = ApprovalMode.Normal;
             }
 
+            // Управление компьютером включают на этой машине, а не в чужом файле: с ним снимки
+            // экрана уходят провайдеру модели, и уведомление об этом человек должен увидеть сам.
+            incoming.ComputerControl = false;
             store.Save(incoming);
             state.SettingsChanged = true;
             return;
@@ -823,6 +826,9 @@ public sealed class DataBundleImporter
         // Автозапуск, пункт Проводника и глобальные сочетания — настройки этой машины: архив
         // не должен ни прописать программу в автозапуск, ни занять чужие сочетания.
         incoming.Windows = mine.Windows;
+
+        // Управление компьютером мышью — решение этой машины, по тому же правилу.
+        incoming.ComputerControl = mine.ComputerControl;
 
         store.Save(incoming);
         state.SettingsChanged = true;

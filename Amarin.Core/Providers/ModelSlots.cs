@@ -21,7 +21,10 @@ public enum ModelSlot
     Summary,
 
     /// <summary>Лисёнок Роза (1.35.0): реакции, разговор и дневник.</summary>
-    Fox
+    Fox,
+
+    /// <summary>Оператор, который управляет компьютером мышью и клавиатурой (1.37.0).</summary>
+    Computer
 }
 
 /// <summary>
@@ -46,7 +49,8 @@ public static class ModelSlots
         (ModelSlot.AgentHeavy, s => s.AgentHeavyModelId, (s, v) => s.AgentHeavyModelId = v),
         (ModelSlot.SynGuard, s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v),
         (ModelSlot.Summary, s => s.SummaryModelId, (s, v) => s.SummaryModelId = v),
-        (ModelSlot.Fox, s => s.FoxModelId, (s, v) => s.FoxModelId = v)
+        (ModelSlot.Fox, s => s.FoxModelId, (s, v) => s.FoxModelId = v),
+        (ModelSlot.Computer, s => s.ComputerModelId, (s, v) => s.ComputerModelId = v)
     ];
 
     /// <summary>

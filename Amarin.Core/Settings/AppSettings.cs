@@ -442,6 +442,30 @@ public sealed class AppSettings : IJsonOnDeserializing
 
     internal static ReasoningSettings FactoryFoxReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
 
+    /// <summary>
+    /// Может ли агент управлять компьютером мышью и клавиатурой (1.37.0). Заводская — нет.
+    /// </summary>
+    /// <remarks>
+    /// Выключено, пока человек не включит сам: снимки экрана и текст окон уходят провайдеру
+    /// модели, и это его решение. Из чужого архива не приезжает (<c>DataBundleImporter</c>).
+    /// </remarks>
+    public bool ComputerControl { get; set; }
+
+    /// <summary>
+    /// Модель оператора, который нажимает и печатает в окнах по поручению агента (1.37.0).
+    /// </summary>
+    /// <remarks>
+    /// Свой слот, а не модель агента: оператору нужно зрение и точность на каждом шаге, а агенту
+    /// — нет. Заводская — то же семейство, что у тяжёлого слота. Как у Розы, пустое значение
+    /// ничего не переносит: слот новый, и старый файл получает начальное значение свойства.
+    /// </remarks>
+    public string ComputerModelId { get; set; } = FactoryHeavyModelId;
+
+    /// <summary>Размышление оператора: немного на шаг, иначе сто шагов стоили бы как сто задач.</summary>
+    public ReasoningSettings ComputerReasoning { get; set; } = FactoryComputerReasoning();
+
+    internal static ReasoningSettings FactoryComputerReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
+
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();
 

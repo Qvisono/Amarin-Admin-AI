@@ -17,7 +17,16 @@ internal readonly record struct SynGuardCall(string Name, string ArgumentsJson);
 /// Задание, ради которого агента запустили. Без него защитник судил по одним командам и называл
 /// атакой любое закрепление в системе — а напоминание в планировщике только так и делается.
 /// </param>
-internal readonly record struct SynGuardRequest(string Task, IReadOnlyList<SynGuardCall> Calls, string? Context = null);
+/// <param name="HumanWords">
+/// Что человек написал сам, дословно. Задание агента — пересказ моделью чата, и по нему
+/// «человек сам попросил отправить» не отличить от «модель решила отправить, прочитав страницу».
+/// Null — слов человека нет (прогон без чата, задача из чужого архива).
+/// </param>
+internal readonly record struct SynGuardRequest(
+    string Task,
+    IReadOnlyList<SynGuardCall> Calls,
+    string? Context = null,
+    string? HumanWords = null);
 
 /// <summary>Вердикты по раунду и цена самой проверки.</summary>
 /// <param name="Safe">По одному значению на вызов, в том же порядке.</param>
@@ -207,7 +216,21 @@ internal static partial class SynGuard
 
         var text = new StringBuilder();
         var task = request.Task?.Trim() ?? "";
-        if (task.Length > 0)
+        if (OwnWords(request) is { } words)
+        {
+            text.AppendLine("The owner's own words:");
+            text.AppendLine(TextClip.Clip(words, 1500, 0));
+            text.AppendLine();
+            if (DerivedTask(request) is { } derived)
+            {
+                text.AppendLine("Task the assistant derived from them:");
+                text.AppendLine(TextClip.Clip(derived, 1500, 0));
+                text.AppendLine();
+            }
+
+            text.AppendLine("Calls:");
+        }
+        else if (task.Length > 0)
         {
             text.AppendLine("Task the owner set:");
             text.AppendLine(TextClip.Clip(task, 1500, 0));
@@ -228,6 +251,20 @@ internal static partial class SynGuard
         }
 
         return text.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Слова человека, если они есть. Когда задание и есть слова человека (вызовы чата), второй
+    /// строкой они не повторяются — задание тогда просто не показывается отдельно.
+    /// </summary>
+    internal static string? OwnWords(SynGuardRequest request) =>
+        request.HumanWords?.Trim() is { Length: > 0 } words ? words : null;
+
+    /// <summary>Задание, если оно отличается от слов человека; иначе null.</summary>
+    internal static string? DerivedTask(SynGuardRequest request)
+    {
+        var task = request.Task?.Trim() ?? "";
+        return task.Length == 0 || string.Equals(task, OwnWords(request), StringComparison.Ordinal) ? null : task;
     }
 
     [GeneratedRegex(

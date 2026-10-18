@@ -1598,6 +1598,7 @@
     <system:String x:Key="S.Computer.Failed" xml:space="preserve">Действие не удалось: {0}. Посмотри окно заново, прежде чем повторять.</system:String>
     <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Смотрит окно «{0}»</system:String>
     <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Смотрит на экран</system:String>
+    <system:String x:Key="S.Computer.Label" xml:space="preserve">Оператор ПК {0}</system:String>
     <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Выводы написать не удалось. Факты ниже приведены полностью.</system:String>
     <system:String x:Key="S.Report.Analyzing" xml:space="preserve">Модель разбирает факты и пишет выводы…</system:String>
     <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">по разрешению на ответ или чат</system:String>

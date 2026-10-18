@@ -22,7 +22,12 @@ namespace Amarin.Core;
 internal static class ComputerHistory
 {
     /// <summary>Сколько последних снимков модель видит картинкой.</summary>
-    public const int KeepImages = 2;
+    /// <remarks>
+    /// Один: дальше по пути запрос проходит <see cref="ApiContextLimiter"/>, и он всё равно оставляет
+    /// вложения только последнего сообщения с ними. Оставь здесь два — модель увидела бы одну
+    /// картинку и чужую заглушку вместо второй, не зная, что её убрали нарочно.
+    /// </remarks>
+    public const int KeepImages = 1;
 
     public const string ImageStub = "[An earlier screenshot was removed from the history. Take a new one if you need to see the screen.]";
 

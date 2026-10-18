@@ -100,7 +100,7 @@ public sealed class ComputerCoreTests
     {
         List<ChatMessage> history = [Shot("one"), Shot("two"), Shot("three")];
 
-        var trimmed = ComputerHistory.Trim(history);
+        var trimmed = ComputerHistory.Trim(history, keepImages: 2);
 
         Assert.False(HasImage(trimmed[0]));
         Assert.Equal(ComputerHistory.ImageStub, ChatContent.ReadText(trimmed[0].Content));

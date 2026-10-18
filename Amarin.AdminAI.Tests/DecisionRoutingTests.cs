@@ -41,6 +41,13 @@ public sealed class DecisionRoutingTests
         Assert.Equal([ChatId], VeniceModelCatalog.FilterAgentic(models).Select(model => model.Id));
         foreach (var slot in Enum.GetValues<ModelSlot>())
         {
+            // Оператору компьютера нужна модель со зрением, а у разговорной модели здесь его нет.
+            if (slot == ModelSlot.Computer)
+            {
+                Assert.Empty(VeniceModelCatalog.ForSlot(catalog, slot));
+                continue;
+            }
+
             var available = VeniceModelCatalog.ForSlot(catalog, slot);
             Assert.Equal(slot is ModelSlot.Router or ModelSlot.SynGuard ? 3 : 1, available.Count);
             if (slot is not (ModelSlot.Router or ModelSlot.SynGuard))

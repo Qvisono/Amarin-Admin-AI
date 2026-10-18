@@ -87,6 +87,16 @@ internal sealed partial class ChatEngine
         return smaller == 0 ? 0 : left.Count(right.Contains) / (double)smaller;
     }
 
+    /// <summary>
+    /// Последнее, что человек написал в этом чате сам. Null — сообщений человека нет.
+    /// </summary>
+    /// <remarks>
+    /// Текст, а не сообщение для модели: в нём нет цитат и вложений, только слова человека, —
+    /// их и сверяет SynGuard с тем, что собрались сделать.
+    /// </remarks>
+    private static string? HumanWordsOf(ChatSession session) =>
+        session.Messages.LastOrDefault(message => message.Role == "user")?.Text is { Length: > 0 } text ? text : null;
+
     /// <param name="forcedAgentTier">
     /// Уровень агента, названный человеком в слэш-команде. Обычный ход вызывает этот метод без
     /// него, поэтому моделью уровень не подделать: в её аргументах такого ключа больше нет.
@@ -103,6 +113,7 @@ internal sealed partial class ChatEngine
     {
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
+        var humanWords = HumanWordsOf(session);
         Task<GateDecision>[] decisions;
         try
         {
@@ -162,7 +173,8 @@ internal sealed partial class ChatEngine
                             SessionId = session.Id,
                             ChatTitle = session.Title,
                             ForcedTier = forcedAgentTier,
-                            PlanAllowed = planAllowed
+                            PlanAllowed = planAllowed,
+                            HumanWords = humanWords
                         }))
                         {
                             started = true;
@@ -441,10 +453,11 @@ internal sealed partial class ChatEngine
         }
 
         var calls = toolRound.Calls;
-        var task = session.Messages.LastOrDefault(message => message.Role == "user")?.Text ?? "";
+        var task = HumanWordsOf(session) ?? "";
         var report = await guard(
                 new SynGuardRequest(task, calls.Select(call => new SynGuardCall(call.Name, call.ArgumentsJson ?? "")).ToList(),
-                    "The chat assistant proposes these tool calls to carry out the user's current request."),
+                    "The chat assistant proposes these tool calls to carry out the user's current request.",
+                    HumanWords: task),
                 cancellationToken)
             .ConfigureAwait(false);
 

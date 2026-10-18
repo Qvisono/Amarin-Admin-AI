@@ -1598,6 +1598,7 @@
     <system:String x:Key="S.Computer.Failed" xml:space="preserve">The action failed: {0}. Look at the window again before retrying.</system:String>
     <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Looking at "{0}"</system:String>
     <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Looking at the screen</system:String>
+    <system:String x:Key="S.Computer.Label" xml:space="preserve">PC operator {0}</system:String>
     <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Could not write the conclusions. The facts below are complete.</system:String>
     <system:String x:Key="S.Report.Analyzing" xml:space="preserve">The model is reading the facts and writing conclusions…</system:String>
     <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">by an allowance for the reply or chat</system:String>

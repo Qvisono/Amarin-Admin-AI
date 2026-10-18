@@ -29,10 +29,14 @@ public sealed class FoxCoreTests : IDisposable
     [Fact]
     public void The_fox_slot_is_appended_after_every_existing_one()
     {
+        // После Розы дописан только слот управления компьютером (1.37.0).
         var slots = Enum.GetValues<ModelSlot>();
-        Assert.Equal(ModelSlot.Fox, slots[^1]);
+        Assert.Equal(ModelSlot.Fox, slots[^2]);
+        Assert.Equal(ModelSlot.Computer, slots[^1]);
         Assert.Equal(9, (int)ModelSlot.Summary);
+        Assert.Equal(10, (int)ModelSlot.Fox);
         Assert.Contains(ModelSlots.All, entry => entry.Slot == ModelSlot.Fox);
+        Assert.Contains(ModelSlots.All, entry => entry.Slot == ModelSlot.Computer);
     }
 
     [Fact]

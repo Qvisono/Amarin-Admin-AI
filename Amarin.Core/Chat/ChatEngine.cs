@@ -305,6 +305,22 @@ internal sealed partial class ChatEngine
         - Prefer remind and run_agent. Use run_command only for a short exact script the user wants run as is.
         """;
 
+    /// <summary>
+    /// Управление компьютером мышью (1.37.0): что агент теперь умеет в окнах. Дописывается в
+    /// <see cref="BuildSystemPrompt"/>, только когда человек его включил, — описание
+    /// <c>init_agent</c> собирается один раз на движок и смену галочки не увидело бы.
+    /// </summary>
+    internal const string ComputerRules = """
+        PROGRAM WINDOWS
+        - The agent can also work in the program windows of this PC with the mouse and keyboard, and can show
+          the user where to click instead of clicking itself. Hand such work to the agent like any other task;
+          never tell the user to click something the agent can do.
+        - When the user asks to be shown how or where to do something on this PC, say in the agent's prompt that
+          the user wants to be shown, so that the agent highlights each step while the user clicks.
+        - Put into the prompt exactly what the user specified: the program or site, the text to enter, the
+          recipient, the option. The agent does not see the chat.
+        """;
+
     /// <summary>Часы для строки с датой в промпте — подменяются в тестах.</summary>
     internal TimeProvider Time { get; init; } = TimeProvider.System;
 

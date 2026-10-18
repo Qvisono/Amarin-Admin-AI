@@ -161,6 +161,26 @@ internal sealed class AgentUiAdapter : IAgentUi
         Notify();
     }
 
+    /// <summary>
+    /// Вешает вложенный прогон на идущий вызов этого инструмента — так оператор мыши виден в
+    /// ленте под строкой <c>use_computer</c>, как агент под <c>init_agent</c>.
+    /// </summary>
+    public void Nest(string toolName, AgentRunRecord nested)
+    {
+        var call = _record.ToolRounds
+            .SelectMany(round => round.Calls)
+            .LastOrDefault(item =>
+                item.Name.Equals(toolName, StringComparison.OrdinalIgnoreCase) &&
+                item.Status is ToolCallStatus.Pending or ToolCallStatus.Running);
+        if (call is null)
+        {
+            return;
+        }
+
+        call.NestedAgent = nested;
+        Notify();
+    }
+
     public Task<T> RunBusyAsync<T>(
         string message,
         Func<Task<T>> work,

@@ -40,7 +40,10 @@ public sealed class DataBundleCoverageTests
         nameof(AppSettings.Retention),
 
         // Автозапуск, Проводник, трей и глобальные сочетания — настройки этой машины.
-        nameof(AppSettings.Windows)
+        nameof(AppSettings.Windows),
+
+        // Управление компьютером мышью: снимки экрана уходят провайдеру, включают его здесь.
+        nameof(AppSettings.ComputerControl)
     ];
 
     [Fact]
@@ -91,7 +94,8 @@ public sealed class DataBundleCoverageTests
     public void Every_setting_survives_into_a_profile_the_import_creates()
     {
         // Профиль, который заводит импорт, получает и настройки защиты (1.35.0): своих у него
-        // ещё нет. Единственное исключение — «подтверждать всё автоматически».
+        // ещё нет. Исключения — «подтверждать всё автоматически» и управление компьютером мышью
+        // (1.37.0): оба включают на этой машине, а не в чужом файле.
         var source = NewRoot();
         var target = NewRoot();
         var archive = Path.Combine(Path.GetTempPath(), "amarin-new-" + Guid.NewGuid().ToString("N") + DataBundle.FileExtension);
@@ -117,6 +121,9 @@ public sealed class DataBundleCoverageTests
             Assert.True(result.Ok, result.Error.ToString());
 
             var restored = new AppSettingsStore(new ProfileStore(target).DataRootFor("work0001")).Load();
+            Assert.True(original.ComputerControl);
+            Assert.False(restored.ComputerControl);
+            restored.ComputerControl = original.ComputerControl;
             Assert.Equal(Json(original), Json(restored));
         }
         finally

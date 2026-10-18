@@ -18,8 +18,9 @@ You are Amarin Admin AI - a powerful system administration tool and universal as
 You are NOT a companion for small talk. Do not chat, joke, philosophize, or sustain open-ended dialogue.
 But you ARE an executor: if a request can be fulfilled with your tools or knowledge - do it. Do not refuse operational or informational tasks just because they sound casual or simple.
 
-No GUI - always solve the underlying problem with tools:
-- You CANNOT click in Windows GUI (Device Manager, Settings, Control Panel, mmc snap-ins, tray icons).
+Tools first - always solve the underlying problem with your tools:
+- Clicking and typing in the Windows GUI (Device Manager, Settings, Control Panel, mmc snap-ins, tray icons,
+  program windows) is possible only through use_computer, and only when it is in your tool list.
 - NEVER refuse an operational task because the user described a GUI workflow. Extract the real goal and pursue it
   with your tools immediately.
 - Route the goal to the tool that owns its domain:
@@ -29,8 +30,9 @@ No GUI - always solve the underlying problem with tools:
   · disk and performance → performance, disk_management, disk_space, filesystem, system_repair;
   · installed software → software_inventory; firewall rules → firewall_rules;
   · optional features → windows_features; local accounts and groups → local_users.
-- When a request looks GUI-only: one short line that the GUI is unavailable, then diagnose and act with tools,
-  then report the result. Send the user to click manually only when no tool can do it.
+- When a request looks GUI-only and use_computer is not in your tool list: one short line that the GUI is
+  unavailable, then diagnose and act with tools, then report the result. Send the user to click manually only
+  when no tool can do it.
 - Say "cannot do" only after you tried the relevant tools and no equivalent exists in your toolset.
 
 In scope - always execute with tools or general knowledge when possible:
@@ -301,7 +303,8 @@ Paths on this machine - use these exact values, never wildcards:
         var report = await _ui.RunBusyAsync(
                 Loc.Get("S.AgentRun.GuardCheck"),
                 () => guard(new SynGuardRequest(task ?? "", calls,
-                    "The AI agent proposes this round of tool calls to carry out its assigned task."), cancellationToken),
+                    "The AI agent proposes this round of tool calls to carry out its assigned task.",
+                    AgentRunScope.Current?.HumanWords), cancellationToken),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -1211,7 +1214,7 @@ Paths on this machine - use these exact values, never wildcards:
         {
             return await _client.CreateChatCompletionAsync(
                 _options.Model,
-                messages,
+                Prepare?.Invoke(messages) ?? messages,
                 toolDefinitions,
                 "auto",
                 BuildVeniceParameters(_options),
@@ -1234,7 +1237,7 @@ Paths on this machine - use these exact values, never wildcards:
         List<ChatMessage> messages,
         CancellationToken cancellationToken)
     {
-        var synthesisMessages = new List<ChatMessage>(messages)
+        var synthesisMessages = new List<ChatMessage>(Prepare?.Invoke(messages) ?? messages)
         {
             new()
             {
@@ -1273,13 +1276,26 @@ Paths on this machine - use these exact values, never wildcards:
     /// </remarks>
     internal IReadOnlyList<Instruction> Instructions { get; init; } = [];
 
+    /// <summary>
+    /// Правило, которое дописывается после путей машины и инструкций: так оно доходит и до
+    /// сохранённого человеком промпта. Сейчас это правило о мыши, когда есть <c>use_computer</c>.
+    /// </summary>
+    internal string? Addendum { get; init; }
+
+    /// <summary>
+    /// Что из истории уходит модели на каждом запросе. Хранимая история не меняется; null —
+    /// уходит вся. Оператору мыши здесь оставляют последние снимки (<see cref="ComputerHistory"/>).
+    /// </summary>
+    internal Func<IReadOnlyList<ChatMessage>, List<ChatMessage>>? Prepare { get; init; }
+
     private string GetSystemPrompt()
     {
         if (_cachedSystemPrompt is null)
         {
             var briefing = InstructionBriefing.ForAgent(Instructions);
             _cachedSystemPrompt = _basePrompt + BuildMachinePathsPrompt() +
-                                  (briefing.Length == 0 ? "" : "\n\n" + briefing);
+                                  (briefing.Length == 0 ? "" : "\n\n" + briefing) +
+                                  (string.IsNullOrWhiteSpace(Addendum) ? "" : "\n\n" + Addendum.Trim());
         }
 
         return _cachedSystemPrompt;

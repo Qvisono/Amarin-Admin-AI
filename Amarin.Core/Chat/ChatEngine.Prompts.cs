@@ -91,6 +91,10 @@ internal sealed partial class ChatEngine
         parts.Add(FormulaRules);
         parts.Add(FileRules);
         parts.Add(DeferredRules);
+        if (settings.ComputerControl)
+        {
+            parts.Add(ComputerRules);
+        }
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать
         // нужную, а сохранённые техпромпты не отстают, потому что строка дописывается здесь.

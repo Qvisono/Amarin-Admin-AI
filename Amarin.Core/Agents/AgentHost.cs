@@ -20,6 +20,12 @@ internal sealed class AgentHost : IAgentHost
     /// <summary>Инструменты сверх своих — серверов MCP (C11). Берутся заново на каждый прогон.</summary>
     private readonly Func<IReadOnlyList<ITool>>? _extraTools;
 
+    /// <summary>
+    /// Экран и ввод этого ПК для оператора мыши (1.37.0). Null — управлять компьютером нечем, и
+    /// <c>use_computer</c> агенту не даётся, даже если человек включил галочку.
+    /// </summary>
+    private readonly Func<ComputerAccess?>? _computer;
+
     /// <param name="agents">
     /// Куда записываться на время работы, чтобы агента можно было остановить или пересадить на
     /// другую модель, пока он работает. Null — прежнее поведение «запустили и ждём».
@@ -38,9 +44,11 @@ internal sealed class AgentHost : IAgentHost
         Func<string, VeniceModelInfo?>? resolveModelInfo = null,
         InstructionLibrary? instructions = null,
         PlanReviewQueue? plans = null,
-        Func<IReadOnlyList<ITool>>? extraTools = null)
+        Func<IReadOnlyList<ITool>>? extraTools = null,
+        Func<ComputerAccess?>? computer = null)
     {
         _extraTools = extraTools;
+        _computer = computer;
         _instructions = instructions;
         _plans = plans;
         _parentOptions = parentOptions;
@@ -62,6 +70,14 @@ internal sealed class AgentHost : IAgentHost
     /// <see cref="Attempt"/>: живая уходит в сеть, а проверять надо, кого в итоге запустили.
     /// </summary>
     internal Func<string, string?, CancellationToken, Task<AgentTierDecision>>? Route { get; set; }
+
+    /// <summary>
+    /// Клиент HTTP для агента и оператора мыши. Подменяется только в тестах — чтобы пройти прогон
+    /// с оператором целиком, ответами модели по списку и без сети.
+    /// </summary>
+    internal Func<TimeSpan, HttpClient>? Http { get; set; }
+
+    private HttpClient CreateHttp(TimeSpan timeout) => Http?.Invoke(timeout) ?? HttpClients.Create(timeout);
 
     public async Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken)
     {
@@ -117,6 +133,11 @@ internal sealed class AgentHost : IAgentHost
         using var guardLease = SynGuardLease.Build(settings, _parentOptions, _resolveModelInfo);
         var guard = guardLease?.Check;
 
+        // Мышь — только по галочке человека и только если есть чем управлять. Решается раз на
+        // прогон: выключенная посреди работы галочка закрывает следующий прогон, а не рвёт этот.
+        var computer = settings.ComputerControl ? _computer?.Invoke() : null;
+        var operators = new ComputerSpend();
+
         while (true)
         {
             var modelId = ResolveModel(currentComplexity, settings);
@@ -133,8 +154,11 @@ internal sealed class AgentHost : IAgentHost
             // Свой клиент на прогон: VeniceClient копит потраченное в своём RequestCost, и
             // агент читает оттуда цену именно своей работы. На общем с чатом клиенте он забрал
             // бы себе и деньги чужого хода.
-            using var http = HttpClients.Create(TimeSpan.FromMinutes(5));
+            using var http = CreateHttp(TimeSpan.FromMinutes(5));
             var venice = new VeniceClient(http, options);
+            var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
+            var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
+
             // Снимок инструкций — один на прогон: по нему собираются и оглавление, и инструмент,
             // и правка на странице посреди работы не расщепит их надвое.
             var agentInstructions = _instructions?.AgentSnapshot() ?? [];
@@ -146,6 +170,16 @@ internal sealed class AgentHost : IAgentHost
                 () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
                 _instructions,
                 agentInstructions);
+            if (computer is not null)
+            {
+                tools = new ToolRegistry(
+                [
+                    .. tools.All,
+                    new UseComputerTool((job, token) =>
+                        RunOperatorAsync(job, computer, adapter, guard, notify, scope, operators, token))
+                ]);
+            }
+
             if (_extraTools?.Invoke() is { Count: > 0 } extra)
             {
                 // Два сервера с одинаковым именем дали бы одинаковые имена инструментов, а реестр
@@ -153,8 +187,6 @@ internal sealed class AgentHost : IAgentHost
                 tools = new ToolRegistry([.. tools.All, .. extra.DistinctBy(tool => tool.Name, StringComparer.OrdinalIgnoreCase)]);
             }
 
-            var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
-            var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
             // Промпт только агента; TechAiPrompt чата сюда не передаётся никогда.
             var techAgent = settings.TechAgentPrompt;
             var agent = new Agent(
@@ -172,7 +204,8 @@ internal sealed class AgentHost : IAgentHost
                             AgentRunScope.Current?.PlanAllowed != false,
                 Guard = guard,
                 Settings = _settings,
-                AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label)
+                AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label),
+                Addendum = computer is null ? null : ComputerOperator.AgentRule
             };
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
@@ -197,7 +230,7 @@ internal sealed class AgentHost : IAgentHost
                 var result = await attempt(currentPrompt, modelId, interrupt.Token)
                     .ConfigureAwait(false);
                 record.ReportText = result.AssistantText ?? "";
-                record.Cost = spent.Add(result.Cost);
+                record.Cost = spent.Add(result.Cost).Add(operators.Total);
                 record.Status = result.Cancelled
                     ? AgentRunStatus.Cancelled
                     : string.IsNullOrWhiteSpace(result.Error)
@@ -238,7 +271,7 @@ internal sealed class AgentHost : IAgentHost
                 }
 
                 record.Status = AgentRunStatus.Cancelled;
-                record.Cost = spent;
+                record.Cost = spent.Add(operators.Total);
                 notify();
                 return ToolResult.Ok(
                     "Агент остановлен по просьбе пользователя и ничего не довёл до конца. " +
@@ -247,7 +280,7 @@ internal sealed class AgentHost : IAgentHost
             catch (OperationCanceledException)
             {
                 record.Status = AgentRunStatus.Cancelled;
-                record.Cost = spent.Add(venice.RequestCost);
+                record.Cost = spent.Add(venice.RequestCost).Add(operators.Total);
                 notify();
                 throw;
             }
@@ -260,6 +293,107 @@ internal sealed class AgentHost : IAgentHost
             }
         }
     }
+
+    /// <summary>
+    /// Поручение в окнах: оператор — вложенный <see cref="Agent"/> на модели слота «Управление ПК»
+    /// с одним инструментом <c>computer</c> и пределом <see cref="ComputerOperator.MaxSteps"/>.
+    /// </summary>
+    /// <remarks>
+    /// Та же очередь вопросов, тот же SynGuard и тот же журнал, что у агента, — оператор идёт по
+    /// их путям, а не по своим. Остановка агента останавливает и его: токен общий. Мышь берётся
+    /// первым пишущим действием и отдаётся с концом поручения, что бы ни случилось.
+    /// </remarks>
+    private async Task<ToolResult> RunOperatorAsync(
+        ComputerJob job,
+        ComputerAccess computer,
+        AgentUiAdapter parent,
+        Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? guard,
+        Action notify,
+        AgentRunContext? scope,
+        ComputerSpend spend,
+        CancellationToken cancellationToken)
+    {
+        var settings = _settings();
+        var modelId = ComputerModel(settings, _parentOptions.Provider);
+        var record = new AgentRunRecord
+        {
+            Status = AgentRunStatus.Running,
+            ModelId = modelId,
+            DisplayName = Loc.Format("S.Computer.Label", VeniceModelCatalog.GetDisplayName(modelId))
+        };
+        parent.Nest(UseComputerTool.ToolName, record);
+
+        var options = CloneOptions(
+            _parentOptions,
+            modelId,
+            settings.ComputerReasoning ?? AppSettings.FactoryComputerReasoning(),
+            ModelSlots.ReadKey(settings, ModelSlot.Computer)) with
+        {
+            MaxToolRounds = ComputerOperator.MaxSteps
+        };
+
+        using var http = CreateHttp(TimeSpan.FromMinutes(5));
+        var venice = new VeniceClient(http, options);
+        var unattended = SpendScope.Current?.Unattended == true;
+        using var session = new ComputerSession(
+            computer.Port,
+            computer.Stage,
+            new ComputerStart(job.Mode, unattended, ComputerOperator.MaxSteps, job.Task),
+            computer.Lease);
+        var adapter = new AgentUiAdapter(record, _confirmations, notify, record.DisplayName, scope?.SessionId);
+        var operatorAgent = new Agent(
+            venice,
+            new ToolRegistry([new ComputerTool(session)]),
+            options,
+            adapter,
+            new SessionUndoTracker(),
+            ComputerOperator.SystemPrompt)
+        {
+            SessionMode = SessionMode.Isolated,
+            Guard = guard,
+            Settings = _settings,
+            AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, record.DisplayName),
+            Prepare = static messages => ComputerHistory.Trim(messages)
+        };
+
+        try
+        {
+            var result = await operatorAgent
+                .RunAsync(ComputerOperator.Brief(job.Task, job.Mode, scope?.HumanWords), cancellationToken)
+                .ConfigureAwait(false);
+            spend.Add(result.Cost);
+            record.ReportText = result.AssistantText ?? "";
+            record.Cost = result.Cost;
+            record.Status = string.IsNullOrWhiteSpace(result.Error) ? AgentRunStatus.Complete : AgentRunStatus.Failed;
+            notify();
+
+            if (!string.IsNullOrWhiteSpace(result.Error))
+            {
+                return ToolResult.Fail(result.Error);
+            }
+
+            return ToolResult.Ok(string.IsNullOrWhiteSpace(result.AssistantText)
+                ? "The operator finished without a report. Check the result with your own tools before you report it."
+                : "Operator report: " + result.AssistantText);
+        }
+        catch (OperationCanceledException)
+        {
+            spend.Add(venice.RequestCost);
+            record.Cost = venice.RequestCost;
+            record.Status = AgentRunStatus.Cancelled;
+            notify();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Модель оператора: выбранная в слоте, а пустой или «Авто» — заводская у провайдера ключа.
+    /// Не голый идентификатор Venice: без ключа Venice для него не нашлось бы учётных данных.
+    /// </summary>
+    internal static string ComputerModel(AppSettings settings, LlmProvider provider) =>
+        !string.IsNullOrWhiteSpace(settings.ComputerModelId) && !VeniceModelCatalog.IsAuto(settings.ComputerModelId)
+            ? settings.ComputerModelId.Trim()
+            : ModelSlotDefaults.LastResort(provider, ModelSlot.Computer, AppSettings.FactoryHeavyModelId);
 
     internal const string ForcedAgentModelId = AppSettings.FactoryAgentHeavyModelId;
 
