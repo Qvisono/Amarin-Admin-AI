@@ -108,6 +108,10 @@ internal static partial class DangerousActionGuard
             "remote_access" => IsRdpToggle(arguments),
             // Буфер читает любое приложение на машине: что туда кладётся, решает человек.
             "write_clipboard" => true,
+            // Нажатие в чужом окне может что угодно — от галочки до «Отправить». По правилам вопрос
+            // нужен всегда; снимает его SynGuard, когда это просил сам человек, а без проверки
+            // (защиты нет или она упала) нажатие ждёт человека.
+            "computer" => !ComputerTool.ReadActions.Contains(ActionOf(arguments)),
             _ => false
         };
     }
@@ -174,7 +178,7 @@ internal static partial class DangerousActionGuard
                      "path", "service_name", "command", "process_name", "pid", "task_name",
                      "url", "destination", "query", "drive_letter", "package_id", "name",
                      "feature_name", "user", "group", "adapter", "wifi_profile", "instance_id",
-                     "hostname", "address", "start_type", "location"
+                     "hostname", "address", "start_type", "location", "window", "element", "keys", "text"
                  })
         {
             if (arguments.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String)
@@ -539,6 +543,8 @@ internal static partial class DangerousActionGuard
             "save_image" => L("S.Guard.Sum.SaveImage") + FormatField(arguments, "path", prefix: ": "),
             "deferred_task" => DeferredSummary(arguments),
             "run_powershell" => L("S.Guard.Sum.PowerShell") + FormatField(arguments, "command", prefix: ": ", max: 120),
+            "computer" => L("S.Guard.Sum.Computer", action) + FormatField(arguments, "keys", prefix: ": ") +
+                          FormatField(arguments, "text", prefix: ": ", max: 120),
             "windows_process" => L("S.Guard.Sum.KillProcess") + FormatField(arguments, "process_name", prefix: ": ") +
                                  FormatField(arguments, "pid", prefix: " PID "),
             "scheduled_task" => L("S.Guard.Sum.Task") + FormatField(arguments, "task_name", prefix: ": ") +

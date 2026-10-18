@@ -704,6 +704,7 @@
     <system:String x:Key="S.Guard.Sum.Network" xml:space="preserve">Network change ({0})</system:String>
     <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Operation via {0}</system:String>
     <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Run PowerShell</system:String>
+    <system:String x:Key="S.Guard.Sum.Computer" xml:space="preserve">Mouse and keyboard: {0}</system:String>
     <system:String x:Key="S.Guard.Sum.QuickScan" xml:space="preserve">Defender quick scan</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOff" xml:space="preserve">Turn Remote Desktop off</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOn" xml:space="preserve">Turn Remote Desktop on</system:String>
@@ -1562,6 +1563,41 @@
     <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Run commands on</system:String>
     <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">This computer</system:String>
     <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">The tool {0} works only on this PC, but this chat's commands run on "{1}". Don't repeat the call; do the same through run_powershell, which runs there.</system:String>
+    <system:String x:Key="S.Computer.Locked" xml:space="preserve">Windows is locked: windows cannot be operated in a locked session. Don't repeat the action; say in the report that the task can't be done while Windows is locked.</system:String>
+    <system:String x:Key="S.Computer.SecureDesk" xml:space="preserve">Windows shows its secure desktop (a User Account Control prompt or sign-in). It is closed to programs and must not be bypassed. Don't repeat the action; say in the report that a person is needed here.</system:String>
+    <system:String x:Key="S.Computer.NoWindow" xml:space="preserve">There is no window here to operate. List the windows or take a new screenshot and pick the target again.</system:String>
+    <system:String x:Key="S.Computer.Own" xml:space="preserve">This is a window of Amarin itself: it cannot be clicked or typed into. Don't repeat the action; work in the window of the program you need.</system:String>
+    <system:String x:Key="S.Computer.Elevated" xml:space="preserve">The window "{0}" runs as administrator: it cannot be operated, and this must not be bypassed. Say in the report what needs doing: the agent will use its tools or ask the person.</system:String>
+    <system:String x:Key="S.Computer.Console" xml:space="preserve">The window "{0}" runs commands: it cannot be clicked or typed into. Commands run only through the agent's run_powershell: don't repeat the action, say in the report what needs to run.</system:String>
+    <system:String x:Key="S.Computer.Password" xml:space="preserve">This is a password field: nothing may be typed into it. Don't repeat the action; say in the report that the person needs to sign in here.</system:String>
+    <system:String x:Key="S.Computer.RunKeys" xml:space="preserve">The combination {0} opens a command launcher: it may not be pressed. Commands run only through the agent's run_powershell: say in the report what needs to run.</system:String>
+    <system:String x:Key="S.Computer.Delete" xml:space="preserve">In File Explorer and in file dialogs this combination deletes files: that is not allowed. Don't repeat it; if a file needs deleting, say so in the report.</system:String>
+    <system:String x:Key="S.Computer.CommandText" xml:space="preserve">This is a command line: it may not be typed into any window. Commands run only through the agent's run_powershell: say in the report what needs to run.</system:String>
+    <system:String x:Key="S.Computer.Busy" xml:space="preserve">Another task is operating the mouse right now. Don't retry at once: do the task with tools if they can, or say in the report that the mouse was busy.</system:String>
+    <system:String x:Key="S.Computer.Cancelled" xml:space="preserve">The person cancelled operating the computer for this task. Don't try again; say in the report where you stopped.</system:String>
+    <system:String x:Key="S.Computer.ShowOnly" xml:space="preserve">This assignment is to show, not to do: the person clicks. Highlight the next place with show and look at what changed.</system:String>
+    <system:String x:Key="S.Computer.DoOnly" xml:space="preserve">This assignment is to do, not to show: act yourself. The show highlight exists only in an assignment to show.</system:String>
+    <system:String x:Key="S.Computer.NoExplanation" xml:space="preserve">This action needs explanation: one short sentence about what it does. Repeat the call with it.</system:String>
+    <system:String x:Key="S.Computer.UnknownAction" xml:space="preserve">Unknown action "{0}". The allowed actions are listed in the tool description.</system:String>
+    <system:String x:Key="S.Computer.BadKeys" xml:space="preserve">Can't read the combination "{0}": use modifiers ctrl, alt, shift, win and at most one key joined with +. Text is entered with type.</system:String>
+    <system:String x:Key="S.Computer.WindowGone" xml:space="preserve">That window no longer exists. List the windows again.</system:String>
+    <system:String x:Key="S.Computer.NoWindowId" xml:space="preserve">The window field is needed: a window id from the windows list.</system:String>
+    <system:String x:Key="S.Computer.Minimized" xml:space="preserve">The window "{0}" is minimized. Bring it up with focus first.</system:String>
+    <system:String x:Key="S.Computer.Stale" xml:space="preserve">Element {0} is gone or its id is out of date. Look at the window again (inspect or find) and take a fresh id.</system:String>
+    <system:String x:Key="S.Computer.NoTarget" xml:space="preserve">No target given: use element from the latest tree of the window, or x and y from the latest screenshot.</system:String>
+    <system:String x:Key="S.Computer.NoShot" xml:space="preserve">There is no screenshot yet: x and y come only from the latest screenshot. Take one or use element.</system:String>
+    <system:String x:Key="S.Computer.OutsideShot" xml:space="preserve">The point is outside the latest screenshot: it is {0}x{1} pixels.</system:String>
+    <system:String x:Key="S.Computer.ShotStale" xml:space="preserve">The window moved or changed size after the screenshot, so its points are out of date. Take a new screenshot.</system:String>
+    <system:String x:Key="S.Computer.NoPoint" xml:space="preserve">The element has no place on the screen to press this way: it is covered or outside the window. Scroll to it or bring the window up, then look again.</system:String>
+    <system:String x:Key="S.Computer.NoStage" xml:space="preserve">There is no one to show: the highlight works only in the app window.</system:String>
+    <system:String x:Key="S.Computer.NoCaption" xml:space="preserve">show needs caption: what the person should do at the highlighted place.</system:String>
+    <system:String x:Key="S.Computer.NoText" xml:space="preserve">type needs text.</system:String>
+    <system:String x:Key="S.Computer.TextTooLong" xml:space="preserve">The text is longer than {0} characters: type it in parts.</system:String>
+    <system:String x:Key="S.Computer.NoFocus" xml:space="preserve">Couldn't move the focus there. Click the element or look at the window again.</system:String>
+    <system:String x:Key="S.Computer.NoDirection" xml:space="preserve">scroll needs direction: up, down, left or right.</system:String>
+    <system:String x:Key="S.Computer.Failed" xml:space="preserve">The action failed: {0}. Look at the window again before retrying.</system:String>
+    <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Looking at "{0}"</system:String>
+    <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Looking at the screen</system:String>
     <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Could not write the conclusions. The facts below are complete.</system:String>
     <system:String x:Key="S.Report.Analyzing" xml:space="preserve">The model is reading the facts and writing conclusions…</system:String>
     <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">by an allowance for the reply or chat</system:String>

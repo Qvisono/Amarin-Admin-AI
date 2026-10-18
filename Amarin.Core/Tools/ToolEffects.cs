@@ -24,7 +24,7 @@ public enum ToolEffect
 /// <c>change_rollback snapshot</c> — чтение: он пишет только во внутреннюю папку снимков, и
 /// снимок перед правкой нужен как раз тогда, когда писать нельзя. <c>generate_image</c> тоже
 /// чтение: он стоит денег, но систему не меняет. <c>init_agent</c> — чтение: вызовы самого агента
-/// проходят шлюз сами.
+/// проходят шлюз сами. <c>use_computer</c> — так же: каждое нажатие оператора проходит шлюз само.
 /// </para>
 /// </remarks>
 internal static class ToolEffects
@@ -33,7 +33,7 @@ internal static class ToolEffects
     {
         "read_clipboard", "fetch_image", "analyze_folder", "generate_image", "init_agent", "read_file",
         "read_instruction", "scrape_url", "capture_screenshot", "system_info", "search_web", "wmi_query",
-        "youtube_transcript"
+        "youtube_transcript", "use_computer"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Инструменты без действий, которые всегда пишут, — чтобы таблица знала их по имени.</summary>
@@ -46,6 +46,8 @@ internal static class ToolEffects
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             ["change_rollback"] = ["snapshot", "list_snapshots", "snapshot_info", "compare"],
+            // Мышь и клавиатура: смотреть — чтение, и «Показать» тоже: нажимает там человек.
+            ["computer"] = [.. ComputerTool.ReadActions],
             ["credentials"] = ["list_cmdkey", "list_certs", "expiring_certs"],
             // Напоминание и поручение агенту ничего не меняют сейчас: действия агента пройдут шлюз
             // в своё время. Команда и возврат программ — запись: согласие на них берётся сразу.
