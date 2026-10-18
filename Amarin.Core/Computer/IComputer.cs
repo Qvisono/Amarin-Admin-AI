@@ -55,6 +55,15 @@ internal interface IComputer
 
     /// <summary>Ждёт, пока окно перестанет меняться после действия, но не дольше <paramref name="max"/>.</summary>
     Task SettleAsync(TimeSpan max, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Держит систему и экран включёнными, пока результат не отпустят, и будит погасший экран.
+    /// </summary>
+    /// <remarks>
+    /// Снимок погасшего монитора выходит чёрным, а уснувший посреди работы ПК оборвал бы задачу,
+    /// оставленную человеком без присмотра. Держит только сеанс управления, не дольше.
+    /// </remarks>
+    IDisposable Hold();
 }
 
 /// <summary>

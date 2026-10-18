@@ -169,9 +169,12 @@ internal static class AppComposition
                 knownSecrets: () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey)).All,
             .. FileTools(fileState)
         ]));
+        // Мышь и клавиатура этого ПК: агент получает их, только когда окно поставит плашку, а
+        // человек включит галочку (AgentHost смотрит её на каждый прогон).
+        var computer = new ComputerHub(new Amarin.Computer.WindowsComputer());
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
-            mcp.Tools);
+            mcp.Tools, computer.Access);
         var chatTools = new ToolRegistry(
         [
             .. FileTools(fileState),
@@ -209,6 +212,7 @@ internal static class AppComposition
             Confirmations = confirmations,
             PlanReviews = planReviews,
             AgentHost = agentHost,
+            Computer = computer,
             RecipeRunner = new RecipeRunner(() => recipeTools.Value, confirmations, ReadSettings, () => options.Audit),
             RunTools = () => recipeTools.Value,
             StartupPrompt = startup.Prompt,

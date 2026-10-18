@@ -76,6 +76,7 @@ internal sealed class ComputerSession : IDisposable
     private int _nextId;
     private Frame? _shot;
     private bool _cancelled;
+    private IDisposable? _hold;
 
     private sealed record Remembered(long Window, ComputerElement Element);
 
@@ -152,6 +153,7 @@ internal sealed class ComputerSession : IDisposable
         }
 
         Started = true;
+        _hold = Computer.Hold();
         return null;
     }
 
@@ -259,6 +261,8 @@ internal sealed class ComputerSession : IDisposable
             _stage?.End();
         }
 
+        _hold?.Dispose();
+        _hold = null;
         _lease.Release(this);
     }
 }

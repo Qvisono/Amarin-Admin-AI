@@ -119,15 +119,39 @@ public sealed class ScreenshotTool : ITool
         return bitmap;
     }
 
-    private static Bitmap DownscaleIfNeeded(Bitmap source)
+    /// <summary>
+    /// Снимок области экрана для оператора мыши: PNG, ужатый до <paramref name="maxSide"/>, и
+    /// какая область снята — по ней точка снимка переводится обратно в пиксели экрана.
+    /// </summary>
+    /// <remarks>
+    /// Тот же захват и то же ужатие, что у <c>capture_screenshot</c>: второй копии нет. Окна,
+    /// исключённые из захвата (плашка управления), Windows сюда не кладёт сама.
+    /// </remarks>
+    internal static Amarin.Core.ComputerShot CaptureArea(Amarin.Core.ScreenRect area, int maxSide)
+    {
+        using var bitmap = new Bitmap(area.Width, area.Height);
+        using (var graphics = Graphics.FromImage(bitmap))
+        {
+            graphics.CopyFromScreen(area.Left, area.Top, 0, 0, new Size(area.Width, area.Height), CopyPixelOperation.SourceCopy);
+        }
+
+        using var resized = Downscale(bitmap, maxSide);
+        using var stream = new MemoryStream();
+        resized.Save(stream, ImageFormat.Png);
+        return new Amarin.Core.ComputerShot(Convert.ToBase64String(stream.ToArray()), resized.Width, resized.Height, area);
+    }
+
+    private static Bitmap DownscaleIfNeeded(Bitmap source) => Downscale(source, MaxDimension);
+
+    private static Bitmap Downscale(Bitmap source, int maxDimension)
     {
         var maxSide = Math.Max(source.Width, source.Height);
-        if (maxSide <= MaxDimension)
+        if (maxSide <= maxDimension)
         {
             return (Bitmap)source.Clone();
         }
 
-        var ratio = MaxDimension / (double)maxSide;
+        var ratio = maxDimension / (double)maxSide;
         var width = (int)Math.Round(source.Width * ratio);
         var height = (int)Math.Round(source.Height * ratio);
 

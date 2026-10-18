@@ -110,6 +110,32 @@ internal sealed class FakeComputer : IComputer
         return Task.CompletedTask;
     }
 
+    /// <summary>Сколько удержаний экрана взято и сколько ещё не отпущено.</summary>
+    public int Holds { get; private set; }
+
+    public int HoldsOpen { get; private set; }
+
+    public IDisposable Hold()
+    {
+        Holds++;
+        HoldsOpen++;
+        return new Release(() => HoldsOpen--);
+    }
+
+    private sealed class Release(Action release) : IDisposable
+    {
+        private bool _done;
+
+        public void Dispose()
+        {
+            if (!_done)
+            {
+                _done = true;
+                release();
+            }
+        }
+    }
+
     /// <summary>Окно с деревом. Возвращает его — чтобы тест мог назвать его по id.</summary>
     public ComputerWindow AddWindow(
         long handle,

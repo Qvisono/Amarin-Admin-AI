@@ -386,12 +386,21 @@ public sealed class ComputerToolTests
     {
         _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
         var session = Session();
+        _ = await Run(session, new { action = "windows" });
+        Assert.Equal(0, _computer.Holds);
+
         _ = await Run(session, new { action = "key", keys = "enter", explanation = "go" });
+        _ = await Run(session, new { action = "key", keys = "tab", explanation = "next" });
+        Assert.Equal(1, _computer.HoldsOpen);
 
         session.Dispose();
 
         Assert.Equal(1, _stage.Ends);
         Assert.False(_lease.Held);
+
+        // Экран и систему держит только сеанс: с его концом удержание отпущено.
+        Assert.Equal(1, _computer.Holds);
+        Assert.Equal(0, _computer.HoldsOpen);
     }
 
     [Fact]

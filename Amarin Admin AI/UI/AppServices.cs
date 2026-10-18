@@ -118,6 +118,12 @@ internal sealed class AppServices : IDisposable
     /// <summary>Запуск агента в обход чата — для задач по расписанию. Null — расписание не работает.</summary>
     internal IAgentHost? AgentHost { get; init; }
 
+    /// <summary>
+    /// Экран и ввод этого ПК для оператора мыши (1.37.0). Плашку ставит окно; null — управлять
+    /// компьютером нечем (тесты окна).
+    /// </summary>
+    internal ComputerHub? Computer { get; init; }
+
     /// <summary>Задачи по расписанию (C3).</summary>
     internal ScheduleBook Schedule => Profile.Schedule;
 
