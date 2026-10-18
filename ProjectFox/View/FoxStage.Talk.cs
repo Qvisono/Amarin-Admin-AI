@@ -19,25 +19,30 @@ internal sealed partial class FoxStage
     private Border? _talk;
     private TextBox? _talkInput;
 
-    /// <summary>Поле разговора открыто и в фокусе: Esc закрывает его, а не останавливает ответ.</summary>
-    private bool Talking => _talkInput?.IsKeyboardFocusWithin == true;
+    /// <summary>
+    /// Человек печатает Розе — в поле над головой или в переписке: Esc закрывает их, а не
+    /// останавливает ответ.
+    /// </summary>
+    private bool Talking => TypingToHim || _chat?.IsKeyboardFocusWithin == true;
 
-    /// <summary>«Поговорить» из меню: пузырёк с полем над головой.</summary>
+    /// <summary>
+    /// Печатают в поле над головой: он слушает и с места не двигается — поле стоит над ним. В
+    /// переписке иначе: что ему можно, решает мозг (<see cref="FoxSituation.Chatting"/>).
+    /// </summary>
+    private bool TypingToHim => _talkInput?.IsKeyboardFocusWithin == true;
+
+    /// <summary>«Поговорить» из меню: пузырёк с полем над головой; при открытой переписке — её поле.</summary>
     public void OpenTalk()
     {
-        if (_mode is not (FoxMode.Idle or FoxMode.Sleep or FoxMode.Peek))
+        if (_chat is not null)
         {
+            _chat.FocusInput();
             return;
         }
 
-        if (_mode == FoxMode.Sleep)
+        if (!StopToListen() || RefusesTalk())
         {
-            Wake();
-        }
-
-        if (_mode == FoxMode.Peek)
-        {
-            EndPeek();
+            return;
         }
 
         if (_talk is null)
@@ -73,6 +78,54 @@ internal sealed partial class FoxStage
         _faceUntil = _clock().AddSeconds(2);
         Draw();
     }
+
+    /// <summary>
+    /// Перед разговором: идущий или играющий Роза останавливается, спящий просыпается,
+    /// выглядывающий садится. <c>false</c> — сейчас не до разговора: в руках, в полёте, в прыжке
+    /// (человек и так занят им), убежал или бежит за край.
+    /// </summary>
+    /// <remarks>
+    /// До 1.36.0 «Поговорить» молча ничего не делало, пока Роза шёл или играл, — а ходит и играет
+    /// он сам, по своей воле, так что меню не срабатывало через раз.
+    /// </remarks>
+    private bool StopToListen()
+    {
+        // Прогулка — ходьба по своей кромке. Бег за край (побег, «спрячься») и из-за края (приход)
+        // ею не считается: остановить его там значило бы отменить побег.
+        var strolling = _mode == FoxMode.Walk && _walkTo <= _edgeRight && _foot <= _edgeRight;
+        if (!strolling && _mode is not (FoxMode.Idle or FoxMode.Sleep or FoxMode.Peek))
+        {
+            return false;
+        }
+
+        EndPlay();
+        if (strolling)
+        {
+            // Ради чего он шёл (поза, дразнилка), уже не случится: остановился слушать.
+            Replan();
+            Sit();
+        }
+
+        if (_mode == FoxMode.Sleep)
+        {
+            Wake();
+        }
+
+        if (_mode == FoxMode.Peek)
+        {
+            EndPeek();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Спросить мозг, станет ли он слушать: обиженный может отвернуться (<see cref="FoxActionKind.Refuse"/>).
+    /// <c>true</c> — отказал, и поле не открывается. Спрашивается при открытии: в уже идущем
+    /// разговоре тон ведёт его модель.
+    /// </summary>
+    private bool RefusesTalk() =>
+        Run(FoxSignalKind.TalkAsked).Exists(action => action.Kind == FoxActionKind.Refuse);
 
     private void OnTalkKey(object sender, KeyEventArgs e)
     {

@@ -161,8 +161,11 @@ internal sealed partial class FoxStage
         HookInput();
     }
 
-    /// <summary>Своя модель Розы нужна: вид (<c>react</c>, <c>talk</c>) и что прочитать.</summary>
-    public event Action<string, string>? MindRequested;
+    /// <summary>
+    /// Своя модель Розы нужна: вид (<c>react</c>, <c>talk</c>, <c>think</c>), что прочитать и что из
+    /// желаний мозг сейчас исполнит (<see cref="FoxActs.Possible"/>) — только их модели и предлагают.
+    /// </summary>
+    public event Action<string, string, IReadOnlyList<string>>? MindRequested;
 
     /// <summary>Пора написать дневник за прошедшие дни.</summary>
     public event Action? DiaryDue;
@@ -250,6 +253,12 @@ internal sealed partial class FoxStage
             _talkInput = null;
         }
 
+        if (_chat is not null)
+        {
+            _host.Layer.Children.Remove(_chat);
+            _chat = null;
+        }
+
         _store.Flush();
     }
 
@@ -301,11 +310,23 @@ internal sealed partial class FoxStage
     }
 
     /// <summary>Сигнал мозгу и исполнение его ответа.</summary>
-    public void Signal(FoxSignal signal)
+    public void Signal(FoxSignal signal) => Run(signal);
+
+    /// <summary>
+    /// Сказать Розе из окна переписки — тем же сигналом, что поле над головой: дружба, дневной
+    /// потолок разговоров, «думает». <c>false</c> — модель не спросят (Розы нет или потолок
+    /// выбран), и ответа окно не дождётся.
+    /// </summary>
+    public bool Talk(string text) =>
+        Run(new FoxSignal(FoxSignalKind.Talk, Text: text))
+            .Exists(action => action.Kind == FoxActionKind.AskMind && action.Name == "talk");
+
+    /// <summary>Исполняет сигнал и возвращает, что решил мозг.</summary>
+    private List<FoxAction> Run(FoxSignal signal)
     {
         if (_mode == FoxMode.Off)
         {
-            return;
+            return [];
         }
 
         if (signal.Kind is not (FoxSignalKind.Tick or FoxSignalKind.MindReaction or FoxSignalKind.MindEscape or FoxSignalKind.MindAct))
@@ -327,12 +348,17 @@ internal sealed partial class FoxStage
         {
             RecentBoops = RecentBoops(),
             Away = _mode is FoxMode.Away or FoxMode.Hidden,
-            Holding = Holding,
+            // Переписка — не занятость: в ней он слушает и на месте может прилечь или вздремнуть.
+            // Чего ему там нельзя (уйти с места), решает мозг по Chatting.
+            Holding = _mode == FoxMode.Drag || TypingToHim || Playing,
+            Chatting = Chatting,
+            CanPeek = _spot is FoxSpot.Home or FoxSpot.Viewer,
             Asleep = _mode == FoxMode.Sleep
         };
         List<FoxAction> actions = [];
         _store.Update(state => actions = FoxBrain.Next(state, signal, situation, _clock(), _random), lazy: signal.Kind == FoxSignalKind.Tick);
         Apply(actions);
+        return actions;
     }
 
     /// <summary>Окно или поле ввода сменили размер: Роза пересаживается на ту же кромку.</summary>
@@ -457,6 +483,8 @@ internal sealed partial class FoxStage
                 case FoxActionKind.Effect when visible:
                     Effect(action.Name, action.Ms);
                     break;
+                // Что можно при открытой переписке, решил мозг (FoxSituation.Chatting): прилечь и
+                // вздремнуть — да, уйти с места — нет.
                 case FoxActionKind.Do when visible:
                     Do(action.Name);
                     break;
@@ -491,10 +519,13 @@ internal sealed partial class FoxStage
                         Ponder();
                     }
 
-                    MindRequested?.Invoke(action.Name, action.Text);
+                    MindRequested?.Invoke(action.Name, action.Text, action.Acts ?? []);
                     break;
                 case FoxActionKind.Diary:
                     DiaryDue?.Invoke();
+                    break;
+                case FoxActionKind.Refuse when _mode == FoxMode.Drag:
+                    BreakFree();
                     break;
             }
         }
@@ -687,6 +718,7 @@ internal sealed partial class FoxStage
         if (_mode is FoxMode.Off or FoxMode.Hidden or FoxMode.Away)
         {
             _sprite.Visibility = Visibility.Collapsed;
+            PlaceChat();
             PlaceBubble();
             PlaceEmote(now);
             PlaceTremble(now);
@@ -706,6 +738,7 @@ internal sealed partial class FoxStage
         var frame = Math.Min(_frame, animation.Frames.Count - 1);
         _sprite.Show(_bitmaps.Frame(animation, frame, face, item, _cold, _flip), () => _sprites.Compose(animation.Frames[frame], face, item), _flip);
         Place();
+        PlaceChat();
         PlaceBubble();
         PlaceTalk();
         PlaceEmote(now);

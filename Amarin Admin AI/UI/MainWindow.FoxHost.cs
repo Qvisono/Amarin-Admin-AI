@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -91,8 +92,12 @@ namespace Amarin.UI
             /// Esc — Розе, когда человек держит его или пишет ему. Игру Esc заканчивает, только если
             /// не останавливает им ответ: игру мог затеять и сам Роза, а ответа человек ждёт.
             /// </summary>
+            /// <remarks>
+            /// Открытую переписку Esc закрывает, когда в ней печатают, и когда ответа он не
+            /// останавливает; пока идёт ответ, а фокус вне панели, Esc — ответу.
+            /// </remarks>
             public bool TakesEscape(bool stopsAnswer) =>
-                _stage is { } stage && (stage.InHands || (!stopsAnswer && stage.Holding));
+                _stage is { } stage && (stage.InHands || (!stopsAnswer && (stage.Holding || stage.Chat is not null)));
 
             private async Task StartAsync()
             {
@@ -122,7 +127,7 @@ namespace Amarin.UI
                 _window.FoxLayer.Visibility = Visibility.Visible;
                 _stage = new FoxStage(this, store, sprites, () => DateTime.Now, new Random());
                 _mind = CreateMind(services, store);
-                _stage.MindRequested += (kind, text) => _mind?.Ask(kind, text);
+                _stage.MindRequested += (kind, text, acts) => _mind?.Ask(kind, text, acts);
                 _stage.DiaryDue += () => _mind?.WriteDiary();
                 Subscribe();
                 _stage.Start();
@@ -143,15 +148,23 @@ namespace Amarin.UI
                     return;
                 }
 
+                // Ответ на сказанное в переписке там и показан: над головой — только мордочка и
+                // сдвиг дружбы, а «слова убежали» переписка пишет сама.
+                var inChat = reply.Kind == "talk" && _stage.ChatAnswered(reply);
                 if (reply.Failed)
                 {
-                    _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Name: "mute"));
+                    if (!inChat)
+                    {
+                        _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Name: "mute"));
+                    }
+
                     return;
                 }
 
-                if (reply.Line.Length > 0 || reply.Emotion.Length > 0 || reply.Mood != 0)
+                var line = inChat ? "" : reply.Line;
+                if (line.Length > 0 || reply.Emotion.Length > 0 || reply.Mood != 0)
                 {
-                    _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: reply.Line, Value: reply.Mood, Name: reply.Emotion));
+                    _stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: line, Value: reply.Mood, Name: reply.Emotion));
                 }
 
                 if (reply.EscapeMinutes > 0)
@@ -386,6 +399,34 @@ namespace Amarin.UI
             public Point? Pointer() =>
                 _window.IsMouseOver || _window.FoxLayer.IsMouseCaptureWithin ? Mouse.GetPosition(_window.FoxLayer) : null;
 
+            /// <summary>
+            /// Укус сбил курсор: настоящий курсор — в точку слоя, не дальше краёв окна. Только в
+            /// настоящей программе и в активном окне: оконные тесты поднимают то же окно, и мышь
+            /// человека посреди его работы двигать нельзя.
+            /// </summary>
+            /// <remarks>
+            /// В экранные пиксели переводит <c>PointToScreen</c>: он знает и подделанный DPI масштаба
+            /// интерфейса (<see cref="UiScale"/>), которым окно на деле нарисовано.
+            /// </remarks>
+            public void ShoveCursor(Point onLayer)
+            {
+                var layer = _window.FoxLayer;
+                if (!IsRealApp || !_window.IsActive || PresentationSource.FromVisual(layer) is null)
+                {
+                    return;
+                }
+
+                var inside = new Point(
+                    Math.Clamp(onLayer.X, 2, Math.Max(2, layer.ActualWidth - 2)),
+                    Math.Clamp(onLayer.Y, 2, Math.Max(2, layer.ActualHeight - 2)));
+                var screen = layer.PointToScreen(inside);
+                _ = SetCursorPos((int)Math.Round(screen.X), (int)Math.Round(screen.Y));
+            }
+
+            [DllImport("user32.dll")]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            private static extern bool SetCursorPos(int x, int y);
+
             public Rect SendButton() => _window.SendButton.IsVisible ? Bounds(_window.SendButton) : Rect.Empty;
 
             public Rect ModelChip() => _window.ModelButton.IsVisible ? Bounds(_window.ModelButton) : Rect.Empty;
@@ -418,11 +459,17 @@ namespace Amarin.UI
                 menu.Items.Add(Item("S.Fox.Menu.Scratch", stage.Scratch, "FoxIcon.Scratch"));
                 menu.Items.Add(Item("S.Fox.Menu.Treat", stage.Treat, "FoxIcon.Treat"));
                 menu.Items.Add(AppMenu.Divider(_window));
+                if (stage.Playing)
+                {
+                    menu.Items.Add(Item("S.Fox.Menu.StopGame", stage.EndGame, "FoxIcon.StopGame"));
+                }
+
                 menu.Items.Add(Item("S.Fox.Menu.Ball", () => stage.PlayBall(at), "FoxIcon.Ball"));
                 menu.Items.Add(Item("S.Fox.Menu.Laser", stage.PlayLaser, "FoxIcon.Laser"));
                 menu.Items.Add(Item("S.Fox.Menu.HideSeek", () => stage.PlayGame(FoxWill.HideSeek), "FoxIcon.HideSeek"));
                 menu.Items.Add(Item("S.Fox.Menu.Chase", () => stage.PlayGame(FoxWill.Catch), "FoxIcon.Chase"));
                 menu.Items.Add(Item("S.Fox.Menu.Talk", stage.OpenTalk, "FoxIcon.Talk"));
+                menu.Items.Add(Item("S.Fox.Menu.Chat", stage.OpenChat, "FoxIcon.Chat"));
                 menu.Items.Add(AppMenu.Divider(_window));
                 menu.Items.Add(Item("S.FoxSettings.Ours", () => Detached.Run(_window.ShowFoxFriendshipAsync(), "fox_friendship"), "FoxIcon.Friendship"));
                 menu.Items.Add(Item("S.FoxSettings.Diary", () => Detached.Run(_window.ShowFoxDiaryAsync(), "fox_diary"), "FoxIcon.Diary"));

@@ -126,6 +126,9 @@ internal sealed partial class FoxStage
             case "chomp":
                 StartChomp(BiteTarget());
                 break;
+            case "shove":
+                Shove();
+                break;
         }
     }
 
@@ -185,14 +188,49 @@ internal sealed partial class FoxStage
     /// <summary>Куда кусать: курсор, если он рядом, иначе воздух перед носом.</summary>
     private Point BiteTarget()
     {
-        var center = new Point(_move.X + (_sprite.Side / 2), _move.Y + (_sprite.Side / 2));
-        if (_host.Pointer() is { } pointer && (pointer - center).Length < _sprite.Side * 4)
+        if (PointerInReach() is { } pointer)
         {
             return pointer;
         }
 
         var head = HeadPoint();
         return new Point(head.X + (_flip ? Px(10) : -Px(10)), head.Y + Px(4));
+    }
+
+    /// <summary>Курсор, до которого достают зубы; <c>null</c> — кусать некого, только воздух.</summary>
+    private Point? PointerInReach()
+    {
+        var center = new Point(_move.X + (_sprite.Side / 2), _move.Y + (_sprite.Side / 2));
+        return _host.Pointer() is { } pointer && (pointer - center).Length < _sprite.Side * 4 ? pointer : null;
+    }
+
+    /// <summary>
+    /// Укус сбивает курсор: когда зубы смыкаются, рука отлетает от головы на кадр. Без анимаций зубов
+    /// нет — нет и толчка: курсор, прыгнувший сам по себе, выглядел бы сбоем.
+    /// </summary>
+    private void Shove()
+    {
+        if (!_host.Motion() || _paused)
+        {
+            return;
+        }
+
+        After(TimeSpan.FromMilliseconds(ChompLife * 0.26), () =>
+        {
+            if (PointerInReach() is not { } pointer)
+            {
+                return;
+            }
+
+            var away = pointer - HeadPoint();
+            if (away.Length < 1)
+            {
+                away = new Vector(_flip ? 1 : -1, 0);
+            }
+
+            away.Normalize();
+            _host.ShoveCursor(pointer + (away * _sprite.Side));
+        });
     }
 
     /// <summary>

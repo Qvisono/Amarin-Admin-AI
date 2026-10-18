@@ -51,7 +51,7 @@ internal sealed partial class FoxStage
     /// часть игры: за указкой он бегает прямо под курсором, и махание ею читалось как дразнилка —
     /// драка с курсором, а через 20 с новая, и погоня не кончалась.
     /// </summary>
-    private bool Playing => _game is not null || _laser is not null || _ball is not null;
+    public bool Playing => _game is not null || _laser is not null || _ball is not null;
 
     /// <summary>Принесённый мячик лежит и ждёт броска — тестам.</summary>
     internal bool BallWaiting => _ballWaiting;
@@ -80,10 +80,15 @@ internal sealed partial class FoxStage
         }
     }
 
-    /// <summary>Занятие от воли или из меню. Занятой (в руках, в игре, на ходу) ничего не начинает.</summary>
+    /// <summary>
+    /// Занятие от воли, желания модели или из меню. Занятой (в руках, в игре, на ходу, пока ему
+    /// печатают над головой) ничего не начинает. Переписка его не останавливает: в ней мозг сам
+    /// пускает только то, что на месте, — до 1.36.0 здесь стоял запрет на всё, и «прилягу» в
+    /// переписке так и оставалось словами.
+    /// </summary>
     private void Do(string activity)
     {
-        if (_mode != FoxMode.Idle || Playing || Talking)
+        if (_mode != FoxMode.Idle || Playing || TypingToHim)
         {
             return;
         }
@@ -144,6 +149,21 @@ internal sealed partial class FoxStage
         _game = game;
         _gameUntil = _clock() + length;
         StartRendering();
+    }
+
+    /// <summary>
+    /// «Закончить игру» из меню — любую, свою или из меню. До 1.36.0 закончить раньше срока можно
+    /// было только Esc, о котором человек не знал, и указка с догонялками шли до конца.
+    /// </summary>
+    public void EndGame()
+    {
+        var seeking = _game == FoxWill.HideSeek;
+        EndPlay();
+        if (seeking && _mode == FoxMode.Peek)
+        {
+            // Прятки кончились — выбирается из-за поля ввода, а не досиживает выглядывание.
+            EndPeek();
+        }
     }
 
     /// <summary>

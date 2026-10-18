@@ -92,11 +92,20 @@ internal sealed partial class FoxStage
         };
     }
 
-    /// <summary>Отпустить: Esc, потеря мыши, свёрнутое окно. Из рук — падает, из игры — игра кончается.</summary>
+    /// <summary>
+    /// Отпустить: Esc, потеря мыши, свёрнутое окно. Из рук — падает, из игры — игра кончается,
+    /// переписка закрывается. Кроме одного случая: Розу держат в руках — тогда он только падает, а
+    /// переписка остаётся (рука ушла с него, а не из разговора).
+    /// </summary>
     public void LetGo()
     {
         StopLaser();
         CloseTalk();
+        if (_mode != FoxMode.Drag)
+        {
+            CloseChat();
+        }
+
         StopGame();
         if (_mode != FoxMode.Drag)
         {
@@ -117,6 +126,15 @@ internal sealed partial class FoxStage
         e.Handled = true;
         if (_mode is FoxMode.Fly or FoxMode.Off)
         {
+            return;
+        }
+
+        if (_game == FoxWill.Catch)
+        {
+            // Догонялки: нажатие на него — уже «поймал». До 1.36.0 поимку ждали на отпускании, но за
+            // бегущим рука не стоит на месте, нажатие становилось «взял на руки», и игра молча кончалась.
+            StopGame();
+            Signal(FoxSignalKind.Caught);
             return;
         }
 
@@ -219,6 +237,22 @@ internal sealed partial class FoxStage
         Hold(point);
         StartRendering();
         Signal(FoxSignalKind.Grab);
+    }
+
+    /// <summary>
+    /// Укусил и вырвался из рук (<see cref="FoxActionKind.Refuse"/>): отскакивает прочь от руки и
+    /// приземляется сам. Сперва полёт, потом мышь: захват, снятый ещё в руках, поднял бы
+    /// <c>LostMouseCapture</c>, и тот уронил бы его через <see cref="LetGo"/> вместе с перепиской.
+    /// </summary>
+    private void BreakFree()
+    {
+        var away = _host.Pointer() is { } hand && hand.X > _x + (_sprite.Side / 2) ? -1 : 1;
+        _pressed = false;
+        Throw(away * 0.3, -0.55, selfLaunched: true);
+        if (_sprite.IsMouseCaptured)
+        {
+            _sprite.ReleaseMouseCapture();
+        }
     }
 
     /// <summary>Висит за шкирку под курсором; помнит путь — по нему считается бросок и тряска.</summary>
@@ -346,13 +380,6 @@ internal sealed partial class FoxStage
                 Signal(FoxSignalKind.Found);
             }
 
-            return;
-        }
-
-        if (_game == FoxWill.Catch)
-        {
-            StopGame();
-            Signal(FoxSignalKind.Caught);
             return;
         }
 

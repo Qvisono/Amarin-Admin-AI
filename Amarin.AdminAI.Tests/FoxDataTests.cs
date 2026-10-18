@@ -150,6 +150,45 @@ public sealed class FoxDataTests : IDisposable
             store.Diary().Select(entry => (entry.Date, entry.Text)));
     }
 
+    /// <summary>
+    /// Вся переписка с Розой (1.36.0 помнит полсотни разговоров, их видно в окне переписки) и его
+    /// заметки едут с архивом и ложатся на новой машине целиком.
+    /// </summary>
+    [Fact]
+    public void The_whole_chat_with_rosa_and_his_notes_travel_with_the_archive()
+    {
+        var source = Root("source");
+        Seed(source, 40, encrypt: true);
+        using (var store = new FoxStore(source, () => true))
+        {
+            store.Update(state =>
+            {
+                for (var i = 0; i < FoxMemory.MaxExchanges; i++)
+                {
+                    FoxMemory.AddExchange(state, "вопрос " + i, "ответ " + i, new DateTime(2026, 10, 18, 12, 0, 0).AddMinutes(i));
+                }
+
+                _ = FoxMemory.Remember(state, "Любит зелёный чай", DateTime.Now);
+
+                // Память обид и дневные пределы дружбы (1.36.0): с архивом Роза не забывает обид и не
+                // получает свежий предел на сегодня.
+                state.Grudge = 27;
+                state.Today.Gained = 4.5;
+                state.Today.Lost = 6;
+            });
+        }
+
+        var target = Root("target");
+        new DataBundleImporter(target).Apply(Export(source), DataCategory.Chats, DataImportMode.Merge);
+
+        using var imported = Open(target);
+        var state = imported.Snapshot();
+        Assert.Equal(FoxMemory.MaxExchanges, state.Conversation.Count);
+        Assert.Equal(("вопрос 0", "ответ 49"), (state.Conversation[0].Human, state.Conversation[^1].Rosa));
+        Assert.Equal("Любит зелёный чай", Assert.Single(state.Notes).Text);
+        Assert.Equal((27.0, 4.5, 6.0), (state.Grudge, state.Today.Gained, state.Today.Lost));
+    }
+
     /// <summary>Шифрующий профиль получает Розу из архива уже зашифрованной.</summary>
     [Fact]
     public void Import_writes_rosa_by_the_target_profile_encryption_rule()

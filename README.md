@@ -89,13 +89,20 @@ other edge you put him on. He follows the cursor, reads along (a smart face for 
 trembling at a virus, comfort when you were scammed or feel sad), shows how he feels with a face,
 a small icon over his head and a pose, gets bored, sleepy and offended, and knows that your
 messages in the chat are for the assistant, not for him. Stroke his head to pet him, boop his
-nose, pick him up and throw him, play ball, chase a laser dot, play hide and seek or tag, or talk
-to him. Left alone, he finds something to do: lies down, struts, chases his own tail or invites
-you to play, never while you type, and now and then he thinks on his own. He remembers your
-talks with him and keeps short notes about you, which you can read and erase. Each profile has
-its own Rosa with its own friendship: pink eyes when he likes you, blue when he doesn't. Forget
-him for days and he sulks and demands attention; annoy him and he may bite the cursor, press
-**New chat** or tap the chat list, never while you type. Every day he writes a short diary entry about you. He has his own model slot and
+nose, pick him up and throw him, play ball, have him chase and catch a laser dot, play hide and
+seek or tag (**End the game** in his menu stops any game), or talk to him. Left alone, he finds something to do: lies down, struts, chases his own tail or invites
+you to play, never while you type, and now and then he thinks on his own. His answers follow
+his mood and what you did with him today: pull his tail and he answers prickly, play with him and
+he is warm. He remembers your talks with him and keeps short notes about you, which you can read
+and erase; **Chat** in his menu opens a small panel above him with your past talks and a field to
+write to him, without covering the program. Each profile has
+its own Rosa with its own friendship: pink eyes when he likes you, blue when he doesn't.
+Friendship is earned slowly: it grows by at most 6 a day and falls by up to 18, a wrong weighs
+twice as much as before, and he remembers it. While he does, kindness warms him less, and only
+kind days without wrongs make him forget, not hours. Forget him for days and he sulks and demands
+attention; annoy him and he may refuse to talk or to be picked up, bite free of your hand, bite
+the cursor and knock it aside (only with **Mischief** on), press **New chat** or tap the chat
+list, never while you type. Every day he writes a short diary entry about you. He has his own model slot and
 only two tools of his own, web search and running away, with no access to the program's tools.
 His model sees only the text you send, never attachments or answers, and that can be turned off.
 **Settings → Models → Rosa the fox** hides him, changes his size and shows your friendship and his
@@ -267,7 +274,8 @@ removed when nothing is left to wait for.
 
 ## Appearance
 
-About fifty palettes, dark and light, each shown as a card with a preview. On top of a palette
+About fifty palettes, dark and light, each shown as a card with a preview, among them Carbon, a
+neutral graphite in the style of the ChatGPT desktop app, and the blue-black Onyx. On top of a palette
 you can set your own accent colour and a background: a moving gradient or your own picture, with
 the panels turning translucent over it. Interface scale from 80 to 250%, built-in fonts, chat
 column width, and film grain over the window.
@@ -276,8 +284,8 @@ The interface is in Russian and English. With one button, a model translates it 
 language, which then appears in the list next to the others. You can correct a machine
 translation line by line, and your corrections are kept when you translate again.
 
-Every button and switch has a name for screen readers, the keyboard focus is drawn in the accent
-colour, Windows high contrast is applied automatically, and you can change the chat text size and
+Every button and switch has a name for screen readers, keyboard focus on buttons and switches is
+drawn in the accent colour, Windows high contrast is applied automatically, and you can change the chat text size and
 the code font.
 
 ---

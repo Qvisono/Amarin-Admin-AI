@@ -72,6 +72,10 @@ internal sealed partial class FoxStage
             };
             _bubble.SetResourceReference(Border.BackgroundProperty, "Bg.Elevated");
             _bubble.SetResourceReference(Border.BorderBrushProperty, "Border.Default");
+
+            // Размер до первой раскладки меньше настоящего, и у правого края пузырь, поставленный
+            // по нему, вылезал за окно — до следующего кадра, а без анимаций и дольше.
+            _bubble.SizeChanged += (_, _) => PlaceBubble();
             _host.Layer.Children.Add(_bubble);
         }
 
@@ -120,7 +124,8 @@ internal sealed partial class FoxStage
             return;
         }
 
-        var head = _move.Y + (_mode == FoxMode.Peek ? Px(20) : Px(2));
+        // Над открытой перепиской, а не поверх неё.
+        var head = ChatTop() ?? _move.Y + (_mode == FoxMode.Peek ? Px(20) : Px(2));
         var left = Math.Clamp(_move.X + (_sprite.Side / 2) - (size.Width / 2), 8, Math.Max(8, _host.Width() - size.Width - 8));
 
         // Над значком эмоции, а не поверх него.
@@ -509,6 +514,16 @@ internal sealed partial class FoxStage
         shift.X = Math.Round(pointer.X - (dot.Width / 2));
         shift.Y = Math.Round(pointer.Y - (dot.Height / 2));
 
+        // Точка легла на него — на бегу, в прыжке или сидя — поймал. До 1.36.0 поймать её было
+        // нельзя вовсе: он бегал по своей кромке и подпрыгивал на месте. В руках курсор и так на нём:
+        // это держат его, а не он поймал.
+        var body = BodyRect();
+        if (_mode != FoxMode.Drag && body.Contains(pointer))
+        {
+            CatchLaser();
+            return;
+        }
+
         if (_mode is not (FoxMode.Idle or FoxMode.Walk))
         {
             return;
@@ -533,13 +548,63 @@ internal sealed partial class FoxStage
                 }
             }
         }
-        else if (_mode == FoxMode.Idle && now >= _nextPounce && Math.Abs(pointer.Y - _edgeY) < _sprite.Side * 1.5)
+        else if (_mode == FoxMode.Idle && now >= _nextPounce && pointer.Y < body.Top && body.Top - pointer.Y <= _sprite.Side * LeapReach)
         {
+            // Точка над ним, и допрыгнуть можно: прыгает по-настоящему. Выше — сидит под ней и ждёт.
             _nextPounce = now.AddSeconds(1.2);
-            Play("jump", "sit");
-            _face = "excited";
-            _faceUntil = now.AddMilliseconds(900);
+            Leap(pointer, body);
         }
+    }
+
+    /// <summary>Как высоко над телом точка ещё досягаема прыжком — в сторонах кадра.</summary>
+    private const double LeapReach = 1.8;
+
+    /// <summary>
+    /// Прыжок за точкой: скорость такая, чтобы верх тела пришёл к точке на вершине дуги. Это его
+    /// собственный прыжок, а не бросок: приземлится без отскоков и без сигнала мозгу.
+    /// </summary>
+    /// <remarks>
+    /// Высота считается по кадру полёта, а не по сидячему: летит он в позе <c>fly</c>, и её верх в
+    /// кадре ниже, чем у сидящего, — по сидячему он не дотягивался до точки на вершине дуги.
+    /// </remarks>
+    private void Leap(Point dot, Rect body)
+    {
+        (_x, _y) = CornerAt(_foot, _edgeY, _flip);
+        var top = _y + Px(Box("fly", 0).Y0);
+        var rise = Math.Max(Px(4), top - dot.Y + Px(6));
+        var vy = -Math.Sqrt(2 * Gravity * rise);
+        var toApex = -vy / Gravity;
+        var vx = Math.Clamp((dot.X - (body.Left + (body.Width / 2))) / toApex, -0.5, 0.5);
+        _face = "excited";
+        _faceUntil = _clock().AddMilliseconds(900);
+        Throw(vx, vy, selfLaunched: true);
+    }
+
+    /// <summary>Поймал точку указки: игра выиграна раньше срока.</summary>
+    private void CatchLaser()
+    {
+        StopLaser();
+        Feel("excited", 1600);
+        Burst("heart", 2);
+        Bubble(Loc.Get(FoxPhrases.Pick("LaserCaught", _random)), 1600);
+    }
+
+    /// <summary>
+    /// Нарисованное тело нынешнего кадра на слое, с запасом в два пикселя рисунка: точка указки,
+    /// попавшая сюда, поймана.
+    /// </summary>
+    private Rect BodyRect()
+    {
+        var animation = _sprites.Animations[_anim];
+        var (x0, x1, y0, y1) = Box(_anim, Math.Min(_frame, animation.Frames.Count - 1));
+        if (_flip)
+        {
+            (x0, x1) = (FoxSprites.FrameSize - 1 - x1, FoxSprites.FrameSize - 1 - x0);
+        }
+
+        var body = new Rect(_move.X + Px(x0), _move.Y + Px(y0), Px(x1 - x0 + 1), Px(y1 - y0 + 1));
+        body.Inflate(Px(2), Px(2));
+        return body;
     }
 
     /// <summary>

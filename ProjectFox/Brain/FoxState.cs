@@ -28,6 +28,13 @@ public sealed class FoxState
     /// <summary>Обида: 0…100. Пока она высокая, Роза дуется и гладить себя даёт не сразу.</summary>
     public double Resentment { get; set; }
 
+    /// <summary>
+    /// Память обид: 0…100. Каждый проступок ложится сюда целиком; пока память есть, ласка греет
+    /// слабее (<see cref="FoxFriendship.Trust"/>). В отличие от обиды, часы её не лечат — стирают
+    /// только добрые дни (<see cref="FoxFriendship.ForgivenPerDay"/>).
+    /// </summary>
+    public double Grudge { get; set; }
+
     /// <summary>Скука: 0…100. Копится, пока на Розу не обращают внимания при открытом окне.</summary>
     public double Boredom { get; set; }
 
@@ -124,6 +131,14 @@ public sealed class FoxDay
 
     /// <summary>Привязанность в начале дня — чтобы дневник знал, потеплело ли за день.</summary>
     public double AffectionAtStart { get; set; }
+
+    /// <summary>
+    /// Сколько привязанности за день прибавилось и сколько убавилось — порознь, а не итогом: иначе
+    /// проступок и ласка по кругу снова открывали бы дневной предел (<see cref="FoxFriendship.MaxGainPerDay"/>).
+    /// </summary>
+    public double Gained { get; set; }
+
+    public double Lost { get; set; }
 
     /// <summary>Сообщений человек отправил и сколько знаков в них было.</summary>
     public int Messages { get; set; }

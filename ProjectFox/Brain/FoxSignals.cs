@@ -45,6 +45,9 @@ internal enum FoxSignalKind
     /// <summary>Человек сказал Розе что-то в его пузырьке (<see cref="FoxSignal.Text"/>).</summary>
     Talk,
 
+    /// <summary>Человек хочет поговорить: открывает поле над головой или переписку. Обиженный может отказать.</summary>
+    TalkAsked,
+
     /// <summary>Спрятать: <see cref="FoxSignal.Value"/> — часов, 0 — до завтра.</summary>
     Hide,
 
@@ -174,7 +177,7 @@ internal enum FoxActionKind
 
     /// <summary>
     /// Эффект вокруг Розы: <c>tremble</c> — дрожь и волны по бокам, <c>chomp</c> — зубы смыкаются над
-    /// курсором; <see cref="FoxAction.Ms"/> — сколько.
+    /// курсором, <c>shove</c> — укус сбивает курсор в сторону; <see cref="FoxAction.Ms"/> — сколько.
     /// </summary>
     Effect,
 
@@ -182,10 +185,17 @@ internal enum FoxActionKind
     Do,
 
     /// <summary>Фраза из-за края окна, у следа «Позвать»: Роза убежал и отказывается прийти.</summary>
-    Shout
+    Shout,
+
+    /// <summary>Не дался: разговор не открывается, а из рук он вырывается.</summary>
+    Refuse
 }
 
-internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 0, string Text = "")
+/// <param name="Acts">
+/// У <see cref="FoxActionKind.AskMind"/> — что из желаний (<see cref="FoxActs"/>) мозг сейчас исполнит:
+/// только их модель и получает.
+/// </param>
+internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 0, string Text = "", IReadOnlyList<string>? Acts = null)
 {
     public static FoxAction Anim(string name) => new(FoxActionKind.Anim, name);
 
@@ -213,7 +223,7 @@ internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 
 
     public static FoxAction Mischief(string kind) => new(FoxActionKind.Mischief, kind);
 
-    public static FoxAction AskMind(string kind, string text) => new(FoxActionKind.AskMind, kind, 0, text);
+    public static FoxAction AskMind(string kind, string text, IReadOnlyList<string> acts) => new(FoxActionKind.AskMind, kind, 0, text, acts);
 
     public static FoxAction Diary() => new(FoxActionKind.Diary);
 
@@ -224,6 +234,8 @@ internal sealed record FoxAction(FoxActionKind Kind, string Name = "", int Ms = 
     public static FoxAction Do(string activity) => new(FoxActionKind.Do, activity);
 
     public static FoxAction Shout(string key) => new(FoxActionKind.Shout, key, 2200);
+
+    public static FoxAction Refuse() => new(FoxActionKind.Refuse);
 }
 
 /// <summary>
@@ -302,8 +314,17 @@ internal sealed record FoxSituation
     /// <summary>Свои мысли модели включены в настройках Розы. В обстановке по умолчанию — нет: мысль стоит денег.</summary>
     public bool Thoughts { get; init; }
 
-    /// <summary>Роза занят человеком: в руках, в игре, в разговоре.</summary>
+    /// <summary>Роза занят человеком: в руках, в игре, ему печатают в поле над головой.</summary>
     public bool Holding { get; init; }
+
+    /// <summary>
+    /// Открыта переписка. Это не занятость: в ней он слушает и на месте может прилечь или вздремнуть,
+    /// а вот с места не уходит и своего не затевает — панель ехала бы под рукой человека.
+    /// </summary>
+    public bool Chatting { get; init; }
+
+    /// <summary>Сидит на поле ввода или на карточке журнала: только оттуда можно спрятаться и выглядывать.</summary>
+    public bool CanPeek { get; init; } = true;
 
     /// <summary>Роза спит.</summary>
     public bool Asleep { get; init; }

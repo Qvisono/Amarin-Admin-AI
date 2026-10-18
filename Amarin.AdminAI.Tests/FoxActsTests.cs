@@ -78,6 +78,83 @@ public sealed class FoxActsTests
         Assert.Empty(Act(Known(), FoxActs.Cuddle, Calm with { Away = true }));
     }
 
+    // ---------------- слова и дела (1.36.0) ----------------
+
+    /// <summary>
+    /// Модели предлагают ровно то, что мозг исполнит: желание из списка случается, вне списка — нет.
+    /// До 1.36.0 модель видела всё, а мозг молча отказывал, и Роза писал о том, чего не делал.
+    /// </summary>
+    [Theory]
+    [InlineData("calm")]
+    [InlineData("chat")]
+    [InlineData("holding")]
+    [InlineData("still")]
+    [InlineData("asleep")]
+    [InlineData("no-peek")]
+    [InlineData("typing")]
+    public void A_wish_is_offered_exactly_when_the_brain_grants_it(string why)
+    {
+        var situation = why switch
+        {
+            "chat" => Calm with { Chatting = true },
+            "holding" => Calm with { Holding = true },
+            "still" => Calm with { Motion = false },
+            "asleep" => Calm with { Asleep = true },
+            "no-peek" => Calm with { CanPeek = false },
+            "typing" => Calm with { SinceTyping = TimeSpan.FromSeconds(2) },
+            _ => Calm
+        };
+        var offered = FoxActs.Possible(Known(), situation, Noon);
+
+        foreach (var act in FoxActs.All)
+        {
+            var actions = Act(Known(), act, situation);
+            var done = act == FoxActs.Mischief ? actions.Exists(action => action.Kind == FoxActionKind.Mischief) : actions.Count > 0;
+            Assert.True(done == offered.Contains(act), $"{why}: {act} предложено {offered.Contains(act)}, сделано {done}");
+        }
+    }
+
+    /// <summary>В переписке он слушает: прилечь и вздремнуть — на месте, а уходить с места не станет.</summary>
+    [Fact]
+    public void In_the_chat_he_lies_down_on_the_spot_but_does_not_walk_off()
+    {
+        var chatting = Calm with { Chatting = true };
+        var offered = FoxActs.Possible(Known(), chatting, Noon);
+
+        Assert.Equal([FoxActs.Sulk, FoxActs.Cuddle, FoxActs.Lie, FoxActs.Nap], offered);
+        Assert.Contains(Act(Known(), FoxActs.Lie, chatting), action => action is { Kind: FoxActionKind.Do, Name: FoxWill.Lie });
+        Assert.Null(FoxWill.Choose(Known(), chatting, Noon, new Random(1)));
+        Assert.False(FoxMischief.Allowed(Known(), chatting, Noon));
+    }
+
+    /// <summary>«Ну держись!» без драки было бы враньём: в переписке дразнящий курсор драки не затевает.</summary>
+    [Fact]
+    public void A_teasing_cursor_starts_no_fight_and_no_promise_of_one_in_the_chat()
+    {
+        var actions = FoxBrain.Next(Known(), FoxSignalKind.Teased, Calm with { Chatting = true }, Noon, new Random(1));
+
+        Assert.DoesNotContain(actions, action => action.Kind is FoxActionKind.Do or FoxActionKind.Say);
+    }
+
+    /// <summary>Просьба к модели несёт список того, что мозг исполнит, — тот же, что дал бы <see cref="FoxActs.Possible"/>.</summary>
+    [Fact]
+    public void A_talk_asks_the_mind_with_what_he_can_do_now()
+    {
+        var chatting = Calm with { Chatting = true };
+        var state = Known();
+        var expected = FoxActs.Possible(state, chatting, Noon);
+
+        var ask = Assert.Single(FoxBrain.Next(state, new FoxSignal(FoxSignalKind.Talk, "приляг"), chatting, Noon, new Random(1)),
+            action => action.Kind == FoxActionKind.AskMind);
+
+        Assert.Equal(expected, ask.Acts);
+
+        state.LastActAt = Noon.AddSeconds(-5);
+        var later = Assert.Single(FoxBrain.Next(state, new FoxSignal(FoxSignalKind.Talk, "а теперь?"), chatting, Noon, new Random(1)),
+            action => action.Kind == FoxActionKind.AskMind);
+        Assert.Empty(later.Acts!);
+    }
+
     // ---------------- мысли ----------------
 
     [Fact]

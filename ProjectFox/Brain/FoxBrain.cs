@@ -71,7 +71,7 @@ internal static class FoxBrain
                 day.Boops++;
                 if (state.Cold)
                 {
-                    Bite(state, actions, say);
+                    Bite(state, situation, actions, say);
                     FoxFriendship.Change(state, -0.5);
                 }
                 else if (situation.RecentBoops >= 4)
@@ -83,7 +83,7 @@ internal static class FoxBrain
                     day.Annoyance += 0.5;
                     if (FoxMischief.Angry(state))
                     {
-                        Bite(state, actions, say);
+                        Bite(state, situation, actions, say);
                     }
                 }
                 else
@@ -111,7 +111,7 @@ internal static class FoxBrain
                 say("Tail");
                 if (FoxMischief.Angry(state))
                 {
-                    Bite(state, actions, say);
+                    Bite(state, situation, actions, say);
                 }
 
                 break;
@@ -154,18 +154,19 @@ internal static class FoxBrain
             case FoxSignalKind.HoverLong:
                 if (state.Cold)
                 {
-                    Bite(state, actions, say);
+                    Bite(state, situation, actions, say);
                 }
 
                 break;
 
             case FoxSignalKind.Teased:
-                // Курсор дразнит под носом: злой кусает его, остальные затевают драку.
+                // Курсор дразнит под носом: злой кусает его, остальные затевают драку — кроме
+                // переписки: драка увела бы его из-под панели, а «ну держись!» без драки — враньё.
                 if (FoxMischief.Angry(state))
                 {
-                    Bite(state, actions, say);
+                    Bite(state, situation, actions, say);
                 }
-                else
+                else if (!situation.Chatting)
                 {
                     actions.Add(FoxAction.Do(FoxWill.Fight));
                     say("Fight");
@@ -192,6 +193,12 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.Grab:
+                if (Unwilling(state, random))
+                {
+                    BiteFree(state, situation, actions, say);
+                    break;
+                }
+
                 actions.Add(FoxAction.Anim("hang"));
                 actions.Add(FoxAction.Face(state.Cold ? "angry" : "surprised", 60_000));
                 say(state.Cold ? "HoldCold" : "HoldWarm");
@@ -201,7 +208,16 @@ internal static class FoxBrain
                 FoxFriendship.Change(state, -1);
                 FoxFriendship.Resent(state, 5);
                 day.Annoyance += 0.5;
-                actions.Add(FoxAction.Face("dizzy", 60_000));
+                if (FoxMischief.Angry(state))
+                {
+                    // Злого трясти — себе дороже: кусает руку и вырывается.
+                    BiteFree(state, situation, actions, say);
+                }
+                else
+                {
+                    actions.Add(FoxAction.Face("dizzy", 60_000));
+                }
+
                 break;
 
             case FoxSignalKind.Thrown:
@@ -249,12 +265,24 @@ internal static class FoxBrain
                 Attended(state, now);
                 if (day.Talks <= MaxTalks)
                 {
-                    actions.Add(FoxAction.AskMind("talk", signal.Text));
+                    actions.Add(FoxAction.AskMind("talk", signal.Text, FoxActs.Possible(state, situation, now)));
                 }
                 else
                 {
                     actions.Add(FoxAction.Face("sleepy", 1800));
                     say("Bored");
+                }
+
+                break;
+
+            case FoxSignalKind.TalkAsked:
+                if (Unwilling(state, random))
+                {
+                    day.Note("refused-talk");
+                    actions.Add(FoxAction.TurnAway());
+                    feel("offended", 2200);
+                    say("TalkRefuse");
+                    actions.Add(FoxAction.Refuse());
                 }
 
                 break;
@@ -271,7 +299,7 @@ internal static class FoxBrain
                 break;
 
             case FoxSignalKind.UserSent:
-                UserSent(state, situation, signal.Text, actions, say);
+                UserSent(state, situation, signal.Text, now, actions, say);
                 break;
 
             case FoxSignalKind.AssistantStarted:
@@ -631,7 +659,7 @@ internal static class FoxBrain
         {
             state.LastThoughtAt = now;
             state.Today.Thoughts++;
-            actions.Add(FoxAction.AskMind("think", ""));
+            actions.Add(FoxAction.AskMind("think", "", FoxActs.Possible(state, situation, now)));
             return;
         }
 
@@ -749,7 +777,7 @@ internal static class FoxBrain
         say("ThrowWarm");
     }
 
-    private static void UserSent(FoxState state, FoxSituation situation, string text, List<FoxAction> actions, Action<string> say)
+    private static void UserSent(FoxState state, FoxSituation situation, string text, DateTime now, List<FoxAction> actions, Action<string> say)
     {
         var day = state.Today;
         day.Messages++;
@@ -767,7 +795,7 @@ internal static class FoxBrain
         if (situation.ReadChat && MayReact(state) && text.Trim().Length >= 2)
         {
             day.ModelCalls++;
-            actions.Add(FoxAction.AskMind("react", text));
+            actions.Add(FoxAction.AskMind("react", text, FoxActs.Possible(state, situation, now)));
         }
     }
 
@@ -900,25 +928,38 @@ internal static class FoxBrain
     }
 
     /// <summary>
-    /// Желание своей модели. Модель желает, мозг разрешает (см. <see cref="FoxActs"/>): нельзя —
-    /// шалость оборачивается капризом, остальное просто не случается.
+    /// Желание своей модели. Модель желает, мозг разрешает — тем же правилом, по которому модели
+    /// предложили желания (<see cref="FoxActs.Possible"/>), так что сказанное в реплике случается.
+    /// Нельзя (обстановка сменилась, пока модель думала) — шалость оборачивается капризом, остальное
+    /// просто не случается.
     /// </summary>
     private static void Act(
         FoxState state, FoxSituation situation, DateTime now, string act, List<FoxAction> actions,
         Action<string> say, Action<string, int> feel, Random random)
     {
-        if (!FoxActs.All.Contains(act) || situation.Away || (state.LastActAt is { } last && now - last < FoxActs.Every))
+        var possible = FoxActs.Possible(state, situation, now);
+        if (!FoxActs.All.Contains(act) || possible.Count == 0)
         {
             return;
         }
 
         state.LastActAt = now;
+        if (!possible.Contains(act))
+        {
+            if (act == FoxActs.Mischief)
+            {
+                feel("offended", 2400);
+                actions.Add(FoxAction.TurnAway());
+            }
+
+            return;
+        }
+
         switch (act)
         {
-            case FoxActs.Mischief when FoxMischief.Allowed(state, situation, now):
+            case FoxActs.Mischief:
                 Mischief(state, now, actions, say, random);
                 break;
-            case FoxActs.Mischief:
             case FoxActs.Sulk:
                 feel("offended", 2400);
                 actions.Add(FoxAction.TurnAway());
@@ -928,40 +969,62 @@ internal static class FoxBrain
                 actions.Add(FoxAction.Anim("nuzzle"));
                 actions.Add(FoxAction.Particle("heart", 2));
                 break;
-            case FoxActs.Peek when !situation.Holding:
+            case FoxActs.Peek:
                 actions.Add(FoxAction.Go(FoxSpot.Peek));
                 break;
-            case FoxActs.Nap when !situation.Holding && !situation.Asleep:
-                actions.Add(FoxAction.Do(FoxWill.Nap));
-                break;
-            case FoxActs.Play when situation.Motion && !situation.Holding:
+            case FoxActs.Play:
                 string[] games = [FoxWill.Fetch, FoxWill.HideSeek, FoxWill.Catch];
                 var game = games[random.Next(games.Length)];
                 Tire(state, game);
                 actions.Add(FoxAction.Do(game));
                 break;
-            case FoxActs.Strut when situation.Motion && !situation.Holding:
-                Tire(state, FoxWill.Strut);
-                actions.Add(FoxAction.Do(FoxWill.Strut));
-                break;
-            case FoxActs.Wander when situation.Motion && !situation.Holding:
-                Tire(state, FoxWill.Wander);
-                actions.Add(FoxAction.Do(FoxWill.Wander));
+            default:
+                // Прилечь, вздремнуть, пройтись, сменить место — занятия воли под тем же именем.
+                Tire(state, act);
+                actions.Add(FoxAction.Do(act));
                 break;
         }
     }
 
     /// <summary>
-    /// Большой кусь: рывок вперёд, пасть, зубы смыкаются над курсором (эффект <c>chomp</c>).
+    /// Большой кусь: рывок вперёд, пасть, зубы смыкаются над курсором (эффект <c>chomp</c>). При
+    /// «Шалостях» укус ещё и сбивает курсор в сторону (<c>shove</c>): это отнимает мышь у человека,
+    /// как настоящие шалости, и выключается той же галочкой.
     /// </summary>
-    private static void Bite(FoxState state, List<FoxAction> actions, Action<string> say)
+    private static void Bite(FoxState state, FoxSituation situation, List<FoxAction> actions, Action<string> say, string phrase = "Bite")
     {
         state.Today.Bites++;
         actions.Add(FoxAction.Anim("lunge"));
         actions.Add(FoxAction.Face("bite", 1000));
         actions.Add(FoxAction.Emote("anger", 1200));
         actions.Add(FoxAction.Effect("chomp", 820));
-        say("Bite");
+        if (situation.MischiefEnabled)
+        {
+            actions.Add(FoxAction.Effect("shove"));
+        }
+
+        say(phrase);
+    }
+
+    /// <summary>На руки сейчас не хочет: кусает руку и вырывается.</summary>
+    private static void BiteFree(FoxState state, FoxSituation situation, List<FoxAction> actions, Action<string> say)
+    {
+        state.Today.Note("bit-free");
+        Bite(state, situation, actions, say, "GrabRefuse");
+        actions.Add(FoxAction.Refuse());
+    }
+
+    /// <summary>
+    /// Не хочет ни разговаривать, ни на руки: холодный или сильно обиженный — чаще, просто обиженный —
+    /// реже, остальные хотят всегда. Случаем, а не порогом: отказ не должен запирать дверь насовсем.
+    /// </summary>
+    private static bool Unwilling(FoxState state, Random random)
+    {
+        var chance = state.Cold || state.Resentment >= 60 ? 0.6 : state.Resentment >= 40 ? 0.3 : 0;
+
+        // Случай тянется, только когда отказ возможен: иначе тёплый Роза сдвигал бы им все
+        // дальнейшие случайности сцены.
+        return chance > 0 && random.NextDouble() < chance;
     }
 
     /// <summary>
@@ -1009,9 +1072,15 @@ internal static class FoxBrain
         _ => null
     };
 
+    /// <summary>
+    /// Может ли он сегодня ещё убежать: модель получает инструмент побега только тогда, иначе
+    /// говорила бы «убегаю!» и оставалась на месте.
+    /// </summary>
+    public static bool MayEscape(FoxState state) => state.Today.Escapes < MaxEscapes;
+
     private static void TryEscape(FoxState state, DateTime now, double minutes, List<FoxAction> actions, Action<string> say)
     {
-        if (state.Today.Escapes >= MaxEscapes)
+        if (!MayEscape(state))
         {
             actions.Add(FoxAction.TurnAway());
             actions.Add(FoxAction.Face("offended", 2600));

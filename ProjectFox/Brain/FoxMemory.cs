@@ -15,8 +15,11 @@ namespace Amarin.Fox;
 /// </remarks>
 internal static partial class FoxMemory
 {
-    /// <summary>Сколько разговоров помнит.</summary>
-    public const int MaxExchanges = 12;
+    /// <summary>
+    /// Сколько разговоров помнит. С 1.36.0 их видно в переписке, поэтому полсотни, а не дюжина;
+    /// модели по-прежнему уходят только последние (<see cref="ExchangesInTalk"/>).
+    /// </summary>
+    public const int MaxExchanges = 50;
 
     /// <summary>Сколько последних разговоров уходит модели в новом разговоре.</summary>
     public const int ExchangesInTalk = 6;

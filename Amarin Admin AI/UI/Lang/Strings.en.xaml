@@ -2383,17 +2383,29 @@
     <system:String x:Key="S.Fox.Menu.Treat" xml:space="preserve">Give a treat</system:String>
     <system:String x:Key="S.Fox.Menu.Ball" xml:space="preserve">Throw the ball</system:String>
     <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Laser pointer</system:String>
+    <system:String x:Key="S.Fox.Menu.StopGame" xml:space="preserve">End the game</system:String>
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Hide for an hour</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Hide until tomorrow</system:String>
     <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Talk</system:String>
     <system:String x:Key="S.Fox.Menu.HideSeek" xml:space="preserve">Hide and seek</system:String>
     <system:String x:Key="S.Fox.Menu.Chase" xml:space="preserve">Tag</system:String>
     <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Say something to Rosa…</system:String>
+    <system:String x:Key="S.Fox.Menu.Chat" xml:space="preserve">Chat</system:String>
+    <system:String x:Key="S.Fox.Chat.Title" xml:space="preserve">Chat with Rosa</system:String>
+    <system:String x:Key="S.Fox.Chat.Empty" xml:space="preserve">You haven't talked yet. Say something to Rosa.</system:String>
+    <system:String x:Key="S.Fox.Chat.Tired" xml:space="preserve">I've talked enough for today. Tomorrow?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">My words ran away… Pet me?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">My thoughts got tangled like a tail. Ask me later?</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.1" xml:space="preserve">F*** off!</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.2" xml:space="preserve">Not a chance. F*** off!</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.3" xml:space="preserve">Leave me alone! F*** off!</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.1" xml:space="preserve">I don't want to talk to you.</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.2" xml:space="preserve">Leave me alone. Not now.</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.3" xml:space="preserve">I'm not talking to you.</system:String>
+    <system:String x:Key="S.Fox.Say.GrabRefuse.1" xml:space="preserve">Let go!</system:String>
+    <system:String x:Key="S.Fox.Say.GrabRefuse.2" xml:space="preserve">Hands off!</system:String>
+    <system:String x:Key="S.Fox.Say.LaserCaught.1" xml:space="preserve">Got it!</system:String>
+    <system:String x:Key="S.Fox.Say.LaserCaught.2" xml:space="preserve">Gotcha, dot!</system:String>
     <system:String x:Key="S.Fox.Say.Found.1" xml:space="preserve">Oh, you found me!</system:String>
     <system:String x:Key="S.Fox.Say.Found.2" xml:space="preserve">Caught me peeking!</system:String>
     <system:String x:Key="S.Fox.Say.Caught.1" xml:space="preserve">You got me!</system:String>
@@ -2479,6 +2491,8 @@
     <system:String x:Key="S.FoxSettings.EyesWarm" xml:space="preserve">Pink eyes: he feels warm toward you.</system:String>
     <system:String x:Key="S.FoxSettings.EyesCold" xml:space="preserve">Blue eyes: he is cold toward you.</system:String>
     <system:String x:Key="S.FoxSettings.Sulking" xml:space="preserve">Sulking right now.</system:String>
+    <system:String x:Key="S.FoxSettings.Grudge" xml:space="preserve">Remembers old hurts: kindness warms him less for now.</system:String>
+    <system:String x:Key="S.FoxSettings.DayFull" xml:space="preserve">Friendship won't grow any more today.</system:String>
     <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Days together: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Friends since {0}</system:String>
     <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Today: pets {0}, games {1}, treats {2}, nose boops {3}</system:String>

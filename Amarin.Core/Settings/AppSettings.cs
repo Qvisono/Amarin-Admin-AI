@@ -121,7 +121,12 @@ public enum AppTheme
     Cream,
     Linen,
     Vellum,
-    Almond
+    Almond,
+
+    // Значения ниже 1.35 и раньше не знают: в settings.json они пишутся числом (AppThemeJsonConverter).
+    // Перечисление только дописывается в конец — число в файле и есть тема.
+    Onyx,
+    Carbon
 }
 
 public sealed class AppSettings : IJsonOnDeserializing
@@ -129,6 +134,7 @@ public sealed class AppSettings : IJsonOnDeserializing
     public bool AutoScroll { get; set; } = true;
 
     /// <summary>Colour scheme. <see cref="AppTheme.System"/> follows the Windows app theme.</summary>
+    [JsonConverter(typeof(AppThemeJsonConverter))]
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
     /// <summary>
@@ -138,7 +144,7 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </summary>
     public string LanguageCode { get; set; } = "ru";
 
-    /// <summary>Uniform UI zoom, percent. Allowed: 80, 90, 100, 110, 125, 150, 175, 200, 225, 250.</summary>
+    /// <summary>Uniform UI zoom, percent. Allowed: 80, 90, 100, 110, 115, 120, 125, 150, 175, 200, 225, 250.</summary>
     public int UiScalePercent { get; set; } = 100;
 
     /// <summary>

@@ -60,6 +60,8 @@
                             <ComboBoxItem Content="90%" Tag="90"/>
                             <ComboBoxItem Content="100%" Tag="100"/>
                             <ComboBoxItem Content="110%" Tag="110"/>
+                            <ComboBoxItem Content="115%" Tag="115"/>
+                            <ComboBoxItem Content="120%" Tag="120"/>
                             <ComboBoxItem Content="125%" Tag="125"/>
                             <ComboBoxItem Content="150%" Tag="150"/>
                             <ComboBoxItem Content="175%" Tag="175"/>

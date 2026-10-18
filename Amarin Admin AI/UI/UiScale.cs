@@ -10,7 +10,7 @@ namespace Amarin.UI;
 
 internal static class UiScale
 {
-    public static readonly int[] Percents = [80, 90, 100, 110, 125, 150, 175, 200, 225, 250];
+    public static readonly int[] Percents = [80, 90, 100, 110, 115, 120, 125, 150, 175, 200, 225, 250];
 
     private const int WmDpiChanged = 0x02E0;
 

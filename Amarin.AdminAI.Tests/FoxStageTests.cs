@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Amarin.Fox;
 
 namespace Amarin.AdminAI.Tests;
@@ -419,7 +420,10 @@ public sealed class FoxStageTests : IDisposable
         Assert.True(teeth);
     }
 
-    /// <summary>Указка гаснет через своё время, как бы ни метался курсор, и Роза садится.</summary>
+    /// <summary>
+    /// Указка гаснет через своё время, как бы ни метался курсор, и Роза садится. Точка — выше, чем он
+    /// допрыгнет: иначе он поймал бы её раньше срока, а тест о сроке.
+    /// </summary>
     [Fact]
     public void The_laser_ends_on_time_and_he_stops_chasing()
     {
@@ -429,7 +433,7 @@ public sealed class FoxStageTests : IDisposable
             var holding = false;
             for (var i = 0; i < 400; i++)
             {
-                host.PointerAt = new Point(i % 20 < 10 ? 250 : 650, 470);
+                host.PointerAt = new Point(i % 20 < 10 ? 250 : 650, 300);
                 host.Now = host.Now.AddMilliseconds(100);
                 stage.Advance(16);
                 holding |= stage.Holding;
@@ -554,6 +558,28 @@ public sealed class FoxStageTests : IDisposable
         Assert.Equal(FoxMode.Sleep, mode);
     }
 
+    /// <summary>
+    /// В переписке модель получает «прилечь», а не «уйти», и пожелание лечь укладывает его. Прежде
+    /// переписка запрещала любое занятие, и «ложусь» оставалось словами: спрайт сидел.
+    /// </summary>
+    [Fact]
+    public void In_the_chat_a_wish_to_lie_down_lays_him_down()
+    {
+        var (offered, anim) = With((stage, _, _) =>
+        {
+            IReadOnlyList<string> acts = [];
+            stage.MindRequested += (_, _, given) => acts = given;
+            stage.OpenChat();
+            _ = stage.Talk("приляг");
+            stage.Signal(new FoxSignal(FoxSignalKind.MindAct, Name: FoxActs.Lie));
+            return (acts, stage.Anim);
+        });
+
+        Assert.Contains(FoxActs.Lie, offered);
+        Assert.DoesNotContain(FoxActs.Wander, offered);
+        Assert.Equal("liedown", anim);
+    }
+
     /// <summary>Принёс мячик, а его не бросили за двенадцать секунд — уносит и обижается.</summary>
     [Fact]
     public void A_ball_he_brought_and_nobody_threw_makes_him_sulk()
@@ -605,6 +631,277 @@ public sealed class FoxStageTests : IDisposable
         });
 
         Assert.Equal(FoxMode.Walk, mode);
+    }
+
+    /// <summary>
+    /// «Поговорить» во время игры на бегу: он останавливается и слушает. До 1.36.0 меню в это время
+    /// молча ничего не делало, а бегает и играет он сам — «Поговорить» не срабатывало через раз.
+    /// </summary>
+    [Fact]
+    public void Talk_opens_while_he_runs_in_a_game()
+    {
+        var (running, mode, game, field) = With((stage, host, _) =>
+        {
+            stage.PlayGame(FoxWill.Catch);
+            host.PointerAt = new Point(stage.Corner.X + (stage.Side / 2), stage.Corner.Y + (stage.Side / 2));
+            stage.Advance(16);
+            var runs = stage.Mode == FoxMode.Walk;
+            stage.OpenTalk();
+            var talk = host.Layer.Children.OfType<Border>().SingleOrDefault(border => border.Child is TextBox);
+            return (runs, stage.Mode, stage.Game, talk?.Visibility);
+        });
+
+        Assert.True(running, "в догонялках он не побежал");
+        Assert.Equal(FoxMode.Idle, mode);
+        Assert.Null(game);
+        Assert.Equal(Visibility.Visible, field);
+    }
+
+    /// <summary>
+    /// Сказать из окна переписки — тем же сигналом, что поле над головой; на дневном потолке модель
+    /// не спрашивают, и окно узнаёт об этом сразу, а не ждёт ответа, которого не будет.
+    /// </summary>
+    [Fact]
+    public void Talk_from_the_chat_asks_the_mind_until_the_daily_cap()
+    {
+        var (asked, first, capped, requests) = With((stage, _, store) =>
+        {
+            var seen = new List<string>();
+            stage.MindRequested += (kind, text, _) => seen.Add(kind + ":" + text);
+            var ok = stage.Talk("привет");
+            store.Update(state => state.Today.Talks = FoxBrain.MaxTalks);
+            return (ok, seen.ToList(), stage.Talk("ещё"), seen.Count);
+        });
+
+        Assert.True(asked);
+        Assert.Equal(["talk:привет"], first);
+        Assert.False(capped);
+        Assert.Equal(1, requests);
+    }
+
+    /// <summary>
+    /// Переписка привязана к Розе: панель над ним, и «Поговорить» при ней ведёт в её поле, а не
+    /// открывает второе. Спрятался — панель закрывается вместе с ним.
+    /// </summary>
+    [Fact]
+    public void The_chat_sits_above_him_and_leaves_with_him()
+    {
+        var (above, oneField, gone) = With((stage, host, _) =>
+        {
+            stage.OpenChat();
+            host.Layer.UpdateLayout();
+            var chat = stage.Chat!;
+            var sitsAbove = Canvas.GetTop(chat) + chat.DesiredSize.Height <= stage.Corner.Y + 1;
+            stage.OpenTalk();
+            var talkField = host.Layer.Children.OfType<Border>().Any(border => border.Child is TextBox && border.IsVisible);
+            stage.HideFor(1);
+            return (sitsAbove, !talkField, stage.Chat is null && !host.Layer.Children.OfType<FoxChat>().Any());
+        }, motion: false);
+
+        Assert.True(above, "переписка не над Розой");
+        Assert.True(oneField, "при открытой переписке «Поговорить» открыло второе поле");
+        Assert.True(gone, "спрятался, а переписка осталась");
+    }
+
+    /// <summary>
+    /// Длинная реплика у правого края остаётся в окне. Пузырь ставился по размеру до первой
+    /// раскладки — меньше настоящего — и вылезал за край до следующего кадра.
+    /// </summary>
+    [Fact]
+    public void A_long_line_at_the_right_edge_stays_inside_the_window()
+    {
+        var (right, width) = With((stage, host, _) =>
+        {
+            stage.Signal(new FoxSignal(FoxSignalKind.MindReaction, Text: "Мысли запутались, как хвостик, и ещё долго не распутаются. Спроси попозже?"));
+            host.Layer.UpdateLayout();
+            var bubble = host.Layer.Children.OfType<Border>().Single(border => border.Child is TextBlock && border.IsVisible);
+            return (Canvas.GetLeft(bubble) + bubble.ActualWidth, host.Layer.Width);
+        }, motion: false);
+
+        Assert.True(right <= width - 8 + 0.5, $"пузырь вылез за край: {right} из {width}");
+    }
+
+    // ───────────── игры, отказы и укусы (1.36.0) ─────────────
+
+    /// <summary>
+    /// Догонялки: нажатие на бегущего — «поймал». Прежде поимку ждали на отпускании, а за бегущим рука
+    /// не стоит на месте: нажатие становилось «взял на руки», и игра молча кончалась.
+    /// </summary>
+    [Fact]
+    public void Pressing_him_in_tag_catches_him_instead_of_picking_him_up()
+    {
+        var (running, game, mode, games, handled) = With((stage, host, store) =>
+        {
+            stage.PlayGame(FoxWill.Catch);
+            host.PointerAt = new Point(stage.Corner.X + (stage.Side / 2), stage.Corner.Y + (stage.Side / 2));
+            stage.Advance(16);
+            var runs = stage.Mode == FoxMode.Walk;
+            var press = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
+            stage.Element.RaiseEvent(press);
+            return (runs, stage.Game, stage.Mode, store.Snapshot().Today.Games, press.Handled);
+        });
+
+        Assert.True(running, "в догонялках он не побежал");
+        Assert.Null(game);
+        Assert.NotEqual(FoxMode.Drag, mode);
+        Assert.Equal(1, games);
+        Assert.True(handled, "нажатие ушло окну — оно начало бы им перетаскивание окна");
+    }
+
+    /// <summary>«Закончить игру» из меню гасит любую игру: указку, догонялки, прятки.</summary>
+    [Fact]
+    public void Ending_the_game_stops_the_laser_tag_and_hide_and_seek()
+    {
+        var (laser, tag, seek) = With((stage, host, _) =>
+        {
+            stage.PlayLaser();
+            var laserOn = stage.Playing;
+            stage.EndGame();
+            var laserOff = laserOn && !stage.Playing && !stage.LaserShown && !stage.Holding;
+
+            stage.PlayGame(FoxWill.Catch);
+            var tagOn = stage.Playing;
+            stage.EndGame();
+            var tagOff = tagOn && !stage.Playing;
+
+            stage.PlayGame(FoxWill.HideSeek);
+            var seekOn = stage.Mode == FoxMode.Peek;
+            stage.EndGame();
+            return (laserOff, tagOff, seekOn && !stage.Playing && stage.Mode == FoxMode.Idle);
+        });
+
+        Assert.True(laser, "указка не закончилась");
+        Assert.True(tag, "догонялки не закончились");
+        Assert.True(seek, "прятки не закончились");
+    }
+
+    /// <summary>Точка на его пути ловится раньше срока. До 1.36.0 поймать её было нельзя вовсе.</summary>
+    [Fact]
+    public void A_dot_on_his_path_is_caught_before_time()
+    {
+        var (caught, holding) = With((stage, host, _) =>
+        {
+            stage.PlayLaser();
+            host.PointerAt = new Point(stage.Corner.X - 100, stage.Corner.Y + (stage.Side * 0.6));
+            for (var i = 0; i < 300 && stage.LaserShown; i++)
+            {
+                stage.Advance(16);
+            }
+
+            return (!stage.LaserShown, stage.Holding);
+        });
+
+        Assert.True(caught, "точку на пути он так и не поймал");
+        Assert.False(holding);
+    }
+
+    /// <summary>В руках курсор лежит на нём: это держат его, а не он поймал точку.</summary>
+    [Fact]
+    public void Holding_him_during_the_laser_is_not_a_catch()
+    {
+        var laser = With((stage, host, _) =>
+        {
+            stage.PlayLaser();
+            host.PointerAt = new Point(400, 300);
+            stage.BeginDrag(new Point(400, 300));
+            stage.Advance(16);
+            return stage.LaserShown;
+        });
+
+        Assert.True(laser, "взятый на руки «поймал» указку");
+    }
+
+    /// <summary>
+    /// Точку над головой он ловит настоящим прыжком, а приземление — его собственное, не бросок: мозг
+    /// не получает «приземлился», и игр в счёт не прибавляется.
+    /// </summary>
+    [Fact]
+    public void He_leaps_for_a_dot_above_him_and_lands_without_a_throw()
+    {
+        var (flew, caught, mode, extraGames) = With((stage, host, store) =>
+        {
+            stage.PlayLaser();
+            var games = store.Snapshot().Today.Games;
+            host.PointerAt = new Point(stage.Corner.X + (stage.Side / 2), stage.Corner.Y - (stage.Side * 0.6));
+            var leapt = false;
+            for (var i = 0; i < 400 && (stage.LaserShown || stage.Mode != FoxMode.Idle); i++)
+            {
+                stage.Advance(16);
+                leapt |= stage.Mode == FoxMode.Fly;
+            }
+
+            return (leapt, !stage.LaserShown, stage.Mode, store.Snapshot().Today.Games - games);
+        });
+
+        Assert.True(flew, "за точкой над головой он не прыгнул");
+        Assert.True(caught, "в прыжке он точку не поймал");
+        Assert.Equal(FoxMode.Idle, mode);
+        Assert.Equal(0, extraGames);
+    }
+
+    /// <summary>Злого трясут в руках — кусает, вырывается и, при «Шалостях», сбивает курсор в сторону.</summary>
+    [Fact]
+    public void A_shaken_angry_fox_bites_free_and_knocks_the_cursor_aside()
+    {
+        var (mode, shoves) = With((stage, host, store) =>
+        {
+            host.PointerAt = new Point(400, 300);
+            stage.BeginDrag(new Point(400, 300));
+            store.Update(state => state.Resentment = 60);
+            stage.Signal(FoxSignalKind.Shake);
+            var free = stage.Mode;
+            for (var i = 0; i < 30; i++)
+            {
+                host.Now = host.Now.AddMilliseconds(16);
+                stage.Advance(16);
+            }
+
+            return (free, host.Shoves.Count);
+        });
+
+        Assert.Equal(FoxMode.Fly, mode);
+        Assert.Equal(1, shoves);
+    }
+
+    /// <summary>Тёплый слушает всегда; холодный хотя бы раз отворачивается — и поле, и переписка не открываются.</summary>
+    [Fact]
+    public void A_cold_fox_sometimes_will_not_talk_and_a_warm_one_always_does()
+    {
+        var (warm, talkRefused, chatRefused) = With((stage, host, store) =>
+        {
+            Border? Field() => host.Layer.Children.OfType<Border>().SingleOrDefault(border => border.Child is TextBox);
+
+            stage.OpenTalk();
+            var listened = Field()?.Visibility == Visibility.Visible;
+            stage.LetGo();
+
+            store.Update(state =>
+            {
+                state.Affection = -60;
+                state.Cold = true;
+            });
+            var talkNo = false;
+            for (var i = 0; i < 20 && !talkNo; i++)
+            {
+                stage.OpenTalk();
+                talkNo = Field()?.Visibility != Visibility.Visible;
+                stage.LetGo();
+            }
+
+            var chatNo = false;
+            for (var i = 0; i < 20 && !chatNo; i++)
+            {
+                stage.OpenChat();
+                chatNo = stage.Chat is null;
+                stage.CloseChat();
+            }
+
+            return (listened, talkNo, chatNo);
+        }, motion: false);
+
+        Assert.True(warm, "тёплый не стал слушать");
+        Assert.True(talkRefused, "холодный ни разу не отказался говорить");
+        Assert.True(chatRefused, "холодный ни разу не отказался от переписки");
     }
 
     /// <summary>Доходит, куда шёл, и садится: не больше десяти секунд кадров.</summary>
@@ -704,6 +1001,11 @@ public sealed class FoxStageTests : IDisposable
         public bool Motion() => Moving;
 
         public Point? Pointer() => PointerAt;
+
+        /// <summary>Куда укус сбил курсор: настоящую мышь тест не трогает.</summary>
+        public List<Point> Shoves { get; } = [];
+
+        public void ShoveCursor(Point onLayer) => Shoves.Add(onLayer);
 
         public void NewChat() => NewChats++;
 

@@ -44,8 +44,9 @@ internal static class FoxMischief
 
     public static bool Allowed(FoxState state, FoxSituation situation, DateTime now)
     {
+        // В переписке человек занят Розой самим, а шалость увела бы его с места вместе с панелью.
         if (!situation.MischiefEnabled || !situation.WindowActive || situation.Covered || !situation.InputEmpty ||
-            situation.TurnRunning || situation.UiBusy || situation.Away || situation.SinceTyping < QuietTyping)
+            situation.TurnRunning || situation.UiBusy || situation.Away || situation.Chatting || situation.SinceTyping < QuietTyping)
         {
             return false;
         }

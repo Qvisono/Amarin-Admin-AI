@@ -37,6 +37,12 @@ internal sealed partial class FoxStage
     private double _impact;
     private int _bounces;
 
+    /// <summary>
+    /// Этот полёт — его собственный прыжок (вырвался из рук, прыгнул за указкой), а не бросок:
+    /// приземление мозгу не сигнал, иначе он радовался бы «полёту», а дружба и игры шли бы в счёт.
+    /// </summary>
+    private bool _selfLaunched;
+
     /// <summary>Быстрее этого (вниз, точек в мс) коснувшийся кромки отскакивает, а не садится.</summary>
     private const double BounceSpeed = 0.45;
     private const int MaxBounces = 3;
@@ -273,14 +279,18 @@ internal sealed partial class FoxStage
         Play("sit", "sit");
     }
 
-    /// <summary>Отпустили или бросили: летит с этой скоростью (точек в мс).</summary>
-    internal void Throw(double vx, double vy)
+    /// <summary>
+    /// Отпустили или бросили: летит с этой скоростью (точек в мс). <paramref name="selfLaunched"/> —
+    /// прыгнул сам: садится без отскоков и без сигнала мозгу.
+    /// </summary>
+    internal void Throw(double vx, double vy, bool selfLaunched = false)
     {
         _mode = FoxMode.Fly;
         _vx = vx;
         _vy = vy;
         _impact = 0;
         _bounces = 0;
+        _selfLaunched = selfLaunched;
 
         // В полёте кренится вокруг середины, а не вокруг шкирки, за которую висел.
         _tilt.CenterX = _sprite.Side / 2;
@@ -356,7 +366,7 @@ internal sealed partial class FoxStage
     private void Touch(string spot, double edgeY, double foot, double speed)
     {
         _impact = Math.Max(_impact, speed);
-        if (_vy > BounceSpeed && _bounces < MaxBounces && _host.Motion())
+        if (_vy > BounceSpeed && _bounces < MaxBounces && _host.Motion() && !_selfLaunched)
         {
             _bounces++;
             _y = edgeY - Px(Ground(_anim));
@@ -383,7 +393,12 @@ internal sealed partial class FoxStage
         }
 
         Squash();
-        Signal(new FoxSignal(FoxSignalKind.Landed, Value: speed));
+        if (!_selfLaunched)
+        {
+            Signal(new FoxSignal(FoxSignalKind.Landed, Value: speed));
+        }
+
+        _selfLaunched = false;
         if (spot == FoxSpot.Floor)
         {
             OffTheButtons();
@@ -811,7 +826,9 @@ internal sealed partial class FoxStage
             case < 85:
                 LieDown(wag: false);
                 break;
-            case < 92 when _host.Motion() && _spot != FoxSpot.Floor:
+            // В переписке с места не сходит даже на шаг: панель поехала бы под рукой человека, а
+            // желание модели, пришедшее на этом шаге, не исполнилось бы — он не сидит.
+            case < 92 when _host.Motion() && _spot != FoxSpot.Floor && !Chatting:
                 var step = Px(16 + _random.Next(32)) * (_random.Next(2) == 0 ? -1 : 1);
                 WalkTo(_foot + step, run: false);
                 break;

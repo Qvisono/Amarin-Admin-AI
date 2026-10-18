@@ -260,6 +260,141 @@ public sealed class FoxBrainTests
         Assert.DoesNotContain(Run(state, new FoxSignal(FoxSignalKind.MindEscape, Value: 10)), action => action.Kind == FoxActionKind.Escape);
     }
 
+    // ───────────── дружбу зарабатывают (1.36.0) ─────────────
+
+    private static FoxState Cold()
+    {
+        var state = Known(-60);
+        state.Cold = true;
+        return state;
+    }
+
+    /// <summary>
+    /// Одно и то же действие дружбу больше не накручивает: за день она растёт не больше чем на шесть
+    /// и падает не больше чем на восемнадцать, сколько ни повторяй. Назавтра пределы снова полные.
+    /// </summary>
+    [Fact]
+    public void Friendship_grows_at_most_six_a_day_and_falls_at_most_eighteen()
+    {
+        var state = Known(0);
+        for (var i = 0; i < 30; i++)
+        {
+            Run(state, new FoxSignal(FoxSignalKind.MindReaction, Value: 3));
+        }
+
+        Assert.Equal(FoxFriendship.MaxGainPerDay, state.Affection, 6);
+        Assert.True(FoxFriendship.GainedAll(state.Today));
+
+        for (var i = 0; i < 30; i++)
+        {
+            Run(state, FoxSignalKind.TailPull);
+        }
+
+        Assert.Equal(FoxFriendship.MaxGainPerDay - FoxFriendship.MaxLossPerDay, state.Affection, 6);
+
+        var before = state.Affection;
+        Run(state, FoxSignalKind.Pet, now: Noon.AddDays(1));
+        Assert.True(state.Affection > before, "назавтра ласка снова греет");
+    }
+
+    /// <summary>Проступок вдвое тяжелее, ложится в память обид, и после него та же ласка греет слабее.</summary>
+    [Fact]
+    public void A_wrong_weighs_double_is_remembered_and_dims_kindness()
+    {
+        var hurt = Known(40);
+        Run(hurt, FoxSignalKind.TailPull);
+        Assert.Equal(34, hurt.Affection, 6);
+        Assert.Equal(6, hurt.Grudge, 6);
+
+        var fresh = Known(34);
+        Run(hurt, FoxSignalKind.Pet);
+        Run(fresh, FoxSignalKind.Pet);
+        Assert.True(hurt.Affection - 34 < fresh.Affection - 34, "ласка после проступка греет так же");
+    }
+
+    /// <summary>Обида тает с часами, а память обид — нет: её стирает только добрый день без проступков.</summary>
+    [Fact]
+    public void Hours_do_not_heal_the_grudge_but_kind_days_do()
+    {
+        var state = Known();
+        state.Grudge = 10;
+        state.Resentment = 50;
+        for (var i = 0; i < 12; i++)
+        {
+            Run(state, new FoxSignal(FoxSignalKind.Tick, Value: 600), now: Noon.AddMinutes(10 * i));
+        }
+
+        Assert.Equal(10, state.Grudge);
+        Assert.True(state.Resentment < 50);
+
+        Run(state, FoxSignalKind.Pet, now: Noon.AddHours(3));
+        Run(state, new FoxSignal(FoxSignalKind.Tick, Value: 10), now: Noon.AddDays(1));
+        Assert.Equal(10 - FoxFriendship.ForgivenPerDay, state.Grudge, 6);
+
+        Run(state, FoxSignalKind.Pet, now: Noon.AddDays(1).AddHours(1));
+        Run(state, FoxSignalKind.TailPull, now: Noon.AddDays(1).AddHours(2));
+        var remembered = state.Grudge;
+        Run(state, new FoxSignal(FoxSignalKind.Tick, Value: 10), now: Noon.AddDays(2));
+        Assert.Equal(remembered, state.Grudge);
+    }
+
+    /// <summary>Тёплый слушает и идёт на руки всегда; холодный иногда отворачивается или кусает и вырывается.</summary>
+    [Fact]
+    public void A_warm_fox_always_listens_and_a_cold_one_sometimes_refuses()
+    {
+        for (var seed = 0; seed < 50; seed++)
+        {
+            Assert.DoesNotContain(Run(Known(), FoxSignalKind.TalkAsked, seed: seed), action => action.Kind == FoxActionKind.Refuse);
+            Assert.DoesNotContain(Run(Known(), FoxSignalKind.Grab, seed: seed), action => action.Kind == FoxActionKind.Refuse);
+        }
+
+        var talks = Enumerable.Range(0, 50).Select(seed => Run(Cold(), FoxSignalKind.TalkAsked, seed: seed)).ToList();
+        var refusedTalks = talks.Where(actions => actions.Exists(action => action.Kind == FoxActionKind.Refuse)).ToList();
+        Assert.InRange(refusedTalks.Count, 1, 49);
+        Assert.All(refusedTalks, actions => Assert.Equal(["S.Fox.Say.TalkRefuse"], Said(actions)));
+
+        var grabs = Enumerable.Range(0, 50).Select(seed => Run(Cold(), FoxSignalKind.Grab, seed: seed)).ToList();
+        var bitFree = grabs.Where(actions => actions.Exists(action => action.Kind == FoxActionKind.Refuse)).ToList();
+        Assert.InRange(bitFree.Count, 1, 49);
+        Assert.All(bitFree, actions =>
+        {
+            Assert.Contains(actions, action => action is { Kind: FoxActionKind.Effect, Name: "chomp" });
+            Assert.Equal(["S.Fox.Say.GrabRefuse"], Said(actions));
+        });
+    }
+
+    [Fact]
+    public void Shaking_an_angry_fox_gets_you_bitten_and_he_breaks_free()
+    {
+        var angry = Known();
+        angry.Resentment = 60;
+        var actions = Run(angry, FoxSignalKind.Shake);
+        Assert.Contains(actions, action => action.Kind == FoxActionKind.Refuse);
+        Assert.Contains(actions, action => action is { Kind: FoxActionKind.Effect, Name: "chomp" });
+        Assert.Contains("bit-free", angry.Today.Events);
+
+        Assert.DoesNotContain(Run(Known(), FoxSignalKind.Shake), action => action.Kind == FoxActionKind.Refuse);
+    }
+
+    /// <summary>Сбить курсор укусом — значит отнять мышь у человека: только при «Шалостях».</summary>
+    [Fact]
+    public void A_bite_knocks_the_cursor_aside_only_with_mischief_on()
+    {
+        static FoxState Angry()
+        {
+            var state = Known();
+            state.Resentment = 60;
+            return state;
+        }
+
+        var playful = Run(Angry(), FoxSignalKind.Teased, new FoxSituation { MischiefEnabled = true });
+        Assert.Contains(playful, action => action is { Kind: FoxActionKind.Effect, Name: "shove" });
+
+        var quiet = Run(Angry(), FoxSignalKind.Teased, new FoxSituation { MischiefEnabled = false });
+        Assert.Contains(quiet, action => action is { Kind: FoxActionKind.Effect, Name: "chomp" });
+        Assert.DoesNotContain(quiet, action => action is { Kind: FoxActionKind.Effect, Name: "shove" });
+    }
+
     // ───────────── шалости ─────────────
 
     private static readonly FoxSituation Calm = new() { SinceTyping = TimeSpan.FromMinutes(5) };

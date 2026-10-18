@@ -42,7 +42,8 @@ internal static class FoxWill
     /// <summary>Занятие на этот тик или null — заняться нечем или нельзя.</summary>
     public static string? Choose(FoxState state, FoxSituation situation, DateTime now, Random random)
     {
-        if (!situation.WindowActive || situation.Covered || situation.Away || situation.UiBusy ||
+        // В переписке он слушает: своё занятие увело бы его, а с ним и панель, из-под руки человека.
+        if (!situation.WindowActive || situation.Covered || situation.Away || situation.UiBusy || situation.Chatting ||
             situation.SinceTyping < QuietTyping || (state.NextActivityAt is { } next && now < next))
         {
             return null;

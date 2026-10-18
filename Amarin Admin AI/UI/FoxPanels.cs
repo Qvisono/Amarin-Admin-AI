@@ -40,10 +40,21 @@ internal static class FoxPanels
             panel.Children.Add(Text(Loc.Get("S.FoxSettings.Sulking")));
         }
 
+        // Без этих строк человек не понял бы, почему ласка вдруг перестала что-то менять.
+        if (state.Grudge >= FoxFriendship.GrudgeFelt)
+        {
+            panel.Children.Add(Text(Loc.Get("S.FoxSettings.Grudge")));
+        }
+
         var now = DateTime.Now;
+        var today = state.Today.Date == FoxDays.Key(now) ? state.Today : new FoxDay();
+        if (FoxFriendship.GainedAll(today))
+        {
+            panel.Children.Add(Text(Loc.Get("S.FoxSettings.DayFull")));
+        }
+
         panel.Children.Add(Text(Loc.Format("S.FoxSettings.Days", FoxFriendship.DaysTogether(state, now).ToString(CultureInfo.CurrentCulture))));
         panel.Children.Add(Text(Loc.Format("S.FoxSettings.Met", met.ToString("D", CultureInfo.CurrentCulture))));
-        var today = state.Today.Date == FoxDays.Key(now) ? state.Today : new FoxDay();
         panel.Children.Add(Text(Loc.Format(
             "S.FoxSettings.Today",
             today.Pets.ToString(CultureInfo.CurrentCulture),

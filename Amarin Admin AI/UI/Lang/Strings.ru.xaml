@@ -2383,17 +2383,29 @@
     <system:String x:Key="S.Fox.Menu.Treat" xml:space="preserve">Вкусняшка</system:String>
     <system:String x:Key="S.Fox.Menu.Ball" xml:space="preserve">Кинуть мячик</system:String>
     <system:String x:Key="S.Fox.Menu.Laser" xml:space="preserve">Лазерная указка</system:String>
+    <system:String x:Key="S.Fox.Menu.StopGame" xml:space="preserve">Закончить игру</system:String>
     <system:String x:Key="S.Fox.Menu.HideHour" xml:space="preserve">Спрятать на час</system:String>
     <system:String x:Key="S.Fox.Menu.HideDay" xml:space="preserve">Спрятать до завтра</system:String>
     <system:String x:Key="S.Fox.Menu.Talk" xml:space="preserve">Поговорить</system:String>
     <system:String x:Key="S.Fox.Menu.HideSeek" xml:space="preserve">Прятки</system:String>
     <system:String x:Key="S.Fox.Menu.Chase" xml:space="preserve">Догонялки</system:String>
     <system:String x:Key="S.Fox.TalkHint" xml:space="preserve">Скажи Розе что-нибудь…</system:String>
+    <system:String x:Key="S.Fox.Menu.Chat" xml:space="preserve">Переписка</system:String>
+    <system:String x:Key="S.Fox.Chat.Title" xml:space="preserve">Переписка с Розой</system:String>
+    <system:String x:Key="S.Fox.Chat.Empty" xml:space="preserve">Вы ещё не разговаривали. Напиши Розе что-нибудь.</system:String>
+    <system:String x:Key="S.Fox.Chat.Tired" xml:space="preserve">Я наговорился на сегодня. Давай завтра?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.1" xml:space="preserve">Слова куда-то убежали… Погладишь меня?</system:String>
     <system:String x:Key="S.Fox.Say.Mute.2" xml:space="preserve">Мысли запутались, как хвостик. Спроси попозже?</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.1" xml:space="preserve">Иди на х**!</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.2" xml:space="preserve">Не дождёшься. Иди на х**!</system:String>
     <system:String x:Key="S.Fox.Say.CallRefuse.3" xml:space="preserve">Отстань! Иди на х**!</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.1" xml:space="preserve">Не хочу с тобой разговаривать.</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.2" xml:space="preserve">Отстань. Не до тебя.</system:String>
+    <system:String x:Key="S.Fox.Say.TalkRefuse.3" xml:space="preserve">Не буду я с тобой говорить.</system:String>
+    <system:String x:Key="S.Fox.Say.GrabRefuse.1" xml:space="preserve">Пусти!</system:String>
+    <system:String x:Key="S.Fox.Say.GrabRefuse.2" xml:space="preserve">Не трогай меня!</system:String>
+    <system:String x:Key="S.Fox.Say.LaserCaught.1" xml:space="preserve">Поймал!</system:String>
+    <system:String x:Key="S.Fox.Say.LaserCaught.2" xml:space="preserve">Попалась, точка!</system:String>
     <system:String x:Key="S.Fox.Say.Found.1" xml:space="preserve">Ой, нашли!</system:String>
     <system:String x:Key="S.Fox.Say.Found.2" xml:space="preserve">Эх, попался!</system:String>
     <system:String x:Key="S.Fox.Say.Caught.1" xml:space="preserve">Поймали!</system:String>
@@ -2479,6 +2491,8 @@
     <system:String x:Key="S.FoxSettings.EyesWarm" xml:space="preserve">Глаза розовые: он к вам тепло.</system:String>
     <system:String x:Key="S.FoxSettings.EyesCold" xml:space="preserve">Глаза синие: он к вам холоден.</system:String>
     <system:String x:Key="S.FoxSettings.Sulking" xml:space="preserve">Сейчас дуется.</system:String>
+    <system:String x:Key="S.FoxSettings.Grudge" xml:space="preserve">Помнит старые обиды: ласка пока греет его слабее.</system:String>
+    <system:String x:Key="S.FoxSettings.DayFull" xml:space="preserve">На сегодня дружба больше не растёт.</system:String>
     <system:String x:Key="S.FoxSettings.Days" xml:space="preserve">Дней вместе: {0}</system:String>
     <system:String x:Key="S.FoxSettings.Met" xml:space="preserve">Знакомы с {0}</system:String>
     <system:String x:Key="S.FoxSettings.Today" xml:space="preserve">Сегодня: поглаживаний {0}, игр {1}, вкусняшек {2}, тыков в нос {3}</system:String>

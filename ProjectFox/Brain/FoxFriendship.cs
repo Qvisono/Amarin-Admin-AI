@@ -40,13 +40,63 @@ internal static class FoxFriendship
     }
 
     /// <summary>
+    /// Сколько привязанности прибавляется за день — не больше. До 1.36.0 предела не было, и тык в нос,
+    /// мягкое приземление, похвала и ответы своей модели накручивали дружбу без конца одним действием.
+    /// </summary>
+    public const double MaxGainPerDay = 6;
+
+    /// <summary>Убавляется за день втрое больше, чем прибавляется: проступок весит сильнее ласки.</summary>
+    public const double MaxLossPerDay = MaxGainPerDay * 3;
+
+    /// <summary>Во сколько раз проступок тяжелее, чем записан у сигнала.</summary>
+    public const double WrongWeight = 2;
+
+    /// <summary>
+    /// Сколько памяти обид стирает один добрый день — с вниманием и без проступков. Часы её не
+    /// лечат, в отличие от обиды: Роза помнит, а не дуется.
+    /// </summary>
+    public const double ForgivenPerDay = 4;
+
+    /// <summary>С этой памяти обид Роза их заметно помнит: слова модели, строка в «Нашей дружбе».</summary>
+    public const double GrudgeFelt = 15;
+
+    /// <summary>
     /// Прибавка с убыванием за день: первое поглаживание греет сильнее сотого, и дружбу нельзя
     /// накрутить, водя мышью по Розе полчаса.
     /// </summary>
     public static double Gain(double amount, int timesToday) => amount * Math.Pow(0.85, Math.Max(0, timesToday));
 
-    public static void Change(FoxState state, double delta) =>
+    /// <summary>
+    /// Насколько доходит ласка: без памяти обид — целиком (добрым с самого начала быть выгодно), при
+    /// памяти 20 — наполовину.
+    /// </summary>
+    public static double Trust(FoxState state) => 1 / (1 + (state.Grudge / 20));
+
+    /// <summary>
+    /// Единственное место, где меняется привязанность. Прибавка гасится памятью обид и дневным
+    /// пределом, убавка вдвое тяжелее, со своим пределом, и ложится в память обид.
+    /// </summary>
+    public static void Change(FoxState state, double delta)
+    {
+        var day = state.Today;
+        if (delta > 0)
+        {
+            delta = Math.Min(delta * Trust(state), Math.Max(0, MaxGainPerDay - day.Gained));
+            day.Gained += delta;
+        }
+        else if (delta < 0)
+        {
+            var loss = Math.Min(-delta * WrongWeight, Math.Max(0, MaxLossPerDay - day.Lost));
+            day.Lost += loss;
+            state.Grudge = Math.Min(100, state.Grudge + loss);
+            delta = -loss;
+        }
+
         state.Affection = Math.Clamp(state.Affection + delta, FoxState.MinAffection, FoxState.MaxAffection);
+    }
+
+    /// <summary>Дневной предел прибавки выбран; сотая доля — запас на сложение дробей.</summary>
+    public static bool GainedAll(FoxDay day) => day.Gained >= MaxGainPerDay - 0.01;
 
     public static void Resent(FoxState state, double delta) =>
         state.Resentment = Math.Clamp(state.Resentment + delta, 0, 100);
@@ -83,7 +133,8 @@ internal static class FoxDays
     /// <remarks>
     /// Забвение считается только по дням, когда программа была открыта: день без открытого окна
     /// пустой, и за него Роза не обижается — он «скучал». Не гладили и не играли два таких дня
-    /// подряд — привязанность начинает таять.
+    /// подряд — привязанность начинает таять. Прощает он тоже только такими днями: с вниманием и без
+    /// единого проступка — пустой день памяти обид не стирает.
     /// </remarks>
     public static bool Roll(FoxState state, DateTime now)
     {
@@ -103,6 +154,11 @@ internal static class FoxDays
             }
 
             var attention = finished.Pets + finished.Games + finished.Treats + finished.Talks > 0;
+            if (attention && finished.Lost == 0)
+            {
+                state.Grudge = Math.Max(0, state.Grudge - FoxFriendship.ForgivenPerDay);
+            }
+
             state.NeglectDays = attention ? 0 : state.NeglectDays + 1;
             if (state.NeglectDays >= 2)
             {
@@ -194,6 +250,9 @@ internal static class FoxPhrases
         ["Mischief"] = 3,
         ["Mute"] = 2,
         ["CallRefuse"] = 3,
+        ["TalkRefuse"] = 3,
+        ["GrabRefuse"] = 2,
+        ["LaserCaught"] = 2,
         ["Found"] = 2,
         ["Caught"] = 2,
         ["FetchAsk"] = 2,

@@ -97,6 +97,32 @@ public sealed class AccessibilityTests
         Assert.NotEqual(DependencyProperty.UnsetValue, button);
     }
 
+    /// <summary>
+    /// Контейнеры без рамки: фокус в колонку, навигацию настроек или слой ставит сам код, и после
+    /// любой клавиши акцентная рамка обводила всю колонку (1.36.0, скриншот человека). Элементы-
+    /// действия рамку сохраняют: по ней видно, куда пришёл Tab.
+    /// </summary>
+    [Fact]
+    public void Containers_draw_no_focus_frame_and_action_controls_keep_it()
+    {
+        var (containers, actions) = _wpf.Ui.Invoke(() =>
+        {
+            var boxes = new Control[] { new ScrollViewer(), new ListBox(), new UserControl { Focusable = true } };
+            var controls = new Control[] { new Button(), new CheckBox(), new RadioButton(), new ComboBox(), new Slider() };
+            foreach (var control in boxes.Concat(controls))
+            {
+                AccessibilityDefaults.ApplyFocusFrame(control);
+            }
+
+            return (
+                boxes.Select(box => box.FocusVisualStyle).ToList(),
+                controls.Select(control => control.ReadLocalValue(FrameworkElement.FocusVisualStyleProperty)).ToList());
+        });
+
+        Assert.All(containers, Assert.Null);
+        Assert.All(actions, value => Assert.NotEqual(DependencyProperty.UnsetValue, value));
+    }
+
     private static void Collect(DependencyObject root, List<string> found)
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)

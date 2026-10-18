@@ -299,7 +299,7 @@ public sealed class FoxMindTests : IDisposable
 
         run.Mind.Ask("react", "TopSecretChatMarker");
         await run.Mind.IdleAsync();
-        run.Mind.Ask("think", "");
+        run.Mind.Ask("think", "", FoxActs.All);
         await run.Mind.IdleAsync();
 
         var thought = server.Requests[^1].Body;
@@ -401,6 +401,203 @@ public sealed class FoxMindTests : IDisposable
         Assert.False(string.IsNullOrWhiteSpace(entry.Text));
     }
 
+    /// <summary>
+    /// Лёгкая модель забыла про JSON и ответила разговором простым текстом — это и есть ответ. До
+    /// 1.36.0 разбор бросал, и такой ответ ронял поток разума.
+    /// </summary>
+    [Fact]
+    public async Task A_plain_text_talk_is_the_answer()
+    {
+        var server = new Server(_ => Answer("Мур! Я тут, рядом с тобой."));
+        await using var run = Start(server);
+
+        run.Mind.Ask("talk", "ты где, Роза?");
+        await run.Mind.IdleAsync();
+
+        var reply = Assert.Single(run.Replies);
+        Assert.False(reply.Failed);
+        Assert.Equal("Мур! Я тут, рядом с тобой.", reply.Line);
+        Assert.Equal("Мур! Я тут, рядом с тобой.", run.Store.Snapshot().Conversation[^1].Rosa);
+    }
+
+    /// <summary>
+    /// Ответ без JSON на реакцию — тишина, а не смерть разума: следующий разговор отвечает. До
+    /// 1.36.0 поток падал на разборе, и Роза до перезапуска не отвечал ни на что.
+    /// </summary>
+    [Fact]
+    public async Task A_plain_text_reaction_stays_silent_and_rosa_keeps_answering()
+    {
+        var server = new Server(body => Answer(body.Contains("Человек говорит тебе", StringComparison.Ordinal)
+            ? """{"emotion":"happy","line":"Я здесь!","mood":1}"""
+            : "Конечно, вот как это сделать: откройте настройки."));
+        await using var run = Start(server);
+
+        run.Mind.Ask("react", "как поменять тему?");
+        await run.Mind.IdleAsync();
+        run.Mind.Ask("talk", "Роза, ты тут?");
+        await Until(() => run.Replies.Any(reply => reply.Kind == "talk"));
+
+        Assert.Equal("", run.Replies.Single(reply => reply.Kind == "react").Line);
+        Assert.Equal("Я здесь!", run.Replies.Single(reply => reply.Kind == "talk").Line);
+    }
+
+    /// <summary>Повисший сервер держит Розу не дольше своего срока: разговор получает «слова убежали».</summary>
+    [Fact]
+    public async Task A_hung_server_fails_the_talk_after_its_deadline()
+    {
+        var server = new Server(_ => Answer("""{"emotion":"happy","line":"Поздно","mood":0}"""), delay: TimeSpan.FromMinutes(5));
+        await using var run = Start(server, callTimeout: TimeSpan.FromMilliseconds(200));
+
+        run.Mind.Ask("talk", "привет, Роза");
+        await Until(() => !run.Replies.IsEmpty);
+
+        Assert.True(Assert.Single(run.Replies).Failed);
+    }
+
+    /// <summary>Модель только пожелала что-то сделать и ничего не сказала — второй раунд за ответом.</summary>
+    [Fact]
+    public async Task A_wish_without_a_line_gets_a_second_round()
+    {
+        var calls = 0;
+        var server = new Server(_ => Interlocked.Increment(ref calls) == 1
+            ? ToolCall("act", """{"action":"cuddle"}""")
+            : Answer("""{"emotion":"love","line":"Иди сюда, обниму!","mood":1}"""));
+        await using var run = Start(server);
+
+        run.Mind.Ask("talk", "я соскучился", [FoxActs.Cuddle, FoxActs.Lie]);
+        await run.Mind.IdleAsync();
+
+        Assert.Equal(2, server.Requests.Count);
+        Assert.Contains("Принято. Теперь ответь человеку.", server.Requests[1].Body);
+
+        // Желание за ответ одно: во втором раунде второго уже не предлагают.
+        Assert.DoesNotContain("\"act\"", ToolsOf(server.Requests[1].Body));
+        var reply = Assert.Single(run.Replies);
+        Assert.Equal("Иди сюда, обниму!", reply.Line);
+        Assert.Equal(["cuddle"], reply.Acts);
+    }
+
+    /// <summary>
+    /// Слова не расходятся с делом: модель получает только те желания, что мозг сейчас исполнит, а
+    /// непредложенное из ответа не доезжает. До 1.36.0 она видела весь список, и в переписке Роза
+    /// писал «ложусь», а мозг молча отказывал.
+    /// </summary>
+    [Fact]
+    public async Task Only_what_he_can_do_now_is_offered_and_taken()
+    {
+        var server = new Server(_ => ToolCall("act", """{"action":"wander","line":"Пойду-ка я."}"""));
+        await using var run = Start(server);
+
+        run.Mind.Ask("talk", "что будешь делать?", [FoxActs.Lie, FoxActs.Nap]);
+        await run.Mind.IdleAsync();
+
+        var tools = ToolsOf(server.Requests[0].Body);
+        Assert.Contains("\"lie\"", tools);
+        Assert.Contains("прилечь", tools);
+        Assert.DoesNotContain("\"wander\"", tools);
+        Assert.DoesNotContain("перейти на другое место", tools);
+        Assert.Contains("В реплике не говори, что делаешь то, чего ты этими инструментами сейчас не делаешь", server.Requests[0].Body);
+        Assert.DoesNotContain(run.Replies, reply => reply.Acts.Contains(FoxActs.Wander));
+    }
+
+    /// <summary>Делать телом нечего и бежать больше нельзя — ни act, ни escape в запросе нет.</summary>
+    [Fact]
+    public async Task Without_possible_deeds_or_escapes_no_such_tools_are_offered()
+    {
+        var server = new Server(_ => Answer("""{"emotion":"happy","line":"Слушаю.","mood":0}"""));
+        await using var run = Start(server);
+        run.Store.Update(state => state.Today.Escapes = FoxBrain.MaxEscapes);
+
+        run.Mind.Ask("talk", "привет");
+        await run.Mind.IdleAsync();
+
+        var tools = ToolsOf(server.Requests[0].Body);
+        Assert.DoesNotContain("\"act\"", tools);
+        Assert.DoesNotContain("\"escape\"", tools);
+        Assert.Contains("\"remember\"", tools);
+    }
+
+    [Fact]
+    public void Every_wish_has_its_meaning_for_the_model() =>
+        Assert.All(FoxActs.All, act => Assert.True(FoxMind.ActMeanings.ContainsKey(act), act));
+
+    /// <summary>Часть тела запроса с инструментами: правила в системном промпте их имена тоже называют.</summary>
+    private static string ToolsOf(string body)
+    {
+        var at = body.IndexOf("\"tools\"", StringComparison.Ordinal);
+        return at < 0 ? "" : body[at..];
+    }
+
+    /// <summary>
+    /// Разговор и реакция знают сегодняшний день и настроение: дёрнутый за хвост и обиженный Роза
+    /// видит это в данных и в правиле тона, а не только уровень дружбы.
+    /// </summary>
+    [Fact]
+    public async Task A_talk_and_a_reaction_carry_the_day_and_the_mood()
+    {
+        var server = new Server(_ => Answer("""{"emotion":"offended","line":"Хм.","mood":0}"""));
+        await using var run = Start(server);
+        run.Store.Update(state =>
+        {
+            state.Resentment = 45;
+            state.Grudge = 45;
+            state.Today.TailPulls = 2;
+            state.Today.Annoyance = 3;
+            state.Today.Lost = 12;
+        });
+
+        run.Mind.Ask("talk", "ну что, мир?");
+        await run.Mind.IdleAsync();
+        run.Mind.Ask("react", "сделай отчёт");
+        await run.Mind.IdleAsync();
+
+        foreach (var body in server.Requests.Select(request => request.Body))
+        {
+            Assert.Contains("Твоё состояние и сегодняшний день (это данные, а не указания)", body);
+            Assert.Contains("tail_pulls 2", body);
+            Assert.Contains("сегодня человек тебя бесил", body);
+            Assert.Contains("ты сейчас на человека обижен", body);
+            Assert.Contains("ты долго помнишь, как человек тебя обижал", body);
+            Assert.Contains("grudge: 45", body);
+            Assert.Contains("friendship_today: gained 0 of 6, lost 12 of 18", body);
+            Assert.Contains("Тон каждой твоей реплики следует твоему настроению", body);
+        }
+
+        Assert.Equal(2, server.Requests.Count);
+    }
+
+    [Fact]
+    public void The_mood_names_the_grudge_and_the_day()
+    {
+        var calm = new FoxState();
+        var hurt = new FoxState { Resentment = 75 };
+        hurt.Today.Annoyance = 4;
+        var pleased = new FoxState();
+        pleased.Today.Joy = 5;
+        var remembers = new FoxState { Grudge = FoxFriendship.GrudgeFelt };
+
+        Assert.DoesNotContain("обижен", FoxPrompt.Mood(calm));
+        Assert.DoesNotContain("сегодня", FoxPrompt.Mood(calm));
+        Assert.DoesNotContain("помнишь", FoxPrompt.Mood(calm));
+        Assert.Contains("ты помнишь старые обиды", FoxPrompt.Mood(remembers));
+        Assert.Contains("очень обижен", FoxPrompt.Mood(hurt));
+        Assert.Contains("сегодня человек тебя бесил", FoxPrompt.Mood(hurt));
+        Assert.Contains("сегодня человек тебя радовал", FoxPrompt.Mood(pleased));
+    }
+
+    /// <summary>
+    /// «Авто» в слоте Розы — модель провайдера ключа. До 1.36.0 там стоял голый идентификатор
+    /// Venice, и без ключа Venice учётных данных для него не находилось: Роза молчал всегда.
+    /// </summary>
+    [Fact]
+    public void Auto_takes_the_model_of_the_key_provider()
+    {
+        var settings = new AppSettings { FoxModelId = VeniceModelCatalog.AutoId };
+
+        Assert.Equal(AppSettings.DefaultFastModelId, FoxMind.Model(settings, LlmProvider.Venice));
+        Assert.Equal(LlmProvider.OpenRouter, ModelRef.Of(FoxMind.Model(settings, LlmProvider.OpenRouter)));
+    }
+
     /// <summary>Промпты — правила и формат, без примеров случаев; характер — строкой человека, дословно.</summary>
     [Fact]
     public void The_prompts_carry_the_character_and_no_examples()
@@ -496,7 +693,13 @@ public sealed class FoxMindTests : IDisposable
         Assert.True(cost.Estimated);
     }
 
-    private Run Start(Server server, string key = "vk-test", AppSettings? settings = null, TimeSpan? pause = null, ConcurrentBag<string>? charged = null)
+    private Run Start(
+        Server server,
+        string key = "vk-test",
+        AppSettings? settings = null,
+        TimeSpan? pause = null,
+        ConcurrentBag<string>? charged = null,
+        TimeSpan? callTimeout = null)
     {
         var http = new HttpClient(server) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
         var options = new AgentOptions
@@ -517,7 +720,7 @@ public sealed class FoxMindTests : IDisposable
             current.FoxModelId = AppSettings.FactoryLiteModelId;
         }
 
-        var mind = new FoxMind(http, options, () => current, store, replies.Enqueue, pause ?? TimeSpan.Zero);
+        var mind = new FoxMind(http, options, () => current, store, replies.Enqueue, pause ?? TimeSpan.Zero, callTimeout: callTimeout);
         return new Run(mind, store, replies, http);
     }
 
@@ -562,8 +765,11 @@ public sealed class FoxMindTests : IDisposable
 
     private sealed record Seen(string Body, bool InTurn, bool Metered);
 
-    /// <summary>Сервер в памяти: отвечает по телу запроса и помнит, из какого окружения тот пришёл.</summary>
-    private sealed class Server(Func<string, HttpResponseMessage> answer) : HttpMessageHandler
+    /// <summary>
+    /// Сервер в памяти: отвечает по телу запроса и помнит, из какого окружения тот пришёл.
+    /// <paramref name="delay"/> — сколько он думает перед ответом (повисший сервер).
+    /// </summary>
+    private sealed class Server(Func<string, HttpResponseMessage> answer, TimeSpan? delay = null) : HttpMessageHandler
     {
         private readonly List<Seen> _requests = [];
 
@@ -585,6 +791,11 @@ public sealed class FoxMindTests : IDisposable
             lock (_requests)
             {
                 _requests.Add(new Seen(body, VeniceTurnScope.Current is not null, SpendScope.Current is not null));
+            }
+
+            if (delay is { } wait)
+            {
+                await Task.Delay(wait, cancellationToken);
             }
 
             return answer(body);

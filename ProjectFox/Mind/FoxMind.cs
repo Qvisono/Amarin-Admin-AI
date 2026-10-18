@@ -22,9 +22,15 @@ namespace Amarin.Fox;
 /// между реакциями держится пауза. Разговор паузы не ждёт — человек ждёт ответа.
 /// </para>
 /// <para>
-/// Инструменты у Розы только свои: <c>escape</c> (убежать за край окна), а в разговоре ещё
-/// <c>remember</c> (заметка о человеке в его память) и <c>web_search</c>. Инструменты программы, её
-/// шлюз и агент отсюда недосягаемы — это сторожит тест метаданных сборки.
+/// Поток живёт, что бы ни случилось с одним заданием (<see cref="Survivable"/>), а у каждого
+/// запроса свой срок (<see cref="CallTimeout"/>): поток один на все просьбы, и упавший или
+/// повисший запрос иначе глушил бы Розу целиком.
+/// </para>
+/// <para>
+/// Инструменты у Розы только свои: <c>escape</c> (убежать за край окна), <c>act</c> (желание), а в
+/// разговоре ещё <c>remember</c> (заметка о человеке в его память) и <c>web_search</c>. Побег и
+/// желания предлагаются, только когда мозг их исполнит: иначе реплика обещала бы то, чего не будет.
+/// Инструменты программы, её шлюз и агент отсюда недосягаемы — это сторожит тест метаданных сборки.
 /// </para>
 /// </remarks>
 internal sealed class FoxMind : IDisposable
@@ -44,6 +50,15 @@ internal sealed class FoxMind : IDisposable
     /// <summary>Сколько заметок модель может записать за один разговор.</summary>
     private const int NotesPerTalk = 2;
 
+    /// <summary>
+    /// Свой срок одного запроса. Общий клиент ждёт до пяти минут, а очередь у Розы одна: повисший
+    /// запрос держал бы молчащим и разговор, который пришёл за ним. Истёк — обычный отказ.
+    /// </summary>
+    public static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(45);
+
+    /// <summary>Разговор не удался: «слова убежали».</summary>
+    private static readonly FoxReply FailedTalk = new("talk", "", "", 0, 0, Failed: true);
+
     private static readonly JsonElement EscapeSchema = Schema("""
         {"type":"object","properties":{"minutes":{"type":"integer","minimum":1,"maximum":30},"line":{"type":"string"}},"required":["minutes"]}
         """);
@@ -56,13 +71,25 @@ internal sealed class FoxMind : IDisposable
         {"type":"object","properties":{"note":{"type":"string"}},"required":["note"]}
         """);
 
-    private static readonly JsonElement ActSchema = Schema(
-        "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[" +
-        string.Join(",", FoxActs.All.Select(act => "\"" + act + "\"")) +
-        "]},\"line\":{\"type\":\"string\"}},\"required\":[\"action\"]}");
+    /// <summary>Что значит каждое желание — в описании инструмента <c>act</c>, только для предложенных.</summary>
+    internal static readonly IReadOnlyDictionary<string, string> ActMeanings = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [FoxActs.Sulk] = "покапризничать",
+        [FoxActs.Mischief] = "пошалить",
+        [FoxActs.Peek] = "спрятаться за поле ввода и выглядывать",
+        [FoxActs.Play] = "позвать человека играть",
+        [FoxActs.Lie] = "прилечь",
+        [FoxActs.Nap] = "вздремнуть",
+        [FoxActs.Cuddle] = "приласкаться",
+        [FoxActs.Strut] = "пройтись и покрасоваться",
+        [FoxActs.Wander] = "перейти на другое место"
+    };
 
-    /// <summary>Сколько желаний модели исполняется из одного ответа.</summary>
-    private const int ActsPerReply = 2;
+    /// <summary>
+    /// Сколько желаний модели исполняется из одного ответа. Одно: до 1.36.0 их было два, но второе
+    /// всегда упиралось в паузу между желаниями (<see cref="FoxActs.Every"/>) и молча пропадало.
+    /// </summary>
+    private const int ActsPerReply = 1;
 
     private readonly HttpClient _http;
     private readonly AgentOptions _options;
@@ -72,8 +99,9 @@ internal sealed class FoxMind : IDisposable
     private readonly TimeSpan _pause;
     private readonly Func<DateTime> _clock;
     private readonly Func<string, VeniceModelInfo?>? _resolveModelInfo;
-    private readonly Channel<(string Kind, string Text)> _jobs =
-        Channel.CreateBounded<(string, string)>(new BoundedChannelOptions(8) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+    private readonly TimeSpan _callTimeout;
+    private readonly Channel<(string Kind, string Text, IReadOnlyList<string> Acts)> _jobs =
+        Channel.CreateBounded<(string, string, IReadOnlyList<string>)>(new BoundedChannelOptions(8) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
     private readonly CancellationTokenSource _stop = new();
     private readonly Lock _gate = new();
     private Task? _worker;
@@ -86,6 +114,7 @@ internal sealed class FoxMind : IDisposable
     /// Сведения о модели из общего каталога. Без них прямой провайдер (Anthropic, OpenAI…) не
     /// называет цену, клиент не может её оценить, и траты Розы туда не попадали вовсе.
     /// </param>
+    /// <param name="callTimeout">Срок одного запроса (<see cref="CallTimeout"/>); тестам — короче.</param>
     public FoxMind(
         HttpClient http,
         AgentOptions options,
@@ -94,7 +123,8 @@ internal sealed class FoxMind : IDisposable
         Action<FoxReply> deliver,
         TimeSpan? pause = null,
         Func<DateTime>? clock = null,
-        Func<string, VeniceModelInfo?>? resolveModelInfo = null)
+        Func<string, VeniceModelInfo?>? resolveModelInfo = null,
+        TimeSpan? callTimeout = null)
     {
         _http = http;
         _options = options;
@@ -104,22 +134,24 @@ internal sealed class FoxMind : IDisposable
         _pause = pause ?? DefaultPause;
         _clock = clock ?? (() => DateTime.Now);
         _resolveModelInfo = resolveModelInfo;
+        _callTimeout = callTimeout ?? CallTimeout;
     }
 
     /// <summary>
     /// Просьба мозга: <c>react</c> — отозваться на сообщение, <c>talk</c> — ответить человеку,
-    /// <c>think</c> — подумать о своём.
+    /// <c>think</c> — подумать о своём. <paramref name="acts"/> — что из желаний мозг сейчас исполнит
+    /// (<see cref="FoxActs.Possible"/>): только их модель и получает. Без списка — ни одного.
     /// </summary>
-    public void Ask(string kind, string text)
+    public void Ask(string kind, string text, IReadOnlyList<string>? acts = null)
     {
         if (kind == "think" || (kind is "react" or "talk" && !string.IsNullOrWhiteSpace(text)))
         {
-            Post(kind, text);
+            Post(kind, text, acts ?? []);
         }
     }
 
     /// <summary>Написать дневник за дни, что лежат в <see cref="FoxState.Unwritten"/>.</summary>
-    public void WriteDiary() => Post("diary", "");
+    public void WriteDiary() => Post("diary", "", []);
 
     public void Dispose()
     {
@@ -127,7 +159,7 @@ internal sealed class FoxMind : IDisposable
         _stop.Cancel();
     }
 
-    private void Post(string kind, string text)
+    private void Post(string kind, string text, IReadOnlyList<string> acts)
     {
         lock (_gate)
         {
@@ -141,7 +173,7 @@ internal sealed class FoxMind : IDisposable
             }
         }
 
-        _jobs.Writer.TryWrite((kind, text));
+        _jobs.Writer.TryWrite((kind, text, acts));
     }
 
     /// <summary>Ждёт, пока очередь опустеет и рабочий поток закончит начатое. Для тестов.</summary>
@@ -163,7 +195,7 @@ internal sealed class FoxMind : IDisposable
                 _busy = true;
                 try
                 {
-                    var reacts = new List<string>();
+                    var reacts = new List<(string Text, IReadOnlyList<string> Acts)>();
                     await DrainAsync(reacts, token).ConfigureAwait(false);
                     if (reacts.Count == 0)
                     {
@@ -177,10 +209,18 @@ internal sealed class FoxMind : IDisposable
                     }
 
                     _lastReact = _clock();
-                    var reply = await ReactAsync(reacts.TakeLast(GlueMessages).ToList(), token).ConfigureAwait(false);
-                    if (reply is not null)
+                    try
                     {
-                        _deliver(reply);
+                        // Желания — по последней просьбе: она ближе всех к тому, что сейчас вокруг.
+                        var texts = reacts.TakeLast(GlueMessages).Select(react => react.Text).ToList();
+                        if (await ReactAsync(texts, reacts[^1].Acts, token).ConfigureAwait(false) is { } reply)
+                        {
+                            _deliver(reply);
+                        }
+                    }
+                    catch (Exception ex) when (Survivable(ex, token))
+                    {
+                        Log("react", ex);
                     }
                 }
                 finally
@@ -198,7 +238,7 @@ internal sealed class FoxMind : IDisposable
     /// Пауза между реакциями: пришедшее за неё склеивается в ту же реплику. Разговор, мысль и
     /// дневник паузы не ждут — их исполняет Drain, как только они пришли: человек ждёт ответа.
     /// </summary>
-    private async Task GlueAsync(List<string> reacts, TimeSpan wait, CancellationToken token)
+    private async Task GlueAsync(List<(string Text, IReadOnlyList<string> Acts)> reacts, TimeSpan wait, CancellationToken token)
     {
         using var pause = CancellationTokenSource.CreateLinkedTokenSource(token);
         pause.CancelAfter(wait);
@@ -216,45 +256,68 @@ internal sealed class FoxMind : IDisposable
     }
 
     /// <summary>Разбирает всё, что лежит в очереди: разговор и дневник — сразу, реакции — в кучку.</summary>
-    private async Task DrainAsync(List<string> reacts, CancellationToken token)
+    private async Task DrainAsync(List<(string Text, IReadOnlyList<string> Acts)> reacts, CancellationToken token)
     {
         while (_jobs.Reader.TryRead(out var job))
         {
-            switch (job.Kind)
+            try
             {
-                case "react":
-                    reacts.Add(job.Text);
-                    break;
-                case "talk":
-                    _deliver(await TalkAsync(job.Text, token).ConfigureAwait(false));
-                    break;
-                case "diary":
-                    await DiaryAsync(token).ConfigureAwait(false);
-                    break;
-                case "think" when await ThinkAsync(token).ConfigureAwait(false) is { } thought:
-                    _deliver(thought);
-                    break;
+                switch (job.Kind)
+                {
+                    case "react":
+                        reacts.Add((job.Text, job.Acts));
+                        break;
+                    case "talk":
+                        _deliver(await TalkAsync(job.Text, job.Acts, token).ConfigureAwait(false));
+                        break;
+                    case "diary":
+                        await DiaryAsync(token).ConfigureAwait(false);
+                        break;
+                    case "think" when await ThinkAsync(job.Acts, token).ConfigureAwait(false) is { } thought:
+                        _deliver(thought);
+                        break;
+                }
+            }
+            catch (Exception ex) when (Survivable(ex, token))
+            {
+                Log(job.Kind, ex);
+                if (job.Kind == "talk")
+                {
+                    _deliver(FailedTalk);
+                }
             }
         }
     }
 
-    private async Task<FoxReply?> ReactAsync(IReadOnlyList<string> messages, CancellationToken token)
+    /// <summary>
+    /// Сбой одного задания — не повод глушить Розу. До 1.36.0 исключение из разбора ответа роняло
+    /// рабочий поток: <see cref="_worker"/> оставался ненулевым, новый не заводился, и до
+    /// перезапуска программы все просьбы молча копились в очереди — Роза не отвечал ни на что.
+    /// Наружу уходят только отмена по остановке и нехватка памяти.
+    /// </summary>
+    private static bool Survivable(Exception ex, CancellationToken token) =>
+        ex is not OutOfMemoryException && !(ex is OperationCanceledException && token.IsCancellationRequested);
+
+    private static void Log(string kind, Exception ex) =>
+        CrashLog.Write($"fox_mind {kind}: {ex.GetType().Name}: {ex.Message}");
+
+    private async Task<FoxReply?> ReactAsync(IReadOnlyList<string> messages, IReadOnlyList<string> offered, CancellationToken token)
     {
         var state = _store.Snapshot();
         var language = Loc.Get(Loc.LanguageNameKey);
         List<ChatMessage> history =
         [
             new() { Role = "system", Content = ChatContent.Text(FoxPrompt.ReactSystem(language, state)) },
-            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.ReactUser(messages)) }
+            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.ReactUser(messages, state, _clock())) }
         ];
 
-        if (await CallAsync(history, [EscapeTool(), ActTool()], token).ConfigureAwait(false) is not { } message)
+        if (await CallAsync(history, Tools(EscapeTool(state), ActTool(offered)), token).ConfigureAwait(false) is not { } message)
         {
             return null;
         }
 
         var (minutes, escapeLine) = Escape(message);
-        var (acts, actLine) = Acts(message);
+        var (acts, actLine) = Acts(message, offered);
         var reply = FoxPrompt.ParseReply("react", ReadText(message), minutes) with { Acts = acts };
         return reply.Line.Length > 0 ? reply : reply with { Line = escapeLine.Length > 0 ? escapeLine : actLine };
     }
@@ -263,7 +326,7 @@ internal sealed class FoxMind : IDisposable
     /// Своя мысль: без текста переписки, с одним инструментом — <c>act</c>. Мысль дружбу не
     /// двигает: никто ничего не сделал. Не вышло — тишина.
     /// </summary>
-    private async Task<FoxReply?> ThinkAsync(CancellationToken token)
+    private async Task<FoxReply?> ThinkAsync(IReadOnlyList<string> offered, CancellationToken token)
     {
         var state = _store.Snapshot();
         var language = Loc.Get(Loc.LanguageNameKey);
@@ -273,12 +336,12 @@ internal sealed class FoxMind : IDisposable
             new() { Role = "user", Content = ChatContent.Text(FoxPrompt.ThinkUser(state, _clock())) }
         ];
 
-        if (await CallAsync(history, [ActTool()], token).ConfigureAwait(false) is not { } message)
+        if (await CallAsync(history, Tools(ActTool(offered)), token).ConfigureAwait(false) is not { } message)
         {
             return null;
         }
 
-        var (acts, actLine) = Acts(message);
+        var (acts, actLine) = Acts(message, offered);
         var reply = FoxPrompt.ParseReply("think", ReadText(message)) with { Mood = 0, Acts = acts };
         return reply.Line.Length > 0 ? reply : reply with { Line = actLine };
     }
@@ -287,9 +350,8 @@ internal sealed class FoxMind : IDisposable
     /// Разговор: до двух раундов — поиск в сети или заметка в память, потом ответ. Без ответа —
     /// «слова убежали». Удачный разговор ложится в память Розы.
     /// </summary>
-    private async Task<FoxReply> TalkAsync(string text, CancellationToken token)
+    private async Task<FoxReply> TalkAsync(string text, IReadOnlyList<string> offered, CancellationToken token)
     {
-        var failed = new FoxReply("talk", "", "", 0, 0, Failed: true);
         var state = _store.Snapshot();
         var settings = _settings();
         var search = settings.Fox.WebSearch && FoxBrain.MaySearch(state);
@@ -298,22 +360,24 @@ internal sealed class FoxMind : IDisposable
         List<ChatMessage> history =
         [
             new() { Role = "system", Content = ChatContent.Text(FoxPrompt.TalkSystem(language, state, search)) },
-            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.TalkUser(text, recent)) }
+            new() { Role = "user", Content = ChatContent.Text(FoxPrompt.TalkUser(text, state, _clock(), recent)) }
         ];
 
-        List<ToolDefinition> tools = search
-            ? [EscapeTool(), ActTool(), RememberTool(), SearchTool()]
-            : [EscapeTool(), ActTool(), RememberTool()];
+        var tools = Tools(EscapeTool(state), ActTool(offered), RememberTool(), search ? SearchTool() : null);
         if (await CallAsync(history, tools, token).ConfigureAwait(false) is not { } message)
         {
-            return failed;
+            return FailedTalk;
         }
 
-        var remembered = Remember(message);
-        var (acts, actLine) = Acts(message);
+        Remember(message);
+        var (acts, actLine) = Acts(message, offered);
+
+        // Во втором раунде — только то, что ещё можно: желание за ответ одно, и если оно уже есть,
+        // второго модели не предлагают (иначе реплика пообещала бы и его).
+        var later = Tools(EscapeTool(state), ActTool(acts.Count < ActsPerReply ? offered : []));
         var first = message;
         var lookup = search ? message.ToolCalls?.FirstOrDefault(call => call.Function.Name == "web_search") : null;
-        var query = lookup is null ? null : Str(ToolArguments.Parse(lookup.Function.Arguments), "query");
+        var query = lookup is null ? null : Str(Args(lookup), "query");
         if (lookup is not null && !string.IsNullOrWhiteSpace(query))
         {
             _store.Update(s => s.Today.Searches++);
@@ -329,27 +393,36 @@ internal sealed class FoxMind : IDisposable
             });
 
             // Второй и последний раунд: поиска больше нет, только ответ, желание или побег.
-            if (await CallAsync(history, [EscapeTool(), ActTool()], token).ConfigureAwait(false) is not { } answer)
+            if (await CallAsync(history, later, token).ConfigureAwait(false) is not { } answer)
             {
-                return failed;
+                return FailedTalk;
             }
 
             message = answer;
         }
-        else if (remembered.Count > 0 && FoxPrompt.ParseReply("talk", ReadText(message)).Line.Length == 0 && Escape(message).Minutes == 0)
+        else if (message.ToolCalls is { Count: > 0 } calls && actLine.Length == 0 &&
+                 FoxPrompt.ParseReply("talk", ReadText(message)).Line.Length == 0 && Escape(message).Minutes == 0)
         {
-            // Модель только записала заметку, а ответить не успела: второй раунд, уже без заметок.
-            history.Add(new ChatMessage { Role = "assistant", Content = message.Content, ToolCalls = remembered });
-            history.AddRange(remembered.Select(call => new ChatMessage
+            // Модель только записала заметку или пожелала что-то сделать, а сказать ничего не
+            // сказала: второй раунд, уже без заметок. До 1.36.0 так добирали только заметку, и
+            // одно желание без реплики оборачивалось «словами, которые убежали».
+            history.Add(new ChatMessage { Role = "assistant", Content = message.Content, ToolCalls = [.. calls] });
+            history.AddRange(calls.Select(call => new ChatMessage
             {
                 Role = "tool",
                 ToolCallId = call.Id,
-                Content = ChatContent.Text("Запомнил. Теперь ответь человеку.")
+                Content = ChatContent.Text(call.Function.Name switch
+                {
+                    "remember" => "Запомнил. Теперь ответь человеку.",
+                    "act" when !acts.Contains(Str(Args(call), "action")?.Trim().ToLowerInvariant() ?? "") =>
+                        "Этого сейчас сделать нельзя. Ответь человеку и не говори, что делаешь это.",
+                    _ => "Принято. Теперь ответь человеку."
+                })
             }));
 
-            if (await CallAsync(history, [EscapeTool(), ActTool()], token).ConfigureAwait(false) is not { } answer)
+            if (await CallAsync(history, later, token).ConfigureAwait(false) is not { } answer)
             {
-                return failed;
+                return FailedTalk;
             }
 
             message = answer;
@@ -357,10 +430,10 @@ internal sealed class FoxMind : IDisposable
 
         if (!ReferenceEquals(message, first))
         {
-            // Во втором раунде модель могла пожелать ещё: желания обоих раундов, без повторов.
-            var (later, laterLine) = Acts(message);
-            acts = [.. acts.Concat(later).Distinct().Take(ActsPerReply)];
-            actLine = actLine.Length > 0 ? actLine : laterLine;
+            // Во втором раунде модель могла пожелать то, чего не пожелала в первом.
+            var (wished, wishedLine) = Acts(message, acts.Count < ActsPerReply ? offered : []);
+            acts = [.. acts.Concat(wished).Distinct().Take(ActsPerReply)];
+            actLine = actLine.Length > 0 ? actLine : wishedLine;
         }
 
         var (minutes, escapeLine) = Escape(message);
@@ -372,15 +445,18 @@ internal sealed class FoxMind : IDisposable
 
         if (reply.Line.Length == 0 && reply.EscapeMinutes == 0)
         {
-            return failed;
+            return FailedTalk;
         }
 
         _store.Update(s => FoxMemory.AddExchange(s, text, reply.Line, _clock()));
         return reply;
     }
 
-    /// <summary>Желания модели из ответа: не больше двух, только из списка, и что она при этом скажет.</summary>
-    private static (IReadOnlyList<string> Acts, string Line) Acts(ChatMessage message)
+    /// <summary>
+    /// Желания модели из ответа: не больше <see cref="ActsPerReply"/>, только из предложенных
+    /// (<paramref name="offered"/>), и что она при этом скажет.
+    /// </summary>
+    private static (IReadOnlyList<string> Acts, string Line) Acts(ChatMessage message, IReadOnlyList<string> offered)
     {
         List<string> acts = [];
         var line = "";
@@ -391,8 +467,8 @@ internal sealed class FoxMind : IDisposable
                 continue;
             }
 
-            var args = ToolArguments.Parse(call.Function.Arguments);
-            if (Str(args, "action")?.Trim().ToLowerInvariant() is { } act && FoxActs.All.Contains(act) && !acts.Contains(act) && acts.Count < ActsPerReply)
+            var args = Args(call);
+            if (Str(args, "action")?.Trim().ToLowerInvariant() is { } act && offered.Contains(act) && !acts.Contains(act) && acts.Count < ActsPerReply)
             {
                 acts.Add(act);
                 line = line.Length > 0 ? line : FoxPrompt.Clean(Str(args, "line"), FoxPrompt.ReactLimit);
@@ -403,19 +479,16 @@ internal sealed class FoxMind : IDisposable
     }
 
     /// <summary>Заметки, которые модель решила записать: не больше двух за разговор, каждая — через правила памяти.</summary>
-    private List<ToolCall> Remember(ChatMessage message)
+    private void Remember(ChatMessage message)
     {
-        var calls = message.ToolCalls?.Where(call => call.Function.Name == "remember").Take(NotesPerTalk).ToList() ?? [];
-        foreach (var call in calls)
+        foreach (var call in message.ToolCalls?.Where(call => call.Function.Name == "remember").Take(NotesPerTalk) ?? [])
         {
-            var note = FoxPrompt.Clean(Str(ToolArguments.Parse(call.Function.Arguments), "note"), FoxMemory.NoteLimit);
+            var note = FoxPrompt.Clean(Str(Args(call), "note"), FoxMemory.NoteLimit);
             if (note.Length > 0)
             {
                 _store.Update(s => _ = FoxMemory.Remember(s, note, _clock()));
             }
         }
-
-        return calls;
     }
 
     /// <summary>
@@ -473,7 +546,7 @@ internal sealed class FoxMind : IDisposable
         using var charge = VeniceClient.ChargeAs(VeniceSku.Fox);
 
         var settings = _settings();
-        var model = Model(settings);
+        var model = Model(settings, _options.Provider);
         if (_options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Fox)) is not { IsEmpty: false } credential)
         {
             return null;
@@ -488,6 +561,8 @@ internal sealed class FoxMind : IDisposable
             WebSearch = "off"
         };
 
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(_callTimeout);
         try
         {
             var response = await Client(options).CreateChatCompletionAsync(
@@ -502,7 +577,7 @@ internal sealed class FoxMind : IDisposable
                         EnableXSearch = false,
                         StripThinkingResponse = true
                     },
-                    token,
+                    deadline.Token,
                     (settings.FoxReasoning ?? new ReasoningSettings { DisableThinking = true }).ToChoice())
                 .ConfigureAwait(false);
             return response.Choices.FirstOrDefault()?.Message;
@@ -521,17 +596,19 @@ internal sealed class FoxMind : IDisposable
     {
         using var isolated = VeniceTurnScope.Suppress();
         var settings = _settings();
-        var model = Model(settings);
+        var model = Model(settings, _options.Provider);
         var options = _options with
         {
             Binding = _options.Keys?.CredentialFor(model, ModelSlots.ReadKey(settings, ModelSlot.Fox)),
             Model = model
         };
 
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(_callTimeout);
         try
         {
             var found = await Client(options)
-                .SearchWebAsync(query.Trim(), ModelSlots.WebSearch(settings), token)
+                .SearchWebAsync(query.Trim(), ModelSlots.WebSearch(settings), deadline.Token)
                 .ConfigureAwait(false);
             return string.IsNullOrWhiteSpace(found) ? null : found;
         }
@@ -547,11 +624,18 @@ internal sealed class FoxMind : IDisposable
 
     private VeniceClient Client(AgentOptions options) => new(_http, options) { ResolveModelInfo = _resolveModelInfo };
 
-    /// <summary>Модель слота «Роза»; пустой или «Авто» — лёгкая модель по умолчанию.</summary>
-    internal static string Model(AppSettings settings) =>
+    /// <summary>
+    /// Модель слота «Роза»; пустой или «Авто» — лёгкая модель по умолчанию у провайдера ключа.
+    /// До 1.36.0 здесь стоял голый идентификатор Venice: без ключа Venice для него не находилось
+    /// учётных данных, и Роза молчал всегда.
+    /// </summary>
+    internal static string Model(AppSettings settings, LlmProvider provider) =>
         !string.IsNullOrWhiteSpace(settings.FoxModelId) && !VeniceModelCatalog.IsAuto(settings.FoxModelId)
             ? settings.FoxModelId.Trim()
-            : AppSettings.DefaultFastModelId;
+            : ModelSlotDefaults.LastResort(provider, ModelSlot.Fox, AppSettings.DefaultFastModelId);
+
+    /// <summary>Аргументы вызова; не JSON — пустые, а не исключение (см. <see cref="FoxPrompt.Json"/>).</summary>
+    private static JsonElement Args(ToolCall call) => FoxPrompt.Json(call.Function.Arguments) ?? default;
 
     /// <summary>Побег, если модель его выбрала: минуты и что он скажет, убегая.</summary>
     private static (int Minutes, string Line) Escape(ChatMessage message)
@@ -561,7 +645,7 @@ internal sealed class FoxMind : IDisposable
             return (0, "");
         }
 
-        var args = ToolArguments.Parse(call.Function.Arguments);
+        var args = Args(call);
         var minutes = args.ValueKind == JsonValueKind.Object && args.TryGetProperty("minutes", out var value) && value.TryGetInt32(out var number)
             ? number
             : 5;
@@ -576,7 +660,12 @@ internal sealed class FoxMind : IDisposable
             ? value.GetString()
             : null;
 
-    private static ToolDefinition EscapeTool() => new()
+    /// <summary>Инструменты запроса без пустых мест; ничего не осталось — запрос без инструментов вовсе.</summary>
+    private static List<ToolDefinition>? Tools(params ToolDefinition?[] tools) =>
+        tools.OfType<ToolDefinition>().ToList() is { Count: > 0 } offered ? offered : null;
+
+    /// <summary>Побег — только пока он сегодня ещё может убежать (<see cref="FoxBrain.MayEscape"/>).</summary>
+    private static ToolDefinition? EscapeTool(FoxState state) => !FoxBrain.MayEscape(state) ? null : new()
     {
         Function = new FunctionDefinition
         {
@@ -588,17 +677,23 @@ internal sealed class FoxMind : IDisposable
         }
     };
 
-    private static ToolDefinition ActTool() => new()
+    /// <summary>
+    /// Желания — только те, что мозг сейчас исполнит (<see cref="FoxActs.Possible"/>): и в списке
+    /// значений, и в описании. Пусто — инструмента нет, и делать телом ему сейчас нечего.
+    /// </summary>
+    private static ToolDefinition? ActTool(IReadOnlyList<string> offered) => offered.Count == 0 ? null : new()
     {
         Function = new FunctionDefinition
         {
             Name = "act",
             Description =
-                "Сделать что-то своё, когда тебе этого хочется. action: sulk — покапризничать, mischief — пошалить, " +
-                "peek — спрятаться за поле ввода и выглядывать, play — позвать человека играть, nap — вздремнуть, " +
-                "cuddle — приласкаться, strut — пройтись и покрасоваться, wander — перейти на другое место. " +
-                "line — что ты при этом скажешь, не длиннее 100 знаков; можно пустую. Сможешь ли ты это сделать сейчас, решаешь не ты.",
-            Parameters = ActSchema
+                "Сделать что-то своё, когда тебе этого хочется; одно действие за ответ. action: " +
+                string.Join(", ", offered.Select(act => act + " — " + ActMeanings[act])) + ". Других действий сейчас нет. " +
+                "line — что ты при этом скажешь, не длиннее 100 знаков; можно пустую.",
+            Parameters = Schema(
+                "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[" +
+                string.Join(",", offered.Select(act => "\"" + act + "\"")) +
+                "]},\"line\":{\"type\":\"string\"}},\"required\":[\"action\"]}")
         }
     };
 

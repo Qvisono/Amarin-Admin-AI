@@ -301,6 +301,96 @@ public sealed class FoxWindowTests : IDisposable
         Assert.True(closed);
     }
 
+    /// <summary>
+    /// Переписка (1.36.0) — маленькая панель над Розой, а не окно поверх программы: чат не
+    /// заслонён и не заблокирован. Она показывает разговоры из памяти и шлёт сказанное тем же
+    /// путём, что поле над головой; ключа у тестового окна нет, модель не отвечает — и панель не
+    /// ждёт вечно, а показывает «слова убежали».
+    /// </summary>
+    [Fact]
+    public void The_chat_is_a_small_panel_above_rosa_that_answers_what_is_said()
+    {
+        var (modal, above, narrow, history, waited, lines, closed) = With(window =>
+        {
+            var sprite = Arrive(window);
+            var host = window.Fox!;
+            var store = (FoxStore)host.GetType().GetField("_store", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
+            store.Update(state => FoxMemory.AddExchange(state, "как дела?", "Хвост пушистый, всё хорошо!", DateTime.Now));
+
+            var stage = Stage(window);
+            stage.OpenChat();
+            window.UpdateLayout();
+            var chat = stage.Chat!;
+            var panel = chat.TransformToAncestor(window).TransformBounds(new Rect(chat.RenderSize));
+            var fox = sprite.TransformToAncestor(window).TransformBounds(new Rect(sprite.RenderSize));
+            var blocked = window.IsNoticeOpen || window.ChatBlocked;
+            var shown = chat.Lines.ToList();
+            chat.Send("привет, Роза");
+            var waiting = chat.Waiting;
+            PumpUntil(() => !chat.Waiting);
+            var after = chat.Lines.ToList();
+            stage.CloseChat();
+            return (blocked, panel.Bottom <= fox.Top + 1, panel.Width <= FoxChat.PanelWidth + 1, shown, waiting, after,
+                !Layer(window).Children.OfType<FoxChat>().Any());
+        });
+
+        Assert.False(modal);
+        Assert.True(above, "панель не над Розой");
+        Assert.True(narrow);
+        Assert.Equal(["как дела?", "Хвост пушистый, всё хорошо!"], history);
+        Assert.True(waited);
+        Assert.Equal("привет, Роза", lines[^2]);
+        Assert.Contains(lines[^1], new[] { "S.Fox.Say.Mute.1", "S.Fox.Say.Mute.2" }.Select(key => Loc.Get(key)));
+        Assert.True(closed);
+    }
+
+    /// <summary>
+    /// Крестик закрывает переписку. Прежде нажатие на него никто не брал, оно всплывало к корню
+    /// окна, и тот начинал им перетаскивание окна: Windows уводил мышь в свой цикл, отпускание до
+    /// крестика не доходило — панель не закрывалась.
+    /// </summary>
+    [Fact]
+    public void The_chat_closes_by_its_cross_and_the_press_does_not_drag_the_window()
+    {
+        var (handled, closed) = With(window =>
+        {
+            Arrive(window);
+            var stage = Stage(window);
+            stage.OpenChat();
+            window.UpdateLayout();
+            var cross = stage.Chat!.CloseButton;
+            var down = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseDownEvent };
+            cross.RaiseEvent(down);
+            cross.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+            return (down.Handled, stage.Chat is null && !Layer(window).Children.OfType<FoxChat>().Any());
+        });
+
+        Assert.True(handled, "нажатие ушло окну, и оно начало бы перетаскивание");
+        Assert.True(closed, "крестик не закрыл переписку");
+    }
+
+    /// <summary>Esc закрывает переписку — кроме случая, когда он останавливает идущий ответ.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Escape_closes_the_chat_unless_it_stops_an_answer(bool answering)
+    {
+        var (open, cancelled) = With(window =>
+        {
+            Arrive(window);
+            var stage = Stage(window);
+            stage.OpenChat();
+            window.UpdateLayout();
+            var turn = answering ? StartTurn(window) : null;
+            _ = window.MessageTextBox.Focus();
+            _ = PressEscape(window);
+            return (stage.Chat is not null, turn?.Cancellation.IsCancellationRequested == true);
+        });
+
+        Assert.Equal(answering, open);
+        Assert.Equal(answering, cancelled);
+    }
+
     /// <summary>Подстраница «Лисёнок Роза» отражает его настройки и пишет их; выключили — уходит из окна.</summary>
     [Fact]
     public void The_rosa_subpage_writes_his_settings_and_turning_him_off_removes_him()
