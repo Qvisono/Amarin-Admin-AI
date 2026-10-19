@@ -170,6 +170,10 @@ public partial class SchedulePanel : UserControl
         }
 
         ApplyKind(job.Kind);
+
+        // Галочка мыши видна, только когда управление включено: без него она ничего не значит.
+        ComputerRow.Visibility = _services?.Settings.ComputerControl == true ? Visibility.Visible : Visibility.Collapsed;
+        ComputerToggle.IsChecked = job.Computer;
         DeleteButton.Visibility = string.IsNullOrEmpty(job.Id) ? Visibility.Collapsed : Visibility.Visible;
         ErrorText.Visibility = Visibility.Collapsed;
         ListPane.Visibility = Visibility.Collapsed;
@@ -265,6 +269,10 @@ public partial class SchedulePanel : UserControl
         }
 
         job.MaxCostUsd = SpendRules.ParseUsd(CapBox.Text);
+        if (ComputerRow.Visibility == Visibility.Visible)
+        {
+            job.Computer = ComputerToggle.IsChecked == true;
+        }
 
         var jobs = _services.Schedule.Load();
         if (string.IsNullOrEmpty(job.Id))
@@ -289,6 +297,10 @@ public partial class SchedulePanel : UserControl
                 jobs.Add(job);
             }
         }
+
+        // Печать — после id: она покрывает id, галочку и текст задания, и правка любого из них
+        // руками в файле выключает мышь у этой задачи.
+        job.ComputerSeal = job.Computer ? _services.Deferred.SealJob(job) : null;
 
         if (!_services.Schedule.Save(jobs))
         {

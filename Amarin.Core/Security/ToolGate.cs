@@ -67,6 +67,9 @@ internal static class ToolGate
 
     private static readonly AsyncLocal<bool> ReadOnlyForced = new();
 
+    /// <summary>Инструмент, которому «только чтение» этого прогона писать не мешает; null — никакому.</summary>
+    private static readonly AsyncLocal<string?> ReadOnlyExcept = new();
+
     /// <summary>
     /// Отметки «только чтение» у инструментов MCP. Ставится один раз при запуске (<see cref="McpHost"/>);
     /// null — все инструменты MCP пишущие. Статическое состояние: тест, который его меняет,
@@ -79,16 +82,28 @@ internal static class ToolGate
     /// режим ни стоял в настройках. Так идут прогоны по расписанию: человека рядом нет, и
     /// спросить его о записи некому.
     /// </summary>
-    public static IDisposable ForceReadOnly()
+    /// <param name="except">
+    /// Инструмент, которому писать можно (1.37.0): задача расписания с галочкой «может управлять
+    /// компьютером» нажимает мышью, а PowerShell и всё прочее по-прежнему только читают. Режим
+    /// «Только чтение» в настройках это исключение не снимает.
+    /// </param>
+    public static IDisposable ForceReadOnly(string? except = null)
     {
         var previous = ReadOnlyForced.Value;
+        var previousExcept = ReadOnlyExcept.Value;
         ReadOnlyForced.Value = true;
-        return new ReadOnlyRestore(previous);
+        ReadOnlyExcept.Value = except;
+        return new ReadOnlyRestore(previous, previousExcept);
     }
 
     /// <summary>Действует ли сейчас «только чтение» — из настроек или из <see cref="ForceReadOnly"/>.</summary>
     public static bool IsReadOnly(AppSettings settings) =>
         settings.ApprovalMode == ApprovalMode.ReadOnly || ReadOnlyForced.Value;
+
+    /// <summary>То же, но для этого инструмента: исключение прогона (<see cref="ForceReadOnly"/>) учитывается.</summary>
+    public static bool IsReadOnlyFor(AppSettings settings, string tool) =>
+        settings.ApprovalMode == ApprovalMode.ReadOnly ||
+        (ReadOnlyForced.Value && !string.Equals(ReadOnlyExcept.Value, tool, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// «Только чтение» этого прогона (<see cref="ForceReadOnly"/>), без настроек: отложенная задача,
@@ -132,9 +147,13 @@ internal static class ToolGate
         };
     }
 
-    private sealed class ReadOnlyRestore(bool previous) : IDisposable
+    private sealed class ReadOnlyRestore(bool previous, string? previousExcept) : IDisposable
     {
-        public void Dispose() => ReadOnlyForced.Value = previous;
+        public void Dispose()
+        {
+            ReadOnlyForced.Value = previous;
+            ReadOnlyExcept.Value = previousExcept;
+        }
     }
 
     public static GateCheck Check(string? toolName, JsonElement arguments, AppSettings? settings)
@@ -184,7 +203,7 @@ internal static class ToolGate
             return Refused(deferredRefusal);
         }
 
-        if (effect == ToolEffect.Write && IsReadOnly(settings))
+        if (effect == ToolEffect.Write && IsReadOnlyFor(settings, tool))
         {
             return Refused(ReadOnlyRefusal(tool, args, byScope: settings.ApprovalMode != ApprovalMode.ReadOnly));
         }

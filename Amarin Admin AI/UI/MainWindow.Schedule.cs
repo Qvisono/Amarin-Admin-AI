@@ -52,6 +52,11 @@ namespace Amarin.UI
             var services = _services!;
             var session = BuildScheduleChat(services.ChatStore.CreateNew(), job, DateTime.Now, ActiveDateFormat, out var assistant, out var call);
 
+            // Мышь (1.37.0) — только по галочке задачи под сошедшейся печатью и при включённом
+            // управлении: тогда пишет одна мышь, а текст задания, который писал человек, — его
+            // слова для SynGuard.
+            var computer = UsesComputer(services, job);
+
             ToolResult result;
             using (AgentRunScope.Push(new AgentRunContext
             {
@@ -60,12 +65,13 @@ namespace Amarin.UI
                 Observer = SilentTurnObserver.Instance,
                 SessionId = session.Id,
                 ChatTitle = session.Title,
-                PlanAllowed = false
+                PlanAllowed = false,
+                HumanWords = computer ? job.Prompt : null
             }))
-            using (ToolGate.ForceReadOnly())
+            using (ToolGate.ForceReadOnly(computer ? ComputerTool.ToolName : null))
             using (SpendScope.Push(new SpendMeter { Unattended = true, Cap = job.MaxCostUsd }))
             {
-                result = await services.AgentHost!.RunAsync(job.Prompt + ScheduleReport.Rule, null, cancellationToken)
+                result = await services.AgentHost!.RunAsync(job.Prompt + (computer ? ScheduleReport.ComputerRule : ScheduleReport.Rule), null, cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -73,6 +79,10 @@ namespace Amarin.UI
             await Dispatcher.InvokeAsync(() => Persist(session));
             return outcome;
         }
+
+        /// <summary>Может ли этот прогон взять мышь: галочка, печать и управление в «Безопасности».</summary>
+        internal static bool UsesComputer(AppServices services, ScheduledJob job) =>
+            job.Computer && services.Settings.ComputerControl && services.Deferred.VerifyJob(job);
 
         /// <summary>Заготовка чата прогона: задание от человека и ответ с блоком агента.</summary>
         internal static ChatSession BuildScheduleChat(

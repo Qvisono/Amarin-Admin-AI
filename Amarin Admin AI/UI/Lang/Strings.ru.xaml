@@ -1711,6 +1711,8 @@
     <system:String x:Key="S.Schedule.OpenChat" xml:space="preserve">Открыть чат последнего прогона</system:String>
     <system:String x:Key="S.Schedule.PromptLabel" xml:space="preserve">Задание агенту</system:String>
     <system:String x:Key="S.Schedule.ReadOnlyHint" xml:space="preserve">Прогон только смотрит: агент описывает изменения, но не вносит их. Пропущенный прогон выполнится при следующем запуске программы.</system:String>
+    <system:String x:Key="S.Schedule.ComputerLabel" xml:space="preserve">Может управлять компьютером</system:String>
+    <system:String x:Key="S.Schedule.ComputerHint" xml:space="preserve">Мышью и клавиатурой, после отсчёта 10 с. Всё остальное по-прежнему только читает.</system:String>
     <system:String x:Key="S.Schedule.Recent" xml:space="preserve">Последние прогоны</system:String>
     <system:String x:Key="S.Schedule.RunNow" xml:space="preserve">Запустить сейчас</system:String>
     <system:String x:Key="S.Schedule.Running" xml:space="preserve">Выполняется…</system:String>

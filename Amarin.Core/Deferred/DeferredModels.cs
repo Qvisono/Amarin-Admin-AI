@@ -124,6 +124,16 @@ public sealed class DeferredTask
     public string? Command { get; set; }
 
     /// <summary>
+    /// Что человек написал сам, когда задачу ставили (1.37.0), — для SynGuard в момент прогона.
+    /// </summary>
+    /// <remarks>
+    /// Задание агенту (<see cref="Text"/>) пишет модель чата, и по нему «человек сам попросил
+    /// отправить» не отличить от её решения. Берёт их движок, а не аргументы модели, и они входят
+    /// в печать: правка файла руками или задача из чужого архива слов человека не несёт.
+    /// </remarks>
+    public string? HumanWords { get; set; }
+
+    /// <summary>
     /// Печать (HMAC под ключом DPAPI) на то, что выполнится без человека: команда и возврат программ.
     /// Задача из чужого архива или поправленная руками печати не сходится и не выполняется.
     /// </summary>
@@ -184,4 +194,8 @@ public sealed record DeferredRef(string Id, string Title, DeferredKind Kind);
 
 /// <summary>Сообщение в чате пришло от отложенной задачи, а не от человека.</summary>
 /// <param name="LateBy">Насколько срок опоздал (компьютер был выключен); null — вовремя.</param>
-public sealed record DeferredMark(string TaskId, string Title, DateTime DueUtc, TimeSpan? LateBy = null);
+/// <param name="HumanWords">
+/// Слова человека, с которыми задачу поставили, — если печать сошлась (1.37.0). Текст самого
+/// сообщения писала модель чата, и SynGuard берёт слова человека отсюда, а не из него.
+/// </param>
+public sealed record DeferredMark(string TaskId, string Title, DateTime DueUtc, TimeSpan? LateBy = null, string? HumanWords = null);

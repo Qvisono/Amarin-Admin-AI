@@ -1114,6 +1114,11 @@ public sealed class DataBundleImporter
             job.LastRun = null;
             job.LastStatus = null;
             job.LastChatId = null;
+
+            // Мышь задаче разрешают на этой машине (1.37.0). Печать чужого ключа здесь и так не
+            // сошлась бы, но галочка, которая видна включённой и не действует, только путала бы.
+            job.Computer = false;
+            job.ComputerSeal = null;
             result.Add(job);
             added++;
         }

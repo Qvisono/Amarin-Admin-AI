@@ -92,10 +92,20 @@ internal sealed partial class ChatEngine
     /// </summary>
     /// <remarks>
     /// Текст, а не сообщение для модели: в нём нет цитат и вложений, только слова человека, —
-    /// их и сверяет SynGuard с тем, что собрались сделать.
+    /// их и сверяет SynGuard с тем, что собрались сделать. Сообщение отложенной задачи писал не
+    /// человек, а модель чата, когда задачу ставили: слова человека у него — в метке задачи, и
+    /// только если сошлась печать (1.37.0).
     /// </remarks>
-    private static string? HumanWordsOf(ChatSession session) =>
-        session.Messages.LastOrDefault(message => message.Role == "user")?.Text is { Length: > 0 } text ? text : null;
+    internal static string? HumanWordsOf(ChatSession session)
+    {
+        var last = session.Messages.LastOrDefault(message => message.Role == "user");
+        if (last?.Deferred is { } mark)
+        {
+            return mark.HumanWords is { Length: > 0 } words ? words : null;
+        }
+
+        return last?.Text is { Length: > 0 } text ? text : null;
+    }
 
     /// <param name="forcedAgentTier">
     /// Уровень агента, названный человеком в слэш-команде. Обычный ход вызывает этот метод без

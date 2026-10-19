@@ -17,17 +17,22 @@ internal sealed partial class ChatEngine
     /// вопрос встанет в окне, а не одобрится сам.
     /// </remarks>
     /// <returns>Итог по ответу, которым ход закончился: его статус и цена.</returns>
+    /// <param name="humanWords">
+    /// Слова человека, с которыми задачу поставили, — уже сверенные с печатью. Null — их нет или
+    /// печать не сошлась: тогда SynGuard судит без них и спросит о том, о чём не просили.
+    /// </param>
     public async Task<DeferredOutcome> RunDeferredAgentAsync(
         ChatSession session,
         DeferredTask task,
         TimeSpan? late,
         IChatTurnObserver observer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? humanWords = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(task);
         var briefing = DeferredChat.Briefing(task, late);
-        var user = DeferredChat.Placed(session, task, late, task.Text, briefing, observer);
+        var user = DeferredChat.Placed(session, task, late, task.Text, briefing, observer, humanWords);
         await RunAgentCommandAsync(session, task.Text, briefing, complexity: "", observer, cancellationToken, placed: user, planAllowed: false)
             .ConfigureAwait(false);
         return DeferredChat.OutcomeAfter(session, user);
@@ -60,7 +65,8 @@ internal static class DeferredChat
         TimeSpan? late,
         string display,
         string forModel,
-        IChatTurnObserver observer)
+        IChatTurnObserver observer,
+        string? humanWords = null)
     {
         var now = DateTime.Now;
         var user = new ChatDisplayMessage
@@ -69,7 +75,7 @@ internal static class DeferredChat
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = now,
             Text = display,
-            Deferred = new DeferredMark(task.Id, task.Title, task.SnoozedUntilUtc ?? task.NextDueUtc ?? DateTime.UtcNow, late)
+            Deferred = new DeferredMark(task.Id, task.Title, task.SnoozedUntilUtc ?? task.NextDueUtc ?? DateTime.UtcNow, late, humanWords)
         };
 
         lock (session.Gate)

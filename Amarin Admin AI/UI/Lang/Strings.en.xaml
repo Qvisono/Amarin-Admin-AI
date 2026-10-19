@@ -1711,6 +1711,8 @@
     <system:String x:Key="S.Schedule.OpenChat" xml:space="preserve">Open the last run's chat</system:String>
     <system:String x:Key="S.Schedule.PromptLabel" xml:space="preserve">Task for the agent</system:String>
     <system:String x:Key="S.Schedule.ReadOnlyHint" xml:space="preserve">Runs are read-only: the agent describes changes instead of making them. A missed run happens the next time the app starts.</system:String>
+    <system:String x:Key="S.Schedule.ComputerLabel" xml:space="preserve">May operate this PC</system:String>
+    <system:String x:Key="S.Schedule.ComputerHint" xml:space="preserve">With the mouse and keyboard, after a 10-second countdown. Everything else still only reads.</system:String>
     <system:String x:Key="S.Schedule.Recent" xml:space="preserve">Recent runs</system:String>
     <system:String x:Key="S.Schedule.RunNow" xml:space="preserve">Run now</system:String>
     <system:String x:Key="S.Schedule.Running" xml:space="preserve">Running…</system:String>

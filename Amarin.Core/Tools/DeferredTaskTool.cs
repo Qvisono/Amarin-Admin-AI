@@ -149,11 +149,16 @@ public sealed class DeferredTaskTool : ITool
             NextDueUtc = schedule.FirstDueUtc,
             Status = DeferredStatus.Pending,
             ReadOnly = ToolGate.ScopedReadOnly,
-            MaxCostUsd = kind == DeferredKind.Agent ? Cap(arguments) : null
+            MaxCostUsd = kind == DeferredKind.Agent ? Cap(arguments) : null,
+
+            // Слова человека — из хода, а не из аргументов модели: ими SynGuard в срок отличит
+            // то, о чём человек просил сам, от того, что решила модель.
+            HumanWords = kind == DeferredKind.Agent ? AgentRunScope.Current?.HumanWords : null
         };
 
-        // Печать — на то, что выполнится без человека: его согласие шлюз взял только что.
-        if (kind is DeferredKind.Command or DeferredKind.RestorePrograms)
+        // Печать — на то, что выполнится без человека: его согласие шлюз взял только что. У задачи
+        // агента — на его слова: без печати их не принять за слова человека.
+        if (kind is DeferredKind.Command or DeferredKind.RestorePrograms || task.HumanWords is { Length: > 0 })
         {
             task.Seal = _book.Seal(task);
         }

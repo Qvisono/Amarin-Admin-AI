@@ -1686,6 +1686,8 @@ internal static class StringsRu
             ["S.Schedule.OpenChat"] = "Открыть чат последнего прогона",
             ["S.Schedule.PromptLabel"] = "Задание агенту",
             ["S.Schedule.ReadOnlyHint"] = "Прогон только смотрит: агент описывает изменения, но не вносит их. Пропущенный прогон выполнится при следующем запуске программы.",
+            ["S.Schedule.ComputerLabel"] = "Может управлять компьютером",
+            ["S.Schedule.ComputerHint"] = "Мышью и клавиатурой, после отсчёта 10 с. Всё остальное по-прежнему только читает.",
             ["S.Schedule.Recent"] = "Последние прогоны",
             ["S.Schedule.RunNow"] = "Запустить сейчас",
             ["S.Schedule.Running"] = "Выполняется…",

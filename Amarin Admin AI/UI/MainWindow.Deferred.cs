@@ -445,7 +445,10 @@ namespace Amarin.UI
                     using (task.ReadOnly ? ToolGate.ForceReadOnly() : null)
                     using (SpendScope.Push(new SpendMeter { Unattended = true, Cap = task.MaxCostUsd ?? DeferredLimits.AgentRunCapUsd }))
                     {
-                        return await services.Chat.RunDeferredAgentAsync(chat, task, late, observer, cancellationToken);
+                        // Слова человека — только под сошедшейся печатью: правка файла руками или
+                        // задача из чужого архива не должна выдавать себя за просьбу человека.
+                        var words = task.HumanWords is { Length: > 0 } && services.Deferred.Verify(task) ? task.HumanWords : null;
+                        return await services.Chat.RunDeferredAgentAsync(chat, task, late, observer, cancellationToken, words);
                     }
 
                 case DeferredKind.Command:

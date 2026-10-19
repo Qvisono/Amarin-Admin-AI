@@ -168,8 +168,52 @@ internal sealed class DeferredBook
         }
     }
 
-    private static string Sealed(DeferredTask task) =>
-        string.Join('\n', task.Id, task.Kind, task.Command ?? "", task.CreatedUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+    /// <remarks>
+    /// Слова человека и задание агенту дописываются, только когда слова есть (1.37.0): печати
+    /// задач прежних версий без них сходятся по-прежнему, а вместе со словами под печать уходит и
+    /// задание — иначе его подменили бы, оставив чужие слова согласием.
+    /// </remarks>
+    private static string Sealed(DeferredTask task)
+    {
+        var sealedText = string.Join('\n', task.Id, task.Kind, task.Command ?? "",
+            task.CreatedUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        return task.HumanWords is { Length: > 0 } words
+            ? string.Join('\n', sealedText, "words", task.Text, words)
+            : sealedText;
+    }
+
+    /// <summary>
+    /// Печать задачи расписания, которой можно управлять компьютером (1.37.0): галочка и текст
+    /// задания. Тем же ключом, что у отложенных задач: из чужого архива или после правки файла
+    /// руками галочка не действует.
+    /// </summary>
+    public string SealJob(ScheduledJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        using var hmac = new HMACSHA256(Key());
+        return Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(SealedJob(job))));
+    }
+
+    /// <summary>Действует ли галочка управления компьютером у задачи расписания.</summary>
+    public bool VerifyJob(ScheduledJob job)
+    {
+        if (!job.Computer || job.ComputerSeal is not { Length: > 0 } seal)
+        {
+            return false;
+        }
+
+        try
+        {
+            return CryptographicOperations.FixedTimeEquals(Convert.FromHexString(seal), Convert.FromHexString(SealJob(job)));
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    private static string SealedJob(ScheduledJob job) =>
+        string.Join('\n', "schedule", job.Id, job.Computer ? "computer" : "", job.Prompt);
 
     private byte[] Key()
     {

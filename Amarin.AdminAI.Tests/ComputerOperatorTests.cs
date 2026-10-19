@@ -307,6 +307,7 @@ public sealed partial class ComputerOperatorTests
         { nameof(ComputerOperator.SystemPrompt), ComputerOperator.SystemPrompt },
         { nameof(ComputerOperator.AgentRule), ComputerOperator.AgentRule },
         { nameof(ChatEngine.ComputerRules), ChatEngine.ComputerRules },
+        { nameof(ScheduleReport.ComputerRule), ScheduleReport.ComputerRule },
         { "use_computer", Describe(new UseComputerTool((_, _) => Task.FromResult(ToolResult.Ok("")))) },
         { "computer", Describe(new ComputerTool(new ComputerSession(new FakeComputer(), null, new ComputerStart(ComputerMode.Do, false, 1, ""), new ComputerLease()))) },
         { nameof(SynGuard.ApprovalInstructions), SynGuard.ApprovalInstructions + SynGuard.WithoutApprovalCriteria + SynGuard.ApprovalRequiredCriteria }
