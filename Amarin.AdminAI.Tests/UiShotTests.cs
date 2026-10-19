@@ -450,6 +450,11 @@ public sealed class UiShotTests : IDisposable
                 await ShootFox(window, folder);
             }
 
+            if (Wanted(only, "computer"))
+            {
+                await ShootComputerBar(window, folder, language == "ru");
+            }
+
             // Последними: съёмка подставляет автомату свои состояния, а настройки уже пройдены.
             if (Wanted(only, "updates"))
             {
@@ -929,6 +934,38 @@ public sealed class UiShotTests : IDisposable
     /// Отложенные задачи (1.33.0): чат с отметкой поставленной задачи и сообщением наступившей,
     /// карточки напоминаний и вкладка «Отложенные» со списком.
     /// </summary>
+    /// <summary>
+    /// Плашка управления компьютером во всех состояниях. Без показа окна плашки: оно встало бы
+    /// поверх настоящего экрана.
+    /// </summary>
+    private static async Task ShootComputerBar(MainWindow window, string folder, bool ru)
+    {
+        var states = new (string Name, Action<ComputerBar> Fill)[]
+        {
+            ("step", bar => bar.ShowStep(4, ru ? "Открываю меню программы" : "Opening the program menu")),
+            ("countdown", bar => bar.ShowCountdown(7, ru ? "Задача, поставленная на это время" : "The task set for this time")),
+            ("question", bar => bar.ShowQuestion(ru ? "Нажать кнопку подтверждения в окне программы" : "Press the confirm button in the program window")),
+            ("show", bar => bar.ShowHint(ru ? "Нажмите выделенный пункт меню" : "Click the highlighted menu item"))
+        };
+
+        foreach (var (name, fill) in states)
+        {
+            var bar = new ComputerBar();
+            fill(bar);
+            var card = (FrameworkElement)bar.Content;
+            bar.Content = null;
+            var host = new Grid();
+            host.Resources.MergedDictionaries.Add(bar.Resources);
+            host.Children.Add(card);
+            host.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            host.Arrange(new Rect(host.DesiredSize));
+            host.UpdateLayout();
+            await Settle(150);
+            Save(host, Path.Combine(folder, "computer-bar-" + name + ".png"), (Brush)window.FindResource("Bg.Window"));
+            bar.Close();
+        }
+    }
+
     private async Task ShootDeferred(MainWindow window, AppServices services, string folder, bool ru)
     {
         var now = DateTime.Now;

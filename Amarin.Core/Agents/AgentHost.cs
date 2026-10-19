@@ -159,6 +159,10 @@ internal sealed class AgentHost : IAgentHost
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
 
+            // Кого останавливает «Стоп» на плашке: этот прогон агента, а не весь ход чата. Запись в
+            // реестре появится ниже, а оператор зовётся только во время работы — к тому времени она есть.
+            RunningAgent? entry = null;
+
             // Снимок инструкций — один на прогон: по нему собираются и оглавление, и инструмент,
             // и правка на странице посреди работы не расщепит их надвое.
             var agentInstructions = _instructions?.AgentSnapshot() ?? [];
@@ -176,7 +180,7 @@ internal sealed class AgentHost : IAgentHost
                 [
                     .. tools.All,
                     new UseComputerTool((job, token) =>
-                        RunOperatorAsync(job, computer, adapter, guard, notify, scope, operators, token))
+                        RunOperatorAsync(job, computer, adapter, guard, notify, scope, operators, () => entry, token))
                 ]);
             }
 
@@ -210,7 +214,7 @@ internal sealed class AgentHost : IAgentHost
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
             using var interrupt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var entry = _agents?.Register(
+            entry = _agents?.Register(
                 scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt);
             if (entry is not null)
             {
@@ -311,10 +315,14 @@ internal sealed class AgentHost : IAgentHost
         Action notify,
         AgentRunContext? scope,
         ComputerSpend spend,
+        Func<RunningAgent?> runningAgent,
         CancellationToken cancellationToken)
     {
         var settings = _settings();
         var modelId = ComputerModel(settings, _parentOptions.Provider);
+
+        // Без записи в реестре (тесты) «Стоп» обрывает хотя бы оператора.
+        using var operatorStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var record = new AgentRunRecord
         {
             Status = AgentRunStatus.Running,
@@ -338,7 +346,7 @@ internal sealed class AgentHost : IAgentHost
         using var session = new ComputerSession(
             computer.Port,
             computer.Stage,
-            new ComputerStart(job.Mode, unattended, ComputerOperator.MaxSteps, job.Task),
+            new ComputerStart(job.Mode, unattended, ComputerOperator.MaxSteps, job.Task, Stop, scope?.SessionId),
             computer.Lease);
         var adapter = new AgentUiAdapter(record, _confirmations, notify, record.DisplayName, scope?.SessionId);
         var operatorAgent = new Agent(
@@ -359,7 +367,7 @@ internal sealed class AgentHost : IAgentHost
         try
         {
             var result = await operatorAgent
-                .RunAsync(ComputerOperator.Brief(job.Task, job.Mode, scope?.HumanWords), cancellationToken)
+                .RunAsync(ComputerOperator.Brief(job.Task, job.Mode, scope?.HumanWords), operatorStop.Token)
                 .ConfigureAwait(false);
             spend.Add(result.Cost);
             record.ReportText = result.AssistantText ?? "";
@@ -383,6 +391,24 @@ internal sealed class AgentHost : IAgentHost
             record.Status = AgentRunStatus.Cancelled;
             notify();
             throw;
+        }
+
+        void Stop()
+        {
+            if (runningAgent() is { } agent)
+            {
+                agent.Request(new AgentInterrupt(AgentInterruptKind.Stop));
+                return;
+            }
+
+            try
+            {
+                operatorStop.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Оператор уже закончил: останавливать нечего.
+            }
         }
     }
 

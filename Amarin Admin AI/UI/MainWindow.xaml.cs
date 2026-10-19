@@ -234,6 +234,7 @@ namespace Amarin.UI
                 ThemeManager.EffectiveThemeChanged -= OnEffectiveThemeChanged;
                 LanguageManager.LanguageChanged -= RelocalizeUi;
                 DownloadAccessBroker.SetHandler(null);
+                DetachComputerStage();
             };
             PreviewTextInput += Window_PreviewTextInput;
             PreviewKeyDown += Window_PreviewKeyDown;
@@ -247,6 +248,7 @@ namespace Amarin.UI
                 _services.PlanReviews.Changed -= OnPlanReviewChanged;
             }
 
+            AttachComputerStage(_services, services);
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
             _services.PlanReviews.Changed += OnPlanReviewChanged;

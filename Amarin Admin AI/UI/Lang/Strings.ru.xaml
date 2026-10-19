@@ -1599,6 +1599,14 @@
     <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Смотрит окно «{0}»</system:String>
     <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Смотрит на экран</system:String>
     <system:String x:Key="S.Computer.Label" xml:space="preserve">Оператор ПК {0}</system:String>
+    <system:String x:Key="S.ComputerBar.Title" xml:space="preserve">Агент управляет компьютером</system:String>
+    <system:String x:Key="S.ComputerBar.Step" xml:space="preserve">Шаг {0}</system:String>
+    <system:String x:Key="S.ComputerBar.Stop" xml:space="preserve">Стоп</system:String>
+    <system:String x:Key="S.ComputerBar.Countdown" xml:space="preserve">Агент возьмёт мышь через {0} с</system:String>
+    <system:String x:Key="S.ComputerBar.Starting" xml:space="preserve">Начинаю</system:String>
+    <system:String x:Key="S.ComputerBar.Ask" xml:space="preserve">Разрешить действие?</system:String>
+    <system:String x:Key="S.ComputerBar.ShowTitle" xml:space="preserve">Нажмите сами</system:String>
+    <system:String x:Key="S.ComputerBar.Done" xml:space="preserve">Готово</system:String>
     <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Выводы написать не удалось. Факты ниже приведены полностью.</system:String>
     <system:String x:Key="S.Report.Analyzing" xml:space="preserve">Модель разбирает факты и пишет выводы…</system:String>
     <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">по разрешению на ответ или чат</system:String>

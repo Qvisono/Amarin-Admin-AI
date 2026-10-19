@@ -1599,6 +1599,14 @@
     <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Looking at "{0}"</system:String>
     <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Looking at the screen</system:String>
     <system:String x:Key="S.Computer.Label" xml:space="preserve">PC operator {0}</system:String>
+    <system:String x:Key="S.ComputerBar.Title" xml:space="preserve">The agent is operating this PC</system:String>
+    <system:String x:Key="S.ComputerBar.Step" xml:space="preserve">Step {0}</system:String>
+    <system:String x:Key="S.ComputerBar.Stop" xml:space="preserve">Stop</system:String>
+    <system:String x:Key="S.ComputerBar.Countdown" xml:space="preserve">The agent takes the mouse in {0} s</system:String>
+    <system:String x:Key="S.ComputerBar.Starting" xml:space="preserve">Starting</system:String>
+    <system:String x:Key="S.ComputerBar.Ask" xml:space="preserve">Allow this action?</system:String>
+    <system:String x:Key="S.ComputerBar.ShowTitle" xml:space="preserve">Your turn to click</system:String>
+    <system:String x:Key="S.ComputerBar.Done" xml:space="preserve">Done</system:String>
     <system:String x:Key="S.Report.AnalysisFailed" xml:space="preserve">Could not write the conclusions. The facts below are complete.</system:String>
     <system:String x:Key="S.Report.Analyzing" xml:space="preserve">The model is reading the facts and writing conclusions…</system:String>
     <system:String x:Key="S.Report.ByAllowance" xml:space="preserve">by an allowance for the reply or chat</system:String>

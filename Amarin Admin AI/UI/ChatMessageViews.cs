@@ -928,6 +928,13 @@ internal sealed class AssistantMessageView
             foreach (var nested in round.Calls)
             {
                 inner.Children.Add(BuildCallRow(nested));
+
+                // Оператор мыши (1.37.0) — свой прогон под строкой use_computer внутри агента.
+                if (nested.NestedAgent is not null)
+                {
+                    inner.Children.Add(BuildNestedAgentExpander(nested));
+                }
+
                 if (nested.Status is ToolCallStatus.Done or ToolCallStatus.Failed)
                 {
                     inner.Children.Add(BuildResultRow(nested));

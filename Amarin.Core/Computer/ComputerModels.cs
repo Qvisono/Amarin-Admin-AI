@@ -170,4 +170,15 @@ internal enum ComputerMode
 
 /// <summary>С чем начинается управление — для плашки и отсчёта.</summary>
 /// <param name="Unattended">Человека рядом нет: перед началом нужен отсчёт с отменой.</param>
-internal sealed record ComputerStart(ComputerMode Mode, bool Unattended, int MaxSteps, string Task);
+/// <param name="Stop">
+/// «Стоп» на плашке: останавливает агента, который держит мышь, тем же путём, что остановка из
+/// чата. Null — останавливать некого (тесты).
+/// </param>
+/// <param name="SessionId">Чат, из которого пришло поручение: его вопросы о нажатиях берёт плашка.</param>
+internal sealed record ComputerStart(
+    ComputerMode Mode,
+    bool Unattended,
+    int MaxSteps,
+    string Task,
+    Action? Stop = null,
+    string? SessionId = null);

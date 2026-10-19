@@ -67,7 +67,15 @@ internal sealed class ConfirmationRequest
     /// его на весь разговор значило бы почти выключить защиту.
     /// </summary>
     public bool CanAllowForChat =>
-        CanAllowAhead && !Info.ToolName.Equals("run_powershell", StringComparison.OrdinalIgnoreCase);
+        CanAllowAhead && !Info.ToolName.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
+        !Info.ToolName.Equals(Tools.ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Вопрос отвечается на плашке управления компьютером, а не в окне программы: окно на время
+    /// управления свёрнуто, а разворачивать его ради каждого нажатия — отнимать фокус у окна,
+    /// в котором агент работает. Решается при постановке вопроса (<see cref="ConfirmationQueue.PanelTakes"/>).
+    /// </summary>
+    public bool ForPanel { get; init; }
 }
 
 /// <summary>
@@ -102,6 +110,12 @@ internal sealed class ConfirmationQueue
     public ConfirmationQueue(Func<AppSettings> settings) => _settings = settings;
 
     public event Action? Changed;
+
+    /// <summary>
+    /// Берёт ли плашку управления компьютером этот вопрос: чат и сам вопрос. Ставит плашка, пока
+    /// идёт управление; null — плашки нет, и все вопросы показывает окно.
+    /// </summary>
+    public Func<string?, DangerousActionInfo, bool>? PanelTakes { get; set; }
 
     public async Task<bool> ConfirmAsync(
         string agentLabel,
@@ -144,7 +158,8 @@ internal sealed class ConfirmationQueue
             AgentLabel = agentLabel,
             Info = info,
             Completion = tcs,
-            SessionId = sessionId
+            SessionId = sessionId,
+            ForPanel = PanelTakes?.Invoke(sessionId, info) == true
         };
 
         lock (_gate)
@@ -182,20 +197,28 @@ internal sealed class ConfirmationQueue
         }
     }
 
-    public bool TryPeek([NotNullWhen(true)] out ConfirmationRequest? request)
+    /// <summary>Вопрос, который показывает окно программы: первый ждущий, кроме вопросов плашки.</summary>
+    public bool TryPeek([NotNullWhen(true)] out ConfirmationRequest? request) => TryPeek(forPanel: false, out request);
+
+    /// <summary>Вопрос для плашки управления компьютером (<see cref="ConfirmationRequest.ForPanel"/>).</summary>
+    public bool TryPeekPanel([NotNullWhen(true)] out ConfirmationRequest? request) => TryPeek(forPanel: true, out request);
+
+    private bool TryPeek(bool forPanel, [NotNullWhen(true)] out ConfirmationRequest? request)
     {
         lock (_gate)
         {
-            while (_queue.Count > 0)
+            while (_queue.Count > 0 && _queue[0].Completion.Task.IsCompleted)
             {
-                var head = _queue[0];
-                if (!head.Completion.Task.IsCompleted)
+                _queue.RemoveAt(0);
+            }
+
+            foreach (var item in _queue)
+            {
+                if (!item.Completion.Task.IsCompleted && item.ForPanel == forPanel)
                 {
-                    request = head;
+                    request = item;
                     return true;
                 }
-
-                _queue.RemoveAt(0);
             }
         }
 
@@ -340,8 +363,10 @@ internal sealed class ConfirmationQueue
             return;
         }
 
-        // PowerShell на весь чат не разрешается — только до конца хода (см. CanAllowForChat).
-        if (scope == AllowanceScope.Chat && toolName.Trim().Equals("run_powershell", StringComparison.OrdinalIgnoreCase))
+        // PowerShell и мышь на весь чат не разрешаются — только до конца хода (см. CanAllowForChat).
+        if (scope == AllowanceScope.Chat &&
+            (toolName.Trim().Equals("run_powershell", StringComparison.OrdinalIgnoreCase) ||
+             toolName.Trim().Equals(Tools.ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase)))
         {
             scope = AllowanceScope.Turn;
         }
