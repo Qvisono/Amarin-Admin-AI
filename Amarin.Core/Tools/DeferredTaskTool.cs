@@ -39,7 +39,8 @@ public sealed class DeferredTaskTool : ITool
     public string Description =>
         "Schedule something for later or for a condition, and manage what is scheduled. action: remind (a reminder card " +
         "with a soft chime), run_agent (when the time comes the agent does the task and reports in this chat), " +
-        "run_command (runs this exact PowerShell command; the user approves it now), restore_programs (reopens the programs " +
+        "run_command (runs this exact PowerShell command; the user approves it now; never for work in program windows, " +
+        "which is run_agent), restore_programs (reopens the programs " +
         "that were open when the PC was last shut down), list, cancel (by id). When: in (a delay: numbers with the units w, " +
         "d, h, m or s, several parts together if needed), at (HH:mm is the next such time; YYYY-MM-DD HH:mm is local time), " +
         "uptime_hours (Windows uptime as Task Manager shows it), event (next_boot: the PC is turned on next time; next_start: " +

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Automation;
@@ -6,14 +7,17 @@ using Amarin.Core;
 namespace Amarin.Computer;
 
 /// <summary>
-/// Элементы окон через UI Automation: дерево окна одним запросом, свежее место элемента, фокус и
+/// Элементы окон через UI Automation: дерево окна с пределом, свежее место элемента, фокус и
 /// нажатие без мыши.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Дерево берётся одним кэширующим запросом на всё окно (<see cref="CacheRequest"/> на поддерево), а
-/// не обходом по одному элементу: каждый шаг обхода — отдельный вызов в чужой процесс, и у
-/// окна браузера их было бы тысячи.
+/// Дерево читается обходом в глубину: на каждый раскрываемый узел — один кэширующий запрос его
+/// детей (<see cref="CacheRequest"/> на <c>Element | Children</c>), и обход кончается на пределе
+/// элементов или времени. Прежде было одно кэширование всего поддерева, а предел резал только
+/// обход: окно браузера с тысячами элементов кэшировалось целиком на каждое нажатие, секундами.
+/// Невидимое (<c>IsOffscreen</c>) в выдачу идёт, но не раскрывается: прокрученная за край часть
+/// страницы — большая часть её дерева.
 /// </para>
 /// <para>
 /// Безымянные контейнеры (панели, группы, картинки без подписи) в выдачу не попадают — их
@@ -32,46 +36,90 @@ internal sealed class UiaTree
         ControlType.Text, ControlType.Thumb, ControlType.Header
     ];
 
+    /// <summary>Чьих детей не спрашиваем: в них нет ничего, на что модели стоило бы нажать.</summary>
+    private static readonly ControlType[] Leaves =
+    [
+        ControlType.Text, ControlType.Image, ControlType.Separator, ControlType.Thumb, ControlType.ScrollBar,
+        ControlType.ProgressBar
+    ];
+
     private readonly Lock _gate = new();
     private readonly Dictionary<IntPtr, Dictionary<string, AutomationElement>> _known = [];
 
-    public IReadOnlyList<ComputerElement> Inspect(IntPtr hwnd, int limit)
+    public ComputerTree Inspect(IntPtr hwnd, int limit, TimeSpan budget)
     {
-        var request = Request();
-        request.TreeScope = TreeScope.Element | TreeScope.Descendants;
+        var clock = Stopwatch.StartNew();
+        var request = Request(TreeScope.Element | TreeScope.Children);
         var root = AutomationElement.FromHandle(hwnd).GetUpdatedCache(request);
 
         var found = new List<ComputerElement>();
         var known = new Dictionary<string, AutomationElement>(StringComparer.Ordinal);
-        Walk(root, 0, "");
+        var pending = new Stack<(AutomationElement Node, int Depth, string ParentName)>();
+        Push(root.CachedChildren, 0, "");
+
+        var cut = false;
+        while (pending.Count > 0)
+        {
+            if (found.Count >= limit || clock.Elapsed > budget)
+            {
+                cut = true;
+                break;
+            }
+
+            var (node, depth, parentName) = pending.Pop();
+
+            // Подпись внутри кнопки или пункта повторяет его имя — вторая строка о том же.
+            var info = Cached(node, depth);
+            if (info is { Role: "text" } && string.Equals(info.Name, parentName, StringComparison.Ordinal))
+            {
+                info = null;
+            }
+
+            if (info is not null)
+            {
+                found.Add(info);
+                known[info.Key] = node;
+            }
+
+            if (!Expandable(node))
+            {
+                continue;
+            }
+
+            AutomationElementCollection children;
+            try
+            {
+                children = node.GetUpdatedCache(request).CachedChildren;
+            }
+            catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or COMException)
+            {
+                // Элемент исчез посреди обхода — окно меняется; остальное дерево всё равно годно.
+                continue;
+            }
+
+            Push(children, info is null ? depth : depth + 1, info?.Name ?? parentName);
+        }
 
         lock (_gate)
         {
+            // Закрытые окна больше не спросят, а их элементы держали бы объекты UI Automation чужих
+            // процессов до выхода из программы — живёт она днями.
+            foreach (var closed in _known.Keys.Where(handle => !ComputerNative.IsWindow(handle)).ToList())
+            {
+                _ = _known.Remove(closed);
+            }
+
             _known[hwnd] = known;
         }
 
-        return found;
+        return new ComputerTree(found, cut);
 
-        void Walk(AutomationElement element, int depth, string parentName)
+        // В стек в обратном порядке: сверху окажется первый ребёнок, и выдача идёт сверху вниз.
+        void Push(AutomationElementCollection children, int depth, string parentName)
         {
-            foreach (AutomationElement child in element.CachedChildren)
+            for (var i = children.Count - 1; i >= 0; i--)
             {
-                if (found.Count >= limit)
-                {
-                    return;
-                }
-
-                // Подпись внутри кнопки или пункта повторяет его имя — вторая строка о том же.
-                var info = Cached(child, depth);
-                var listed = info is not null &&
-                             !(info.Role == "text" && string.Equals(info.Name, parentName, StringComparison.Ordinal));
-                if (listed && info is not null)
-                {
-                    found.Add(info);
-                    known[info.Key] = child;
-                }
-
-                Walk(child, listed ? depth + 1 : depth, listed && info is not null ? info.Name : parentName);
+                pending.Push((children[i], depth, parentName));
             }
         }
     }
@@ -86,9 +134,9 @@ internal sealed class UiaTree
 
         try
         {
-            return Live(element, key, depth: 0);
+            return Describe(element.GetUpdatedCache(Request(TreeScope.Element)), key, depth: 0);
         }
-        catch (ElementNotAvailableException)
+        catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or COMException)
         {
             return null;
         }
@@ -163,12 +211,21 @@ internal sealed class UiaTree
         }
     }
 
-    /// <summary>Элемент с фокусом клавиатуры. Null — его нет или он не отвечает.</summary>
+    /// <summary>
+    /// Элемент с фокусом клавиатуры вместе с его значением. Null — его нет или он не отвечает.
+    /// </summary>
+    /// <remarks>
+    /// Значение — ради SynGuard: по нажатию Enter не понять, что уйдёт, а текст поля с фокусом
+    /// говорит. Прежде здесь читались свойства по одному и без значения, и защитник в настоящей
+    /// программе текста поля не видел никогда. Поле пароля значения не отдаёт.
+    /// </remarks>
     public static ComputerElement? Focused()
     {
         try
         {
-            return AutomationElement.FocusedElement is { } element ? Live(element, KeyOf(element.GetRuntimeId()), 0) : null;
+            return AutomationElement.FocusedElement is { } element
+                ? Describe(element.GetUpdatedCache(Request(TreeScope.Element)), KeyOf(element.GetRuntimeId()), 0)
+                : null;
         }
         catch (Exception ex) when (ex is InvalidOperationException or ElementNotAvailableException or COMException or ArgumentException)
         {
@@ -176,15 +233,15 @@ internal sealed class UiaTree
         }
     }
 
-    public static string? FocusName()
+    /// <summary>Скольких окон элементы помнятся — тестам.</summary>
+    internal int KnownWindows
     {
-        try
+        get
         {
-            return AutomationElement.FocusedElement?.Current.Name;
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ElementNotAvailableException or COMException or ArgumentException)
-        {
-            return null;
+            lock (_gate)
+            {
+                return _known.Count;
+            }
         }
     }
 
@@ -196,12 +253,17 @@ internal sealed class UiaTree
         }
     }
 
-    private static CacheRequest Request()
+    /// <summary>
+    /// Что читается одним запросом: все свойства, из которых собирается элемент, — один вызов в
+    /// чужой процесс вместо восьми.
+    /// </summary>
+    private static CacheRequest Request(TreeScope scope)
     {
         var request = new CacheRequest
         {
             TreeFilter = Automation.ControlViewCondition,
-            AutomationElementMode = AutomationElementMode.Full
+            AutomationElementMode = AutomationElementMode.Full,
+            TreeScope = scope
         };
         foreach (var property in new[]
                  {
@@ -228,12 +290,24 @@ internal sealed class UiaTree
             return null;
         }
 
+        return Describe(element, KeyOf(element.GetCachedPropertyValue(AutomationElement.RuntimeIdProperty) as int[]), depth);
+    }
+
+    /// <summary>Стоит ли спрашивать детей: невидимое и листья не раскрываются.</summary>
+    private static bool Expandable(AutomationElement element) =>
+        element.GetCachedPropertyValue(AutomationElement.IsOffscreenProperty) is not true &&
+        !(element.GetCachedPropertyValue(AutomationElement.ControlTypeProperty) is ControlType type && Leaves.Contains(type));
+
+    /// <summary>Элемент по кэшированным свойствам.</summary>
+    private static ComputerElement Describe(AutomationElement element, string key, int depth)
+    {
+        var type = element.GetCachedPropertyValue(AutomationElement.ControlTypeProperty) as ControlType;
         var password = element.GetCachedPropertyValue(AutomationElement.IsPasswordProperty) is true;
         return new ComputerElement(
-            KeyOf(element.GetCachedPropertyValue(AutomationElement.RuntimeIdProperty) as int[]),
+            key,
             depth,
             RoleOf(type),
-            name,
+            element.GetCachedPropertyValue(AutomationElement.NameProperty) as string ?? "",
             password ? null : ValueOf(
                 element.GetCachedPropertyValue(ValuePattern.ValueProperty),
                 element.GetCachedPropertyValue(TogglePattern.ToggleStateProperty),
@@ -243,23 +317,6 @@ internal sealed class UiaTree
             Focused: element.GetCachedPropertyValue(AutomationElement.HasKeyboardFocusProperty) is true,
             IsPassword: password,
             Offscreen: element.GetCachedPropertyValue(AutomationElement.IsOffscreenProperty) is true);
-    }
-
-    /// <summary>Тот же элемент живыми свойствами — для свежего места и для поля с фокусом.</summary>
-    private static ComputerElement Live(AutomationElement element, string key, int depth)
-    {
-        var current = element.Current;
-        return new ComputerElement(
-            key,
-            depth,
-            RoleOf(current.ControlType),
-            current.Name ?? "",
-            null,
-            RectOf(current.BoundingRectangle),
-            current.IsEnabled,
-            current.HasKeyboardFocus,
-            current.IsPassword,
-            current.IsOffscreen);
     }
 
     private static string? ValueOf(object value, object toggle, object selected)

@@ -325,6 +325,10 @@ public sealed partial class VeniceClient
     /// Модель, которую ход запросил изначально, — корень цепочки fallback. Отдельно от
     /// <paramref name="model"/>: без неё перебор после отказа начался бы с уже упавшей модели.
     /// </param>
+    /// <param name="fallback">
+    /// Можно ли при перегрузке уйти на запасную модель. Нельзя, когда модель выбрал человек: в
+    /// чате замена шла молча, и на месте выбранной лёгкой модели отвечала тяжёлая голова цепочки.
+    /// </param>
     public Task<StreamedChatCompletion> StreamChatCompletionAsync(
         string model,
         string primaryModel,
@@ -335,7 +339,8 @@ public sealed partial class VeniceClient
         Action<string>? onText,
         CancellationToken cancellationToken = default,
         ReasoningChoice? reasoning = null,
-        ApiCredential? credential = null) =>
+        ApiCredential? credential = null,
+        bool fallback = true) =>
         StreamChatCompletionAsync(new ChatCompletionRequest
         {
             Model = model,
@@ -345,7 +350,7 @@ public sealed partial class VeniceClient
             Stream = true,
             VeniceParameters = veniceParameters,
             ReasoningChoice = reasoning
-        }, primaryModel, prepareMessages: true, onText, credential, cancellationToken);
+        }, primaryModel, prepareMessages: true, onText, credential, fallback, cancellationToken);
 
     private async Task<StreamedChatCompletion> StreamChatCompletionAsync(
         ChatCompletionRequest request,
@@ -353,15 +358,18 @@ public sealed partial class VeniceClient
         bool prepareMessages,
         Action<string>? onText,
         ApiCredential? credential,
+        bool fallback,
         CancellationToken cancellationToken)
     {
         var startingModel = string.IsNullOrWhiteSpace(request.Model) ? _options.Model : request.Model;
         var key = RequireKey(Resolve(credential), startingModel);
         await GuardSpendAsync(key, cancellationToken).ConfigureAwait(false);
         VeniceApiException? lastOverload = null;
+        IEnumerable<string> models = fallback
+            ? VeniceModelFallback.GetModelsFrom(startingModel, primaryModel, key.Provider)
+            : [startingModel];
 
-        foreach (var model in VeniceModelFallback.GetModelsFrom(
-                     startingModel, primaryModel, key.Provider))
+        foreach (var model in models)
         {
             try
             {
@@ -382,6 +390,17 @@ public sealed partial class VeniceClient
             {
                 lastOverload = ex;
             }
+        }
+
+        // Без замены перегрузка — обычный ответ хода, и человек должен понять его без кода
+        // ошибки провайдера: что с его моделью и что делать.
+        if (!fallback && lastOverload is not null)
+        {
+            throw new VeniceApiException(Loc.Format(
+                "S.Provider.ModelOverloaded", VeniceModelCatalog.GetDisplayName(startingModel)))
+            {
+                StatusCode = lastOverload.StatusCode
+            };
         }
 
         throw lastOverload

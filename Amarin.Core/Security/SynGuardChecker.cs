@@ -50,17 +50,21 @@ internal sealed class SynGuardChecker
                 return await CheckDecisionsAsync(request, cancellationToken).ConfigureAwait(false);
             }
 
-            var safety = _checkSafety
-                ? await CheckTextAsync(SynGuard.SystemPrompt, SynGuard.BuildUserMessage(request), count, cancellationToken)
-                    .ConfigureAwait(false)
-                : new SynGuardReport(Enumerable.Repeat(true, count).ToArray(), null);
-            if (!_checkApproval)
+            // Оба вопроса разом: раньше второй ждал первого, и проверка раунда стоила двух запросов
+            // подряд, а не одного.
+            var safetyTask = _checkSafety
+                ? CheckTextAsync(SynGuard.SystemPrompt, SynGuard.BuildUserMessage(request), count, cancellationToken)
+                : Task.FromResult(new SynGuardReport(Enumerable.Repeat(true, count).ToArray(), null));
+            var approvalTask = _checkApproval
+                ? CheckTextAsync(SynGuard.ApprovalSystemPrompt, SynGuard.DecisionState(request), count, cancellationToken)
+                : null;
+            var safety = await safetyTask.ConfigureAwait(false);
+            if (approvalTask is null)
             {
                 return safety;
             }
 
-            var approval = await CheckTextAsync(SynGuard.ApprovalSystemPrompt, SynGuard.DecisionState(request), count, cancellationToken)
-                .ConfigureAwait(false);
+            var approval = await approvalTask.ConfigureAwait(false);
             return safety with
             {
                 WithoutApproval = approval.Outcome == SynGuardOutcome.Checked ? approval.Safe : new bool[count],

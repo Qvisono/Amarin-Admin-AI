@@ -87,24 +87,67 @@ internal sealed partial class ChatEngine
         return smaller == 0 ? 0 : left.Count(right.Contains) / (double)smaller;
     }
 
+    /// <summary>Сколько прежних реплик человека идёт к последней.</summary>
+    private const int EarlierWords = 2;
+
     /// <summary>
-    /// Последнее, что человек написал в этом чате сам. Null — сообщений человека нет.
+    /// Что человек написал в этом чате сам: последняя реплика, а перед ней — до двух прежних и
+    /// начало ответа ассистента, на который он отвечает. Null — сообщений человека нет.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Текст, а не сообщение для модели: в нём нет цитат и вложений, только слова человека, —
-    /// их и сверяет SynGuard с тем, что собрались сделать. Сообщение отложенной задачи писал не
-    /// человек, а модель чата, когда задачу ставили: слова человека у него — в метке задачи, и
-    /// только если сошлась печать (1.37.0).
+    /// их и сверяет SynGuard с тем, что собрались сделать. Одной последней реплики мало: на «да,
+    /// отправь» защитнику неоткуда было взять, что и кому, и он запрещал отправку, о которой
+    /// человек сам попросил. Реплика без истории за ней остаётся голым текстом, как раньше.
+    /// </para>
+    /// <para>
+    /// Сообщение отложенной задачи писал не человек, а модель чата, когда задачу ставили: слова
+    /// человека у него — в метке задачи, и только если сошлась печать (1.36.0). Прежние такие
+    /// сообщения в историю слов не идут вовсе.
+    /// </para>
     /// </remarks>
     internal static string? HumanWordsOf(ChatSession session)
     {
-        var last = session.Messages.LastOrDefault(message => message.Role == "user");
-        if (last?.Deferred is { } mark)
+        var messages = session.Messages;
+        var lastIndex = messages.FindLastIndex(message => message.Role == "user");
+        if (lastIndex < 0)
+        {
+            return null;
+        }
+
+        var last = messages[lastIndex];
+        if (last.Deferred is { } mark)
         {
             return mark.HumanWords is { Length: > 0 } words ? words : null;
         }
 
-        return last?.Text is { Length: > 0 } text ? text : null;
+        if (last.Text is not { Length: > 0 } latest)
+        {
+            return null;
+        }
+
+        var earlier = messages.Take(lastIndex)
+            .Where(message => message is { Role: "user", Deferred: null, Text.Length: > 0 })
+            .TakeLast(EarlierWords)
+            .Select(message => "User (earlier): " + TextClip.Clip(message.Text, 1000, 0))
+            .ToList();
+        var answered = lastIndex > 0 && messages[lastIndex - 1] is { Role: "assistant", Text.Length: > 0 } reply
+            ? "Assistant (the message the user answered): " + TextClip.Clip(reply.Text, 400, 0)
+            : null;
+        if (earlier.Count == 0 && answered is null)
+        {
+            return latest;
+        }
+
+        var lines = new List<string>(earlier);
+        if (answered is not null)
+        {
+            lines.Add(answered);
+        }
+
+        lines.Add("User (latest): " + TextClip.Clip(latest, 1000, 0));
+        return string.Join("\n", lines);
     }
 
     /// <param name="forcedAgentTier">
@@ -124,10 +167,11 @@ internal sealed partial class ChatEngine
         var results = new ToolResult[toolRound.Calls.Count];
         var tasks = new Task[toolRound.Calls.Count];
         var humanWords = HumanWordsOf(session);
+        var conversations = VeniceTurnScope.Current?.Agents;
         Task<GateDecision>[] decisions;
         try
         {
-            decisions = await DecideRoundAsync(toolRound, session, assistant, observer, cancellationToken)
+            decisions = await DecideRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
@@ -184,7 +228,8 @@ internal sealed partial class ChatEngine
                             ChatTitle = session.Title,
                             ForcedTier = forcedAgentTier,
                             PlanAllowed = planAllowed,
-                            HumanWords = humanWords
+                            HumanWords = humanWords,
+                            Conversations = conversations
                         }))
                         {
                             started = true;
@@ -358,6 +403,7 @@ internal sealed partial class ChatEngine
     /// </remarks>
     private async Task<Task<GateDecision>[]> DecideRoundAsync(
         ToolRound toolRound,
+        IReadOnlyList<ChatMessage> messages,
         ChatSession session,
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
@@ -387,7 +433,7 @@ internal sealed partial class ChatEngine
         var guard = new GuardMarks(calls.Count);
         if (checks.Any(check => check is { Refusal: null, Effect: ToolEffect.Write }))
         {
-            await AskGuardAsync(toolRound, session, assistant, observer, settings, checks, guard, cancellationToken)
+            await AskGuardAsync(toolRound, messages, session, assistant, observer, settings, checks, guard, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -447,6 +493,7 @@ internal sealed partial class ChatEngine
     /// </summary>
     private async Task AskGuardAsync(
         ToolRound toolRound,
+        IReadOnlyList<ChatMessage> messages,
         ChatSession session,
         ChatDisplayMessage assistant,
         IChatTurnObserver observer,
@@ -455,6 +502,15 @@ internal sealed partial class ChatEngine
         GuardMarks marks,
         CancellationToken cancellationToken)
     {
+        // Поиск и чтение страниц защитнику не отдаются, как и у агента (SynGuard.NeverJudged).
+        // judged — номера вызовов раунда, о которых спрашиваем; ответ защитника идёт по ним.
+        var all = toolRound.Calls;
+        var judged = Enumerable.Range(0, all.Count).Where(i => !SynGuard.NeverJudged(all[i].Name)).ToList();
+        if (judged.Count == 0)
+        {
+            return;
+        }
+
         using var lease = Guard is null ? SynGuardLease.Build(settings, _options, _venice.ResolveModelInfo) : null;
         var guard = Guard ?? lease?.Check;
         if (guard is null)
@@ -462,12 +518,13 @@ internal sealed partial class ChatEngine
             return;
         }
 
-        var calls = toolRound.Calls;
+        var calls = judged.Select(i => all[i]).ToList();
         var task = HumanWordsOf(session) ?? "";
         var report = await guard(
                 new SynGuardRequest(task, calls.Select(call => new SynGuardCall(call.Name, call.ArgumentsJson ?? "")).ToList(),
                     "The chat assistant proposes these tool calls to carry out the user's current request.",
-                    HumanWords: task),
+                    HumanWords: task,
+                    Earlier: SynGuard.EarlierCalls(messages)),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -483,29 +540,30 @@ internal sealed partial class ChatEngine
             : report.Outcome;
         observer.OnToolsChanged(assistant);
 
-        for (var i = 0; i < calls.Count; i++)
+        for (var j = 0; j < calls.Count; j++)
         {
+            var i = judged[j];
             if (report.WithoutApproval is { } approvals)
             {
-                marks.WithoutApproval[i] = i < approvals.Count && approvals[i];
+                marks.WithoutApproval[i] = j < approvals.Count && approvals[j];
             }
 
             // Без вердикта спрашивается только запись — как у агента.
-            if (report.IsSafe(i) || (report.IsUnchecked(i) && checks[i] is not { Effect: ToolEffect.Write }))
+            if (report.IsSafe(j) || (report.IsUnchecked(j) && checks[i] is not { Effect: ToolEffect.Write }))
             {
                 continue;
             }
 
-            if (report.IsBlocked(i) || _confirmations is null)
+            if (report.IsBlocked(j) || _confirmations is null)
             {
                 marks.Refused[i] = true;
-                marks.Blocked[i] = report.IsBlocked(i);
+                marks.Blocked[i] = report.IsBlocked(j);
                 continue;
             }
 
             var answer = await _confirmations.ConfirmDetailedAsync(
                     Loc.Get("S.Confirm.ChatLabel"),
-                    SynGuard.DescribeBlock(calls[i].Name, calls[i].ArgumentsJson, report.IsUnchecked(i)),
+                    SynGuard.DescribeBlock(calls[j].Name, calls[j].ArgumentsJson, report.IsUnchecked(j)),
                     session.Id,
                     cancellationToken)
                 .ConfigureAwait(false);

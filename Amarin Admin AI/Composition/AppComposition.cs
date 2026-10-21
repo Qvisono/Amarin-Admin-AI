@@ -175,6 +175,9 @@ internal static class AppComposition
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
             mcp.Tools, computer.Access);
+
+        // Один предел на всех агентов чата: и на новых, и на тех, кому чат пишет после отчёта.
+        var agentSlots = new AgentSlotLimiter();
         var chatTools = new ToolRegistry(
         [
             .. FileTools(fileState),
@@ -186,7 +189,9 @@ internal static class AppComposition
                 venice.GenerateImageAsync(prompt, width, height, model, aspectRatio: null, ct)),
             new FetchImageTool(),
             new YouTubeTranscriptTool(),
-            new InitAgentTool(new AgentSlotLimiter(), agentHost),
+            new InitAgentTool(agentSlots, agentHost),
+            new MessageAgentTool(agentSlots, agentHost),
+            new AgentRefusedTool(agentSlots, agentHost),
             new ReadInstructionTool(instructions),
             new DeferredTaskTool(scope.Deferred)
         ]);

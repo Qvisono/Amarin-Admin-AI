@@ -27,7 +27,9 @@ public sealed class InitAgentTool : ITool
         "The agent does not see the chat. " +
         "You do not choose which model runs it: the app routes the task by prompt and notes. " +
         "notes is one short line for that router about what matters here and what the user asked " +
-        "for - never a model name, never a tier. At most 4 agents at once.";
+        "for - never a model name, never a tier. At most 4 agents at once. " +
+        "The report starts with the agent's id: use it with message_agent to ask or correct the agent, " +
+        "and with agent_refused when it refuses.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

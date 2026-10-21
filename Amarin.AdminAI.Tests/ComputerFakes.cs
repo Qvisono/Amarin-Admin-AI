@@ -46,9 +46,15 @@ internal sealed class FakeComputer : IComputer
 
     public ComputerElement? Focused() => FocusedElement;
 
-    public Task<IReadOnlyList<ComputerElement>> InspectAsync(long window, int limit, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<ComputerElement>>(
-            Trees.TryGetValue(window, out var tree) ? tree.Take(limit).ToList() : []);
+    /// <summary>Сколько деревьев прочитано и с каким пределом — тесты цепочки проверяют, что одно.</summary>
+    public List<int> Inspected { get; } = [];
+
+    public Task<ComputerTree> InspectAsync(long window, int limit, TimeSpan budget, CancellationToken cancellationToken)
+    {
+        Inspected.Add(limit);
+        var tree = Trees.TryGetValue(window, out var elements) ? elements : [];
+        return Task.FromResult(new ComputerTree(tree.Take(limit).ToList(), tree.Count > limit));
+    }
 
     public Task<ComputerElement?> ElementAsync(long window, string key, CancellationToken cancellationToken) =>
         Task.FromResult(Trees.TryGetValue(window, out var tree) ? tree.FirstOrDefault(element => element.Key == key) : null);
@@ -59,7 +65,7 @@ internal sealed class FakeComputer : IComputer
         var width = (int)Math.Round(area.Width * scale);
         var height = (int)Math.Round(area.Height * scale);
         Log.Add($"capture {area}");
-        return Task.FromResult(new ComputerShot("iVBORw0KGgo=", width, height, area));
+        return Task.FromResult(new ComputerShot("/9j/4AAQ", "image/jpeg", width, height, area));
     }
 
     public Task PointerAsync(ComputerPointer action, CancellationToken cancellationToken)
@@ -82,8 +88,12 @@ internal sealed class FakeComputer : IComputer
     public Task KeysAsync(IReadOnlyList<string> chord, CancellationToken cancellationToken)
     {
         Log.Add("keys " + ComputerKeys.Join(chord));
+        AfterKeys?.Invoke(chord);
         return Task.CompletedTask;
     }
+
+    /// <summary>Что случается на экране от нажатия — например, вперёд выходит другое окно.</summary>
+    public Action<IReadOnlyList<string>>? AfterKeys { get; set; }
 
     public Task<bool> FocusWindowAsync(long window, CancellationToken cancellationToken)
     {
@@ -109,6 +119,11 @@ internal sealed class FakeComputer : IComputer
         Settles++;
         return Task.CompletedTask;
     }
+
+    /// <summary>Текст в буфере обмена; null — текста нет.</summary>
+    public string? Clipboard { get; set; }
+
+    public string? ClipboardText() => Clipboard;
 
     /// <summary>Сколько удержаний экрана взято и сколько ещё не отпущено.</summary>
     public int Holds { get; private set; }
@@ -179,9 +194,13 @@ internal sealed class FakeStage : IComputerStage
 
     public int Ends { get; private set; }
 
+    /// <summary>Что делает «человек» в миг начала — например, жмёт «Стоп».</summary>
+    public Action<ComputerStart>? OnBegin { get; set; }
+
     public Task<bool> BeginAsync(ComputerStart start, CancellationToken cancellationToken)
     {
         Begins.Add(start);
+        OnBegin?.Invoke(start);
         return Task.FromResult(Proceed);
     }
 

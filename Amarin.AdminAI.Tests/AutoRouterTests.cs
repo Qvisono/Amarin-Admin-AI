@@ -177,6 +177,73 @@ public sealed class AutoRouterTests
         Assert.Equal(0.003m, session.Messages.Last(message => message.Role == "assistant").RouterCost?.Usd);
     }
 
+    /// <summary>
+    /// Модель, выбранную в чате руками, перегрузка не подменяет: до 1.36.0 ход молча уходил на
+    /// голову цепочки запасных, и на месте выбранной модели отвечала тяжёлая.
+    /// </summary>
+    [Fact]
+    public async Task A_model_picked_by_hand_is_not_replaced_when_it_is_overloaded()
+    {
+        var streamedTo = new List<string>();
+        var handler = OverloadedFor("kimi-k2-7-code", streamedTo);
+        var (engine, session) = Engine(handler, new AppSettings { ChatModelId = "kimi-k2-7-code" });
+        session.SelectedModelId = "kimi-k2-7-code";
+
+        await engine.RunTurnAsync(session, "user request", new SilentObserver(), CancellationToken.None);
+
+        var assistant = session.Messages.Last(message => message.Role == "assistant");
+        Assert.Equal(AssistantStatus.Error, assistant.Status);
+        Assert.Equal(
+            Loc.Format("S.Provider.ModelOverloaded", VeniceModelCatalog.GetDisplayName("kimi-k2-7-code")),
+            assistant.Text);
+        Assert.Equal(new[] { "kimi-k2-7-code" }, streamedTo);
+    }
+
+    [Fact]
+    public async Task Auto_still_hands_an_overloaded_model_over_to_the_fallback_chain()
+    {
+        var streamedTo = new List<string>();
+        // Модель вне цепочки запасных: после неё цепочка идёт с головы. Модель из самой цепочки
+        // продолжала бы её со своего места, а у последней замен нет и под «Авто».
+        var handler = OverloadedFor("qwen-3-7-plus", streamedTo, routerVerdict: "lite");
+        var (engine, session) = Engine(handler, new AppSettings
+        {
+            ChatModelId = "auto",
+            LiteModelId = "qwen-3-7-plus",
+            HeavyModelId = "grok-4-7",
+            RouterModelId = "grok-4-6"
+        });
+
+        await engine.RunTurnAsync(session, "user request", new SilentObserver(), CancellationToken.None);
+
+        var assistant = session.Messages.Last(message => message.Role == "assistant");
+        Assert.True(assistant.Status != AssistantStatus.Error, assistant.Text);
+        Assert.Equal("qwen-3-7-plus", streamedTo[0]);
+        Assert.NotEqual("qwen-3-7-plus", assistant.ResolvedModelId);
+    }
+
+    /// <summary>Потоковый запрос к <paramref name="model"/> отвечает 503, к остальным — текстом.</summary>
+    private static ScriptedHandler OverloadedFor(string model, List<string> streamedTo, string routerVerdict = "lite") =>
+        new((_, body) =>
+        {
+            if (!body.Contains("\"stream\":true", StringComparison.Ordinal))
+            {
+                return Json(
+                    "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"" + routerVerdict +
+                    "\"}}],\"cost\":{\"usd\":0.001,\"diem\":0}}");
+            }
+
+            using var json = JsonDocument.Parse(body);
+            var requested = json.RootElement.GetProperty("model").GetString() ?? "";
+            streamedTo.Add(requested);
+            return requested == model
+                ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                {
+                    Content = new StringContent("{\"error\":\"Model is overloaded\"}", Encoding.UTF8, "application/json")
+                }
+                : Sse("Готово");
+        });
+
     private static (ChatEngine Engine, ChatSession Session) Engine(
         ScriptedHandler handler, AppSettings settings, VeniceModelInfo? router = null)
     {

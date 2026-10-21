@@ -66,7 +66,7 @@ public sealed class WindowsComputerTests
         try
         {
             var computer = new WindowsComputer();
-            var tree = await computer.InspectAsync(probe.Handle, 100, CancellationToken.None);
+            var tree = (await computer.InspectAsync(probe.Handle, 100, TimeSpan.FromSeconds(5), CancellationToken.None)).Elements;
 
             Assert.Single(tree, element => element.Name == "Probe");
             Assert.Contains(tree, element => element is { Role: "button", Name: "Probe" });
@@ -88,7 +88,7 @@ public sealed class WindowsComputerTests
         try
         {
             var computer = new WindowsComputer();
-            var tree = await computer.InspectAsync(probe.Handle, 100, CancellationToken.None);
+            var tree = (await computer.InspectAsync(probe.Handle, 100, TimeSpan.FromSeconds(5), CancellationToken.None)).Elements;
             var button = tree.Single(element => element is { Role: "button", Name: "Probe" });
             var before = await computer.ElementAsync(probe.Handle, button.Key, CancellationToken.None);
 
@@ -116,17 +116,108 @@ public sealed class WindowsComputerTests
     }
 
     [Fact]
+    public async Task A_found_element_carries_its_value_read_in_one_request()
+    {
+        // Значение поля нужно SynGuard: по одному Enter не понять, что уйдёт. Прежде свежий элемент
+        // читался свойствами по одному и без значения.
+        var probe = Open();
+        try
+        {
+            var computer = new WindowsComputer();
+            var tree = (await computer.InspectAsync(probe.Handle, 100, TimeSpan.FromSeconds(5), CancellationToken.None)).Elements;
+            var field = tree.Single(element => element is { Role: "edit", Name: "Field" });
+
+            var fresh = await computer.ElementAsync(probe.Handle, field.Key, CancellationToken.None);
+
+            Assert.NotNull(fresh);
+            Assert.Equal("hello", fresh.Value);
+        }
+        finally
+        {
+            Close(probe);
+        }
+    }
+
+    [Fact]
+    public async Task A_huge_window_is_read_only_up_to_the_limit_and_says_so()
+    {
+        // Окно браузера с тысячами элементов кэшировалось целиком на каждое нажатие — секундами.
+        var probe = _wpf.Ui.Invoke(() =>
+        {
+            var panel = new StackPanel();
+            for (var i = 0; i < 2000; i++)
+            {
+                panel.Children.Add(new Button { Content = "Item " + i });
+            }
+
+            var window = new Window
+            {
+                Title = "Huge probe " + Guid.NewGuid().ToString("N")[..6],
+                Width = 320,
+                Height = 240,
+                Left = -32000,
+                Top = 0,
+                ShowActivated = false,
+                ShowInTaskbar = false,
+                WindowStyle = WindowStyle.None,
+                Content = panel
+            };
+            window.Show();
+            return new Probe(window, new WindowInteropHelper(window).Handle.ToInt64(), () => 0);
+        });
+        try
+        {
+            var computer = new WindowsComputer();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var tree = await computer.InspectAsync(probe.Handle, 50, TimeSpan.FromSeconds(3), CancellationToken.None);
+            clock.Stop();
+
+            Assert.Equal(50, tree.Elements.Count);
+            Assert.True(tree.Cut);
+            Assert.Equal("Item 0", tree.Elements[0].Name);
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(4), clock.Elapsed.ToString());
+        }
+        finally
+        {
+            Close(probe);
+        }
+    }
+
+    [Fact]
     public async Task A_closed_window_leaves_nothing_to_press()
     {
         var probe = Open();
         var computer = new WindowsComputer();
-        var tree = await computer.InspectAsync(probe.Handle, 100, CancellationToken.None);
+        var tree = (await computer.InspectAsync(probe.Handle, 100, TimeSpan.FromSeconds(5), CancellationToken.None)).Elements;
         var key = tree.Single(element => element is { Role: "button", Name: "Probe" }).Key;
 
         Close(probe);
 
         Assert.Null(computer.Window(probe.Handle));
         Assert.Null(await computer.ElementAsync(probe.Handle, key, CancellationToken.None));
+    }
+
+    [Fact]
+    public void The_elements_of_a_closed_window_are_let_go_on_the_next_tree()
+    {
+        // Программа живёт днями: без уборки каждое осмотренное окно держало бы свои элементы
+        // UI Automation до выхода.
+        var tree = new UiaTree();
+        var first = Open();
+        _ = tree.Inspect(new IntPtr(first.Handle), 100, TimeSpan.FromSeconds(5));
+        Close(first);
+
+        var second = Open();
+        try
+        {
+            _ = tree.Inspect(new IntPtr(second.Handle), 100, TimeSpan.FromSeconds(5));
+
+            Assert.Equal(1, tree.KnownWindows);
+        }
+        finally
+        {
+            Close(second);
+        }
     }
 
     [Fact]
@@ -139,6 +230,7 @@ public sealed class WindowsComputerTests
 
             Assert.NotNull(window);
             Assert.Equal(Environment.ProcessId, window.ProcessId);
+            Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().ProcessName, window.ProcessName);
             Assert.False(window.Elevated);
             Assert.Equal(ComputerWindowKind.Normal, window.Kind);
             Assert.StartsWith("Computer probe", window.Title, StringComparison.Ordinal);
@@ -159,6 +251,45 @@ public sealed class WindowsComputerTests
         Assert.Single(monitors, monitor => monitor.Primary);
         Assert.Equal(Enumerable.Range(1, monitors.Count), monitors.Select(monitor => monitor.Index));
         Assert.All(monitors, monitor => Assert.False(monitor.Bounds.IsEmpty));
+    }
+}
+
+/// <summary>
+/// Флаги блокировки сеанса читаются по верному смещению WTSINFOEX. Окна не нужно, поэтому
+/// идёт и в CI.
+/// </summary>
+public sealed class ComputerSessionInfoTests
+{
+    [Fact]
+    public void The_session_record_is_read_at_the_offsets_windows_lays_it_out()
+    {
+        // Номер сеанса лежит в том же объединении, что и флаги блокировки: сошёлся номер —
+        // сошлось и смещение флагов. Со смещением от четвёртого байта здесь читался 0, и
+        // активный сеанс выдавал себя за заблокированный.
+        var info = WindowsComputer.SessionInfo();
+
+        Assert.NotNull(info);
+        Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().SessionId, info.Value.SessionId);
+    }
+}
+
+/// <summary>
+/// Имя программы окна спрашивается у процесса, а не берётся из кэша по номеру: Windows раздаёт
+/// номера заново, и запомненное имя досталось бы чужому процессу. Окна не нужно — идёт и в CI.
+/// </summary>
+public sealed class ComputerProcessNameTests
+{
+    [Fact]
+    public void The_name_comes_from_the_process_itself()
+    {
+        Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().ProcessName, WindowsComputer.ProcessName(Environment.ProcessId));
+    }
+
+    [Fact]
+    public void A_process_that_cannot_be_opened_has_no_name()
+    {
+        // Номер 0 — «Бездействие системы»: открыть его нельзя никому.
+        Assert.Equal("?", WindowsComputer.ProcessName(0));
     }
 }
 
@@ -195,6 +326,21 @@ public sealed class ComputerMappingTests
             Assert.NotNull(chord);
             Assert.All(chord, key => ComputerKeyMap.VirtualKey(key));
         }
+    }
+
+    [Fact]
+    public void Text_is_typed_in_batches_with_line_breaks_as_enter()
+    {
+        // По знаку с паузой 4000 знаков печатались полминуты; пачкой — доли секунды.
+        var batches = WindowsComputer.TypingBatches("ab\ncd", 2).ToList();
+
+        Assert.Equal(3, batches.Count);
+        Assert.Equal([4, 4, 2], batches.Select(batch => batch.Length));
+        Assert.Equal('a', (char)batches[0][0].Data.Keyboard.Scan);
+        Assert.Equal(0x0D, batches[1][0].Data.Keyboard.Vk);
+        Assert.Equal('c', (char)batches[1][2].Data.Keyboard.Scan);
+        Assert.Equal('d', (char)batches[2][0].Data.Keyboard.Scan);
+        Assert.All(batches.SelectMany(batch => batch), input => Assert.Equal(ComputerNative.InputKeyboard, input.Type));
     }
 
     [Fact]

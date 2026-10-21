@@ -111,6 +111,68 @@ public sealed class ParallelTurnTests
         Assert.Equal("kimi-k2-7-code", seen[0]);
     }
 
+    /// <summary>
+    /// Модель, выбранную человеком, перегрузка не подменяет: до 1.36.0 ход молча уходил на голову
+    /// цепочки запасных (тяжёлую модель), и на месте выбранной отвечала другая.
+    /// </summary>
+    [Fact]
+    public async Task A_model_without_fallback_is_not_replaced_when_it_is_overloaded()
+    {
+        var seen = new List<string>();
+        var handler = new AsyncHandler((_, body) =>
+        {
+            lock (seen)
+            {
+                seen.Add(ModelOf(body));
+            }
+
+            return Task.FromResult(Overloaded());
+        });
+
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var client = new VeniceClient(http, Options());
+
+        var error = await Assert.ThrowsAsync<VeniceApiException>(() => client.StreamChatCompletionAsync(
+            "kimi-k2-7-code", "kimi-k2-7-code",
+            [new ChatMessage { Role = "user", Content = ChatContent.Text("привет") }],
+            tools: null, toolChoice: null, new VeniceParameters(), onText: null,
+            CancellationToken.None, ReasoningChoice.Disabled, fallback: false));
+
+        Assert.Equal(new[] { "kimi-k2-7-code" }, seen);
+        Assert.Equal(
+            Loc.Format("S.Provider.ModelOverloaded", VeniceModelCatalog.GetDisplayName("kimi-k2-7-code")),
+            error.Message);
+        Assert.Equal(503, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task With_fallback_an_overloaded_model_still_hands_over_to_the_chain()
+    {
+        var seen = new List<string>();
+        var handler = new AsyncHandler((_, body) =>
+        {
+            var model = ModelOf(body);
+            lock (seen)
+            {
+                seen.Add(model);
+            }
+
+            return Task.FromResult(model == "kimi-k2-7-code" ? Overloaded() : Sse("готово", model, 0m));
+        });
+
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var client = new VeniceClient(http, Options());
+
+        var streamed = await client.StreamChatCompletionAsync(
+            "kimi-k2-7-code", "kimi-k2-7-code",
+            [new ChatMessage { Role = "user", Content = ChatContent.Text("привет") }],
+            tools: null, toolChoice: null, new VeniceParameters(), onText: null,
+            CancellationToken.None, ReasoningChoice.Disabled);
+
+        Assert.Equal("kimi-k2-7-code", seen[0]);
+        Assert.NotEqual("kimi-k2-7-code", streamed.Model);
+    }
+
     [Fact]
     public async Task A_suppressed_scope_keeps_its_spending_out_of_the_parent_turn()
     {

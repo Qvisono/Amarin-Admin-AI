@@ -22,11 +22,11 @@ public sealed class ComputerToolTests
     private static ComputerElement Element(string key, string role, string name, ScreenRect bounds, int depth = 1) =>
         new(key, depth, role, name, null, bounds);
 
-    private ComputerSession Session(ComputerMode mode = ComputerMode.Do, bool unattended = false) =>
-        new(_computer, _stage, new ComputerStart(mode, unattended, 100, "task"), _lease, Own);
+    private ComputerSession Session(bool unattended = false) =>
+        new(_computer, _stage, new ComputerStart(unattended, "task"), _lease, Own);
 
-    private static Task<ToolResult> Run(ComputerSession session, object arguments) =>
-        new ComputerTool(session).ExecuteAsync(Args(arguments));
+    private static Task<ToolResult> Run(ComputerSession session, object arguments, bool canSee = true) =>
+        new ComputerTool(session, canSee).ExecuteAsync(Args(arguments));
 
     // ───────────────────────── куда нажимает ─────────────────────────
 
@@ -295,24 +295,7 @@ public sealed class ComputerToolTests
     // ───────────────────────── «Показать» ─────────────────────────
 
     [Fact]
-    public async Task Showing_never_presses_anything()
-    {
-        var window = _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600),
-            elements: Element("k1", "button", "Save", new ScreenRect(100, 100, 80, 30)));
-        using var session = Session(ComputerMode.Show);
-        _ = await Run(session, new { action = "inspect", window = window.Id });
-
-        var click = await Run(session, new { action = "click", element = "e1", explanation = "save" });
-        var show = await Run(session, new { action = "show", element = "e1", caption = "Press Save" });
-
-        Assert.False(click.Success);
-        Assert.True(show.Success, show.Output);
-        Assert.Equal((new ScreenRect(100, 100, 80, 30), "Press Save"), Assert.Single(_stage.Shown));
-        Assert.DoesNotContain(_computer.Log, line => line.StartsWith("click", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task Doing_does_not_stop_to_show()
+    public async Task Showing_frames_the_place_and_presses_nothing()
     {
         var window = _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600),
             elements: Element("k1", "button", "Save", new ScreenRect(100, 100, 80, 30)));
@@ -321,8 +304,181 @@ public sealed class ComputerToolTests
 
         var show = await Run(session, new { action = "show", element = "e1", caption = "Press Save" });
 
-        Assert.False(show.Success);
+        Assert.True(show.Success, show.Output);
+        Assert.Equal((new ScreenRect(100, 100, 80, 30), "Press Save"), Assert.Single(_stage.Shown));
+        Assert.DoesNotContain(_computer.Log, line => line.StartsWith("click", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task There_is_no_one_to_show_without_a_person_or_a_panel()
+    {
+        // Без человека «Показать» ждало бы «Готово» до конца срока на каждом шаге.
+        var window = _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600),
+            elements: Element("k1", "button", "Save", new ScreenRect(100, 100, 80, 30)));
+        using var unattended = Session(unattended: true);
+        using var noPanel = new ComputerSession(_computer, null, new ComputerStart(false, "task"), new ComputerLease(), Own);
+        _ = await Run(unattended, new { action = "inspect", window = window.Id });
+        _ = await Run(noPanel, new { action = "inspect", window = window.Id });
+
+        var alone = await Run(unattended, new { action = "show", element = "e1", caption = "Press Save" });
+        var bare = await Run(noPanel, new { action = "show", element = "e1", caption = "Press Save" });
+
+        Assert.False(alone.Success);
+        Assert.False(bare.Success);
         Assert.Empty(_stage.Shown);
+        Assert.Empty(_stage.Begins);
+    }
+
+    [Fact]
+    public async Task A_model_that_cannot_see_is_refused_a_screenshot_and_nothing_is_captured()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        using var session = Session();
+
+        var shot = await Run(session, new { action = "screenshot", window = "w7" }, canSee: false);
+
+        Assert.False(shot.Success);
+        Assert.False(shot.HasImages);
+        Assert.Empty(_computer.Log);
+    }
+
+    // ───────────────────────── цепочка ─────────────────────────
+
+    [Fact]
+    public async Task A_sequence_runs_its_steps_in_order_and_reads_the_window_once_at_the_end()
+    {
+        var window = _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600),
+            elements: Element("k1", "edit", "Message", new ScreenRect(10, 10, 200, 20)));
+        using var session = Session();
+        _ = await Run(session, new { action = "inspect", window = window.Id });
+        _computer.Inspected.Clear();
+
+        var result = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "send the note",
+            steps = new object[]
+            {
+                new { action = "click", element = "e1" },
+                new { action = "type", text = "hello" },
+                new { action = "key", keys = "enter" }
+            }
+        });
+
+        Assert.True(result.Success, result.Output);
+        Assert.Equal(["click 110,20", "type hello", "keys enter"], _computer.Log);
+        Assert.Equal([ComputerTool.AfterActionTree], _computer.Inspected);
+        Assert.Contains(ComputerTool.TreeMark + "w7]", result.Output, StringComparison.Ordinal);
+        Assert.Contains(_stage.Steps, step => step.EndsWith(": send the note", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_sequence_stops_at_the_first_refusal_and_says_where()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        using var session = Session();
+
+        var result = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "do it",
+            steps = new object[]
+            {
+                new { action = "type", text = "hello" },
+                new { action = "key", keys = "win+r" },
+                new { action = "key", keys = "enter" }
+            }
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(["type hello"], _computer.Log);
+        Assert.Contains("win+r", result.Output, StringComparison.Ordinal);
+        Assert.Contains(ComputerTool.TreeMark + "w7]", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_sequence_stops_when_another_window_comes_to_the_front()
+    {
+        // Цепочка писала бы не туда, куда модель рассчитывала: окно впереди уже другое.
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        _computer.AddWindow(8, new ScreenRect(0, 0, 400, 300), title: "Dialog");
+        _computer.AfterKeys = _ => _computer.ForegroundHandle = 8;
+        using var session = Session();
+
+        var result = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "do it",
+            steps = new object[] { new { action = "key", keys = "enter" }, new { action = "type", text = "more" } }
+        });
+
+        Assert.True(result.Success, result.Output);
+        Assert.Equal(["keys enter"], _computer.Log);
+        Assert.Contains(ComputerTool.TreeMark + "w8]", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_focus_step_may_bring_another_window_forward()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        var other = _computer.AddWindow(8, new ScreenRect(0, 0, 400, 300), title: "Other");
+        using var session = Session();
+
+        var result = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "switch and type",
+            steps = new object[] { new { action = "focus", window = other.Id }, new { action = "type", text = "x" } }
+        });
+
+        Assert.True(result.Success, result.Output);
+        Assert.Equal(["focus window 8", "type x"], _computer.Log);
+    }
+
+    [Fact]
+    public async Task A_sequence_takes_only_actions_and_pauses()
+    {
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        using var session = Session();
+
+        var looking = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "x",
+            steps = new object[] { new { action = "key", keys = "tab" }, new { action = "inspect" } }
+        });
+        var empty = await Run(session, new { action = "sequence", explanation = "x", steps = Array.Empty<object>() });
+        var tooLong = await Run(session, new
+        {
+            action = "sequence",
+            explanation = "x",
+            steps = Enumerable.Repeat<object>(new { action = "key", keys = "tab" }, ComputerTool.MaxSequence + 1).ToArray()
+        });
+
+        Assert.False(looking.Success);
+        Assert.False(empty.Success);
+        Assert.False(tooLong.Success);
+        Assert.Empty(_computer.Log);
+    }
+
+    // ───────────────────────── вставка ─────────────────────────
+
+    [Theory]
+    [InlineData("ctrl+v", "powershell -NoProfile -Command Get-Date", false)]
+    [InlineData("shift+insert", "cmd /c del x", false)]
+    [InlineData("ctrl+shift+v", "cmd /c del x", false)]
+    [InlineData("ctrl+v", "see you at six", true)]
+    [InlineData("ctrl+c", "cmd /c del x", true)]
+    public async Task A_command_line_is_not_pasted_either(string keys, string clipboard, bool allowed)
+    {
+        // write_clipboard и клавиатура у агента вместе: вставка обошла бы запрет печатать команду.
+        _computer.AddWindow(7, new ScreenRect(0, 0, 800, 600));
+        _computer.Clipboard = clipboard;
+        using var session = Session();
+
+        var result = await Run(session, new { action = "key", keys, explanation = "paste" });
+
+        Assert.Equal(allowed, result.Success);
     }
 
     // ───────────────────────── сеанс ─────────────────────────
@@ -448,6 +604,7 @@ public sealed class ComputerToolTests
     [InlineData("key", ToolEffect.Write)]
     [InlineData("drag", ToolEffect.Write)]
     [InlineData("focus", ToolEffect.Write)]
+    [InlineData("sequence", ToolEffect.Write)]
     [InlineData("anything_new", ToolEffect.Write)]
     public void Looking_is_a_read_and_everything_else_a_write(string action, ToolEffect expected)
     {
@@ -455,25 +612,41 @@ public sealed class ComputerToolTests
     }
 
     [Fact]
-    public void Handing_work_to_the_operator_is_a_read_because_each_press_passes_the_gate_itself()
+    public void A_press_goes_without_a_question_in_the_normal_mode_even_when_the_guard_would_ask()
     {
-        Assert.Equal(ToolEffect.Read, ToolEffects.Classify("use_computer", Args(new { task = "x" })));
+        // Просьба человека — уже согласие. В beta.1 нажатие спрашивалось всегда, а осторожная модель
+        // защиты («если не уверен — спроси») оставляла вопрос про Enter после «отправь».
+        var press = Args(new { action = "key", keys = "enter", explanation = "press" });
+        var normal = new AppSettings { ApprovalMode = ApprovalMode.Normal };
+
+        var check = ToolGate.Check(ComputerTool.ToolName, press, normal);
+        var guardWouldAsk = ToolGate.ApplyNormalReview(check, normal, withoutApproval: false);
+        var guardLifts = ToolGate.ApplyNormalReview(check, normal, withoutApproval: true);
+
+        Assert.Equal(ToolEffect.Write, check.Effect);
+        Assert.Null(check.Question);
+        Assert.Null(guardWouldAsk.Question);
+        Assert.Null(guardLifts.Question);
     }
 
     [Fact]
-    public void A_press_asks_by_the_rules_and_only_the_guard_may_lift_the_question()
+    public void Asking_about_everything_still_asks_about_a_press_and_read_only_refuses_it()
     {
         var press = Args(new { action = "click", element = "e1", explanation = "press" });
-        var normal = new AppSettings { ApprovalMode = ApprovalMode.Normal };
 
-        var asked = ToolGate.Check(ComputerTool.ToolName, press, normal);
-        var lifted = ToolGate.ApplyNormalReview(asked, normal, withoutApproval: true);
-        var look = ToolGate.Check(ComputerTool.ToolName, Args(new { action = "inspect" }), normal);
-        var readOnly = ToolGate.Check(ComputerTool.ToolName, press, new AppSettings { ApprovalMode = ApprovalMode.ReadOnly });
+        Assert.NotNull(ToolGate.Check(ComputerTool.ToolName, press, new AppSettings { ApprovalMode = ApprovalMode.AskAll }).Question);
+        Assert.NotNull(ToolGate.Check(ComputerTool.ToolName, press, new AppSettings { ApprovalMode = ApprovalMode.ReadOnly }).Refusal);
+        Assert.Null(ToolGate.Check(ComputerTool.ToolName, Args(new { action = "inspect" }), new AppSettings { ApprovalMode = ApprovalMode.AskAll }).Question);
+    }
 
-        Assert.NotNull(asked.Question);
-        Assert.Null(lifted.Question);
-        Assert.Null(look.Question);
-        Assert.NotNull(readOnly.Refusal);
+    [Fact]
+    public void The_screen_is_never_used_by_a_parallel_batch_not_even_to_look()
+    {
+        // Два взгляда разом выдавали бы id наперебой: сеанс помнит одно дерево окна.
+        var press = Args(new { action = "click", element = "e1", explanation = "press" });
+        var look = Args(new { action = "inspect" });
+
+        Assert.False(Agent.IsParallelSafeToolCall(ComputerTool.ToolName, press));
+        Assert.False(Agent.IsParallelSafeToolCall(ComputerTool.ToolName, look));
     }
 }

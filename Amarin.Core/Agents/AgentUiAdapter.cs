@@ -64,7 +64,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         if (round is null)
         {
             round = new ToolRound();
-            _record.ToolRounds.Add(round);
+            StartRound(round);
         }
 
         round.FollowUpNote = Loc.Get("S.Tools.AgentHeard") + " " + text.Trim();
@@ -88,7 +88,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         if (round is null || RoundIsSettled(round))
         {
             round = new ToolRound();
-            _record.ToolRounds.Add(round);
+            StartRound(round);
         }
 
         round.ModelNote = ThinkingNote.Shorten(text);
@@ -103,7 +103,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         if (round is null || RoundIsSettled(round))
         {
             round = new ToolRound { InfoLine = EngineLines.RunningTools };
-            _record.ToolRounds.Add(round);
+            StartRound(round);
         }
 
         round.GuardOutcome = outcome;
@@ -116,17 +116,22 @@ internal sealed class AgentUiAdapter : IAgentUi
         if (round is null || RoundIsSettled(round))
         {
             round = new ToolRound { InfoLine = EngineLines.RunningTools };
-            _record.ToolRounds.Add(round);
+            StartRound(round);
         }
 
-        round.Calls.Add(new ToolCallRecord
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            Name = name,
-            ArgumentsJson = argumentsJson,
-            Status = ToolCallStatus.Running,
-            StartedAt = DateTime.Now
-        });
+        // Новым списком, как и раунды (см. StartRound).
+        round.Calls =
+        [
+            .. round.Calls,
+            new ToolCallRecord
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = name,
+                ArgumentsJson = argumentsJson,
+                Status = ToolCallStatus.Running,
+                StartedAt = DateTime.Now
+            }
+        ];
         Notify();
     }
 
@@ -158,26 +163,6 @@ internal sealed class AgentUiAdapter : IAgentUi
             call.Duration = DateTime.Now - call.StartedAt;
         }
 
-        Notify();
-    }
-
-    /// <summary>
-    /// Вешает вложенный прогон на идущий вызов этого инструмента — так оператор мыши виден в
-    /// ленте под строкой <c>use_computer</c>, как агент под <c>init_agent</c>.
-    /// </summary>
-    public void Nest(string toolName, AgentRunRecord nested)
-    {
-        var call = _record.ToolRounds
-            .SelectMany(round => round.Calls)
-            .LastOrDefault(item =>
-                item.Name.Equals(toolName, StringComparison.OrdinalIgnoreCase) &&
-                item.Status is ToolCallStatus.Pending or ToolCallStatus.Running);
-        if (call is null)
-        {
-            return;
-        }
-
-        call.NestedAgent = nested;
         Notify();
     }
 
@@ -231,7 +216,7 @@ internal sealed class AgentUiAdapter : IAgentUi
         var round = CurrentRound() ?? new ToolRound();
         if (CurrentRound() is null)
         {
-            _record.ToolRounds.Add(round);
+            StartRound(round);
         }
 
         if (string.IsNullOrWhiteSpace(round.InfoLine) ||
@@ -242,6 +227,17 @@ internal sealed class AgentUiAdapter : IAgentUi
 
         Notify();
     }
+
+    /// <summary>
+    /// Дописывает раунд новым списком, а не в прежний.
+    /// </summary>
+    /// <remarks>
+    /// Запись агента пишет его поток, а читают одновременно лента (поток окна перебирает раунды и
+    /// вызовы) и фоновое сохранение чата. Дописанное в тот же список роняло перебор с «Collection
+    /// was modified»: с мышью раунды идут часто, и гонка стала обычной. Новый список заменяет
+    /// прежний одной записью ссылки, и тот, кто уже перебирает старый, дочитывает его целым.
+    /// </remarks>
+    private void StartRound(ToolRound round) => _record.ToolRounds = [.. _record.ToolRounds, round];
 
     private ToolRound? CurrentRound() => _record.ToolRounds.Count == 0 ? null : _record.ToolRounds[^1];
 

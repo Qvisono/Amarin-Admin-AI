@@ -2,13 +2,25 @@ using System.Runtime.InteropServices;
 
 namespace Amarin.Computer;
 
-/// <summary>Вызовы Windows, на которых стоит управление компьютером: окна, мониторы, ввод, питание.</summary>
+/// <summary>
+/// Вызовы Windows, на которых стоит управление компьютером: окна, мониторы, ввод, питание — и окна
+/// самой программы на время управления (плашка, свечение, рамка «Показать»).
+/// </summary>
 internal static class ComputerNative
 {
     public const int GaRoot = 2;
     public const int SwRestore = 9;
     public const int GwlExStyle = -20;
+    public const int WsExTransparent = 0x20;
     public const int WsExToolWindow = 0x80;
+    public const int WsExLayered = 0x80000;
+    public const int WsExNoActivate = 0x08000000;
+    public const uint SwpNoSize = 0x0001;
+    public const uint SwpNoActivate = 0x0010;
+    public const uint SwpShowWindow = 0x0040;
+    public const uint WdaExcludeFromCapture = 0x11;
+    public const int WmDpiChanged = 0x02E0;
+    public static readonly IntPtr HwndTopmost = new(-1);
     public const int DwmwaExtendedFrameBounds = 9;
     public const int DwmwaCloaked = 14;
     public const uint MonitorDefaultToNearest = 2;
@@ -21,6 +33,14 @@ internal static class ComputerNative
     public const int UoiName = 2;
     public const int WtsSessionInfoEx = 25;
     public const int WtsSessionStateLock = 0;
+
+    // WTSINFOEXW — { DWORD Level; union Data }, а в объединении есть LARGE_INTEGER, поэтому оно
+    // выровнено по восьми и начинается с восьмого байта, а не с четвёртого. По смещению 12
+    // лежит не SessionFlags, а SessionState: у активного сеанса это WTSActive = 0, и он
+    // совпадал с WTS_SESSIONSTATE_LOCK = 0 — живой прогон видел «Windows заблокирована» у
+    // человека за компьютером.
+    public const int WtsInfoExSessionId = 8;
+    public const int WtsInfoExSessionFlags = 16;
     public const uint InputMouse = 0;
     public const uint InputKeyboard = 1;
     public const uint MouseMove = 0x0001;
@@ -43,6 +63,19 @@ internal static class ComputerNative
     public const int PowerRequestSystemRequired = 1;
     public const uint PowerRequestContextVersion = 0;
     public const uint PowerRequestContextSimpleString = 0x1;
+
+    /// <summary>
+    /// Окно программы, которое не мешает агенту: не берёт фокус, не стоит в Alt+Tab и не попадает в
+    /// снимки экрана — модель видела бы его поверх окна и пыталась бы в него нажать.
+    /// <paramref name="passThrough"/> — ещё и сквозное для мыши: нажатие проходит к окну под ним.
+    /// </summary>
+    /// <remarks>Исключение из снимков есть с Windows 10 2004; раньше окно просто видно на снимке.</remarks>
+    public static void Overlay(IntPtr hwnd, bool passThrough)
+    {
+        var style = WsExToolWindow | WsExNoActivate | (passThrough ? WsExTransparent | WsExLayered : 0);
+        _ = SetWindowLongW(hwnd, GwlExStyle, GetWindowLongW(hwnd, GwlExStyle) | style);
+        _ = SetWindowDisplayAffinity(hwnd, WdaExcludeFromCapture);
+    }
 
     public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 
@@ -112,6 +145,21 @@ internal static class ComputerNative
         public InputUnion Data;
     }
 
+    /// <summary>GUITHREADINFO: кто в потоке переднего окна держит фокус клавиатуры.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GuiThreadInfo
+    {
+        public int Size;
+        public uint Flags;
+        public IntPtr Active;
+        public IntPtr Focus;
+        public IntPtr Capture;
+        public IntPtr MenuOwner;
+        public IntPtr MoveSize;
+        public IntPtr Caret;
+        public Rect CaretRect;
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct ReasonContext
     {
@@ -171,10 +219,29 @@ internal static class ComputerNative
     public static extern IntPtr GetAncestor(IntPtr hwnd, int flags);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetGUIThreadInfo(uint threadId, ref GuiThreadInfo info);
+
+    [DllImport("user32.dll")]
     public static extern IntPtr WindowFromPoint(Point point);
 
     [DllImport("user32.dll")]
     public static extern int GetWindowLongW(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll")]
+    public static extern int SetWindowLongW(IntPtr hwnd, int index, int value);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowDisplayAffinity(IntPtr hwnd, out uint affinity);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern IntPtr FindWindowExW(IntPtr parent, IntPtr after, string? className, string? title);
@@ -203,6 +270,9 @@ internal static class ComputerNative
     [DllImport("user32.dll")]
     public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromPoint(Point point, uint flags);
+
     [DllImport("shcore.dll")]
     public static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
 
@@ -212,11 +282,12 @@ internal static class ComputerNative
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint count, Input[] inputs, int size);
 
-    [DllImport("user32.dll")]
-    public static extern uint GetDoubleClickTime();
-
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool QueryFullProcessImageNameW(IntPtr process, uint flags, [Out] char[] name, ref int size);
 
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

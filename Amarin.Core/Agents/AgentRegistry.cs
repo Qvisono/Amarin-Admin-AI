@@ -113,16 +113,21 @@ internal sealed class AgentRegistry
     private int _counter;
 
     /// <summary>Короткий идентификатор: модель называет агента по нему, поэтому не GUID.</summary>
+    /// <param name="id">
+    /// Id уже знакомого чату агента — его продолжение (1.36.0) и следующие попытки записываются
+    /// под тем же именем. Null — новый.
+    /// </param>
     public RunningAgent Register(
         string sessionId,
         string prompt,
         string complexity,
         string modelId,
-        CancellationTokenSource interrupt)
+        CancellationTokenSource interrupt,
+        string? id = null)
     {
         var agent = new RunningAgent
         {
-            Id = "a" + Interlocked.Increment(ref _counter),
+            Id = id ?? "a" + Interlocked.Increment(ref _counter),
             SessionId = sessionId ?? "",
             Prompt = prompt ?? "",
             Complexity = complexity ?? "",

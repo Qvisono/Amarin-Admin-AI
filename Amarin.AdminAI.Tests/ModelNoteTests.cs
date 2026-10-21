@@ -103,6 +103,36 @@ public sealed class ModelNoteTests
     }
 
     [Fact]
+    public void The_feed_can_keep_reading_rounds_and_calls_while_the_agent_adds_more()
+    {
+        // Лента перебирает раунды на потоке окна, пока агент дописывает их на своём. Дописанное в
+        // тот же список роняло перебор: «Collection was modified» в ChatMessageViews.
+        var record = new AgentRunRecord { ModelId = "grok-4-6", DisplayName = "Агент" };
+        var adapter = new AgentUiAdapter(
+            record, new ConfirmationQueue(AppSettings.CreateDefault), () => { }, "Агент");
+        adapter.ToolCall("registry", "{}");
+
+        var seenCalls = 0;
+        foreach (var round in record.ToolRounds)
+        {
+            foreach (var call in round.Calls)
+            {
+                // Новый вызов того же раунда и новый раунд — посреди перебора.
+                adapter.ToolCall("windows_service", "{}");
+                adapter.ToolResult("registry", ToolResult.Ok("done"));
+                adapter.ToolResult("windows_service", ToolResult.Ok("done"));
+                adapter.Info(EngineLines.ToolsDoneStep(2));
+                adapter.ToolCall("filesystem", "{}");
+                seenCalls++;
+            }
+        }
+
+        Assert.Equal(1, seenCalls);
+        Assert.Equal(["registry", "windows_service", "filesystem"],
+            record.ToolRounds.SelectMany(round => round.Calls).Select(call => call.Name));
+    }
+
+    [Fact]
     public void A_tool_call_is_timed_from_start_to_result()
     {
         var record = new AgentRunRecord { ModelId = "grok-4-6", DisplayName = "Агент" };

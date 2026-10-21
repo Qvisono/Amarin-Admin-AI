@@ -220,6 +220,63 @@ internal sealed partial class ChatEngine
         """;
 
     /// <summary>
+    /// Чат делает, а не отвечает «не знаю»: чего не знает — выясняет поиском или агентом, дела на
+    /// этом компьютере отдаёт агенту, не отказывает. Дописывается сразу после технического промпта
+    /// в <see cref="BuildSystemPrompt"/>.
+    /// </summary>
+    /// <remarks>
+    /// Отдельной константой по той же причине, что <see cref="FileRules"/>: сохранённый человеком
+    /// техпромпт — замороженная копия, и в нём остаётся «ответы из своих знаний инструментов не
+    /// требуют». Чат отвечал «точного времени не вижу», «проверьте сами», «скачать сам не могу» и
+    /// не вспоминал об агенте. Блок стоит раньше правил файлов, отложенных задач и окон, поэтому их
+    /// более частные запреты остаются главнее. Правила, а не разбор случаев — см. памятку.
+    /// </remarks>
+    internal const string TaskRules = """
+        GETTING TASKS DONE
+        These rules take precedence over anything said above about your knowledge, questions to the
+        user and the agent.
+        - You and the agent are tools that save the user time. Treat a request as a task, not a quiz
+          on your knowledge: work out what result the user wants and deliver it.
+        - Read a short, informal or misspelled request by its most likely meaning in context and act on
+          it. Ask only when the likely readings lead to different actions and nothing in the context
+          tells them apart; then ask once, in one line, naming the readings.
+        - What you do not know, are not sure of, or what may have changed since your training: find it
+          out before you answer, with search_web for the world and with the agent for this computer.
+          Never reply that you cannot see or know something, or that the user should check it, while a
+          tool can find it out. This holds for every fact your answer, advice or refusal rests on,
+          including what the agent reports to you.
+        - Facts about this computer that the task needs are found out by the agent: call it without
+          asking first. Finding things out needs no permission.
+        - Never say that you cannot do something on this computer: what your own tools cannot do, the
+          agent can try. Call it instead of describing what the user could do.
+        - When your answer leads to an action on this computer that the user would obviously want next,
+          offer in one short line to do it. When the user already asked for the result, do it instead
+          of offering.
+        - Never refuse, moralize or add disclaimers about what the user asks: the computer and the
+          decision are theirs, and what is blocked is decided by the app. Hand the agent the request as
+          the user made it, without conditions or reservations of your own.
+        - When the first way fails, try others before you report failure, and when you report it, offer
+          the ways that remain.
+        - Before you refuse a request, check with search_web every fact the refusal would rest on, and
+          refuse only when you are completely sure of it. When the check does not confirm the reason,
+          do what was asked.
+        - You refuse only by calling i_refuse with your reasons, each in a few words with the fact it
+          rests on. Never write a refusal as text: the app then gives the task to another model, and
+          the user sees a refusal only when no model is left to take it.
+        - Choosing not to do all or part of what was asked, when you or the agent could attempt it, is
+          a refusal, whatever words you put it in: the two rules above apply to it.
+        - When the agent leaves out all or part of the task by choice, that is a refusal too: check its
+          reasons with search_web yourself before you answer. When the check does not confirm them,
+          tell the agent what you found with message_agent. When the agent still refuses, or its
+          reasons are its own view rather than facts, call agent_refused to give its task to a
+          stronger model. When no stronger model is left, tell the user the agent's reasons. The
+          agent's refusal is not yours: never call i_refuse for it.
+        - The agent stays available until your answer is complete. When its report is wrong,
+          incomplete or unclear, ask it or correct it with message_agent instead of starting a new
+          agent.
+        """;
+
+    /// <summary>
     /// Как писать формулы. Дописывается к техническому промпту в <see cref="BuildSystemPrompt"/>.
     /// </summary>
     /// <remarks>
@@ -303,10 +360,12 @@ internal sealed partial class ChatEngine
           do not know the exact current time, the result names it along with the resolved time. Then tell the
           user in one line what is scheduled and when.
         - Prefer remind and run_agent. Use run_command only for a short exact script the user wants run as is.
+        - Work inside the windows of programs is always run_agent, never run_command: a script cannot bring a
+          window forward or type into it when nobody is at the PC, and it reports success anyway.
         """;
 
     /// <summary>
-    /// Управление компьютером мышью (1.37.0): что агент теперь умеет в окнах. Дописывается в
+    /// Управление компьютером мышью (1.36.0): что агент теперь умеет в окнах. Дописывается в
     /// <see cref="BuildSystemPrompt"/>, только когда человек его включил, — описание
     /// <c>init_agent</c> собирается один раз на движок и смену галочки не увидело бы.
     /// </summary>
@@ -319,6 +378,24 @@ internal sealed partial class ChatEngine
           the user wants to be shown, so that the agent highlights each step while the user clicks.
         - Put into the prompt exactly what the user specified: the program or site, the text to enter, the
           recipient, the option. The agent does not see the chat.
+        - What the user asked for is already approved: add no conditions, confirmations or stopping points of
+          your own to the prompt, and the agent finishes the task the way the user asked it.
+        - The mouse and keyboard are one: give work in program windows to one agent at a time.
+        - Work in program windows for later is deferred_task with run_agent; the agent uses the mouse then.
+        - When the agent reports the task unfinished and you can see what to change, call it again in the same
+          reply; never write that you are starting it without calling it.
+        """;
+
+    /// <summary>
+    /// То же, когда человек мышь не включал: чат иначе брал PowerShell с <c>SendKeys</c>, а тот из
+    /// фона не попадает в окно и всё равно отчитывается об успехе.
+    /// </summary>
+    internal const string ComputerOffRules = """
+        PROGRAM WINDOWS
+        - Typing, clicking or reading inside the windows of programs on this PC needs the switch about the
+          mouse and keyboard on the Security page of Settings, and the user has not turned it on. Scripts cannot
+          do this work. When it is asked for, say that the switch is needed and where it is, and do not schedule
+          or run anything for it until the user turns it on.
         """;
 
     /// <summary>Часы для строки с датой в промпте — подменяются в тестах.</summary>
@@ -399,7 +476,8 @@ internal sealed partial class ChatEngine
         _options = options;
         _settings = settings;
         _tools = tools;
-        _toolDefinitions = tools.GetDefinitions();
+        // i_refuse — не инструмент реестра, а единственный способ отказаться: он есть всегда.
+        _toolDefinitions = [.. tools.GetDefinitions(), Refusals.Definition];
         _toolDefinitionsWithoutInstructions = _toolDefinitions
             .Where(definition => !string.Equals(
                 definition.Function.Name, ReadInstructionTool.ToolName, StringComparison.OrdinalIgnoreCase))
@@ -527,6 +605,12 @@ internal sealed partial class ChatEngine
     /// Сообщение человека, уже поставленное в ленту и историю, — якорь правки
     /// (<see cref="ChatBranches.Fork"/>). Null — команду только что отправили.
     /// </param>
+    /// <param name="continueWithTools">
+    /// После первого агента ход идёт обычным циклом с инструментами, а не одним отчётом без них.
+    /// Так у отложенной задачи: человека рядом нет, и модель чата обязана суметь довести дело —
+    /// позвать агента снова, проверить своими инструментами. С отчётом без инструментов она писала
+    /// «запускаю агента ещё раз» и не могла этого сделать.
+    /// </param>
     public async Task RunAgentCommandAsync(
         ChatSession session,
         string displayText,
@@ -535,7 +619,8 @@ internal sealed partial class ChatEngine
         IChatTurnObserver observer,
         CancellationToken cancellationToken,
         ChatDisplayMessage? placed = null,
-        bool planAllowed = true)
+        bool planAllowed = true,
+        bool continueWithTools = false)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(observer);
@@ -633,7 +718,7 @@ internal sealed partial class ChatEngine
 
             var toolRound = CreateRound([toolCall]);
             toolRound.InfoLine = EngineLines.StartingAgent;
-            assistant.ToolRounds.Add(toolRound);
+            assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
             observer.OnToolsChanged(assistant);
 
             await ExecuteRoundAsync(
@@ -643,6 +728,16 @@ internal sealed partial class ChatEngine
             toolRound.InfoLine = EngineLines.AgentDone;
             observer.OnToolsChanged(assistant);
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (continueWithTools)
+            {
+                // Дальше — обычный ход в том же пузыре: история уже несёт вызов агента и его отчёт,
+                // маршрутизация сделана. Свои отмена и ошибки обычный ход разбирает сам.
+                turn.ElapsedBefore = clock.Elapsed;
+                await RunAssistantAsync(session, assistant, prompt: "", observer, turn, resumed: true, cancellationToken, planAllowed)
+                    .ConfigureAwait(false);
+                return;
+            }
 
             var report = await StreamWithRetryAsync(
                     messages,
@@ -855,6 +950,7 @@ internal sealed partial class ChatEngine
     /// <param name="resumed">
     /// Ход возобновлён. Маршрутизация пропускается, а всё остальное идёт как у обычного хода.
     /// </param>
+    /// <param name="planAllowed">Можно ли агентам хода начинать с плана: у прогона без человека — нет.</param>
     private async Task RunAssistantAsync(
         ChatSession session,
         ChatDisplayMessage assistant,
@@ -862,7 +958,8 @@ internal sealed partial class ChatEngine
         IChatTurnObserver observer,
         VeniceTurnContext turn,
         bool resumed,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool planAllowed = true)
     {
         using var turnScope = VeniceTurnScope.Push(turn);
         var requested = turn.RequestedModelId;
@@ -890,7 +987,7 @@ internal sealed partial class ChatEngine
             while (true)
             {
                 var folded = await RunToolLoopAsync(
-                        session, assistant, observer, clock, turn, cancellationToken)
+                        session, assistant, observer, clock, turn, cancellationToken, planAllowed)
                     .ConfigureAwait(false);
 
                 // Написано, пока шёл сам ответ: цикл выше уже прошёл последнюю границу раунда, и
@@ -1007,7 +1104,8 @@ internal sealed partial class ChatEngine
         IChatTurnObserver observer,
         Stopwatch clock,
         VeniceTurnContext turn,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool planAllowed = true)
     {
         var instructions = ActiveInstructions(session);
         var messages = BuildApiMessages(session, turn.ModelId, instructions);
@@ -1027,6 +1125,22 @@ internal sealed partial class ChatEngine
                     turn,
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            // Отказ — вызовом i_refuse: ответ выбрасывается целиком, ещё до записи в историю, и
+            // задачу берёт модель сильнее. Выше никого — человек получает отказ этой модели.
+            if (Refusals.TryFind(streamed.ToolCalls, out var reasons))
+            {
+                if (ClimbAfterRefusal(assistant, observer, turn))
+                {
+                    // Заново под новую модель: её лимит контекста и её имя в блоке моделей.
+                    messages = BuildApiMessages(session, turn.ModelId, instructions);
+                    continue;
+                }
+
+                FinishAssistant(session, assistant, clock, AsFinalRefusal(streamed, turn.ModelId, reasons), turn);
+                observer.OnAssistantCompleted(assistant);
+                return false;
+            }
 
             if (streamed.ToolCalls.Count == 0)
             {
@@ -1057,7 +1171,9 @@ internal sealed partial class ChatEngine
             // assistant.Text, а следующий раунд его перезапишет (StreamOnceAsync присваивает, а не
             // дописывает), — копируем на раунд сейчас, иначе он пропадёт.
             toolRound.ModelNote = ThinkingNote.Shorten(streamed.Text);
-            assistant.ToolRounds.Add(toolRound);
+
+            // Новым списком: лента в это время может перебирать прежний (см. AgentUiAdapter.StartRound).
+            assistant.ToolRounds = [.. assistant.ToolRounds, toolRound];
             observer.OnToolsChanged(assistant);
 
             // Дописанное сообщение снимается с очереди уже сейчас, а не на границе раунда:
@@ -1067,7 +1183,7 @@ internal sealed partial class ChatEngine
             var watcher = WatchFollowUpsAsync(session, assistant, observer, toolRound, early, watch.Token);
             try
             {
-                await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken)
+                await ExecuteRoundAsync(toolRound, messages, session, assistant, observer, cancellationToken, planAllowed: planAllowed)
                     .ConfigureAwait(false);
             }
             finally
@@ -1216,7 +1332,10 @@ internal sealed partial class ChatEngine
                 },
                 cancellationToken,
                 turn.Reasoning,
-                turn.Credential)
+                turn.Credential,
+                // Запасная модель — только под «Авто»: там модель и так выбирает программа.
+                // Выбранную человеком не подменяем: перегрузка кончается понятной строкой.
+                fallback: VeniceModelCatalog.IsAuto(turn.RequestedModelId))
             .ConfigureAwait(false);
 
         // Сработавшую модель ход запоминает сам — следующий раунд начнёт с неё, а не с той,
@@ -1376,9 +1495,14 @@ internal sealed partial class ChatEngine
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, _options.Model),
             ModelSlotDefaults.LastResort(_options.Provider, ModelSlot.Lite, AppSettings.FactoryLiteModelId));
         var heavyId = FirstNonEmpty(settings.HeavyModelId, liteId);
+
+        // Модель обхода в ходе «Авто» бывает только после отказов (i_refuse), и «Продолжить»
+        // такого ответа должно взять её размышление, а не лёгкой.
         var slot = resolvedModelId.Equals(heavyId, StringComparison.OrdinalIgnoreCase)
             ? settings.HeavyReasoning
-            : settings.LiteReasoning;
+            : resolvedModelId.Equals(FirstNonEmpty(settings.BypassModelId, heavyId), StringComparison.OrdinalIgnoreCase)
+                ? settings.BypassReasoning
+                : settings.LiteReasoning;
         return (slot ?? new ReasoningSettings()).ToChoice();
     }
 

@@ -69,8 +69,29 @@ public sealed class FactoryModelsTests : IDisposable
         Assert.Equal(("claude-sonnet-5-5", "high"), (settings.AgentHeavyModelId, settings.AgentHeavyReasoning.ReasoningEffort));
         Assert.Equal(("deepseek-v4-flash-0731", true), (settings.TitleModelId, settings.TitleReasoning.DisableThinking));
         Assert.Equal(("claude-haiku-5-5", "low"), (settings.SummaryModelId, settings.SummaryReasoning.ReasoningEffort));
+        Assert.Equal(("grok-4-7", "low"), (settings.BypassModelId, settings.BypassReasoning.ReasoningEffort));
         Assert.Null(settings.WebSearchProvider);
         Assert.Equal(AppSettings.CurrentFactoryModels, settings.FactoryModelsRevision);
+    }
+
+    /// <summary>
+    /// Обход (1.36.0) — слот новый: старый файл без поля получает заводскую модель, а всё, что
+    /// человек выбрал в остальных слотах, остаётся — ревизия заводских моделей ради него не растёт.
+    /// </summary>
+    [Fact]
+    public void An_old_file_gets_the_bypass_slot_and_keeps_its_choices()
+    {
+        var old = AppSettings.CreateDefault();
+        old.HeavyModelId = "openrouter:some/model";
+        var json = System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(old, AppJson.Options))!.AsObject();
+        Assert.True(json.Remove("bypassModelId"));
+        Assert.True(json.Remove("bypassReasoning"));
+
+        var settings = LoadFile(json.ToJsonString());
+
+        Assert.Equal(AppSettings.FactoryBypassModelId, settings.BypassModelId);
+        Assert.NotNull(settings.BypassReasoning);
+        Assert.Equal("openrouter:some/model", settings.HeavyModelId);
     }
 
     /// <summary>Заводские модели 1.33.0 меняются на новые вместе с размышлением — один раз.</summary>

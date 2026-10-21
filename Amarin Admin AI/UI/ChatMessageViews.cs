@@ -154,8 +154,6 @@ internal sealed class AssistantMessageView
     /// <summary>Прозрачная обёртка часов — она же цель наведения для подсказки с полной датой.</summary>
     public required Border ClockChip { get; init; }
     public required TextBlock Duration { get; init; }
-    public required TextBlock Thinking { get; init; }
-    public required Ellipse ThinkingDot { get; init; }
     public required TextBlock Cost { get; init; }
     public required Ellipse CostDot { get; init; }
     public required Border CostChip { get; init; }
@@ -260,16 +258,8 @@ internal sealed class AssistantMessageView
         Duration.SetResourceReference(TextBlock.ForegroundProperty, "Text.Muted");
         Cost.Visibility = Visibility.Collapsed;
         CostDot.Visibility = Visibility.Collapsed;
-        Thinking.Visibility = Visibility.Collapsed;
-        ThinkingDot.Visibility = Visibility.Collapsed;
         StartPulse();
     }
-
-    /// <summary>
-    /// Меньше этого — шум: модель начала отвечать сразу, как открылось соединение, и «думал 0s»
-    /// рядом с длительностью ничего не говорит.
-    /// </summary>
-    private static readonly TimeSpan ThinkingWorthShowing = TimeSpan.FromSeconds(1);
 
     public void ShowFinished(ChatDisplayMessage message)
     {
@@ -278,18 +268,6 @@ internal sealed class AssistantMessageView
         Duration.FontWeight = FontWeights.Normal;
         Duration.SetResourceReference(TextBlock.ForegroundProperty, "Text.Dim");
         Duration.Text = ChatFormat.Duration(message.Duration);
-
-        if (message.ThinkingDuration >= ThinkingWorthShowing)
-        {
-            Thinking.Text = Loc.Format("S.Message.Thought", ChatFormat.Duration(message.ThinkingDuration));
-            Thinking.Visibility = Visibility.Visible;
-            ThinkingDot.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            Thinking.Visibility = Visibility.Collapsed;
-            ThinkingDot.Visibility = Visibility.Collapsed;
-        }
 
         var cost = ChatFormat.Cost(message.Cost);
         if (string.IsNullOrEmpty(cost))
@@ -648,7 +626,7 @@ internal sealed class AssistantMessageView
         // Логотип — только когда модель агента уже известна. Уровень выбирает отдельный запрос,
         // и первые секунды её ещё нет: прежде на это время подставлялся ForcedAgentModelId, и
         // каждый агент начинал работу под логотипом Grok, кем бы он потом ни оказался.
-        if (call.Name.Equals("init_agent", StringComparison.OrdinalIgnoreCase) &&
+        if (ToolCatalog.IsAgentCall(call.Name) &&
             !string.IsNullOrWhiteSpace(call.NestedAgent?.ModelId))
         {
             icon = BuildAgentGlyph(call.NestedAgent.ModelId, 14);
@@ -921,20 +899,13 @@ internal sealed class AssistantMessageView
             }
 
             if (BuildGuardOutcomeRow(round) is { } guardRow)
-            {
+            {   
                 inner.Children.Add(guardRow);
             }
 
             foreach (var nested in round.Calls)
             {
                 inner.Children.Add(BuildCallRow(nested));
-
-                // Оператор мыши (1.37.0) — свой прогон под строкой use_computer внутри агента.
-                if (nested.NestedAgent is not null)
-                {
-                    inner.Children.Add(BuildNestedAgentExpander(nested));
-                }
-
                 if (nested.Status is ToolCallStatus.Done or ToolCallStatus.Failed)
                 {
                     inner.Children.Add(BuildResultRow(nested));
@@ -1480,16 +1451,6 @@ internal static class ChatMessageViews
         ToolTipService.SetShowDuration(clockChip, 20000);
         ToolTipService.SetVerticalOffset(clockChip, 4);
         var duration = new TextBlock { Style = (Style)host.FindResource("AiMetaText") };
-        var thinkingDot = new Ellipse
-        {
-            Style = (Style)host.FindResource("AiMetaDot"),
-            Visibility = Visibility.Collapsed
-        };
-        var thinking = new TextBlock
-        {
-            Style = (Style)host.FindResource("AiMetaText"),
-            Visibility = Visibility.Collapsed
-        };
         var costDot = new Ellipse { Style = (Style)host.FindResource("AiMetaDot"), Visibility = Visibility.Collapsed };
         var cost = new TextBlock { Style = (Style)host.FindResource("AiMetaText"), Visibility = Visibility.Collapsed };
 
@@ -1511,8 +1472,6 @@ internal static class ChatMessageViews
         meta.Children.Add(clockChip);
         meta.Children.Add(new Ellipse { Style = (Style)host.FindResource("AiMetaDot") });
         meta.Children.Add(duration);
-        meta.Children.Add(thinkingDot);
-        meta.Children.Add(thinking);
         meta.Children.Add(costChip);
 
         // Само тело наполняется ниже, через SetBody: разметка обязана видеть список файлов
@@ -1558,8 +1517,6 @@ internal static class ChatMessageViews
             Clock = clock,
             ClockChip = clockChip,
             Duration = duration,
-            Thinking = thinking,
-            ThinkingDot = thinkingDot,
             Cost = cost,
             CostDot = costDot,
             CostChip = costChip,

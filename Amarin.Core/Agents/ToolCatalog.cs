@@ -35,6 +35,31 @@ internal static class ToolCatalog
 
     public static IEnumerable<string> All => Chat.Concat(Agent);
 
+    /// <summary>
+    /// Инструменты без своего переключателя: включаются и выключаются вместе с названным (1.36.0).
+    /// </summary>
+    /// <remarks>
+    /// Разговор с агентом и его подъём после отказа — продолжение <c>init_agent</c>: человек,
+    /// выключивший агента, не ждёт, что чат продолжит гонять его другим инструментом. Отдельная
+    /// строка на странице «Безопасность» значила бы, что агента можно выключить наполовину.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string> SwitchOf { get; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["message_agent"] = "init_agent",
+            ["agent_refused"] = "init_agent"
+        };
+
+    /// <summary>Имя, под которым инструмент выключают: своё или того, с кем он ходит.</summary>
+    public static string SwitchName(string tool) => SwitchOf.TryGetValue(tool.Trim(), out var owner) ? owner : tool.Trim();
+
+    /// <summary>
+    /// Вызов, в котором работает агент: запуск, сообщение ему и подъём после отказа. Строка в ленте
+    /// у них одна — со значком модели агента.
+    /// </summary>
+    public static bool IsAgentCall(string tool) =>
+        SwitchName(tool).Equals(Tools.InitAgentTool.ToolName, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Ключ человеческой подписи инструмента в словаре.</summary>
     public static string LabelKey(string tool) => "S.Tool." + tool;
 }

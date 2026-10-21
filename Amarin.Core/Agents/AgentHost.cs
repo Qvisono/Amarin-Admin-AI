@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Amarin.Tools;
 
 namespace Amarin.Core;
@@ -21,8 +22,8 @@ internal sealed class AgentHost : IAgentHost
     private readonly Func<IReadOnlyList<ITool>>? _extraTools;
 
     /// <summary>
-    /// Экран и ввод этого ПК для оператора мыши (1.37.0). Null — управлять компьютером нечем, и
-    /// <c>use_computer</c> агенту не даётся, даже если человек включил галочку.
+    /// Экран и ввод этого ПК (1.36.0). Null — управлять компьютером нечем, и <c>computer</c>
+    /// агенту не даётся, даже если человек включил галочку.
     /// </summary>
     private readonly Func<ComputerAccess?>? _computer;
 
@@ -60,7 +61,8 @@ internal sealed class AgentHost : IAgentHost
     }
 
     /// <summary>
-    /// Одна попытка агента: задание, модель, отмена этой попытки. Подменяется только в тестах —
+    /// Одна попытка агента: чем она открывается (задание; у продолжения — сообщение чата, у
+    /// подъёма после отказа — пусто), модель, отмена этой попытки. Подменяется только в тестах —
     /// живая уходит в сеть, а проверять надо то, что вокруг неё: остановку и пересадку.
     /// </summary>
     internal Func<string, string, CancellationToken, Task<AgentRunResult>>? Attempt { get; set; }
@@ -72,14 +74,137 @@ internal sealed class AgentHost : IAgentHost
     internal Func<string, string?, CancellationToken, Task<AgentTierDecision>>? Route { get; set; }
 
     /// <summary>
-    /// Клиент HTTP для агента и оператора мыши. Подменяется только в тестах — чтобы пройти прогон
-    /// с оператором целиком, ответами модели по списку и без сети.
+    /// Клиент HTTP для агента. Подменяется только в тестах — чтобы пройти прогон с мышью целиком,
+    /// ответами модели по списку и без сети.
     /// </summary>
     internal Func<TimeSpan, HttpClient>? Http { get; set; }
 
     private HttpClient CreateHttp(TimeSpan timeout) => Http?.Invoke(timeout) ?? HttpClients.Create(timeout);
 
-    public async Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken)
+    public Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken) =>
+        RunCoreAsync((prompt ?? "").Trim(), notes, conversation: null, history: null, message: null, tier: null, cancellationToken);
+
+    /// <summary>
+    /// Сообщение чата агенту этого ответа (<c>message_agent</c>): агент продолжает свою переписку
+    /// на той же модели и отвечает новым отчётом.
+    /// </summary>
+    public async Task<ToolResult> ContinueAsync(string agentId, string message, CancellationToken cancellationToken)
+    {
+        if (!TryEnter(agentId, out var conversation, out var refusal))
+        {
+            return refusal;
+        }
+
+        try
+        {
+            return await RunCoreAsync(
+                    conversation.Prompt, null, conversation, conversation.History, message.Trim(), conversation.Tier, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            conversation.Exit();
+        }
+    }
+
+    /// <summary>
+    /// Задачу отказавшего агента берёт модель сильнее (<c>agent_refused</c>): лёгкая и быстрая →
+    /// тяжёлая → обход. Все отказы агента из его истории убираются, новая модель продолжает с того же
+    /// места (<see cref="AgentConversation.WithoutRefusals"/>).
+    /// </summary>
+    public async Task<ToolResult> EscalateAsync(string agentId, CancellationToken cancellationToken)
+    {
+        if (!TryEnter(agentId, out var conversation, out var refusal))
+        {
+            return refusal;
+        }
+
+        try
+        {
+            if (NextTier(conversation.Tier, _settings()) is not { } tier)
+            {
+                return ToolResult.Fail(
+                    $"Агент {conversation.Id} уже работает на самой сильной модели (модель обхода): выше подниматься некуда. " +
+                    "Это окончательный отказ: передай человеку причины агента.");
+            }
+
+            return await RunCoreAsync(
+                    conversation.Prompt, null, conversation, conversation.WithoutRefusals(), message: null, tier, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            conversation.Exit();
+        }
+    }
+
+    /// <summary>
+    /// Агент этого ответа, свободный для нового сообщения. Не нашёлся или занят — отказ, который
+    /// читает модель чата: с тем, что делать дальше.
+    /// </summary>
+    private static bool TryEnter(
+        string agentId,
+        [NotNullWhen(true)] out AgentConversation? conversation,
+        [NotNullWhen(false)] out ToolResult? refusal)
+    {
+        var id = (agentId ?? "").Trim();
+        conversation = AgentRunScope.Current?.Conversations?.Find(id);
+        if (conversation is null)
+        {
+            refusal = ToolResult.Fail(
+                $"Агента {id} в этом ответе нет: агент доступен только до конца ответа, в котором его запустили. " +
+                "Запусти нового через init_agent и передай ему всё, что нужно.");
+            return false;
+        }
+
+        if (!conversation.TryEnter())
+        {
+            conversation = null;
+            refusal = ToolResult.Fail(
+                $"Агент {id} сейчас отвечает на другое сообщение этого же шага. Дождись его ответа и тогда пиши ему снова.");
+            return false;
+        }
+
+        refusal = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Ступень выше после отказа агента: быстрая и лёгкая → тяжёлая → обход. Ступень с той же
+    /// моделью пропускается — та же модель откажет так же. <c>null</c> — выше некуда.
+    /// </summary>
+    internal static string? NextTier(string tier, AppSettings settings)
+    {
+        var current = ResolveModel(tier, settings);
+        string[] above = tier.ToLowerInvariant() switch
+        {
+            BypassTier => [],
+            "heavy" => [BypassTier],
+            _ => ["heavy", BypassTier]
+        };
+
+        return above.FirstOrDefault(next =>
+            !ResolveModel(next, settings).Equals(current, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Уровень модели обхода. Маршрутизатор уровней его не знает (<see cref="Tiers"/>): туда
+    /// агента поднимает только отказ.
+    /// </summary>
+    internal const string BypassTier = "bypass";
+
+    /// <param name="conversation">Агент этого ответа, которого продолжают; null — свежий прогон.</param>
+    /// <param name="history">С чего продолжать; null — свежий прогон.</param>
+    /// <param name="message">Сообщение чата агенту; null — продолжить без новой реплики.</param>
+    /// <param name="tier">Уровень продолжения; null — его выбирают человек командой или маршрутизатор.</param>
+    private async Task<ToolResult> RunCoreAsync(
+        string prompt,
+        string? notes,
+        AgentConversation? conversation,
+        IReadOnlyList<ChatMessage>? history,
+        string? message,
+        string? tier,
+        CancellationToken cancellationToken)
     {
         var settings = _settings();
         var record = new AgentRunRecord { Status = AgentRunStatus.Running };
@@ -109,7 +234,12 @@ internal sealed class AgentHost : IAgentHost
         var switched = false;
 
         string currentComplexity;
-        if (!string.IsNullOrWhiteSpace(scope?.ForcedTier))
+        if (!string.IsNullOrWhiteSpace(tier))
+        {
+            // Продолжение: уровень агента уже известен, а после отказа его назначил подъём.
+            currentComplexity = tier;
+        }
+        else if (!string.IsNullOrWhiteSpace(scope?.ForcedTier))
         {
             // Уровень назвал человек командой. Спрашивать о нём модель — тратить его деньги на
             // уже принятое решение.
@@ -133,10 +263,27 @@ internal sealed class AgentHost : IAgentHost
         using var guardLease = SynGuardLease.Build(settings, _parentOptions, _resolveModelInfo);
         var guard = guardLease?.Check;
 
-        // Мышь — только по галочке человека и только если есть чем управлять. Решается раз на
-        // прогон: выключенная посреди работы галочка закрывает следующий прогон, а не рвёт этот.
-        var computer = settings.ComputerControl ? _computer?.Invoke() : null;
-        var operators = new ComputerSpend();
+        // Кого останавливает «Стоп» на плашке: текущую попытку этого прогона, а не весь ход чата, —
+        // тем же путём, что остановка из чата.
+        RunningAgent? entry = null;
+        void Stop() => entry?.Request(new AgentInterrupt(AgentInterruptKind.Stop));
+
+        // Мышь — только по галочке человека, только если есть чем управлять и только на этом ПК:
+        // у удалённой цели окна чужие. Решается раз на прогон: выключенная посреди работы галочка
+        // закрывает следующий прогон, а не рвёт этот. Сеанс один на весь прогон — пересадка на
+        // другую модель не возвращает окно программы и не повторяет отсчёт.
+        var computer = settings.ComputerControl && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
+        using var session = computer is null
+            ? null
+            : new ComputerSession(
+                computer.Port,
+                computer.Stage,
+                new ComputerStart(SpendScope.Current?.Unattended == true, currentPrompt, Stop, scope?.SessionId),
+                computer.Lease);
+
+        // Id агента для чата: у продолжения прежний, у свежего — первой записи в реестре, и с ним же
+        // записываются все попытки, чтобы «стоп» человека и сообщение чата говорили об одном агенте.
+        var agentId = conversation?.Id;
 
         while (true)
         {
@@ -146,6 +293,11 @@ internal sealed class AgentHost : IAgentHost
                 modelId,
                 ReasoningFor(currentComplexity, settings),
                 ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
+            if (session is not null)
+            {
+                options = options with { MaxToolRounds = Math.Max(options.MaxToolRounds, ComputerPrompt.MaxRounds) };
+            }
+
             record.ModelId = modelId;
             record.DisplayName = Loc.Format("S.Agent.Label", modelId);
             record.Status = AgentRunStatus.Running;
@@ -159,10 +311,6 @@ internal sealed class AgentHost : IAgentHost
             var label = Loc.Format("S.Agent.Label", VeniceModelCatalog.GetDisplayName(modelId));
             var adapter = new AgentUiAdapter(record, _confirmations, notify, label, scope?.SessionId, _plans);
 
-            // Кого останавливает «Стоп» на плашке: этот прогон агента, а не весь ход чата. Запись в
-            // реестре появится ниже, а оператор зовётся только во время работы — к тому времени она есть.
-            RunningAgent? entry = null;
-
             // Снимок инструкций — один на прогон: по нему собираются и оглавление, и инструмент,
             // и правка на странице посреди работы не расщепит их надвое.
             var agentInstructions = _instructions?.AgentSnapshot() ?? [];
@@ -174,14 +322,10 @@ internal sealed class AgentHost : IAgentHost
                 () => (options.Keys?.Keys.Select(key => (string?)key.Secret) ?? []).Append(options.ApiKey),
                 _instructions,
                 agentInstructions);
-            if (computer is not null)
+            if (session is not null)
             {
-                tools = new ToolRegistry(
-                [
-                    .. tools.All,
-                    new UseComputerTool((job, token) =>
-                        RunOperatorAsync(job, computer, adapter, guard, notify, scope, operators, () => entry, token))
-                ]);
+                // Инструмент — на попытку: видит ли модель снимки, зависит от модели попытки.
+                tools = new ToolRegistry([.. tools.All, new ComputerTool(session, CanSee(modelId))]);
             }
 
             if (_extraTools?.Invoke() is { Count: > 0 } extra)
@@ -201,7 +345,9 @@ internal sealed class AgentHost : IAgentHost
                 new SessionUndoTracker(),
                 string.IsNullOrWhiteSpace(techAgent) ? null : techAgent)
             {
-                SessionMode = SessionMode.Isolated,
+                // Переписка сохраняется после отчёта: чат может продолжить разговор с агентом
+                // (message_agent) или отдать его задачу модели сильнее (agent_refused).
+                SessionMode = SessionMode.Continuous,
                 Instructions = agentInstructions,
                 // План — только если есть кому его показать и человек включил его для уровня.
                 PlanFirst = _plans is not null && AgentPlanSettings.IsOn(settings, currentComplexity) &&
@@ -209,13 +355,16 @@ internal sealed class AgentHost : IAgentHost
                 Guard = guard,
                 Settings = _settings,
                 AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label),
-                Addendum = computer is null ? null : ComputerOperator.AgentRule
+                Addendum = session is null ? null : ComputerPrompt.AgentRule,
+                GuardScreen = session is null ? null : session.DescribeForGuard,
+                Prepare = session is null ? null : static messages => ComputerHistory.Trim(messages)
             };
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
             using var interrupt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             entry = _agents?.Register(
-                scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt);
+                scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt, agentId);
+            agentId ??= entry?.Id ?? scope?.Conversations?.NextId();
             if (entry is not null)
             {
                 foreach (var note in carried)
@@ -230,11 +379,15 @@ internal sealed class AgentHost : IAgentHost
 
             try
             {
-                var attempt = Attempt ?? ((task, _, token) => agent.RunAsync(task, token));
-                var result = await attempt(currentPrompt, modelId, interrupt.Token)
+                var attempt = Attempt ?? ((_, _, token) => history is null
+                    ? agent.RunAsync(currentPrompt, token)
+                    : agent.ContinueAsync(currentPrompt, history, message, token));
+                var result = await attempt(history is null ? currentPrompt : message ?? "", modelId, interrupt.Token)
                     .ConfigureAwait(false);
-                record.ReportText = result.AssistantText ?? "";
-                record.Cost = spent.Add(result.Cost).Add(operators.Total);
+                record.ReportText = result.Refusal is { } refused
+                    ? Refusals.FinalText(modelId, refused, result.AssistantText)
+                    : result.AssistantText ?? "";
+                record.Cost = spent.Add(result.Cost);
                 record.Status = result.Cancelled
                     ? AgentRunStatus.Cancelled
                     : string.IsNullOrWhiteSpace(result.Error)
@@ -247,13 +400,10 @@ internal sealed class AgentHost : IAgentHost
                     return ToolResult.Fail(result.Error);
                 }
 
-                var report = string.IsNullOrWhiteSpace(result.AssistantText)
-                    ? "Агент завершил работу без текстового отчёта."
-                    : result.AssistantText;
+                Keep(scope, conversation, agentId, currentPrompt, currentComplexity, agent.SessionHistory);
                 return ToolResult.Ok(
-                    switched
-                        ? "Агент был пересажен на другую модель по просьбе пользователя. Отчёт агента: " + report
-                        : "Отчёт агента: " + report);
+                    (switched ? "Агент был пересажен на другую модель по просьбе пользователя. " : "") +
+                    ReportFor(agentId, result, modelId, currentComplexity, settings));
             }
             catch (OperationCanceledException) when (
                 entry is not null && !cancellationToken.IsCancellationRequested)
@@ -275,7 +425,7 @@ internal sealed class AgentHost : IAgentHost
                 }
 
                 record.Status = AgentRunStatus.Cancelled;
-                record.Cost = spent.Add(operators.Total);
+                record.Cost = spent;
                 notify();
                 return ToolResult.Ok(
                     "Агент остановлен по просьбе пользователя и ничего не довёл до конца. " +
@@ -284,7 +434,7 @@ internal sealed class AgentHost : IAgentHost
             catch (OperationCanceledException)
             {
                 record.Status = AgentRunStatus.Cancelled;
-                record.Cost = spent.Add(venice.RequestCost).Add(operators.Total);
+                record.Cost = spent.Add(venice.RequestCost);
                 notify();
                 throw;
             }
@@ -299,129 +449,67 @@ internal sealed class AgentHost : IAgentHost
     }
 
     /// <summary>
-    /// Поручение в окнах: оператор — вложенный <see cref="Agent"/> на модели слота «Управление ПК»
-    /// с одним инструментом <c>computer</c> и пределом <see cref="ComputerOperator.MaxSteps"/>.
+    /// Запоминает агента до конца ответа, чтобы чат мог ему написать. Без хода чата (расписание)
+    /// запоминать некуда — и незачем.
     /// </summary>
-    /// <remarks>
-    /// Та же очередь вопросов, тот же SynGuard и тот же журнал, что у агента, — оператор идёт по
-    /// их путям, а не по своим. Остановка агента останавливает и его: токен общий. Мышь берётся
-    /// первым пишущим действием и отдаётся с концом поручения, что бы ни случилось.
-    /// </remarks>
-    private async Task<ToolResult> RunOperatorAsync(
-        ComputerJob job,
-        ComputerAccess computer,
-        AgentUiAdapter parent,
-        Func<SynGuardRequest, CancellationToken, Task<SynGuardReport>>? guard,
-        Action notify,
+    private static void Keep(
         AgentRunContext? scope,
-        ComputerSpend spend,
-        Func<RunningAgent?> runningAgent,
-        CancellationToken cancellationToken)
+        AgentConversation? conversation,
+        string? agentId,
+        string prompt,
+        string tier,
+        IReadOnlyList<ChatMessage> history)
     {
-        var settings = _settings();
-        var modelId = ComputerModel(settings, _parentOptions.Provider);
-
-        // Без записи в реестре (тесты) «Стоп» обрывает хотя бы оператора.
-        using var operatorStop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var record = new AgentRunRecord
+        if (scope?.Conversations is not { } conversations || agentId is null)
         {
-            Status = AgentRunStatus.Running,
-            ModelId = modelId,
-            DisplayName = Loc.Format("S.Computer.Label", VeniceModelCatalog.GetDisplayName(modelId))
-        };
-        parent.Nest(UseComputerTool.ToolName, record);
-
-        var options = CloneOptions(
-            _parentOptions,
-            modelId,
-            settings.ComputerReasoning ?? AppSettings.FactoryComputerReasoning(),
-            ModelSlots.ReadKey(settings, ModelSlot.Computer)) with
-        {
-            MaxToolRounds = ComputerOperator.MaxSteps
-        };
-
-        using var http = CreateHttp(TimeSpan.FromMinutes(5));
-        var venice = new VeniceClient(http, options);
-        var unattended = SpendScope.Current?.Unattended == true;
-        using var session = new ComputerSession(
-            computer.Port,
-            computer.Stage,
-            new ComputerStart(job.Mode, unattended, ComputerOperator.MaxSteps, job.Task, Stop, scope?.SessionId),
-            computer.Lease);
-        var adapter = new AgentUiAdapter(record, _confirmations, notify, record.DisplayName, scope?.SessionId);
-        var operatorAgent = new Agent(
-            venice,
-            new ToolRegistry([new ComputerTool(session)]),
-            options,
-            adapter,
-            new SessionUndoTracker(),
-            ComputerOperator.SystemPrompt)
-        {
-            SessionMode = SessionMode.Isolated,
-            Guard = guard,
-            Settings = _settings,
-            AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, record.DisplayName),
-            Prepare = static messages => ComputerHistory.Trim(messages)
-        };
-
-        try
-        {
-            var result = await operatorAgent
-                .RunAsync(ComputerOperator.Brief(job.Task, job.Mode, scope?.HumanWords), operatorStop.Token)
-                .ConfigureAwait(false);
-            spend.Add(result.Cost);
-            record.ReportText = result.AssistantText ?? "";
-            record.Cost = result.Cost;
-            record.Status = string.IsNullOrWhiteSpace(result.Error) ? AgentRunStatus.Complete : AgentRunStatus.Failed;
-            notify();
-
-            if (!string.IsNullOrWhiteSpace(result.Error))
-            {
-                return ToolResult.Fail(result.Error);
-            }
-
-            return ToolResult.Ok(string.IsNullOrWhiteSpace(result.AssistantText)
-                ? "The operator finished without a report. Check the result with your own tools before you report it."
-                : "Operator report: " + result.AssistantText);
-        }
-        catch (OperationCanceledException)
-        {
-            spend.Add(venice.RequestCost);
-            record.Cost = venice.RequestCost;
-            record.Status = AgentRunStatus.Cancelled;
-            notify();
-            throw;
+            return;
         }
 
-        void Stop()
+        if (conversation is null)
         {
-            if (runningAgent() is { } agent)
-            {
-                agent.Request(new AgentInterrupt(AgentInterruptKind.Stop));
-                return;
-            }
-
-            try
-            {
-                operatorStop.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Оператор уже закончил: останавливать нечего.
-            }
+            conversations.Keep(new AgentConversation { Id = agentId, Prompt = prompt, Tier = tier, History = history });
+            return;
         }
+
+        conversation.Tier = tier;
+        conversation.History = history;
     }
 
     /// <summary>
-    /// Модель оператора: выбранная в слоте, а пустой или «Авто» — заводская у провайдера ключа.
-    /// Не голый идентификатор Venice: без ключа Venice для него не нашлось бы учётных данных.
+    /// Что чат получает в ответ: отчёт агента с его id — или отказ с тем, что можно сделать дальше.
     /// </summary>
-    internal static string ComputerModel(AppSettings settings, LlmProvider provider) =>
-        !string.IsNullOrWhiteSpace(settings.ComputerModelId) && !VeniceModelCatalog.IsAuto(settings.ComputerModelId)
-            ? settings.ComputerModelId.Trim()
-            : ModelSlotDefaults.LastResort(provider, ModelSlot.Computer, AppSettings.FactoryHeavyModelId);
+    private static string ReportFor(string? agentId, AgentRunResult result, string modelId, string tier, AppSettings settings)
+    {
+        var who = agentId is null ? "Агент" : "Агент " + agentId;
+        if (result.Refusal is { } reasons)
+        {
+            var why = !string.IsNullOrWhiteSpace(reasons)
+                ? reasons.Trim()
+                : string.IsNullOrWhiteSpace(result.AssistantText) ? "не названы" : result.AssistantText.Trim();
+            var model = VeniceModelCatalog.GetDisplayName(modelId);
+            return NextTier(tier, settings) is null
+                ? $"{who} ({model}) отказался, и модели сильнее нет. Причины: {why}. " +
+                  "Переубедить его можно через message_agent; не выйдет — передай человеку его причины."
+                : $"{who} ({model}) отказался. Причины: {why}. " +
+                  "Переубеди его через message_agent или передай задачу модели сильнее через agent_refused.";
+        }
+
+        var report = string.IsNullOrWhiteSpace(result.AssistantText)
+            ? "Агент завершил работу без текстового отчёта."
+            : result.AssistantText;
+        return (agentId is null ? "Отчёт агента: " : $"Отчёт агента {agentId}: ") + report;
+    }
+
+    /// <summary>
+    /// Видит ли модель картинки — снимок экрана отдаётся только такой. Модель, о которой каталог
+    /// ещё ничего не знает, снимки получает: ложный отказ модели со зрением хуже.
+    /// </summary>
+    private bool CanSee(string modelId) =>
+        _resolveModelInfo?.Invoke(modelId) is not { } info || VeniceModelCatalog.HasVision(info);
 
     internal const string ForcedAgentModelId = AppSettings.FactoryAgentHeavyModelId;
+
+    private static readonly string[] Tiers = ["fast", "lite", "heavy"];
 
     /// <summary>
     /// Живой выбор уровня: тот же маршрутизатор, что и у «Авто», на той же модели и с тем же
@@ -460,8 +548,17 @@ internal sealed class AgentHost : IAgentHost
             ResolveModel("heavy", settings),
             _resolveModelInfo);
 
+        // Мышь дана — работа в окнах не должна достаться модели, которая не видит экран: правило
+        // в блок моделей, а уровням без зрения — запрет прямо в критерий Decisions.
+        HashSet<string>? blind = null;
+        if (settings.ComputerControl && _computer is not null)
+        {
+            models += "\n" + AgentTierRouter.WindowsRule;
+            blind = [.. Tiers.Where(tier => !CanSee(ResolveModel(tier, settings)))];
+        }
+
         return await AgentTierRouter
-            .DecideAsync(venice, routerId, models, prompt, notes, reasoning, cancellationToken)
+            .DecideAsync(venice, routerId, models, prompt, notes, reasoning, cancellationToken, blind)
             .ConfigureAwait(false);
     }
 
@@ -471,6 +568,7 @@ internal sealed class AgentHost : IAgentHost
         {
             "heavy" => ModelSlot.AgentHeavy,
             "fast" => ModelSlot.AgentFast,
+            BypassTier => ModelSlot.Bypass,
             _ => ModelSlot.AgentLite
         };
 
@@ -484,6 +582,7 @@ internal sealed class AgentHost : IAgentHost
         {
             "heavy" => settings.AgentHeavyModelId,
             "fast" => settings.AgentFastModelId,
+            BypassTier => settings.BypassModelId,
             _ => settings.AgentLiteModelId
         };
 
@@ -496,6 +595,7 @@ internal sealed class AgentHost : IAgentHost
         {
             "heavy" => settings.AgentHeavyReasoning,
             "fast" => settings.AgentFastReasoning,
+            BypassTier => settings.BypassReasoning,
             _ => settings.AgentLiteReasoning
         };
 

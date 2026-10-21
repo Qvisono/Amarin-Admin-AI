@@ -105,6 +105,20 @@ internal static class ComputerSafety
             : null;
     }
 
+    /// <summary>Можно ли вставить буфер обмена этим сочетанием. Null — можно.</summary>
+    /// <remarks>
+    /// У агента есть и <c>write_clipboard</c>, и клавиатура: командная строка, положенная в буфер
+    /// и вставленная, прошла бы мимо запрета печатать её (<see cref="Typing"/>). Буфер читается,
+    /// только когда сочетание правда вставляет.
+    /// </remarks>
+    public static string? Paste(IReadOnlyList<string> chord, Func<string?> clipboard)
+    {
+        var pastes = chord.Count == 2 &&
+                     ((chord[0] == ComputerKeys.Ctrl && chord[1] == "v") || (chord[0] == ComputerKeys.Shift && chord[1] == "insert"));
+        var plain = chord.Count == 3 && chord[0] == ComputerKeys.Ctrl && chord[1] == ComputerKeys.Shift && chord[2] == "v";
+        return (pastes || plain) && IsCommandLine(clipboard()) ? Loc.Get("S.Computer.Paste") : null;
+    }
+
     /// <summary>
     /// Похож ли текст на командную строку: первое слово — программа, которая исполняет команды,
     /// а за ним ключ, путь или адрес.

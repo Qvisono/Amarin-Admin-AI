@@ -108,9 +108,9 @@ internal static partial class DangerousActionGuard
             "remote_access" => IsRdpToggle(arguments),
             // Буфер читает любое приложение на машине: что туда кладётся, решает человек.
             "write_clipboard" => true,
-            // Нажатие в чужом окне может что угодно — от галочки до «Отправить». По правилам вопрос
-            // нужен всегда; снимает его SynGuard, когда это просил сам человек, а без проверки
-            // (защиты нет или она упала) нажатие ждёт человека.
+            // Нажатие в чужом окне — запись, и параллельной пачкой его не пускают. Вопрос в обычном
+            // режиме шлюз про мышь не задаёт (ToolGate.RequiresConfirmation): согласие — просьба
+            // человека, а держат «небезопасно» SynGuard и ComputerSafety.
             "computer" => !ComputerTool.ReadActions.Contains(ActionOf(arguments)),
             _ => false
         };

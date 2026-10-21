@@ -68,10 +68,28 @@ internal static class RoutingDecisions
         ["criteria"] = new JsonObject { ["lite"] = ChatLite, ["heavy"] = ChatHeavy }
     };
 
-    internal static JsonObject AgentQuestion(string models) => new()
+    /// <summary>Дописывается к критерию уровня, чья модель не видит экран, когда агенту дана мышь.</summary>
+    /// <remarks>
+    /// В критерий, а не только в инструкцию: живой замер показал, что правило в инструкции Decisions
+    /// слушает через раз — просьба написать в окне программы шла на быстрый уровень как «одна
+    /// простая операция», хотя его модель экрана не видит.
+    /// </remarks>
+    internal const string BlindTier =
+        " Never work in the windows of programs or show the user where to click in them: this tier's model cannot see the screen.";
+
+    /// <param name="blind">Уровни, чья модель не видит экран; пусто — мышь агенту не дана или зрение у всех.</param>
+    internal static JsonObject AgentQuestion(string models, IReadOnlySet<string>? blind = null) => new()
     {
         ["type"] = "choice",
         ["instructions"] = AgentInstructions + "\n\n" + models,
-        ["criteria"] = new JsonObject { ["fast"] = AgentFast, ["lite"] = AgentLite, ["heavy"] = AgentHeavy }
+        ["criteria"] = new JsonObject
+        {
+            ["fast"] = Criterion("fast", AgentFast, blind),
+            ["lite"] = Criterion("lite", AgentLite, blind),
+            ["heavy"] = Criterion("heavy", AgentHeavy, blind)
+        }
     };
+
+    private static string Criterion(string tier, string text, IReadOnlySet<string>? blind) =>
+        blind?.Contains(tier) == true ? text.TrimEnd() + BlindTier : text;
 }

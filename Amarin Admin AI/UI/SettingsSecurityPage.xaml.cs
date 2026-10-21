@@ -91,10 +91,31 @@ public partial class SettingsSecurityPage : UserControl
             }
 
             EncryptChatsToggle.IsChecked = settings.EncryptChats;
+            ComputerControlToggle.IsChecked = settings.ComputerControl;
         }
         finally
         {
             _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Управление компьютером мышью (1.36.0): включается сразу, без вопроса — человек решил это
+    /// сам, — но с одним уведомлением о том, куда уходят снимки экрана.
+    /// </summary>
+    private void ComputerControlToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        var on = ComputerControlToggle.IsChecked == true;
+        _services.Settings.ComputerControl = on;
+        _services.SettingsStore.Save(_services.Settings);
+        if (on)
+        {
+            MainWindow.Inform(this, Loc.Get("S.Security.ComputerNoticeTitle"), Loc.Get("S.Security.ComputerNoticeText"));
         }
     }
 

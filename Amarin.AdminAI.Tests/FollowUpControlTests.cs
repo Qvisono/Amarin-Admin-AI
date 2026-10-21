@@ -298,6 +298,43 @@ public sealed class FollowUpControlTests
         Assert.Equal(["system", "user"], Roles(Assert.Single(bodies)));
     }
 
+    /// <summary>
+    /// Правило исполнителя доходит и до промпта, сохранённого человеком: правка заводского
+    /// промпта до такой копии не доходит никогда, а агент отказывал и там.
+    /// </summary>
+    [Fact]
+    public async Task The_executor_rules_reach_an_agent_prompt_the_person_saved()
+    {
+        var bodies = new List<string>();
+        var handler = new CapturingHandler(
+            bodies.Add,
+            () => """{"choices":[{"message":{"role":"assistant","content":"Done."}}]}""");
+
+        var options = Options();
+        using var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.venice.ai/api/v1/")
+        };
+
+        var agent = new Agent(
+            new VeniceClient(http, options),
+            new ToolRegistry([new StubTool()]),
+            options,
+            new SilentAgentUi(),
+            new SessionUndoTracker(),
+            systemPromptOverride: "My own agent prompt.");
+
+        await agent.RunAsync("task");
+
+        var content = JsonDocument.Parse(Assert.Single(bodies)).RootElement.GetProperty("messages")[0]
+            .GetProperty("content");
+        var system = content.ValueKind == JsonValueKind.String
+            ? content.GetString() ?? ""
+            : string.Concat(content.EnumerateArray().Select(part => part.GetProperty("text").GetString()));
+        Assert.StartsWith("My own agent prompt.", system, StringComparison.Ordinal);
+        Assert.Contains(Amarin.Core.Agent.ExecutorRules.Trim(), system, StringComparison.Ordinal);
+    }
+
     /// <summary>Текст последнего сообщения запроса. Читается разбором: в теле кириллица экранирована.</summary>
     private static string LastText(string body)
     {

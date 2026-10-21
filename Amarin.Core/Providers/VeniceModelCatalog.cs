@@ -33,20 +33,10 @@ internal static class VeniceModelCatalog
         model is not null && ModelRef.Of(model.Id) == LlmProvider.OpenRouter &&
         string.Equals(model.Type, "decisions", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Decisions доступны маршрутизатору и SynGuard; остальные слоты ведут разговор. Оператору
-    /// компьютера — только модели со зрением: он решает по снимкам экрана.
-    /// </summary>
-    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot)
-    {
-        if (slot == ModelSlot.Computer)
-        {
-            return [.. models.Where(model => !IsDecisionModel(model) && HasVision(model))];
-        }
-
-        return slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
+    /// <summary>Decisions доступны маршрутизатору и SynGuard; остальные слоты ведут разговор.</summary>
+    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot) =>
+        slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
             ? models : [.. models.Where(model => !IsDecisionModel(model))];
-    }
 
     public static IReadOnlyList<VeniceModelInfo> FilterAgentic(
         IEnumerable<VeniceModelInfo> models, bool includeDecisions = false)

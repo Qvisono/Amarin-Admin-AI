@@ -124,5 +124,11 @@ public sealed class Wave4AgentTests
 
         public Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken) =>
             _run(prompt);
+
+        public Task<ToolResult> ContinueAsync(string agentId, string message, CancellationToken cancellationToken) =>
+            _run(message);
+
+        public Task<ToolResult> EscalateAsync(string agentId, CancellationToken cancellationToken) =>
+            _run(agentId);
     }
 }

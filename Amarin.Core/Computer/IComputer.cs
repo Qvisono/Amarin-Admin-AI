@@ -29,8 +29,15 @@ internal interface IComputer
     /// <summary>Элемент с фокусом клавиатуры. Null — его нет или он не виден UI Automation.</summary>
     ComputerElement? Focused();
 
-    /// <summary>Дерево окна сверху вниз, не больше <paramref name="limit"/> элементов.</summary>
-    Task<IReadOnlyList<ComputerElement>> InspectAsync(long window, int limit, CancellationToken cancellationToken);
+    /// <summary>
+    /// Дерево окна сверху вниз: не больше <paramref name="limit"/> элементов и не дольше
+    /// <paramref name="budget"/>. Упёрлось в любое из двух — дерево помечено обрезанным.
+    /// </summary>
+    /// <remarks>
+    /// Срок нужен браузеру: в его окне тысячи элементов, и полное дерево на каждое нажатие
+    /// стоило секунды. Обрезанное дерево модель дочитывает поиском или снимком.
+    /// </remarks>
+    Task<ComputerTree> InspectAsync(long window, int limit, TimeSpan budget, CancellationToken cancellationToken);
 
     /// <summary>Тот же элемент сейчас: свежее место на экране. Null — его больше нет.</summary>
     Task<ComputerElement?> ElementAsync(long window, string key, CancellationToken cancellationToken);
@@ -55,6 +62,9 @@ internal interface IComputer
 
     /// <summary>Ждёт, пока окно перестанет меняться после действия, но не дольше <paramref name="max"/>.</summary>
     Task SettleAsync(TimeSpan max, CancellationToken cancellationToken);
+
+    /// <summary>Текст в буфере обмена — для правила о вставке (<see cref="ComputerSafety.Paste"/>). Null — текста нет.</summary>
+    string? ClipboardText();
 
     /// <summary>
     /// Держит систему и экран включёнными, пока результат не отпустят, и будит погасший экран.

@@ -153,6 +153,47 @@ public sealed class PowerShellAnalysisTests
         Assert.Contains("local_users", refusal, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Add-Type -AssemblyName Microsoft.VisualBasic\n[Microsoft.VisualBasic.Interaction]::AppActivate($p.Id)")]
+    [InlineData("Add-Type -AssemblyName System.Windows.Forms\n[System.Windows.Forms.SendKeys]::SendWait('^v')")]
+    [InlineData("$shell = New-Object -ComObject WScript.Shell\n$shell.AppActivate('x')\n$shell.SendKeys('text{ENTER}')")]
+    [InlineData("(New-Object -ComObject WScript.Shell).SendKeys($text)")]
+    [InlineData("Add-Type -Name W -Namespace U -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h);'\n[U.W]::SetForegroundWindow($h)")]
+    [InlineData("[U.W]::keybd_event(13, 0, 0, 0)")]
+    public void Driving_another_window_from_a_script_is_sent_to_the_agent(string script)
+    {
+        // Из фона скрипт до окна не дотягивается и отчитывается об успехе — отложенная команда так
+        // «отправляла» текст, не отправив ничего.
+        var verdict = PowerShellAnalysis.Analyze(script);
+
+        Assert.True(verdict.IsWrite);
+        Assert.Equal(PowerShellAnalysis.WindowInputRefusal, verdict.Refusal);
+        Assert.Contains("run_agent", verdict.Refusal, StringComparison.Ordinal);
+        Assert.Contains("инструментом computer", verdict.Refusal, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("(New-Object -ComObject WScript.Shell).SendKeys([char]173)")]
+    [InlineData("$w = New-Object -ComObject WScript.Shell; 1..5 | % { $w.SendKeys([char]0xAF) }")]
+    public void Volume_keys_stay_allowed_because_windows_handles_them_anywhere(string script) =>
+        Assert.Null(PowerShellAnalysis.Analyze(script).Refusal);
+
+    [Fact]
+    public void A_command_for_later_that_drives_a_window_is_refused_when_it_is_set()
+    {
+        var check = ToolGate.Check(DeferredTaskTool.ToolName,
+            JsonSerializer.SerializeToElement(new
+            {
+                action = "run_command",
+                command = "[Microsoft.VisualBasic.Interaction]::AppActivate($id)\n[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')",
+                @in = "13s"
+            }),
+            new AppSettings());
+
+        Assert.Equal(PowerShellAnalysis.WindowInputRefusal, check.Refusal);
+        Assert.Null(check.Question);
+    }
+
     [Fact]
     public void The_gate_classifies_powershell_by_the_script()
     {

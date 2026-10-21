@@ -91,6 +91,20 @@ internal static class AgentTierRouter
         """;
 
     /// <summary>
+    /// Правило о работе в окнах — к блоку моделей, только когда агенту дана мышь (1.36.0).
+    /// </summary>
+    /// <remarks>
+    /// Агент сам решает задачу по снимкам экрана, и модель, которая картинок не видит, работает по
+    /// одному дереву окна. Правило — про возможность модели, а не про уровень: что у какого уровня
+    /// стоит, решает человек. В блок моделей, а не в промпт: блок доходит и до текстовой модели,
+    /// и до вопроса Decisions.
+    /// </remarks>
+    internal const string WindowsRule =
+        "Work in the windows of programs on this PC, and showing the user where to click in them, needs a model " +
+        "that can see the screen: among the models marked vision, choose the lowest sufficient tier. When no " +
+        "model is marked vision, this does not change the tier.";
+
+    /// <summary>
     /// Единственное сообщение, которое видит маршрутизатор: задание агента и пометки к нему.
     /// </summary>
     /// <remarks>
@@ -138,6 +152,10 @@ internal static class AgentTierRouter
     /// <param name="modelsBlock">
     /// Блок MODELS. Идёт последним: последний абзац промпта обещает, что модели названы ниже.
     /// </param>
+    /// <param name="blind">
+    /// Уровни, чья модель не видит экран, когда агенту дана мышь: их критерий в Decisions
+    /// получает запрет на работу в окнах (<see cref="RoutingDecisions.BlindTier"/>).
+    /// </param>
     internal static async Task<AgentTierDecision> DecideAsync(
         VeniceClient client,
         string modelId,
@@ -145,7 +163,8 @@ internal static class AgentTierRouter
         string prompt,
         string? notes,
         ReasoningChoice reasoning,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlySet<string>? blind = null)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -161,7 +180,7 @@ internal static class AgentTierRouter
                     system,
                     BuildUserMessage(prompt, notes),
                     ["fast", "lite", "heavy"],
-                    RoutingDecisions.AgentQuestion(modelsBlock),
+                    RoutingDecisions.AgentQuestion(modelsBlock, blind),
                     new VeniceParameters
                     {
                         IncludeVeniceSystemPrompt = false,

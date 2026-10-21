@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using Amarin.Computer;
 using Amarin.Core;
 using Amarin.Tools;
 
@@ -13,7 +14,7 @@ namespace Amarin.UI;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Методы <see cref="IComputerStage"/> зовёт оператор с рабочих потоков; всё, что трогает окна,
+/// Методы <see cref="IComputerStage"/> зовёт агент с рабочих потоков; всё, что трогает окна,
 /// уходит в поток интерфейса. <see cref="Avoid"/> — синхронно: окно под точкой проверяется сразу
 /// после него, и плашка к этому моменту обязана уже уйти.
 /// </para>
@@ -34,11 +35,18 @@ internal sealed class ComputerStage : IComputerStage
     private readonly bool _show;
     private ComputerBar? _bar;
     private ComputerHighlight? _highlight;
+
+    /// <summary>Свечение по краям экранов и курсор Amarin. Null — в тестах: на настоящий экран их не ставим.</summary>
+    private readonly ComputerGlow? _glow;
+    private readonly ComputerCursor? _cursor;
+
     private volatile ComputerStart? _active;
+    private volatile bool _counting;
     private TaskCompletionSource<bool>? _decision;
     private ConfirmationRequest? _question;
     private bool _minimizedByUs;
     private bool _raisedForQuestion;
+    private IntPtr _focusBeforeQuestion;
     private WindowState _restoreTo = WindowState.Normal;
     private int _step;
     private string _stepText = "";
@@ -52,6 +60,12 @@ internal sealed class ComputerStage : IComputerStage
         _main = main;
         _confirmations = confirmations;
         _show = show;
+        if (show)
+        {
+            _glow = new ComputerGlow();
+            _cursor = new ComputerCursor();
+        }
+
         _confirmations.PanelTakes = Takes;
         _confirmations.Changed += OnQueueChanged;
     }
@@ -65,7 +79,8 @@ internal sealed class ComputerStage : IComputerStage
     /// <summary>Идёт ли сейчас управление.</summary>
     internal bool Active => _active is not null && !_counting;
 
-    private volatile bool _counting;
+    /// <summary>Идёт ли отсчёт перед началом без человека — тестам.</summary>
+    internal bool Counting => _counting;
 
     /// <summary>Отписывается от очереди: окно сменило службы (другой профиль).</summary>
     public void Detach()
@@ -80,40 +95,57 @@ internal sealed class ComputerStage : IComputerStage
         {
             _bar?.Close();
             _highlight?.Close();
+            _glow?.Hide();
+            _cursor?.Restore();
         });
     }
 
+    /// <remarks>
+    /// Не началось — отменил человек на отсчёте, отменили ход или что-то упало — сцена убирает за
+    /// собой сама: <see cref="ComputerSession"/> зовёт <see cref="End"/> только начатому управлению,
+    /// и плашка с отсчётом осталась бы на экране до следующего прогона.
+    /// </remarks>
     public async Task<bool> BeginAsync(ComputerStart start, CancellationToken cancellationToken)
     {
         _active = start;
         _counting = start.Unattended;
-        Ui(() =>
+        try
         {
-            var bar = EnsureBar();
-            bar.PlaceOn(WorkAreaOf(new WindowInteropHelper(_main).Handle));
-            if (_show && !bar.IsVisible)
+            Ui(() =>
             {
-                bar.Show();
+                var bar = EnsureBar();
+                bar.PlaceOn(WorkAreaOf(new WindowInteropHelper(_main).Handle));
+                if (_show && !bar.IsVisible)
+                {
+                    bar.Show();
+                }
+            });
+
+            if (start.Unattended && !await CountDownAsync(start, cancellationToken).ConfigureAwait(false))
+            {
+                End();
+                return false;
             }
-        });
 
-        if (start.Unattended && !await CountDownAsync(start, cancellationToken).ConfigureAwait(false))
-        {
-            _active = null;
             _counting = false;
-            Ui(() => _bar?.Hide());
-            return false;
-        }
+            Ui(() =>
+            {
+                _step = 0;
+                _stepText = Loc.Get("S.ComputerBar.Starting");
+                _bar?.ShowStep(_step, _stepText);
+                MinimizeMain();
 
-        _counting = false;
-        Ui(() =>
+                // Мышь теперь у агента: края экранов светятся, курсор — курсор Amarin.
+                _glow?.Show();
+                _cursor?.Apply();
+            });
+            return true;
+        }
+        catch
         {
-            _step = 0;
-            _stepText = Loc.Get("S.ComputerBar.Starting");
-            _bar?.ShowStep(_step, _stepText);
-            MinimizeMain();
-        });
-        return true;
+            End();
+            throw;
+        }
     }
 
     public void Step(int step, string text)
@@ -126,6 +158,8 @@ internal sealed class ComputerStage : IComputerStage
             {
                 _bar.ShowStep(step, text);
             }
+
+            _glow?.KeepOnTop();
         });
     }
 
@@ -177,6 +211,8 @@ internal sealed class ComputerStage : IComputerStage
             _question = null;
             _highlight?.Hide();
             _bar?.Hide();
+            _glow?.Hide();
+            _cursor?.Restore();
             RestoreMain();
         });
     }
@@ -247,6 +283,7 @@ internal sealed class ComputerStage : IComputerStage
         var windowQuestion = _confirmations.TryPeek(out _);
         if (windowQuestion && _minimizedByUs && _main.WindowState == WindowState.Minimized)
         {
+            _focusBeforeQuestion = ComputerNative.GetForegroundWindow();
             _main.WindowState = _restoreTo;
             _raisedForQuestion = true;
         }
@@ -257,12 +294,49 @@ internal sealed class ComputerStage : IComputerStage
             {
                 _main.WindowState = WindowState.Minimized;
             }
+
+            // Фокус — обратно окну, в котором агент работал: свёрнутое окно отдаёт его кому
+            // придётся, и следующий type без элемента ушёл бы в чужое окно.
+            if (_focusBeforeQuestion != IntPtr.Zero)
+            {
+                _ = ComputerNative.SetForegroundWindow(_focusBeforeQuestion);
+                _focusBeforeQuestion = IntPtr.Zero;
+            }
         }
     }
 
-    /// <summary>Строка вопроса: пояснение оператора, а нет его — сводка действия.</summary>
+    /// <summary>
+    /// Строка вопроса: пояснение самого вызова, а нет его — пояснение вопроса или сводка действия.
+    /// </summary>
+    /// <remarks>
+    /// У вопроса SynGuard пояснение — о самой проверке, одинаковое для любого нажатия; что делает
+    /// именно это нажатие, написано в аргументах вызова.
+    /// </remarks>
     internal static string QuestionLine(DangerousActionInfo info) =>
-        string.IsNullOrWhiteSpace(info.Explanation) ? info.ChangeSummary : info.Explanation.Trim();
+        ExplanationOf(info.CodeText) ??
+        (string.IsNullOrWhiteSpace(info.Explanation) ? info.ChangeSummary : info.Explanation.Trim());
+
+    private static string? ExplanationOf(string? arguments)
+    {
+        if (string.IsNullOrWhiteSpace(arguments))
+        {
+            return null;
+        }
+
+        try
+        {
+            return ToolArguments.Parse(arguments) is { ValueKind: System.Text.Json.JsonValueKind.Object } parsed &&
+                   parsed.TryGetProperty("explanation", out var value) &&
+                   value.ValueKind == System.Text.Json.JsonValueKind.String &&
+                   value.GetString()?.Trim() is { Length: > 0 } text
+                ? text
+                : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
 
     // ───────────────────────── кнопки плашки ─────────────────────────
 
@@ -356,53 +430,18 @@ internal sealed class ComputerStage : IComputerStage
     // ───────────────────────── мониторы ─────────────────────────
 
     private static ScreenRect WorkAreaOf(IntPtr window) =>
-        window == IntPtr.Zero ? WorkAreaAt(default) : WorkArea(MonitorFromWindow(window, MonitorDefaultToNearest));
+        window == IntPtr.Zero
+            ? WorkAreaAt(default)
+            : WorkArea(ComputerNative.MonitorFromWindow(window, ComputerNative.MonitorDefaultToNearest));
 
     private static ScreenRect WorkAreaAt(ScreenPoint point) =>
-        WorkArea(MonitorFromPoint(new NativePoint { X = point.X, Y = point.Y }, MonitorDefaultToNearest));
+        WorkArea(ComputerNative.MonitorFromPoint(new ComputerNative.Point { X = point.X, Y = point.Y }, ComputerNative.MonitorDefaultToNearest));
 
     private static ScreenRect WorkArea(IntPtr monitor)
     {
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-        return monitor != IntPtr.Zero && GetMonitorInfoW(monitor, ref info)
+        var info = new ComputerNative.MonitorInfo { Size = Marshal.SizeOf<ComputerNative.MonitorInfo>() };
+        return monitor != IntPtr.Zero && ComputerNative.GetMonitorInfoW(monitor, ref info)
             ? new ScreenRect(info.Work.Left, info.Work.Top, info.Work.Right - info.Work.Left, info.Work.Bottom - info.Work.Top)
             : default;
     }
-
-    private const uint MonitorDefaultToNearest = 2;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        public int X;
-        public int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRect
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MonitorInfo
-    {
-        public int Size;
-        public NativeRect Monitor;
-        public NativeRect Work;
-        public uint Flags;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfoW(IntPtr monitor, ref MonitorInfo info);
 }

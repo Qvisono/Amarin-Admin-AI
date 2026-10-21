@@ -30,7 +30,7 @@ public sealed class DecisionSafetyTests
             var questions = root.GetProperty("questions");
             Assert.Equal(2, questions.EnumerateObject().Count());
             Assert.Equal("noul", questions.GetProperty("safe_to_run").GetProperty("type").GetString());
-            Assert.Contains("deleting or encrypting files", questions.GetProperty("safe_to_run")
+            Assert.Contains("deleting or encrypting data beyond what the request asks for", questions.GetProperty("safe_to_run")
                 .GetProperty("criteria").GetProperty("false").GetString());
             Assert.Contains("Task:", root.GetProperty("state").GetString());
             Assert.Contains("Context:", root.GetProperty("state").GetString());

@@ -1052,9 +1052,12 @@
     <system:String x:Key="S.Message.VariantCount" xml:space="preserve">Вариант {0} из {1}</system:String>
     <system:String x:Key="S.Message.VariantNext" xml:space="preserve">Следующий вариант</system:String>
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
+    <system:String x:Key="S.Models.Bypass" xml:space="preserve">Модель обхода</system:String>
+    <system:String x:Key="S.Models.Bypass.Desc" xml:space="preserve">Берёт задачу, от которой отказались другие модели</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Быстрые задачи</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Ответ в чате</system:String>
+    <system:String x:Key="S.Models.Group.Bypass" xml:space="preserve">Обход</system:String>
     <system:String x:Key="S.Models.Group.Service" xml:space="preserve">Служебные задачи</system:String>
     <system:String x:Key="S.Notice.AgentTitle" xml:space="preserve">Команда /agent</system:String>
     <system:String x:Key="S.Notice.NoKeyTitle" xml:space="preserve">Нужен ключ API</system:String>
@@ -1088,7 +1091,10 @@
     <system:String x:Key="S.Prompts.Tech.Default" xml:space="preserve">Заводские</system:String>
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">Правила работы, которые программа даёт чату и агенту</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
+    <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">Модель {0} сейчас перегружена или упёрлась в лимит запросов. Повторите чуть позже или выберите другую модель.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">Модель отказалась отвечать на этот запрос: сработала защита провайдера. Переформулируйте запрос или выберите другую модель.</system:String>
+    <system:String x:Key="S.Refusal.Final" xml:space="preserve">Я, {0}, отказываюсь выполнять эту задачу по причинам: {1}</system:String>
+    <system:String x:Key="S.Refusal.NoReasons" xml:space="preserve">причины не названы</system:String>
     <system:String x:Key="S.Provider.NoImage" xml:space="preserve">Venice вернул пустой ответ без изображения.</system:String>
     <system:String x:Key="S.Quote.Reply" xml:space="preserve">Ответить</system:String>
     <system:String x:Key="S.Quote.FromLast" xml:space="preserve">из последнего ответа</system:String>
@@ -1448,7 +1454,6 @@
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Повторить</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Поделиться диалогом до этого ответа</system:String>
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Остановить</system:String>
-    <system:String x:Key="S.Message.Thought" xml:space="preserve">думал {0}</system:String>
 
     <system:String x:Key="S.Message.Working" xml:space="preserve">Размышляю {0}</system:String>
     <system:String x:Key="S.Models.AddKey" xml:space="preserve">Добавить ключ</system:String>
@@ -1563,20 +1568,19 @@
     <system:String x:Key="S.Remote.PickerTitle" xml:space="preserve">Выполнять команды на</system:String>
     <system:String x:Key="S.Remote.ThisPc" xml:space="preserve">Этот компьютер</system:String>
     <system:String x:Key="S.Remote.Unsupported" xml:space="preserve">Инструмент {0} работает только на этом ПК, а команды этого чата выполняются на машине «{1}». Не повторяй вызов; сделай то же через run_powershell: он выполняется там.</system:String>
-    <system:String x:Key="S.Computer.Locked" xml:space="preserve">Windows заблокирована: в заблокированном сеансе управлять окнами нельзя. Не повторяй действие; сообщи в отчёте, что задачу не выполнить, пока Windows заблокирована.</system:String>
-    <system:String x:Key="S.Computer.SecureDesk" xml:space="preserve">На экране защищённый рабочий стол Windows (вопрос контроля учётных записей или вход). Программам он закрыт, обходить это нельзя. Не повторяй действие; сообщи в отчёте, что здесь нужен человек.</system:String>
+    <system:String x:Key="S.Computer.Locked" xml:space="preserve">Windows заблокирована: в заблокированном сеансе управлять окнами нельзя. Не повторяй действие; скажи, что задачу не выполнить, пока Windows заблокирована.</system:String>
+    <system:String x:Key="S.Computer.SecureDesk" xml:space="preserve">На экране защищённый рабочий стол Windows (вопрос контроля учётных записей или вход). Программам он закрыт, обходить это нельзя. Не повторяй действие; скажи, что здесь нужен человек.</system:String>
     <system:String x:Key="S.Computer.NoWindow" xml:space="preserve">Здесь нет окна, которым можно управлять. Посмотри список окон или сделай новый снимок и выбери цель заново.</system:String>
     <system:String x:Key="S.Computer.Own" xml:space="preserve">Это окно самого Amarin: нажимать и печатать в нём нельзя. Не повторяй действие; работай в окне нужной программы.</system:String>
-    <system:String x:Key="S.Computer.Elevated" xml:space="preserve">Окно «{0}» запущено от имени администратора: управлять им нельзя, и обходить это не нужно. Сообщи в отчёте, что нужно сделать: агент сделает это своими инструментами или спросит человека.</system:String>
-    <system:String x:Key="S.Computer.Console" xml:space="preserve">Окно «{0}» запускает команды: нажимать и печатать в нём нельзя. Команды выполняются только через run_powershell у агента: не повторяй действие, а сообщи в отчёте, что нужно выполнить.</system:String>
-    <system:String x:Key="S.Computer.Password" xml:space="preserve">Это поле пароля: вводить в него нельзя. Не повторяй действие; сообщи в отчёте, что здесь нужен вход человека.</system:String>
-    <system:String x:Key="S.Computer.RunKeys" xml:space="preserve">Сочетание {0} открывает запуск команд: его нажимать нельзя. Команды выполняются только через run_powershell у агента: сообщи в отчёте, что нужно выполнить.</system:String>
-    <system:String x:Key="S.Computer.Delete" xml:space="preserve">В Проводнике и в окне выбора файла это сочетание удаляет файлы: так нельзя. Не повторяй; если файл нужно удалить, сообщи об этом в отчёте.</system:String>
-    <system:String x:Key="S.Computer.CommandText" xml:space="preserve">Это командная строка: печатать её нельзя ни в одно окно. Команды выполняются только через run_powershell у агента: сообщи в отчёте, что нужно выполнить.</system:String>
-    <system:String x:Key="S.Computer.Busy" xml:space="preserve">Мышью сейчас управляет другое задание. Не повторяй сразу: сделай задачу инструментами, если они это умеют, или сообщи в отчёте, что мышь была занята.</system:String>
-    <system:String x:Key="S.Computer.Cancelled" xml:space="preserve">Человек отменил управление компьютером в этом задании. Не пытайся снова; сообщи в отчёте, на чём остановился.</system:String>
-    <system:String x:Key="S.Computer.ShowOnly" xml:space="preserve">Это поручение показать, а не сделать: нажимает человек. Подсвечивай нужное место действием show и смотри, что изменилось.</system:String>
-    <system:String x:Key="S.Computer.DoOnly" xml:space="preserve">Это поручение сделать, а не показать: действуй сам. Подсветка show есть только в поручении показать.</system:String>
+    <system:String x:Key="S.Computer.Elevated" xml:space="preserve">Окно «{0}» запущено от имени администратора: управлять им мышью нельзя, и обходить это не нужно. Сделай это своими инструментами, если они это умеют, иначе скажи, что здесь нужен человек.</system:String>
+    <system:String x:Key="S.Computer.Console" xml:space="preserve">Окно «{0}» запускает команды: нажимать и печатать в нём нельзя. Команды выполняй через run_powershell, а не в окне.</system:String>
+    <system:String x:Key="S.Computer.Password" xml:space="preserve">Это поле пароля: вводить в него нельзя. Не повторяй действие; скажи, что здесь нужен вход человека.</system:String>
+    <system:String x:Key="S.Computer.RunKeys" xml:space="preserve">Сочетание {0} открывает запуск команд: его нажимать нельзя. Команды выполняй через run_powershell.</system:String>
+    <system:String x:Key="S.Computer.Delete" xml:space="preserve">В Проводнике и в окне выбора файла это сочетание удаляет файлы: так нельзя. Не повторяй; если файл нужно удалить, скажи об этом.</system:String>
+    <system:String x:Key="S.Computer.CommandText" xml:space="preserve">Это командная строка: печатать её нельзя ни в одно окно. Команды выполняй через run_powershell.</system:String>
+    <system:String x:Key="S.Computer.Paste" xml:space="preserve">В буфере обмена командная строка: вставлять её нельзя ни в одно окно. Команды выполняй через run_powershell.</system:String>
+    <system:String x:Key="S.Computer.Busy" xml:space="preserve">Мышью сейчас управляет другой агент. Не повторяй сразу: сделай задачу своими инструментами, если они это умеют, или скажи, что мышь была занята.</system:String>
+    <system:String x:Key="S.Computer.Cancelled" xml:space="preserve">Человек отменил управление компьютером в этом задании. Не пытайся снова; скажи, на чём остановился.</system:String>
     <system:String x:Key="S.Computer.NoExplanation" xml:space="preserve">Для этого действия нужно поле explanation: одно короткое предложение о том, что оно делает. Повтори вызов с ним.</system:String>
     <system:String x:Key="S.Computer.UnknownAction" xml:space="preserve">Неизвестное действие «{0}». Допустимые действия перечислены в описании инструмента.</system:String>
     <system:String x:Key="S.Computer.BadKeys" xml:space="preserve">Сочетание «{0}» не разобрать: нужны модификаторы ctrl, alt, shift, win и не больше одной клавиши через +. Текст печатается действием type.</system:String>
@@ -1586,19 +1590,23 @@
     <system:String x:Key="S.Computer.Stale" xml:space="preserve">Элемента {0} больше нет или его id устарел. Посмотри окно заново (inspect или find) и возьми свежий id.</system:String>
     <system:String x:Key="S.Computer.NoTarget" xml:space="preserve">Не указана цель: нужен element из последнего дерева окна или x и y из последнего снимка.</system:String>
     <system:String x:Key="S.Computer.NoShot" xml:space="preserve">Снимка ещё нет: x и y берутся только с последнего снимка. Сделай screenshot или укажи element.</system:String>
+    <system:String x:Key="S.Computer.NoVision" xml:space="preserve">Эта модель не видит картинки, и снимок ей не передать. Работай по дереву окна: inspect и find.</system:String>
     <system:String x:Key="S.Computer.OutsideShot" xml:space="preserve">Точка за краем последнего снимка: он {0}×{1} точек.</system:String>
     <system:String x:Key="S.Computer.ShotStale" xml:space="preserve">Окно сдвинулось или изменило размер после снимка, и его точки уже не те. Сделай новый снимок.</system:String>
     <system:String x:Key="S.Computer.NoPoint" xml:space="preserve">У элемента нет места на экране, куда можно так нажать: он закрыт другим окном или за краем. Прокрути к нему или разверни окно и посмотри заново.</system:String>
-    <system:String x:Key="S.Computer.NoStage" xml:space="preserve">Показать некому: подсветка работает только в окне программы.</system:String>
     <system:String x:Key="S.Computer.NoCaption" xml:space="preserve">Для show нужно поле caption: что человеку сделать в подсвеченном месте.</system:String>
+    <system:String x:Key="S.Computer.NobodyToShow" xml:space="preserve">Показывать некому: человека нет у компьютера. Сделай это сам, если нужен результат, или опиши шаги словами в ответе.</system:String>
     <system:String x:Key="S.Computer.NoText" xml:space="preserve">Для type нужно поле text.</system:String>
     <system:String x:Key="S.Computer.TextTooLong" xml:space="preserve">Текст длиннее {0} знаков: печатай его частями.</system:String>
     <system:String x:Key="S.Computer.NoFocus" xml:space="preserve">Не удалось перевести туда фокус. Нажми на элемент действием click или посмотри окно заново.</system:String>
     <system:String x:Key="S.Computer.NoDirection" xml:space="preserve">Для scroll нужно поле direction: up, down, left или right.</system:String>
+    <system:String x:Key="S.Computer.SequenceSteps" xml:space="preserve">Для sequence нужно поле steps: от 1 до {0} действий.</system:String>
+    <system:String x:Key="S.Computer.SequenceBadStep" xml:space="preserve">Шаг {0} цепочки не годится («{1}»): в steps можно только click, double_click, right_click, type, key, scroll, drag, focus и wait, каждый объектом со своим action.</system:String>
+    <system:String x:Key="S.Computer.SequenceStopped" xml:space="preserve">Цепочка остановлена на шаге {0} из {1} ({2}): {3} Шаги до него сделаны, остальные нет.</system:String>
+    <system:String x:Key="S.Computer.SequenceWindowChanged" xml:space="preserve">Сделано шагов: {0} из {1}. Потом вперёд вышло другое окно, и остальные шаги не выполнены: посмотри, что открылось, и продолжи.</system:String>
     <system:String x:Key="S.Computer.Failed" xml:space="preserve">Действие не удалось: {0}. Посмотри окно заново, прежде чем повторять.</system:String>
     <system:String x:Key="S.Computer.Step.Look" xml:space="preserve">Смотрит окно «{0}»</system:String>
     <system:String x:Key="S.Computer.Step.Screen" xml:space="preserve">Смотрит на экран</system:String>
-    <system:String x:Key="S.Computer.Label" xml:space="preserve">Оператор ПК {0}</system:String>
     <system:String x:Key="S.ComputerBar.Title" xml:space="preserve">Агент управляет компьютером</system:String>
     <system:String x:Key="S.ComputerBar.Step" xml:space="preserve">Шаг {0}</system:String>
     <system:String x:Key="S.ComputerBar.Stop" xml:space="preserve">Стоп</system:String>
@@ -1755,6 +1763,11 @@
     <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Выключена</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Приватность</system:String>
+    <system:String x:Key="S.Security.ComputerLabel" xml:space="preserve">Управление компьютером</system:String>
+    <system:String x:Key="S.Security.Computer" xml:space="preserve">Агент может работать мышью и клавиатурой</system:String>
+    <system:String x:Key="S.Security.ComputerDesc" xml:space="preserve">Когда своих инструментов мало: окна программ, браузер, параметры Windows</system:String>
+    <system:String x:Key="S.Security.ComputerNoticeTitle" xml:space="preserve">Снимки экрана уйдут провайдеру модели</system:String>
+    <system:String x:Key="S.Security.ComputerNoticeText" xml:space="preserve">Пока агент управляет компьютером, снимки экрана и текст окон отправляются провайдеру модели агента. Окно программы на это время сворачивается в плашку, края экрана подсвечиваются, а курсор становится курсором Amarin. Кнопка «Стоп» на плашке останавливает агента.</system:String>
     <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Включить все</system:String>
     <system:String x:Key="S.Security.Encrypt" xml:space="preserve">Шифровать чаты на диске</system:String>
     <system:String x:Key="S.Security.EncryptDesc" xml:space="preserve">Прочитать их можно только под вашей учётной записью Windows</system:String>
@@ -2036,7 +2049,7 @@
     <system:String x:Key="S.Tools.DomainBlocked" xml:space="preserve">Домен {0} заблокирован</system:String>
     <system:String x:Key="S.Tools.Done" xml:space="preserve">Инструменты выполнены</system:String>
     <system:String x:Key="S.Tools.FollowUpSeen" xml:space="preserve">Вижу новое сообщение, учитываю</system:String>
-    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard прочитал вызов {0} как атаку, и вы его не разрешили</system:String>
+    <system:String x:Key="S.Tools.GuardBlocked" xml:space="preserve">SynGuard остановил вызов {0}</system:String>
     <system:String x:Key="S.Tools.GuardFailed" xml:space="preserve">Проверка SynGuard не выполнилась, вызовы прошли без неё</system:String>
     <system:String x:Key="S.Tools.GuardUnparsed" xml:space="preserve">Ответ SynGuard не удалось разобрать, вызовы без вердикта прошли без проверки</system:String>
     <system:String x:Key="S.Tools.Running" xml:space="preserve">Запускаю инструменты</system:String>

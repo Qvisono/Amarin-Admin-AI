@@ -358,6 +358,12 @@ public sealed class AgentTierRoutingTests
             LastNotes = notes;
             return Task.FromResult(ToolResult.Ok("готово"));
         }
+
+        public Task<ToolResult> ContinueAsync(string agentId, string message, CancellationToken cancellationToken) =>
+            Task.FromResult(ToolResult.Ok("готово"));
+
+        public Task<ToolResult> EscalateAsync(string agentId, CancellationToken cancellationToken) =>
+            Task.FromResult(ToolResult.Ok("готово"));
     }
 
     private sealed class SilentObserver : IChatTurnObserver

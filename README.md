@@ -40,6 +40,16 @@ conversation, and you can expand it to see the details. The program chooses betw
 and a strong one by the task itself, not by how long the message is, and anything about your
 safety or the safety of this computer always gets the strong one.
 
+The agent can also work in program windows with the mouse and keyboard, once you turn it on in
+**Settings → Security**. It does so only when its own tools can't reach the goal or you asked for
+the work to be done in a program's window. The agent does it itself, with everything it already
+knows about the task: it reads the window's controls, looks at the screen when it needs to, and
+clicks, types and scrolls, doing a few predictable steps at once and checking the result. Ask to
+be shown instead, and it highlights each place while you click yourself. Meanwhile the edges of
+your screens glow, the pointer turns into the pink Amarin pointer, and the program folds into a
+small panel with the current step and **Stop**. In the normal access mode it does what you asked
+without asking you again.
+
 Asking again doesn't throw away the previous answer. **Retry** and editing your question keep the
 earlier answer, and everything after it, as a separate version. The ‹ 2/3 › arrows under the
 message switch between versions.
@@ -69,7 +79,8 @@ a condition becomes true, once or on a repeat. Reminders come as cards in the co
 If the program is closed, Windows Task Scheduler starts it when a task is due.
 
 It can also work without being asked. With **scheduled tasks**, the agent checks the computer
-daily, weekly or at startup, in read-only mode, and leaves a report as a chat. If something needs
+daily, weekly or at startup, in read-only mode (a task you allow can also use the mouse), and
+leaves a report as a chat. If something needs
 attention, you get a notification. The **PC health** panel shows disks, memory, protection, recent
 errors and pending updates on one screen. An action you want to repeat can be saved as a
 **recipe** and run again without a model. For bigger jobs, the agent can first send a **plan** for
@@ -215,6 +226,18 @@ Downloads come only from allowed domains. The current user can't be disabled, an
 administrator can't be removed. Critical Windows processes and services can't be stopped. Browser
 password stores, SSH keys, password managers and the Windows credential stores are never read.
 BitLocker keys and passwords are never shown.
+
+**The mouse has limits too.** The switch is off until you turn it on, because screenshots and
+window text go to the provider of the agent's model. The agent never clicks or types in this
+program's own windows, never types into a password field, a console, a terminal or the Run box,
+never types or pastes a command line anywhere and never presses the keys that delete files in File
+Explorer. Windows run as administrator, the sign-in screen and User Account Control prompts are
+refused. Your request is your consent: in the normal mode clicks and keystrokes go without
+questions, and the guard model checks each one against your own words, what was already done and
+what is on the screen, and stops only what goes against your request or is unsafe. *Ask about everything* still asks before each one, and *Read only* allows
+none. A task for later or a scheduled task takes the
+mouse only after a 10-second countdown you can cancel, and a scheduled task needs its own switch,
+sealed like commands for later.
 
 **Spending has limits too.** You can set daily and monthly limits for the profile or for a single
 key, and a cap per reply. The program warns you when spending gets close to a limit and asks

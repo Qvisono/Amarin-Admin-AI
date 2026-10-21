@@ -289,6 +289,12 @@ public sealed class AppSettings : IJsonOnDeserializing
     public const string FactoryFoxModelId = "openrouter:aion-labs/aion-3.5-mini";
 
     /// <summary>
+    /// Заводская модель обхода (1.36.0): сильная и редко отказывает. У OpenRouter то же семейство
+    /// находит <see cref="ModelFamily"/>.
+    /// </summary>
+    public const string FactoryBypassModelId = "grok-4-7";
+
+    /// <summary>
     /// Ревизия заводских моделей. Старый файл её не знает (0), и разовая замена
     /// (<see cref="AppSettingsStore.MigrateFactoryModels"/>) срабатывает у него один раз. Номер
     /// растёт с каждой новой заменой: 2 — 1.35.0-beta.1 (Claude, Jev 1.13), 3 — beta.2 (Jev 1.14,
@@ -443,28 +449,30 @@ public sealed class AppSettings : IJsonOnDeserializing
     internal static ReasoningSettings FactoryFoxReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
 
     /// <summary>
-    /// Может ли агент управлять компьютером мышью и клавиатурой (1.37.0). Заводская — нет.
+    /// Модель обхода (1.36.0): последняя ступень после отказов — ответа чата (<c>i_refuse</c>) и
+    /// агента (<c>agent_refused</c>).
+    /// </summary>
+    /// <remarks>
+    /// Слот новый, как у Розы: старый файл без поля получает начальное значение свойства, и
+    /// ревизия заводских моделей ради него не поднимается — она сбросила бы выбор человека во всех
+    /// остальных слотах.
+    /// </remarks>
+    public string BypassModelId { get; set; } = FactoryBypassModelId;
+
+    public ReasoningSettings BypassReasoning { get; set; } = new()
+    {
+        DisableThinking = false,
+        ReasoningEffort = "low"
+    };
+
+    /// <summary>
+    /// Может ли агент управлять компьютером мышью и клавиатурой (1.36.0). Заводская — нет.
     /// </summary>
     /// <remarks>
     /// Выключено, пока человек не включит сам: снимки экрана и текст окон уходят провайдеру
     /// модели, и это его решение. Из чужого архива не приезжает (<c>DataBundleImporter</c>).
     /// </remarks>
     public bool ComputerControl { get; set; }
-
-    /// <summary>
-    /// Модель оператора, который нажимает и печатает в окнах по поручению агента (1.37.0).
-    /// </summary>
-    /// <remarks>
-    /// Свой слот, а не модель агента: оператору нужно зрение и точность на каждом шаге, а агенту
-    /// — нет. Заводская — то же семейство, что у тяжёлого слота. Как у Розы, пустое значение
-    /// ничего не переносит: слот новый, и старый файл получает начальное значение свойства.
-    /// </remarks>
-    public string ComputerModelId { get; set; } = FactoryHeavyModelId;
-
-    /// <summary>Размышление оператора: немного на шаг, иначе сто шагов стоили бы как сто задач.</summary>
-    public ReasoningSettings ComputerReasoning { get; set; } = FactoryComputerReasoning();
-
-    internal static ReasoningSettings FactoryComputerReasoning() => new() { DisableThinking = false, ReasoningEffort = "low" };
 
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();

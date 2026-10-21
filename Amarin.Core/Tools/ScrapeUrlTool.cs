@@ -8,7 +8,9 @@ public sealed class ScrapeUrlTool : ITool
 
     public ScrapeUrlTool(Func<string, CancellationToken, Task<string>> scrape) => _scrape = scrape;
 
-    public string Name => "scrape_url";
+    public const string ToolName = "scrape_url";
+
+    public string Name => ToolName;
     public string Description =>
         "Scrape a public web page and return its content as markdown (~$0.01/request). " +
         "Use for any URL the user asks about. For YouTube or sites that need a browser window, " +

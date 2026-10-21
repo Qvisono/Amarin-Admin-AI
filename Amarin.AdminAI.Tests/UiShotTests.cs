@@ -964,6 +964,26 @@ public sealed class UiShotTests : IDisposable
             Save(host, Path.Combine(folder, "computer-bar-" + name + ".png"), (Brush)window.FindResource("Bg.Window"));
             bar.Close();
         }
+
+        // Курсор Amarin в настоящих размерах (100, 150 и 200 %) на светлом и тёмном фоне.
+        var sheet = new StackPanel { Orientation = Orientation.Horizontal };
+        foreach (var size in new[] { 32, 48, 64 })
+        {
+            foreach (var background in new[] { Brushes.White, new SolidColorBrush(Color.FromRgb(0x1F, 0x1F, 0x1F)) })
+            {
+                sheet.Children.Add(new Border
+                {
+                    Background = background,
+                    Padding = new Thickness(12),
+                    Child = new Image { Source = ComputerCursor.Render(size), Width = size, Height = size, Stretch = Stretch.None }
+                });
+            }
+        }
+
+        sheet.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        sheet.Arrange(new Rect(sheet.DesiredSize));
+        sheet.UpdateLayout();
+        Save(sheet, Path.Combine(folder, "computer-cursor.png"), null, scale: 1);
     }
 
     private async Task ShootDeferred(MainWindow window, AppServices services, string folder, bool ru)

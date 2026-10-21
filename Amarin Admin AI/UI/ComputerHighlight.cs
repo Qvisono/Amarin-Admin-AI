@@ -1,15 +1,15 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Amarin.Computer;
 using Amarin.Core;
 
 namespace Amarin.UI;
 
 /// <summary>
 /// Рамка «Показать»: где человеку нажать. Сквозная для мыши, не активируется и не попадает в
-/// снимки — нажимает сквозь неё сам человек, а оператор видит экран без неё.
+/// снимки — нажимает сквозь неё сам человек, а агент видит экран без неё.
 /// </summary>
 /// <remarks>
 /// Подпись к рамке — на плашке, а не рядом с рамкой: окно рамки ставится в физических пикселях
@@ -45,35 +45,14 @@ internal sealed class ComputerHighlight : Window
     internal void Frame(ScreenRect area)
     {
         var handle = new WindowInteropHelper(this).EnsureHandle();
-        _ = SetWindowPos(handle, new IntPtr(-1), area.Left - Gap, area.Top - Gap, area.Width + 2 * Gap,
-            area.Height + 2 * Gap, SwpNoActivate | SwpShowWindow);
+        _ = ComputerNative.SetWindowPos(handle, ComputerNative.HwndTopmost, area.Left - Gap, area.Top - Gap,
+            area.Width + 2 * Gap, area.Height + 2 * Gap, ComputerNative.SwpNoActivate | ComputerNative.SwpShowWindow);
         Show();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var handle = new WindowInteropHelper(this).Handle;
-        var ex = GetWindowLong(handle, GwlExStyle);
-        _ = SetWindowLong(handle, GwlExStyle, ex | WsExTransparent | WsExLayered | WsExToolWindow | WsExNoActivate);
-        _ = ComputerBar.SetWindowDisplayAffinity(handle, 0x11);
+        ComputerNative.Overlay(new WindowInteropHelper(this).Handle, passThrough: true);
     }
-
-    private const int GwlExStyle = -20;
-    private const int WsExTransparent = 0x00000020;
-    private const int WsExLayered = 0x00080000;
-    private const int WsExToolWindow = 0x00000080;
-    private const int WsExNoActivate = 0x08000000;
-    private const uint SwpNoActivate = 0x0010;
-    private const uint SwpShowWindow = 0x0040;
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
 }

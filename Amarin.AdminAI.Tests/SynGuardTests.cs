@@ -281,6 +281,54 @@ public sealed class SynGuardTests
         Assert.Equal("Поставь напоминание на 17:02", seen!.Value.Task);
     }
 
+    /// <summary>
+    /// Поиск и чтение страниц защитнику не отдаются: они ничего не меняют, а защитник запрещал
+    /// агенту проверить даже то, на чём тот строил отказ. Запись рядом с ними проверяется, как прежде.
+    /// </summary>
+    [Fact]
+    public async Task A_web_search_and_a_page_read_are_never_sent_to_the_guard()
+    {
+        var ran = new List<string>();
+        var seen = new List<string>();
+        var round = 0;
+        var handler = new ScriptedHandler(() => Interlocked.Increment(ref round) switch
+        {
+            1 => Calls("search_web", "scrape_url"),
+            2 => Calls("search_web", "scrape_url", "write_file"),
+            _ => """{"choices":[{"message":{"role":"assistant","content":"Готово."}}]}"""
+        });
+
+        var options = Options();
+        using var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://api.venice.ai/api/v1/")
+        };
+
+        var agent = new Agent(
+            new VeniceClient(http, options),
+            new ToolRegistry([
+                new RecordingTool("search_web", ran), new RecordingTool("scrape_url", ran), new RecordingTool("write_file", ran)]),
+            options,
+            new SilentAgentUi(),
+            new SessionUndoTracker())
+        {
+            Guard = (request, _) =>
+            {
+                seen.AddRange(request.Calls.Select(call => call.Name));
+                return Task.FromResult(new SynGuardReport([.. request.Calls.Select(_ => true)], null));
+            }
+        };
+
+        await agent.RunAsync("найди и запиши");
+
+        // Раунд из поиска и чтения страницы защитника не зовёт вовсе, а в смешанном он видит
+        // только запись.
+        Assert.Equal(["write_file"], seen);
+        Assert.Equal(2, ran.Count(name => name == "search_web"));
+        Assert.Equal(2, ran.Count(name => name == "scrape_url"));
+        Assert.Contains("write_file", ran);
+    }
+
     [Fact]
     public async Task The_refusal_tells_the_agent_not_to_work_around_it()
     {
@@ -637,6 +685,13 @@ public sealed class SynGuardTests
           {"id":"c1","type":"function","function":{"name":"write_file","arguments":"{}"}}]},
           "finish_reason":"tool_calls"}]}
         """;
+
+    /// <summary>Ответ модели с вызовами инструментов по именам, с пустыми аргументами.</summary>
+    private static string Calls(params string[] names) =>
+        """{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[""" +
+        string.Join(",", names.Select((name, i) =>
+            "{\"id\":\"c" + (i + 1) + "\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":\"{}\"}}")) +
+        """]},"finish_reason":"tool_calls"}]}""";
 
     private static string TwoCalls(string secondId = "c2") =>
         $$$"""

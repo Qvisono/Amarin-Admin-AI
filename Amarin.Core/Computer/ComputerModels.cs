@@ -120,10 +120,14 @@ internal sealed record ComputerElement(
     public ScreenPoint? Target => ClickPoint ?? (Offscreen || Bounds.IsEmpty ? null : Bounds.Center);
 }
 
+/// <summary>Дерево окна сверху вниз и обрезано ли оно — пределом числа элементов или времени.</summary>
+internal sealed record ComputerTree(IReadOnlyList<ComputerElement> Elements, bool Cut);
+
 /// <summary>Снимок области экрана.</summary>
+/// <param name="Base64">Картинка в base64, в формате <paramref name="Mime"/>.</param>
 /// <param name="Width">Ширина картинки, которую увидит модель, — после ужатия.</param>
 /// <param name="Source">Какая область экрана снята, в физических пикселях.</param>
-internal sealed record ComputerShot(string PngBase64, int Width, int Height, ScreenRect Source);
+internal sealed record ComputerShot(string Base64, string Mime, int Width, int Height, ScreenRect Source);
 
 /// <summary>Чей сейчас рабочий стол.</summary>
 internal enum ComputerDesk
@@ -159,26 +163,16 @@ internal sealed record ComputerPointer(
     int ScrollX = 0,
     int ScrollY = 0);
 
-/// <summary>Поручение оператору: сделать самому или показать человеку.</summary>
-internal enum ComputerMode
-{
-    Do,
-
-    /// <summary>Нажимает человек; оператор только смотрит и подсвечивает (<c>show</c>).</summary>
-    Show
-}
-
 /// <summary>С чем начинается управление — для плашки и отсчёта.</summary>
 /// <param name="Unattended">Человека рядом нет: перед началом нужен отсчёт с отменой.</param>
+/// <param name="Task">Задание агента: его показывает отсчёт, чтобы человек знал, что отменяет.</param>
 /// <param name="Stop">
 /// «Стоп» на плашке: останавливает агента, который держит мышь, тем же путём, что остановка из
 /// чата. Null — останавливать некого (тесты).
 /// </param>
-/// <param name="SessionId">Чат, из которого пришло поручение: его вопросы о нажатиях берёт плашка.</param>
+/// <param name="SessionId">Чат агента: его вопросы о нажатиях берёт плашка.</param>
 internal sealed record ComputerStart(
-    ComputerMode Mode,
     bool Unattended,
-    int MaxSteps,
     string Task,
     Action? Stop = null,
     string? SessionId = null);

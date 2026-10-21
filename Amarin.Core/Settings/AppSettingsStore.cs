@@ -69,7 +69,7 @@ public sealed class AppSettingsStore
             settings.SummaryReasoning ??= new ReasoningSettings();
             changed |= MigrateSummarySlot(settings);
             settings.FoxReasoning ??= AppSettings.FactoryFoxReasoning();
-            settings.ComputerReasoning ??= AppSettings.FactoryComputerReasoning();
+            settings.BypassReasoning ??= new ReasoningSettings();
             settings.Fox ??= new FoxSettings();
             changed |= settings.Fox.Normalize();
 
@@ -225,7 +225,7 @@ public sealed class AppSettingsStore
         settings.SynGuardReasoning = defaults.SynGuardReasoning;
         settings.SummaryReasoning = defaults.SummaryReasoning;
         settings.FoxReasoning = defaults.FoxReasoning;
-        settings.ComputerReasoning = defaults.ComputerReasoning;
+        settings.BypassReasoning = defaults.BypassReasoning;
         settings.ModelKeys = null;
         settings.WebSearchProvider = null;
         settings.WebSearchKeyId = null;

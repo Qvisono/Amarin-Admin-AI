@@ -95,7 +95,7 @@ public sealed class DataBundleCoverageTests
     {
         // Профиль, который заводит импорт, получает и настройки защиты (1.35.0): своих у него
         // ещё нет. Исключения — «подтверждать всё автоматически» и управление компьютером мышью
-        // (1.37.0): оба включают на этой машине, а не в чужом файле.
+        // (1.36.0): оба включают на этой машине, а не в чужом файле.
         var source = NewRoot();
         var target = NewRoot();
         var archive = Path.Combine(Path.GetTempPath(), "amarin-new-" + Guid.NewGuid().ToString("N") + DataBundle.FileExtension);

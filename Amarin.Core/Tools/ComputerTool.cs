@@ -8,8 +8,8 @@ using Amarin.Core;
 namespace Amarin.Tools;
 
 /// <summary>
-/// Мышь и клавиатура для оператора (<c>use_computer</c>): посмотреть окна, их элементы и снимок,
-/// нажать, напечатать, прокрутить, показать человеку.
+/// Мышь и клавиатура для агента: посмотреть окна, их элементы и снимок, нажать, напечатать,
+/// прокрутить, сделать несколько действий подряд, показать человеку.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,15 +20,24 @@ namespace Amarin.Tools;
 /// <para>
 /// Пишущее действие возвращает короткое дерево переднего окна, а не снимок: снимок стоит
 /// дороже десятка деревьев, и по дереву видно главное — что открылось и что теперь в фокусе.
-/// Снимок модель просит сама, когда без картинки не понять.
+/// Снимок модель просит сама, когда без картинки не понять, и только если она видит картинки.
+/// </para>
+/// <para>
+/// <c>sequence</c> — несколько действий одним вызовом: каждый вызов — это запрос к модели и
+/// проверка SynGuard, а поле, текст и Enter редко требуют смотреть между ними. Защитник видит
+/// цепочку целиком и судит о ней сразу, а дерево читается один раз, в конце.
 /// </para>
 /// <para>
 /// Что модели трогать нельзя, решает <see cref="ComputerSafety"/> — до шлюза дело доходит уже
 /// с разрешённым вызовом, а запрет здесь проверяется в момент нажатия: окно под точкой могло
-/// смениться между вопросом и исполнением.
+/// смениться между проверкой и исполнением.
 /// </para>
 /// </remarks>
-internal sealed class ComputerTool(ComputerSession session) : ITool
+/// <param name="canSee">
+/// Видит ли модель картинки. Нет — снимок отказывает: картинку такая модель не примет, и запрос
+/// упал бы целиком.
+/// </param>
+internal sealed class ComputerTool(ComputerSession session, bool canSee = true) : ITool
 {
     public const string ToolName = "computer";
 
@@ -42,10 +51,20 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
     public const int InspectMax = 400;
     public const int AfterActionTree = 60;
     public const int MaxText = 4000;
+
+    /// <summary>Сколько действий в одной цепочке: дальше без взгляда на экран идти незачем.</summary>
+    public const int MaxSequence = 12;
+
     private const int FindScan = 1500;
     private const int FindLimit = 30;
 
     internal static readonly TimeSpan SettleTime = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>Затишье между шагами цепочки: короче, чем после всей цепочки.</summary>
+    internal static readonly TimeSpan StepSettle = TimeSpan.FromSeconds(0.6);
+
+    internal static readonly TimeSpan AfterActionBudget = TimeSpan.FromSeconds(1.5);
+    internal static readonly TimeSpan InspectBudget = TimeSpan.FromSeconds(3);
     internal static readonly TimeSpan ShowWait = TimeSpan.FromMinutes(2);
 
     /// <summary>Действия, которые ничего не меняют. Остальные — запись; это же знает шлюз.</summary>
@@ -53,7 +72,12 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         new[] { "windows", "inspect", "find", "screenshot", "wait", "show" }.ToFrozenSet(StringComparer.Ordinal);
 
     internal static readonly FrozenSet<string> WriteActions =
-        new[] { "click", "double_click", "right_click", "type", "key", "scroll", "drag", "focus" }
+        new[] { "click", "double_click", "right_click", "type", "key", "scroll", "drag", "focus", "sequence" }
+            .ToFrozenSet(StringComparer.Ordinal);
+
+    /// <summary>Что можно в шаге цепочки: действия и пауза, но не взгляд и не вложенная цепочка.</summary>
+    internal static readonly FrozenSet<string> StepActions =
+        new[] { "click", "double_click", "right_click", "type", "key", "scroll", "drag", "focus", "wait" }
             .ToFrozenSet(StringComparer.Ordinal);
 
     private static readonly JsonElement Schema = JsonSchema.Parse("""
@@ -63,7 +87,7 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             "action": {
               "type": "string",
               "enum": ["windows", "inspect", "find", "screenshot", "wait", "show",
-                       "click", "double_click", "right_click", "type", "key", "scroll", "drag", "focus"]
+                       "click", "double_click", "right_click", "type", "key", "scroll", "drag", "focus", "sequence"]
             },
             "window": { "type": "string", "description": "Window id from the windows list (w followed by hex digits)." },
             "element": { "type": "string", "description": "Element id from the latest tree of its window (e followed by digits)." },
@@ -72,7 +96,7 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             "to_element": { "type": "string", "description": "drag: element id where the drag ends." },
             "to_x": { "type": "number", "description": "drag: horizontal pixel in the latest screenshot where the drag ends." },
             "to_y": { "type": "number", "description": "drag: vertical pixel in the latest screenshot where the drag ends." },
-            "text": { "type": "string", "description": "type: text to enter where the keyboard focus is, or into element." },
+            "text": { "type": "string", "description": "type: text to enter where the keyboard focus is, or into element. It is added to what the field already holds." },
             "keys": {
               "type": "string",
               "description": "key: modifiers ctrl, alt, shift, win and at most one key, joined with +. A key is a letter, a digit, F1-F24 or one of enter, escape, tab, space, backspace, delete, insert, home, end, pageup, pagedown, up, down, left, right, apps."
@@ -85,6 +109,11 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             "limit": { "type": "integer", "description": "inspect: most elements to list, 20-400." },
             "monitor": { "type": "integer", "description": "screenshot: monitor number from the windows list, when no window is given." },
             "caption": { "type": "string", "description": "show: what the person should do there, in the interface language." },
+            "steps": {
+              "type": "array",
+              "items": { "type": "object" },
+              "description": "sequence: up to 12 actions done in order, each an object with its own action (click, double_click, right_click, type, key, scroll, drag, focus or wait) and the fields that action takes."
+            },
             "explanation": { "type": "string", "description": "Required for every action that is not a read: one short sentence in the interface language about what it does." }
           },
           "required": ["action"]
@@ -98,6 +127,7 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         "Reads: windows lists top-level windows and monitors; inspect returns a window's element tree with ids; " +
         "find searches a window's elements by name and type; screenshot returns an image of a window or a monitor; " +
         "wait pauses; show frames a target with a caption and waits until the person presses Done. " +
+        "sequence does several actions in order in one call and stops at the first refusal or when another window comes to the front. " +
         "A target is an element id from the latest tree of its window, or x,y in the latest screenshot. " +
         "Every new tree of a window replaces the ids of that window, and every new screenshot replaces the previous one. " +
         "After each action the tool returns the tree of the foreground window. " +
@@ -107,22 +137,11 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
 
     public async Task<ToolResult> ExecuteAsync(JsonElement arguments, CancellationToken cancellationToken = default)
     {
-        var action = (Text(arguments, "action") ?? "").Trim().ToLowerInvariant();
+        var action = Action(arguments);
         var read = ReadActions.Contains(action);
         if (!read && !WriteActions.Contains(action))
         {
             return ToolResult.Fail(Loc.Format("S.Computer.UnknownAction", action));
-        }
-
-        if (!read && session.Mode == ComputerMode.Show)
-        {
-            return ToolResult.Fail(Loc.Get("S.Computer.ShowOnly"));
-        }
-
-        // Показ ждёт человека до двух минут; в поручении «сделай» человека могут и не ждать вовсе.
-        if (action == "show" && session.Mode != ComputerMode.Show)
-        {
-            return ToolResult.Fail(Loc.Get("S.Computer.DoOnly"));
         }
 
         if (ComputerSafety.Desk(session.Computer.Desk()) is { } desk)
@@ -136,6 +155,16 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             return ToolResult.Fail(Loc.Get("S.Computer.NoExplanation"));
         }
 
+        if (action == "screenshot" && !canSee)
+        {
+            return ToolResult.Fail(Loc.Get("S.Computer.NoVision"));
+        }
+
+        if (action == "show" && !session.CanShow)
+        {
+            return ToolResult.Fail(Loc.Get("S.Computer.NobodyToShow"));
+        }
+
         if ((!read || action == "show") && await session.EnsureStartedAsync(cancellationToken).ConfigureAwait(false) is { } refused)
         {
             return ToolResult.Fail(refused);
@@ -143,23 +172,29 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
 
         try
         {
-            return action switch
+            switch (action)
             {
-                "windows" => ListWindows(),
-                "inspect" => await InspectAsync(arguments, cancellationToken).ConfigureAwait(false),
-                "find" => await FindAsync(arguments, cancellationToken).ConfigureAwait(false),
-                "screenshot" => await ScreenshotAsync(arguments, cancellationToken).ConfigureAwait(false),
-                "wait" => await WaitAsync(arguments, cancellationToken).ConfigureAwait(false),
-                "show" => await ShowAsync(arguments, cancellationToken).ConfigureAwait(false),
-                "click" => await PointAsync(arguments, ComputerPointerKind.Click, explanation, cancellationToken).ConfigureAwait(false),
-                "double_click" => await PointAsync(arguments, ComputerPointerKind.DoubleClick, explanation, cancellationToken).ConfigureAwait(false),
-                "right_click" => await PointAsync(arguments, ComputerPointerKind.RightClick, explanation, cancellationToken).ConfigureAwait(false),
-                "type" => await TypeAsync(arguments, explanation, cancellationToken).ConfigureAwait(false),
-                "key" => await KeyAsync(arguments, explanation, cancellationToken).ConfigureAwait(false),
-                "scroll" => await ScrollAsync(arguments, explanation, cancellationToken).ConfigureAwait(false),
-                "drag" => await DragAsync(arguments, explanation, cancellationToken).ConfigureAwait(false),
-                _ => await FocusAsync(arguments, explanation, cancellationToken).ConfigureAwait(false)
-            };
+                case "windows":
+                    return ListWindows();
+                case "inspect":
+                    return await InspectAsync(arguments, cancellationToken).ConfigureAwait(false);
+                case "find":
+                    return await FindAsync(arguments, cancellationToken).ConfigureAwait(false);
+                case "screenshot":
+                    return await ScreenshotAsync(arguments, cancellationToken).ConfigureAwait(false);
+                case "wait":
+                    return ToolResult.Ok(await PauseAsync(arguments, cancellationToken).ConfigureAwait(false));
+                case "show":
+                    return await ShowAsync(arguments, cancellationToken).ConfigureAwait(false);
+                case "sequence":
+                    return await SequenceAsync(arguments, explanation, cancellationToken).ConfigureAwait(false);
+            }
+
+            session.Step(explanation);
+            var done = await ActAsync(action, arguments, cancellationToken).ConfigureAwait(false);
+            return done.Refusal is { } refusal
+                ? ToolResult.Fail(refusal)
+                : ToolResult.Ok(await AfterActionAsync(done.Heading, cancellationToken).ConfigureAwait(false));
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
         {
@@ -230,7 +265,7 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
 
         var limit = Math.Clamp(Integer(arguments, "limit") ?? InspectDefault, 20, InspectMax);
         session.Step(Loc.Format("S.Computer.Step.Look", Title(window)));
-        return ToolResult.Ok(await TreeAsync(window, limit, cancellationToken).ConfigureAwait(false));
+        return ToolResult.Ok(await TreeAsync(window, limit, InspectBudget, cancellationToken).ConfigureAwait(false));
     }
 
     private async Task<ToolResult> FindAsync(JsonElement arguments, CancellationToken cancellationToken)
@@ -244,9 +279,9 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         var role = Text(arguments, "role")?.Trim() ?? "";
         session.Step(Loc.Format("S.Computer.Step.Look", Title(window)));
 
-        // Поиск выдаёт id всему дереву: найденное должно быть тем, на что можно сразу нажать.
-        var elements = await session.Computer.InspectAsync(window.Handle, FindScan, cancellationToken).ConfigureAwait(false);
-        var named = session.Remember(window.Handle, elements);
+        // Поиск выдаёт id всему прочитанному: найденное должно быть тем, на что можно сразу нажать.
+        var tree = await session.Computer.InspectAsync(window.Handle, FindScan, InspectBudget, cancellationToken).ConfigureAwait(false);
+        var named = session.Remember(window.Handle, tree.Elements);
         var matches = named
             .Where(item => (name.Length == 0 || item.Element.Name.Contains(name, StringComparison.OrdinalIgnoreCase)) &&
                            (role.Length == 0 || item.Element.Role.Contains(role, StringComparison.OrdinalIgnoreCase)))
@@ -257,7 +292,9 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         text.Append(CultureInfo.InvariantCulture, $", matches for name \"{name}\" type \"{role}\": ");
         if (matches.Count == 0)
         {
-            return ToolResult.Ok(text.Append("none. Inspect the window or take a screenshot.").ToString());
+            return ToolResult.Ok(text.Append(tree.Cut
+                ? "none in the part of the window read in time. Take a screenshot or scroll and search again."
+                : "none. Inspect the window or take a screenshot.").ToString());
         }
 
         text.AppendLine(matches.Count > FindLimit ? $"first {FindLimit}" : matches.Count.ToString(CultureInfo.InvariantCulture));
@@ -312,14 +349,15 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         session.RememberShot(shot, window);
         return ToolResult.WithImage(
             $"Screenshot of {what}, {shot.Width}x{shot.Height} px. Its x,y are targets until the next screenshot.",
-            shot.PngBase64);
+            shot.Base64,
+            shot.Mime);
     }
 
-    private static async Task<ToolResult> WaitAsync(JsonElement arguments, CancellationToken cancellationToken)
+    private static async Task<string> PauseAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         var seconds = Math.Clamp(Number(arguments, "seconds") ?? 1, 0.5, 10);
         await Task.Delay(TimeSpan.FromSeconds(seconds), cancellationToken).ConfigureAwait(false);
-        return ToolResult.Ok(string.Create(CultureInfo.InvariantCulture, $"Waited {seconds:0.#} s."));
+        return string.Create(CultureInfo.InvariantCulture, $"Waited {seconds:0.#} s.");
     }
 
     private async Task<ToolResult> ShowAsync(JsonElement arguments, CancellationToken cancellationToken)
@@ -328,11 +366,6 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         if (caption.Length == 0)
         {
             return ToolResult.Fail(Loc.Get("S.Computer.NoCaption"));
-        }
-
-        if (!session.CanShow)
-        {
-            return ToolResult.Fail(Loc.Get("S.Computer.NoStage"));
         }
 
         var target = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
@@ -365,16 +398,88 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
 
     // ───────────────────────── запись ─────────────────────────
 
-    private async Task<ToolResult> PointAsync(
-        JsonElement arguments,
-        ComputerPointerKind kind,
-        string explanation,
-        CancellationToken cancellationToken)
+    /// <summary>Итог действия: отказ для модели или строка о том, что сделано.</summary>
+    private readonly record struct Act(string? Refusal, string Heading)
+    {
+        public static Act Refuse(string refusal) => new(refusal, "");
+
+        public static Act Done(string heading) => new(null, heading);
+    }
+
+    private Task<Act> ActAsync(string action, JsonElement arguments, CancellationToken cancellationToken) =>
+        action switch
+        {
+            "click" => PointAsync(arguments, ComputerPointerKind.Click, cancellationToken),
+            "double_click" => PointAsync(arguments, ComputerPointerKind.DoubleClick, cancellationToken),
+            "right_click" => PointAsync(arguments, ComputerPointerKind.RightClick, cancellationToken),
+            "type" => TypeAsync(arguments, cancellationToken),
+            "key" => KeyAsync(arguments, cancellationToken),
+            "scroll" => ScrollAsync(arguments, cancellationToken),
+            "drag" => DragAsync(arguments, cancellationToken),
+            _ => FocusAsync(arguments, cancellationToken)
+        };
+
+    /// <summary>
+    /// Несколько действий подряд. Останавливается на первом отказе и когда вперёд вышло другое
+    /// окно не шагом <c>focus</c>: дальше цепочка писала бы не туда, куда модель рассчитывала.
+    /// </summary>
+    private async Task<ToolResult> SequenceAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    {
+        if (!arguments.TryGetProperty("steps", out var stepsValue) || stepsValue.ValueKind != JsonValueKind.Array ||
+            stepsValue.GetArrayLength() is 0 or > MaxSequence)
+        {
+            return ToolResult.Fail(Loc.Format("S.Computer.SequenceSteps", MaxSequence));
+        }
+
+        var steps = stepsValue.EnumerateArray().ToList();
+        for (var i = 0; i < steps.Count; i++)
+        {
+            if (steps[i].ValueKind != JsonValueKind.Object || !StepActions.Contains(Action(steps[i])))
+            {
+                return ToolResult.Fail(Loc.Format("S.Computer.SequenceBadStep", i + 1, Action(steps[i])));
+            }
+        }
+
+        session.Step(explanation);
+        var front = session.Computer.Foreground()?.Handle;
+        for (var i = 0; i < steps.Count; i++)
+        {
+            var action = Action(steps[i]);
+            if (i > 0)
+            {
+                await session.Computer.SettleAsync(StepSettle, cancellationToken).ConfigureAwait(false);
+                var now = session.Computer.Foreground()?.Handle;
+                if (now != front && Action(steps[i - 1]) != "focus")
+                {
+                    var changed = Loc.Format("S.Computer.SequenceWindowChanged", i, steps.Count);
+                    return ToolResult.Ok(await AfterActionAsync(changed, cancellationToken).ConfigureAwait(false));
+                }
+
+                front = now;
+            }
+
+            var done = action == "wait"
+                ? Act.Done(await PauseAsync(steps[i], cancellationToken).ConfigureAwait(false))
+                : ComputerSafety.Desk(session.Computer.Desk()) is { } desk
+                    ? Act.Refuse(desk)
+                    : await ActAsync(action, steps[i], cancellationToken).ConfigureAwait(false);
+            if (done.Refusal is { } refusal)
+            {
+                var stopped = Loc.Format("S.Computer.SequenceStopped", i + 1, steps.Count, action, refusal);
+                return ToolResult.Fail(await AfterActionAsync(stopped, cancellationToken).ConfigureAwait(false));
+            }
+        }
+
+        return ToolResult.Ok(await AfterActionAsync(
+            string.Create(CultureInfo.InvariantCulture, $"Done all {steps.Count} steps."), cancellationToken).ConfigureAwait(false));
+    }
+
+    private async Task<Act> PointAsync(JsonElement arguments, ComputerPointerKind kind, CancellationToken cancellationToken)
     {
         var target = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
         if (target.Refusal is { } refusal)
         {
-            return ToolResult.Fail(refusal);
+            return Act.Refuse(refusal);
         }
 
         if (target.Point is not { } point)
@@ -383,109 +488,97 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             // — через UI Automation; двойное и правое так не сделать.
             if (kind != ComputerPointerKind.Click || target.Element is not { } unseen)
             {
-                return ToolResult.Fail(Loc.Get("S.Computer.NoPoint"));
+                return Act.Refuse(Loc.Get("S.Computer.NoPoint"));
             }
 
             if (ComputerSafety.Target(session.Computer.Window(target.Window), session.OwnProcessId) is { } hidden)
             {
-                return ToolResult.Fail(hidden);
+                return Act.Refuse(hidden);
             }
 
-            session.Step(explanation);
             return await session.Computer.InvokeAsync(target.Window, unseen.Key, cancellationToken).ConfigureAwait(false)
-                ? ToolResult.Ok(await AfterActionAsync("Pressed.", cancellationToken).ConfigureAwait(false))
-                : ToolResult.Fail(Loc.Get("S.Computer.NoPoint"));
+                ? Act.Done("Pressed.")
+                : Act.Refuse(Loc.Get("S.Computer.NoPoint"));
         }
 
         if (CheckPoint(point) is { } blocked)
         {
-            return ToolResult.Fail(blocked);
+            return Act.Refuse(blocked);
         }
 
-        session.Step(explanation);
         await session.Computer.PointerAsync(new ComputerPointer(kind, point), cancellationToken).ConfigureAwait(false);
-        return ToolResult.Ok(await AfterActionAsync("Done.", cancellationToken).ConfigureAwait(false));
+        return Act.Done("Done.");
     }
 
-    private async Task<ToolResult> TypeAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    private async Task<Act> TypeAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         var text = Text(arguments, "text") ?? "";
         if (text.Length == 0)
         {
-            return ToolResult.Fail(Loc.Get("S.Computer.NoText"));
+            return Act.Refuse(Loc.Get("S.Computer.NoText"));
         }
 
         if (text.Length > MaxText)
         {
-            return ToolResult.Fail(Loc.Format("S.Computer.TextTooLong", MaxText));
+            return Act.Refuse(Loc.Format("S.Computer.TextTooLong", MaxText));
         }
 
-        ComputerWindow? window;
-        ComputerElement? field;
         if (Text(arguments, "element") is { Length: > 0 })
         {
             var target = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
             if (target.Refusal is { } refusal)
             {
-                return ToolResult.Fail(refusal);
+                return Act.Refuse(refusal);
             }
 
             if (target.Element is not { } chosen)
             {
-                return ToolResult.Fail(Loc.Get("S.Computer.NoTarget"));
+                return Act.Refuse(Loc.Get("S.Computer.NoTarget"));
             }
 
-            window = session.Computer.Window(target.Window);
-            field = chosen;
-            if (ComputerSafety.Typing(window, field, text, session.OwnProcessId) is { } blocked)
+            if (ComputerSafety.Typing(session.Computer.Window(target.Window), chosen, text, session.OwnProcessId) is { } blocked)
             {
-                return ToolResult.Fail(blocked);
+                return Act.Refuse(blocked);
             }
 
             if (!await session.Computer.FocusElementAsync(target.Window, chosen.Key, cancellationToken).ConfigureAwait(false))
             {
-                return ToolResult.Fail(Loc.Get("S.Computer.NoFocus"));
+                return Act.Refuse(Loc.Get("S.Computer.NoFocus"));
             }
         }
-        else
+        else if (ComputerSafety.Typing(session.Computer.Foreground(), session.Computer.Focused(), text, session.OwnProcessId) is { } blocked)
         {
-            window = session.Computer.Foreground();
-            field = session.Computer.Focused();
-            if (ComputerSafety.Typing(window, field, text, session.OwnProcessId) is { } blocked)
-            {
-                return ToolResult.Fail(blocked);
-            }
+            return Act.Refuse(blocked);
         }
 
-        session.Step(explanation);
         await session.Computer.TypeAsync(text, cancellationToken).ConfigureAwait(false);
-        return ToolResult.Ok(await AfterActionAsync("Typed.", cancellationToken).ConfigureAwait(false));
+        return Act.Done("Typed.");
     }
 
-    private async Task<ToolResult> KeyAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    private async Task<Act> KeyAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         var keys = Text(arguments, "keys") ?? "";
         if (ComputerKeys.Parse(keys) is not { } chord)
         {
-            return ToolResult.Fail(Loc.Format("S.Computer.BadKeys", keys));
+            return Act.Refuse(Loc.Format("S.Computer.BadKeys", keys));
         }
 
-        if (ComputerSafety.Keys(session.Computer.Foreground(), chord, session.OwnProcessId) is { } blocked)
+        if ((ComputerSafety.Keys(session.Computer.Foreground(), chord, session.OwnProcessId) ??
+             ComputerSafety.Paste(chord, session.Computer.ClipboardText)) is { } blocked)
         {
-            return ToolResult.Fail(blocked);
+            return Act.Refuse(blocked);
         }
 
-        session.Step(explanation);
         await session.Computer.KeysAsync(chord, cancellationToken).ConfigureAwait(false);
-        return ToolResult.Ok(await AfterActionAsync("Pressed " + ComputerKeys.Join(chord) + ".", cancellationToken).ConfigureAwait(false));
+        return Act.Done("Pressed " + ComputerKeys.Join(chord) + ".");
     }
 
-    private async Task<ToolResult> ScrollAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    private async Task<Act> ScrollAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         var direction = (Text(arguments, "direction") ?? "").Trim().ToLowerInvariant();
         if (direction is not ("up" or "down" or "left" or "right"))
         {
-            return ToolResult.Fail(Loc.Get("S.Computer.NoDirection"));
+            return Act.Refuse(Loc.Get("S.Computer.NoDirection"));
         }
 
         ScreenPoint point;
@@ -494,12 +587,12 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             var target = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
             if (target.Refusal is { } refusal)
             {
-                return ToolResult.Fail(refusal);
+                return Act.Refuse(refusal);
             }
 
             if (target.Point is not { } at)
             {
-                return ToolResult.Fail(Loc.Get("S.Computer.NoPoint"));
+                return Act.Refuse(Loc.Get("S.Computer.NoPoint"));
             }
 
             point = at;
@@ -510,12 +603,12 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         }
         else
         {
-            return ToolResult.Fail(Loc.Get("S.Computer.NoTarget"));
+            return Act.Refuse(Loc.Get("S.Computer.NoTarget"));
         }
 
         if (CheckPoint(point) is { } blocked)
         {
-            return ToolResult.Fail(blocked);
+            return Act.Refuse(blocked);
         }
 
         var amount = Math.Clamp(Integer(arguments, "amount") ?? 3, 1, 10);
@@ -527,81 +620,77 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             _ => new ComputerPointer(ComputerPointerKind.Scroll, point, ScrollX: amount)
         };
 
-        session.Step(explanation);
         await session.Computer.PointerAsync(scroll, cancellationToken).ConfigureAwait(false);
-        return ToolResult.Ok(await AfterActionAsync("Scrolled.", cancellationToken).ConfigureAwait(false));
+        return Act.Done("Scrolled.");
     }
 
-    private async Task<ToolResult> DragAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    private async Task<Act> DragAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         var from = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
         if (from.Refusal is { } fromRefusal)
         {
-            return ToolResult.Fail(fromRefusal);
+            return Act.Refuse(fromRefusal);
         }
 
         var to = await TargetAsync(arguments, "to_element", "to_x", "to_y", cancellationToken).ConfigureAwait(false);
         if (to.Refusal is { } toRefusal)
         {
-            return ToolResult.Fail(toRefusal);
+            return Act.Refuse(toRefusal);
         }
 
         if (from.Point is not { } start || to.Point is not { } end)
         {
-            return ToolResult.Fail(Loc.Get("S.Computer.NoPoint"));
+            return Act.Refuse(Loc.Get("S.Computer.NoPoint"));
         }
 
         if ((CheckPoint(start) ?? CheckPoint(end)) is { } blocked)
         {
-            return ToolResult.Fail(blocked);
+            return Act.Refuse(blocked);
         }
 
-        session.Step(explanation);
         await session.Computer.PointerAsync(new ComputerPointer(ComputerPointerKind.Drag, start, end), cancellationToken)
             .ConfigureAwait(false);
-        return ToolResult.Ok(await AfterActionAsync("Dragged.", cancellationToken).ConfigureAwait(false));
+        return Act.Done("Dragged.");
     }
 
-    private async Task<ToolResult> FocusAsync(JsonElement arguments, string explanation, CancellationToken cancellationToken)
+    private async Task<Act> FocusAsync(JsonElement arguments, CancellationToken cancellationToken)
     {
         if (Text(arguments, "element") is { Length: > 0 })
         {
             var target = await TargetAsync(arguments, "element", "x", "y", cancellationToken).ConfigureAwait(false);
             if (target.Refusal is { } refusal)
             {
-                return ToolResult.Fail(refusal);
+                return Act.Refuse(refusal);
             }
 
             if (target.Element is not { } chosen)
             {
-                return ToolResult.Fail(Loc.Get("S.Computer.NoTarget"));
+                return Act.Refuse(Loc.Get("S.Computer.NoTarget"));
             }
 
             if (ComputerSafety.Target(session.Computer.Window(target.Window), session.OwnProcessId) is { } blocked)
             {
-                return ToolResult.Fail(blocked);
+                return Act.Refuse(blocked);
             }
 
-            session.Step(explanation);
             return await session.Computer.FocusElementAsync(target.Window, chosen.Key, cancellationToken).ConfigureAwait(false)
-                ? ToolResult.Ok(await AfterActionAsync("Focused.", cancellationToken).ConfigureAwait(false))
-                : ToolResult.Fail(Loc.Get("S.Computer.NoFocus"));
+                ? Act.Done("Focused.")
+                : Act.Refuse(Loc.Get("S.Computer.NoFocus"));
         }
 
         if (!TryWindow(arguments, foregroundIfMissing: false, out var window, out var missing, allowMinimized: true))
         {
-            return ToolResult.Fail(missing);
+            return Act.Refuse(missing);
         }
 
         if (ComputerSafety.Target(window, session.OwnProcessId) is { } refused)
         {
-            return ToolResult.Fail(refused);
+            return Act.Refuse(refused);
         }
 
-        session.Step(explanation);
         return await session.Computer.FocusWindowAsync(window.Handle, cancellationToken).ConfigureAwait(false)
-            ? ToolResult.Ok(await AfterActionAsync("Focused.", cancellationToken).ConfigureAwait(false))
-            : ToolResult.Fail(Loc.Get("S.Computer.NoFocus"));
+            ? Act.Done("Focused.")
+            : Act.Refuse(Loc.Get("S.Computer.NoFocus"));
     }
 
     // ───────────────────────── общее ─────────────────────────
@@ -717,19 +806,18 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
             return heading + " The foreground window belongs to Amarin and cannot be operated.";
         }
 
-        return heading + "\n" + await TreeAsync(foreground, AfterActionTree, cancellationToken).ConfigureAwait(false);
+        return heading + "\n" + await TreeAsync(foreground, AfterActionTree, AfterActionBudget, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> TreeAsync(ComputerWindow window, int limit, CancellationToken cancellationToken)
+    private async Task<string> TreeAsync(ComputerWindow window, int limit, TimeSpan budget, CancellationToken cancellationToken)
     {
-        var elements = await session.Computer.InspectAsync(window.Handle, limit + 1, cancellationToken).ConfigureAwait(false);
-        var cut = elements.Count > limit;
-        var named = session.Remember(window.Handle, elements.Take(limit));
+        var tree = await session.Computer.InspectAsync(window.Handle, limit, budget, cancellationToken).ConfigureAwait(false);
+        var named = session.Remember(window.Handle, tree.Elements);
         var text = new StringBuilder(Header(window));
         text.Append(CultureInfo.InvariantCulture, $", {named.Count} elements");
-        if (cut)
+        if (tree.Cut)
         {
-            text.Append(", list cut: use find or a larger limit");
+            text.Append(", list cut: use find, a larger limit or a screenshot");
         }
 
         text.AppendLine();
@@ -792,6 +880,8 @@ internal sealed class ComputerTool(ComputerSession session) : ITool
         var line = text.ReplaceLineEndings(" ");
         return line.Length <= max ? line : line[..max] + "…";
     }
+
+    private static string Action(JsonElement arguments) => (Text(arguments, "action") ?? "").Trim().ToLowerInvariant();
 
     private static string? Text(JsonElement arguments, string name) =>
         arguments.ValueKind == JsonValueKind.Object &&

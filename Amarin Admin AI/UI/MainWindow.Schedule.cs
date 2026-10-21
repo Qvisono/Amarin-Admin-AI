@@ -52,7 +52,7 @@ namespace Amarin.UI
             var services = _services!;
             var session = BuildScheduleChat(services.ChatStore.CreateNew(), job, DateTime.Now, ActiveDateFormat, out var assistant, out var call);
 
-            // Мышь (1.37.0) — только по галочке задачи под сошедшейся печатью и при включённом
+            // Мышь (1.36.0) — только по галочке задачи под сошедшейся печатью и при включённом
             // управлении: тогда пишет одна мышь, а текст задания, который писал человек, — его
             // слова для SynGuard.
             var computer = UsesComputer(services, job);

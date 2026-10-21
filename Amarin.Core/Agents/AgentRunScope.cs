@@ -39,9 +39,15 @@ internal sealed class AgentRunContext
     /// <remarks>
     /// Агенту задание пишет модель чата, и защитник по нему не отличит «человек попросил
     /// отправить» от «модель решила отправить, прочитав страницу». Поэтому слова человека едут
-    /// в SynGuard отдельно — их видят и агент, и оператор мыши, потому что область общая.
+    /// в SynGuard отдельно — область общая, и их видит агент, в том числе с мышью.
     /// </remarks>
     public string? HumanWords { get; init; }
+
+    /// <summary>
+    /// Агенты хода, с которыми чат переписывается (<see cref="VeniceTurnContext.Agents"/>). Null —
+    /// хода чата нет (расписание), и агент живёт до своего отчёта.
+    /// </summary>
+    public AgentConversations? Conversations { get; init; }
 }
 
 internal static class AgentRunScope

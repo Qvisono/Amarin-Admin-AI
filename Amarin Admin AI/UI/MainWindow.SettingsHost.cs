@@ -290,6 +290,9 @@ namespace Amarin.UI
 
                     // У Розы два своих инструмента — побег и поиск.
                     models.FoxReasoningPicker.SetUsesTools(true);
+
+                    // Обход отвечает и в чате, и за агента — с инструментами.
+                    models.BypassReasoningPicker.SetUsesTools(true);
                     models.FoxSettings.Changed += RefreshFoxLink;
                     break;
                 case SettingsPromptsPage prompts:
@@ -646,7 +649,8 @@ namespace Amarin.UI
                          (p.AgentHeavyModelPicker, p.AgentHeavyReasoningPicker),
                          (p.TitleModelPicker, p.TitleReasoningPicker),
                          (p.SummaryModelPicker, p.SummaryReasoningPicker),
-                         (p.FoxModelPicker, p.FoxReasoningPicker)
+                         (p.FoxModelPicker, p.FoxReasoningPicker),
+                         (p.BypassModelPicker, p.BypassReasoningPicker)
                      })
             {
                 WireSlot(picker, reasoning);

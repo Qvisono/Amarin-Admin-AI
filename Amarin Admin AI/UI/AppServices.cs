@@ -119,7 +119,7 @@ internal sealed class AppServices : IDisposable
     internal IAgentHost? AgentHost { get; init; }
 
     /// <summary>
-    /// Экран и ввод этого ПК для оператора мыши (1.37.0). Плашку ставит окно; null — управлять
+    /// Экран и ввод этого ПК для агента (1.36.0). Плашку ставит окно; null — управлять
     /// компьютером нечем (тесты окна).
     /// </summary>
     internal ComputerHub? Computer { get; init; }

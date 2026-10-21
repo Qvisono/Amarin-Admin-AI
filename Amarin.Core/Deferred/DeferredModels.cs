@@ -124,7 +124,7 @@ public sealed class DeferredTask
     public string? Command { get; set; }
 
     /// <summary>
-    /// Что человек написал сам, когда задачу ставили (1.37.0), — для SynGuard в момент прогона.
+    /// Что человек написал сам, когда задачу ставили (1.36.0), — для SynGuard в момент прогона.
     /// </summary>
     /// <remarks>
     /// Задание агенту (<see cref="Text"/>) пишет модель чата, и по нему «человек сам попросил
@@ -195,7 +195,7 @@ public sealed record DeferredRef(string Id, string Title, DeferredKind Kind);
 /// <summary>Сообщение в чате пришло от отложенной задачи, а не от человека.</summary>
 /// <param name="LateBy">Насколько срок опоздал (компьютер был выключен); null — вовремя.</param>
 /// <param name="HumanWords">
-/// Слова человека, с которыми задачу поставили, — если печать сошлась (1.37.0). Текст самого
+/// Слова человека, с которыми задачу поставили, — если печать сошлась (1.36.0). Текст самого
 /// сообщения писала модель чата, и SynGuard берёт слова человека отсюда, а не из него.
 /// </param>
 public sealed record DeferredMark(string TaskId, string Title, DateTime DueUtc, TimeSpan? LateBy = null, string? HumanWords = null);

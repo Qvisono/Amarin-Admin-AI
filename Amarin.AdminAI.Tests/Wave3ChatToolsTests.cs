@@ -136,6 +136,12 @@ public sealed class Wave3ChatToolsTests
     {
         public Task<ToolResult> RunAsync(string prompt, string? notes, CancellationToken cancellationToken) =>
             Task.FromResult(ToolResult.Ok("x"));
+
+        public Task<ToolResult> ContinueAsync(string agentId, string message, CancellationToken cancellationToken) =>
+            Task.FromResult(ToolResult.Ok("x"));
+
+        public Task<ToolResult> EscalateAsync(string agentId, CancellationToken cancellationToken) =>
+            Task.FromResult(ToolResult.Ok("x"));
     }
 
     [Fact]

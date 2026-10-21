@@ -523,6 +523,68 @@ public sealed class ToolGateTests : IDisposable
         Assert.Equal("text", File.ReadAllText(path));
     }
 
+    /// <summary>
+    /// Раунд чата с записью уходит защитнику, но поиск и чтение страницы из него вынуты: защитник
+    /// запрещал проверить даже то, на чём строился отказ. Запись проверяется, как прежде.
+    /// </summary>
+    [Fact]
+    public async Task The_chat_never_sends_a_web_search_or_a_page_read_to_the_guard()
+    {
+        var path = Path.Combine(_downloads, "found.txt");
+        var settings = Mode(ApprovalMode.Normal);
+        var searched = 0;
+        var scraped = 0;
+        var seen = new List<string>();
+        var responses = 0;
+        var handler = new ScriptedHandler(_ => Interlocked.Increment(ref responses) == 1
+            ? SseWithToolCalls(
+                ("search_web", JsonSerializer.Serialize(new { query = "q" })),
+                ("scrape_url", JsonSerializer.Serialize(new { url = "https://example.com/" })),
+                ("write_file", JsonSerializer.Serialize(new { path, content = "text" })))
+            : Sse("Готово."));
+        var options = new AgentOptions { ApiKey = "test", BaseUrl = "https://api.venice.ai/api/v1", Model = "grok-4-6", MaxToolRounds = 3 };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.venice.ai/api/v1/") };
+        var engine = new ChatEngine(
+            new VeniceClient(http, options),
+            options,
+            () => settings,
+            new ToolRegistry([
+                new WebSearchTool((_, _) => { Interlocked.Increment(ref searched); return Task.FromResult("found"); }),
+                new ScrapeUrlTool((_, _) => { Interlocked.Increment(ref scraped); return Task.FromResult("page"); }),
+                new WriteFileTool()]),
+            confirmations: new ConfirmationQueue(() => settings))
+        {
+            Guard = (request, _) =>
+            {
+                seen.AddRange(request.Calls.Select(call => call.Name));
+                return Task.FromResult(new SynGuardReport([.. request.Calls.Select(_ => true)], null,
+                    WithoutApproval: [.. request.Calls.Select(_ => true)]));
+            }
+        };
+
+        await engine.RunTurnAsync(
+            new ChatSession { Id = "chat-1", SelectedModelId = "grok-4-6" }, "найди и сохрани", new SilentObserver(), CancellationToken.None);
+
+        Assert.Equal(["write_file"], seen);
+        Assert.Equal(1, searched);
+        Assert.Equal(1, scraped);
+        Assert.Equal("text", File.ReadAllText(path));
+    }
+
+    private static HttpResponseMessage SseWithToolCalls(params (string Tool, string Arguments)[] calls) => new(HttpStatusCode.OK)
+    {
+        Content = new StringContent(
+            "data: {\"model\":\"grok-4-6\",\"choices\":[{\"delta\":{\"tool_calls\":[" +
+            string.Join(",", calls.Select((call, i) =>
+                "{\"index\":" + i + ",\"id\":\"c" + (i + 1) + "\",\"function\":{\"name\":\"" + call.Tool +
+                "\",\"arguments\":" + JsonSerializer.Serialize(call.Arguments) + "}}")) +
+            "]}}]}\n" +
+            "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n" +
+            "data: [DONE]\n",
+            Encoding.UTF8,
+            "text/event-stream")
+    };
+
     private static async Task<ChatSession> RunChatAsync(
         AppSettings settings,
         ConfirmationQueue? queue,

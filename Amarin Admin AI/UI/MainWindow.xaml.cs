@@ -1214,6 +1214,11 @@ namespace Amarin.UI
                 return settings.FoxReasoning ??= new ReasoningSettings { DisableThinking = true };
             }
 
+            if (ReferenceEquals(sender, models?.BypassReasoningPicker))
+            {
+                return settings.BypassReasoning ??= new ReasoningSettings();
+            }
+
             return null;
         }
 
@@ -1610,7 +1615,8 @@ namespace Amarin.UI
                     (ModelSlot.AgentLite, models.AgentLiteModelPicker, models.AgentLiteReasoningPicker),
                     (ModelSlot.AgentHeavy, models.AgentHeavyModelPicker, models.AgentHeavyReasoningPicker),
                     (ModelSlot.Summary, models.SummaryModelPicker, models.SummaryReasoningPicker),
-                    (ModelSlot.Fox, models.FoxModelPicker, models.FoxReasoningPicker)
+                    (ModelSlot.Fox, models.FoxModelPicker, models.FoxReasoningPicker),
+                    (ModelSlot.Bypass, models.BypassModelPicker, models.BypassReasoningPicker)
                 ]);
             }
 
@@ -3279,6 +3285,7 @@ namespace Amarin.UI
                 BindSlot(models.AgentHeavyReasoningPicker, settings.AgentHeavyModelId, settings.AgentHeavyReasoning);
                 BindSlot(models.SummaryReasoningPicker, settings.SummaryModelId, settings.SummaryReasoning);
                 BindSlot(models.FoxReasoningPicker, settings.FoxModelId, settings.FoxReasoning);
+                BindSlot(models.BypassReasoningPicker, settings.BypassModelId, settings.BypassReasoning);
             }
 
             if (BuiltPage<SettingsSecurityPage>() is { } security)
@@ -3595,7 +3602,7 @@ namespace Amarin.UI
             _liveAssistant?.UpdateTools(assistant);
             MaybeAutoscroll();
             if (_fox is not null && assistant.ToolRounds.Any(round => round.Calls.Any(call =>
-                    call.Name == "init_agent" && call.Status == ToolCallStatus.Running)))
+                    ToolCatalog.IsAgentCall(call.Name) && call.Status == ToolCallStatus.Running)))
             {
                 _fox.AgentWorking();
             }

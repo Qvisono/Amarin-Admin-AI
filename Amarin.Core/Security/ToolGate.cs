@@ -83,7 +83,7 @@ internal static class ToolGate
     /// спросить его о записи некому.
     /// </summary>
     /// <param name="except">
-    /// Инструмент, которому писать можно (1.37.0): задача расписания с галочкой «может управлять
+    /// Инструмент, которому писать можно (1.36.0): задача расписания с галочкой «может управлять
     /// компьютером» нажимает мышью, а PowerShell и всё прочее по-прежнему только читают. Режим
     /// «Только чтение» в настройках это исключение не снимает.
     /// </param>
@@ -135,6 +135,14 @@ internal static class ToolGate
         }
 
         if (withoutApproval.Value && check.Question is { } asked && (asked.Standing || McpNames.IsMcp(check.ToolName)))
+        {
+            return check;
+        }
+
+        // Мышь вопроса от модели защиты не получает: согласие человек дал самой просьбой, а от
+        // вреда её держат «небезопасно» SynGuard (запрет без вопроса) и правила ComputerSafety.
+        // С «если не уверен — спроси» осторожная модель спрашивала про Enter после «отправь».
+        if (!withoutApproval.Value && IsComputer(check.ToolName))
         {
             return check;
         }
@@ -290,13 +298,13 @@ internal static class ToolGate
         }
 
         return definitions
-            .Where(definition => !disabled.Contains(definition.Function.Name, StringComparer.OrdinalIgnoreCase))
+            .Where(definition => !disabled.Contains(ToolCatalog.SwitchName(definition.Function.Name), StringComparer.OrdinalIgnoreCase))
             .ToList();
     }
 
     public static bool IsDisabled(AppSettings settings, string toolName) =>
         settings.DisabledTools is { Count: > 0 } disabled &&
-        disabled.Contains(toolName.Trim(), StringComparer.OrdinalIgnoreCase);
+        disabled.Contains(ToolCatalog.SwitchName(toolName), StringComparer.OrdinalIgnoreCase);
 
     private static string ReadOnlyRefusal(string tool, JsonElement args, bool byScope)
     {
@@ -324,8 +332,19 @@ internal static class ToolGate
             return true;
         }
 
+        // Мышь в обычном режиме делает то, о чём человек попросил, без вопросов (так решил человек в
+        // 1.36.0). Таблица DangerousActionGuard по-прежнему считает нажатие требующим вопроса: по ней
+        // агент не пускает нажатия параллельной пачкой. «Спрашивать всё» спрашивает и про мышь.
+        if (IsComputer(tool))
+        {
+            return false;
+        }
+
         return DangerousActionGuard.RequiresConfirmation(tool, args);
     }
+
+    private static bool IsComputer(string tool) =>
+        tool.Equals(ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Создал ли этот документ сам ИИ (<see cref="AiDocumentBook.Owns"/>). Ставит один раз

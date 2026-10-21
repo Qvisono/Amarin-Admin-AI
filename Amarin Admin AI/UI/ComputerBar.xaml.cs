@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Amarin.Computer;
 using Amarin.Core;
 
 namespace Amarin.UI;
@@ -124,7 +124,7 @@ public partial class ComputerBar : Window
     internal ScreenRect Bounds()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        return handle != IntPtr.Zero && GetWindowRect(handle, out var rect)
+        return handle != IntPtr.Zero && ComputerNative.GetWindowRect(handle, out var rect)
             ? new ScreenRect(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top)
             : default;
     }
@@ -132,18 +132,14 @@ public partial class ComputerBar : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        var handle = new WindowInteropHelper(this).Handle;
-        ToastScreen.MakeQuiet(handle);
-
-        // Не в снимках оператора. До Windows 10 2004 значения нет — тогда плашка просто видна.
-        _ = SetWindowDisplayAffinity(handle, WdaExcludeFromCapture);
+        ComputerNative.Overlay(new WindowInteropHelper(this).Handle, passThrough: false);
         Place();
     }
 
     private void Place()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        if (handle == IntPtr.Zero || _work.IsEmpty || !GetWindowRect(handle, out var rect))
+        if (handle == IntPtr.Zero || _work.IsEmpty || !ComputerNative.GetWindowRect(handle, out var rect))
         {
             return;
         }
@@ -152,40 +148,11 @@ public partial class ComputerBar : Window
         var height = rect.Bottom - rect.Top;
         var x = _work.Left + (_work.Width - width) / 2;
         var y = _bottom ? _work.Bottom - height - EdgeGap : _work.Top + EdgeGap;
-        _ = SetWindowPos(handle, HwndTopmost, x, y, 0, 0, SwpNoSize | SwpNoActivate);
+        _ = ComputerNative.SetWindowPos(handle, ComputerNative.HwndTopmost, x, y, 0, 0,
+            ComputerNative.SwpNoSize | ComputerNative.SwpNoActivate);
     }
 
     private void PrimaryButton_Click(object sender, RoutedEventArgs e) => Primary?.Invoke();
 
     private void SecondaryButton_Click(object sender, RoutedEventArgs e) => Secondary?.Invoke();
-
-    private const uint WdaExcludeFromCapture = 0x11;
-    private const uint SwpNoSize = 0x0001;
-    private const uint SwpNoActivate = 0x0010;
-    private static readonly IntPtr HwndTopmost = new(-1);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRect
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr hwnd, out NativeRect rect);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool GetWindowDisplayAffinity(IntPtr hwnd, out uint affinity);
 }

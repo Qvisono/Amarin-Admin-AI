@@ -121,6 +121,8 @@ internal static class RecipeRules
     public static readonly string[] Excluded =
     [
         "web_search", "scrape_url", "generate_image", "init_agent", ReadInstructionTool.ToolName, AgentPlans.SubmitTool,
+        // Разговор с агентом ответа и его подъём: агента этого ответа рецепт не застанет.
+        MessageAgentTool.ToolName, AgentRefusedTool.ToolName,
         // Ручка картинки живёт в памяти одного запуска: после перезапуска рецепт её бы не нашёл.
         "save_image",
         // Отложенная задача ставится из чата и помнит его; рецепт без чата её не поставил бы.

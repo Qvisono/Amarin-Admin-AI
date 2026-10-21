@@ -120,12 +120,14 @@ public sealed class ScreenshotTool : ITool
     }
 
     /// <summary>
-    /// Снимок области экрана для оператора мыши: PNG, ужатый до <paramref name="maxSide"/>, и
+    /// Снимок области экрана для управления мышью: JPEG, ужатый до <paramref name="maxSide"/>, и
     /// какая область снята — по ней точка снимка переводится обратно в пиксели экрана.
     /// </summary>
     /// <remarks>
     /// Тот же захват и то же ужатие, что у <c>capture_screenshot</c>: второй копии нет. Окна,
-    /// исключённые из захвата (плашка управления), Windows сюда не кладёт сама.
+    /// исключённые из захвата (плашка, свечение), Windows сюда не кладёт сама. JPEG, а не PNG:
+    /// снимок уходит модели с каждым запросом до следующего снимка, а весит в несколько раз
+    /// меньше; токены модель считает по размеру в пикселях, и они те же.
     /// </remarks>
     internal static Amarin.Core.ComputerShot CaptureArea(Amarin.Core.ScreenRect area, int maxSide)
     {
@@ -137,9 +139,18 @@ public sealed class ScreenshotTool : ITool
 
         using var resized = Downscale(bitmap, maxSide);
         using var stream = new MemoryStream();
-        resized.Save(stream, ImageFormat.Png);
-        return new Amarin.Core.ComputerShot(Convert.ToBase64String(stream.ToArray()), resized.Width, resized.Height, area);
+        using var quality = new EncoderParameters(1);
+        quality.Param[0] = new EncoderParameter(Encoder.Quality, ShotQuality);
+        resized.Save(stream, JpegCodec.Value, quality);
+        return new Amarin.Core.ComputerShot(
+            Convert.ToBase64String(stream.ToArray()), "image/jpeg", resized.Width, resized.Height, area);
     }
+
+    /// <summary>Качество JPEG снимка: ниже мелкий текст окон начинает плыть.</summary>
+    private const long ShotQuality = 85;
+
+    private static readonly Lazy<ImageCodecInfo> JpegCodec = new(() =>
+        ImageCodecInfo.GetImageEncoders().First(codec => codec.FormatID == ImageFormat.Jpeg.Guid));
 
     private static Bitmap DownscaleIfNeeded(Bitmap source) => Downscale(source, MaxDimension);
 

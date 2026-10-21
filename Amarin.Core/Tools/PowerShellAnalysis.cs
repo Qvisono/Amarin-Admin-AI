@@ -156,6 +156,24 @@ internal static class PowerShellAnalysis
         "downloaddataasync", "openread", "getstringasync", "getbytearrayasync", "getstreamasync"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Методы, которыми скрипт выводит чужое окно вперёд или шлёт ввод: <c>AppActivate</c> у
+    /// VisualBasic и WScript.Shell, функции user32 через <c>Add-Type</c>. <c>SendKeys</c> разбирается
+    /// отдельно — <see cref="DrivesWindows"/>.
+    /// </summary>
+    private static readonly FrozenSet<string> WindowInputMethods = new[]
+    {
+        "appactivate", "setforegroundwindow", "switchtothiswindow", "bringwindowtotop", "setactivewindow",
+        "keybd_event", "mouse_event", "sendinput", "setcursorpos"
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Клавиши громкости и воспроизведения (VK 173–179): их Windows обрабатывает сама, в какое бы
+    /// окно они ни пришли, поэтому <c>SendKeys</c> с ними работает и из фона.
+    /// </summary>
+    private const int MediaKeyFirst = 173;
+    private const int MediaKeyLast = 179;
+
     /// <summary>Разбирает скрипт. Не бросает: всё, что не разобрано, — запись.</summary>
     public static PowerShellVerdict Analyze(string? script)
     {
@@ -270,8 +288,22 @@ internal static class PowerShellAnalysis
             }
         }
 
-        return null;
+        return facts.DrivesWindows ? WindowInputRefusal : null;
     }
+
+    /// <summary>
+    /// Ввод в чужие окна — дело агента с мышью, а не скрипта. Скрипт здесь не работает и врёт об
+    /// успехе: фоновому процессу Windows фокус не отдаёт, нажатия уходят туда, где фокус сейчас,
+    /// а отложенная команда сообщала «отправлено», не отправив ничего. И он обходил бы правила
+    /// мыши (<see cref="ComputerSafety"/>): консоль, поле пароля, окна самой программы.
+    /// </summary>
+    internal const string WindowInputRefusal =
+        "ЗАПРЕЩЕНО: скрипт выводит вперёд окно программы или нажимает клавиши и кнопки мыши. Из PowerShell это не " +
+        "работает: Windows не отдаёт фокус фоновому процессу, нажатия уходят в то окно, где фокус сейчас, а отчёт " +
+        "скрипта об успехе ничего не доказывает. Работу в окнах программ делает агент мышью и клавиатурой: из чата — " +
+        "init_agent, на потом — deferred_task с action=run_agent, сам агент — инструментом computer. Если " +
+        "computer у агента нет, пользователь не включил в настройках «Безопасность → Агент может работать мышью " +
+        "и клавиатурой»: скажи ему об этом. Не повторяй попытку через PowerShell.";
 
     private static string DownloadRefusal(string? url) =>
         (url is null
@@ -639,6 +671,13 @@ internal static class PowerShellAnalysis
             return;
         }
 
+        if (DrivesWindows(invoke, name))
+        {
+            facts.DrivesWindows = true;
+            facts.Write("." + name + "()");
+            return;
+        }
+
         if (invoke.Static)
         {
             if (!ReadStaticPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) ||
@@ -654,6 +693,44 @@ internal static class PowerShellAnalysis
         {
             facts.Write("." + name + "()");
         }
+    }
+
+    /// <summary>
+    /// Вызов выводит чужое окно вперёд или шлёт в него ввод. <c>SendKeys</c> WScript.Shell и
+    /// <c>[SendKeys]::SendWait</c> WinForms — тоже, кроме одних клавиш громкости и воспроизведения:
+    /// других способов изменить громкость у агента нет.
+    /// </summary>
+    private static bool DrivesWindows(InvokeMemberExpressionAst invoke, string name)
+    {
+        if (WindowInputMethods.Contains(name))
+        {
+            return true;
+        }
+
+        var sendKeys = name.Equals("SendKeys", StringComparison.OrdinalIgnoreCase) ||
+                       (invoke.Static &&
+                        (name.Equals("SendWait", StringComparison.OrdinalIgnoreCase) || name.Equals("Send", StringComparison.OrdinalIgnoreCase)) &&
+                        invoke.Expression.Extent.Text.Contains("SendKeys", StringComparison.OrdinalIgnoreCase));
+        return sendKeys && !MediaKeysOnly(invoke.Arguments);
+    }
+
+    /// <summary>Единственный аргумент — <c>[char]N</c> или строка из одних клавиш громкости.</summary>
+    private static bool MediaKeysOnly(IReadOnlyList<ExpressionAst>? arguments)
+    {
+        if (arguments is not [var only])
+        {
+            return false;
+        }
+
+        static bool Media(int code) => code is >= MediaKeyFirst and <= MediaKeyLast;
+
+        return only switch
+        {
+            ConvertExpressionAst { Type.TypeName.Name: var type, Child: ConstantExpressionAst { Value: int code } }
+                when type.Equals("char", StringComparison.OrdinalIgnoreCase) => Media(code),
+            StringConstantExpressionAst { Value: { Length: > 0 } text } => text.All(c => Media(c)),
+            _ => false
+        };
     }
 
     private readonly record struct ArgumentValue(bool IsConstant, string Text);
@@ -781,6 +858,9 @@ internal static class PowerShellAnalysis
 
         /// <summary>Командлеты, давшие запись, — в каноническом написании.</summary>
         public List<string> WriteCmdlets { get; } = [];
+
+        /// <summary>Скрипт выводит чужое окно вперёд или шлёт в него ввод.</summary>
+        public bool DrivesWindows { get; set; }
 
         /// <summary>Запись, которая не командлет: программа, метод, перенаправление, неразобранное.</summary>
         public bool OtherWrites { get; private set; }

@@ -62,13 +62,19 @@ internal sealed class ConfirmationRequest
     /// <summary>Можно ли разрешить инструмент впрок: у вопроса есть чат, и это не вопрос SynGuard.</summary>
     public bool CanAllowAhead => !string.IsNullOrWhiteSpace(SessionId) && !Info.AlwaysAsk && !Info.Standing;
 
+    /// <summary>Можно ли разрешить инструмент на весь чат — кроме тех, что только до конца хода (<see cref="TurnOnly"/>).</summary>
+    public bool CanAllowForChat => CanAllowAhead && !TurnOnly(Info.ToolName);
+
     /// <summary>
-    /// Можно ли разрешить инструмент на весь чат. PowerShell — только до конца хода: разрешить
-    /// его на весь разговор значило бы почти выключить защиту.
+    /// Инструменты, которые разрешаются впрок только до конца хода: PowerShell и мышь. Разрешить
+    /// их на весь разговор значило бы почти выключить защиту.
     /// </summary>
-    public bool CanAllowForChat =>
-        CanAllowAhead && !Info.ToolName.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) &&
-        !Info.ToolName.Equals(Tools.ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase);
+    internal static bool TurnOnly(string toolName)
+    {
+        var tool = toolName.Trim();
+        return tool.Equals("run_powershell", StringComparison.OrdinalIgnoreCase) ||
+               tool.Equals(Tools.ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Вопрос отвечается на плашке управления компьютером, а не в окне программы: окно на время
@@ -363,10 +369,7 @@ internal sealed class ConfirmationQueue
             return;
         }
 
-        // PowerShell и мышь на весь чат не разрешаются — только до конца хода (см. CanAllowForChat).
-        if (scope == AllowanceScope.Chat &&
-            (toolName.Trim().Equals("run_powershell", StringComparison.OrdinalIgnoreCase) ||
-             toolName.Trim().Equals(Tools.ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase)))
+        if (scope == AllowanceScope.Chat && ConfirmationRequest.TurnOnly(toolName))
         {
             scope = AllowanceScope.Turn;
         }

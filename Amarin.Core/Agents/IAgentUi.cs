@@ -11,6 +11,12 @@ public sealed class AgentRunResult
     public bool Cancelled { get; init; }
 
     public string? Error { get; init; }
+
+    /// <summary>
+    /// Агент отказался вызовом <c>i_refuse</c> (1.36.0): его причины, возможно пустые. Null — не
+    /// отказывался.
+    /// </summary>
+    public string? Refusal { get; init; }
 }
 
 public interface IAgentUi

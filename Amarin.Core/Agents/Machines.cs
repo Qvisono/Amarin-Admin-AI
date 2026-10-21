@@ -76,7 +76,7 @@ internal static class RemoteSupport
     public static readonly string[] MachineFree =
     [
         "web_search", "scrape_url", "generate_image", "fetch_image", "youtube_transcript", "read_instruction",
-        "init_agent", AgentPlans.SubmitTool
+        "init_agent", "message_agent", "agent_refused", AgentPlans.SubmitTool
     ];
 
     public static bool Allows(string tool) =>

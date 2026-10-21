@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -9,7 +8,7 @@ using static Amarin.Computer.ComputerNative;
 namespace Amarin.Computer;
 
 /// <summary>
-/// Экран, окна, мышь и клавиатура этого ПК для оператора (<see cref="IComputer"/>).
+/// Экран, окна, мышь и клавиатура этого ПК для агента (<see cref="IComputer"/>).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,14 +24,22 @@ namespace Amarin.Computer;
 /// </remarks>
 internal sealed class WindowsComputer : IComputer
 {
-    /// <summary>Сколько ждать UI Automation: зависшая программа не должна держать оператора вечно.</summary>
+    /// <summary>Сколько ждать UI Automation: зависшая программа не должна держать агента вечно.</summary>
     private static readonly TimeSpan AutomationTimeout = TimeSpan.FromSeconds(8);
 
     /// <summary>Пауза между событиями ввода: программам нужно время разобрать нажатие.</summary>
     private static readonly TimeSpan InputGap = TimeSpan.FromMilliseconds(40);
 
+    /// <summary>Сколько знаков уходит одним вызовом <c>SendInput</c>.</summary>
+    /// <remarks>
+    /// Пачками, а не по знаку с паузой: 4000 знаков печатались полминуты. Целиком одним вызовом
+    /// тоже нельзя — часть программ теряет знаки, когда очередь ввода переполнена.
+    /// </remarks>
+    internal const int TypingBatch = 24;
+
+    private static readonly TimeSpan TypingPause = TimeSpan.FromMilliseconds(10);
+
     private readonly UiaTree _tree = new();
-    private readonly ConcurrentDictionary<int, string> _processNames = new();
 
     public ComputerDesk Desk()
     {
@@ -63,7 +70,10 @@ internal sealed class WindowsComputer : IComputer
         }
     }
 
-    public IReadOnlyList<ComputerMonitor> Monitors()
+    public IReadOnlyList<ComputerMonitor> Monitors() => AllMonitors();
+
+    /// <summary>Мониторы этого ПК — и для свечения по краям, которому экземпляр порта не нужен.</summary>
+    internal static IReadOnlyList<ComputerMonitor> AllMonitors()
     {
         var found = new List<(ScreenRect Bounds, bool Primary, double Scale)>();
         _ = EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr monitor, IntPtr hdc, ref Rect rect, IntPtr data) =>
@@ -134,8 +144,8 @@ internal sealed class WindowsComputer : IComputer
 
     public ComputerElement? Focused() => UiaTree.Focused();
 
-    public Task<IReadOnlyList<ComputerElement>> InspectAsync(long window, int limit, CancellationToken cancellationToken) =>
-        Automation(() => _tree.Inspect(new IntPtr(window), limit), cancellationToken);
+    public Task<ComputerTree> InspectAsync(long window, int limit, TimeSpan budget, CancellationToken cancellationToken) =>
+        Automation(() => _tree.Inspect(new IntPtr(window), limit, budget), cancellationToken);
 
     /// <remarks>
     /// Окно закрыто — элемента нет, что бы ни ответил запомненный объект UI Automation: поставщик
@@ -202,23 +212,51 @@ internal sealed class WindowsComputer : IComputer
 
     public async Task TypeAsync(string text, CancellationToken cancellationToken)
     {
-        foreach (var ch in text.ReplaceLineEndings("\n"))
+        foreach (var batch in TypingBatches(text, TypingBatch))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            Send(batch);
+            await Task.Delay(TypingPause, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Текст событиями ввода, по <paramref name="size"/> знаков в пачке. Перевод строки — Enter,
+    /// табуляция — Tab, остальное — знаком Юникода, мимо раскладки.
+    /// </summary>
+    internal static IEnumerable<Input[]> TypingBatches(string text, int size)
+    {
+        var batch = new List<Input>(size * 2);
+        var count = 0;
+        foreach (var ch in text.ReplaceLineEndings("\n"))
+        {
             switch (ch)
             {
                 case '\n':
-                    Press(0x0D);
+                    batch.Add(Key(0x0D, up: false));
+                    batch.Add(Key(0x0D, up: true));
                     break;
                 case '\t':
-                    Press(0x09);
+                    batch.Add(Key(0x09, up: false));
+                    batch.Add(Key(0x09, up: true));
                     break;
                 default:
-                    Send(Unicode(ch, up: false), Unicode(ch, up: true));
+                    batch.Add(Unicode(ch, up: false));
+                    batch.Add(Unicode(ch, up: true));
                     break;
             }
 
-            await Task.Delay(8, cancellationToken).ConfigureAwait(false);
+            if (++count == size)
+            {
+                yield return [.. batch];
+                batch.Clear();
+                count = 0;
+            }
+        }
+
+        if (batch.Count > 0)
+        {
+            yield return [.. batch];
         }
     }
 
@@ -246,19 +284,23 @@ internal sealed class WindowsComputer : IComputer
 
     public async Task SettleAsync(TimeSpan max, CancellationToken cancellationToken)
     {
-        // Затишье — когда переднее окно, его заголовок и фокус дважды подряд не поменялись.
+        // Затишье — когда переднее окно, его заголовок и окно с фокусом дважды подряд не
+        // поменялись. Опрос частый и без UI Automation: прежде на каждое нажатие уходило не
+        // меньше полусекунды, даже когда в окне не менялось ничего.
         var clock = Stopwatch.StartNew();
-        await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+        await Task.Delay(150, cancellationToken).ConfigureAwait(false);
         var last = Signature();
         var calm = 0;
         while (clock.Elapsed < max && calm < 2)
         {
-            await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             var now = Signature();
             calm = now == last ? calm + 1 : 0;
             last = now;
         }
     }
+
+    public string? ClipboardText() => ClipboardNative.HasText() ? StaThread.Run(ClipboardNative.TryGetText) : null;
 
     public IDisposable Hold() => new AwakeRequest();
 
@@ -281,7 +323,7 @@ internal sealed class WindowsComputer : IComputer
         return Text(hwnd).Length > 0 || ClassOf(hwnd) is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
-    private ComputerWindow? Describe(IntPtr hwnd, IReadOnlyList<ComputerMonitor> monitors, IntPtr foreground)
+    private static ComputerWindow? Describe(IntPtr hwnd, IReadOnlyList<ComputerMonitor> monitors, IntPtr foreground)
     {
         if (hwnd == IntPtr.Zero || !IsWindow(hwnd))
         {
@@ -388,19 +430,35 @@ internal sealed class WindowsComputer : IComputer
         }
     }
 
-    private string ProcessName(int pid) =>
-        _processNames.GetOrAdd(pid, static id =>
+    /// <summary>
+    /// Имя программы окна — у самого процесса, на каждый вопрос. Не узнать — «?».
+    /// </summary>
+    /// <remarks>
+    /// Без кэша по номеру процесса: программа живёт днями, а Windows раздаёт номера заново, и
+    /// запомненное имя досталось бы чужому процессу. По имени <see cref="KindOf"/> узнаёт окно
+    /// «Выполнить» и консоли, его же видят модель и SynGuard. Сам вопрос — доли миллисекунды.
+    /// </remarks>
+    internal static string ProcessName(int pid)
+    {
+        var process = OpenProcess(ProcessQueryLimitedInformation, false, (uint)pid);
+        if (process == IntPtr.Zero)
         {
-            try
-            {
-                using var process = Process.GetProcessById(id);
-                return process.ProcessName;
-            }
-            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
-            {
-                return "?";
-            }
-        });
+            return "?";
+        }
+
+        try
+        {
+            var path = new char[1024];
+            var length = path.Length;
+            return QueryFullProcessImageNameW(process, 0, path, ref length)
+                ? Path.GetFileNameWithoutExtension(new string(path, 0, length))
+                : "?";
+        }
+        finally
+        {
+            _ = CloseHandle(process);
+        }
+    }
 
     private static IntPtr Root(IntPtr hwnd) => hwnd == IntPtr.Zero ? IntPtr.Zero : GetAncestor(hwnd, GaRoot);
 
@@ -476,24 +534,34 @@ internal sealed class WindowsComputer : IComputer
         return Root(GetForegroundWindow()) == hwnd;
     }
 
-    private static (IntPtr Window, string Title, string? Focus) Signature()
+    private static (IntPtr Window, string Title, IntPtr Focus) Signature()
     {
         var foreground = Root(GetForegroundWindow());
-        return (foreground, Text(foreground), UiaTree.FocusName());
+        var info = new GuiThreadInfo { Size = Marshal.SizeOf<GuiThreadInfo>() };
+        var focus = GetGUIThreadInfo(0, ref info) ? info.Focus : IntPtr.Zero;
+        return (foreground, Text(foreground), focus);
     }
 
-    private static bool SessionLocked()
+    private static bool SessionLocked() => SessionInfo() is { Flags: WtsSessionStateLock };
+
+    /// <summary>
+    /// Номер и флаги блокировки текущего сеанса из WTSINFOEX_LEVEL1. Номер читается из того же
+    /// буфера ради теста: он сверяет его с сеансом процесса и так ловит неверное смещение, не
+    /// завися от того, заблокирован ли компьютер во время прогона.
+    /// </summary>
+    internal static (int SessionId, int Flags)? SessionInfo()
     {
-        // WTS_CURRENT_SESSION = -1. Флаги сеанса — в WTSINFOEX_LEVEL1: после уровня, номера
-        // сеанса и его состояния, то есть с двенадцатого байта.
+        // WTS_CURRENT_SESSION = -1.
         if (!WTSQuerySessionInformationW(IntPtr.Zero, -1, WtsSessionInfoEx, out var buffer, out var returned))
         {
-            return false;
+            return null;
         }
 
         try
         {
-            return returned >= 16 && Marshal.ReadInt32(buffer, 12) == WtsSessionStateLock;
+            return returned >= WtsInfoExSessionFlags + 4
+                ? (Marshal.ReadInt32(buffer, WtsInfoExSessionId), Marshal.ReadInt32(buffer, WtsInfoExSessionFlags))
+                : null;
         }
         finally
         {
@@ -516,8 +584,6 @@ internal sealed class WindowsComputer : IComputer
         Send(Mouse(up));
         await Task.Delay(InputGap, cancellationToken).ConfigureAwait(false);
     }
-
-    private static void Press(ushort vk) => Send(Key(vk, up: false), Key(vk, up: true));
 
     /// <summary>Абсолютное перемещение по всему виртуальному столу — на любой монитор.</summary>
     internal static Input Absolute(ScreenPoint point)
@@ -581,7 +647,7 @@ internal sealed class WindowsComputer : IComputer
 
     /// <summary>
     /// Держит систему и экран, пока его не отпустят: запрос питания на процесс, а не флаг потока —
-    /// оператор работает на пуле потоков, и флаг слетел бы с потоком, который его поставил.
+    /// агент работает на пуле потоков, и флаг слетел бы с потоком, который его поставил.
     /// </summary>
     private sealed class AwakeRequest : IDisposable
     {

@@ -5,7 +5,7 @@ using Amarin.Tools;
 namespace Amarin.AdminAI.Tests;
 
 /// <summary>
-/// Управление компьютером без человека (1.37.0): слова человека у отложенной задачи под печатью,
+/// Управление компьютером без человека (1.36.0): слова человека у отложенной задачи под печатью,
 /// галочка мыши у задачи расписания под печатью, «только чтение, кроме мыши» и сброс галочки
 /// из чужого архива.
 /// </summary>
@@ -133,8 +133,48 @@ public sealed class ComputerUnattendedTests : IDisposable
         };
         Assert.Equal("the person's words", ChatEngine.HumanWordsOf(session));
 
+        // Прежние реплики человека идут к последней, а текст задачи, написанный моделью, — нет.
         session.Messages.Add(new ChatDisplayMessage { Role = "user", Text = "newer words" });
-        Assert.Equal("newer words", ChatEngine.HumanWordsOf(session));
+        var words = ChatEngine.HumanWordsOf(session);
+        Assert.Contains("User (earlier): earlier words", words, StringComparison.Ordinal);
+        Assert.EndsWith("User (latest): newer words", words, StringComparison.Ordinal);
+        Assert.DoesNotContain("the model's task", words, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_short_answer_carries_the_question_it_answers_and_a_lone_request_stays_plain()
+    {
+        // На «да, отправь» защитнику неоткуда было взять, что и кому: он видел одну реплику и
+        // запрещал отправку, о которой человек сам попросил.
+        var session = new ChatSession();
+        session.Messages.Add(new ChatDisplayMessage { Role = "user", Text = "write to the team that I am late" });
+        Assert.Equal("write to the team that I am late", ChatEngine.HumanWordsOf(session));
+
+        session.Messages.Add(new ChatDisplayMessage { Role = "assistant", Text = "Send the note now?" });
+        session.Messages.Add(new ChatDisplayMessage { Role = "user", Text = "yes, send it" });
+
+        Assert.Equal(
+            "User (earlier): write to the team that I am late\n" +
+            "Assistant (the message the user answered): Send the note now?\n" +
+            "User (latest): yes, send it",
+            ChatEngine.HumanWordsOf(session));
+    }
+
+    [Fact]
+    public void Older_words_are_limited_to_the_last_two()
+    {
+        var session = new ChatSession();
+        foreach (var text in new[] { "one", "two", "three", "four" })
+        {
+            session.Messages.Add(new ChatDisplayMessage { Role = "user", Text = text });
+        }
+
+        var words = ChatEngine.HumanWordsOf(session);
+
+        Assert.DoesNotContain("one", words, StringComparison.Ordinal);
+        Assert.Contains("User (earlier): two", words, StringComparison.Ordinal);
+        Assert.Contains("User (earlier): three", words, StringComparison.Ordinal);
+        Assert.EndsWith("User (latest): four", words, StringComparison.Ordinal);
     }
 
     // ───────────────────────── расписание ─────────────────────────
@@ -211,7 +251,7 @@ public sealed class ComputerUnattendedTests : IDisposable
     [Fact]
     public void The_scheduled_rule_with_the_mouse_states_rules_only()
     {
-        Assert.Contains("use_computer", ScheduleReport.ComputerRule, StringComparison.Ordinal);
+        Assert.Contains("the computer tool", ScheduleReport.ComputerRule, StringComparison.Ordinal);
         Assert.Contains("STATUS: OK", ScheduleReport.ComputerRule, StringComparison.Ordinal);
         Assert.DoesNotMatch("[Ѐ-ӿ]", ScheduleReport.ComputerRule);
     }

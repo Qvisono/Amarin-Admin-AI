@@ -34,6 +34,10 @@ internal static class CodeHighlighter
     private static readonly Dictionary<string, IReadOnlyList<CodeSpan>> Cache = new(StringComparer.Ordinal);
     private static readonly Queue<string> CacheOrder = new();
 
+    // До первой подсветки: правила ColorCode с бесконечным перебором вешали окно посреди ответа
+    // с блоком кода (см. CodeHighlighterFixes).
+    static CodeHighlighter() => CodeHighlighterFixes.Apply();
+
     /// <summary>Знаем ли мы язык из инфостроки ограждения (```powershell и т.п.).</summary>
     public static bool IsSupported(string? info) => Resolve(info) is not null;
 

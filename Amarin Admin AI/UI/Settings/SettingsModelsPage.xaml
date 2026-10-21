@@ -169,6 +169,25 @@
                 </StackPanel>
             </Border>
 
+            <!-- Обход (1.36.0): последняя ступень после отказов лёгкой и тяжёлой модели. -->
+            <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Models.Group.Bypass}"/>
+            <Border Style="{StaticResource SettingsGroup}">
+                <Grid Style="{StaticResource GroupRowDense}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,8,0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Models.Bypass}" TextWrapping="Wrap"/>
+                        <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Models.Bypass.Desc}"/>
+                    </StackPanel>
+                    <local:ReasoningPicker x:Name="BypassReasoningPicker" Grid.Column="1" Height="28" MinWidth="72" ShowGaugeIcon="True"
+                                           Margin="8,0" VerticalAlignment="Center"/>
+                    <local:ModelPickerField x:Name="BypassModelPicker" Grid.Column="2" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
             <!-- Лисёнок Роза: всё, кроме модели, — своей подстраницей. -->
             <Border Style="{StaticResource SettingsGroup}">
                 <Button x:Name="FoxLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"

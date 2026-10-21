@@ -829,7 +829,7 @@ internal static class LegacyAgentPrompts
         - Moving or renaming a shortcut keeps its .lnk extension; find it with filesystem list first.
         """;
 
-    /// <summary>Отгружался после 1.28.0 по 1.36.0: до управления компьютером мышью.</summary>
+    /// <summary>Отгружался после 1.28.0 по 1.35.0: до управления компьютером мышью.</summary>
     internal const string V6 = """
         You are Amarin Admin AI - a powerful system administration tool and universal assistant on the user's machine.
         You are NOT a companion for small talk. Do not chat, joke, philosophize, or sustain open-ended dialogue.

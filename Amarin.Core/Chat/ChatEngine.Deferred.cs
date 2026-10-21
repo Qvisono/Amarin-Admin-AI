@@ -9,7 +9,8 @@ internal sealed partial class ChatEngine
 {
     /// <summary>
     /// Поручение агенту от отложенной задачи — в её чате: сообщение с меткой задачи вместо
-    /// человека, дальше — как команда <c>/agent</c>: агент делает, модель чата пишет отчёт.
+    /// человека, дальше — как команда <c>/agent</c>: агент делает, а модель чата продолжает с
+    /// инструментами (позвать агента снова, проверить) и пишет отчёт.
     /// </summary>
     /// <remarks>
     /// Без плана: план ждёт одобрения человека, а прогон по сроку идёт, когда его может и не быть
@@ -33,7 +34,8 @@ internal sealed partial class ChatEngine
         ArgumentNullException.ThrowIfNull(task);
         var briefing = DeferredChat.Briefing(task, late);
         var user = DeferredChat.Placed(session, task, late, task.Text, briefing, observer, humanWords);
-        await RunAgentCommandAsync(session, task.Text, briefing, complexity: "", observer, cancellationToken, placed: user, planAllowed: false)
+        await RunAgentCommandAsync(session, task.Text, briefing, complexity: "", observer, cancellationToken, placed: user,
+                planAllowed: false, continueWithTools: true)
             .ConfigureAwait(false);
         return DeferredChat.OutcomeAfter(session, user);
     }

@@ -1,9 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using System.Text.Json;
 
 namespace Amarin.Core;
 
 /// <summary>
-/// Кто сейчас держит мышь. Одна на процесс: мышь и клавиатура у машины одни, и два оператора
+/// Кто сейчас держит мышь. Одна на процесс: мышь и клавиатура у машины одни, и два агента
 /// разом нажимали бы друг другу в окна.
 /// </summary>
 /// <remarks>Объектом, а не статикой: тесты берут свой и не мешают соседним.</remarks>
@@ -52,7 +54,7 @@ internal sealed class ComputerLease
 }
 
 /// <summary>
-/// Управление в одном прогоне оператора: когда оно началось, какие id выданы элементам, какой
+/// Управление в одном прогоне агента: когда оно началось, какие id выданы элементам, какой
 /// снимок последний и что показывать на плашке.
 /// </summary>
 /// <remarks>
@@ -62,9 +64,13 @@ internal sealed class ComputerLease
 /// перед началом идёт отсчёт, и отмена на нём закрывает управление до конца прогона.
 /// </para>
 /// <para>
+/// Один на весь прогон агента, а не на попытку: пересадка агента на другую модель не должна
+/// возвращать окно программы и заново показывать отсчёт.
+/// </para>
+/// <para>
 /// Id элементов — сквозные на прогон: новое дерево окна заменяет id этого окна новыми, а не
 /// начинает счёт заново. Иначе «e3» из дерева одного окна совпал бы с «e3» другого, и модель
-/// нажала бы не туда.
+/// нажала бы не туда. Запоминание под замком: чтения раунда агента идут одновременно.
 /// </para>
 /// </remarks>
 internal sealed class ComputerSession : IDisposable
@@ -72,6 +78,7 @@ internal sealed class ComputerSession : IDisposable
     private readonly IComputerStage? _stage;
     private readonly ComputerStart _start;
     private readonly ComputerLease _lease;
+    private readonly Lock _gate = new();
     private readonly Dictionary<string, Remembered> _elements = new(StringComparer.OrdinalIgnoreCase);
     private int _nextId;
     private Frame? _shot;
@@ -100,8 +107,6 @@ internal sealed class ComputerSession : IDisposable
 
     public IComputer Computer { get; }
 
-    public ComputerMode Mode => _start.Mode;
-
     public int OwnProcessId { get; }
 
     /// <summary>Сколько действий уже сделано — номер шага на плашке.</summary>
@@ -109,8 +114,89 @@ internal sealed class ComputerSession : IDisposable
 
     public bool Started { get; private set; }
 
-    /// <summary>Есть ли кому показывать: плашка и подсветка.</summary>
-    public bool CanShow => _stage is not null;
+    /// <summary>
+    /// Есть ли кому показывать: плашка с подсветкой и человек у компьютера. Без человека
+    /// «Показать» ждало бы «Готово» до конца срока на каждом шаге.
+    /// </summary>
+    public bool CanShow => _stage is not null && !_start.Unattended;
+
+    /// <summary>
+    /// Что сейчас на экране и на что нацелены вызовы раунда — для SynGuard.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// По вызову <c>{"action":"key","keys":"enter"}</c> не понять, что уйдёт, а по
+    /// <c>"element":"e12"</c> — на что нажимают. Поэтому защитник получает окно впереди, поле с
+    /// фокусом вместе с его текстом и запомненные элементы, на которые указывают вызовы. Текст
+    /// поля пароля не передаётся никогда.
+    /// </para>
+    /// <para>
+    /// Окна самой программы не описываются: мышь их не трогает, а в начале прогона впереди стоит
+    /// как раз окно чата, и защитник принимал его поле за то, по чему бьёт нажатие. Цели берутся
+    /// из запомненного, без UI Automation: проверка раунда не должна ждать чужое окно.
+    /// </para>
+    /// </remarks>
+    /// <param name="calls">Аргументы вызовов <c>computer</c> раунда.</param>
+    public string? DescribeForGuard(IEnumerable<JsonElement> calls)
+    {
+        var text = new StringBuilder();
+        if (Computer.Foreground() is { } window && window.ProcessId != OwnProcessId)
+        {
+            text.Append("foreground window \"").Append(TextClip.Clip(window.Title, 160, 0))
+                .Append("\" (").Append(window.ProcessName).Append(')');
+            if (Computer.Focused() is { } focus)
+            {
+                text.Append("; keyboard focus: ").Append(focus.Role).Append(" \"").Append(TextClip.Clip(focus.Name, 120, 0)).Append('"');
+                if (!focus.IsPassword && !string.IsNullOrEmpty(focus.Value))
+                {
+                    text.Append(" holding \"").Append(TextClip.Clip(focus.Value, 1000, 0)).Append('"');
+                }
+            }
+        }
+
+        foreach (var id in calls.SelectMany(TargetIds).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!TryElement(id, out var handle, out var element))
+            {
+                continue;
+            }
+
+            text.Append(text.Length == 0 ? "" : "; ")
+                .Append(id).Append(" = ").Append(element.Role).Append(" \"").Append(TextClip.Clip(element.Name, 120, 0)).Append('"');
+            if (Computer.Window(handle) is { } owner)
+            {
+                text.Append(" in window \"").Append(TextClip.Clip(owner.Title, 120, 0)).Append('"');
+            }
+        }
+
+        return text.Length == 0 ? null : text.ToString();
+    }
+
+    /// <summary>Id элементов, на которые указывает вызов, в том числе в шагах цепочки.</summary>
+    private static IEnumerable<string> TargetIds(JsonElement arguments)
+    {
+        if (arguments.ValueKind != JsonValueKind.Object)
+        {
+            yield break;
+        }
+
+        foreach (var field in new[] { "element", "to_element" })
+        {
+            if (arguments.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String &&
+                value.GetString() is { Length: > 0 } id)
+            {
+                yield return id.Trim();
+            }
+        }
+
+        if (arguments.TryGetProperty("steps", out var steps) && steps.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var id in steps.EnumerateArray().SelectMany(TargetIds))
+            {
+                yield return id;
+            }
+        }
+    }
 
     /// <summary>
     /// Берёт мышь, если ещё не взята. Null — можно действовать; иначе отказ для модели.
@@ -179,29 +265,35 @@ internal sealed class ComputerSession : IDisposable
     /// </summary>
     public IReadOnlyList<(string Id, ComputerElement Element)> Remember(long window, IEnumerable<ComputerElement> elements)
     {
-        foreach (var stale in _elements.Where(pair => pair.Value.Window == window).Select(pair => pair.Key).ToList())
+        lock (_gate)
         {
-            _ = _elements.Remove(stale);
-        }
+            foreach (var stale in _elements.Where(pair => pair.Value.Window == window).Select(pair => pair.Key).ToList())
+            {
+                _ = _elements.Remove(stale);
+            }
 
-        var named = new List<(string, ComputerElement)>();
-        foreach (var element in elements)
-        {
-            var id = "e" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            _elements[id] = new Remembered(window, element);
-            named.Add((id, element));
-        }
+            var named = new List<(string, ComputerElement)>();
+            foreach (var element in elements)
+            {
+                var id = "e" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                _elements[id] = new Remembered(window, element);
+                named.Add((id, element));
+            }
 
-        return named;
+            return named;
+        }
     }
 
     public bool TryElement(string? id, out long window, [NotNullWhen(true)] out ComputerElement? element)
     {
-        if (!string.IsNullOrWhiteSpace(id) && _elements.TryGetValue(id.Trim(), out var remembered))
+        lock (_gate)
         {
-            window = remembered.Window;
-            element = remembered.Element;
-            return true;
+            if (!string.IsNullOrWhiteSpace(id) && _elements.TryGetValue(id.Trim(), out var remembered))
+            {
+                window = remembered.Window;
+                element = remembered.Element;
+                return true;
+            }
         }
 
         window = 0;
@@ -209,8 +301,13 @@ internal sealed class ComputerSession : IDisposable
         return false;
     }
 
-    public void RememberShot(ComputerShot shot, ComputerWindow? window) =>
-        _shot = new Frame(shot, window?.Handle, window?.Bounds ?? default);
+    public void RememberShot(ComputerShot shot, ComputerWindow? window)
+    {
+        lock (_gate)
+        {
+            _shot = new Frame(shot, window?.Handle, window?.Bounds ?? default);
+        }
+    }
 
     /// <summary>
     /// Точка последнего снимка — в пиксели экрана. Null — можно нажимать; иначе отказ.
@@ -222,7 +319,13 @@ internal sealed class ComputerSession : IDisposable
     public string? FromShot(double x, double y, out ScreenPoint point)
     {
         point = default;
-        if (_shot is not { } frame)
+        Frame? frame;
+        lock (_gate)
+        {
+            frame = _shot;
+        }
+
+        if (frame is null)
         {
             return Loc.Get("S.Computer.NoShot");
         }

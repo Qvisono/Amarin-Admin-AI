@@ -136,6 +136,30 @@
                     </StackPanel>
                 </Border>
 
+                <!--
+                    ═══════════ УПРАВЛЕНИЕ КОМПЬЮТЕРОМ (1.36.0) ═══════════
+                    Здесь, а не в «Моделях»: это разрешение агенту трогать окна, а снимки экрана
+                    при нём уходят провайдеру модели. Включается без вопроса, с одним уведомлением.
+                -->
+                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.ComputerLabel}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Computer}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.ComputerDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Computer}" x:Name="ComputerControlToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="ComputerControlToggle_Changed" Unchecked="ComputerControlToggle_Changed"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <!-- ═══════════ ПРИВАТНОСТЬ ═══════════ -->
                 <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.DataLabel}"/>
                 <Border Style="{StaticResource SettingsGroup}">

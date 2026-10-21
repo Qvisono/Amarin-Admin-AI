@@ -8,7 +8,9 @@ public sealed class WebSearchTool : ITool
 
     public WebSearchTool(Func<string, CancellationToken, Task<string>> search) => _search = search;
 
-    public string Name => "search_web";
+    public const string ToolName = "search_web";
+
+    public string Name => ToolName;
     public string Description =>
         "Search the web for anything, pictures included. The answer always ends with a list of " +
         "the source URLs, so this is how you find an address to hand to fetch_image when the " +

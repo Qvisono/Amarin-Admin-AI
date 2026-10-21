@@ -24,7 +24,7 @@ public enum ToolEffect
 /// <c>change_rollback snapshot</c> — чтение: он пишет только во внутреннюю папку снимков, и
 /// снимок перед правкой нужен как раз тогда, когда писать нельзя. <c>generate_image</c> тоже
 /// чтение: он стоит денег, но систему не меняет. <c>init_agent</c> — чтение: вызовы самого агента
-/// проходят шлюз сами. <c>use_computer</c> — так же: каждое нажатие оператора проходит шлюз само.
+/// проходят шлюз сами.
 /// </para>
 /// </remarks>
 internal static class ToolEffects
@@ -33,7 +33,11 @@ internal static class ToolEffects
     {
         "read_clipboard", "fetch_image", "analyze_folder", "generate_image", "init_agent", "read_file",
         "read_instruction", "scrape_url", "capture_screenshot", "system_info", "search_web", "wmi_query",
-        "youtube_transcript", "use_computer"
+        "youtube_transcript",
+
+        // Разговор с агентом и его подъём после отказа — то же, что init_agent: агент пишет сам и
+        // проходит шлюз сам.
+        "message_agent", "agent_refused"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Инструменты без действий, которые всегда пишут, — чтобы таблица знала их по имени.</summary>

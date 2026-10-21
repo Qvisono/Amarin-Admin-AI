@@ -23,8 +23,10 @@ public enum ModelSlot
     /// <summary>Лисёнок Роза (1.35.0): реакции, разговор и дневник.</summary>
     Fox,
 
-    /// <summary>Оператор, который управляет компьютером мышью и клавиатурой (1.37.0).</summary>
-    Computer
+    /// <summary>
+    /// Обход (1.36.0): последняя ступень после отказов лёгкой и тяжёлой модели — в чате и у агента.
+    /// </summary>
+    Bypass
 }
 
 /// <summary>
@@ -50,7 +52,7 @@ public static class ModelSlots
         (ModelSlot.SynGuard, s => s.SynGuardModelId, (s, v) => s.SynGuardModelId = v),
         (ModelSlot.Summary, s => s.SummaryModelId, (s, v) => s.SummaryModelId = v),
         (ModelSlot.Fox, s => s.FoxModelId, (s, v) => s.FoxModelId = v),
-        (ModelSlot.Computer, s => s.ComputerModelId, (s, v) => s.ComputerModelId = v)
+        (ModelSlot.Bypass, s => s.BypassModelId, (s, v) => s.BypassModelId = v)
     ];
 
     /// <summary>

@@ -57,7 +57,7 @@ public sealed class ScheduledJob
     public decimal? MaxCostUsd { get; set; }
 
     /// <summary>
-    /// Может ли прогон управлять компьютером мышью (1.37.0). С ней пишет только мышь, остальное
+    /// Может ли прогон управлять компьютером мышью (1.36.0). С ней пишет только мышь, остальное
     /// по-прежнему только читает; действует лишь при верной печати (<see cref="ComputerSeal"/>) и
     /// включённом управлении в «Безопасности».
     /// </summary>
@@ -146,13 +146,13 @@ internal static partial class ScheduleReport
         """;
 
     /// <summary>
-    /// Правило прогона, которому человек разрешил мышь (1.37.0): окна программ — через
-    /// <c>use_computer</c>, всё прочее по-прежнему только читает. Той же строкой статуса.
+    /// Правило прогона, которому человек разрешил мышь (1.36.0): окна программ — через
+    /// <c>computer</c>, всё прочее по-прежнему только читает. Той же строкой статуса.
     /// </summary>
     public const string ComputerRule = """
 
-        This task runs on a schedule with nobody watching. When the task needs program windows, do it with
-        use_computer. Every other tool may only read and inspect, and nothing else on this PC may be changed.
+        This task runs on a schedule with nobody watching. When the task needs program windows, do that work with
+        the computer tool. Every other tool may only read and inspect, and nothing else on this PC may be changed.
         End the report with one last line exactly in this form: STATUS: OK, STATUS: ATTENTION or STATUS: PROBLEM.
         OK means nothing needs the user; ATTENTION means something is worth a look; PROBLEM means something is wrong.
         """;

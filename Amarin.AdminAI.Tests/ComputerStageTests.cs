@@ -66,7 +66,7 @@ public sealed class ComputerStageTests
     });
 
     private static ComputerStart Start(bool unattended = false, Action? stop = null) =>
-        new(ComputerMode.Do, unattended, 100, "save the file", stop, "chat-1");
+        new(unattended, "save the file", stop, "chat-1");
 
     private static DangerousActionInfo Ask(string tool, string explanation = "Press Save") =>
         new(tool, "summary", "details", DangerousRiskLevel.Low, explanation);
@@ -120,7 +120,9 @@ public sealed class ComputerStageTests
         try
         {
             var begin = rig.Stage.BeginAsync(Start(unattended: true), CancellationToken.None);
-            for (var i = 0; i < 40 && Ui(() => rig.Stage.Bar?.Mode) != ComputerBarMode.Countdown; i++)
+
+            // Под нагрузкой полного прогона плашка доходит до отсчёта не за 0,4 с — ждём до двух.
+            for (var i = 0; i < 200 && Ui(() => rig.Stage.Bar?.Mode) != ComputerBarMode.Countdown; i++)
             {
                 await Task.Delay(10);
             }
@@ -129,6 +131,35 @@ public sealed class ComputerStageTests
             Press(rig, primary: false);
 
             Assert.False(await begin);
+            Assert.NotEqual(WindowState.Minimized, Ui(() => rig.Main.WindowState));
+        }
+        finally
+        {
+            Close(rig);
+        }
+    }
+
+    [Fact]
+    public async Task A_run_cancelled_during_the_countdown_takes_the_panel_away()
+    {
+        // Сессия зовёт End только начатому управлению: без своей уборки сцена оставалась «на
+        // отсчёте», и плашка с ним висела на экране после отменённого хода.
+        var rig = Open();
+        using var cancel = new CancellationTokenSource();
+        try
+        {
+            var begin = rig.Stage.BeginAsync(Start(unattended: true), cancel.Token);
+            for (var i = 0; i < 200 && Ui(() => rig.Stage.Bar?.Mode) != ComputerBarMode.Countdown; i++)
+            {
+                await Task.Delay(10);
+            }
+
+            Assert.True(Ui(() => rig.Stage.Counting));
+            await cancel.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => begin);
+            Assert.False(Ui(() => rig.Stage.Counting));
+            Assert.False(Ui(() => rig.Stage.Active));
             Assert.NotEqual(WindowState.Minimized, Ui(() => rig.Main.WindowState));
         }
         finally
@@ -300,7 +331,7 @@ public sealed class ComputerStageTests
             var bar = new ComputerBar();
             bar.PlaceOn(new ScreenRect(-32000, 0, 1600, 900));
             bar.Show();
-            _ = ComputerBar.GetWindowDisplayAffinity(new System.Windows.Interop.WindowInteropHelper(bar).Handle, out var value);
+            _ = Amarin.Computer.ComputerNative.GetWindowDisplayAffinity(new System.Windows.Interop.WindowInteropHelper(bar).Handle, out var value);
             bar.Close();
             return value;
         });
