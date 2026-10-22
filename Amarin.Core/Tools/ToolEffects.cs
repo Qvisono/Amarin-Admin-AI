@@ -35,6 +35,9 @@ internal static class ToolEffects
         "read_instruction", "scrape_url", "capture_screenshot", "system_info", "search_web", "wmi_query",
         "youtube_transcript",
 
+        // Запись нагрузки и замер связи только смотрят, сколько бы ни длились.
+        "perf_record", "network_quality",
+
         // Разговор с агентом и его подъём после отказа — то же, что init_agent: агент пишет сам и
         // проходит шлюз сам.
         "message_agent", "agent_refused"
@@ -82,7 +85,17 @@ internal static class ToolEffects
             ["system_repair"] = ["status_sfc", "status_dism"],
             ["virtualization"] = ["list_hyperv_vms", "hyperv_vm_status", "list_docker_containers", "docker_status"],
             ["windows_features"] = ["list", "get"],
-            ["windows_update"] = ["status", "history", "pending", "reboot_required"]
+            ["windows_update"] = ["status", "history", "pending", "reboot_required"],
+            ["audio"] = ["devices", "sessions"],
+            ["power"] = ["schemes", "requests", "wake", "battery"],
+            ["file_locks"] = ["find"],
+            // Пробное открытие в explain ничего не меняет: объект открывается и сразу закрывается.
+            ["permissions"] = ["show", "explain"],
+            ["environment"] = ["list", "get", "path_check"],
+            ["store_apps"] = ["list"],
+            ["print_queue"] = ["list", "jobs"],
+            ["shares"] = ["status", "shares", "drives", "check_host"],
+            ["bluetooth"] = ["status", "devices"]
         }.ToFrozenDictionary(
             pair => pair.Key,
             pair => pair.Value.ToFrozenSet(StringComparer.OrdinalIgnoreCase),

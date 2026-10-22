@@ -112,6 +112,10 @@ internal static partial class DangerousActionGuard
             // режиме шлюз про мышь не задаёт (ToolGate.RequiresConfirmation): согласие — просьба
             // человека, а держат «небезопасно» SynGuard и ComputerSafety.
             "computer" => !ComputerTool.ReadActions.Contains(ActionOf(arguments)),
+            // Инструменты 1.37.0: спрашивается всё, что не чтение по таблице ToolEffects, — и новое
+            // действие, про которое там забыли, тоже.
+            "audio" or "power" or "file_locks" or "permissions" or "environment" or "store_apps" or "print_queue"
+                or "shares" or "bluetooth" => ToolEffects.Classify(toolName, arguments) == ToolEffect.Write,
             _ => false
         };
     }
@@ -138,6 +142,9 @@ internal static partial class DangerousActionGuard
             "dns_config" => IsDnsMutation(arguments),
             "devices" => ActionOf(arguments) is "enable" or "disable",
             "remote_access" => IsRdpToggle(arguments),
+            // Права и переменные среды возвращает откат: SDDL объекта и раздел окружения в снимке.
+            "permissions" => PermissionTargets.IsWrite(ActionOf(arguments)),
+            "environment" => IsEnvironmentWrite(arguments),
             // chkdsk_fix / software_inventory / disk_space cleanup / установка обновлений / откат
             // драйвера / проверка Защитника / буфер обмена: только вопрос — вернуть снимком нечего.
             _ => false
@@ -178,7 +185,8 @@ internal static partial class DangerousActionGuard
                      "path", "service_name", "command", "process_name", "pid", "task_name",
                      "url", "destination", "query", "drive_letter", "package_id", "name",
                      "feature_name", "user", "group", "adapter", "wifi_profile", "instance_id",
-                     "hostname", "address", "start_type", "location", "window", "element", "keys", "text"
+                     "hostname", "address", "start_type", "location", "window", "element", "keys", "text",
+                     "device", "app", "scheme", "principal", "rights", "scope", "printer", "letter", "remote_path"
                  })
         {
             if (arguments.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String)
@@ -288,7 +296,7 @@ internal static partial class DangerousActionGuard
             sb.AppendLine(L("S.Guard.UsersProtection"));
         }
 
-        foreach (var note in ActionNotes(toolName, action))
+        foreach (var note in ActionNotes(toolName, action, arguments))
         {
             sb.AppendLine(note);
         }
@@ -305,10 +313,54 @@ internal static partial class DangerousActionGuard
     }
 
     /// <summary>Что человеку важно знать про новые действия, кроме сводки: перезагрузка, отката нет.</summary>
-    private static IEnumerable<string> ActionNotes(string toolName, string action)
+    private static IEnumerable<string> ActionNotes(string toolName, string action, JsonElement arguments)
     {
         switch (toolName.ToLowerInvariant(), action)
         {
+            case ("permissions", _) when PermissionTargets.IsWrite(action):
+                yield return L("S.Guard.Note.AclSnapshot");
+                break;
+            case ("environment", _) when IsEnvironmentWrite(arguments):
+                yield return L("S.Guard.Note.EnvSnapshot");
+                break;
+            case ("file_locks", "close"):
+                yield return L(Flag(arguments, "force") ? "S.Guard.Note.LockForce" : "S.Guard.Note.LockClose");
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
+            case ("audio", "restart_services"):
+                yield return L("S.Guard.Note.AudioRestart");
+                break;
+            case ("store_apps", "remove"):
+                yield return L("S.Guard.Note.StoreRemove");
+                break;
+            case ("store_apps", "reset"):
+                yield return L("S.Guard.Note.StoreReset");
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
+            case ("print_queue", "clear_queue"):
+                yield return L("S.Guard.Note.PrintClear");
+                break;
+            case ("print_queue", "restart_spooler"):
+                yield return L("S.Guard.Note.PrintRestart");
+                if (Flag(arguments, "purge"))
+                {
+                    yield return L("S.Guard.Note.PrintClear");
+                }
+
+                break;
+            case ("shares", "enable_file_sharing"):
+                yield return L("S.Guard.Note.SharesFiles");
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
+            case ("bluetooth", "radio_off"):
+                yield return L("S.Guard.Note.BluetoothOff");
+                break;
+            case ("bluetooth", "forget"):
+                yield return L("S.Guard.Note.BluetoothForget");
+                break;
+            case ("audio" or "power" or "shares" or "print_queue", _) when ToolEffects.Classify(toolName, arguments) == ToolEffect.Write:
+                yield return L("S.Guard.NoSnapshotUndo");
+                break;
             case ("network", "reset_winsock" or "reset_ip"):
                 yield return L("S.Guard.Note.RebootNeeded");
                 yield return L("S.Guard.NoSnapshotUndo");
@@ -634,6 +686,65 @@ internal static partial class DangerousActionGuard
                 "disable" => L("S.Guard.Sum.FeatureOff") + FormatField(arguments, "feature_name", prefix: ": "),
                 _ => $"Windows features ({action})"
             },
+            "audio" => action switch
+            {
+                "set_default" => L("S.Guard.Sum.AudioDefault") + FormatField(arguments, "device", prefix: ": "),
+                "set_volume" => L("S.Guard.Sum.AudioVolume", FileToolPaths.Int(arguments, "volume")?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "?") +
+                                AudioTarget(arguments),
+                "set_mute" => L(Flag(arguments, "mute") ? "S.Guard.Sum.AudioMute" : "S.Guard.Sum.AudioUnmute") + AudioTarget(arguments),
+                "restart_services" => L("S.Guard.Sum.AudioRestart"),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "power" => L("S.Guard.Sum.PowerScheme") + FormatField(arguments, "scheme", prefix: ": "),
+            "file_locks" => L(Flag(arguments, "force") ? "S.Guard.Sum.LockForce" : "S.Guard.Sum.LockClose") +
+                            (FileToolPaths.Int(arguments, "pid") is { } pid ? $" PID {pid}" : "") +
+                            FormatField(arguments, "path", prefix: ": "),
+            "permissions" => action switch
+            {
+                "set_owner" => L("S.Guard.Sum.AclOwner", Principal(arguments, "current_user")),
+                "grant" => L("S.Guard.Sum.AclGrant", Principal(arguments, "?"), FileToolPaths.String(arguments, "rights")?.Trim() ?? "?"),
+                "revoke" => L("S.Guard.Sum.AclRevoke", Principal(arguments, "?")),
+                "reset" => L("S.Guard.Sum.AclReset"),
+                _ => L("S.Guard.Sum.Other", toolName)
+            } + FormatField(arguments, "path", prefix: ": ") + (Flag(arguments, "recursive") ? " " + L("S.Guard.Sum.Recursive") : ""),
+            "environment" => action switch
+            {
+                "set" => L("S.Guard.Sum.EnvSet") + FormatField(arguments, "name", prefix: ": "),
+                "delete" => L("S.Guard.Sum.EnvDelete") + FormatField(arguments, "name", prefix: ": "),
+                "path_add" => L("S.Guard.Sum.EnvPathAdd") + FormatField(arguments, "path", prefix: ": "),
+                "path_remove" => L("S.Guard.Sum.EnvPathRemove") + FormatField(arguments, "path", prefix: ": "),
+                "path_clean" => L("S.Guard.Sum.EnvPathClean"),
+                _ => L("S.Guard.Sum.Other", toolName)
+            } + (IsMachineScope(arguments) ? " " + L("S.Guard.Sum.EnvMachine") : ""),
+            "store_apps" => (action == "reset" ? L("S.Guard.Sum.StoreReset") : L("S.Guard.Sum.StoreRemove")) +
+                            FormatField(arguments, "name", prefix: ": ") +
+                            (action == "remove" && Flag(arguments, "for_new_users") ? " " + L("S.Guard.Sum.StoreForNewUsers") : ""),
+            "print_queue" => action switch
+            {
+                "cancel_job" => L("S.Guard.Sum.PrintCancel", FileToolPaths.Int(arguments, "job_id")?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "?") +
+                                FormatField(arguments, "printer", prefix: ": "),
+                "clear_queue" => L("S.Guard.Sum.PrintClear") + FormatField(arguments, "printer", prefix: ": "),
+                "restart_spooler" => L(Flag(arguments, "purge") ? "S.Guard.Sum.PrintPurge" : "S.Guard.Sum.PrintRestart"),
+                "set_default" => L("S.Guard.Sum.PrintDefault") + FormatField(arguments, "printer", prefix: ": "),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "shares" => action switch
+            {
+                "set_private" => L("S.Guard.Sum.SharesPrivate") + FormatField(arguments, "adapter", prefix: ": "),
+                "enable_discovery" => L("S.Guard.Sum.SharesDiscovery"),
+                "enable_file_sharing" => L("S.Guard.Sum.SharesFiles"),
+                "map_drive" => L("S.Guard.Sum.SharesMap") + FormatField(arguments, "letter", prefix: " ", suffix: ":") +
+                               FormatField(arguments, "remote_path", prefix: " ← "),
+                "unmap_drive" => L("S.Guard.Sum.SharesUnmap") + FormatField(arguments, "letter", prefix: " ", suffix: ":"),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
+            "bluetooth" => action switch
+            {
+                "radio_on" => L("S.Guard.Sum.BluetoothOn"),
+                "radio_off" => L("S.Guard.Sum.BluetoothOff"),
+                "forget" => L("S.Guard.Sum.BluetoothForget") + FormatField(arguments, "device", prefix: ": "),
+                _ => L("S.Guard.Sum.Other", toolName)
+            },
             "local_users" => action switch
             {
                 "enable_user" => L("S.Guard.Sum.UserOn") + FormatField(arguments, "user", prefix: ": "),
@@ -690,9 +801,39 @@ internal static partial class DangerousActionGuard
             // Открыть RDP — открыть машину для входа по сети; закрыть — оборвать чужие сеансы.
             "remote_access" => DangerousRiskLevel.High,
             "write_clipboard" => DangerousRiskLevel.Low,
+            "audio" when action == "restart_services" => DangerousRiskLevel.Medium,
+            "file_locks" => Flag(arguments, "force") ? DangerousRiskLevel.High : DangerousRiskLevel.Medium,
+            // Права решают, кто что прочтёт и поменяет: любая их правка — высокий риск.
+            "permissions" => DangerousRiskLevel.High,
+            "environment" => IsMachineScope(arguments) ? DangerousRiskLevel.High : DangerousRiskLevel.Medium,
+            "store_apps" when action == "reset" || Flag(arguments, "for_new_users") => DangerousRiskLevel.High,
+            "store_apps" => DangerousRiskLevel.Medium,
+            "print_queue" when action == "restart_spooler" && Flag(arguments, "purge") => DangerousRiskLevel.High,
+            "print_queue" when action is "cancel_job" or "clear_queue" or "restart_spooler" => DangerousRiskLevel.Medium,
+            "shares" when action == "enable_file_sharing" => DangerousRiskLevel.High,
+            "shares" when action is "set_private" or "enable_discovery" => DangerousRiskLevel.Medium,
+            "bluetooth" when action is "radio_off" or "forget" => DangerousRiskLevel.Medium,
             _ => DangerousRiskLevel.Low
         };
     }
+
+    private static bool IsEnvironmentWrite(JsonElement arguments) =>
+        ActionOf(arguments) is "set" or "delete" or "path_add" or "path_remove" or "path_clean";
+
+    private static bool IsMachineScope(JsonElement arguments) =>
+        FileToolPaths.String(arguments, "scope")?.Trim().Equals("machine", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static bool Flag(JsonElement arguments, string name) => FileToolPaths.Flag(arguments, name);
+
+    /// <summary>Чья громкость меняется: программы или устройства (по умолчанию — вывод по умолчанию).</summary>
+    private static string AudioTarget(JsonElement arguments) =>
+        FileToolPaths.String(arguments, "app") is { Length: > 0 }
+            ? FormatField(arguments, "app", prefix: ": ")
+            : FormatField(arguments, "device", prefix: ": ");
+
+    /// <summary>Учётная запись из вызова, а без неё — то, что инструмент возьмёт по умолчанию.</summary>
+    private static string Principal(JsonElement arguments, string fallback) =>
+        FileToolPaths.String(arguments, "principal")?.Trim() is { Length: > 0 } principal ? Truncate(principal, 80) : fallback;
 
     private static DangerousRiskLevel ClassifyPowerShellRisk(JsonElement arguments)
     {

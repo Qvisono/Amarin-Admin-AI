@@ -327,7 +327,7 @@ internal static class RegistryStateIo
             _ => (Convert.FromBase64String(value.Bytes ?? ""), RegistryValueKind.Binary)
         };
 
-    private static RegistryKey? OpenRoot(string root) => root switch
+    internal static RegistryKey? OpenRoot(string root) => root switch
     {
         "HKLM" => RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Default),
         "HKCU" => RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default),

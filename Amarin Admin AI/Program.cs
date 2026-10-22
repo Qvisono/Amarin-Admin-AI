@@ -302,7 +302,18 @@ internal static class Program
             new SoftwareInventoryTool(),
             new FirewallRulesTool(),
             new WindowsFeaturesTool(),
-            new LocalUsersTool()
+            new LocalUsersTool(),
+            new AudioTool(),
+            new PowerTool(),
+            new FileLocksTool(),
+            new PermissionsTool(),
+            new EnvironmentTool(),
+            new StoreAppsTool(),
+            new PrintQueueTool(),
+            new SharesTool(),
+            new BluetoothTool(),
+            new PerfRecordTool(),
+            new NetworkQualityTool()
         ]);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));

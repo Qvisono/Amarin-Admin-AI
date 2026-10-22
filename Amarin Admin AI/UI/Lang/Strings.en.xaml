@@ -2564,5 +2564,113 @@
     <system:String x:Key="S.FoxSettings.ForgetText" xml:space="preserve">His notes about you and your talks with him will be erased. Your friendship and his diary stay.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">No entries yet: the diary is written the next day.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Annoyed: {0} of 10 · pleased: {1} of 10</system:String>
+    <system:String x:Key="S.Tool.environment" xml:space="preserve">Environment variables</system:String>
+    <system:String x:Key="S.Tool.Env.WholePath" xml:space="preserve">PATH is never set or deleted as a whole: one wrong value would wipe every path at once. Change PATH with path_add, path_remove and path_clean.</system:String>
+    <system:String x:Key="S.Tool.Env.Protected" xml:space="preserve">REFUSED: Windows sets the variable {0} itself. A value in the registry would override the real one and break the programs that rely on it. Do not retry.</system:String>
+    <system:String x:Key="S.Tool.Env.WindowsEntry" xml:space="preserve">REFUSED: the PATH entry {0} points into the Windows folder, and without it the system stops finding its own programs. Do not retry.</system:String>
+    <system:String x:Key="S.Tool.Env.NotFound" xml:space="preserve">There is no variable {0} ({1}). See the list with list.</system:String>
+    <system:String x:Key="S.Tool.Env.EntryNotFound" xml:space="preserve">PATH ({1}) has no entry {0}. Take the entry as path_check shows it.</system:String>
+    <system:String x:Key="S.Tool.Env.TooLong" xml:space="preserve">After the change PATH would be longer than {0} chars, the limit of one Windows variable, and new programs would get it cut. Remove what is not needed first (path_check, path_clean).</system:String>
+    <system:String x:Key="S.Tool.Env.Applied" xml:space="preserve">Programs started from now on see the new value. Windows that are already open, command prompts included, keep the old one until restarted.</system:String>
+    <system:String x:Key="S.Tool.permissions" xml:space="preserve">Permissions</system:String>
+    <system:String x:Key="S.Tool.Acl.ProtectedKey" xml:space="preserve">REFUSED: the permissions of {0} are never changed: it is a registry hive root, its first level or a key Windows cannot start without (SAM, SECURITY, BCD, the SYSTEM control sets). Do not retry. If the task is about a deeper key, change that one.</system:String>
+    <system:String x:Key="S.Tool.Acl.ProtectedFolder" xml:space="preserve">REFUSED: the owner and permissions of {0} are never changed: it is the Windows folder, a drive root, a system folder at a drive root or the root of Program Files, ProgramData or a profile. Changing them here breaks startup, updates and sign-in. Do not retry. If a subfolder needs access, change that one.</system:String>
+    <system:String x:Key="S.Tool.Acl.Network" xml:space="preserve">Permissions on the network path {0} are changed on the server that holds it: this tool changes local disks only.</system:String>
+    <system:String x:Key="S.Tool.Acl.UnknownPrincipal" xml:space="preserve">Account {0} was not found. Take the name from show or use an alias: current_user, administrators, users, authenticated_users, everyone, system, trusted_installer.</system:String>
+    <system:String x:Key="S.Tool.Acl.Unreadable" xml:space="preserve">This account cannot read the permissions of {0}, so no rollback snapshot can be taken, and the owner and permissions were not changed. Do not retry the same call. If the program does not run as administrator, tell the user; if it does, there would be nothing to bring the previous permissions back with, and the decision is the user's.</system:String>
+    <system:String x:Key="S.Tool.Acl.TooMany" xml:space="preserve">There are more than {0} objects inside: a recursive change this large is not done. Narrow the path to the subfolder that needs access.</system:String>
+    <system:String x:Key="S.Tool.Acl.Changed" xml:space="preserve">The previous owner and permissions are saved in the snapshot: if something stops opening, a rollback in the journal brings them back.</system:String>
+    <system:String x:Key="S.Rollback.Undo.Acl" xml:space="preserve">Restore the owner and permissions: {0} (objects: {1})</system:String>
+    <system:String x:Key="S.Rollback.Undo.AclPartial" xml:space="preserve">restored {0} of {1}; {2}</system:String>
+    <system:String x:Key="S.Tool.file_locks" xml:space="preserve">Files in use</system:String>
+    <system:String x:Key="S.Tool.Locks.RmFailed" xml:space="preserve">Restart Manager did not answer (code {0}). Do not retry with the same path: the holder can be looked for by name with windows_process.</system:String>
+    <system:String x:Key="S.Tool.Locks.Hint" xml:space="preserve">A holder can be closed with close and its PID if the user is ready to close that program. It is asked to close and may save its work; with force it is ended, and unsaved work is lost.</system:String>
+    <system:String x:Key="S.Tool.Locks.NotHolder" xml:space="preserve">Process {0} does not hold {1} now. Take the PID from a fresh find.</system:String>
+    <system:String x:Key="S.Tool.Locks.Protected" xml:space="preserve">REFUSED: {0} is part of Windows or its protection and is never closed. Do not retry. Tell the user the file is released after a restart.</system:String>
+    <system:String x:Key="S.Tool.Locks.Refused" xml:space="preserve">{0} (PID {1}) did not close: the program did not answer or is waiting for an answer in its window. Ask the user to close it, or retry with force only if they accept losing unsaved work.</system:String>
+    <system:String x:Key="S.Tool.Locks.StillHeld" xml:space="preserve">{0} is still held by another process. Check again with find.</system:String>
+    <system:String x:Key="S.Tool.audio" xml:space="preserve">Sound</system:String>
+    <system:String x:Key="S.Tool.power" xml:space="preserve">Power and sleep</system:String>
+    <system:String x:Key="S.Tool.store_apps" xml:space="preserve">Microsoft Store apps</system:String>
+    <system:String x:Key="S.Tool.print_queue" xml:space="preserve">Print queue</system:String>
+    <system:String x:Key="S.Tool.shares" xml:space="preserve">Shared folders and network drives</system:String>
+    <system:String x:Key="S.Tool.bluetooth" xml:space="preserve">Bluetooth</system:String>
+    <system:String x:Key="S.Tool.perf_record" xml:space="preserve">Load recording</system:String>
+    <system:String x:Key="S.Tool.network_quality" xml:space="preserve">Connection quality</system:String>
+    <system:String x:Key="S.AgentRun.Spin.PerfRecord" xml:space="preserve">Recording the load: {0} min…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.NetworkQuality" xml:space="preserve">Measuring the connection: {0} s…</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioDefault" xml:space="preserve">Default sound device</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioVolume" xml:space="preserve">Volume {0}%</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioMute" xml:space="preserve">Mute</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioUnmute" xml:space="preserve">Unmute</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioRestart" xml:space="preserve">Restart the Windows audio services</system:String>
+    <system:String x:Key="S.Guard.Sum.PowerScheme" xml:space="preserve">Switch the power plan</system:String>
+    <system:String x:Key="S.Guard.Sum.LockClose" xml:space="preserve">Close the program that holds the file</system:String>
+    <system:String x:Key="S.Guard.Sum.LockForce" xml:space="preserve">Force the program that holds the file to close</system:String>
+    <system:String x:Key="S.Guard.Sum.AclOwner" xml:space="preserve">Make {0} the owner</system:String>
+    <system:String x:Key="S.Guard.Sum.AclGrant" xml:space="preserve">Grant {0} the {1} right</system:String>
+    <system:String x:Key="S.Guard.Sum.AclRevoke" xml:space="preserve">Remove the explicit rights of {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.AclReset" xml:space="preserve">Reset the permissions to inherited ones</system:String>
+    <system:String x:Key="S.Guard.Sum.Recursive" xml:space="preserve">(with everything inside)</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvSet" xml:space="preserve">Set an environment variable</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvDelete" xml:space="preserve">Delete an environment variable</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathAdd" xml:space="preserve">Add a folder to PATH</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathRemove" xml:space="preserve">Remove an entry from PATH</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathClean" xml:space="preserve">Remove empty, duplicate and missing entries from PATH</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvMachine" xml:space="preserve">(for every user)</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreRemove" xml:space="preserve">Remove a Store app</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreReset" xml:space="preserve">Reset a Store app</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreForNewUsers" xml:space="preserve">(and for new accounts)</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintCancel" xml:space="preserve">Cancel print job {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintClear" xml:space="preserve">Clear the print queue</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintRestart" xml:space="preserve">Restart the Print Spooler</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintPurge" xml:space="preserve">Restart the Print Spooler and delete every queued job</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintDefault" xml:space="preserve">Default printer</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesPrivate" xml:space="preserve">Make the network private</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesDiscovery" xml:space="preserve">Turn on Network Discovery in private networks</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesFiles" xml:space="preserve">Turn on File and Printer Sharing in private networks</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesMap" xml:space="preserve">Map a network drive</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesUnmap" xml:space="preserve">Disconnect a network drive</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothOn" xml:space="preserve">Turn Bluetooth on</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothOff" xml:space="preserve">Turn Bluetooth off</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothForget" xml:space="preserve">Forget a Bluetooth device</system:String>
+    <system:String x:Key="S.Guard.Note.AclSnapshot" xml:space="preserve">The previous owner and permissions are saved in the snapshot, and a rollback in the journal brings them back.</system:String>
+    <system:String x:Key="S.Guard.Note.EnvSnapshot" xml:space="preserve">The previous values are saved in the snapshot. Programs started after the change see the new one.</system:String>
+    <system:String x:Key="S.Guard.Note.LockClose" xml:space="preserve">The program is asked to close and may save its work. If it waits for an answer in its window, it stays open.</system:String>
+    <system:String x:Key="S.Guard.Note.LockForce" xml:space="preserve">The program is ended even if it does not answer, and its unsaved work is lost.</system:String>
+    <system:String x:Key="S.Guard.Note.AudioRestart" xml:space="preserve">Sound stops for a few seconds in every program.</system:String>
+    <system:String x:Key="S.Guard.Note.StoreRemove" xml:space="preserve">The app comes back only by installing it from the Microsoft Store.</system:String>
+    <system:String x:Key="S.Guard.Note.StoreReset" xml:space="preserve">The reset deletes all of the app's data and settings.</system:String>
+    <system:String x:Key="S.Guard.Note.PrintClear" xml:space="preserve">Queued documents are deleted and have to be printed again.</system:String>
+    <system:String x:Key="S.Guard.Note.PrintRestart" xml:space="preserve">Printing in progress is interrupted.</system:String>
+    <system:String x:Key="S.Guard.Note.SharesFiles" xml:space="preserve">This computer's shared folders become reachable on the private network.</system:String>
+    <system:String x:Key="S.Guard.Note.BluetoothOff" xml:space="preserve">Every Bluetooth device disconnects, keyboards, mice and headphones included.</system:String>
+    <system:String x:Key="S.Guard.Note.BluetoothForget" xml:space="preserve">The device has to be paired again.</system:String>
+    <system:String x:Key="S.Tool.Power.UnknownScheme" xml:space="preserve">There is no single power plan {0}. Take the GUID from schemes.</system:String>
+    <system:String x:Key="S.Tool.Audio.Failed" xml:space="preserve">Windows did not carry out the sound action ({0}). Check the devices with devices; if sound is gone entirely, restart_services helps.</system:String>
+    <system:String x:Key="S.Tool.Audio.ServiceStopped" xml:space="preserve">The Windows Audio service is not running, so no devices are visible. restart_services starts it.</system:String>
+    <system:String x:Key="S.Tool.Audio.NotActive" xml:space="preserve">{0} is {1}. Only an enabled, connected device can be the default.</system:String>
+    <system:String x:Key="S.Tool.Audio.NoApp" xml:space="preserve">{0} has no sound session now. See sessions.</system:String>
+    <system:String x:Key="S.Tool.Audio.NoDevice" xml:space="preserve">Device {0} was not found. Take the id or the name from devices.</system:String>
+    <system:String x:Key="S.Tool.Audio.Ambiguous" xml:space="preserve">Several devices match {0}: {1}. Give the id.</system:String>
+    <system:String x:Key="S.Tool.Store.NotFound" xml:space="preserve">The current user has no app {0}. Take the Name or PackageFullName from list.</system:String>
+    <system:String x:Key="S.Tool.Store.Protected" xml:space="preserve">REFUSED: {0} is not removed: it is a framework, non-removable or system package, or the Store and its installer, without which other apps cannot be brought back. Do not retry.</system:String>
+    <system:String x:Key="S.Tool.Store.NoReset" xml:space="preserve">This version of Windows has no app reset from PowerShell. The user can reset the app in Windows Settings, in its advanced options.</system:String>
+    <system:String x:Key="S.Tool.Store.Removed" xml:space="preserve">The app comes back only by installing it from the Microsoft Store.</system:String>
+    <system:String x:Key="S.Tool.Print.NotFound" xml:space="preserve">There is no printer {0}. Take the name from list.</system:String>
+    <system:String x:Key="S.Tool.Print.SpoolOutside" xml:space="preserve">The print queue folder in the registry points outside the Windows folder, so it is not cleaned. Restart the Print Spooler without purge.</system:String>
+    <system:String x:Key="S.Tool.Shares.LetterTaken" xml:space="preserve">Letter {0}: is already in use. Take a free letter.</system:String>
+    <system:String x:Key="S.Tool.Shares.Credentials" xml:space="preserve">The server asks for credentials Windows does not have. This app never enters passwords: the user maps the drive themselves or saves the server's sign-in in Windows Credential Manager, then retry.</system:String>
+    <system:String x:Key="S.Tool.Shares.PublicRules" xml:space="preserve">The rules for private networks only are on and the services run, but {0} Windows rules are set up for private and public networks at once: they stay off, otherwise the PC would be open to everyone on a public network. Do not retry. Tell the user these rules can be turned on for the private network only by hand: Windows Defender Firewall, Advanced settings, the rule's Advanced tab, with Public unchecked.</system:String>
+    <system:String x:Key="S.Tool.Shares.Public" xml:space="preserve">Every connection ({0}) is public: discovery and sharing are not turned on there, it would open the PC to everyone around. If the user trusts their network, make it private first (set_private).</system:String>
+    <system:String x:Key="S.Tool.Shares.Domain" xml:space="preserve">This is a domain network: the domain sets its type, and it cannot be changed.</system:String>
+    <system:String x:Key="S.Tool.Shares.NotMapped" xml:space="preserve">There is no such network drive. See the list with drives.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.Timeout" xml:space="preserve">Windows did not answer the Bluetooth request within 15 seconds. Check the service with status and retry later.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.NoRadio" xml:space="preserve">No Bluetooth radio was found (app access to radios: {0}). There is no adapter, it is disabled in Device Manager, or privacy settings forbid apps to control radios.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.NotFound" xml:space="preserve">There is no paired device with this address or id. Take the Address or Id from devices.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.Denied" xml:space="preserve">Windows did not let the radio switch ({0}): privacy settings forbid apps to control radios. The user can switch Bluetooth in Windows Settings.</system:String>
+    <system:String x:Key="S.Tool.NetQuality.NoNetwork" xml:space="preserve">There is no connection with a route to the internet, so there is nothing to measure. See the adapters with network adapters.</system:String>
+    <system:String x:Key="S.Tool.NetQuality.Location" xml:space="preserve">Windows gives apps the list of nearby Wi-Fi networks only with location access: Windows Settings, Privacy and security, Location, allow desktop apps. The other measurements do not depend on it.</system:String>
+    <system:String x:Key="S.Tool.Power.TimersNeedAdmin" xml:space="preserve">Windows shows wake timers only to an administrator: to see them, the program has to run as administrator.</system:String>
 
 </ResourceDictionary>

@@ -2564,5 +2564,113 @@
     <system:String x:Key="S.FoxSettings.ForgetText" xml:space="preserve">Заметки о вас и ваши разговоры с ним сотрутся. Дружба и дневник останутся.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryEmpty" xml:space="preserve">Пока ни одной записи: дневник пишется на следующий день.</system:String>
     <system:String x:Key="S.FoxSettings.DiaryScores" xml:space="preserve">Бесили: {0} из 10 · радовали: {1} из 10</system:String>
+    <system:String x:Key="S.Tool.environment" xml:space="preserve">Переменные среды</system:String>
+    <system:String x:Key="S.Tool.Env.WholePath" xml:space="preserve">PATH целиком не задаётся и не удаляется: одно неверное значение стёрло бы все пути разом. Меняй PATH действиями path_add, path_remove и path_clean.</system:String>
+    <system:String x:Key="S.Tool.Env.Protected" xml:space="preserve">ЗАПРЕЩЕНО: переменную {0} задаёт сама Windows. Её значение в реестре перекрыло бы настоящее и сломало бы программы, которые на неё опираются. Не повторяй попытку.</system:String>
+    <system:String x:Key="S.Tool.Env.WindowsEntry" xml:space="preserve">ЗАПРЕЩЕНО: запись PATH «{0}» ведёт в папку Windows, без неё система перестанет находить свои программы. Не повторяй попытку.</system:String>
+    <system:String x:Key="S.Tool.Env.NotFound" xml:space="preserve">Переменной {0} нет ({1}). Посмотри список действием list.</system:String>
+    <system:String x:Key="S.Tool.Env.EntryNotFound" xml:space="preserve">В PATH ({1}) нет записи «{0}». Возьми запись в том виде, как её показывает path_check.</system:String>
+    <system:String x:Key="S.Tool.Env.TooLong" xml:space="preserve">После правки PATH стал бы длиннее {0} знаков, предела одной переменной Windows, и новые программы получили бы его обрезанным. Сначала убери лишнее (path_check, path_clean).</system:String>
+    <system:String x:Key="S.Tool.Env.Applied" xml:space="preserve">Новое значение увидят программы, запущенные после изменения. Уже открытые окна, в том числе командной строки, живут со старым до перезапуска.</system:String>
+    <system:String x:Key="S.Tool.permissions" xml:space="preserve">Права доступа</system:String>
+    <system:String x:Key="S.Tool.Acl.ProtectedKey" xml:space="preserve">ЗАПРЕЩЕНО: у раздела {0} права не меняются: это корень куста реестра, его первый уровень или раздел, без которого Windows не запустится (SAM, SECURITY, BCD, наборы управления SYSTEM). Не повторяй попытку. Если задача в более глубоком разделе, меняй права у него.</system:String>
+    <system:String x:Key="S.Tool.Acl.ProtectedFolder" xml:space="preserve">ЗАПРЕЩЕНО: у {0} владелец и права не меняются: это папка Windows, корень диска, служебная папка в корне или сам корень Program Files, ProgramData либо профиля. Смена здесь ломает загрузку, обновления и вход. Не повторяй попытку. Если доступ нужен к подпапке, меняй права у неё.</system:String>
+    <system:String x:Key="S.Tool.Acl.Network" xml:space="preserve">Права на сетевом пути {0} меняются на сервере, где он лежит: этот инструмент правит только локальные диски.</system:String>
+    <system:String x:Key="S.Tool.Acl.UnknownPrincipal" xml:space="preserve">Учётная запись «{0}» не найдена. Возьми имя из show или псевдоним: current_user, administrators, users, authenticated_users, everyone, system, trusted_installer.</system:String>
+    <system:String x:Key="S.Tool.Acl.Unreadable" xml:space="preserve">Права {0} эта учётная запись не может прочитать, поэтому снимок для отката не снять, и владелец с правами не менялись. Не повторяй попытку тем же вызовом. Если программа запущена не от администратора, скажи об этом пользователю; если от администратора, прежние права вернуть будет нечем, и решение за пользователем.</system:String>
+    <system:String x:Key="S.Tool.Acl.TooMany" xml:space="preserve">Внутри больше {0} объектов: рекурсивная правка такого размера не делается. Сузь путь до подпапки, которой нужен доступ.</system:String>
+    <system:String x:Key="S.Tool.Acl.Changed" xml:space="preserve">Прежние владелец и права сохранены в снимке: если что-то перестанет открываться, их вернёт откат в журнале.</system:String>
+    <system:String x:Key="S.Rollback.Undo.Acl" xml:space="preserve">Вернуть владельца и права: {0} (объектов: {1})</system:String>
+    <system:String x:Key="S.Rollback.Undo.AclPartial" xml:space="preserve">возвращено {0} из {1}; {2}</system:String>
+    <system:String x:Key="S.Tool.file_locks" xml:space="preserve">Занятые файлы</system:String>
+    <system:String x:Key="S.Tool.Locks.RmFailed" xml:space="preserve">Restart Manager не ответил (код {0}). Не повторяй с тем же путём: держателя можно поискать по имени через windows_process.</system:String>
+    <system:String x:Key="S.Tool.Locks.Hint" xml:space="preserve">Закрыть держателя можно действием close с его PID, если пользователь готов закрыть эту программу. Она получит просьбу закрыться и сможет сохранить работу; с force закроется принудительно, и несохранённое пропадёт.</system:String>
+    <system:String x:Key="S.Tool.Locks.NotHolder" xml:space="preserve">Процесс {0} сейчас не держит {1}. Возьми PID из свежего find.</system:String>
+    <system:String x:Key="S.Tool.Locks.Protected" xml:space="preserve">ЗАПРЕЩЕНО: {0} входит в Windows или её защиту, такое не закрывается. Не повторяй попытку. Скажи пользователю, что файл освободится после перезагрузки.</system:String>
+    <system:String x:Key="S.Tool.Locks.Refused" xml:space="preserve">{0} (PID {1}) не закрылся: программа не ответила или ждёт ответа в своём окне. Попроси пользователя закрыть её самому или повтори с force, только если он согласен потерять несохранённое.</system:String>
+    <system:String x:Key="S.Tool.Locks.StillHeld" xml:space="preserve">{0} всё ещё занят другим процессом. Проверь снова через find.</system:String>
+    <system:String x:Key="S.Tool.audio" xml:space="preserve">Звук</system:String>
+    <system:String x:Key="S.Tool.power" xml:space="preserve">Питание и сон</system:String>
+    <system:String x:Key="S.Tool.store_apps" xml:space="preserve">Приложения Microsoft Store</system:String>
+    <system:String x:Key="S.Tool.print_queue" xml:space="preserve">Очередь печати</system:String>
+    <system:String x:Key="S.Tool.shares" xml:space="preserve">Общие папки и сетевые диски</system:String>
+    <system:String x:Key="S.Tool.bluetooth" xml:space="preserve">Bluetooth</system:String>
+    <system:String x:Key="S.Tool.perf_record" xml:space="preserve">Запись нагрузки</system:String>
+    <system:String x:Key="S.Tool.network_quality" xml:space="preserve">Качество связи</system:String>
+    <system:String x:Key="S.AgentRun.Spin.PerfRecord" xml:space="preserve">Записываю нагрузку: {0} мин…</system:String>
+    <system:String x:Key="S.AgentRun.Spin.NetworkQuality" xml:space="preserve">Измеряю качество связи: {0} с…</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioDefault" xml:space="preserve">Устройство звука по умолчанию</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioVolume" xml:space="preserve">Громкость {0}%</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioMute" xml:space="preserve">Выключить звук</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioUnmute" xml:space="preserve">Включить звук</system:String>
+    <system:String x:Key="S.Guard.Sum.AudioRestart" xml:space="preserve">Перезапуск звуковых служб Windows</system:String>
+    <system:String x:Key="S.Guard.Sum.PowerScheme" xml:space="preserve">Сменить схему питания</system:String>
+    <system:String x:Key="S.Guard.Sum.LockClose" xml:space="preserve">Закрыть программу, которая держит файл</system:String>
+    <system:String x:Key="S.Guard.Sum.LockForce" xml:space="preserve">Принудительно закрыть программу, которая держит файл</system:String>
+    <system:String x:Key="S.Guard.Sum.AclOwner" xml:space="preserve">Сменить владельца на {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.AclGrant" xml:space="preserve">Выдать {0} права {1}</system:String>
+    <system:String x:Key="S.Guard.Sum.AclRevoke" xml:space="preserve">Убрать явные права {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.AclReset" xml:space="preserve">Сбросить права к унаследованным</system:String>
+    <system:String x:Key="S.Guard.Sum.Recursive" xml:space="preserve">(вместе со всем вложенным)</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvSet" xml:space="preserve">Задать переменную среды</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvDelete" xml:space="preserve">Удалить переменную среды</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathAdd" xml:space="preserve">Добавить папку в PATH</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathRemove" xml:space="preserve">Убрать запись из PATH</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvPathClean" xml:space="preserve">Убрать из PATH пустые, повторяющиеся и несуществующие записи</system:String>
+    <system:String x:Key="S.Guard.Sum.EnvMachine" xml:space="preserve">(для всех пользователей)</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreRemove" xml:space="preserve">Удалить приложение Store</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreReset" xml:space="preserve">Сбросить приложение Store</system:String>
+    <system:String x:Key="S.Guard.Sum.StoreForNewUsers" xml:space="preserve">(и для новых учётных записей)</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintCancel" xml:space="preserve">Отменить задание печати {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintClear" xml:space="preserve">Очистить очередь печати</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintRestart" xml:space="preserve">Перезапустить диспетчер печати</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintPurge" xml:space="preserve">Перезапустить диспетчер печати и удалить все задания из очереди</system:String>
+    <system:String x:Key="S.Guard.Sum.PrintDefault" xml:space="preserve">Принтер по умолчанию</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesPrivate" xml:space="preserve">Сделать сеть частной</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesDiscovery" xml:space="preserve">Включить сетевое обнаружение в частных сетях</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesFiles" xml:space="preserve">Включить общий доступ к файлам и принтерам в частных сетях</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesMap" xml:space="preserve">Подключить сетевой диск</system:String>
+    <system:String x:Key="S.Guard.Sum.SharesUnmap" xml:space="preserve">Отключить сетевой диск</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothOn" xml:space="preserve">Включить Bluetooth</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothOff" xml:space="preserve">Выключить Bluetooth</system:String>
+    <system:String x:Key="S.Guard.Sum.BluetoothForget" xml:space="preserve">Забыть устройство Bluetooth</system:String>
+    <system:String x:Key="S.Guard.Note.AclSnapshot" xml:space="preserve">Прежние владелец и права сохранятся в снимке: вернуть их можно откатом в журнале.</system:String>
+    <system:String x:Key="S.Guard.Note.EnvSnapshot" xml:space="preserve">Прежние значения сохранятся в снимке. Новое увидят программы, запущенные после изменения.</system:String>
+    <system:String x:Key="S.Guard.Note.LockClose" xml:space="preserve">Программа получит просьбу закрыться и сможет сохранить работу. Если она ждёт ответа в своём окне, то не закроется.</system:String>
+    <system:String x:Key="S.Guard.Note.LockForce" xml:space="preserve">Программа закроется, даже если не ответит: несохранённое в ней пропадёт.</system:String>
+    <system:String x:Key="S.Guard.Note.AudioRestart" xml:space="preserve">Звук пропадёт на несколько секунд во всех программах.</system:String>
+    <system:String x:Key="S.Guard.Note.StoreRemove" xml:space="preserve">Вернуть приложение можно только установкой из Microsoft Store.</system:String>
+    <system:String x:Key="S.Guard.Note.StoreReset" xml:space="preserve">Сброс удалит все данные и настройки приложения.</system:String>
+    <system:String x:Key="S.Guard.Note.PrintClear" xml:space="preserve">Документы из очереди удалятся, и их придётся отправить на печать заново.</system:String>
+    <system:String x:Key="S.Guard.Note.PrintRestart" xml:space="preserve">Печать, которая идёт сейчас, прервётся.</system:String>
+    <system:String x:Key="S.Guard.Note.SharesFiles" xml:space="preserve">Общие папки этого компьютера станут доступны в частной сети.</system:String>
+    <system:String x:Key="S.Guard.Note.BluetoothOff" xml:space="preserve">Отключатся все устройства Bluetooth, в том числе клавиатура, мышь и наушники.</system:String>
+    <system:String x:Key="S.Guard.Note.BluetoothForget" xml:space="preserve">Устройство придётся сопрягать заново.</system:String>
+    <system:String x:Key="S.Tool.Power.UnknownScheme" xml:space="preserve">Схемы питания «{0}» нет, или имя подходит не к одной. Возьми GUID из schemes.</system:String>
+    <system:String x:Key="S.Tool.Audio.Failed" xml:space="preserve">Windows не выполнила действие со звуком ({0}). Проверь устройства через devices; если звук пропал совсем, помогает restart_services.</system:String>
+    <system:String x:Key="S.Tool.Audio.ServiceStopped" xml:space="preserve">Служба «Windows Audio» не работает, поэтому устройств не видно. Её поднимает restart_services.</system:String>
+    <system:String x:Key="S.Tool.Audio.NotActive" xml:space="preserve">{0}: состояние {1}. Устройством по умолчанию можно сделать только включённое и подключённое.</system:String>
+    <system:String x:Key="S.Tool.Audio.NoApp" xml:space="preserve">У программы «{0}» сейчас нет сеанса звука. Посмотри sessions.</system:String>
+    <system:String x:Key="S.Tool.Audio.NoDevice" xml:space="preserve">Устройство «{0}» не найдено. Возьми id или имя из devices.</system:String>
+    <system:String x:Key="S.Tool.Audio.Ambiguous" xml:space="preserve">Под «{0}» подходит несколько устройств: {1}. Укажи id.</system:String>
+    <system:String x:Key="S.Tool.Store.NotFound" xml:space="preserve">Приложения «{0}» у текущего пользователя нет. Возьми Name или PackageFullName из list.</system:String>
+    <system:String x:Key="S.Tool.Store.Protected" xml:space="preserve">ЗАПРЕЩЕНО: «{0}» не удаляется: это framework, неудаляемый или системный пакет либо Store и его установщик, без которых не вернуть остальные приложения. Не повторяй попытку.</system:String>
+    <system:String x:Key="S.Tool.Store.NoReset" xml:space="preserve">В этой версии Windows сброс приложений из PowerShell недоступен. Пусть пользователь сбросит приложение в Параметрах Windows, в его дополнительных параметрах.</system:String>
+    <system:String x:Key="S.Tool.Store.Removed" xml:space="preserve">Вернуть приложение можно только установкой из Microsoft Store.</system:String>
+    <system:String x:Key="S.Tool.Print.NotFound" xml:space="preserve">Принтера «{0}» нет. Возьми имя из list.</system:String>
+    <system:String x:Key="S.Tool.Print.SpoolOutside" xml:space="preserve">Папка очереди печати в реестре указывает за пределы папки Windows, и очистка там не делается. Перезапусти диспетчер печати без purge.</system:String>
+    <system:String x:Key="S.Tool.Shares.LetterTaken" xml:space="preserve">Буква {0}: уже занята. Возьми свободную букву.</system:String>
+    <system:String x:Key="S.Tool.Shares.Credentials" xml:space="preserve">Сервер просит учётные данные, которых у Windows нет. Программа пароли не вводит: пусть пользователь подключит диск сам или сохранит логин и пароль этого сервера в «Диспетчере учётных данных» Windows, затем повтори.</system:String>
+    <system:String x:Key="S.Tool.Shares.PublicRules" xml:space="preserve">Правила только для частных сетей включены, службы запущены, но {0} правил Windows заведены сразу на частные и общедоступные сети: они остались выключенными, иначе компьютер открылся бы всем в общедоступной сети. Не повторяй попытку. Скажи пользователю, что эти правила можно включить только для частной сети вручную: «Брандмауэр Защитника Windows», «Дополнительные параметры», у правила вкладка «Дополнительно», галочка «Общедоступный» снята.</system:String>
+    <system:String x:Key="S.Tool.Shares.Public" xml:space="preserve">Все подключения ({0}) общедоступные: обнаружение и общий доступ там не включаются, это открыло бы компьютер всем вокруг. Если пользователь доверяет своей сети, сначала сделай её частной (set_private).</system:String>
+    <system:String x:Key="S.Tool.Shares.Domain" xml:space="preserve">Это доменная сеть: её тип задаёт домен, и сменить его нельзя.</system:String>
+    <system:String x:Key="S.Tool.Shares.NotMapped" xml:space="preserve">Такого сетевого диска нет. Посмотри список через drives.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.Timeout" xml:space="preserve">Windows не ответила на запрос Bluetooth за 15 секунд. Проверь службу через status и повтори позже.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.NoRadio" xml:space="preserve">Радио Bluetooth не найдено (доступ программ к радио: {0}). Адаптера нет, он отключён в диспетчере устройств или в параметрах конфиденциальности приложениям запрещено управлять радио.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.NotFound" xml:space="preserve">Сопряжённого устройства с таким адресом или id нет. Возьми Address или Id из devices.</system:String>
+    <system:String x:Key="S.Tool.Bluetooth.Denied" xml:space="preserve">Windows не дала переключить радио ({0}): приложениям запрещено управлять радио в параметрах конфиденциальности. Пусть пользователь переключит Bluetooth в Параметрах Windows.</system:String>
+    <system:String x:Key="S.Tool.NetQuality.NoNetwork" xml:space="preserve">Нет подключения с маршрутом в интернет: мерить нечего. Посмотри адаптеры через network adapters.</system:String>
+    <system:String x:Key="S.Tool.NetQuality.Location" xml:space="preserve">Список соседних Wi-Fi-сетей Windows отдаёт программам только при доступе к расположению: Параметры Windows, «Конфиденциальность и защита», «Расположение», разрешить классическим приложениям. Остальные замеры от этого не зависят.</system:String>
+    <system:String x:Key="S.Tool.Power.TimersNeedAdmin" xml:space="preserve">Таймеры пробуждения Windows показывает только администратору: чтобы их увидеть, программу нужно запустить от администратора.</system:String>
 
 </ResourceDictionary>

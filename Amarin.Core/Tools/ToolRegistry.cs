@@ -44,7 +44,16 @@ public sealed class ToolRegistry
         "security_status",
         "remote_access",
         "write_clipboard",
-        "deferred_task"
+        "deferred_task",
+        "audio",
+        "power",
+        "file_locks",
+        "permissions",
+        "environment",
+        "store_apps",
+        "print_queue",
+        "shares",
+        "bluetooth"
     };
 
     private readonly Dictionary<string, ITool> _tools;

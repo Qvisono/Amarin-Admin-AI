@@ -60,6 +60,17 @@ internal static class AgentTools
             new SoftwareInventoryTool(),
             new FirewallRulesTool(),
             new WindowsFeaturesTool(),
-            new LocalUsersTool()
+            new LocalUsersTool(),
+            new AudioTool(),
+            new PowerTool(),
+            new FileLocksTool(),
+            new PermissionsTool(),
+            new EnvironmentTool(knownSecrets ?? (() => [])),
+            new StoreAppsTool(),
+            new PrintQueueTool(),
+            new SharesTool(),
+            new BluetoothTool(),
+            new PerfRecordTool(),
+            new NetworkQualityTool()
         ]);
 }

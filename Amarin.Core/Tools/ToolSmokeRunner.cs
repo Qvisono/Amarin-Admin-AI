@@ -55,7 +55,19 @@ public static class ToolSmokeRunner
         ("software_inventory", """{"action":"list_installed"}"""),
         ("firewall_rules", """{"action":"list","filter":"enabled"}"""),
         ("windows_features", """{"action":"list","filter":"enabled"}"""),
-        ("local_users", """{"action":"list_users"}""")
+        ("local_users", """{"action":"list_users"}"""),
+        ("audio", """{"action":"devices"}"""),
+        ("power", """{"action":"schemes"}"""),
+        ("file_locks", """{"action":"find","path":"C:\\Windows\\win.ini"}"""),
+        ("permissions", """{"action":"show","path":"C:\\Windows"}"""),
+        ("environment", """{"action":"path_check"}"""),
+        ("store_apps", """{"action":"list","max_items":20}"""),
+        ("print_queue", """{"action":"list"}"""),
+        ("shares", """{"action":"status"}"""),
+        ("bluetooth", """{"action":"status"}"""),
+        // Самые короткие записи: прогон и так идёт минуты, а проверяется, что замер вообще работает.
+        ("perf_record", """{"minutes":1}"""),
+        ("network_quality", """{"seconds":10}""")
     ];
 
     public static async Task<IReadOnlyList<ToolSmokeResult>> RunAsync(

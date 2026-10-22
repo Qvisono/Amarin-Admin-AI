@@ -266,6 +266,18 @@ internal static class ChangeRollbackOperations
 
                     break;
 
+                case PermissionsTool.ToolName when PermissionTargets.IsWrite(action):
+                    CaptureAcl(dir, arguments);
+                    break;
+
+                // Переменные среды — значения одного раздела реестра: снимок раздела и вернёт их.
+                case EnvironmentTool.ToolName when action is "set" or "delete" or "path_add" or "path_remove" or "path_clean":
+                    ExtendRegistry(dir, FileToolPaths.String(arguments, "scope")?.Trim()
+                        .Equals("machine", StringComparison.OrdinalIgnoreCase) == true
+                        ? EnvironmentStore.MachineKey
+                        : EnvironmentStore.UserKey);
+                    break;
+
                 case "devices" when action is "enable" or "disable":
                     if (StringArg(arguments, "instance_id") is { } device && DeviceCommands.IsInstanceId(device))
                     {
@@ -323,6 +335,33 @@ internal static class ChangeRollbackOperations
                 record.UndoSteps.Add(step);
             }
         });
+
+    /// <summary>
+    /// Права объекта до первой его правки за запрос. Следующая правка того же объекта снимок не
+    /// переписывает: прежнее состояние — у первой. Кроме рекурсивной после обычной: та трогает и
+    /// вложенное, которого в первом снимке нет, и снимок вложенного дописывается отдельным шагом.
+    /// </summary>
+    private static void CaptureAcl(string dir, JsonElement arguments)
+    {
+        if (!PermissionTargets.TryParse(StringArg(arguments, "path"), out var target, out _))
+        {
+            return;
+        }
+
+        var recursive = AclSnapshot.IsRecursive(arguments, target);
+        var earlier = LoadSession(dir).UndoSteps
+            .Where(step => step.Kind == UndoKind.Acl && string.Equals(step.Target, target.Path, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (earlier.Any(step => !recursive || AclSnapshot.IsTree(step)))
+        {
+            return;
+        }
+
+        if (AclSnapshot.Capture(dir, target, recursive, earlier.Count) is { } captured)
+        {
+            UpdateSession(dir, record => record.UndoSteps.Add(captured));
+        }
+    }
 
     private static bool HasUndo(string dir, UndoKind kind, string target) =>
         LoadSession(dir).UndoSteps.Any(step => step.Kind == kind &&
@@ -639,6 +678,7 @@ internal static class ChangeRollbackOperations
         using var _ = PerfLog.Measure("undo_apply");
         var outcomes = new List<RollbackOutcome>();
         outcomes.AddRange(RegistryStateIo.Apply(plan.Registry));
+        EnvironmentStore.AfterRestore(plan.Registry);
 
         foreach (var file in plan.LegacyRegFiles)
         {
@@ -749,6 +789,10 @@ internal static class ChangeRollbackOperations
 
                     var added = NativeProcess.RunRawAsync("netsh", netsh, 60).GetAwaiter().GetResult();
                     return new RollbackOutcome(line, added.Success, added.Success ? null : Truncate(added.Output, 200));
+
+                case UndoKind.Acl:
+                    var (restored, error) = AclSnapshot.Restore(step, snapshotDir);
+                    return new RollbackOutcome(line, restored, error);
 
                 default:
                     if (UndoCommands.Script(step, snapshotDir) is not { } script)

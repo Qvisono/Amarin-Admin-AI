@@ -222,6 +222,13 @@ internal static class ToolGate
             return Refused(localUsersBlock);
         }
 
+        // Инструменты 1.37.0: системные места для прав, системные переменные, Store и его
+        // установщик, ядро Windows и сама программа — отказ до вопроса, а не после «Да».
+        if (HardBlock(tool, args) is { } windowsToolBlock)
+        {
+            return Refused(windowsToolBlock);
+        }
+
         if (effect == ToolEffect.Write && ProgramDataTarget(tool, args) is { } target)
         {
             return Refused(SensitivePaths.ProgramDataRefusal(target));
@@ -253,6 +260,21 @@ internal static class ToolGate
             Quiet: quiet != QuietWrite.No);
 
         GateCheck Refused(string reason) => new(tool, args, effect, reason, null, false);
+    }
+
+    /// <summary>Жёсткий запрет новых инструментов Windows или null. Те же проверки повторяют сами инструменты.</summary>
+    private static string? HardBlock(string tool, JsonElement args)
+    {
+        var refusal = "";
+        var blocked = tool.ToLowerInvariant() switch
+        {
+            PermissionsTool.ToolName => PermissionTargets.TryGetHardBlockReason(args, out refusal),
+            EnvironmentTool.ToolName => EnvironmentTool.TryGetHardBlockReason(args, out refusal),
+            StoreAppsTool.ToolName => StoreAppsTool.TryGetHardBlockReason(args, out refusal),
+            FileLocksTool.ToolName => FileLocksTool.TryGetHardBlockReason(args, out refusal),
+            _ => false
+        };
+        return blocked ? refusal : null;
     }
 
     /// <summary>Спрашивает, если нужно, и выносит решение. Отмена хода — исключение, как и прежде.</summary>

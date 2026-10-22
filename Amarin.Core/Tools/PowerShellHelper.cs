@@ -124,6 +124,16 @@ internal static partial class PowerShellHelper
         return text.Trim();
     }
 
+    /// <summary>
+    /// Отказ доступа в выводе PowerShell — по коду и категории ошибки, а не по тексту: текст
+    /// ошибки на языке системы, а «PermissionDenied» и 0x80070005 одинаковы на любой.
+    /// </summary>
+    internal static bool IsAccessDenied(string? output) =>
+        !string.IsNullOrEmpty(output) &&
+        (output.Contains("PermissionDenied", StringComparison.Ordinal) ||
+         output.Contains("UnauthorizedAccess", StringComparison.Ordinal) ||
+         output.Contains("0x80070005", StringComparison.OrdinalIgnoreCase));
+
     internal static string WrapScript(string script) =>
         ScriptPreamble + Environment.NewLine + script;
 

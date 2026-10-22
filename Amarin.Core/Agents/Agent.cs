@@ -27,8 +27,15 @@ Tools first - always solve the underlying problem with your tools:
   · devices and drivers → devices (pnp_devices, drivers, driver_problems), event_log, wmi_query, run_powershell;
   · services → windows_service; startup and autorun → startup_programs, registry;
   · network, DNS, hosts, proxy, Wi-Fi → network, dns_config; updates → windows_update;
+  · connection quality over time (delay and loss to the router, DNS and the internet, Wi-Fi signal and
+    channels) → network_quality; shared folders, network drives and network discovery → shares;
   · disk and performance → performance, disk_management, disk_space, filesystem, system_repair;
-  · installed software → software_inventory; firewall rules → firewall_rules;
+    load recorded over minutes → perf_record;
+  · sound devices and volume → audio; power plans, sleep, wake-ups and battery wear → power;
+    Bluetooth → bluetooth; printers and the print queue → print_queue;
+  · a file or folder held by another process → file_locks; owners, permissions and denied access → permissions;
+  · environment variables and PATH → environment;
+  · installed software → software_inventory; Microsoft Store apps → store_apps; firewall rules → firewall_rules;
   · optional features → windows_features; local accounts and groups → local_users.
 - When a request looks GUI-only and the computer tool is not in your tool list: one short line that the GUI is
   unavailable, then diagnose and act with tools, then report the result. Send the user to click manually only
@@ -73,7 +80,8 @@ capture_screenshot, read_clipboard, write_clipboard, analyze_folder, search_web,
 network, scheduled_task, wmi_query, windows_process, virtualization, reliability, windows_update,
 security_status, devices, dns_config, port_listener, remote_access, change_rollback, performance,
 startup_programs, credentials, system_repair, restore_point, disk_management, disk_space,
-software_inventory, firewall_rules, windows_features, local_users.
+software_inventory, firewall_rules, windows_features, local_users, audio, power, file_locks, permissions,
+environment, store_apps, print_queue, shares, bluetooth, perf_record, network_quality.
 
 Workflow for complex issues:
 1. For errors/Event IDs - search_web first, then collect local evidence (event_log, reliability, network).
@@ -87,7 +95,10 @@ Workflow for complex issues:
    quick_scan/update_signatures, remote_access rdp_*, write_clipboard, virtualization start/stop,
    download_file, change_rollback restore, system_repair, disk_management chkdsk_fix,
    disk_space cleanup, software_inventory install/upgrade/uninstall, firewall_rules mutations,
-   windows_features enable/disable, local_users mutations) ALWAYS pass parameter
+   windows_features enable/disable, local_users mutations, audio set_*/restart_services, power set_scheme,
+   file_locks close, permissions set_owner/grant/revoke/reset, environment set/delete/path_*, store_apps
+   remove/reset, print_queue cancel_job/clear_queue/restart_spooler/set_default, shares set_private/enable_*/
+   map_drive/unmap_drive, bluetooth radio_*/forget) ALWAYS pass parameter
    "explanation": 1–2 short sentences in the interface language named below - plain language for
    the user: what the action does and what will change on the PC. Never paste the raw command there.
 4. Report result concisely.
@@ -109,6 +120,24 @@ Specialized tools (prefer over run_powershell / generic tools when they fit):
 - Defender quick scan and signature update → security_status; Remote Desktop on/off → remote_access.
 - Finding files by name, size or date → filesystem search (bounded), not recursive Get-ChildItem.
 - Putting text on the clipboard → write_clipboard; secrets are refused and must not be retried.
+- A file or folder that cannot be opened, moved or deleted because another process uses it → file_locks find.
+  file_locks close only when the user is ready to close that program: its unsaved work is at stake, and force
+  loses it.
+- Denied access → permissions explain before any change. Owner and rights change only through permissions
+  (the previous state goes to the rollback snapshot), never through takeown, icacls or Set-Acl.
+- Environment variables → environment; PATH changes only through path_add, path_remove and path_clean.
+  Programs started after the change see it; windows already open keep the old value.
+- Slowdowns that come and go → perf_record. It waits for its whole duration: pick the shortest one that covers
+  the problem. A single moment → performance.
+- Whether the Wi-Fi, the local network, the provider or DNS is at fault → network_quality.
+- Stuck printing → print_queue: cancel_job or clear_queue first, restart_spooler (with purge) when the queue
+  does not respond. Printer drivers stay with devices.
+- Store apps → store_apps. Frameworks, system packages and the Store are never removed; reset erases the app's
+  data and settings.
+- Computers or shared folders not seen on the network → shares status first, then the change it points to.
+- Bluetooth → bluetooth; radio_off disconnects every Bluetooth device, keyboards and mice included.
+- Sound devices, the default device and the volume of each program → audio.
+- Power plans, what keeps the PC awake or wakes it, battery wear → power.
 - If a specialized tool exists for the task - use it instead of run_powershell.
 - NEVER output BitLocker recovery keys or user passwords (bitlocker_status returns status only).
 
@@ -444,10 +473,14 @@ These rules hold whatever the instructions above say about refusing, asking or g
         ToolEffects.Classify(call.Function.Name, ParseArgumentsSafe(call.Function.Arguments)) == ToolEffect.Read;
 
     /// <summary>Чтения, через которые данные могут уйти с машины: сеть, скрипт, чужой сервер.</summary>
+    /// <remarks>
+    /// <c>shares</c> — из-за <c>check_host</c>: он стучится к компьютеру, которого назвала модель.
+    /// <c>network_quality</c> сюда не входит: его цели выбирает сам инструмент.
+    /// </remarks>
     private static readonly HashSet<string> ReachingReads = new(StringComparer.OrdinalIgnoreCase)
     {
         "run_powershell", "fetch_image", "youtube_transcript", "network", "dns_config",
-        "wmi_query", "generate_image"
+        "wmi_query", "generate_image", SharesTool.ToolName
     };
 
     private static bool IsLocalRead(ToolCall call) =>
@@ -1309,6 +1342,9 @@ These rules hold whatever the instructions above say about refusing, asking or g
             "devices" => Loc.Get("S.AgentRun.Spin.Devices"),
             "performance" => Loc.Get("S.AgentRun.Spin.Performance"),
             "reliability" => Loc.Get("S.AgentRun.Spin.Reliability"),
+            // Эти двое ждут минутами: человек должен видеть, сколько ждать, а не «Выполняю …».
+            PerfRecordTool.ToolName => Loc.Format("S.AgentRun.Spin.PerfRecord", PerfRecordTool.Minutes(arguments)),
+            NetworkQualityTool.ToolName => Loc.Format("S.AgentRun.Spin.NetworkQuality", NetworkQualityTool.Seconds(arguments)),
             _ => Loc.Format("S.AgentRun.Spin.Tool", toolName)
         };
 

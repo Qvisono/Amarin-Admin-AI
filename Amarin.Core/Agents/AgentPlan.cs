@@ -70,7 +70,10 @@ internal static partial class AgentPlans
     [
         "path", "service_name", "name", "adapter", "instance_id", "hostname", "task_name", "user", "group",
         "feature_name", "package_id", "url", "wifi_profile", "destination", "drive_letter", "process_name", "pid",
-        "snapshot_id", "location"
+        "snapshot_id", "location",
+
+        // Цели инструментов Windows 1.37.0, у которых нет своего поля среди прежних.
+        "device", "app", "scheme", "printer", "letter"
     ];
 
     public static ToolDefinition Definition { get; } = new()

@@ -26,7 +26,10 @@ internal enum UndoKind
     FirewallRules,
 
     /// <summary>Забытый профиль Wi-Fi — заново из экспорта.</summary>
-    WifiProfile
+    WifiProfile,
+
+    /// <summary>Владелец и права файла, папки или раздела реестра — из файла SDDL в снимке.</summary>
+    Acl
 }
 
 /// <summary>
@@ -97,8 +100,8 @@ internal static partial class UndoCommands
                 return FirewallRulesScript(step);
 
             default:
-                // Hosts и Wi-Fi возвращаются не скриптом: файл копируется, профиль ставит netsh
-                // (см. ChangeRollbackOperations.ApplyUndo).
+                // Hosts, Wi-Fi и права возвращаются не скриптом: файл копируется, профиль ставит
+                // netsh, права пишет API (см. ChangeRollbackOperations.ApplyUndo).
                 return null;
         }
     }
@@ -138,6 +141,7 @@ internal static partial class UndoCommands
         UndoKind.Adapter => Loc.Format(step.Enabled ? "S.Rollback.Undo.AdapterOn" : "S.Rollback.Undo.AdapterOff", step.Target),
         UndoKind.Device => Loc.Format(step.Enabled ? "S.Rollback.Undo.DeviceOn" : "S.Rollback.Undo.DeviceOff", step.Target),
         UndoKind.FirewallRules => Loc.Format("S.Rollback.Undo.Firewall", step.Values.Count),
+        UndoKind.Acl => Loc.Format("S.Rollback.Undo.Acl", step.Target, step.Values.FirstOrDefault() ?? "1"),
         _ => Loc.Format("S.Rollback.Undo.Wifi", step.Target)
     };
 

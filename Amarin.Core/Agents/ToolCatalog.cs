@@ -26,7 +26,9 @@ internal static class ToolCatalog
         "scheduled_task", "wmi_query", "windows_process", "virtualization", "reliability", "windows_update",
         "security_status", "devices", "dns_config", "port_listener", "remote_access", "change_rollback",
         "performance", "startup_programs", "credentials", "system_repair", "restore_point", "disk_management",
-        "disk_space", "software_inventory", "firewall_rules", "windows_features", "local_users"
+        "disk_space", "software_inventory", "firewall_rules", "windows_features", "local_users",
+        "audio", "power", "file_locks", "permissions", "environment", "store_apps", "print_queue", "shares",
+        "bluetooth", "perf_record", "network_quality"
     ];
 
     /// <summary>Инструменты, которые есть и у чата, и у агента.</summary>
