@@ -288,7 +288,7 @@ internal sealed class AgentHost : IAgentHost
         // у удалённой цели окна чужие. Решается раз на прогон: выключенная посреди работы галочка
         // закрывает следующий прогон, а не рвёт этот. Сеанс один на весь прогон — пересадка на
         // другую модель не возвращает окно программы и не повторяет отсчёт.
-        var computer = settings.ComputerControl && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
+        var computer = ComputerHub.Allowed(settings) && ExecutionTarget.Current is null ? _computer?.Invoke() : null;
         using var session = computer is null
             ? null
             : new ComputerSession(
@@ -590,7 +590,7 @@ internal sealed class AgentHost : IAgentHost
         // Мышь дана — работа в окнах не должна достаться модели, которая не видит экран: правило
         // в блок моделей, а уровням без зрения — запрет прямо в критерий Decisions.
         HashSet<string>? blind = null;
-        if (settings.ComputerControl && _computer is not null)
+        if (ComputerHub.Allowed(settings) && _computer is not null)
         {
             models += "\n" + AgentTierRouter.WindowsRule;
             blind = [.. Tiers.Where(tier => !CanSee(ResolveModel(tier, settings)))];

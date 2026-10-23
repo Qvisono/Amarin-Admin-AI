@@ -82,7 +82,7 @@ internal static class ToolEffects
                 ["firewall_status", "firewall_rules", "defender_status", "defender_threats", "defender_preferences"],
             ["windows_service"] = ["list", "status", "dependencies"],
             ["software_inventory"] = ["list_installed", "search", "list_upgrades"],
-            ["startup_programs"] = ["list_all", "wmi", "registry", "folders", "status"],
+            ["startup_programs"] = ["list_all", "wmi", "registry", "folders", "status", "audit"],
             ["system_repair"] = ["status_sfc", "status_dism"],
             ["virtualization"] = ["list_hyperv_vms", "hyperv_vm_status", "list_docker_containers", "docker_status"],
             ["windows_features"] = ["list", "get"],

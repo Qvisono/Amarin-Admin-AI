@@ -131,6 +131,13 @@ public sealed partial class VeniceClient
     {
         var credential = credentialOverride ?? _options.Credential;
 
+        // Политика организации (1.37.0) — здесь, а не у каждого вызова: через эту точку уходит
+        // любой запрос к провайдеру, и запрещённому не уйдёт ни байта, ни ключ.
+        if (!OrganizationPolicy.Current.AllowsProvider(credential.Provider))
+        {
+            throw new VeniceApiException(Loc.Format("S.Policy.ProviderBlocked", ProviderSpec.Of(credential).Name));
+        }
+
         var request = new HttpRequestMessage(method, EndpointFor(credential, path))
         {
             Version = HttpVersion.Version20,
@@ -214,6 +221,13 @@ public sealed partial class VeniceClient
     /// </remarks>
     private static ApiCredential RequireKey(ApiCredential credential, string model)
     {
+        // Модель, запрещённая политикой организации (1.37.0), — тот же «не повторяй», что и
+        // отсутствующий ключ: проверка у всех четырёх входов текстовых запросов идёт здесь.
+        if (!OrganizationPolicy.Current.AllowsModel(model))
+        {
+            throw new VeniceApiException(Loc.Format("S.Policy.ModelBlocked", VeniceModelCatalog.GetDisplayName(model)));
+        }
+
         if (credential.IsEmpty)
         {
             var name = ProviderSpec.For(credential.Provider).Name;
@@ -298,8 +312,10 @@ public sealed partial class VeniceClient
 
         // Провайдер цепочки — из ключа запроса, а не из клиента: замена модели обязана остаться
         // на сервере, которому этот ключ предъявляют.
+        // Замена, запрещённая политикой организации, пропускается: ход не уйдёт к ней молча.
         foreach (var model in VeniceModelFallback.GetModelsFrom(
-                     startingModel, _primaryModel, key.Provider))
+                         startingModel, _primaryModel, key.Provider)
+                     .Where(OrganizationPolicy.Current.AllowsModel))
         {
             try
             {
@@ -379,6 +395,7 @@ public sealed partial class VeniceClient
         VeniceApiException? lastOverload = null;
         IEnumerable<string> models = fallback
             ? VeniceModelFallback.GetModelsFrom(startingModel, primaryModel, key.Provider)
+                .Where(OrganizationPolicy.Current.AllowsModel)
             : [startingModel];
 
         foreach (var model in models)

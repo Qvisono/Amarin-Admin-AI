@@ -1487,7 +1487,7 @@ Onyx стёрло бы человеку все настройки. Поэтом�
 (с 1.28.0 и `FollowHighContrast`/`SystemHighContrast`), `PopupManager`, `DownloadAccessBroker`,
 `CursorGuard`, `SafeZone.Roots`, `SensitivePaths.ProgramDataRoot`/`SnapshotsRoot`,
 `ToolGate.McpReadOnly` и `ToolGate.AiDocument`, `CodeBlockView.ShowLineNumbers`, `ChatFonts` (размер и шрифт ленты),
-`UiMotion.Enabled` (его ставит окно из оформления в `AttachServices` — тест, которому анимации
+`OrganizationPolicy.Current` (1.37.0, ставит `ApplyProcessWide`), `UiMotion.Enabled` (его ставит окно из оформления в `AttachServices` — тест, которому анимации
 не нужны, выключает их после создания окна), с 1.33.0 `ChatAttachmentRegistry` (ручки вложений,
 как `ChatImageRegistry`) и кэш мелодий `ChimePlayer`. `PopupShadow` — тоже статика, но замороженная и
 неизменная. `AccessibilityDefaults` регистрирует обработчики классов один раз на процесс. Тест, который его
@@ -1936,6 +1936,46 @@ SynGuard судит записи и видит страницу (`Agent.GuardPag
 сайта» (`AppSettings.DownloadAnySite`) — статика `DownloadValidator.AllowAnySite`, её ставят запуск,
 переключатель и смена профиля (`AppServices.UseProfile`). Обе — настройки защиты: в существующий
 профиль из архива не приезжают; браузер агента и загрузка с любого сайта сбрасываются и у нового.
+
+## Безопасность и политики (1.37.0, раздел C)
+
+**Аудит автозапуска — `startup_programs audit` (`AutostartAudit`).** Только чтение. Источники:
+Run-ключи и папки (`StartupApproval.List`, ярлык раскрывается через `WScript.Shell`), задачи —
+`ScheduledTasks` (COM-интерфейс Планировщика; через него же `scheduled_task list/query`: текст
+`schtasks` приходил в OEM-странице дочерней консоли, и кириллица становилась «?????» ещё до
+программы — на английской системной локали это 437), службы со стартом boot/system/auto из реестра (у
+svchost — `ServiceDll`), подписки WMI `root\subscription`, расширения Chrome, Edge, Firefox. Файл из
+командной строки достаёт `CommandLinePath` (у хостов — rundll32, оболочки — первый аргумент-файл).
+Риск — без подписи, в месте, куда пишет обычный пользователь (`AccessExplain.Decide` для
+пользователя, Users, Authenticated Users, Everyone, INTERACTIVE), файла нет, расширение не из
+магазина. Подпись — `AuthenticodeCheck.InspectLocal`: без сети и с каталогами Windows (иначе
+svchost «без подписи»); `Inspect` для обновления не тронут.
+
+**Цепочка журнала аудита.** У строки поле `prev` — SHA-256 открытого текста предыдущей строки того
+же файла байт в байт (`"-"` — первая в файле), без пересборки объекта: иначе пояс и порядок полей
+рвали бы цепочку. `Append` под одним замком читает хвост с диска (без памяти о прошлой записи), сериализует,
+шифрует, пишет. `Merge` идёт через него же, звено из архива перезаписывается. Импорт архива
+дописывает в открытый профиль через живой журнал (`DataBundleImporter.LiveAudit`, как
+`LiveLedger`): свой экземпляр писал мимо замка программы, и её строка в ту же секунду терялась. `VerifyChain` показывает вкладка «Аудит» журнала. Конец цепочки не защищён —
+для этого копия в журнал Windows.
+
+**Журнал Windows (`AuditEvents`, `WindowsEventLog`).** `ReportEventW`, источник «Amarin Admin AI»
+не регистрируется (регистрация требует администратора). Без аргументов и заголовка чата — решение
+человека. `AuditLog.Mirror` зовёт только `Record`, ставит только `ApplyProcessWide`: импорт и тесты
+в журнал машины не пишут. Настройка `AuditToWindowsLog` (заводская — да) — защита, из архива в
+существующий профиль не приезжает.
+
+**Политики организации (`OrganizationPolicy`, `HKLM\SOFTWARE\Policies\Amarin\Admin AI`).**
+Читаются раз при запуске в `ApplyProcessWide`, накладываются при чтении, в `settings.json` не
+пишутся. Где действуют: «только чтение» и выключенные инструменты — `ToolGate`; мышь — одним
+`ComputerHub.Allowed` (новое место, решающее доступ к мыши, берёт его, а не галочку); провайдер —
+`VeniceClient.Request`; модель — рядом с `RequireKey` и в цепочках замены; списки —
+`ApiKeyProvider.Providers`, `VeniceModelCatalog.ForSlot`, `ModelPickerPanel`, `KeyAddDialog`; копия в
+журнал Windows — `AuditEvents.Mirror`. Страница «Безопасность» показывает строку и блокирует
+заданное. Шаблон — `policies/*.admx|adml`; новое значение политики — константа, строка в ADMX и
+обоих ADML (сверяет `OrganizationPolicyTests`). `release.yml` выкладывает папку вложением
+`Amarin-Admin-AI-v<версия>-policies.zip` (шаг «Policy templates»); в `SHA256SUMS` он не входит —
+там одна строка про exe, её читает программа.
 
 ## Как проверять интерфейс, не запуская программу
 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Политики Amarin Admin AI для групповой политики (1.37.0). Копируется в
+  %SystemRoot%\PolicyDefinitions (или в центральное хранилище домена) вместе с папками языков.
+  Имена ключа и значений сверяет OrganizationPolicyTests с OrganizationPolicy в коде.
+-->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   revision="1.0" schemaVersion="1.0"
+                   xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="amarin" namespace="Amarin.Policies.AdminAI"/>
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0"/>
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_AmarinAdminAI_1_37" displayName="$(string.SUPPORTED_AmarinAdminAI_1_37)"/>
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="AmarinAdminAI" displayName="$(string.AmarinAdminAI)"/>
+  </categories>
+  <policies>
+    <policy name="ReadOnly" class="Machine" displayName="$(string.ReadOnly)" explainText="$(string.ReadOnly_Explain)"
+            key="SOFTWARE\Policies\Amarin\Admin AI" valueName="ReadOnly">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <enabledValue><decimal value="1"/></enabledValue>
+      <disabledValue><decimal value="0"/></disabledValue>
+    </policy>
+    <policy name="DisabledTools" class="Machine" displayName="$(string.DisabledTools)" explainText="$(string.DisabledTools_Explain)"
+            presentation="$(presentation.DisabledTools)" key="SOFTWARE\Policies\Amarin\Admin AI">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <elements>
+        <list id="DisabledToolsList" key="SOFTWARE\Policies\Amarin\Admin AI\DisabledTools" valuePrefix=""/>
+      </elements>
+    </policy>
+    <policy name="AllowedProviders" class="Machine" displayName="$(string.AllowedProviders)" explainText="$(string.AllowedProviders_Explain)"
+            presentation="$(presentation.AllowedProviders)" key="SOFTWARE\Policies\Amarin\Admin AI">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <elements>
+        <list id="AllowedProvidersList" key="SOFTWARE\Policies\Amarin\Admin AI\AllowedProviders" valuePrefix=""/>
+      </elements>
+    </policy>
+    <policy name="AllowedModels" class="Machine" displayName="$(string.AllowedModels)" explainText="$(string.AllowedModels_Explain)"
+            presentation="$(presentation.AllowedModels)" key="SOFTWARE\Policies\Amarin\Admin AI">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <elements>
+        <list id="AllowedModelsList" key="SOFTWARE\Policies\Amarin\Admin AI\AllowedModels" valuePrefix=""/>
+      </elements>
+    </policy>
+    <policy name="DisableComputerControl" class="Machine" displayName="$(string.DisableComputerControl)"
+            explainText="$(string.DisableComputerControl_Explain)"
+            key="SOFTWARE\Policies\Amarin\Admin AI" valueName="DisableComputerControl">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <enabledValue><decimal value="1"/></enabledValue>
+      <disabledValue><decimal value="0"/></disabledValue>
+    </policy>
+    <policy name="WindowsEventLog" class="Machine" displayName="$(string.WindowsEventLog)" explainText="$(string.WindowsEventLog_Explain)"
+            key="SOFTWARE\Policies\Amarin\Admin AI" valueName="WindowsEventLog">
+      <parentCategory ref="AmarinAdminAI"/>
+      <supportedOn ref="SUPPORTED_AmarinAdminAI_1_37"/>
+      <enabledValue><decimal value="1"/></enabledValue>
+      <disabledValue><decimal value="0"/></disabledValue>
+    </policy>
+  </policies>
+</policyDefinitions>

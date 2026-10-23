@@ -264,6 +264,18 @@ internal static class AppComposition
         services.OwnsProcessWide = true;
         DownloadValidator.Configure(services.Settings);
 
+        // Политика организации машинная — одна на все профили, — поэтому читается здесь, а не
+        // переставляется сменой профиля.
+        OrganizationPolicy.Current = OrganizationPolicy.ReadMachine();
+
+        // Копия в журнал Windows — только у настоящей программы: граф, собранный в тесте, в
+        // журнал машины не пишет. Настройка — у открытого сейчас профиля.
+        if (services.Audit is { } audit)
+        {
+            var profile = services.Profile;
+            audit.Mirror = AuditEvents.Mirror(() => profile.Settings.AuditToWindowsLog);
+        }
+
         // Книга профиля, а не её снимок: смена профиля перекореняет ту же книгу на месте.
         var documents = services.Profile.AiDocuments;
         ToolGate.AiDocument = documents.Owns;

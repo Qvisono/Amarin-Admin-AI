@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0"
+                           xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Amarin Admin AI</displayName>
+  <description>Policies for Amarin Admin AI</description>
+  <resources>
+    <stringTable>
+      <string id="AmarinAdminAI">Amarin Admin AI</string>
+      <string id="SUPPORTED_AmarinAdminAI_1_37">Amarin Admin AI 1.37.0 and later</string>
+
+      <string id="ReadOnly">Force read-only mode</string>
+      <string id="ReadOnly_Explain">When enabled, Amarin Admin AI runs in read-only mode in every profile: the AI can read and inspect, but nothing that changes the system is run, with no exceptions. Users cannot change the access mode in Settings.
+
+The policy is read when the app starts.</string>
+
+      <string id="DisabledTools">Turn off tools</string>
+      <string id="DisabledTools_Explain">Tools listed here are hidden from the AI and refused if called. Use the tool names the app uses, one per line, for example run_powershell, registry or write_file. The matching switches in Settings, Security, Tools are locked off.
+
+The policy is read when the app starts.</string>
+
+      <string id="AllowedProviders">Allowed AI providers</string>
+      <string id="AllowedProviders_Explain">When enabled with a non-empty list, Amarin Admin AI sends requests only to the providers listed here, one per line. Provider names: venice, openRouter, openAI, anthropic, google, xAi, deepSeek, moonshot, mistral, zAi, qwen, groq. The word custom allows the user's own servers. Any other provider gets no request at all and is hidden from the model pickers and the add key window.
+
+The policy is read when the app starts.</string>
+
+      <string id="AllowedModels">Allowed models</string>
+      <string id="AllowedModels_Explain">When enabled with a non-empty list, only the models listed here are used for chat, agents and routing, one per line. Write the model ID as the app stores it in settings.json: Venice models without a prefix, other providers as provider:model (for example openrouter:anthropic/claude-sonnet-5). A trailing * matches by prefix (for example anthropic:*). Other models get no request and are hidden from the model pickers.
+
+The policy is read when the app starts.</string>
+
+      <string id="DisableComputerControl">Turn off mouse and keyboard control</string>
+      <string id="DisableComputerControl_Explain">When enabled, the agent never gets mouse and keyboard control of this computer, whatever the user chose. The switch in Settings, Security is locked off.
+
+The policy is read when the app starts.</string>
+
+      <string id="WindowsEventLog">Always copy the audit log to the Windows log</string>
+      <string id="WindowsEventLog_Explain">When enabled, every action in the audit log of Amarin Admin AI is also written to the Windows Application log (source Amarin Admin AI), and users cannot turn the copy off. Events carry the tool, the outcome, who approved it, SynGuard, the agent, the machine and the hash of the audit line, but no arguments. Event IDs: 1000 done, 1001 failed, 1002 refused, 1003 cancelled.
+
+To show the events without the "description cannot be found" note, register the source once as an administrator:
+New-EventLog -LogName Application -Source "Amarin Admin AI"
+
+The policy is read when the app starts.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="DisabledTools">
+        <listBox refId="DisabledToolsList">Tools</listBox>
+      </presentation>
+      <presentation id="AllowedProviders">
+        <listBox refId="AllowedProvidersList">Providers</listBox>
+      </presentation>
+      <presentation id="AllowedModels">
+        <listBox refId="AllowedModelsList">Models</listBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

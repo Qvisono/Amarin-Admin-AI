@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -77,6 +78,27 @@ public sealed class AuditEntry
 
     /// <summary>Коротко, что ответил инструмент или почему отказано.</summary>
     public string? Result { get; set; }
+
+    /// <summary>
+    /// Звено цепочки (1.37.0): SHA-256 открытого текста предыдущей строки того же файла;
+    /// <see cref="AuditLog.ChainStart"/> — строка первая в файле; null — строка до 1.37.0.
+    /// </summary>
+    /// <remarks>
+    /// Хеш берётся от строки байт в байт, как она лежит (у зашифрованной — после расшифровки), а
+    /// не от пересобранного объекта: пересборка зависела бы от часового пояса и порядка полей, и
+    /// цепочка «рвалась» бы от переезда в другой пояс. Ставит его только запись — из чужого
+    /// архива звено не приезжает, импорт цепляет строку к хвосту своего файла.
+    /// </remarks>
+    public string? Prev { get; set; }
+}
+
+/// <summary>Итог проверки цепочки журнала аудита.</summary>
+/// <param name="Started">В журнале есть хоть одна строка с цепочкой (журнал 1.37.0 и новее).</param>
+/// <param name="BrokenFile">Месяц, где цепочка разорвана (<c>yyyy-MM</c>); null — цела.</param>
+/// <param name="BrokenLine">Номер строки разрыва в файле, с единицы.</param>
+public sealed record AuditChainReport(bool Started, string? BrokenFile, int BrokenLine)
+{
+    public bool Intact => BrokenFile is null;
 }
 
 /// <summary>Откуда пришёл вызов — чат, его заголовок и агент, если вызывал он.</summary>
@@ -106,6 +128,9 @@ internal sealed class AuditLog
     /// <summary>Потолок краткого итога.</summary>
     public const int ResultLimit = 500;
 
+    /// <summary>Звено первой строки файла: до неё в этом месяце ничего не было.</summary>
+    public const string ChainStart = "-";
+
     private static readonly JsonSerializerOptions LineOptions = CreateLineOptions();
 
     /// <summary>Имена аргументов, чьи значения в журнал не попадают никогда.</summary>
@@ -131,6 +156,17 @@ internal sealed class AuditLog
     /// читаются оба формата.
     /// </remarks>
     public Func<bool> Encrypt { get; set; } = static () => false;
+
+    /// <summary>
+    /// Копия новой строки наружу — в журнал событий Windows (1.37.0): строка и хеш её открытого
+    /// текста. Null — копии нет.
+    /// </summary>
+    /// <remarks>
+    /// Зовётся только из <see cref="Record"/>: строки чужого журнала, влитые импортом архива, —
+    /// действия другой машины, и в журнал Windows этой их класть нельзя. Ставит её корень
+    /// композиции; тесты её не ставят и в настоящий журнал Windows не пишут.
+    /// </remarks>
+    public Action<AuditEntry, string>? Mirror { get; set; }
 
     /// <summary>Папка журнала — в папке профиля, рядом с чатами.</summary>
     public string Directory
@@ -176,7 +212,7 @@ internal sealed class AuditLog
 
         var secrets = SafeSecrets();
         var (args, truncated) = PrepareArgs(argumentsJson, secrets);
-        Append(new AuditEntry
+        var entry = new AuditEntry
         {
             Id = Guid.NewGuid().ToString("N"),
             Time = DateTime.Now,
@@ -192,30 +228,27 @@ internal sealed class AuditLog
             ApprovedBy = approvedBy,
             Guard = guard,
             Result = Trim(CrashReport.Scrub(result ?? "", secrets), ResultLimit)
-        });
+        };
+
+        if (Write(entry) is { } hash)
+        {
+            SafeMirror(entry, hash);
+        }
     }
 
-    /// <summary>Дописывает строку. Не бросает.</summary>
-    public void Append(AuditEntry entry)
+    /// <summary>Дописывает строку, сцепляя её с хвостом файла. Не бросает.</summary>
+    public void Append(AuditEntry entry) => _ = Write(entry);
+
+    /// <summary>Дописывает строку; хеш её открытого текста или null — не записалась.</summary>
+    /// <remarks>
+    /// Всё — от чтения хвоста до записи — под одним замком: вызовы раунда пишут параллельно, и
+    /// две строки, прочитавшие один хвост, сослались бы на одну предыдущую. Хвост читается с диска
+    /// каждый раз, без памяти о прошлой записи: импорт архива пишет своим экземпляром журнала, и
+    /// запомненный хвост после него был бы чужим.
+    /// </remarks>
+    private string? Write(AuditEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var line = JsonSerializer.Serialize(entry, LineOptions);
-        if (SafeEncrypt())
-        {
-            // Отказ Windows шифровать не повод терять строку: журнал и нужен затем, чтобы след
-            // остался, поэтому она ляжет открытой, а в журнал сбоев — пометка.
-            if (AtRestCipher.EncryptLine(line) is { } sealedLine)
-            {
-                line = sealedLine;
-            }
-            else
-            {
-                CrashLog.Write("audit: encryption failed, line written in plain text");
-            }
-        }
-
-        var bytes = Encoding.UTF8.GetBytes(line + "\n");
-
         try
         {
             lock (_gate)
@@ -223,20 +256,98 @@ internal sealed class AuditLog
                 var folder = Path.Combine(_root, "audit");
                 System.IO.Directory.CreateDirectory(folder);
 
-                // Одна строка — одно открытие на дозапись: оборванная запись портит не больше
-                // своей строки, а чтение ниже пропускает её, не теряя соседних.
+                // Одна строка — одно открытие: оборванная запись портит не больше своей строки,
+                // а чтение ниже пропускает её, не теряя соседних.
                 using var stream = new FileStream(
                     Path.Combine(folder, FileName(entry.Time)),
-                    FileMode.Append,
-                    FileAccess.Write,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
                     FileShare.Read);
+                var (tail, endsWithNewLine) = ReadTail(stream);
+                entry.Prev = tail is null ? ChainStart : LinkOf(tail);
+
+                var plain = JsonSerializer.Serialize(entry, LineOptions);
+                var line = plain;
+                if (SafeEncrypt())
+                {
+                    // Отказ Windows шифровать не повод терять строку: журнал и нужен затем, чтобы
+                    // след остался, поэтому она ляжет открытой, а в журнал сбоев — пометка.
+                    if (AtRestCipher.EncryptLine(plain) is { } sealedLine)
+                    {
+                        line = sealedLine;
+                    }
+                    else
+                    {
+                        CrashLog.Write("audit: encryption failed, line written in plain text");
+                    }
+                }
+
+                // Оборванная прежде строка без перевода в конце склеилась бы с новой, и обе стали
+                // бы нечитаемыми; с переводом она остаётся своей строкой — и звеном цепочки.
+                var bytes = Encoding.UTF8.GetBytes((endsWithNewLine ? "" : "\n") + line + "\n");
+                stream.Seek(0, SeekOrigin.End);
                 stream.Write(bytes, 0, bytes.Length);
+                return Hash(plain);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             CrashLog.Write("audit: " + ex.Message);
+            return null;
         }
+    }
+
+    /// <summary>
+    /// Проверка цепочки: каждая строка с 1.37.0 называет хеш предыдущей, и подменённая, вставленная
+    /// или удалённая посреди файла строка рвёт звено.
+    /// </summary>
+    /// <remarks>
+    /// Строка без звена — строка версии до 1.37.0: журнал прежних версий или запись после отката
+    /// «Вернуть v…». Разрывом она не считается, ведь подменённую или вставленную такую строку и так
+    /// выдаёт звено следующей. Звено, у которого предыдущая строка не расшифровывается (DPAPI
+    /// чужой учётной записи Windows), пропускается, а не считается разрывом: подмены там не видно,
+    /// но и доказательства её нет. Оборванная строка своего звена не называет, зато её хеш
+    /// проверяет следующая. Строка расшифровывается один раз: DPAPI — самое дорогое в проверке
+    /// большого журнала.
+    /// </remarks>
+    public AuditChainReport VerifyChain(CancellationToken cancellationToken = default)
+    {
+        var started = false;
+        foreach (var file in Files())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var month = Path.GetFileNameWithoutExtension(file);
+            var first = true;
+            string? previousLink = null; // null — предыдущая строка не расшифровывается.
+            var number = 0;
+            foreach (var raw in ReadLines(file))
+            {
+                number++;
+                var line = raw.Trim();
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+
+                var plain = AtRestCipher.DecryptLine(line);
+                if (plain is not null && Parse(plain)?.Prev is { Length: > 0 } link)
+                {
+                    started = true;
+                    var broken = link == ChainStart
+                        ? !first
+                        : first || (previousLink is not null && link != previousLink);
+                    if (broken)
+                    {
+                        return new AuditChainReport(true, month, number);
+                    }
+                }
+
+                first = false;
+                previousLink = plain is null ? null : Hash(plain);
+            }
+        }
+
+        return new AuditChainReport(started, null, 0);
     }
 
     /// <summary>Все строки журнала, новые сверху. Битые строки пропускаются.</summary>
@@ -447,6 +558,76 @@ internal sealed class AuditLog
                 }
 
                 break;
+        }
+    }
+
+    /// <summary>Звено к строке: хеш её открытого текста, а у нерасшифровываемой — самой строки.</summary>
+    internal static string LinkOf(string line)
+    {
+        var trimmed = line.Trim();
+        return Hash(AtRestCipher.DecryptLine(trimmed) ?? trimmed);
+    }
+
+    private static string Hash(string plain) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(plain)));
+
+    /// <summary>
+    /// Последняя непустая строка файла (null — файл пуст) и кончается ли файл переводом строки.
+    /// </summary>
+    /// <remarks>
+    /// Читается с конца кусками: файл месяца растёт до мегабайт, а нужна одна строка.
+    /// </remarks>
+    private static (string? Tail, bool EndsWithNewLine) ReadTail(FileStream stream)
+    {
+        var length = stream.Length;
+        if (length == 0)
+        {
+            return (null, true);
+        }
+
+        const int chunk = 64 * 1024;
+        var collected = new List<byte>();
+        var position = length;
+        var buffer = new byte[chunk];
+        var endsWithNewLine = false;
+        var first = true;
+        while (position > 0)
+        {
+            var size = (int)Math.Min(chunk, position);
+            position -= size;
+            stream.Seek(position, SeekOrigin.Begin);
+            stream.ReadExactly(buffer, 0, size);
+            if (first)
+            {
+                endsWithNewLine = buffer[size - 1] == (byte)'\n';
+                first = false;
+            }
+
+            collected.InsertRange(0, buffer.AsSpan(0, size).ToArray());
+            var text = Encoding.UTF8.GetString(collected.ToArray()).TrimEnd('\n', '\r');
+            var cut = text.LastIndexOf('\n');
+            if (cut >= 0 || position == 0)
+            {
+                var tail = text[(cut + 1)..].Trim();
+                if (tail.Length > 0 || position == 0)
+                {
+                    return (tail.Length > 0 ? tail : null, endsWithNewLine);
+                }
+            }
+        }
+
+        return (null, endsWithNewLine);
+    }
+
+    private void SafeMirror(AuditEntry entry, string hash)
+    {
+        try
+        {
+            Mirror?.Invoke(entry, hash);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            CrashLog.Write("audit mirror: " + ex.Message);
         }
     }
 

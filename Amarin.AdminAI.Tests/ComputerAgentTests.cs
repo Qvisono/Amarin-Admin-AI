@@ -531,6 +531,7 @@ public sealed partial class ComputerAgentTests
         { nameof(ChatEngine.TaskRules), ChatEngine.TaskRules },
         { nameof(ChatEngine.ComputerRules), ChatEngine.ComputerRules },
         { nameof(ChatEngine.ComputerOffRules), ChatEngine.ComputerOffRules },
+        { nameof(ChatEngine.ComputerPolicyRules), ChatEngine.ComputerPolicyRules },
         { nameof(ScheduleReport.ComputerRule), ScheduleReport.ComputerRule },
         { nameof(AgentTierRouter.WindowsRule), AgentTierRouter.WindowsRule },
         { nameof(RoutingDecisions.BlindTier), RoutingDecisions.BlindTier },

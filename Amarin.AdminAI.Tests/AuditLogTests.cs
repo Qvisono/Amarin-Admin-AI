@@ -181,4 +181,29 @@ public sealed class AuditLogTests : IDisposable
         Assert.True(result.Ok, result.Error.ToString());
         Assert.Equal(["registry", "windows_service"], mine.ReadAll().Select(entry => entry.Tool).Order());
     }
+
+    [Fact]
+    public void An_import_writes_through_the_live_journal_of_the_open_profile()
+    {
+        // Свой экземпляр писал бы мимо замка программы, и её строка в ту же секунду терялась бы.
+        // Живой журнал узнаётся по шифрованию: у него оно включено, у папки по настройкам — нет.
+        var source = Path.Combine(_root, "source");
+        var target = Path.Combine(_root, "target");
+        Directory.CreateDirectory(Path.Combine(source, "chats"));
+        Directory.CreateDirectory(Path.Combine(target, "chats"));
+        var archive = Path.Combine(_root, "bundle" + DataBundle.FileExtension);
+
+        Write(new AuditLog(source), "registry", ToolEffect.Write, AuditOutcome.Ok);
+        var live = new AuditLog(target) { Encrypt = () => true };
+        Write(live, "windows_service", ToolEffect.Write, AuditOutcome.Refused);
+
+        new DataBundleExporter(source).Write(archive, DataCategory.All);
+        var result = new DataBundleImporter(target) { LiveAudit = live }.Apply(archive, DataCategory.All, DataImportMode.Merge);
+
+        Assert.True(result.Ok, result.Error.ToString());
+        var lines = File.ReadAllLines(Assert.Single(live.Files())).Where(line => line.Length > 0).ToList();
+        Assert.Equal(2, lines.Count);
+        Assert.All(lines, line => Assert.StartsWith("!amrn-dpapi1:", line, StringComparison.Ordinal));
+        Assert.True(live.VerifyChain().Intact);
+    }
 }

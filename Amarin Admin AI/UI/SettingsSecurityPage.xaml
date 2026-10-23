@@ -19,6 +19,9 @@
         <Grid local:SettingsDrill.IsHost="True">
             <StackPanel Margin="20,14,20,16">
                 <TextBlock Style="{StaticResource PageTitle}" Text="{DynamicResource S.Security.Title}"/>
+                <!-- Политика организации (1.37.0): одна строка, а заблокированные строки ниже — бледнее. -->
+                <TextBlock x:Name="PolicyNote" Style="{StaticResource GroupNote}" Visibility="Collapsed"
+                           Text="{DynamicResource S.Security.PolicyNote}"/>
 
                 <!-- ═══════════ РЕЖИМ ДОСТУПА ═══════════ -->
                 <Border Style="{StaticResource SettingsGroup}">
@@ -350,6 +353,21 @@
                             <CheckBox AutomationProperties.Name="{DynamicResource S.Security.TemporaryUntilClose}" x:Name="TemporaryUntilCloseToggle" Grid.Column="1"
                                       Style="{StaticResource SettingsToggle}"
                                       Checked="TemporaryUntilCloseToggle_Changed" Unchecked="TemporaryUntilCloseToggle_Changed"/>
+                        </Grid>
+                        <!-- Копия журнала аудита в журнал Windows (1.37.0). -->
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.WindowsLog}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.WindowsLogDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.WindowsLog}" x:Name="WindowsLogToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="WindowsLogToggle_Changed" Unchecked="WindowsLogToggle_Changed"/>
                         </Grid>
                     </StackPanel>
                 </Border>

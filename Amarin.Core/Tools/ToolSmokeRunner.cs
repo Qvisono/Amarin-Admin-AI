@@ -47,6 +47,7 @@ public static class ToolSmokeRunner
         ("change_rollback", """{"action":"list_snapshots"}"""),
         ("performance", """{"action":"summary"}"""),
         ("startup_programs", """{"action":"list_all"}"""),
+        ("startup_programs", """{"action":"audit"}"""),
         ("credentials", """{"action":"list_cmdkey"}"""),
         ("system_repair", """{"action":"status_sfc"}"""),
         ("restore_point", """{"action":"status"}"""),

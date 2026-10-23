@@ -93,7 +93,9 @@ internal sealed partial class ChatEngine
         parts.Add(FormulaRules);
         parts.Add(FileRules);
         parts.Add(DeferredRules);
-        parts.Add(settings.ComputerControl ? ComputerRules : ComputerOffRules);
+        parts.Add(ComputerHub.Allowed(settings) ? ComputerRules
+            : OrganizationPolicy.Current.DisableComputerControl ? ComputerPolicyRules
+            : ComputerOffRules);
 
         // Браузер агента (1.37.0) — блоком здесь, а не в описании init_agent: то собирается один раз.
         if (settings.AgentBrowser)

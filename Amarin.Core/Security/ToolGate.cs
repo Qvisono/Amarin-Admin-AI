@@ -96,13 +96,18 @@ internal static class ToolGate
         return new ReadOnlyRestore(previous, previousExcept);
     }
 
-    /// <summary>Действует ли сейчас «только чтение» — из настроек или из <see cref="ForceReadOnly"/>.</summary>
+    /// <summary>
+    /// Действует ли сейчас «только чтение» — из настроек, из <see cref="ForceReadOnly"/> или из
+    /// политики организации (1.37.0).
+    /// </summary>
     public static bool IsReadOnly(AppSettings settings) =>
-        settings.ApprovalMode == ApprovalMode.ReadOnly || ReadOnlyForced.Value;
+        settings.ApprovalMode == ApprovalMode.ReadOnly || ReadOnlyForced.Value || OrganizationPolicy.Current.ReadOnly;
 
     /// <summary>То же, но для этого инструмента: исключение прогона (<see cref="ForceReadOnly"/>) учитывается.</summary>
+    /// <remarks>Политика организации исключений прогона не знает, как и режим в настройках.</remarks>
     public static bool IsReadOnlyFor(AppSettings settings, string tool) =>
         settings.ApprovalMode == ApprovalMode.ReadOnly ||
+        OrganizationPolicy.Current.ReadOnly ||
         (ReadOnlyForced.Value && !string.Equals(ReadOnlyExcept.Value, tool, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
@@ -183,7 +188,10 @@ internal static class ToolGate
 
         if (IsDisabled(settings, tool))
         {
-            return Refused(Loc.Format("S.Gate.Disabled", tool));
+            // Свой текст: совет «включите инструмент в настройках» организации не перебить.
+            return Refused(Loc.Format(
+                OrganizationPolicy.Current.DisablesTool(ToolCatalog.SwitchName(tool)) ? "S.Gate.DisabledPolicy" : "S.Gate.Disabled",
+                tool));
         }
 
         // Удалённая цель — только то, что само уходит туда через PowerShell. Остальное выполнилось
@@ -213,7 +221,7 @@ internal static class ToolGate
 
         if (effect == ToolEffect.Write && IsReadOnlyFor(settings, tool))
         {
-            return Refused(ReadOnlyRefusal(tool, args, byScope: settings.ApprovalMode != ApprovalMode.ReadOnly));
+            return Refused(ReadOnlyRefusal(tool, args, settings));
         }
 
         if (tool.Equals("local_users", StringComparison.OrdinalIgnoreCase) &&
@@ -312,28 +320,39 @@ internal static class ToolGate
             : GateDecision.Refuse(DeniedReply, answer.Source, check.Arguments, check.Effect);
     }
 
-    /// <summary>Описания инструментов без выключенных человеком.</summary>
+    /// <summary>Описания инструментов без выключенных человеком или организацией.</summary>
     public static List<ToolDefinition> WithoutDisabled(List<ToolDefinition> definitions, AppSettings? settings)
     {
-        if (settings?.DisabledTools is not { Count: > 0 } disabled)
+        if (settings?.DisabledTools is not { Count: > 0 } && OrganizationPolicy.Current.DisabledTools.Count == 0)
         {
             return definitions;
         }
 
         return definitions
-            .Where(definition => !disabled.Contains(ToolCatalog.SwitchName(definition.Function.Name), StringComparer.OrdinalIgnoreCase))
+            .Where(definition => !IsDisabledSwitch(settings, ToolCatalog.SwitchName(definition.Function.Name)))
             .ToList();
     }
 
     public static bool IsDisabled(AppSettings settings, string toolName) =>
-        settings.DisabledTools is { Count: > 0 } disabled &&
-        disabled.Contains(ToolCatalog.SwitchName(toolName), StringComparer.OrdinalIgnoreCase);
+        IsDisabledSwitch(settings, ToolCatalog.SwitchName(toolName));
 
-    private static string ReadOnlyRefusal(string tool, JsonElement args, bool byScope)
+    /// <summary>Выключен ли переключатель — в настройках или политикой организации (1.37.0).</summary>
+    private static bool IsDisabledSwitch(AppSettings? settings, string switchName) =>
+        (settings?.DisabledTools is { Count: > 0 } disabled &&
+         disabled.Contains(switchName, StringComparer.OrdinalIgnoreCase)) ||
+        OrganizationPolicy.Current.DisablesTool(switchName);
+
+    private static string ReadOnlyRefusal(string tool, JsonElement args, AppSettings settings)
     {
         var action = DangerousActionGuard.ActionOf(args);
-        // Режим этого прогона, а не настройка: совет «смените режим в настройках» тут неверен.
-        return Loc.Format(byScope ? "S.Gate.ReadOnlyRun" : "S.Gate.ReadOnly", action.Length == 0 ? tool : $"{tool} ({action})");
+        var call = action.Length == 0 ? tool : $"{tool} ({action})";
+
+        // Совет «смените режим в настройках» верен только для режима из настроек: режим прогона
+        // и режим организации человек там не снимет.
+        var key = OrganizationPolicy.Current.ReadOnly ? "S.Gate.ReadOnlyPolicy"
+            : settings.ApprovalMode == ApprovalMode.ReadOnly ? "S.Gate.ReadOnly"
+            : "S.Gate.ReadOnlyRun";
+        return Loc.Format(key, call);
     }
 
     /// <summary>

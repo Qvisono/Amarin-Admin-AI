@@ -655,6 +655,10 @@
     <system:String x:Key="S.Gate.NoConfirmation" xml:space="preserve">Запись из чата недоступна: подтвердить её некому. Не повторяй вызов.</system:String>
     <system:String x:Key="S.Gate.ReadOnly" xml:space="preserve">Включён режим «Только чтение»: программа не выполняет ничего, что меняет систему, и вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что для этого нужно сменить режим доступа в настройках («Безопасность»).</system:String>
     <system:String x:Key="S.Gate.ReadOnlyRun" xml:space="preserve">Этот прогон идёт только на чтение (задача по расписанию): вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом; опиши в отчёте, что нужно сделать и почему.</system:String>
+    <system:String x:Key="S.Gate.ReadOnlyPolicy" xml:space="preserve">Политика организации держит программу в режиме «Только чтение»: вызов {0} не выполнен. Не повторяй его и не пытайся сделать то же другим инструментом, в том числе PowerShell; скажи пользователю, что запись запрещена организацией и в настройках это не меняется.</system:String>
+    <system:String x:Key="S.Gate.DisabledPolicy" xml:space="preserve">Инструмент {0} выключен политикой организации на этом компьютере. Не вызывай его и не пытайся сделать то же другим инструментом; если без него задачу не решить, скажи пользователю, что это ограничение организации.</system:String>
+    <system:String x:Key="S.Policy.ProviderBlocked" xml:space="preserve">Провайдер {0} запрещён политикой организации на этом компьютере, и запрос не отправлен. Скажи пользователю выбрать модель разрешённого провайдера. Не повторяй этот вызов.</system:String>
+    <system:String x:Key="S.Policy.ModelBlocked" xml:space="preserve">Модель {0} запрещена политикой организации на этом компьютере, и запрос не отправлен. Скажи пользователю выбрать разрешённую модель. Не повторяй этот вызов.</system:String>
     <system:String x:Key="S.General.Group.ChatWindow" xml:space="preserve">Чат и окно</system:String>
     <system:String x:Key="S.General.Group.Language" xml:space="preserve">Язык и формат</system:String>
     <system:String x:Key="S.General.Group.Notifications" xml:space="preserve">Уведомления</system:String>
@@ -914,6 +918,8 @@
     <system:String x:Key="S.Journal.Audit.ExportCsv" xml:space="preserve">Экспорт CSV</system:String>
     <system:String x:Key="S.Journal.Audit.ExportFailed" xml:space="preserve">Не удалось сохранить файл. Проверьте, что папка доступна для записи.</system:String>
     <system:String x:Key="S.Journal.Audit.ExportJson" xml:space="preserve">Экспорт JSON</system:String>
+    <system:String x:Key="S.Journal.Audit.ChainOk" xml:space="preserve">Цепочка цела</system:String>
+    <system:String x:Key="S.Journal.Audit.ChainBroken" xml:space="preserve">Цепочка нарушена: {0}, строка {1}</system:String>
     <system:String x:Key="S.Journal.Audit.ExportTitle" xml:space="preserve">Экспорт журнала аудита</system:String>
     <system:String x:Key="S.Journal.Audit.Exported" xml:space="preserve">Сохранено: {0}</system:String>
     <system:String x:Key="S.Journal.HiddenVariant" xml:space="preserve">в другом варианте ответа</system:String>
@@ -1797,6 +1803,8 @@
     <system:String x:Key="S.Security.NoRetentionDesc" xml:space="preserve">OpenRouter отдаёт запросы только тем, кто их не хранит и не учит на них модели. Часть моделей станет недоступна</system:String>
     <system:String x:Key="S.Security.TemporaryUntilClose" xml:space="preserve">Временный чат до закрытия программы</system:String>
     <system:String x:Key="S.Security.TemporaryUntilCloseDesc" xml:space="preserve">Выключено: временный чат исчезает, как только вы откроете другой</system:String>
+    <system:String x:Key="S.Security.WindowsLog" xml:space="preserve">Копия в журнал Windows</system:String>
+    <system:String x:Key="S.Security.WindowsLogDesc" xml:space="preserve">Действия ИИ видны администратору в журнале «Приложение», без аргументов</system:String>
     <system:String x:Key="S.Security.AnySite" xml:space="preserve">Загрузка с любого сайта</system:String>
     <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">Белый список ниже не проверяется. Включайте, только если доверяете тому, что скачивает агент</system:String>
     <system:String x:Key="S.Browser.Title" xml:space="preserve">Браузер агента</system:String>
@@ -1816,6 +1824,7 @@
     <system:String x:Key="S.Security.SourcesDesc" xml:space="preserve">Откуда агенту можно скачивать файлы</system:String>
     <system:String x:Key="S.Security.SourcesLabel" xml:space="preserve">Источники загрузки</system:String>
     <system:String x:Key="S.Security.Title" xml:space="preserve">Безопасность</system:String>
+    <system:String x:Key="S.Security.PolicyNote" xml:space="preserve">Часть настроек задаёт организация, здесь они не меняются</system:String>
     <system:String x:Key="S.Security.ToolsAllOn" xml:space="preserve">Все включены</system:String>
     <system:String x:Key="S.Security.ToolsDesc" xml:space="preserve">Что модель может вызывать</system:String>
     <system:String x:Key="S.Security.ToolsHint" xml:space="preserve">Выключенный инструмент модель не видит.</system:String>
@@ -1936,6 +1945,9 @@
     <system:String x:Key="S.Tool.Startup.Empty" xml:space="preserve">Элементов автозагрузки не найдено.</system:String>
     <system:String x:Key="S.Tool.Startup.Enabled" xml:space="preserve">Автозапуск «{0}» ({1}) включён.</system:String>
     <system:String x:Key="S.Tool.Startup.NotFound" xml:space="preserve">Элемента «{0}» в {1} нет. Возьми имя и место из действия status.</system:String>
+    <system:String x:Key="S.Tool.Task.NotFound" xml:space="preserve">Задачи «{0}» в Планировщике нет. Возьми точный путь задачи из действия list и не повторяй вызов с тем же именем.</system:String>
+    <system:String x:Key="S.Tool.Task.Timeout" xml:space="preserve">Планировщик заданий не ответил за {0} с: его служба могла зависнуть. Не повторяй вызов сразу; скажи пользователю, что Планировщик не отвечает.</system:String>
+    <system:String x:Key="S.Tool.Startup.AuditTimeout" xml:space="preserve">Аудит автозапуска не уложился в {0} с: служба WMI или Планировщика могла зависнуть. Не повторяй вызов сразу; список автозагрузки без проверки даёт действие status.</system:String>
     <system:String x:Key="S.Tool.Virt.BadContainerName" xml:space="preserve">Имя контейнера не указано или не похоже на имя docker (буквы, цифры, _ . -). Укажи имя или идентификатор из list_docker_containers.</system:String>
     <system:String x:Key="S.Tool.Virt.BadVmName" xml:space="preserve">Имя виртуальной машины не указано или содержит недопустимые знаки (* ? [ ] ` и управляющие). Укажи точное имя из list_hyperv_vms.</system:String>
     <system:String x:Key="S.Tool.analyze_folder" xml:space="preserve">Разбор папок</system:String>

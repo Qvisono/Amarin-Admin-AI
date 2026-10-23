@@ -36,4 +36,20 @@ public sealed class ReleaseWorkflowTests
         Assert.Equal(positions.Order(), positions);
         Assert.Contains("Get-AuthenticodeSignature", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void The_policy_templates_ship_with_every_release_but_stay_out_of_the_checksums()
+    {
+        // Шаблон ADMX (1.37.0) — вложение релиза: и при первой выкладке, и при повторной. В сумме
+        // его нет: SHA256SUMS — одна строка про exe, её сверяет шаг перед выкладкой и читает программа.
+        var text = Workflow();
+
+        var templates = text.IndexOf("- name: Policy templates", StringComparison.Ordinal);
+        Assert.True(templates > text.IndexOf("- name: Publish", StringComparison.Ordinal));
+        Assert.True(templates < text.IndexOf("- name: Checksums", StringComparison.Ordinal));
+        Assert.Contains("Compress-Archive -Path policies/*", text, StringComparison.Ordinal);
+        Assert.Contains("gh release upload $env:TAG $env:ASSET $env:SUMS $env:POLICIES --clobber", text, StringComparison.Ordinal);
+        Assert.Contains("gh release create $env:TAG $env:ASSET $env:SUMS $env:POLICIES --target", text, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(SourceTree.RepositoryRoot, "policies", "AmarinAdminAI.admx")));
+    }
 }

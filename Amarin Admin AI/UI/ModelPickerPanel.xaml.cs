@@ -644,6 +644,9 @@ public partial class ModelPickerPanel : UserControl
             }
         }
 
+        // Провайдера, запрещённого политикой организации (1.37.0), в столбце нет вовсе.
+        specs.RemoveAll(spec => !OrganizationPolicy.Current.AllowsProvider(spec.Provider));
+
         return [.. specs.Where(spec => HasKey(spec.Provider)), .. specs.Where(spec => !HasKey(spec.Provider))];
     }
 

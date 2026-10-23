@@ -101,6 +101,17 @@ jobs:
           Move-Item "release/publish/Amarin Admin AI.exe" $asset
           "asset=$asset" >> $env:GITHUB_OUTPUT
 
+      # Шаблон групповой политики (1.37.0) — отдельным вложением: администратор кладёт его в
+      # PolicyDefinitions, не собирая репозиторий. В SHA256SUMS он не входит: там одна строка —
+      # exe, по которой программа ставит обновление, а шаблон программой не ставится.
+      - name: Policy templates
+        id: policies
+        shell: pwsh
+        run: |
+          $zip = "release/Amarin-Admin-AI-v${{ steps.version.outputs.version }}-policies.zip"
+          Compress-Archive -Path policies/* -DestinationPath $zip -Force
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
       # Подпись — только если в репозитории заведён сертификат. Программа ставит обновление,
       # подписанное тем же издателем, что и установленная сборка; неподписанную проверяет по
       # SHA256SUMS ниже. Подписывать нужно до подсчёта суммы: подпись меняет байты файла.
@@ -178,6 +189,7 @@ jobs:
           NOTES: ${{ steps.version.outputs.notes }}
           ASSET: ${{ steps.publish.outputs.asset }}
           SUMS: ${{ steps.sums.outputs.sums }}
+          POLICIES: ${{ steps.policies.outputs.zip }}
         run: |
           # «Релиза нет» — это ответ, а не авария: ненулевой код gh здесь не должен ронять шаг.
           $PSNativeCommandUseErrorActionPreference = $false
@@ -187,10 +199,10 @@ jobs:
           if ($env:TAG.Contains('-')) { $pre = @('--prerelease') }
           gh release view $env:TAG *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $env:TAG $env:ASSET $env:SUMS --clobber
+            gh release upload $env:TAG $env:ASSET $env:SUMS $env:POLICIES --clobber
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             gh release edit $env:TAG --title $env:TITLE --notes-file $env:NOTES @pre
           } else {
-            gh release create $env:TAG $env:ASSET $env:SUMS --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES @pre
+            gh release create $env:TAG $env:ASSET $env:SUMS $env:POLICIES --target $env:GITHUB_SHA --title $env:TITLE --notes-file $env:NOTES @pre
           }
           exit $LASTEXITCODE

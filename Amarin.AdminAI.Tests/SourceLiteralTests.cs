@@ -103,6 +103,13 @@ public sealed partial class SourceLiteralTests
     [InlineData("Tools", "NetworkQualityTool.cs")]
     [InlineData("Tools", "NetworkQuality.cs")]
     [InlineData("Tools", "WlanInfo.cs")]
+    // 1.37.0, раздел C: аудит автозапуска, журнал Windows и политики организации.
+    [InlineData("Tools", "AutostartAudit.cs")]
+    [InlineData("Tools", "CommandLinePath.cs")]
+    [InlineData("Tools", "ScheduledTasks.cs")]
+    [InlineData("Security", "AuditEvents.cs")]
+    [InlineData("Platform", "WindowsEventLog.cs")]
+    [InlineData("Settings", "OrganizationPolicy.cs")]
     public void Screens_and_their_logic_hold_no_literal_russian(string folder, string file)
     {
         // Эти экраны написали до локализации, и подписи так и остались литералами: при

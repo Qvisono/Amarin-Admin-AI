@@ -48,7 +48,10 @@ public sealed class DataBundleCoverageTests
         // 1.37.0: браузер агента, загрузка с любого сайта и приватность OpenRouter — та же защита.
         nameof(AppSettings.AgentBrowser),
         nameof(AppSettings.DownloadAnySite),
-        nameof(AppSettings.OpenRouterNoRetention)
+        nameof(AppSettings.OpenRouterNoRetention),
+
+        // Копия журнала аудита в журнал Windows — защита этой машины, по тому же правилу.
+        nameof(AppSettings.AuditToWindowsLog)
     ];
 
     [Fact]

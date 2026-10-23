@@ -425,6 +425,17 @@ internal sealed partial class ChatEngine
           or run anything for it until the user turns it on.
         """;
 
+    /// <summary>
+    /// Мышь запрещена политикой организации (1.37.0): переключатель заблокирован, и совет его
+    /// включить отправил бы человека к тому, чего он сделать не может.
+    /// </summary>
+    internal const string ComputerPolicyRules = """
+        PROGRAM WINDOWS
+        - Typing, clicking or reading inside the windows of programs on this PC is turned off by the
+          organization's policy on this computer, and the user cannot turn it on. Scripts cannot do this work.
+          When it is asked for, say so, and do not schedule or run anything for it.
+        """;
+
     /// <summary>Часы для строки с датой в промпте — подменяются в тестах.</summary>
     internal TimeProvider Time { get; init; } = TimeProvider.System;
 

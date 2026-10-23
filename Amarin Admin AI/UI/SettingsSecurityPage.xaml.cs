@@ -80,10 +80,6 @@ public partial class SettingsSecurityPage : UserControl
         _loading = true;
         try
         {
-            ModeCombo.SelectedItem = ModeItems.FirstOrDefault(item =>
-                string.Equals((string)item.Tag, settings.ApprovalMode.ToString(), StringComparison.Ordinal));
-            ShowModeDescription(settings.ApprovalMode);
-
             foreach (var (tool, toggle) in _toolToggles)
             {
                 toggle.IsChecked = !ToolGate.IsDisabled(settings, tool);
@@ -103,11 +99,63 @@ public partial class SettingsSecurityPage : UserControl
             TemporaryUntilCloseToggle.IsChecked = settings.TemporaryChatsUntilClose;
             DownloadAnySiteToggle.IsChecked = settings.DownloadAnySite;
             ShowAllowlistState(settings.DownloadAnySite);
+            ShowPolicy(settings, OrganizationPolicy.Current);
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    /// <summary>
+    /// Политика организации (1.37.0): строка под заголовком и заблокированные контролы с
+    /// действующим значением. В настройки ничего не пишется — снятая политика вернёт выбор человека.
+    /// </summary>
+    /// <remarks>Политика — параметром: оконный тест проверяет блокировки, не трогая статику процесса.</remarks>
+    internal void ShowPolicy(AppSettings settings, OrganizationPolicy policy)
+    {
+        var loading = _loading;
+        _loading = true;
+        try
+        {
+            PolicyNote.Visibility = policy.Any ? Visibility.Visible : Visibility.Collapsed;
+
+            var mode = policy.ReadOnly ? ApprovalMode.ReadOnly : settings.ApprovalMode;
+            ModeCombo.SelectedItem = ModeItems.FirstOrDefault(item =>
+                string.Equals((string)item.Tag, mode.ToString(), StringComparison.Ordinal));
+            ShowModeDescription(mode);
+            ModeCombo.IsEnabled = !policy.ReadOnly;
+
+            foreach (var (tool, toggle) in _toolToggles)
+            {
+                if (policy.DisablesTool(tool))
+                {
+                    toggle.IsChecked = false;
+                }
+
+                toggle.IsEnabled = !policy.DisablesTool(tool);
+            }
+
+            ComputerControlToggle.IsChecked = settings.ComputerControl && !policy.DisableComputerControl;
+            ComputerControlToggle.IsEnabled = !policy.DisableComputerControl;
+            WindowsLogToggle.IsChecked = settings.AuditToWindowsLog || policy.WindowsEventLog;
+            WindowsLogToggle.IsEnabled = !policy.WindowsEventLog;
+        }
+        finally
+        {
+            _loading = loading;
+        }
+    }
+
+    private void WindowsLogToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        _services.Settings.AuditToWindowsLog = WindowsLogToggle.IsChecked == true;
+        _services.SettingsStore.Save(_services.Settings);
     }
 
     /// <summary>

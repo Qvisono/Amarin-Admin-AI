@@ -37,7 +37,8 @@ public sealed class WindowsToolsLiveTests
         (new BluetoothTool(), new { action = "status" }),
         (new BluetoothTool(), new { action = "devices" }),
         (new PerfRecordTool(), new { minutes = 1 }),
-        (new NetworkQualityTool(), new { seconds = 30 })
+        (new NetworkQualityTool(), new { seconds = 30 }),
+        (new StartupProgramsTool(), new { action = "audit" })
     ];
 
     [Fact]

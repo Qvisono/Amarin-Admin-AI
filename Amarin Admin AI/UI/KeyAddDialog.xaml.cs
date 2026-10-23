@@ -29,7 +29,10 @@ public partial class KeyAddDialog : UserControl
     {
         InitializeComponent();
 
-        foreach (var spec in ProviderSpec.All)
+        // Провайдера, запрещённого политикой организации (1.37.0), не предлагаем: ключ к нему
+        // программа всё равно не предъявит.
+        var policy = OrganizationPolicy.Current;
+        foreach (var spec in ProviderSpec.All.Where(spec => policy.AllowsProvider(spec.Provider)))
         {
             var item = new ComboBoxItem { Content = spec.Name, Tag = spec };
             if (DescriptionKey(spec.Provider) is { } key)
@@ -43,7 +46,10 @@ public partial class KeyAddDialog : UserControl
         _customItem = new ComboBoxItem { Tag = null };
         _customItem.SetResourceReference(ContentControl.ContentProperty, "S.Key.CustomServer");
         _customItem.SetResourceReference(ToolTipProperty, "S.Key.Provider.CustomDesc");
-        ProviderBox.Items.Add(_customItem);
+        if (policy.AllowsCustomServers)
+        {
+            ProviderBox.Items.Add(_customItem);
+        }
 
         KeyDown += Root_KeyDown;
     }
@@ -131,7 +137,7 @@ public partial class KeyAddDialog : UserControl
         _selecting = true;
         try
         {
-            ProviderBox.SelectedItem = item ?? ProviderBox.Items[0];
+            ProviderBox.SelectedItem = item ?? (ProviderBox.Items.Count > 0 ? ProviderBox.Items[0] : null);
         }
         finally
         {

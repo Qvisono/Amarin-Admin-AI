@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0"
+                           xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Amarin Admin AI</displayName>
+  <description>Политики Amarin Admin AI</description>
+  <resources>
+    <stringTable>
+      <string id="AmarinAdminAI">Amarin Admin AI</string>
+      <string id="SUPPORTED_AmarinAdminAI_1_37">Amarin Admin AI 1.37.0 и новее</string>
+
+      <string id="ReadOnly">Режим «Только чтение» принудительно</string>
+      <string id="ReadOnly_Explain">Если политика включена, Amarin Admin AI работает в режиме «Только чтение» во всех профилях: ИИ может читать и проверять, но ничего, что меняет систему, не выполняется, без исключений. Режим доступа в настройках пользователь не меняет.
+
+Политика читается при запуске программы.</string>
+
+      <string id="DisabledTools">Выключить инструменты</string>
+      <string id="DisabledTools_Explain">Перечисленные инструменты скрыты от ИИ, а вызов их отклоняется. Имена инструментов как в программе, по одному в строке, например run_powershell, registry или write_file. Их переключатели в «Настройки, Безопасность, Инструменты» заблокированы в положении «выкл.».
+
+Политика читается при запуске программы.</string>
+
+      <string id="AllowedProviders">Разрешённые провайдеры ИИ</string>
+      <string id="AllowedProviders_Explain">Если политика включена и список не пуст, Amarin Admin AI отправляет запросы только перечисленным провайдерам, по одному в строке. Имена провайдеров: venice, openRouter, openAI, anthropic, google, xAi, deepSeek, moonshot, mistral, zAi, qwen, groq. Слово custom разрешает собственные серверы пользователя. Другим провайдерам запрос не уходит вовсе, а в выборе моделей и в окне нового ключа их нет.
+
+Политика читается при запуске программы.</string>
+
+      <string id="AllowedModels">Разрешённые модели</string>
+      <string id="AllowedModels_Explain">Если политика включена и список не пуст, для чата, агентов и маршрутизации берутся только перечисленные модели, по одной в строке. Идентификатор модели пишется так, как его хранит программа в settings.json: у Venice без приставки, у остальных провайдеров как провайдер:модель (например openrouter:anthropic/claude-sonnet-5). Звёздочка в конце означает совпадение по началу (например anthropic:*). Другим моделям запрос не уходит, в выборе моделей их нет.
+
+Политика читается при запуске программы.</string>
+
+      <string id="DisableComputerControl">Запретить управление мышью и клавиатурой</string>
+      <string id="DisableComputerControl_Explain">Если политика включена, агент никогда не получает управление мышью и клавиатурой этого компьютера, что бы ни выбрал пользователь. Переключатель в «Настройки, Безопасность» заблокирован в положении «выкл.».
+
+Политика читается при запуске программы.</string>
+
+      <string id="WindowsEventLog">Всегда копировать журнал аудита в журнал Windows</string>
+      <string id="WindowsEventLog_Explain">Если политика включена, каждое действие из журнала аудита Amarin Admin AI записывается и в журнал Windows «Приложение» (источник Amarin Admin AI), и выключить копию пользователь не может. В событии есть инструмент, итог, кто разрешил, SynGuard, агент, машина и хеш строки журнала аудита, но нет аргументов. Коды событий: 1000 выполнено, 1001 неудача, 1002 отказ, 1003 отменено.
+
+Чтобы события показывались без приписки «описание не найдено», один раз зарегистрируйте источник от имени администратора:
+New-EventLog -LogName Application -Source "Amarin Admin AI"
+
+Политика читается при запуске программы.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="DisabledTools">
+        <listBox refId="DisabledToolsList">Инструменты</listBox>
+      </presentation>
+      <presentation id="AllowedProviders">
+        <listBox refId="AllowedProvidersList">Провайдеры</listBox>
+      </presentation>
+      <presentation id="AllowedModels">
+        <listBox refId="AllowedModelsList">Модели</listBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

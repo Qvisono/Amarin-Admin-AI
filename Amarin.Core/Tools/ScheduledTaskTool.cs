@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
@@ -66,9 +67,14 @@ public sealed partial class ScheduledTaskTool : ITool
             var action = (actionProp.GetString() ?? "").Trim().ToLowerInvariant();
             var taskName = ReadString(arguments, "task_name");
 
+            // Чтение — через COM Планировщика (ScheduledTasks), а не текст schtasks: тот приходил в
+            // кодировке консоли, и кириллица в путях и именах задач искажалась.
             if (action == "list")
             {
-                return Task.FromResult(Schtasks(["/query", "/fo", "LIST", "/v"], cancellationToken));
+                return ReadAsync(
+                    () => ToolResult.Ok(ScheduledTasks.FormatList(ScheduledTasks.All())),
+                    TimeSpan.FromSeconds(TimeoutSeconds),
+                    cancellationToken);
             }
 
             if (action == "create")
@@ -90,9 +96,18 @@ public sealed partial class ScheduledTaskTool : ITool
             }
 
             var name = taskName!.Trim();
+            if (action == "query")
+            {
+                return ReadAsync(
+                    () => ScheduledTasks.Find(name) is { } task
+                        ? ToolResult.Ok(ScheduledTasks.FormatOne(task))
+                        : ToolResult.Fail(Loc.Format("S.Tool.Task.NotFound", name)),
+                    TimeSpan.FromSeconds(TimeoutSeconds),
+                    cancellationToken);
+            }
+
             string[]? args = action switch
             {
-                "query" => ["/query", "/tn", name, "/fo", "LIST", "/v"],
                 "run" => ["/run", "/tn", name],
                 "enable" => ["/change", "/tn", name, "/enable"],
                 "disable" => ["/change", "/tn", name, "/disable"],
@@ -205,6 +220,32 @@ public sealed partial class ScheduledTaskTool : ITool
 
         error = "";
         return true;
+    }
+
+    /// <summary>
+    /// Чтение Планировщика через COM — на рабочем потоке, со сроком и с ответом на любую ошибку.
+    /// </summary>
+    /// <remarks>
+    /// У <c>schtasks</c> срок был; вызов COM ждёт службу сколько угодно, и зависшая служба держала
+    /// бы ход агента до перезапуска программы — «Стоп» тоже не помогал бы. А исключение из рабочего
+    /// потока до <c>try</c> в <see cref="ExecuteAsync"/> не доходит, и остановленная служба или
+    /// закрытая задача роняли бы весь шаг агента вместо ответа инструмента.
+    /// </remarks>
+    internal static async Task<ToolResult> ReadAsync(
+        Func<ToolResult> read, TimeSpan limit, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await Task.Run(read, cancellationToken).WaitAsync(limit, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return ToolResult.Fail(Loc.Format("S.Tool.Task.Timeout", (int)limit.TotalSeconds));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            return ToolResult.Fail($"Scheduled task error: {ex.Message}");
+        }
     }
 
     private static ToolResult Schtasks(IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>

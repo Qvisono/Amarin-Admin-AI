@@ -229,15 +229,18 @@ namespace Amarin.UI
             }
 
             ShowJournalBusy();
+            JournalAuditChainText.Visibility = Visibility.Collapsed;
 
             var store = _services.ChatStore;
             List<AuditEntry> entries;
             HashSet<string> alive;
+            AuditChainReport chain;
             try
             {
-                (entries, alive) = await Task.Run(() => (
+                (entries, alive, chain) = await Task.Run(() => (
                         audit.ReadAll(),
-                        store.List().Select(item => item.Id).ToHashSet(StringComparer.Ordinal)))
+                        store.List().Select(item => item.Id).ToHashSet(StringComparer.Ordinal),
+                        audit.VerifyChain()))
                     .ConfigureAwait(true);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -253,6 +256,7 @@ namespace Amarin.UI
 
             // Открытый чат может ещё не лежать на диске — он жив, даже если индекс о нём не знает.
             alive.Add(_session.Id);
+            ShowAuditChain(chain);
 
             var format = ActiveDateFormat;
             _journalRows = entries
@@ -261,6 +265,25 @@ namespace Amarin.UI
                     JournalView.SearchKey(entry)))
                 .ToList();
             ApplyJournalFilter();
+        }
+
+        /// <summary>
+        /// Итог проверки цепочки над списком: «цела» тихим цветом, разрыв — цветом ошибки и с местом.
+        /// </summary>
+        private void ShowAuditChain(AuditChainReport chain)
+        {
+            if (!chain.Started)
+            {
+                JournalAuditChainText.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            JournalAuditChainText.Text = chain.Intact
+                ? Loc.Get("S.Journal.Audit.ChainOk")
+                : Loc.Format("S.Journal.Audit.ChainBroken", chain.BrokenFile ?? "", chain.BrokenLine);
+            JournalAuditChainText.SetResourceReference(
+                TextBlock.ForegroundProperty, chain.Intact ? "Text.Faint" : "Status.Danger");
+            JournalAuditChainText.Visibility = Visibility.Visible;
         }
 
         /// <summary>Выгружает строки аудита, что сейчас в списке, — с поиском это найденное.</summary>

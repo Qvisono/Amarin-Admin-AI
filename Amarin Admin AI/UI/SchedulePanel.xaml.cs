@@ -172,7 +172,9 @@ public partial class SchedulePanel : UserControl
         ApplyKind(job.Kind);
 
         // Галочка мыши видна, только когда управление включено: без него она ничего не значит.
-        ComputerRow.Visibility = _services?.Settings.ComputerControl == true ? Visibility.Visible : Visibility.Collapsed;
+        ComputerRow.Visibility = _services is { } services && ComputerHub.Allowed(services.Settings)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         ComputerToggle.IsChecked = job.Computer;
         DeleteButton.Visibility = string.IsNullOrEmpty(job.Id) ? Visibility.Collapsed : Visibility.Visible;
         ErrorText.Visibility = Visibility.Collapsed;

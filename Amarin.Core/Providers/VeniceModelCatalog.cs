@@ -33,10 +33,19 @@ internal static class VeniceModelCatalog
         model is not null && ModelRef.Of(model.Id) == LlmProvider.OpenRouter &&
         string.Equals(model.Type, "decisions", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Decisions доступны маршрутизатору и SynGuard; остальные слоты ведут разговор.</summary>
-    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot) =>
-        slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
+    /// <summary>
+    /// Модели для поля выбора слота: Decisions доступны маршрутизатору и SynGuard (остальные слоты
+    /// ведут разговор), а модели, запрещённые политикой организации (1.37.0), не видны никому.
+    /// </summary>
+    public static IReadOnlyList<VeniceModelInfo> ForSlot(IReadOnlyList<VeniceModelInfo> models, ModelSlot slot)
+    {
+        var shown = slot is ModelSlot.Router or ModelSlot.SynGuard || !models.Any(IsDecisionModel)
             ? models : [.. models.Where(model => !IsDecisionModel(model))];
+        var policy = OrganizationPolicy.Current;
+        return policy.AllowedModels.Count == 0 && policy.AllowedProviders.Count == 0
+            ? shown
+            : [.. shown.Where(model => policy.AllowsModel(model.Id))];
+    }
 
     public static IReadOnlyList<VeniceModelInfo> FilterAgentic(
         IEnumerable<VeniceModelInfo> models, bool includeDecisions = false)

@@ -102,7 +102,8 @@ public sealed class ApiKeyProvider
                 }
             }
 
-            return all;
+            // Запрещённого политикой организации провайдера человек не видит: ни каталога, ни поиска.
+            return [.. all.Where(spec => OrganizationPolicy.Current.AllowsProvider(spec.Provider))];
         }
     }
 

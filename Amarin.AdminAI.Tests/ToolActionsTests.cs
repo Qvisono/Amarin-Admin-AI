@@ -63,6 +63,7 @@ public sealed class ToolActionsTests
     [InlineData("network", "wifi_profiles")]
     [InlineData("filesystem", "search")]
     [InlineData("startup_programs", "status")]
+    [InlineData("startup_programs", "audit")]
     public void The_new_reading_actions_stay_reads(string tool, string action)
     {
         // Иначе в режиме «только чтение» поиск файлов и трассировка перестали бы работать.
@@ -435,5 +436,75 @@ public sealed class ToolActionsTests
 
         Assert.ThrowsAny<OperationCanceledException>(() => FileSearch.Run(
             new FileSearchQuery(Path.GetTempPath(), "*", null, null, null, null, 10, 0), cts.Token));
+    }
+
+    // ───────────────────────── Планировщик и аудит через COM и WMI ─────────────────────────
+
+    /// <summary>Оба входа, что ждут службу Windows без своего срока: Планировщик и аудит автозапуска.</summary>
+    public static TheoryData<string> BoundedReads => ["scheduled_task", "startup_programs"];
+
+    private static Task<ToolResult> Bounded(string tool, Func<ToolResult> read, TimeSpan limit, CancellationToken token) =>
+        tool == "scheduled_task"
+            ? ScheduledTaskTool.ReadAsync(read, limit, token)
+            : StartupProgramsTool.AuditAsync(read, limit, token);
+
+    [Theory]
+    [MemberData(nameof(BoundedReads))]
+    public async Task A_stuck_windows_service_ends_in_a_refusal_not_an_endless_wait(string tool)
+    {
+        // Зависшая служба: до правки вызов ждал её вечно, и ход агента стоял до перезапуска.
+        using var stuck = new ManualResetEventSlim();
+        try
+        {
+            var result = await Bounded(tool, () =>
+            {
+                stuck.Wait();
+                return ToolResult.Ok("late");
+            }, TimeSpan.FromMilliseconds(200), CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.DoesNotContain("late", result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            stuck.Set();
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(BoundedReads))]
+    public async Task A_failing_windows_service_is_an_answer_not_a_crashed_agent_step(string tool)
+    {
+        // Остановленная служба и закрытая задача бросают из рабочего потока; раньше это роняло шаг агента.
+#pragma warning disable CA2201 // Подделка ответа службы: COM бросает именно его.
+        var stopped = await Bounded(tool, () => throw new System.Runtime.InteropServices.COMException("service is stopped"),
+#pragma warning restore CA2201
+            TimeSpan.FromSeconds(10), CancellationToken.None);
+        var denied = await Bounded(tool, () => throw new UnauthorizedAccessException("access denied"),
+            TimeSpan.FromSeconds(10), CancellationToken.None);
+
+        Assert.False(stopped.Success);
+        Assert.Contains("service is stopped", stopped.Output, StringComparison.Ordinal);
+        Assert.False(denied.Success);
+    }
+
+    [Theory]
+    [MemberData(nameof(BoundedReads))]
+    public async Task The_stop_button_ends_the_wait_for_a_stuck_service(string tool)
+    {
+        using var stuck = new ManualResetEventSlim();
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        try
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Bounded(tool, () =>
+            {
+                stuck.Wait();
+                return ToolResult.Ok("late");
+            }, TimeSpan.FromMinutes(5), cts.Token));
+        }
+        finally
+        {
+            stuck.Set();
+        }
     }
 }

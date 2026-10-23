@@ -94,6 +94,15 @@ public sealed class DataBundleImporter
     internal SpendLedger? LiveLedger { get; init; }
 
     /// <summary>
+    /// Живой журнал аудита открытого профиля: строки архива дописываются через него, под его
+    /// замком (1.37.0). Свой экземпляр на ту же папку писал бы мимо замка программы, и строка,
+    /// которую программа пишет в ту же секунду, терялась бы на совместном доступе к файлу — а с
+    /// цепочкой хешей две записи ещё и сослались бы на один хвост. Null — журнал не открыт
+    /// (тесты, импорт без окна), и годится новый на ту же папку.
+    /// </summary>
+    internal AuditLog? LiveAudit { get; init; }
+
+    /// <summary>
     /// Читает одну только опись. Не бросает: чужой или битый файл — обычный ответ, а не авария.
     /// </summary>
     public DataBundleInspection Inspect(string archivePath)
@@ -399,6 +408,7 @@ public sealed class DataBundleImporter
             mode,
             isNewProfile: false,
             LiveLedger ?? new SpendLedger(activeRoot),
+            LiveAudit,
             state,
             cancellationToken);
 
@@ -417,6 +427,7 @@ public sealed class DataBundleImporter
                     mode,
                     isNewProfile: true,
                     new SpendLedger(root),
+                    liveAudit: null,
                     state,
                     cancellationToken);
             }
@@ -557,6 +568,7 @@ public sealed class DataBundleImporter
         DataImportMode mode,
         bool isNewProfile,
         SpendLedger ledger,
+        AuditLog? liveAudit,
         ImportState state,
         CancellationToken cancellationToken)
     {
@@ -609,7 +621,7 @@ public sealed class DataBundleImporter
 
         if (categories.HasFlag(DataCategory.Audit))
         {
-            ApplyAudit(Path.Combine(source, "audit"), targetRoot, state);
+            ApplyAudit(Path.Combine(source, "audit"), targetRoot, liveAudit, state);
         }
     }
 
@@ -621,7 +633,8 @@ public sealed class DataBundleImporter
     /// этой машине, — ровно то, от чего журнал и заведён. Повторы отсекаются по номеру строки,
     /// поэтому тот же архив, импортированный дважды, ничего не удвоит. Битая строка пропускается.
     /// </remarks>
-    private static void ApplyAudit(string source, string targetRoot, ImportState state)
+    /// <param name="liveAudit">Живой журнал профиля (<see cref="LiveAudit"/>); null — свой экземпляр.</param>
+    private static void ApplyAudit(string source, string targetRoot, AuditLog? liveAudit, ImportState state)
     {
         if (!Directory.Exists(source))
         {
@@ -642,6 +655,14 @@ public sealed class DataBundleImporter
                     state.Skipped++;
                 }
             }
+        }
+
+        if (liveAudit is not null)
+        {
+            // Шифрует он по настройкам своего профиля — тем же, что и здесь: шифрование из архива
+            // в существующий профиль не приезжает.
+            liveAudit.Merge(incoming);
+            return;
         }
 
         var encrypt = EncryptsAtRest(targetRoot);
@@ -835,11 +856,13 @@ public sealed class DataBundleImporter
         // Управление компьютером мышью — решение этой машины, по тому же правилу.
         incoming.ComputerControl = mine.ComputerControl;
 
-        // 1.37.0: браузер агента, загрузка с любого сайта и приватность OpenRouter — защита этой
-        // машины, по тому же правилу: чужой архив не должен ни открыть их, ни снять.
+        // 1.37.0: браузер агента, загрузка с любого сайта, приватность OpenRouter и копия аудита
+        // в журнал Windows — защита этой машины, по тому же правилу: чужой архив не должен ни
+        // открыть их, ни снять.
         incoming.AgentBrowser = mine.AgentBrowser;
         incoming.DownloadAnySite = mine.DownloadAnySite;
         incoming.OpenRouterNoRetention = mine.OpenRouterNoRetention;
+        incoming.AuditToWindowsLog = mine.AuditToWindowsLog;
 
         store.Save(incoming);
         state.SettingsChanged = true;

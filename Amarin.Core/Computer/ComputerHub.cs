@@ -17,4 +17,14 @@ internal sealed class ComputerHub(IComputer port)
     public IComputerStage? Stage { get; set; }
 
     public ComputerAccess? Access() => Stage is { } stage ? new ComputerAccess(Port, stage) : null;
+
+    /// <summary>
+    /// Разрешено ли агенту управление мышью: галочка человека и нет запрета организации (1.37.0).
+    /// </summary>
+    /// <remarks>
+    /// Одно правило на все места, где решается доступ (выдача инструмента, правило маршрутизатору,
+    /// промпт чата, расписание): прочитай одно из них галочку напрямую — и запрет политики обошли бы.
+    /// </remarks>
+    public static bool Allowed(AppSettings settings) =>
+        settings.ComputerControl && !OrganizationPolicy.Current.DisableComputerControl;
 }

@@ -488,8 +488,10 @@ namespace Amarin.UI
                 _fox?.BeginImport();
                 _services.ChatStore.Flush();
                 var ledger = _services.Ledger;
+                var audit = _services.Audit;
                 result = await Task.Run(() =>
-                    new DataBundleImporter(root, profileId) { LiveLedger = ledger }.Apply(archive, chosen, mode));
+                    new DataBundleImporter(root, profileId) { LiveLedger = ledger, LiveAudit = audit }
+                        .Apply(archive, chosen, mode));
             }
             finally
             {

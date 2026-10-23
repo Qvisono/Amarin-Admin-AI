@@ -82,7 +82,7 @@ namespace Amarin.UI
 
         /// <summary>Может ли этот прогон взять мышь: галочка, печать и управление в «Безопасности».</summary>
         internal static bool UsesComputer(AppServices services, ScheduledJob job) =>
-            job.Computer && services.Settings.ComputerControl && services.Deferred.VerifyJob(job);
+            job.Computer && ComputerHub.Allowed(services.Settings) && services.Deferred.VerifyJob(job);
 
         /// <summary>Заготовка чата прогона: задание от человека и ответ с блоком агента.</summary>
         internal static ChatSession BuildScheduleChat(

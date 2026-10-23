@@ -1,15 +1,21 @@
 using System.Runtime.Versioning;
 using System.Text.Json;
+using Amarin.Core;
 
 namespace Amarin.Tools;
 
 [SupportedOSPlatform("windows")]
 public sealed class StartupProgramsTool : ITool
 {
+    private const int AuditTimeoutSeconds = 180;
+
     public string Name => "startup_programs";
     public string Description =>
         "Windows autostart programs: list them (status shows each item's location, name and whether it is " +
         "enabled) and disable or enable an item the way Task Manager does - the entry itself is kept. " +
+        "audit checks everything that starts automatically (services, scheduled tasks, Run keys, startup " +
+        "folders, WMI subscriptions, browser extensions) and lists only the risks: files without a valid " +
+        "signature or in places an ordinary user can write to, extensions not from the store. " +
         "disable/enable require user confirmation.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
@@ -18,7 +24,7 @@ public sealed class StartupProgramsTool : ITool
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["list_all", "wmi", "registry", "folders", "status", "disable", "enable"],
+              "enum": ["list_all", "wmi", "registry", "folders", "status", "audit", "disable", "enable"],
               "description": "Startup action"
             },
             "name": {
@@ -47,6 +53,11 @@ public sealed class StartupProgramsTool : ITool
         {
             case "status":
                 return Task.FromResult(ToolResult.Ok(StartupApproval.Format(StartupApproval.List())));
+            case "audit":
+                return AuditAsync(
+                    () => ToolResult.Ok(AutostartAudit.ForThisMachine().Run(cancellationToken)),
+                    TimeSpan.FromSeconds(AuditTimeoutSeconds),
+                    cancellationToken);
             case "disable" or "enable":
                 return Task.FromResult(SetEnabled(arguments, enable: action == "enable"));
         }
@@ -63,6 +74,33 @@ public sealed class StartupProgramsTool : ITool
         return script is null
             ? Task.FromResult(ToolResult.Fail($"Unknown action: {action}"))
             : PowerShellHelper.RunAsync(script, 120, cancellationToken);
+    }
+
+    /// <summary>
+    /// Аудит — на рабочем потоке (сотни подписей и списков доступа), со сроком и с ответом на
+    /// любую ошибку.
+    /// </summary>
+    /// <remarks>
+    /// Запросы к WMI и Планировщику ждут свою службу сколько угодно: без срока зависшая служба
+    /// держала бы ход агента до перезапуска программы. А исключение из рабочего потока, не
+    /// пойманное по источникам, уронило бы весь шаг агента вместо ответа инструмента. Срок больше,
+    /// чем у прочих действий (120 с): аудит проверяет ещё и каждый файл.
+    /// </remarks>
+    internal static async Task<ToolResult> AuditAsync(
+        Func<ToolResult> audit, TimeSpan limit, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await Task.Run(audit, cancellationToken).WaitAsync(limit, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            return ToolResult.Fail(Loc.Format("S.Tool.Startup.AuditTimeout", (int)limit.TotalSeconds));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
+        {
+            return ToolResult.Fail($"Autostart audit error: {ex.Message}");
+        }
     }
 
     private static ToolResult SetEnabled(JsonElement arguments, bool enable)

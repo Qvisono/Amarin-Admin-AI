@@ -2128,6 +2128,10 @@
                             <!-- Выгружается то, что в списке: с поиском — найденное, без него — всё. -->
                             <StackPanel x:Name="JournalAuditExportPanel" Orientation="Horizontal"
                                         HorizontalAlignment="Right" Visibility="Collapsed">
+                                <!-- Цепочка хешей (1.37.0): цела или где разорвана. Пока цепочки нет — пусто. -->
+                                <TextBlock x:Name="JournalAuditChainText" FontSize="12" VerticalAlignment="Center"
+                                           Margin="0,0,4,0" Visibility="Collapsed"
+                                           Foreground="{DynamicResource Text.Faint}"/>
                                 <Button x:Name="JournalAuditCsvButton" Style="{StaticResource JournalChipButton}"
                                         Content="{DynamicResource S.Journal.Audit.ExportCsv}"
                                         Click="JournalAuditCsvButton_Click"/>
