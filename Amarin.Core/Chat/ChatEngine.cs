@@ -271,10 +271,37 @@ internal sealed partial class ChatEngine
           reasons are its own view rather than facts, call agent_refused to give its task to a
           stronger model. When no stronger model is left, tell the user the agent's reasons. The
           agent's refusal is not yours: never call i_refuse for it.
-        - The agent stays available until your answer is complete. When its report is wrong,
-          incomplete or unclear, ask it or correct it with message_agent instead of starting a new
-          agent.
+        - When the agent's report is wrong, incomplete or unclear, ask it or correct it with
+          message_agent instead of starting a new agent.
         """;
+
+    /// <summary>
+    /// Сколько живёт агент (1.37.0) — по настройке <see cref="AppSettings.AgentMemory"/>.
+    /// Дописывается в <see cref="BuildSystemPrompt"/>, а не в описание <c>message_agent</c>:
+    /// описание инструмента собирается один раз, а настройку человек меняет, пока программа идёт.
+    /// </summary>
+    internal static string AgentLifetimeRules(AgentMemory mode) => mode switch
+    {
+        AgentMemory.Answer => """
+            AGENT LIFETIME
+            An agent you start stays available for message_agent and agent_refused until your answer
+            is complete. In a later answer start a new agent and give it everything it needs.
+            """,
+        AgentMemory.Chat => """
+            AGENT LIFETIME
+            An agent you start stays available for message_agent and agent_refused in this chat, in
+            your later answers too and after the app restarts: its id is at the start of its report.
+            When an earlier agent already holds the context a new request needs, write to it instead
+            of starting a new agent.
+            """,
+        _ => """
+            AGENT LIFETIME
+            An agent you start stays available for message_agent and agent_refused in this chat, in
+            your later answers too, until the app closes: its id is at the start of its report. When
+            an earlier agent already holds the context a new request needs, write to it instead of
+            starting a new agent.
+            """
+    };
 
     /// <summary>
     /// Как писать формулы. Дописывается к техническому промпту в <see cref="BuildSystemPrompt"/>.
@@ -435,6 +462,15 @@ internal sealed partial class ChatEngine
     /// видела текстом — его можно править сразу, не перечитывая. Null — отметок нет.
     /// </summary>
     internal FileToolState? Files { get; init; }
+
+    /// <summary>
+    /// Откуда ход берёт агентов, которым чат пишет (1.37.0). <c>null</c> — свои на каждый ответ,
+    /// как в 1.36.0; на этом стоят тесты, где движок собирают руками.
+    /// </summary>
+    internal AgentMemoryBook? AgentBook { get; init; }
+
+    private AgentConversations AgentsFor(ChatSession session) =>
+        AgentBook?.For(session, _settings().AgentMemory) ?? new AgentConversations();
 
     private void NoteAttachmentsRead(ChatSession session, IReadOnlyList<FileAttachment>? documents)
     {
@@ -656,7 +692,8 @@ internal sealed partial class ChatEngine
             RequestedModelId = requested,
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
-            Reasoning = session.Reasoning
+            Reasoning = session.Reasoning,
+            Agents = AgentsFor(session)
         };
         using var turnScope = VeniceTurnScope.Push(turn);
 
@@ -835,7 +872,8 @@ internal sealed partial class ChatEngine
             RequestedModelId = requested,
             ModelId = requested,
             Credential = KeyFor(requested, ReadSelectedKey(session)),
-            Reasoning = session.Reasoning
+            Reasoning = session.Reasoning,
+            Agents = AgentsFor(session)
         };
 
         var assistant = into ?? new ChatDisplayMessage
@@ -901,7 +939,8 @@ internal sealed partial class ChatEngine
                 ? ResolveAutoReasoning(resolved)
                 : session.Reasoning,
             RouterCost = assistant.RouterCost,
-            ElapsedBefore = assistant.Duration
+            ElapsedBefore = assistant.Duration,
+            Agents = AgentsFor(session)
         };
 
         // ApplyCosts — пересчёт, а не прибавление: без возврата уже списанного строка «Модель»

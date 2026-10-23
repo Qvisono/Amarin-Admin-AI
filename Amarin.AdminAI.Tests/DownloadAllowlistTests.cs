@@ -231,3 +231,66 @@ public sealed class WebDownloadToolAllowlistTests : IDisposable
             throw new InvalidOperationException("network must not be reached");
     }
 }
+
+/// <summary>
+/// У каждого профиля свой белый список загрузок: смена профиля перечитывает его вместе с
+/// «загрузкой с любого сайта». До этого действовал список прежнего профиля до перезапуска.
+/// </summary>
+[Collection("DownloadValidator")]
+public sealed class DownloadAllowlistPerProfileTests : IDisposable
+{
+    private readonly string[] _saved = [.. DownloadValidator.AllowedDomains];
+    private readonly bool _savedAny = DownloadValidator.AllowAnySite;
+    private readonly string _first = Path.Combine(Path.GetTempPath(), "amarin-allow-" + Guid.NewGuid().ToString("N"));
+    private readonly string _second = Path.Combine(Path.GetTempPath(), "amarin-allow-" + Guid.NewGuid().ToString("N"));
+
+    public void Dispose()
+    {
+        DownloadValidator.ConfigureAllowedDomains(_saved);
+        DownloadValidator.ConfigureAnySite(_savedAny);
+        foreach (var root in new[] { _first, _second })
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Временная папка — уберёт система.
+            }
+        }
+    }
+
+    [Fact]
+    public void Switching_the_profile_takes_its_own_allowlist_and_any_site_switch()
+    {
+        Directory.CreateDirectory(_second);
+        new AppSettingsStore(_second).Save(new AppSettings { DownloadAllowedDomains = ["example.net"], DownloadAnySite = false });
+        new AppSettingsStore(_first).Save(new AppSettings { DownloadAllowedDomains = ["github.com"], DownloadAnySite = true });
+        using var services = UiServices.Build(_first, "k", new HttpClientHandler());
+        services.OwnsProcessWide = true;
+        DownloadValidator.Configure(services.Settings);
+        Assert.True(DownloadValidator.IsDomainAllowed("files.example.org"));
+
+        services.UseProfile(_second);
+
+        Assert.Equal(["example.net"], DownloadValidator.AllowedDomains);
+        Assert.False(DownloadValidator.AllowAnySite);
+        Assert.False(DownloadValidator.IsDomainAllowed("github.com"));
+        Assert.True(DownloadValidator.IsDomainAllowed("files.example.net"));
+    }
+
+    /// <summary>Службы тестов окна статику не держат: их смена профиля её не трогает.</summary>
+    [Fact]
+    public void Services_that_do_not_own_the_process_wide_state_leave_it_alone()
+    {
+        Directory.CreateDirectory(_second);
+        new AppSettingsStore(_second).Save(new AppSettings { DownloadAllowedDomains = ["example.net"] });
+        using var services = UiServices.Build(_first, "k", new HttpClientHandler());
+        DownloadValidator.ConfigureAllowedDomains(["github.com"]);
+
+        services.UseProfile(_second);
+
+        Assert.Equal(["github.com"], DownloadValidator.AllowedDomains);
+    }
+}

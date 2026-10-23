@@ -58,6 +58,25 @@
         </DrawingImage.Drawing>
     </DrawingImage>
 
+    <!--
+        Ветка в новый чат (1.37.0): ствол с двумя узлами и ветвь, уходящая дугой к третьему, — знак
+        ответвления, как у систем контроля версий. Обводка чуть толще корзины: линий у ветки меньше,
+        и с той же толщиной она выглядела светлее соседей. Размер подгоняет поле кнопки
+        (ChatMessageViews.IconAction), как у корзины.
+    -->
+    <DrawingImage x:Key="Branch">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
+                <GeometryDrawing Geometry="F1 M24,24z M0,0z M6.5,2.5 A2.5,2.5 0 1 1 6.5,7.5 A2.5,2.5 0 1 1 6.5,2.5 Z M6.5,16.5 A2.5,2.5 0 1 1 6.5,21.5 A2.5,2.5 0 1 1 6.5,16.5 Z M17.5,5 A2.5,2.5 0 1 1 17.5,10 A2.5,2.5 0 1 1 17.5,5 Z M6.5,7.5 L6.5,16.5 M17.5,10 C17.5,15.2 13.6,19 9,19">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="White" Thickness="2.4" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+
     <DrawingImage x:Key="Compress">
         <DrawingImage.Drawing>
             <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
@@ -181,7 +200,7 @@
             <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
                 <GeometryDrawing Geometry="F1 M24,24z M0,0z M10.2,3.6 C7.2,3.6 7.9,6.4 7.9,9.3 C7.9,11.2 5.9,11.6 4.2,12 C5.9,12.4 7.9,12.8 7.9,14.7 C7.9,17.6 7.2,20.4 10.2,20.4 M13.8,3.6 C16.8,3.6 16.1,6.4 16.1,9.3 C16.1,11.2 18.1,11.6 19.8,12 C18.1,12.4 16.1,12.8 16.1,14.7 C16.1,17.6 16.8,20.4 13.8,20.4">
                     <GeometryDrawing.Pen>
-                        <Pen Brush="White" Thickness="2.1" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
+                        <Pen Brush="White" Thickness="2.5" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" MiterLimit="1" />
                     </GeometryDrawing.Pen>
                 </GeometryDrawing>
             </DrawingGroup>

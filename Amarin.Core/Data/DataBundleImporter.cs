@@ -793,6 +793,11 @@ public sealed class DataBundleImporter
             // Управление компьютером включают на этой машине, а не в чужом файле: с ним снимки
             // экрана уходят провайдеру модели, и уведомление об этом человек должен увидеть сам.
             incoming.ComputerControl = false;
+
+            // Браузер агента и загрузка с любого сайта (1.37.0) — по тому же правилу: первое
+            // отдаёт страницы провайдеру модели, второе выключает белый список загрузок.
+            incoming.AgentBrowser = false;
+            incoming.DownloadAnySite = false;
             store.Save(incoming);
             state.SettingsChanged = true;
             return;
@@ -829,6 +834,12 @@ public sealed class DataBundleImporter
 
         // Управление компьютером мышью — решение этой машины, по тому же правилу.
         incoming.ComputerControl = mine.ComputerControl;
+
+        // 1.37.0: браузер агента, загрузка с любого сайта и приватность OpenRouter — защита этой
+        // машины, по тому же правилу: чужой архив не должен ни открыть их, ни снять.
+        incoming.AgentBrowser = mine.AgentBrowser;
+        incoming.DownloadAnySite = mine.DownloadAnySite;
+        incoming.OpenRouterNoRetention = mine.OpenRouterNoRetention;
 
         store.Save(incoming);
         state.SettingsChanged = true;

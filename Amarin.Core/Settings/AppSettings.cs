@@ -474,6 +474,49 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// </remarks>
     public bool ComputerControl { get; set; }
 
+    /// <summary>
+    /// Встроенный браузер агента на WebView2 (1.37.0). Заводская — нет.
+    /// </summary>
+    /// <remarks>
+    /// По образцу <see cref="ComputerControl"/>: текст страниц и снимки уходят провайдеру модели,
+    /// а нажимает агент на настоящих сайтах человека. Из чужого архива не приезжает ни в какой
+    /// профиль (<c>DataBundleImporter</c>).
+    /// </remarks>
+    public bool AgentBrowser { get; set; }
+
+    /// <summary>
+    /// OpenRouter: только провайдеры, которые не хранят запросы и не учат на них модели (1.37.0).
+    /// </summary>
+    /// <remarks>
+    /// Уходит в каждый запрос к OpenRouter полем <c>provider</c> (<c>zdr</c> и
+    /// <c>data_collection: deny</c>). Настройка защиты: в существующий профиль из чужого архива
+    /// не приезжает.
+    /// </remarks>
+    public bool OpenRouterNoRetention { get; set; }
+
+    /// <summary>
+    /// Загрузка с любого сайта: белый список загрузок не проверяется (1.37.0). Заводская — нет.
+    /// </summary>
+    /// <remarks>
+    /// Сам список остаётся в <see cref="DownloadAllowedDomains"/> и снова действует, как только
+    /// переключатель выключат. Из чужого архива не приезжает ни в какой профиль.
+    /// </remarks>
+    public bool DownloadAnySite { get; set; }
+
+    /// <summary>
+    /// Временный чат живёт до закрытия программы (1.37.0). Выключено — исчезает, как только
+    /// человек уходит из него в другой чат.
+    /// </summary>
+    public bool TemporaryChatsUntilClose { get; set; } = true;
+
+    /// <summary>Сколько живёт разговор чата с агентом (1.37.0).</summary>
+    /// <remarks>
+    /// До 1.37.0 разговор кончался вместе с ответом, в котором агента запустили; теперь это
+    /// <see cref="AgentMemory.Answer"/>. Заводское — пока открыта программа: так чат может
+    /// написать агенту прошлого ответа, а на диск история агентов не ложится.
+    /// </remarks>
+    public AgentMemory AgentMemory { get; set; } = AgentMemory.Session;
+
     /// <summary>Лисёнок Роза (1.35.0): показывать ли, размер, шалости, что он читает.</summary>
     public FoxSettings Fox { get; set; } = new();
 

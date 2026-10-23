@@ -313,6 +313,7 @@ internal static class ChatShareCodec
             SelectedModelId = session.SelectedModelId,
             DisableThinking = session.DisableThinking,
             ReasoningEffort = session.ReasoningEffort,
+            ModelSpeed = session.ModelSpeed,
             Messages = kept,
             ApiMessages = api
         };

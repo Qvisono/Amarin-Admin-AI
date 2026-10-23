@@ -14,6 +14,9 @@ public sealed class ReasoningChoiceChangedEventArgs : EventArgs
     public required bool DisableThinking { get; init; }
 
     public required string? Effort { get; init; }
+
+    /// <summary>Скорость модели (1.37.0, <see cref="ModelSpeeds"/>); пусто — обычная.</summary>
+    public string? Speed { get; init; }
 }
 
 public partial class ReasoningPicker : UserControl
@@ -33,10 +36,12 @@ public partial class ReasoningPicker : UserControl
             new PropertyMetadata(false, OnShowGaugeIconChanged));
 
     private readonly string _chipGroup = "ReasoningEffort_" + Guid.NewGuid().ToString("N");
+    private readonly string _speedGroup = "ModelSpeed_" + Guid.NewGuid().ToString("N");
     private IReadOnlyList<VeniceModelInfo> _catalog = [];
     private string _modelId = "";
     private bool _disableThinking = true;
     private string? _effort;
+    private string? _speed;
     private bool _autoMode;
     private bool _withTools = true;
     private bool _suppress;
@@ -71,6 +76,8 @@ public partial class ReasoningPicker : UserControl
 
     public string? Effort => _effort;
 
+    public string? Speed => _speed;
+
     public event EventHandler<ReasoningChoiceChangedEventArgs>? ChoiceChanged;
 
     public void SetChoice(bool disableThinking, string? effort)
@@ -98,12 +105,13 @@ public partial class ReasoningPicker : UserControl
     /// пересчётом спидометра и списка сил. Вызывали их подряд по два-три: открытие чата и
     /// страница настроек с девятью пикерами платили за лишние перестройки каждый раз.
     /// </remarks>
-    public void SetState(string? modelId, bool autoMode, bool disableThinking, string? effort)
+    public void SetState(string? modelId, bool autoMode, bool disableThinking, string? effort, string? speed = null)
     {
         _modelId = modelId ?? "";
         _autoMode = autoMode;
         _disableThinking = disableThinking;
         _effort = string.IsNullOrWhiteSpace(effort) ? null : effort.Trim();
+        _speed = string.IsNullOrWhiteSpace(speed) ? null : speed.Trim();
         Refresh(raise: false);
     }
 
@@ -149,12 +157,26 @@ public partial class ReasoningPicker : UserControl
         Refresh(raise: false);
     }
 
+    private void SpeedChip_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_suppress || sender is not RadioButton { Tag: string speed })
+        {
+            return;
+        }
+
+        // Обычная скорость — отсутствие уровня: так её и пишут настройки, и тело запроса.
+        _speed = speed.Length == 0 ? null : speed;
+        Raise();
+        Refresh(raise: false);
+    }
+
     private void Raise()
     {
         ChoiceChanged?.Invoke(this, new ReasoningChoiceChangedEventArgs
         {
             DisableThinking = _disableThinking,
-            Effort = _effort
+            Effort = _effort,
+            Speed = _speed
         });
     }
 
@@ -164,8 +186,13 @@ public partial class ReasoningPicker : UserControl
         try
         {
             var model = CurrentModel();
-            var choice = new ReasoningChoice(_disableThinking, _effort);
+            var choice = new ReasoningChoice(_disableThinking, _effort, _speed);
             LabelText = ReasoningPolicy.ButtonText(choice, model, _autoMode, _withTools);
+            if (!_autoMode && ModelSpeeds.Pick(choice, _modelId) is { } speed)
+            {
+                LabelText += " · " + ModelSpeeds.Label(speed);
+            }
+
             OpenButton?.ApplyTemplate();
             if (OpenButton?.Template.FindName("Label", OpenButton) is TextBlock buttonLabel)
             {
@@ -220,6 +247,7 @@ public partial class ReasoningPicker : UserControl
             }
 
             RebuildChips(options, model);
+            RebuildSpeedChips();
         }
         finally
         {
@@ -260,6 +288,53 @@ public partial class ReasoningPicker : UserControl
             };
             chip.Checked += EffortChip_Checked;
             EffortHost.Children.Add(chip);
+        }
+    }
+
+    /// <summary>
+    /// Скорость (1.37.0): только у моделей, которые её умеют (<see cref="ModelSpeeds"/>), и не под
+    /// «Авто» — там модель выбирает маршрутизатор, а скорость берётся из слотов на странице «Модели».
+    /// </summary>
+    private void RebuildSpeedChips()
+    {
+        if (SpeedHost is null || SpeedCaption is null)
+        {
+            return;
+        }
+
+        SpeedHost.Children.Clear();
+        IReadOnlyList<string> speeds = _autoMode ? [] : ModelSpeeds.For(_modelId);
+        var visibility = speeds.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        SpeedCaption.Visibility = visibility;
+        SpeedHost.Visibility = visibility;
+        if (speeds.Count == 0)
+        {
+            return;
+        }
+
+        var selected = ModelSpeeds.Pick(new ReasoningChoice(_disableThinking, _effort, _speed), _modelId) ?? "";
+
+        // Обычная — после экономной: чипы идут по возрастанию скорости и цены.
+        var options = new List<string>();
+        if (speeds.Contains(ModelSpeeds.Flex))
+        {
+            options.Add(ModelSpeeds.Flex);
+        }
+
+        options.Add("");
+        options.AddRange(speeds.Where(speed => speed != ModelSpeeds.Flex));
+        foreach (var option in options)
+        {
+            var chip = new RadioButton
+            {
+                Style = (Style)FindResource("EffortChip"),
+                GroupName = _speedGroup,
+                Content = ModelSpeeds.Label(option),
+                Tag = option,
+                IsChecked = option == selected
+            };
+            chip.Checked += SpeedChip_Checked;
+            SpeedHost.Children.Add(chip);
         }
     }
 

@@ -59,10 +59,10 @@ internal sealed class VeniceTurnContext
     public TimeSpan ElapsedBefore { get; set; }
 
     /// <summary>
-    /// Агенты этого хода, которым чат может написать после отчёта (<c>message_agent</c>,
-    /// <c>agent_refused</c>). На ходе — значит, разговор кончается вместе с ответом.
+    /// Агенты, которым чат может написать после отчёта (<c>message_agent</c>,
+    /// <c>agent_refused</c>). Свои на ход или общие на чат — решает <see cref="AgentMemoryBook"/>.
     /// </summary>
-    public AgentConversations Agents { get; } = new();
+    public AgentConversations Agents { get; init; } = new();
 
     /// <summary>Сколько ход потратил. Под замком: инструменты раунда идут параллельно.</summary>
     public VeniceCost Total

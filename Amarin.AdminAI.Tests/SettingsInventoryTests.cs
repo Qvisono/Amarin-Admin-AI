@@ -61,7 +61,7 @@ public sealed class SettingsInventoryTests
             "AgentHeavyModelPicker", "AgentHeavyReasoningPicker",
             "TitleModelPicker", "TitleReasoningPicker", "SummaryModelPicker", "SummaryReasoningPicker",
             "FoxModelPicker", "FoxReasoningPicker", "WebSearchField", "BypassModelPicker", "BypassReasoningPicker",
-            "FoxLinkRow", "FoxSettings"
+            "FoxLinkRow", "FoxSettings", "AgentMemoryCombo"
         ]),
         ("NavPrompts",
         [
@@ -77,7 +77,9 @@ public sealed class SettingsInventoryTests
             "Security:SynGuardReasoningPicker", "Security:SynGuardModelPicker",
             "Security:PlanLiteToggle", "Security:PlanFastToggle", "Security:PlanHeavyToggle",
             "Security:ComputerControlToggle", "Security:EncryptChatsToggle", "Security:ToolsLinkRow", "Security:EnableAllToolsButton",
-            "Security:SourcesLinkRow", "Security:AddDomainButton", "Security:AllowedDomainsList"
+            "Security:SourcesLinkRow", "Security:AddDomainButton", "Security:AllowedDomainsList",
+            "Security:AgentBrowserToggle", "Security:NoRetentionToggle", "Security:TemporaryUntilCloseToggle",
+            "Security:DownloadAnySiteToggle"
         ]),
         ("NavKey", ["Key:AddKeyButton", "Key:LimitsLinkRow", "Key:LimitsBlock"]),
         ("NavData",

@@ -89,10 +89,17 @@ internal sealed partial class ChatEngine
 
         parts.Add(tech);
         parts.Add(TaskRules);
+        parts.Add(AgentLifetimeRules(settings.AgentMemory));
         parts.Add(FormulaRules);
         parts.Add(FileRules);
         parts.Add(DeferredRules);
         parts.Add(settings.ComputerControl ? ComputerRules : ComputerOffRules);
+
+        // Браузер агента (1.37.0) — блоком здесь, а не в описании init_agent: то собирается один раз.
+        if (settings.AgentBrowser)
+        {
+            parts.Add(BrowserPrompt.ChatRules);
+        }
 
         // Команды «/» (D9) — из того же списка, что и подсказка у поля: модель может назвать
         // нужную, а сохранённые техпромпты не отстают, потому что строка дописывается здесь.

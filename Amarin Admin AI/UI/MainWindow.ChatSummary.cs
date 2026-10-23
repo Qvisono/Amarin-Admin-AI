@@ -22,7 +22,8 @@ namespace Amarin.UI
         /// <summary>Ответ закрыт — дописываем сводку тем, что в нём было сказано.</summary>
         private void MaybeUpdateSummary(ChatSession session)
         {
-            if (_services is null || session.Messages.Count == 0)
+            // Сводка нужна поиску, а временный чат в поиск не попадает (1.37.0): платить не за что.
+            if (_services is null || session.Messages.Count == 0 || session.IsTemporary)
             {
                 return;
             }
@@ -291,7 +292,9 @@ namespace Amarin.UI
 
             if (!_searchByContent || string.IsNullOrWhiteSpace(query))
             {
-                return _services.ChatStore.Search(query);
+                // Временные (1.37.0) — только в полном списке: поиск их не видит.
+                var stored = _services.ChatStore.Search(query);
+                return string.IsNullOrWhiteSpace(query) ? [.. _temporaryChats.Entries(), .. stored] : stored;
             }
 
             if (_contentSearchIds is null)

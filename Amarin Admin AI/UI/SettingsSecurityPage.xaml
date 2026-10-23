@@ -157,25 +157,20 @@
                                       Style="{StaticResource SettingsToggle}"
                                       Checked="ComputerControlToggle_Changed" Unchecked="ComputerControlToggle_Changed"/>
                         </Grid>
-                    </StackPanel>
-                </Border>
-
-                <!-- ═══════════ ПРИВАТНОСТЬ ═══════════ -->
-                <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Security.DataLabel}"/>
-                <Border Style="{StaticResource SettingsGroup}">
-                    <StackPanel>
+                        <!-- Браузер агента (1.37.0): рядом с мышью — то же разрешение, только для сайтов. -->
+                        <Border Style="{StaticResource GroupDivider}"/>
                         <Grid Style="{StaticResource GroupRow}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
-                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Browser}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.BrowserDesc}"/>
                             </StackPanel>
-                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1"
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Browser}" x:Name="AgentBrowserToggle" Grid.Column="1"
                                       Style="{StaticResource SettingsToggle}"
-                                      Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
+                                      Checked="AgentBrowserToggle_Changed" Unchecked="AgentBrowserToggle_Changed"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -186,6 +181,16 @@
                 -->
                 <Border Style="{StaticResource SettingsGroup}">
                     <StackPanel>
+                        <!-- Приватность (1.37.0): шифрование, провайдеры без хранения данных, временный чат. -->
+                        <Button x:Name="PrivacyLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
+                                local:SettingsDrill.Opens="{Binding ElementName=PrivacySub}"
+                                AutomationProperties.Name="{DynamicResource S.Security.DataLabel}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.DataLabel}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.PrivacyDesc}"/>
+                            </StackPanel>
+                        </Button>
+                        <Border Style="{StaticResource GroupDivider}"/>
                         <Button x:Name="ToolsLinkRow" Style="{StaticResource SettingsLinkRow}" Margin="-8,5"
                                 local:SettingsDrill.Opens="{Binding ElementName=ToolsSub}"
                                 AutomationProperties.Name="{DynamicResource S.Security.ToolsLabel}">
@@ -240,8 +245,24 @@
             -->
             <StackPanel x:Name="SourcesSub" Margin="20,14,20,16" Visibility="Collapsed">
                 <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Security.SourcesLabel}"/>
-                <!-- Разрешённые сайты: заголовок строкой группы, список — под чертой в ней же. -->
+                <!-- Белый список можно выключить (1.37.0): тогда список ниже приглушён, но не стирается. -->
                 <Border Style="{StaticResource SettingsGroup}">
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.AnySite}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.AnySiteDesc}"/>
+                        </StackPanel>
+                        <CheckBox AutomationProperties.Name="{DynamicResource S.Security.AnySite}" x:Name="DownloadAnySiteToggle" Grid.Column="1"
+                                  Style="{StaticResource SettingsToggle}"
+                                  Checked="DownloadAnySiteToggle_Changed" Unchecked="DownloadAnySiteToggle_Changed"/>
+                    </Grid>
+                </Border>
+                <!-- Разрешённые сайты: заголовок строкой группы, список — под чертой в ней же. -->
+                <Border x:Name="AllowlistGroup" Style="{StaticResource SettingsGroup}">
                     <StackPanel>
                         <Grid Style="{StaticResource GroupRow}">
                             <StackPanel VerticalAlignment="Center" Margin="0,0,34,0">
@@ -278,6 +299,57 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- ═══════════ ПОДСТРАНИЦА: ПРИВАТНОСТЬ (1.37.0) ═══════════ -->
+            <StackPanel x:Name="PrivacySub" Margin="20,14,20,16" Visibility="Collapsed">
+                <Button Style="{StaticResource SubPageBack}" Content="{DynamicResource S.Security.DataLabel}"/>
+                <Border Style="{StaticResource SettingsGroup}">
+                    <StackPanel>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.Encrypt}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.EncryptDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.Encrypt}" x:Name="EncryptChatsToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="EncryptChatsToggle_Changed" Unchecked="EncryptChatsToggle_Changed"/>
+                        </Grid>
+                        <!-- Приватность OpenRouter и срок временного чата (1.37.0). -->
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.NoRetention}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.NoRetentionDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.NoRetention}" x:Name="NoRetentionToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="NoRetentionToggle_Changed" Unchecked="NoRetentionToggle_Changed"/>
+                        </Grid>
+                        <Border Style="{StaticResource GroupDivider}"/>
+                        <Grid Style="{StaticResource GroupRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Security.TemporaryUntilClose}"/>
+                                <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Security.TemporaryUntilCloseDesc}"/>
+                            </StackPanel>
+                            <CheckBox AutomationProperties.Name="{DynamicResource S.Security.TemporaryUntilClose}" x:Name="TemporaryUntilCloseToggle" Grid.Column="1"
+                                      Style="{StaticResource SettingsToggle}"
+                                      Checked="TemporaryUntilCloseToggle_Changed" Unchecked="TemporaryUntilCloseToggle_Changed"/>
                         </Grid>
                     </StackPanel>
                 </Border>

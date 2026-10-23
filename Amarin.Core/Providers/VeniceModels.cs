@@ -87,6 +87,21 @@ public sealed class ChatCompletionRequest
     public List<RequestPlugin>? Plugins { get; init; }
 
     /// <summary>
+    /// Скорость обслуживания (1.37.0): <c>flex</c>, <c>fast</c>, <c>ultrafast</c> у OpenAI и
+    /// OpenRouter. <c>null</c> — поля нет, обычная скорость.
+    /// </summary>
+    [JsonPropertyName("service_tier")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ServiceTier { get; init; }
+
+    /// <summary>
+    /// Выбор провайдеров у OpenRouter (1.37.0): сейчас только «без хранения данных».
+    /// </summary>
+    [JsonPropertyName("provider")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderPreferences? Provider { get; init; }
+
+    /// <summary>
     /// Чего хочет вызывающий. Не сериализуется: <see cref="VeniceClient"/> подгоняет значение под
     /// модель запроса (и запасную тоже) перед отправкой.
     /// </summary>
@@ -132,6 +147,28 @@ public sealed class RequestPlugin
     [JsonPropertyName("mode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Mode { get; init; }
+}
+
+/// <summary>
+/// Поле <c>provider</c> запроса к OpenRouter: каким провайдерам модели можно отдать запрос.
+/// </summary>
+/// <remarks>
+/// Оба поля сразу: <c>zdr</c> оставляет точки, которые не хранят запросы, а
+/// <c>data_collection: deny</c> — те, что не учат на них модели. Это разные обещания, и
+/// «без хранения данных» в программе означает оба.
+/// </remarks>
+public sealed class ProviderPreferences
+{
+    /// <summary>Только провайдеры без хранения данных.</summary>
+    public static ProviderPreferences NoRetention { get; } = new() { DataCollection = "deny", Zdr = true };
+
+    [JsonPropertyName("data_collection")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DataCollection { get; init; }
+
+    [JsonPropertyName("zdr")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Zdr { get; init; }
 }
 
 public sealed class StreamOptions
@@ -317,6 +354,17 @@ public sealed class ChatCompletionResponse
     public VeniceError? Error { get; init; }
 
     /// <summary>
+    /// Каким уровнем ответ обслужили (1.37.0): <c>priority</c>, <c>flex</c>, <c>ultrafast</c> или
+    /// <c>default</c>. У Anthropic его вписывает переводчик из <c>usage.speed</c>.
+    /// </summary>
+    /// <remarks>
+    /// Просьба уровень не гарантирует: при нехватке мощности ответ обслуживают обычным и берут
+    /// обычную цену. Поэтому оценка цены смотрит сюда, а не на просьбу.
+    /// </remarks>
+    [JsonPropertyName("service_tier")]
+    public string? ServiceTier { get; set; }
+
+    /// <summary>
     /// Во что обошёлся ответ — так, как назвал провайдер. <c>null</c> — цены не назвали или
     /// ответ бесплатный.
     /// </summary>
@@ -369,6 +417,10 @@ public sealed class ChatCompletionChunk
 
     [JsonPropertyName("error")]
     public VeniceError? Error { get; init; }
+
+    /// <summary>Уровень обслуживания (1.37.0), см. <see cref="ChatCompletionResponse.ServiceTier"/>.</summary>
+    [JsonPropertyName("service_tier")]
+    public string? ServiceTier { get; init; }
 }
 
 public sealed class ChatChunkChoice

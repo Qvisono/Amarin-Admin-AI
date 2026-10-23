@@ -43,7 +43,12 @@ public sealed class DataBundleCoverageTests
         nameof(AppSettings.Windows),
 
         // Управление компьютером мышью: снимки экрана уходят провайдеру, включают его здесь.
-        nameof(AppSettings.ComputerControl)
+        nameof(AppSettings.ComputerControl),
+
+        // 1.37.0: браузер агента, загрузка с любого сайта и приватность OpenRouter — та же защита.
+        nameof(AppSettings.AgentBrowser),
+        nameof(AppSettings.DownloadAnySite),
+        nameof(AppSettings.OpenRouterNoRetention)
     ];
 
     [Fact]
@@ -124,6 +129,14 @@ public sealed class DataBundleCoverageTests
             Assert.True(original.ComputerControl);
             Assert.False(restored.ComputerControl);
             restored.ComputerControl = original.ComputerControl;
+
+            // Браузер агента и загрузка с любого сайта (1.37.0) включают здесь же, по тому же правилу.
+            Assert.True(original.AgentBrowser);
+            Assert.False(restored.AgentBrowser);
+            restored.AgentBrowser = original.AgentBrowser;
+            Assert.True(original.DownloadAnySite);
+            Assert.False(restored.DownloadAnySite);
+            restored.DownloadAnySite = original.DownloadAnySite;
             Assert.Equal(Json(original), Json(restored));
         }
         finally

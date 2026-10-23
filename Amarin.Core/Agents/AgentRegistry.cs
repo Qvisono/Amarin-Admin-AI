@@ -108,7 +108,11 @@ internal sealed class RunningAgent
 /// </remarks>
 internal sealed class AgentRegistry
 {
-    private readonly ConcurrentDictionary<string, RunningAgent> _running = new(StringComparer.Ordinal);
+    /// <summary>
+    /// По паре «чат + id» (1.37.0): с разговорами из файла чата номер агента уникален только в своём
+    /// чате, и одноимённые агенты двух чатов затирали бы друг друга.
+    /// </summary>
+    private readonly ConcurrentDictionary<(string Session, string Id), RunningAgent> _running = new();
 
     private int _counter;
 
@@ -127,7 +131,7 @@ internal sealed class AgentRegistry
     {
         var agent = new RunningAgent
         {
-            Id = id ?? "a" + Interlocked.Increment(ref _counter),
+            Id = id ?? NextId(),
             SessionId = sessionId ?? "",
             Prompt = prompt ?? "",
             Complexity = complexity ?? "",
@@ -135,11 +139,14 @@ internal sealed class AgentRegistry
             Interrupt = interrupt
         };
 
-        _running[agent.Id] = agent;
+        _running[(agent.SessionId, agent.Id)] = agent;
         return agent;
     }
 
-    public void Unregister(string id) => _running.TryRemove(id, out _);
+    /// <summary>Следующий номер счётчика на процесс.</summary>
+    public string NextId() => "a" + Interlocked.Increment(ref _counter);
+
+    public void Unregister(RunningAgent agent) => _running.TryRemove((agent.SessionId, agent.Id), out _);
 
     /// <summary>Агенты этого чата. Пустой идентификатор чата не совпадает ни с чем.</summary>
     public IReadOnlyList<RunningAgent> ListFor(string sessionId) =>

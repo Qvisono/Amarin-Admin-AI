@@ -163,6 +163,11 @@
                                Foreground="{DynamicResource Text.Muted}" Margin="0,2,0,6"
                                Visibility="Collapsed"/>
                     <WrapPanel x:Name="EffortHost"/>
+                    <!-- Скорость (1.37.0): только у моделей, которые её умеют; чипы те же, что у уровня. -->
+                    <TextBlock x:Name="SpeedCaption" Text="{DynamicResource S.Speed.Caption}" FontSize="11"
+                               Foreground="{DynamicResource Text.Muted}" Margin="0,6,0,6"
+                               Visibility="Collapsed"/>
+                    <WrapPanel x:Name="SpeedHost" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
         </Popup>

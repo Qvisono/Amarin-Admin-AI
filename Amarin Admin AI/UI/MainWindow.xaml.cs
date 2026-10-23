@@ -235,6 +235,7 @@ namespace Amarin.UI
                 LanguageManager.LanguageChanged -= RelocalizeUi;
                 DownloadAccessBroker.SetHandler(null);
                 DetachComputerStage();
+                DetachAgentBrowser();
             };
             PreviewTextInput += Window_PreviewTextInput;
             PreviewKeyDown += Window_PreviewKeyDown;
@@ -249,6 +250,7 @@ namespace Amarin.UI
             }
 
             AttachComputerStage(_services, services);
+            AttachAgentBrowser(_services, services);
             _services = services;
             _services.Confirmations.Changed += OnConfirmationChanged;
             _services.PlanReviews.Changed += OnPlanReviewChanged;
@@ -1151,6 +1153,7 @@ namespace Amarin.UI
 
             slot.DisableThinking = e.DisableThinking;
             slot.ReasoningEffort = e.Effort;
+            slot.Speed = e.Speed;
             _services.SettingsStore.Save(_services.Settings);
         }
 
@@ -1300,6 +1303,7 @@ namespace Amarin.UI
 
             _session.DisableThinking = e.DisableThinking;
             _session.ReasoningEffort = e.Effort;
+            _session.ModelSpeed = e.Speed;
             if (_services is null)
             {
                 return;
@@ -1308,6 +1312,7 @@ namespace Amarin.UI
             var chat = _services.Settings.ChatReasoning ??= new ReasoningSettings();
             chat.DisableThinking = e.DisableThinking;
             chat.ReasoningEffort = e.Effort;
+            chat.Speed = e.Speed;
             _services.SettingsStore.Save(_services.Settings);
             PersistCurrent();
         }
@@ -2266,7 +2271,10 @@ namespace Amarin.UI
             var quotes = _pendingQuotes.Count == 0 ? null : _pendingQuotes.ToArray();
             ClearPendingAttachments();
             ForgetDraft(_session);
-            _fox?.Sent(text);
+            if (!_session.IsTemporary)
+            {
+                _fox?.Sent(text);
+            }
 
             var session = _session;
             if (plan is { Verdict: SendVerdict.Agent, Command: { } agent })
@@ -2284,6 +2292,7 @@ namespace Amarin.UI
         private void StartNewSession(bool persist)
         {
             _stickToBottom = true;
+            LeaveTemporary(_session);
             _session = _services?.ChatStore.CreateNew(CurrentModelId()) ?? new ChatSession
             {
                 Id = Guid.NewGuid().ToString("N"),
@@ -2308,12 +2317,18 @@ namespace Amarin.UI
             var reasoning = _services?.Settings.ChatReasoning ?? new ReasoningSettings();
             _session.DisableThinking = reasoning.DisableThinking;
             _session.ReasoningEffort = reasoning.ReasoningEffort;
+            _session.ModelSpeed = reasoning.Speed;
         }
 
         private void LoadSession(ChatSession session)
         {
             _stickToBottom = true;
             ResetFindForChat();
+            if (!ReferenceEquals(_session, session))
+            {
+                LeaveTemporary(_session);
+            }
+
             _session = session;
             RefreshTargetPicker();
             // Ссылки на картинки в прежних ответах разрешаются, только пока картинки
@@ -2365,6 +2380,7 @@ namespace Amarin.UI
             // Подпись под композером принадлежит чату: при переходе показывается его, а не
             // та, что осталась от разговора, из которого ушли.
             UpdateAttachmentWarning();
+            RefreshTemporaryUi();
 
             // Удаление, «Повторить» и смена языка тоже идут сюда: подпись источника у
             // прикреплённой цитаты («из последнего ответа», «удалён») могла стать неправдой.
@@ -2428,6 +2444,7 @@ namespace Amarin.UI
             CommitEdit = CommitUserEdit,
             Delete = DeleteAssistant,
             Regenerate = RegenerateAssistant,
+            Branch = message => BranchFromAnswer(session, message),
             SwitchVariant = SwitchVariant,
             VariantGate = _variantGate,
             Continue = ResumeAssistant,
@@ -2742,11 +2759,15 @@ namespace Amarin.UI
             var queued = ChatQuotes.Wrap(text, user.Quotes, _session.Messages, _session.Messages.Count - 1);
             ClearPendingAttachments();
             ForgetDraft(_session);
-            _fox?.Sent(text);
+            if (!_session.IsTemporary)
+            {
+                _fox?.Sent(text);
+            }
 
             var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(_session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
             MaybeAutoscroll();
+            RefreshTemporaryUi();
             RefreshChatList();
 
             turn.Enqueue(queued);
@@ -3152,7 +3173,8 @@ namespace Amarin.UI
 
             // Если по чату идёт ход — берём ЕГО объект сессии, а не читаем копию с диска:
             // движок продолжает писать в свой, и на экране оказалась бы застывшая копия.
-            var live = FindTurn(id)?.Session;
+            // Временный чат (1.37.0) на диске не лежит — он только в памяти окна.
+            var live = FindTurn(id)?.Session ?? _temporaryChats.Find(id);
             var loaded = live ?? _services.ChatStore.TryLoad(id);
             if (loaded is null)
             {
@@ -3167,7 +3189,12 @@ namespace Amarin.UI
             LoadSession(loaded);
             RestoreDraft(loaded);
             RefreshChatList();
-            _fox?.ChatOpened(DisplayTitle(loaded.Title), loaded.Messages.Count);
+
+            // Временный чат Розе не рассказывают: её память ложится на диск (1.37.0).
+            if (!loaded.IsTemporary)
+            {
+                _fox?.ChatOpened(DisplayTitle(loaded.Title), loaded.Messages.Count);
+            }
         }
 
         /// <summary>Сворачивает или разворачивает боковую панель; лента перекладывается по видимому.</summary>
@@ -3262,7 +3289,7 @@ namespace Amarin.UI
             var modelId = CurrentModelId();
             var auto = VeniceModelCatalog.IsAuto(modelId);
             ChatReasoningPicker.SetState(
-                modelId, auto, _session.DisableThinking, _session.ReasoningEffort);
+                modelId, auto, _session.DisableThinking, _session.ReasoningEffort, _session.ModelSpeed);
             ChatReasoningPicker.Visibility = auto ? Visibility.Collapsed : Visibility.Visible;
         }
 
@@ -3302,7 +3329,8 @@ namespace Amarin.UI
                 // Служебные слоты «Авто» не показывают: у каждого своя конкретная модель.
                 autoMode: false,
                 reasoning.DisableThinking,
-                reasoning.ReasoningEffort);
+                reasoning.ReasoningEffort,
+                reasoning.Speed);
         }
 
         private string CurrentModelId()
@@ -3503,6 +3531,7 @@ namespace Amarin.UI
             var userRoot = ChatMessageViews.CreateUser(this, user, CreateMessageActions(turn.Session), ActiveDateFormat).Root;
             AppendMessage(user, userRoot);
             MaybeAutoscroll();
+            RefreshTemporaryUi();
             RefreshChatList();
             MaybeStartTitle(turn.Session, user);
         });
@@ -3613,7 +3642,10 @@ namespace Amarin.UI
             if (IsVisibleTurn(turn))
             {
                 CloseVisibleAnswer(assistant, autoscroll: true);
-                _fox?.AnswerFinished(assistant.Text);
+                if (!turn.Session.IsTemporary)
+                {
+                    _fox?.AnswerFinished(assistant.Text);
+                }
             }
 
             // Сводка дописывается на каждом закрытом ответе — и у фонового хода тоже: искать

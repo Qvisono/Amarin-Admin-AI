@@ -108,6 +108,24 @@
                                                Margin="8,0" VerticalAlignment="Center"/>
                         <local:ModelPickerField x:Name="AgentHeavyModelPicker" Grid.Column="2"/>
                     </Grid>
+                    <!-- Сколько живёт разговор чата с агентом (1.37.0): рядом с моделями агента — о нём же. -->
+                    <Border Style="{StaticResource GroupDivider}"/>
+                    <Grid Style="{StaticResource GroupRow}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Models.AgentMemory}"/>
+                            <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Models.AgentMemoryDesc}"/>
+                        </StackPanel>
+                        <ComboBox x:Name="AgentMemoryCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}"
+                                  AutomationProperties.Name="{DynamicResource S.Models.AgentMemory}">
+                            <ComboBoxItem Tag="Answer" Content="{DynamicResource S.Models.AgentMemory.Answer}"/>
+                            <ComboBoxItem Tag="Session" Content="{DynamicResource S.Models.AgentMemory.Session}"/>
+                            <ComboBoxItem Tag="Chat" Content="{DynamicResource S.Models.AgentMemory.Chat}"/>
+                        </ComboBox>
+                    </Grid>
                 </StackPanel>
             </Border>
 

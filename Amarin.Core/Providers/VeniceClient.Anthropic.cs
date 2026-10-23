@@ -104,7 +104,8 @@ public sealed partial class VeniceClient
             }
         }
 
-        var cost = CostOf(accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens);
+        var cost = CostOf(
+            accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier);
         Book(cost, model, credential);
 
         return new StreamedChatCompletion
@@ -198,9 +199,9 @@ public sealed partial class VeniceClient
         content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
         var httpRequest = Request(HttpMethod.Post, "messages", credential);
         httpRequest.Content = content;
-        if (body.NeedsBindingBeta)
+        if (body.Betas is { Length: > 0 } betas)
         {
-            httpRequest.Headers.Add("anthropic-beta", AnthropicMessages.BindingBeta);
+            httpRequest.Headers.Add("anthropic-beta", betas);
         }
 
         var watch = Stopwatch.StartNew();

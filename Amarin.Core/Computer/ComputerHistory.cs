@@ -33,12 +33,19 @@ internal static class ComputerHistory
 
     public const string TreeStub = "[An earlier element tree of this window was removed: its ids are no longer valid.]";
 
+    /// <summary>Прежнее чтение страницы браузером агента (1.37.0): его id тоже уже не действуют.</summary>
+    public const string PageStub = "[An earlier read of the web page was removed: its element ids are no longer valid.]";
+
+    /// <summary>Начало выдачи страницы инструментом <c>browser</c>.</summary>
+    public const string PageMark = "[page] ";
+
     public static List<ChatMessage> Trim(IReadOnlyList<ChatMessage> messages, int keepImages = KeepImages)
     {
         var result = new List<ChatMessage>(messages);
 
         var imagesSeen = 0;
         var treesSeen = new HashSet<string>(StringComparer.Ordinal);
+        var pageSeen = false;
         for (var i = result.Count - 1; i >= 0; i--)
         {
             var message = result[i];
@@ -56,6 +63,19 @@ internal static class ComputerHistory
             if (Tree(message) is { } tree && !treesSeen.Add(tree.Window))
             {
                 result[i] = WithText(message, tree.Text[..tree.Start] + TreeStub);
+                continue;
+            }
+
+            // Страница браузера (1.37.0) — та же логика: модели нужна последняя, а прежние длинны и
+            // держат устаревшие id.
+            if (PageStart(message) is { } page)
+            {
+                if (pageSeen)
+                {
+                    result[i] = WithText(message, page.Text[..page.Start] + PageStub);
+                }
+
+                pageSeen = true;
             }
         }
 
@@ -81,6 +101,20 @@ internal static class ComputerHistory
         var from = start + ComputerTool.TreeMark.Length;
         var end = text.IndexOf(']', from);
         return end > from ? (text[from..end], start, text) : null;
+    }
+
+    /// <summary>Выдача страницы в ответе <c>browser</c>: где она начинается. Null — страницы нет.</summary>
+    private static (int Start, string Text)? PageStart(ChatMessage message)
+    {
+        if (!message.Role.Equals("tool", StringComparison.Ordinal) ||
+            !string.Equals(message.Name, BrowserTool.ToolName, StringComparison.Ordinal) ||
+            ChatContent.ReadText(message.Content) is not { } text)
+        {
+            return null;
+        }
+
+        var start = text.IndexOf(PageMark, StringComparison.Ordinal);
+        return start < 0 ? null : (start, text);
     }
 
     private static bool HasImage(ChatMessage message)

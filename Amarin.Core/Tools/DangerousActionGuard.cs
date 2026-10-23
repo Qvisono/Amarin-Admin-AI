@@ -112,6 +112,9 @@ internal static partial class DangerousActionGuard
             // режиме шлюз про мышь не задаёт (ToolGate.RequiresConfirmation): согласие — просьба
             // человека, а держат «небезопасно» SynGuard и ComputerSafety.
             "computer" => !ComputerTool.ReadActions.Contains(ActionOf(arguments)),
+            // Браузер агента (1.37.0) — как мышь: нажатие и ввод на сайте — запись, а вопрос в
+            // обычном режиме шлюз не задаёт (ToolGate.RequiresConfirmation).
+            "browser" => !BrowserTool.ReadActions.Contains(ActionOf(arguments)),
             // Инструменты 1.37.0: спрашивается всё, что не чтение по таблице ToolEffects, — и новое
             // действие, про которое там забыли, тоже.
             "audio" or "power" or "file_locks" or "permissions" or "environment" or "store_apps" or "print_queue"
@@ -597,6 +600,9 @@ internal static partial class DangerousActionGuard
             "run_powershell" => L("S.Guard.Sum.PowerShell") + FormatField(arguments, "command", prefix: ": ", max: 120),
             "computer" => L("S.Guard.Sum.Computer", action) + FormatField(arguments, "keys", prefix: ": ") +
                           FormatField(arguments, "text", prefix: ": ", max: 120),
+            "browser" => L("S.Guard.Sum.Browser", action) + FormatField(arguments, "url", prefix: ": ") +
+                         FormatField(arguments, "element", prefix: " ") + FormatField(arguments, "key", prefix: ": ") +
+                         FormatField(arguments, "text", prefix: ": ", max: 120),
             "windows_process" => L("S.Guard.Sum.KillProcess") + FormatField(arguments, "process_name", prefix: ": ") +
                                  FormatField(arguments, "pid", prefix: " PID "),
             "scheduled_task" => L("S.Guard.Sum.Task") + FormatField(arguments, "task_name", prefix: ": ") +

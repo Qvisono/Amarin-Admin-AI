@@ -75,7 +75,10 @@ namespace Amarin.UI
         /// <summary>Чаты брошены в раздел боковой панели — см. <see cref="ChatDrop.Apply"/>.</summary>
         private void DropChats(IReadOnlyList<string> ids, ChatDropTarget target)
         {
-            if (_services is null || !ChatDrop.Apply(_services.ChatStore, _services.Organizer, ids, target))
+            // Временный чат (1.37.0) не кладут ни в папку, ни в архив: его нет в описи, и место в
+            // раскладке пережило бы сам чат.
+            ids = [.. ids.Where(id => !_temporaryChats.Contains(id))];
+            if (_services is null || ids.Count == 0 || !ChatDrop.Apply(_services.ChatStore, _services.Organizer, ids, target))
             {
                 return;
             }
@@ -847,8 +850,9 @@ namespace Amarin.UI
                 return;
             }
 
+            // Временные чаты (1.37.0) в описи нет, но в списке они есть, и выбрать их можно.
             _selection.KeepOnly(
-                _services.ChatStore.List().Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal),
+                _services.ChatStore.List().Select(entry => entry.Id).Concat(_temporaryChats.Ids).ToHashSet(StringComparer.Ordinal),
                 OrganizeSnapshot().Folders.Select(folder => folder.Id).ToHashSet(StringComparer.Ordinal));
         }
 

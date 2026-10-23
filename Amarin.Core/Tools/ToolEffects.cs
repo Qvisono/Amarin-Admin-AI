@@ -55,6 +55,7 @@ internal static class ToolEffects
             ["change_rollback"] = ["snapshot", "list_snapshots", "snapshot_info", "compare"],
             // Мышь и клавиатура: смотреть — чтение, и «Показать» тоже: нажимает там человек.
             ["computer"] = [.. ComputerTool.ReadActions],
+            [BrowserTool.ToolName] = [.. BrowserTool.ReadActions],
             ["credentials"] = ["list_cmdkey", "list_certs", "expiring_certs"],
             // Напоминание и поручение агенту ничего не меняют сейчас: действия агента пройдут шлюз
             // в своё время. Команда и возврат программ — запись: согласие на них берётся сразу.

@@ -122,6 +122,8 @@ internal static class AppComposition
                 spendGuard.AfterSpend(secret);
             },
             SpendGate = spendGuard.CheckAsync,
+            // Приватность OpenRouter — из настроек открытого профиля, на каждом запросе.
+            NoRetention = () => scope.Settings.OpenRouterNoRetention,
             BalanceSink = balances.Remember,
             Audit = audit,
             BaseUrl = configuration.BaseUrl,
@@ -152,6 +154,7 @@ internal static class AppComposition
         // Общий на программу: реестр нужен и хосту (записаться), и движку чата (остановить или
         // пересадить того, кто уже работает).
         var runningAgents = new AgentRegistry();
+        var agentMemory = new AgentMemoryBook();
         var planReviews = new PlanReviewQueue();
 
         // Инструменты рецептов — те же, что у агента, плюс файловые чата: рецепт сохраняют из
@@ -172,9 +175,11 @@ internal static class AppComposition
         // Мышь и клавиатура этого ПК: агент получает их, только когда окно поставит плашку, а
         // человек включит галочку (AgentHost смотрит её на каждый прогон).
         var computer = new ComputerHub(new Amarin.Computer.WindowsComputer());
+        // Браузер агента (1.37.0): окно ставит фабрику, без неё агент инструмента не получает.
+        var browser = new BrowserHub();
         var agentHost = new AgentHost(
             options, downloadHttp, ReadSettings, confirmations, runningAgents, models.Find, instructions, planReviews,
-            mcp.Tools, computer.Access);
+            mcp.Tools, computer.Access, browser);
 
         // Один предел на всех агентов чата: и на новых, и на тех, кому чат пишет после отчёта.
         var agentSlots = new AgentSlotLimiter();
@@ -210,14 +215,17 @@ internal static class AppComposition
             Models = models,
             Chat = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations)
             {
-                Files = fileState
+                Files = fileState,
+                AgentBook = agentMemory
             },
+            AgentBook = agentMemory,
             Titles = new ChatTitleGenerator(http, options, ReadSettings),
             Summaries = new ChatSummaryGenerator(http, options, ReadSettings),
             Confirmations = confirmations,
             PlanReviews = planReviews,
             AgentHost = agentHost,
             Computer = computer,
+            Browser = browser,
             RecipeRunner = new RecipeRunner(() => recipeTools.Value, confirmations, ReadSettings, () => options.Audit),
             RunTools = () => recipeTools.Value,
             StartupPrompt = startup.Prompt,
@@ -248,11 +256,13 @@ internal static class AppComposition
     /// Общая на процесс статика, которая смотрит на собранные службы: белый список загрузок,
     /// отметки «только чтение» у инструментов MCP и документы, созданные ИИ. Её читают инструменты и
     /// шлюз, переписывать которые нельзя, поэтому она остаётся статикой — но ставится здесь, в одном месте.
+    /// То, что взято из настроек профиля, смена профиля переставляет сама (<see cref="AppServices.UseProfile"/>).
     /// </summary>
     public static void ApplyProcessWide(AppServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        DownloadValidator.ConfigureAllowedDomains(services.Settings.DownloadAllowedDomains);
+        services.OwnsProcessWide = true;
+        DownloadValidator.Configure(services.Settings);
 
         // Книга профиля, а не её снимок: смена профиля перекореняет ту же книгу на месте.
         var documents = services.Profile.AiDocuments;

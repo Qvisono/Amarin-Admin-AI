@@ -25,7 +25,8 @@ public sealed partial class VeniceClient
             result.ReportedCost() ?? VeniceCost.Zero,
             model,
             usage?.PromptTokens ?? 0,
-            usage?.CompletionTokens ?? 0);
+            usage?.CompletionTokens ?? 0,
+            result.ServiceTier);
 
         // Посчитанную цену — и в сам ответ: восемь побочных запросов (заголовок, сводка,
         // маршрутизатор…) читают её через ReportedCost и ставят свою строку в разбивку.
@@ -54,7 +55,16 @@ public sealed partial class VeniceClient
     /// нулевая цена — это бесплатная модель, а не молчание, и досчитывать её нельзя. Токены
     /// приписываются всегда — по ним ведётся расход ключа, выданного пакетом токенов.
     /// </remarks>
-    private VeniceCost CostOf(VeniceCost reported, string model, int promptTokens, int completionTokens)
+    /// <param name="servedTier">
+    /// Каким уровнем ответ обслужили (1.37.0). Каталог знает только обычную цену, а Flex, Fast и
+    /// Ultrafast стоят иначе: без поправки оценка врала бы вдвое и больше, а по ней держатся лимиты.
+    /// </param>
+    private VeniceCost CostOf(
+        VeniceCost reported,
+        string model,
+        int promptTokens,
+        int completionTokens,
+        string? servedTier = null)
     {
         var cost = new VeniceCost
         {
@@ -75,7 +85,8 @@ public sealed partial class VeniceClient
             return cost;
         }
 
-        var usd = (cost.InputTokens * price.InputPerMillion + cost.OutputTokens * price.OutputPerMillion) / 1_000_000m;
+        var usd = (cost.InputTokens * price.InputPerMillion + cost.OutputTokens * price.OutputPerMillion) / 1_000_000m
+                  * ModelSpeeds.PriceFactor(servedTier);
         if (usd > 0m)
         {
             cost.Usd = usd;

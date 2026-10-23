@@ -8,7 +8,7 @@
     <RootNamespace>Amarin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.37.0-beta.1</Version>
+    <Version>1.37.0-beta.2</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatform>windows</SupportedOSPlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -49,6 +49,12 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.4" />
+    <!--
+      Встроенный браузер агента (1.37.0): окно WebView2 с отдельным профилем, управление через DOM.
+      Только здесь: ядро говорит с ним через порт IWebBrowser и о WPF не знает. Сам движок —
+      WebView2 Runtime, который стоит в Windows; пакет даёт обёртку и загрузчик.
+    -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <!-- Распознавание речи на этом ПК (D14): распознаватели SAPI, что установлены в Windows. -->
     <PackageReference Include="System.Speech" Version="10.0.12" />
   </ItemGroup>
@@ -66,6 +72,14 @@
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
     <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <!--
+    Документация пакетов (*.xml) рядом с exe не нужна: релиз — один exe и appsettings.json. Без
+    этого пакет WebView2 (1.37.0) клал рядом три своих XML.
+  -->
+  <PropertyGroup>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
 
   <!--
@@ -113,8 +127,7 @@
   -->
   <Target Name="DropPowerShellNativeFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
     <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                             Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'Microsoft.PowerShell.Native'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'Microsoft.PowerShell.Native'" />
     </ItemGroup>
   </Target>
 

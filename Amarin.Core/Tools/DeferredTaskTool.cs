@@ -98,6 +98,15 @@ public sealed class DeferredTaskTool : ITool
             return ToolResult.Fail("deferred_task works only in a chat with the user.");
         }
 
+        // Временный чат не сохраняется (1.37.0), а задача легла бы на диск со словами человека и
+        // своим итогом в новом сохранённом чате.
+        if (AgentRunScope.Current.TemporaryChat)
+        {
+            return ToolResult.Fail(
+                "This is a temporary chat: nothing from it is saved, and a scheduled task would be. Tell the user " +
+                "that scheduled tasks are set in a regular chat. Do not retry.");
+        }
+
         var text = FileToolPaths.String(arguments, "text")?.Trim() ?? "";
         var command = FileToolPaths.String(arguments, "command")?.Trim();
         if (kind is DeferredKind.Reminder or DeferredKind.Agent && text.Length == 0)

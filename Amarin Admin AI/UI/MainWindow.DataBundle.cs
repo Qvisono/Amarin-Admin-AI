@@ -597,6 +597,7 @@ namespace Amarin.UI
             LanguageManager.Apply(_services.Settings.LanguageCode, force: true);
             BuiltPage<SettingsGeneralPage>()?.LanguagePicker.Rebuild();
             ApplyAppearance(save: false);
+            ApplyProfileWideSettings();
             RefreshProfileList();
             Detached.Run(RefreshDataUsageAsync(), "refresh_data_usage");
         }

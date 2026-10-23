@@ -118,7 +118,17 @@ namespace Amarin.UI
             }
 
             var menu = NewMenu(anchor, placement);
-            if (ids.Count > 0)
+            if (ids.Any(_temporaryChats.Contains))
+            {
+                // Временный чат (1.37.0) живёт вне описи и папок: закрепить, разложить, отправить или
+                // выгрузить его нельзя — только назвать и удалить.
+                if (ids.Count == 1 && folders.Count == 0)
+                {
+                    menu.Items.Add(MenuItemFor(Loc.Get("S.ChatList.Rename"), () => RenameChats(ids), icon: "Icon.Menu.Rename"));
+                    menu.Items.Add(Divider());
+                }
+            }
+            else if (ids.Count > 0)
             {
                 AddChatActions(menu, anchor, ids, placement);
                 AddTransferActions(menu, anchor, ids, folders, placement);
@@ -236,7 +246,8 @@ namespace Amarin.UI
             }
 
             var titles = _services.ChatStore.List().ToDictionary(item => item.Id, item => item.Title, StringComparer.Ordinal);
-            string TitleOf(string id) => id == _session.Id ? _session.Title : titles.GetValueOrDefault(id) ?? "";
+            string TitleOf(string id) =>
+                id == _session.Id ? _session.Title : _temporaryChats.Find(id)?.Title ?? titles.GetValueOrDefault(id) ?? "";
             var distinct = ids.Select(TitleOf).Distinct(StringComparer.Ordinal).ToList();
             var current = distinct.Count == 1 && !ChatTitle.IsDefault(distinct[0]) ? distinct[0] : "";
 
@@ -258,6 +269,10 @@ namespace Amarin.UI
                             // старый заголовок.
                             _session.Title = title.Trim();
                             _services.ChatStore.Save(_session);
+                        }
+                        else if (_temporaryChats.Find(id) is { } temporary)
+                        {
+                            temporary.Title = title.Trim();
                         }
                         else
                         {
@@ -348,6 +363,8 @@ namespace Amarin.UI
                 deletingOpen |= id == _session.Id;
                 _services.Confirmations.ForgetSession(id);
                 ForgetAttention(id);
+                _services.AgentBook.Forget(id);
+                _temporaryChats.Remove(id);
             }
 
             // Пачкой: опись и раскладка переписываются один раз, а не по разу на чат.

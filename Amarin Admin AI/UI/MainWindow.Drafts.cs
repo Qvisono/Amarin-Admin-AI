@@ -41,9 +41,14 @@ namespace Amarin.UI
             _draftTimer.Start();
         }
 
-        /// <summary>Ключ черновика: id сохранённого чата, а у нового — общий ключ нового чата.</summary>
+        /// <summary>
+        /// Ключ черновика: id сохранённого чата, а у нового — общий ключ нового чата. У временного
+        /// (1.37.0) — свой id: общий ключ лежит на диске и отдал бы набранное следующему новому чату.
+        /// </summary>
         private string DraftKey(ChatSession session) =>
-            _services?.ChatStore.List().Any(entry => entry.Id == session.Id) == true ? session.Id : DraftStore.NewChatKey;
+            session.IsTemporary || _services?.ChatStore.List().Any(entry => entry.Id == session.Id) == true
+                ? session.Id
+                : DraftStore.NewChatKey;
 
         private ChatDraftContent CaptureDraft() =>
             new(MessageTextBox.Text, [.. _pendingQuotes], [.. _pendingImages], [.. _pendingFiles]);
@@ -60,6 +65,13 @@ namespace Amarin.UI
             var key = DraftKey(session);
             var draft = CaptureDraft();
             store.Note(key, draft);
+
+            // Черновик временного чата живёт только в памяти, как и сам чат.
+            if (session.IsTemporary)
+            {
+                return;
+            }
+
             _draftWrites = _draftWrites.ContinueWith(_ => store.Save(key, draft), TaskScheduler.Default);
         }
 

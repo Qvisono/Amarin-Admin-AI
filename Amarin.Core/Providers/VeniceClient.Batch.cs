@@ -34,10 +34,16 @@ public sealed partial class VeniceClient
     /// <see cref="BuildOpenRouterPayload"/>. Вдвое дороже, но за заголовок чата это центы,
     /// а очередь там не работает вовсе.
     /// </para>
+    /// <para>
+    /// При «Только провайдеры без хранения данных» (1.37.0) очереди нет вовсе: OpenRouter держит
+    /// заявки и ответы очереди у себя до тридцати дней, а человек просил, чтобы запросы не
+    /// хранились. Запрос уходит к тому же близнецу без пометки, с фильтром провайдеров.
+    /// </para>
     /// </remarks>
     private bool IsBatchRoute(string model) =>
         ModelRef.Of(model, _options.Provider) == LlmProvider.OpenRouter &&
         ModelRef.IsBatchOnly(model) &&
+        !NoRetention &&
         string.IsNullOrWhiteSpace(ChargeLabel.Value) &&
         AgentRunScope.Current is null;
 

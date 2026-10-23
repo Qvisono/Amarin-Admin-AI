@@ -49,6 +49,9 @@ public static class DataUsage
     public const string LogsKey = "S.Data.Usage.Logs";
     public const string OtherKey = "S.Data.Usage.Other";
 
+    /// <summary>Профиль браузера агента (1.37.0): кэш страниц растёт, и место должно быть видно.</summary>
+    public const string BrowserKey = "S.Data.Usage.Browser";
+
     /// <summary>Сама программа. В сумму по данным не входит — её не почистишь.</summary>
     public const string AppKey = "S.Data.Usage.App";
 
@@ -161,6 +164,11 @@ public static class DataUsage
         if (InFolder(relative, "shared"))
         {
             return SharedKey;
+        }
+
+        if (InFolder(relative, BrowserHub.FolderName))
+        {
+            return BrowserKey;
         }
 
         // Журнал аудита — своя строка: он растёт без предела, и человек должен видеть, сколько

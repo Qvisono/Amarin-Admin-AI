@@ -27,6 +27,9 @@ internal sealed class AgentHost : IAgentHost
     /// </summary>
     private readonly Func<ComputerAccess?>? _computer;
 
+    /// <summary>Встроенный браузер агента (1.37.0). Null — его нет, и <c>browser</c> агент не получает.</summary>
+    private readonly BrowserHub? _browser;
+
     /// <param name="agents">
     /// Куда записываться на время работы, чтобы агента можно было остановить или пересадить на
     /// другую модель, пока он работает. Null — прежнее поведение «запустили и ждём».
@@ -46,10 +49,12 @@ internal sealed class AgentHost : IAgentHost
         InstructionLibrary? instructions = null,
         PlanReviewQueue? plans = null,
         Func<IReadOnlyList<ITool>>? extraTools = null,
-        Func<ComputerAccess?>? computer = null)
+        Func<ComputerAccess?>? computer = null,
+        BrowserHub? browser = null)
     {
         _extraTools = extraTools;
         _computer = computer;
+        _browser = browser;
         _instructions = instructions;
         _plans = plans;
         _parentOptions = parentOptions;
@@ -139,10 +144,10 @@ internal sealed class AgentHost : IAgentHost
     }
 
     /// <summary>
-    /// Агент этого ответа, свободный для нового сообщения. Не нашёлся или занят — отказ, который
+    /// Агент этого чата, свободный для нового сообщения. Не нашёлся или занят — отказ, который
     /// читает модель чата: с тем, что делать дальше.
     /// </summary>
-    private static bool TryEnter(
+    private bool TryEnter(
         string agentId,
         [NotNullWhen(true)] out AgentConversation? conversation,
         [NotNullWhen(false)] out ToolResult? refusal)
@@ -151,9 +156,20 @@ internal sealed class AgentHost : IAgentHost
         conversation = AgentRunScope.Current?.Conversations?.Find(id);
         if (conversation is null)
         {
-            refusal = ToolResult.Fail(
-                $"Агента {id} в этом ответе нет: агент доступен только до конца ответа, в котором его запустили. " +
-                "Запусти нового через init_agent и передай ему всё, что нужно.");
+            // Срок разговора задаёт человек (1.37.0): модель должна понять, почему агента нет, и
+            // не звать его снова.
+            var why = _settings().AgentMemory switch
+            {
+                AgentMemory.Answer =>
+                    $"Агента {id} в этом ответе нет: агент доступен только до конца ответа, в котором его запустили. ",
+                AgentMemory.Chat =>
+                    $"Агента {id} в этом чате нет: его запустили в другом чате, или он старше " +
+                    $"{AgentMemoryBook.Limit} последних разговоров с агентами, которые хранит чат. ",
+                _ =>
+                    $"Агента {id} в этом чате нет: его запустили в другом чате, или разговор с ним уже недоступен " +
+                    "(программу перезапускали, а разговоры с агентами не сохраняются). "
+            };
+            refusal = ToolResult.Fail(why + "Запусти нового через init_agent и передай ему всё, что нужно.");
             return false;
         }
 
@@ -281,6 +297,12 @@ internal sealed class AgentHost : IAgentHost
                 new ComputerStart(SpendScope.Current?.Unattended == true, currentPrompt, Stop, scope?.SessionId),
                 computer.Lease);
 
+        // Браузер агента (1.37.0) — по тому же правилу, что мышь: по галочке человека и только на этом
+        // ПК. Окно открывается первым действием и закрывается с концом прогона.
+        using var browser = settings.AgentBrowser && ExecutionTarget.Current is null
+            ? _browser?.Open(SpendScope.Current?.Unattended == true)
+            : null;
+
         // Id агента для чата: у продолжения прежний, у свежего — первой записи в реестре, и с ним же
         // записываются все попытки, чтобы «стоп» человека и сообщение чата говорили об одном агенте.
         var agentId = conversation?.Id;
@@ -293,7 +315,8 @@ internal sealed class AgentHost : IAgentHost
                 modelId,
                 ReasoningFor(currentComplexity, settings),
                 ModelSlots.ReadKey(settings, SlotFor(currentComplexity)));
-            if (session is not null)
+            // Работа в окнах и на сайтах идёт мелкими шагами: раундов нужно больше обычного.
+            if (session is not null || browser is not null)
             {
                 options = options with { MaxToolRounds = Math.Max(options.MaxToolRounds, ComputerPrompt.MaxRounds) };
             }
@@ -328,6 +351,11 @@ internal sealed class AgentHost : IAgentHost
                 tools = new ToolRegistry([.. tools.All, new ComputerTool(session, CanSee(modelId))]);
             }
 
+            if (browser is not null)
+            {
+                tools = new ToolRegistry([.. tools.All, new BrowserTool(browser, CanSee(modelId))]);
+            }
+
             if (_extraTools?.Invoke() is { Count: > 0 } extra)
             {
                 // Два сервера с одинаковым именем дали бы одинаковые имена инструментов, а реестр
@@ -355,16 +383,28 @@ internal sealed class AgentHost : IAgentHost
                 Guard = guard,
                 Settings = _settings,
                 AuditOrigin = new AuditOrigin(scope?.SessionId, scope?.ChatTitle, label),
-                Addendum = session is null ? null : ComputerPrompt.AgentRule,
+                Addendum = string.Join("\n\n", new[]
+                {
+                    session is null ? null : ComputerPrompt.AgentRule,
+                    browser is null ? null : BrowserPrompt.AgentRule
+                }.OfType<string>()),
                 GuardScreen = session is null ? null : session.DescribeForGuard,
-                Prepare = session is null ? null : static messages => ComputerHistory.Trim(messages)
+                GuardPage = browser is null ? null : browser.DescribeForGuard,
+                Prepare = session is null && browser is null ? null : static messages => ComputerHistory.Trim(messages)
             };
 
             // Своя отмена поверх отмены хода: прервать агента можно, не трогая сам ход.
             using var interrupt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            // Новому агенту — номер, свободный в этом чате: разговоры прошлых ответов и из файла
+            // чата (1.37.0) держат свои номера, а счётчик реестра на каждом запуске идёт с a1.
+            if (agentId is null && scope?.Conversations is { } known)
+            {
+                agentId = known.Allocate(_agents is null ? known.NextId : _agents.NextId);
+            }
+
             entry = _agents?.Register(
                 scope?.SessionId ?? "", currentPrompt, currentComplexity, modelId, interrupt, agentId);
-            agentId ??= entry?.Id ?? scope?.Conversations?.NextId();
+            agentId ??= entry?.Id;
             if (entry is not null)
             {
                 foreach (var note in carried)
@@ -442,15 +482,15 @@ internal sealed class AgentHost : IAgentHost
             {
                 if (entry is not null)
                 {
-                    _agents?.Unregister(entry.Id);
+                    _agents?.Unregister(entry);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Запоминает агента до конца ответа, чтобы чат мог ему написать. Без хода чата (расписание)
-    /// запоминать некуда — и незачем.
+    /// Запоминает агента, чтобы чат мог ему написать (как долго — <see cref="AppSettings.AgentMemory"/>).
+    /// Без хода чата (расписание) запоминать некуда — и незачем.
     /// </summary>
     private static void Keep(
         AgentRunContext? scope,
@@ -471,8 +511,7 @@ internal sealed class AgentHost : IAgentHost
             return;
         }
 
-        conversation.Tier = tier;
-        conversation.History = history;
+        conversations.Update(conversation, tier, history);
     }
 
     /// <summary>
@@ -619,6 +658,7 @@ internal sealed class AgentHost : IAgentHost
             Model = model,
             EnableXSearch = false,
             DisableThinking = reasoning.DisableThinking,
-            ReasoningEffort = reasoning.ReasoningEffort
+            ReasoningEffort = reasoning.ReasoningEffort,
+            ModelSpeed = reasoning.Speed
         };
 }

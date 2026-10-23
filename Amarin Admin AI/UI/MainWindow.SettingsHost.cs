@@ -485,6 +485,7 @@ namespace Amarin.UI
                         BindSettingsReasoningPickers();
                         models.FoxSettings.Load(this, _services);
                         RefreshFoxLink();
+                        models.AgentMemoryCombo.SelectedIndex = (int)settings.AgentMemory;
                         break;
                     case SettingsPromptsPage prompts:
                         prompts.MainPromptTextBox.Text = settings.MainPrompt ?? "";
@@ -658,6 +659,24 @@ namespace Amarin.UI
 
             p.WebSearchField.Changed += WebSearchTargetChanged;
             p.WebSearchField.AddKeyRequested += SettingsPickerAddKeyRequested;
+            p.AgentMemoryCombo.SelectionChanged += AgentMemoryCombo_SelectionChanged;
+        }
+
+        /// <summary>
+        /// Срок разговора с агентом (1.37.0). Действует со следующего хода: идущий ход держит тот
+        /// список агентов, с которым начался.
+        /// </summary>
+        private void AgentMemoryCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_settingsUiLoading || _services is null ||
+                sender is not ComboBox { SelectedItem: ComboBoxItem { Tag: string tag } } ||
+                !Enum.TryParse<AgentMemory>(tag, out var mode))
+            {
+                return;
+            }
+
+            _services.Settings.AgentMemory = mode;
+            _services.SettingsStore.Save(_services.Settings);
         }
 
         private void WireSlot(ModelPickerField picker, ReasoningPicker reasoning)
@@ -678,6 +697,7 @@ namespace Amarin.UI
             p.SynGuardToggle.Unchecked += SynGuardToggle_Changed;
             WireSlot(p.SynGuardModelPicker, p.SynGuardReasoningPicker);
             p.AddDomainRequested += (_, _) => OpenDomainDialog("");
+            p.TemporaryModeChanged += (_, _) => OnTemporaryModeChanged();
             p.RemoveDomainRequested += (_, domain) =>
             {
                 if (_services is null)

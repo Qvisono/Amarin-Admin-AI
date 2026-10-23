@@ -11,6 +11,32 @@ internal static class DownloadValidator
 
     public static IReadOnlyList<string> AllowedDomains => _allowedDomains;
 
+    /// <summary>
+    /// Белый список выключен человеком (1.37.0, «Загрузка с любого сайта»): годится любой хост.
+    /// </summary>
+    /// <remarks>
+    /// Статикой рядом со списком, по той же причине: список читают инструменты, разбор PowerShell
+    /// и текст вопроса об опасном действии, и все они обязаны видеть одно и то же. Ставит
+    /// <see cref="Configure"/> при запуске и смене профиля, а переключатель — сразу.
+    /// </remarks>
+    public static bool AllowAnySite { get; private set; }
+
+    public static void ConfigureAnySite(bool allow) => AllowAnySite = allow;
+
+    /// <summary>
+    /// Список и «загрузка с любого сайта» — из настроек профиля, одним вызовом.
+    /// </summary>
+    /// <remarks>
+    /// Зовут запуск и смена профиля. До этого смена профиля список не перечитывала, и до
+    /// перезапуска программы загрузки шли по белому списку прежнего профиля.
+    /// </remarks>
+    public static void Configure(Core.AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ConfigureAllowedDomains(settings.DownloadAllowedDomains);
+        ConfigureAnySite(settings.DownloadAnySite);
+    }
+
     public static void ConfigureAllowedDomains(IReadOnlyList<string>? domains)
     {
         _allowedDomains = domains is null
@@ -58,6 +84,11 @@ internal static class DownloadValidator
         if (string.IsNullOrWhiteSpace(host))
         {
             return false;
+        }
+
+        if (AllowAnySite)
+        {
+            return true;
         }
 
         return _allowedDomains.Any(domain =>

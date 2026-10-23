@@ -713,12 +713,37 @@ namespace Amarin.UI
             // Строка программы говорила о деньгах и копиях прежнего профиля.
             ClearStatusNote();
             StartNewSession(persist: false);
+
+            // Временные чаты уходящего профиля новому не достаются (1.37.0).
+            DiscardTemporaryChats();
             ResetChatListView();
             SetSidebarCollapsed(_services.Settings.SidebarCollapsed);
             RestoreDraft(_session);
             RefreshChatList();
             LoadSettingsUi();
+            ApplyProfileWideSettings();
             BuiltPage<SettingsInstructionsPage>()?.ResetForProfile();
+        }
+
+        /// <summary>
+        /// Настройки профиля, которые живут не в <see cref="AppSettings"/>, а в окне, словаре
+        /// приложения и Windows: язык интерфейса, шрифт ленты и высокий контраст, трей, глобальные
+        /// сочетания, автозапуск и меню Проводника.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="LoadSettingsUi"/> ставит только оформление. До этого смена профиля и импорт
+        /// оставляли эти настройки от прежнего профиля до перезапуска программы.
+        /// </remarks>
+        private void ApplyProfileWideSettings()
+        {
+            if (_services is null)
+            {
+                return;
+            }
+
+            LanguageManager.Apply(_services.Settings.LanguageCode);
+            ApplyAccessibility();
+            ApplyWindowsIntegration();
         }
 
         private void SaveProfiles() => ProfileStore.Save(_services!.ProfileRegistry);

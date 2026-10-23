@@ -84,6 +84,19 @@ public sealed partial class VeniceClient
             ["model"] = ModelRef.Bare(model), ["state"] = state, ["questions"] = questions
         };
 
+        // Фильтр провайдеров (1.37.0) — тем же объектом, что и у обычного запроса: человек решил,
+        // что без хранения данных уходит всё, в том числе маршрутизатор и защитник. Примет ли его
+        // этот адрес, документация не говорит; отказ виден сразу — запасным уровнем маршрутизатора
+        // и вопросом «SynGuard не проверил», — а не молча.
+        if (NoRetention)
+        {
+            payload["provider"] = new JsonObject
+            {
+                ["data_collection"] = ProviderPreferences.NoRetention.DataCollection,
+                ["zdr"] = ProviderPreferences.NoRetention.Zdr
+            };
+        }
+
         // Decisions живёт рядом с /v1, а не внутри него. Request сохраняет общий выбор
         // адреса и ключа; относительный путь не меняет получателя секрета.
         using var request = Request(HttpMethod.Post, "../alpha/decisions", key);

@@ -41,7 +41,7 @@ public sealed class FollowUpControlTests
         Assert.Equal([agent.Id], registry.ListFor("s").Select(item => item.Id));
         Assert.Empty(registry.ListFor(""));
 
-        registry.Unregister(agent.Id);
+        registry.Unregister(agent);
         Assert.Empty(registry.ListFor("s"));
     }
 
@@ -959,7 +959,7 @@ public sealed class FollowUpControlTests
             {
                 if (entry is not null)
                 {
-                    agents!.Unregister(entry.Id);
+                    agents!.Unregister(entry);
                 }
             }
         }

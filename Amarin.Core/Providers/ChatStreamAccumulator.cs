@@ -94,6 +94,9 @@ internal sealed class ChatStreamAccumulator
 
     public int TotalTokens { get; private set; }
 
+    /// <summary>Каким уровнем обслужили ответ (1.37.0); пусто — провайдер не сказал.</summary>
+    public string? ServiceTier { get; private set; }
+
     public bool Apply(ChatCompletionChunk chunk)
     {
         if (chunk.Error is not null)
@@ -121,6 +124,11 @@ internal sealed class ChatStreamAccumulator
         if (chunk.Usage?.TotalTokens > 0)
         {
             TotalTokens = chunk.Usage.TotalTokens.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(chunk.ServiceTier))
+        {
+            ServiceTier = chunk.ServiceTier;
         }
 
         // Цена от OpenRouter приходит внутри usage и считает весь ответ целиком, а не этот

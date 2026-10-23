@@ -17,6 +17,9 @@ internal sealed class MessageActions
     public Action<ChatDisplayMessage, string>? CommitEdit;
     public Action<ChatDisplayMessage>? Delete;
     public Action<ChatDisplayMessage>? Regenerate;
+
+    /// <summary>Ветка в новый чат с этого ответа (1.37.0).</summary>
+    public Action<ChatDisplayMessage>? Branch;
     public Action<ChatDisplayMessage>? Cancel;
 
     /// <summary>
@@ -1390,6 +1393,12 @@ internal static class ChatMessageViews
         var regenerate = IconAction(host, "Regenerate", Loc.Get("S.Message.Regenerate"));
         regenerate.Click += (_, _) => actions?.Regenerate?.Invoke(message);
         row.Children.Add(regenerate);
+
+        // Ветка (1.37.0) — рядом с «Повторить»: оба продолжают разговор с этого ответа по-другому,
+        // «Повторить» — вариантом здесь же, ветка — отдельным чатом.
+        var branch = IconAction(host, "Branch", Loc.Get("S.Message.Branch"));
+        branch.Click += (_, _) => actions?.Branch?.Invoke(message);
+        row.Children.Add(branch);
         var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         row.Children.Add(copy);
@@ -2398,8 +2407,12 @@ internal static class ChatMessageViews
             Margin = resourceKey switch
             {
                 "Compose" => new Thickness(2),
-                "Regenerate" or "Upload" or "Cancel" or "ExportJson" or "Continue" => new Thickness(4),
+                "Regenerate" or "Upload" or "Cancel" or "Continue" => new Thickness(4),
                 "Copy" => new Thickness(5),
+
+                // Обводка без заливки (скобки выгрузки, ветка, корзина) растягивается картинкой по
+                // самой фигуре, а не по боксу 24: с полем 4 они выходили на 18 точек при 13-15 у
+                // соседей. Поле 6 — 14 точек, как у корзины.
                 _ => new Thickness(6)
             }
         };

@@ -4,7 +4,12 @@ using System.Text.RegularExpressions;
 namespace Amarin.Core;
 
 /// <summary>Чего попросил человек — до подгонки под конкретную модель.</summary>
-public readonly record struct ReasoningChoice(bool DisableThinking, string? Effort)
+/// <param name="Speed">
+/// Скорость модели (1.37.0, <see cref="ModelSpeeds"/>): <c>flex</c>, <c>fast</c>, <c>ultrafast</c>.
+/// Пусто — обычная. Едет вместе с размышлением, потому что выбирается в том же месте и для того
+/// же слота; на провод уходит, только если модель её умеет.
+/// </param>
+public readonly record struct ReasoningChoice(bool DisableThinking, string? Effort, string? Speed = null)
 {
     public static ReasoningChoice Disabled { get; } = new(true, null);
 }
@@ -16,14 +21,20 @@ public sealed class ReasoningSettings
 
     public string? ReasoningEffort { get; set; }
 
+    /// <summary>Скорость модели слота (1.37.0). Пусто — обычная.</summary>
+    public string? Speed { get; set; }
+
     public ReasoningChoice ToChoice() =>
-        new(DisableThinking, string.IsNullOrWhiteSpace(ReasoningEffort) ? null : ReasoningEffort.Trim());
+        new(DisableThinking, Trimmed(ReasoningEffort), Trimmed(Speed));
 
     public void Apply(ReasoningChoice choice)
     {
         DisableThinking = choice.DisableThinking;
-        ReasoningEffort = string.IsNullOrWhiteSpace(choice.Effort) ? null : choice.Effort.Trim();
+        ReasoningEffort = Trimmed(choice.Effort);
+        Speed = Trimmed(choice.Speed);
     }
+
+    private static string? Trimmed(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }
 
 /// <summary>Wire fields produced for one model from a <see cref="ReasoningChoice"/>.</summary>

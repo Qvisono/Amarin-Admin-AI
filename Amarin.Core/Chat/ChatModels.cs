@@ -62,8 +62,29 @@ public sealed class ChatSession
 
     public string? ReasoningEffort { get; set; }
 
+    /// <summary>Скорость модели этого чата (1.37.0, <see cref="ModelSpeeds"/>). Пусто — обычная.</summary>
+    public string? ModelSpeed { get; set; }
+
     [JsonIgnore]
-    public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort);
+    public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort, ModelSpeed);
+
+    /// <summary>
+    /// Временный чат (1.37.0): не пишется на диск, не попадает в поиск, архив и резервные копии.
+    /// </summary>
+    /// <remarks>
+    /// В файл не пишется сам признак: временный чат на диск не попадает вовсе, а копия, которую
+    /// человек сохранит в обычный чат (ветка из обычного, перенос), временной быть не должна.
+    /// Охраняет запись <c>ChatStore.Save</c> — одна точка на все пути: ход, заголовок, сводку,
+    /// переименование.
+    /// </remarks>
+    [JsonIgnore]
+    public bool IsTemporary { get; set; }
+
+    /// <summary>
+    /// Разговоры чата с агентами (1.37.0) — только в режиме «Сохранять в чате»
+    /// (<see cref="AgentMemory.Chat"/>); в остальных режимах пусто.
+    /// </summary>
+    public List<StoredAgentConversation>? Agents { get; set; }
 
     public List<ChatDisplayMessage> Messages { get; set; } = [];
 
@@ -463,4 +484,11 @@ public sealed class ChatIndexEntry
 
     /// <summary>Во что обошёлся чат целиком, со всеми вариантами (<see cref="ChatCost.Total"/>).</summary>
     public decimal TotalCost { get; set; }
+
+    /// <summary>
+    /// Строка временного чата (1.37.0): её даёт не опись, а <see cref="TemporaryChats"/>, и в опись
+    /// она не попадает — отсюда <c>JsonIgnore</c>.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsTemporary { get; set; }
 }

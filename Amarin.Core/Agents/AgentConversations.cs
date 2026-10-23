@@ -21,6 +21,9 @@ internal sealed class AgentConversation
     /// <summary>Переписка агента без системного промпта, сжатая, как у продолжаемого сеанса.</summary>
     public required IReadOnlyList<ChatMessage> History { get; set; }
 
+    /// <summary>Когда агент отвечал последним (1.37.0): в файле чата остаются самые свежие.</summary>
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     /// <summary>
     /// Занят ли агент: два вызова к одному агенту в одном раунде шли бы по одной истории и
     /// затёрли бы друг друга.
@@ -76,23 +79,83 @@ internal sealed class AgentConversation
 }
 
 /// <summary>
-/// Агенты одного ответа чата: с ними чат переписывается, пока не закончил ответ.
+/// Агенты, которым чат может написать после их отчёта.
 /// </summary>
 /// <remarks>
-/// Живёт на ходе (<see cref="VeniceTurnContext.Agents"/>), а не в общем реестре: так решил
-/// человек — разговор с агентом в пределах ответа, — и кончается он сам, вместе с ходом, без
-/// уборки и без памяти, растущей от чата к чату.
+/// Висит на ходе (<see cref="VeniceTurnContext.Agents"/>), а откуда он взят, решает настройка
+/// <see cref="AgentMemory"/> (1.37.0, <see cref="AgentMemoryBook"/>): новый на каждый ответ, как
+/// было в 1.36.0, общий на чат, пока программа открыта, или поднятый из файла чата.
 /// </remarks>
 internal sealed class AgentConversations
 {
     private readonly ConcurrentDictionary<string, AgentConversation> _byId = new(StringComparer.OrdinalIgnoreCase);
     private int _counter;
 
-    public void Keep(AgentConversation conversation) => _byId[conversation.Id] = conversation;
+    /// <summary>
+    /// Зовётся после каждого запомненного ответа агента — книга переносит разговоры в файл чата.
+    /// </summary>
+    public Action? Changed { get; set; }
+
+    public IReadOnlyCollection<AgentConversation> All => _byId.Values.ToList();
+
+    public void Keep(AgentConversation conversation)
+    {
+        _byId[conversation.Id] = conversation;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Агент ответил ещё раз: уровень и переписка — свежие.</summary>
+    public void Update(AgentConversation conversation, string tier, IReadOnlyList<ChatMessage> history)
+    {
+        conversation.Tier = tier;
+        conversation.History = history;
+        conversation.UpdatedAt = DateTime.UtcNow;
+        Changed?.Invoke();
+    }
 
     public AgentConversation? Find(string? id) =>
         !string.IsNullOrWhiteSpace(id) && _byId.TryGetValue(id.Trim(), out var conversation) ? conversation : null;
 
     /// <summary>Id, когда реестра агентов нет (в тестах): свой счёт.</summary>
     public string NextId() => "a" + Interlocked.Increment(ref _counter);
+
+    /// <summary>
+    /// Id нового агента: следующий номер счётчика, который в этом чате ещё не занят.
+    /// </summary>
+    /// <remarks>
+    /// Счётчик реестра идёт с <c>a1</c> на каждом запуске, а разговоры из файла чата (1.37.0) помнят
+    /// прежние номера: новый агент с тем же id затёр бы чужую переписку, и чат писал бы не тому.
+    /// </remarks>
+    public string Allocate(Func<string> next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+        while (true)
+        {
+            var id = next();
+            if (!_byId.ContainsKey(id))
+            {
+                return id;
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Разговор с агентом в файле чата (1.37.0, режим <see cref="AgentMemory.Chat"/>).
+/// </summary>
+/// <remarks>
+/// Отдельной записью, а не <see cref="AgentConversation"/>: у того замок занятости и правила
+/// продолжения, а в файл ложатся одни данные.
+/// </remarks>
+public sealed class StoredAgentConversation
+{
+    public string Id { get; set; } = "";
+
+    public string Prompt { get; set; } = "";
+
+    public string Tier { get; set; } = "";
+
+    public List<ChatMessage> History { get; set; } = [];
+
+    public DateTime UpdatedAt { get; set; }
 }

@@ -3,8 +3,17 @@ using System.Text.Json.Nodes;
 
 namespace Amarin.Core;
 
-/// <summary>Тело запроса к Messages API и то, нужен ли к нему заголовок бета-функции.</summary>
-internal sealed record AnthropicBody(JsonObject Json, bool NeedsBindingBeta);
+/// <summary>Тело запроса к Messages API и то, какие бета-функции ему нужны.</summary>
+/// <param name="FastMode">Просит fast mode (1.37.0): к запросу нужна бета <see cref="ModelSpeeds.AnthropicFastBeta"/>.</param>
+internal sealed record AnthropicBody(JsonObject Json, bool NeedsBindingBeta, bool FastMode = false)
+{
+    /// <summary>Значение заголовка <c>anthropic-beta</c>; пусто — заголовок не нужен.</summary>
+    public string Betas => string.Join(",", new[]
+    {
+        NeedsBindingBeta ? AnthropicMessages.BindingBeta : null,
+        FastMode ? ModelSpeeds.AnthropicFastBeta : null
+    }.Where(beta => beta is not null));
+}
 
 /// <summary>
 /// Перевод между запросом программы (OpenAI-совместимым по форме) и Messages API Anthropic.
@@ -140,8 +149,17 @@ internal static class AnthropicMessages
         }
 
         var needsBeta = false;
+        var fast = false;
         if (official)
         {
+            // Fast mode (1.37.0) — только у самой Anthropic: у посредника его нет, а повтор после
+            // отказа (relaxed) идёт без него, как и без размышления.
+            if (!relaxed && ModelSpeeds.Pick(request.ReasoningChoice, ModelRef.Qualify(LlmProvider.Anthropic, bareModel)) == ModelSpeeds.Fast)
+            {
+                body["speed"] = "fast";
+                fast = true;
+            }
+
             // Кэш продолжения разговора: без него прямой Anthropic выходил бы дороже той же
             // модели через Venice, где кэш ставит сам посредник.
             body["cache_control"] = new JsonObject { ["type"] = "ephemeral" };
@@ -153,7 +171,7 @@ internal static class AnthropicMessages
             }
         }
 
-        return new AnthropicBody(body, needsBeta);
+        return new AnthropicBody(body, needsBeta, fast);
     }
 
     /// <summary>
@@ -172,7 +190,8 @@ internal static class AnthropicMessages
          error.Contains("output_config", StringComparison.OrdinalIgnoreCase) ||
          error.Contains("budget_tokens", StringComparison.OrdinalIgnoreCase) ||
          error.Contains("block_binding", StringComparison.OrdinalIgnoreCase) ||
-         error.Contains("cache_control", StringComparison.OrdinalIgnoreCase));
+         error.Contains("cache_control", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("speed", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Ответ без потока в форме <c>/chat/completions</c>.</summary>
     public static ChatCompletionResponse ParseResponse(string json)
@@ -246,9 +265,20 @@ internal static class AnthropicMessages
                 PromptTokens = prompt,
                 CompletionTokens = completion,
                 TotalTokens = prompt + completion
-            }
+            },
+            ServiceTier = ServedTier(root)
         };
     }
+
+    /// <summary>
+    /// Каким уровнем обслужили ответ (1.37.0): fast mode Anthropic сообщает в <c>usage.speed</c>.
+    /// <c>null</c> — обычным.
+    /// </summary>
+    internal static string? ServedTier(JsonElement holder) =>
+        holder.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object &&
+        Text(usage, "speed") is "fast"
+            ? ModelSpeeds.Fast
+            : null;
 
     internal static string FinishReason(string? stopReason) => stopReason switch
     {

@@ -172,10 +172,22 @@ public sealed partial class VeniceClient
     /// OpenRouter отправляло человека чинить не тот провайдер — ключ Venice тут ни при чём.
     /// </remarks>
     private static VeniceApiException ApiError(ApiCredential credential, int status, string message) =>
-        new($"{ProviderSpec.Of(credential).Name} API error ({status}): {message}")
+        new(NoPrivateEndpoint(credential, status, message)
+            ? Loc.Get("S.Provider.NoPrivateEndpoint")
+            : $"{ProviderSpec.Of(credential).Name} API error ({status}): {message}")
         {
             StatusCode = status
         };
+
+    /// <summary>
+    /// OpenRouter не нашёл провайдера модели под политику данных (1.37.0): так он отвечает, когда
+    /// «Только провайдеры без хранения данных» отсекли всех. Человек иначе читал бы англоязычный
+    /// 404 и не знал, что виновата его же настройка.
+    /// </summary>
+    private static bool NoPrivateEndpoint(ApiCredential credential, int status, string message) =>
+        status == 404 &&
+        credential.Provider == LlmProvider.OpenRouter &&
+        message.Contains("data policy", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Учётные данные запроса: свои у слота либо выбранный ключ программы.</summary>
     private ApiCredential Resolve(ApiCredential? credential) => credential ?? _options.Credential;
@@ -604,7 +616,8 @@ public sealed partial class VeniceClient
                 }
             }
 
-            var cost = CostOf(accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens);
+            var cost = CostOf(
+                accumulator.Cost, model, accumulator.PromptTokens, accumulator.CompletionTokens, accumulator.ServiceTier);
             Book(cost, model, credential);
 
             return new StreamedChatCompletion
@@ -737,6 +750,13 @@ public sealed partial class VeniceClient
     /// повтор приходил без расхода токенов — цена этого ответа не попадала в журнал трат.
     /// </remarks>
     private static ChatCompletionRequest WithReasoningEffort(ChatCompletionRequest request, string? effort) =>
+        Copy(request, effort, request.ServiceTier);
+
+    /// <summary>То же тело без уровня обслуживания (1.37.0): повтор после отказа уровня у OpenRouter.</summary>
+    private static ChatCompletionRequest WithoutServiceTier(ChatCompletionRequest request) =>
+        Copy(request, request.ReasoningEffort, serviceTier: null);
+
+    private static ChatCompletionRequest Copy(ChatCompletionRequest request, string? effort, string? serviceTier) =>
         new()
         {
             Model = request.Model,
@@ -753,11 +773,14 @@ public sealed partial class VeniceClient
             VeniceParameters = request.VeniceParameters,
             Usage = request.Usage,
             Plugins = request.Plugins,
+            ServiceTier = serviceTier,
+            Provider = request.Provider,
             ReasoningChoice = request.ReasoningChoice
         };
 
     /// <summary>
-    /// Тело без всего, что не обязательно: полей размышления, температуры и просьбы о расходе.
+    /// Тело без всего, что не обязательно: полей размышления, температуры, просьбы о расходе и
+    /// уровня обслуживания.
     /// </summary>
     private static ChatCompletionRequest WithoutOptionalFields(ChatCompletionRequest request) =>
         new()
@@ -854,6 +877,7 @@ public sealed partial class VeniceClient
             ReasoningEffort = effort,
             Thinking = thinking,
             EnableThinking = enableThinking,
+            ServiceTier = ModelSpeeds.ServiceTier(request.ReasoningChoice, model),
             ReasoningChoice = request.ReasoningChoice
         };
     }
@@ -890,10 +914,11 @@ public sealed partial class VeniceClient
     /// Тело для повтора после отказа, если отказ можно обойти. <c>null</c> — повторять нечего.
     /// </summary>
     /// <remarks>
-    /// Два обхода. Отказ усилия рядом с инструментами (GPT-5.x) — повтор с <c>none</c>. Отказ
+    /// Три обхода. Отказ усилия рядом с инструментами (GPT-5.x) — повтор с <c>none</c>. Отказ
     /// необязательного поля у сервера без надстроек — повтор без полей размышления и прочего
     /// необязательного: у провайдеров это поле устроено по-разному даже между их же моделями
-    /// (Kimi K3 и K2, GLM-5), и перечислить все различия заранее нельзя.
+    /// (Kimi K3 и K2, GLM-5), и перечислить все различия заранее нельзя. Отказ уровня
+    /// обслуживания у OpenRouter — повтор без него.
     /// </remarks>
     private static ChatCompletionRequest? Relaxed(
         ChatCompletionRequest payload,
@@ -912,6 +937,15 @@ public sealed partial class VeniceClient
             return WithoutOptionalFields(payload);
         }
 
+        // Уровень обслуживания (1.37.0) берётся из таблицы ModelSpeeds, а у OpenRouter он есть не у
+        // каждого провайдера модели: без точки с таким уровнем ответ — 404, а не ответ модели.
+        // Повтор — без одного уровня, фильтр провайдеров («без хранения данных») остаётся.
+        if (dialect == PayloadDialect.OpenRouter && payload.ServiceTier is not null &&
+            (status == 404 || status is 400 or 422 && error.Contains("service_tier", StringComparison.OrdinalIgnoreCase)))
+        {
+            return WithoutServiceTier(payload);
+        }
+
         return null;
     }
 
@@ -924,7 +958,8 @@ public sealed partial class VeniceClient
                (payload.Thinking is not null && Names("thinking")) ||
                (payload.EnableThinking is not null && Names("enable_thinking")) ||
                (payload.StreamOptions is not null && Names("stream_options")) ||
-               (payload.Temperature is not null && Names("temperature"));
+               (payload.Temperature is not null && Names("temperature")) ||
+               (payload.ServiceTier is not null && Names("service_tier"));
     }
 
     private ChatCompletionRequest BuildVenicePayload(
@@ -1046,9 +1081,14 @@ public sealed partial class VeniceClient
             StreamOptions = stream ? new StreamOptions() : null,
             Reasoning = reasoning,
             Usage = new UsageAccounting(),
-            Plugins = request.Plugins
+            Plugins = request.Plugins,
+            ServiceTier = ModelSpeeds.ServiceTier(choice, model),
+            Provider = NoRetention ? ProviderPreferences.NoRetention : null
         };
     }
+
+    /// <summary>Включено ли «Только провайдеры без хранения данных» (1.37.0).</summary>
+    private bool NoRetention => _options.NoRetention?.Invoke() == true;
 
     private static string ExtractErrorMessage(string body)
     {

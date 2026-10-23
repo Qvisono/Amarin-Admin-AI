@@ -266,8 +266,15 @@ internal static class PowerShellAnalysis
             }
         }
 
+        // Адрес, вычисляемый при исполнении, запрещён ради проверки по белому списку; когда
+        // человек список выключил (1.37.0), проверять нечего, и такой адрес — обычная загрузка.
         foreach (var url in facts.Downloads)
         {
+            if (DownloadValidator.AllowAnySite)
+            {
+                break;
+            }
+
             if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || !DownloadValidator.IsDomainAllowed(uri))
             {
                 return DownloadRefusal(url);

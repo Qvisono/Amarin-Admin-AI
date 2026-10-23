@@ -450,6 +450,11 @@
     <system:String x:Key="S.ChatList.Options" xml:space="preserve">Sort and filter</system:String>
     <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Pin to the top</system:String>
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Pinned</system:String>
+    <system:String x:Key="S.ChatList.Temporary" xml:space="preserve">Temporary</system:String>
+    <system:String x:Key="S.Temporary.Plaque" xml:space="preserve">Temporary chat</system:String>
+    <system:String x:Key="S.Temporary.PlaqueTip" xml:space="preserve">Make this chat temporary: it is not saved</system:String>
+    <system:String x:Key="S.Temporary.Hint" xml:space="preserve">Not saved, not searchable, not archived</system:String>
+    <system:String x:Key="S.Temporary.Chip" xml:space="preserve">Temporary</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Rename</system:String>
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Rename folder</system:String>
     <system:String x:Key="S.ChatList.SendTo" xml:space="preserve">Send</system:String>
@@ -705,6 +710,7 @@
     <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Operation via {0}</system:String>
     <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Run PowerShell</system:String>
     <system:String x:Key="S.Guard.Sum.Computer" xml:space="preserve">Mouse and keyboard: {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.Browser" xml:space="preserve">Agent browser: {0}</system:String>
     <system:String x:Key="S.Guard.Sum.QuickScan" xml:space="preserve">Defender quick scan</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOff" xml:space="preserve">Turn Remote Desktop off</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOn" xml:space="preserve">Turn Remote Desktop on</system:String>
@@ -1054,6 +1060,11 @@
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Previous version</system:String>
     <system:String x:Key="S.Models.Bypass" xml:space="preserve">Bypass model</system:String>
     <system:String x:Key="S.Models.Bypass.Desc" xml:space="preserve">Takes over a task the other models refused</system:String>
+    <system:String x:Key="S.Models.AgentMemory" xml:space="preserve">Talking to an agent</system:String>
+    <system:String x:Key="S.Models.AgentMemoryDesc" xml:space="preserve">How long the chat can write to an agent after its report</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">Until the answer ends</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">While the app is open</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Saved in the chat</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Fast tasks</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Agent</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Chat answers</system:String>
@@ -1092,6 +1103,7 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">The working rules the app gives the chat and the agent</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Every model in the fallback chain is overloaded. Please try again later.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">{0} is overloaded or has hit its rate limit right now. Try again a little later or pick another model.</system:String>
+    <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">None of this model's providers on OpenRouter keep no data, and “Only providers that keep no data” is on in Security. Choose another model or turn that setting off.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">The model declined this request: the provider's safeguards stopped it. Rephrase the request or pick another model.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">I, {0}, refuse to carry out this task for these reasons: {1}</system:String>
     <system:String x:Key="S.Refusal.NoReasons" xml:space="preserve">no reasons given</system:String>
@@ -1208,6 +1220,7 @@
     <system:String x:Key="S.Data.Usage.Languages" xml:space="preserve">Interface languages</system:String>
     <system:String x:Key="S.Data.Usage.Logs" xml:space="preserve">Crash logs</system:String>
     <system:String x:Key="S.Data.Usage.Other" xml:space="preserve">Other</system:String>
+    <system:String x:Key="S.Data.Usage.Browser" xml:space="preserve">Agent browser</system:String>
     <system:String x:Key="S.Data.Usage.Refresh" xml:space="preserve">Measure again</system:String>
     <system:String x:Key="S.Data.Usage.Settings" xml:space="preserve">Settings and profiles</system:String>
     <system:String x:Key="S.Data.Usage.Shared" xml:space="preserve">Exported chats</system:String>
@@ -1342,6 +1355,7 @@
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">No summaries yet. They are written after each answer the model gives.</system:String>
     <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">To the start of the chat</system:String>
     <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">To the end of the chat</system:String>
+    <system:String x:Key="S.Chat.BranchTitle" xml:space="preserve">{0} (branch)</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Action journal</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Open the chat</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Could not read the history. Check access to the program data folder.</system:String>
@@ -1452,6 +1466,7 @@
     <system:String x:Key="S.Message.Export" xml:space="preserve">Export the conversation up to here</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">The answer has no text</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Regenerate</system:String>
+    <system:String x:Key="S.Message.Branch" xml:space="preserve">Branch into a new chat</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Share the conversation up to this answer</system:String>
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Stop</system:String>
 
@@ -1513,6 +1528,11 @@
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">In Auto, reasoning follows the light and heavy model settings on the Models page</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Reasoning level</system:String>
+    <system:String x:Key="S.Speed.Caption" xml:space="preserve">Speed</system:String>
+    <system:String x:Key="S.Speed.Flex" xml:space="preserve">Economy</system:String>
+    <system:String x:Key="S.Speed.Standard" xml:space="preserve">Standard</system:String>
+    <system:String x:Key="S.Speed.Fast" xml:space="preserve">Fast</system:String>
+    <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Ultrafast</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">No reasoning</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Standard</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Reasoning</system:String>
@@ -1763,11 +1783,25 @@
     <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Off</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Chat</system:String>
     <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Privacy</system:String>
+    <system:String x:Key="S.Security.PrivacyDesc" xml:space="preserve">Chat encryption, providers that keep no data, temporary chat</system:String>
     <system:String x:Key="S.Security.ComputerLabel" xml:space="preserve">Operating this PC</system:String>
     <system:String x:Key="S.Security.Computer" xml:space="preserve">The agent may use the mouse and keyboard</system:String>
     <system:String x:Key="S.Security.ComputerDesc" xml:space="preserve">When its own tools are not enough: program windows, the browser, Windows settings</system:String>
     <system:String x:Key="S.Security.ComputerNoticeTitle" xml:space="preserve">Screenshots go to the model provider</system:String>
     <system:String x:Key="S.Security.ComputerNoticeText" xml:space="preserve">While the agent operates this PC, screenshots and window text are sent to the provider of the agent's model. Meanwhile the app window folds into a small panel, the edges of the screen glow and the pointer turns into the Amarin pointer. Stop on the panel stops the agent.</system:String>
+    <system:String x:Key="S.Security.Browser" xml:space="preserve">Agent browser</system:String>
+    <system:String x:Key="S.Security.BrowserDesc" xml:space="preserve">The agent opens sites in its own window, clicks and fills in forms. Page text goes to the model provider</system:String>
+    <system:String x:Key="S.Security.BrowserNoticeTitle" xml:space="preserve">Agent browser is on</system:String>
+    <system:String x:Key="S.Security.BrowserNoticeText" xml:space="preserve">The agent will open sites in its own window with a separate profile. Page text and screenshots are sent to the provider of the agent's model. The agent never types passwords: when a sign-in is needed, it asks you to sign in in the browser window and press Done.</system:String>
+    <system:String x:Key="S.Security.NoRetention" xml:space="preserve">Only providers that keep no data</system:String>
+    <system:String x:Key="S.Security.NoRetentionDesc" xml:space="preserve">OpenRouter sends requests only to providers that neither store them nor train on them. Some models become unavailable</system:String>
+    <system:String x:Key="S.Security.TemporaryUntilClose" xml:space="preserve">Keep temporary chats until the app closes</system:String>
+    <system:String x:Key="S.Security.TemporaryUntilCloseDesc" xml:space="preserve">Off: a temporary chat disappears as soon as you open another one</system:String>
+    <system:String x:Key="S.Security.AnySite" xml:space="preserve">Download from any site</system:String>
+    <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">The allowlist below is not checked. Turn this on only if you trust what the agent downloads</system:String>
+    <system:String x:Key="S.Browser.Title" xml:space="preserve">Agent browser</system:String>
+    <system:String x:Key="S.Browser.Status" xml:space="preserve">The agent works here. You can sign in to sites yourself</system:String>
+    <system:String x:Key="S.Browser.Done" xml:space="preserve">Done</system:String>
     <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Turn all on</system:String>
     <system:String x:Key="S.Security.Encrypt" xml:space="preserve">Encrypt chats on disk</system:String>
     <system:String x:Key="S.Security.EncryptDesc" xml:space="preserve">Only your Windows account can read them</system:String>

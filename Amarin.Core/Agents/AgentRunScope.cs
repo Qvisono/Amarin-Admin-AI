@@ -48,6 +48,12 @@ internal sealed class AgentRunContext
     /// хода чата нет (расписание), и агент живёт до своего отчёта.
     /// </summary>
     public AgentConversations? Conversations { get; init; }
+
+    /// <summary>
+    /// Ход идёт во временном чате (1.37.0): то, что инструмент сохранил бы на диск вместе с
+    /// содержимым чата (отложенная задача), здесь не делается.
+    /// </summary>
+    public bool TemporaryChat { get; init; }
 }
 
 internal static class AgentRunScope

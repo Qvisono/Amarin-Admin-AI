@@ -27,11 +27,12 @@ public sealed class MessageAgentTool : ITool
     public string Name => ToolName;
 
     public string Description =>
-        "Write to an agent you started in this answer and wait for its reply, which comes back as a new report. " +
+        "Write to an agent you started and wait for its reply, which comes back as a new report. " +
         "Invoke this as a tool call, never as chat text. " +
         "The agent keeps everything it did and found: ask it what is unclear, tell it what it got wrong or what you found, " +
         "or give it the next part of the task, instead of starting a new agent. " +
-        "agent_id is the id at the start of the agent's report. The agent is available until your answer is complete.";
+        "agent_id is the id at the start of the agent's report. How long the agent stays available is stated in the " +
+        "AGENT LIFETIME rules.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
         {

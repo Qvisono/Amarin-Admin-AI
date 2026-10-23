@@ -40,7 +40,11 @@ internal sealed class AnthropicStream
         {
             case "message_start" when root.TryGetProperty("message", out var message):
                 _promptTokens = AnthropicMessages.Tokens(message).Prompt;
-                return new ChatCompletionChunk { Usage = new VeniceUsage { PromptTokens = _promptTokens } };
+                return new ChatCompletionChunk
+                {
+                    Usage = new VeniceUsage { PromptTokens = _promptTokens },
+                    ServiceTier = AnthropicMessages.ServedTier(message)
+                };
 
             case "content_block_start":
                 return Start(Index(root), root.TryGetProperty("content_block", out var block) ? block : default);
@@ -156,7 +160,8 @@ internal sealed class AnthropicStream
                 PromptTokens = _promptTokens,
                 CompletionTokens = output,
                 TotalTokens = _promptTokens + output
-            }
+            },
+            ServiceTier = AnthropicMessages.ServedTier(root)
         };
     }
 

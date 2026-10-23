@@ -755,6 +755,54 @@
                     </ScrollViewer>
 
                     <!--
+                        Временный чат (1.37.0): кнопка посреди пустого чата — тёмная «таблетка» со своим
+                        переключателем, по которому состояние видно сразу, без строки пояснений.
+                        Включённая делает этот чат временным: он не пишется на диск, не попадает в
+                        поиск и архив. С первым сообщением кнопка уходит, а о временности говорит
+                        отметка у поля ввода.
+                    -->
+                    <ToggleButton x:Name="TemporaryChatPlaque" Grid.Row="0" Visibility="Collapsed"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Cursor="Hand" Focusable="False" Click="TemporaryChatPlaque_Click"
+                                  AutomationProperties.Name="{DynamicResource S.Temporary.Plaque}"
+                                  ToolTip="{DynamicResource S.Temporary.PlaqueTip}">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Bg" Height="36" CornerRadius="18" BorderThickness="1" Padding="14,0,9,0"
+                                        Background="{DynamicResource Bg.Panel}" BorderBrush="{DynamicResource Border.Default}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path x:Name="Icon" Data="{StaticResource Icon.TemporaryChat}" Width="16" Height="16"
+                                              Stretch="None" Stroke="{DynamicResource Text.Secondary}" StrokeThickness="1.4"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                              VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="Label" Text="{DynamicResource S.Temporary.Plaque}" FontSize="12.5"
+                                                   Foreground="{DynamicResource Text.Secondary}" VerticalAlignment="Center"
+                                                   Margin="8,0,12,0"/>
+                                        <!-- Переключатель того же вида, что у размышления, только меньше. -->
+                                        <Border x:Name="Track" Width="30" Height="18" CornerRadius="9"
+                                                Background="{DynamicResource Bg.Track}" VerticalAlignment="Center">
+                                            <Ellipse x:Name="Thumb" Width="12" Height="12" Margin="3,0"
+                                                     HorizontalAlignment="Left" Fill="{DynamicResource Text.Dim}"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Border.Strong}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Icon" Property="Stroke" Value="{DynamicResource Text.Primary}"/>
+                                        <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Text.Primary}"/>
+                                        <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent.Fill}"/>
+                                        <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Text.OnAccent}"/>
+                                        <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+
+                    <!--
                         «Ответить» на выделенное в ответе модели. Встаёт у курсора, а не у текста:
                         положение курсора верно и под лупой, и когда выделение кончается внутри
                         формулы или блока кода, у которых нет позиции символа. Регистрируется в
@@ -1445,6 +1493,21 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
+                                    <!-- Временный чат (1.37.0): плашка посреди чата ушла с первым сообщением, признак — здесь. -->
+                                    <Border x:Name="TemporaryChatChip" Visibility="Collapsed" Height="26" Margin="6,0,0,0"
+                                            Padding="8,0,10,0" CornerRadius="7" BorderThickness="1" VerticalAlignment="Center"
+                                            Background="{DynamicResource Bg.Raised}" BorderBrush="{DynamicResource Border.Default}"
+                                            ToolTip="{DynamicResource S.Temporary.Hint}"
+                                            AutomationProperties.Name="{DynamicResource S.Temporary.Chip}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.TemporaryChat}" Width="12" Height="12" Stretch="Uniform"
+                                                  Stroke="{DynamicResource Text.Faint}" StrokeThickness="1.2"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                  Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{DynamicResource S.Temporary.Chip}" FontSize="11.5" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" Foreground="{DynamicResource Text.Secondary}"/>
+                                        </StackPanel>
+                                    </Border>
                                     <!-- Во что обошёлся чат целиком, со всеми вариантами (E3). Разбивка — в подсказке. -->
                                     <Border x:Name="ChatCostChip" Visibility="Collapsed" Height="26" Margin="6,0,0,0"
                                             Padding="8,0,10,0" CornerRadius="7" BorderThickness="1" VerticalAlignment="Center"

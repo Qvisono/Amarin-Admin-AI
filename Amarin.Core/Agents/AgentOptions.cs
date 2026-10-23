@@ -122,7 +122,21 @@ public sealed record AgentOptions
 
     public string? ReasoningEffort { get; init; }
 
-    public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort);
+    /// <summary>Скорость модели агента (1.37.0): <see cref="ModelSpeeds"/>. Пусто — обычная.</summary>
+    public string? ModelSpeed { get; init; }
+
+    public ReasoningChoice Reasoning => new(DisableThinking, ReasoningEffort, ModelSpeed);
+
+    /// <summary>
+    /// Включена ли «Только провайдеры без хранения данных» у OpenRouter (1.37.0). Читается на
+    /// каждом запросе: человек может щёлкнуть переключатель, пока программа работает.
+    /// </summary>
+    /// <remarks>
+    /// Делегатом, по образцу <see cref="SpendGate"/>: клиент настроек не видит, а копии через
+    /// <c>with</c> — у агента, SynGuard, заголовка, сводки, Розы — наследуют его все.
+    /// <c>null</c> — выключено; на этом стоят тесты.
+    /// </remarks>
+    public Func<bool>? NoRetention { get; init; }
 
     public string WebSearch { get; init; } = "off";
 

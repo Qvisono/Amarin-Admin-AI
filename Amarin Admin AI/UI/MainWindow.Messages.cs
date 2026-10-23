@@ -271,6 +271,9 @@ namespace Amarin.UI
         /// </remarks>
         private void ReconcileTranscript(string? refreshId)
         {
+            // Удаление могло опустошить чат: тогда снова видна плашка временного чата.
+            RefreshTemporaryUi();
+
             var present = new HashSet<ChatDisplayMessage>(_session.Messages, ReferenceEqualityComparer.Instance);
             var kept = 0;
             foreach (var host in _messageHosts)

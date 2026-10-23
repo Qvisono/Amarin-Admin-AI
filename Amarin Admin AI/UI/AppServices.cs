@@ -124,6 +124,28 @@ internal sealed class AppServices : IDisposable
     /// </summary>
     internal ComputerHub? Computer { get; init; }
 
+    /// <summary>
+    /// Встроенный браузер агента (1.37.0). Фабрику окна ставит главное окно; null — браузера нет
+    /// (тесты окна).
+    /// </summary>
+    internal BrowserHub? Browser { get; init; }
+
+    /// <summary>
+    /// Разговоры чатов с агентами (1.37.0). Не required: тестам окна хватает своей книги — тогда
+    /// окно просто забывает агентов удалённого чата в пустом месте.
+    /// </summary>
+    internal AgentMemoryBook AgentBook { get; init; } = new();
+
+    /// <summary>
+    /// Эти службы держат общую на процесс статику (<see cref="AppComposition.ApplyProcessWide"/>):
+    /// тогда смена профиля переставляет её на настройки нового профиля.
+    /// </summary>
+    /// <remarks>
+    /// Флагом, а не всегда: тесты окна тоже меняют профиль, и без флага переписали бы белый список
+    /// загрузок посреди соседних тестов, которые его проверяют.
+    /// </remarks>
+    internal bool OwnsProcessWide { get; set; }
+
     /// <summary>Задачи по расписанию (C3).</summary>
     internal ScheduleBook Schedule => Profile.Schedule;
 
@@ -190,6 +212,14 @@ internal sealed class AppServices : IDisposable
     {
         Profile.UseProfile(dataRoot);
         SpendGuard.ForgetWarnings();
+        AgentBook.Clear();
+
+        // Белый список загрузок и «загрузка с любого сайта» — у каждого профиля свои: список
+        // прежнего не должен открывать загрузки новому, а включённая проверка — закрывать.
+        if (OwnsProcessWide)
+        {
+            DownloadValidator.Configure(Settings);
+        }
     }
 
     public void Dispose()

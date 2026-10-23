@@ -44,6 +44,12 @@ public partial class SettingsSecurityPage : UserControl
     internal event EventHandler<string>? RemoveDomainRequested;
 
     /// <summary>
+    /// Сменился срок жизни временных чатов (1.37.0): их список держит главное окно, и
+    /// «исчезает сразу» убирает те, из которых человек уже ушёл.
+    /// </summary>
+    internal event EventHandler? TemporaryModeChanged;
+
+    /// <summary>
     /// Показывает разрешённые источники и их число справа у строки «Источники загрузки ›».
     /// Список ведёт главное окно: его же дополняет вопрос «разрешить домен?» из чата.
     /// </summary>
@@ -92,6 +98,11 @@ public partial class SettingsSecurityPage : UserControl
 
             EncryptChatsToggle.IsChecked = settings.EncryptChats;
             ComputerControlToggle.IsChecked = settings.ComputerControl;
+            AgentBrowserToggle.IsChecked = settings.AgentBrowser;
+            NoRetentionToggle.IsChecked = settings.OpenRouterNoRetention;
+            TemporaryUntilCloseToggle.IsChecked = settings.TemporaryChatsUntilClose;
+            DownloadAnySiteToggle.IsChecked = settings.DownloadAnySite;
+            ShowAllowlistState(settings.DownloadAnySite);
         }
         finally
         {
@@ -117,6 +128,77 @@ public partial class SettingsSecurityPage : UserControl
         {
             MainWindow.Inform(this, Loc.Get("S.Security.ComputerNoticeTitle"), Loc.Get("S.Security.ComputerNoticeText"));
         }
+    }
+
+    /// <summary>
+    /// Браузер агента (1.37.0) — как мышь: включается сразу, без вопроса, с одним уведомлением о
+    /// том, куда уходят страницы и снимки.
+    /// </summary>
+    private void AgentBrowserToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        var on = AgentBrowserToggle.IsChecked == true;
+        _services.Settings.AgentBrowser = on;
+        _services.SettingsStore.Save(_services.Settings);
+        if (on)
+        {
+            MainWindow.Inform(this, Loc.Get("S.Security.BrowserNoticeTitle"), Loc.Get("S.Security.BrowserNoticeText"));
+        }
+    }
+
+    private void NoRetentionToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        _services.Settings.OpenRouterNoRetention = NoRetentionToggle.IsChecked == true;
+        _services.SettingsStore.Save(_services.Settings);
+    }
+
+    private void TemporaryUntilCloseToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        _services.Settings.TemporaryChatsUntilClose = TemporaryUntilCloseToggle.IsChecked == true;
+        _services.SettingsStore.Save(_services.Settings);
+        TemporaryModeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// «Загрузка с любого сайта» (1.37.0): действует сразу — проверку читают инструменты на
+    /// каждом вызове.
+    /// </summary>
+    private void DownloadAnySiteToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _services is null)
+        {
+            return;
+        }
+
+        var on = DownloadAnySiteToggle.IsChecked == true;
+        _services.Settings.DownloadAnySite = on;
+        _services.SettingsStore.Save(_services.Settings);
+        Amarin.Tools.DownloadValidator.ConfigureAnySite(on);
+        ShowAllowlistState(on);
+    }
+
+    /// <summary>
+    /// Список при выключенной проверке не прячется и не стирается, а приглушается: он снова
+    /// действует, как только переключатель выключат.
+    /// </summary>
+    private void ShowAllowlistState(bool anySite)
+    {
+        AllowlistGroup.IsEnabled = !anySite;
+        AllowlistGroup.Opacity = anySite ? 0.5 : 1;
     }
 
     private void EncryptChatsToggle_Changed(object sender, RoutedEventArgs e)

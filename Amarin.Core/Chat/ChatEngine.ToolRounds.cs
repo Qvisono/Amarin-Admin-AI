@@ -229,7 +229,8 @@ internal sealed partial class ChatEngine
                             ForcedTier = forcedAgentTier,
                             PlanAllowed = planAllowed,
                             HumanWords = humanWords,
-                            Conversations = conversations
+                            Conversations = conversations,
+                            TemporaryChat = session.IsTemporary
                         }))
                         {
                             started = true;

@@ -403,11 +403,14 @@ internal static class ChatListLayout
         var active = visible.Where(entry => !PlacementOf(entry).Archived).ToList();
         var archived = visible.Where(entry => PlacementOf(entry).Archived).ToList();
 
+        // Временные (1.37.0) — первыми и своей группой: их нет ни в папках, ни в архиве, и
+        // человек должен видеть сразу, какие чаты пропадут при закрытии программы.
+        Group("S.ChatList.Temporary", active.Where(entry => entry.IsTemporary));
         Group("S.ChatList.Pinned", active.Where(entry => entry.IsPinned));
 
         // Папки — после закреплённых: у закреплённого чата место одно, наверху, даже если он в папке.
         // Под своим заголовком: без него первая папка читалась как ещё один закреплённый чат.
-        var loose = active.Where(entry => !entry.IsPinned).ToList();
+        var loose = active.Where(entry => !entry.IsPinned && !entry.IsTemporary).ToList();
         var foldersTitled = false;
         foreach (var folder in organize.Folders)
         {
@@ -463,7 +466,7 @@ internal static class ChatListLayout
     public static ChatListMembers Members(IReadOnlyList<ChatIndexEntry> items, ChatOrganizer.State organize, string? tagFilter)
     {
         var visible = Visible(items, organize, tagFilter);
-        var loose = visible.Where(entry => !Placement(organize, entry).Archived && !entry.IsPinned).ToList();
+        var loose = visible.Where(entry => !Placement(organize, entry).Archived && !entry.IsPinned && !entry.IsTemporary).ToList();
         var folders = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         foreach (var folder in organize.Folders)
         {

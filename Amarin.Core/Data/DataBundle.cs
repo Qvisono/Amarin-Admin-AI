@@ -279,6 +279,13 @@ public static class DataBundle
             return DataCategory.None;
         }
 
+        // Профиль браузера агента (1.37.0): входы и куки шифрует сам браузер ключом этой машины,
+        // на другой они бесполезны, а пересылать их в архиве незачем.
+        if (relative == BrowserHub.FolderName || relative.StartsWith(BrowserHub.FolderName + "/", StringComparison.Ordinal))
+        {
+            return DataCategory.None;
+        }
+
         // Индекс поиска по тексту — производное от чатов: на новом месте он соберётся сам.
         // Раскладка по папкам (chats/organize.json) — нет: её человек собирал руками, и она едет
         // вместе с чатами.

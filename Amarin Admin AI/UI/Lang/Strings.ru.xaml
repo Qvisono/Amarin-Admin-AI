@@ -450,6 +450,11 @@
     <system:String x:Key="S.ChatList.Options" xml:space="preserve">Сортировка и фильтр</system:String>
     <system:String x:Key="S.ChatList.Pin" xml:space="preserve">Закрепить наверху</system:String>
     <system:String x:Key="S.ChatList.Pinned" xml:space="preserve">Закреплённые</system:String>
+    <system:String x:Key="S.ChatList.Temporary" xml:space="preserve">Временные</system:String>
+    <system:String x:Key="S.Temporary.Plaque" xml:space="preserve">Временный чат</system:String>
+    <system:String x:Key="S.Temporary.PlaqueTip" xml:space="preserve">Сделать этот чат временным: он не сохраняется</system:String>
+    <system:String x:Key="S.Temporary.Hint" xml:space="preserve">Не сохраняется, не попадает в поиск и архив</system:String>
+    <system:String x:Key="S.Temporary.Chip" xml:space="preserve">Временный</system:String>
     <system:String x:Key="S.ChatList.Rename" xml:space="preserve">Переименовать</system:String>
     <system:String x:Key="S.ChatList.RenameFolder" xml:space="preserve">Переименовать папку</system:String>
     <system:String x:Key="S.ChatList.SendTo" xml:space="preserve">Отправить</system:String>
@@ -705,6 +710,7 @@
     <system:String x:Key="S.Guard.Sum.Other" xml:space="preserve">Операция через {0}</system:String>
     <system:String x:Key="S.Guard.Sum.PowerShell" xml:space="preserve">Выполнение PowerShell</system:String>
     <system:String x:Key="S.Guard.Sum.Computer" xml:space="preserve">Мышь и клавиатура: {0}</system:String>
+    <system:String x:Key="S.Guard.Sum.Browser" xml:space="preserve">Браузер агента: {0}</system:String>
     <system:String x:Key="S.Guard.Sum.QuickScan" xml:space="preserve">Быстрая проверка Защитника</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOff" xml:space="preserve">Выключить удалённый рабочий стол</system:String>
     <system:String x:Key="S.Guard.Sum.RdpOn" xml:space="preserve">Включить удалённый рабочий стол</system:String>
@@ -1054,6 +1060,11 @@
     <system:String x:Key="S.Message.VariantPrev" xml:space="preserve">Предыдущий вариант</system:String>
     <system:String x:Key="S.Models.Bypass" xml:space="preserve">Модель обхода</system:String>
     <system:String x:Key="S.Models.Bypass.Desc" xml:space="preserve">Берёт задачу, от которой отказались другие модели</system:String>
+    <system:String x:Key="S.Models.AgentMemory" xml:space="preserve">Разговор с агентом</system:String>
+    <system:String x:Key="S.Models.AgentMemoryDesc" xml:space="preserve">Сколько чат может писать агенту после его отчёта</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Answer" xml:space="preserve">До конца ответа</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Session" xml:space="preserve">Пока открыта программа</system:String>
+    <system:String x:Key="S.Models.AgentMemory.Chat" xml:space="preserve">Сохранять в чате</system:String>
     <system:String x:Key="S.Models.Fast" xml:space="preserve">Быстрые задачи</system:String>
     <system:String x:Key="S.Models.Group.Agent" xml:space="preserve">Агент</system:String>
     <system:String x:Key="S.Models.Group.Answer" xml:space="preserve">Ответ в чате</system:String>
@@ -1092,6 +1103,7 @@
     <system:String x:Key="S.Prompts.TechDesc" xml:space="preserve">Правила работы, которые программа даёт чату и агенту</system:String>
     <system:String x:Key="S.Provider.AllOverloaded" xml:space="preserve">Все модели в цепочке запасных перегружены. Повторите запрос позже.</system:String>
     <system:String x:Key="S.Provider.ModelOverloaded" xml:space="preserve">Модель {0} сейчас перегружена или упёрлась в лимит запросов. Повторите чуть позже или выберите другую модель.</system:String>
+    <system:String x:Key="S.Provider.NoPrivateEndpoint" xml:space="preserve">У этой модели в OpenRouter нет провайдеров без хранения данных, а в «Безопасности» включено «Только провайдеры без хранения данных». Выберите другую модель или выключите эту настройку.</system:String>
     <system:String x:Key="S.Provider.Refusal" xml:space="preserve">Модель отказалась отвечать на этот запрос: сработала защита провайдера. Переформулируйте запрос или выберите другую модель.</system:String>
     <system:String x:Key="S.Refusal.Final" xml:space="preserve">Я, {0}, отказываюсь выполнять эту задачу по причинам: {1}</system:String>
     <system:String x:Key="S.Refusal.NoReasons" xml:space="preserve">причины не названы</system:String>
@@ -1208,6 +1220,7 @@
     <system:String x:Key="S.Data.Usage.Languages" xml:space="preserve">Языки интерфейса</system:String>
     <system:String x:Key="S.Data.Usage.Logs" xml:space="preserve">Журналы сбоев</system:String>
     <system:String x:Key="S.Data.Usage.Other" xml:space="preserve">Прочее</system:String>
+    <system:String x:Key="S.Data.Usage.Browser" xml:space="preserve">Браузер агента</system:String>
     <system:String x:Key="S.Data.Usage.Refresh" xml:space="preserve">Пересчитать</system:String>
     <system:String x:Key="S.Data.Usage.Settings" xml:space="preserve">Настройки и профили</system:String>
     <system:String x:Key="S.Data.Usage.Shared" xml:space="preserve">Выгруженные чаты</system:String>
@@ -1342,6 +1355,7 @@
     <system:String x:Key="S.Journal.NoSummaries" xml:space="preserve">Сводок пока нет. Они пишутся сами после каждого ответа модели.</system:String>
     <system:String x:Key="S.Chat.ScrollTop" xml:space="preserve">В начало чата</system:String>
     <system:String x:Key="S.Chat.ScrollBottom" xml:space="preserve">В конец чата</system:String>
+    <system:String x:Key="S.Chat.BranchTitle" xml:space="preserve">{0} (ветка)</system:String>
     <system:String x:Key="S.Journal.Open" xml:space="preserve">Журнал действий</system:String>
     <system:String x:Key="S.Journal.OpenChat" xml:space="preserve">Открыть чат</system:String>
     <system:String x:Key="S.Journal.ReadFailed" xml:space="preserve">Не удалось прочитать историю. Проверьте доступ к папке с данными программы.</system:String>
@@ -1452,6 +1466,7 @@
     <system:String x:Key="S.Message.Export" xml:space="preserve">Выгрузить диалог до этого места</system:String>
     <system:String x:Key="S.Message.NoText" xml:space="preserve">Ответ без текста</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Повторить</system:String>
+    <system:String x:Key="S.Message.Branch" xml:space="preserve">Ветка в новый чат</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Поделиться диалогом до этого ответа</system:String>
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Остановить</system:String>
 
@@ -1513,6 +1528,11 @@
     <system:String x:Key="S.Reasoning.Auto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Reasoning.AutoHint" xml:space="preserve">В режиме «Авто» размышление берётся из настроек лёгкой и тяжёлой модели на странице «Модели»</system:String>
     <system:String x:Key="S.Reasoning.Effort" xml:space="preserve">Уровень размышления</system:String>
+    <system:String x:Key="S.Speed.Caption" xml:space="preserve">Скорость</system:String>
+    <system:String x:Key="S.Speed.Flex" xml:space="preserve">Экономная</system:String>
+    <system:String x:Key="S.Speed.Standard" xml:space="preserve">Обычная</system:String>
+    <system:String x:Key="S.Speed.Fast" xml:space="preserve">Быстрая</system:String>
+    <system:String x:Key="S.Speed.Ultrafast" xml:space="preserve">Сверхбыстрая</system:String>
     <system:String x:Key="S.Reasoning.Off" xml:space="preserve">Без размышления</system:String>
     <system:String x:Key="S.Reasoning.On" xml:space="preserve">Обычное</system:String>
     <system:String x:Key="S.Reasoning.Toggle" xml:space="preserve">Размышление</system:String>
@@ -1763,11 +1783,25 @@
     <system:String x:Key="S.Security.AutoLockOff" xml:space="preserve">Выключена</system:String>
     <system:String x:Key="S.Security.ChatGroup" xml:space="preserve">Чат</system:String>
     <system:String x:Key="S.Security.DataLabel" xml:space="preserve">Приватность</system:String>
+    <system:String x:Key="S.Security.PrivacyDesc" xml:space="preserve">Шифрование чатов, провайдеры без хранения данных, временный чат</system:String>
     <system:String x:Key="S.Security.ComputerLabel" xml:space="preserve">Управление компьютером</system:String>
     <system:String x:Key="S.Security.Computer" xml:space="preserve">Агент может работать мышью и клавиатурой</system:String>
     <system:String x:Key="S.Security.ComputerDesc" xml:space="preserve">Когда своих инструментов мало: окна программ, браузер, параметры Windows</system:String>
     <system:String x:Key="S.Security.ComputerNoticeTitle" xml:space="preserve">Снимки экрана уйдут провайдеру модели</system:String>
     <system:String x:Key="S.Security.ComputerNoticeText" xml:space="preserve">Пока агент управляет компьютером, снимки экрана и текст окон отправляются провайдеру модели агента. Окно программы на это время сворачивается в плашку, края экрана подсвечиваются, а курсор становится курсором Amarin. Кнопка «Стоп» на плашке останавливает агента.</system:String>
+    <system:String x:Key="S.Security.Browser" xml:space="preserve">Браузер агента</system:String>
+    <system:String x:Key="S.Security.BrowserDesc" xml:space="preserve">Агент открывает сайты в своём окне, нажимает и заполняет формы. Текст страниц уходит провайдеру модели</system:String>
+    <system:String x:Key="S.Security.BrowserNoticeTitle" xml:space="preserve">Браузер агента включён</system:String>
+    <system:String x:Key="S.Security.BrowserNoticeText" xml:space="preserve">Агент будет открывать сайты в своём окне с отдельным профилем. Текст страниц и их снимки уходят провайдеру модели агента. Пароли агент не вводит: когда нужен вход, он попросит вас войти в окне браузера и нажать «Готово».</system:String>
+    <system:String x:Key="S.Security.NoRetention" xml:space="preserve">Только провайдеры без хранения данных</system:String>
+    <system:String x:Key="S.Security.NoRetentionDesc" xml:space="preserve">OpenRouter отдаёт запросы только тем, кто их не хранит и не учит на них модели. Часть моделей станет недоступна</system:String>
+    <system:String x:Key="S.Security.TemporaryUntilClose" xml:space="preserve">Временный чат до закрытия программы</system:String>
+    <system:String x:Key="S.Security.TemporaryUntilCloseDesc" xml:space="preserve">Выключено: временный чат исчезает, как только вы откроете другой</system:String>
+    <system:String x:Key="S.Security.AnySite" xml:space="preserve">Загрузка с любого сайта</system:String>
+    <system:String x:Key="S.Security.AnySiteDesc" xml:space="preserve">Белый список ниже не проверяется. Включайте, только если доверяете тому, что скачивает агент</system:String>
+    <system:String x:Key="S.Browser.Title" xml:space="preserve">Браузер агента</system:String>
+    <system:String x:Key="S.Browser.Status" xml:space="preserve">Здесь работает агент. Входить на сайты вы можете сами</system:String>
+    <system:String x:Key="S.Browser.Done" xml:space="preserve">Готово</system:String>
     <system:String x:Key="S.Security.EnableAll" xml:space="preserve">Включить все</system:String>
     <system:String x:Key="S.Security.Encrypt" xml:space="preserve">Шифровать чаты на диске</system:String>
     <system:String x:Key="S.Security.EncryptDesc" xml:space="preserve">Прочитать их можно только под вашей учётной записью Windows</system:String>

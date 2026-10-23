@@ -142,7 +142,7 @@ internal static class ToolGate
         // Мышь вопроса от модели защиты не получает: согласие человек дал самой просьбой, а от
         // вреда её держат «небезопасно» SynGuard (запрет без вопроса) и правила ComputerSafety.
         // С «если не уверен — спроси» осторожная модель спрашивала про Enter после «отправь».
-        if (!withoutApproval.Value && IsComputer(check.ToolName))
+        if (!withoutApproval.Value && IsHands(check.ToolName))
         {
             return check;
         }
@@ -272,6 +272,7 @@ internal static class ToolGate
             EnvironmentTool.ToolName => EnvironmentTool.TryGetHardBlockReason(args, out refusal),
             StoreAppsTool.ToolName => StoreAppsTool.TryGetHardBlockReason(args, out refusal),
             FileLocksTool.ToolName => FileLocksTool.TryGetHardBlockReason(args, out refusal),
+            BrowserTool.ToolName => BrowserSafety.TryGetHardBlockReason(args, out refusal),
             _ => false
         };
         return blocked ? refusal : null;
@@ -357,7 +358,7 @@ internal static class ToolGate
         // Мышь в обычном режиме делает то, о чём человек попросил, без вопросов (так решил человек в
         // 1.36.0). Таблица DangerousActionGuard по-прежнему считает нажатие требующим вопроса: по ней
         // агент не пускает нажатия параллельной пачкой. «Спрашивать всё» спрашивает и про мышь.
-        if (IsComputer(tool))
+        if (IsHands(tool))
         {
             return false;
         }
@@ -365,8 +366,13 @@ internal static class ToolGate
         return DangerousActionGuard.RequiresConfirmation(tool, args);
     }
 
-    private static bool IsComputer(string tool) =>
-        tool.Equals(ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Мышь агента и его браузер (1.37.0): нажимают по просьбе человека, без вопроса в обычном
+    /// режиме — так решил человек; держат их «небезопасно» SynGuard и свои правила безопасности.
+    /// </summary>
+    private static bool IsHands(string tool) =>
+        tool.Equals(ComputerTool.ToolName, StringComparison.OrdinalIgnoreCase) ||
+        tool.Equals(BrowserTool.ToolName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Создал ли этот документ сам ИИ (<see cref="AiDocumentBook.Owns"/>). Ставит один раз
