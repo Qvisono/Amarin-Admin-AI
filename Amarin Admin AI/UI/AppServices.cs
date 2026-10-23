@@ -79,6 +79,9 @@ internal sealed class AppServices : IDisposable
 
     public required VeniceModelListCache Models { get; init; }
 
+    /// <summary>Модели озвучки и распознавания Venice и OpenRouter — для настроек голоса (1.37.0).</summary>
+    public required AudioModelCatalog AudioModels { get; init; }
+
     public required ChatEngine Chat { get; init; }
 
     public required ChatTitleGenerator Titles { get; init; }

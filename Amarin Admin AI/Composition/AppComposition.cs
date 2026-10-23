@@ -215,6 +215,9 @@ internal static class AppComposition
             DownloadHttp = downloadHttp,
             Venice = venice,
             Models = models,
+
+            // Свой клиент без ключа, как у цен: каталоги аудиомоделей открыты.
+            AudioModels = new AudioModelCatalog(HttpClients.Create(HttpClients.ServiceTimeout)),
             Chat = new ChatEngine(venice, options, ReadSettings, chatTools, runningAgents, instructions, confirmations)
             {
                 Files = fileState,

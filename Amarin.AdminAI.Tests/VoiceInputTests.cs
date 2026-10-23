@@ -105,10 +105,37 @@ public sealed class VoiceAvailabilityTests
             _ => key);
 
     [Fact]
-    public void Without_a_windows_recogniser_and_without_a_cloud_model_there_is_nothing_to_recognise_with()
+    public void Without_a_chosen_model_a_key_is_enough_for_the_default_whisper()
     {
-        Assert.False(Available(VoiceEngine.Auto, null, local: false, key: true));
-        Assert.False(Available(VoiceEngine.Auto, "  ", local: false, key: true));
+        // Русского распознавателя в Windows нет: без модели по умолчанию микрофон не появлялся вовсе.
+        Assert.True(Available(VoiceEngine.Auto, null, local: false, key: true));
+        Assert.True(Available(VoiceEngine.Cloud, "  ", local: false, key: true));
+        Assert.False(Available(VoiceEngine.Auto, null, local: false, key: false));
+    }
+
+    [Fact]
+    public void The_default_cloud_model_follows_the_key_venice_first()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal("openai/whisper-large-v3", Amarin.UI.VoiceAvailability.CloudModel(settings, _ => true));
+        Assert.Equal(
+            "openrouter:openai/whisper-large-v3",
+            Amarin.UI.VoiceAvailability.CloudModel(settings, model => model.StartsWith("openrouter:", StringComparison.Ordinal)));
+        Assert.Null(Amarin.UI.VoiceAvailability.CloudModel(settings, _ => false));
+        Assert.Equal("stt-xai-v1", Amarin.UI.VoiceAvailability.CloudModel(new AppSettings { VoiceModel = " stt-xai-v1 " }, _ => false));
+    }
+
+    [Fact]
+    public void The_route_names_why_there_is_nothing_to_recognise_with()
+    {
+        static Amarin.UI.VoiceRoute Route(VoiceEngine engine, bool local, bool key) =>
+            Amarin.UI.VoiceAvailability.Route(new AppSettings { VoiceEngine = engine }, Russian, _ => local, _ => key);
+
+        Assert.Equal(Amarin.UI.VoiceRoute.NoLocal, Route(VoiceEngine.Local, local: false, key: true));
+        Assert.Equal(Amarin.UI.VoiceRoute.NoKey, Route(VoiceEngine.Auto, local: false, key: false));
+        Assert.Equal(Amarin.UI.VoiceRoute.Cloud, Route(VoiceEngine.Auto, local: false, key: true));
+        Assert.Equal(Amarin.UI.VoiceRoute.Local, Route(VoiceEngine.Auto, local: true, key: true));
     }
 
     [Fact]

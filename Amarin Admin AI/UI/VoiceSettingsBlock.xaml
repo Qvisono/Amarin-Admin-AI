@@ -11,9 +11,11 @@
 
     <!--
         Подстраница «Голосовой ввод» (D14): чем распознавать, какой моделью в облаке и на каком
-        языке. Под выбором — одна строка о том, что умеет этот ПК: без неё «Авто» и «На этом ПК»
-        ничего не говорили бы человеку, у которого распознавателя Windows для его языка нет.
-        Ниже — чтение ответов вслух (1.37.0): голос и скорость синтезатора Windows.
+        языке. Под выбором — строка о том, что будет сейчас: какая модель распознаёт или почему
+        распознавать нечем. Без неё человек с русским языком перебирал все настройки, а микрофон
+        так и не появлялся: русского распознавателя в Windows нет вовсе.
+        Модели и языки — списками, а не полями для ввода кода (1.37.0).
+        Ниже — чтение ответов вслух: Windows или модель Venice и OpenRouter, голос и скорость.
     -->
     <StackPanel>
     <Border Style="{StaticResource SettingsGroup}">
@@ -25,10 +27,9 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Engine}"/>
-                    <TextBlock x:Name="LocalLanguagesText" Style="{StaticResource SettingDesc}"
-                               Text="{DynamicResource S.Voice.LocalNone}"/>
+                    <TextBlock x:Name="StatusText" Style="{StaticResource SettingDesc}"/>
                 </StackPanel>
-                <ComboBox x:Name="EngineCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
+                <ComboBox x:Name="EngineCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190"
                           AutomationProperties.Name="{DynamicResource S.Voice.Engine}"
                           SelectionChanged="EngineCombo_SelectionChanged">
                     <ComboBoxItem Tag="Auto" Content="{DynamicResource S.Voice.EngineAuto}"/>
@@ -49,13 +50,9 @@
                         <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Model}"/>
                         <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.ModelHint}"/>
                     </StackPanel>
-                    <Border Grid.Column="1" Style="{StaticResource FieldFrame}" Width="190" Height="28" Padding="10,0">
-                        <Grid>
-                            <TextBox x:Name="ModelBox" Style="{StaticResource FieldTextBox}" LostFocus="ModelBox_LostFocus"
-                                     AutomationProperties.Name="{DynamicResource S.Voice.Model}"/>
-                            <TextBlock x:Name="ModelPlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.ModelEmpty}"/>
-                        </Grid>
-                    </Border>
+                    <ComboBox x:Name="ModelCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" MaxWidth="240"
+                              AutomationProperties.Name="{DynamicResource S.Voice.Model}"
+                              SelectionChanged="ModelCombo_SelectionChanged"/>
                 </Grid>
             </StackPanel>
 
@@ -69,13 +66,9 @@
                     <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Voice.Language}"/>
                     <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Voice.LanguageHint}"/>
                 </StackPanel>
-                <Border Grid.Column="1" Style="{StaticResource FieldFrame}" Width="190" Height="28" Padding="10,0">
-                    <Grid>
-                        <TextBox x:Name="LanguageBox" Style="{StaticResource FieldTextBox}" LostFocus="LanguageBox_LostFocus"
-                                 AutomationProperties.Name="{DynamicResource S.Voice.Language}"/>
-                        <TextBlock x:Name="LanguagePlaceholder" Style="{StaticResource Placeholder}" Text="{DynamicResource S.Voice.LanguageEmpty}"/>
-                    </Grid>
-                </Border>
+                <ComboBox x:Name="LanguageCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" MaxWidth="240"
+                          AutomationProperties.Name="{DynamicResource S.Voice.Language}"
+                          SelectionChanged="LanguageCombo_SelectionChanged"/>
             </Grid>
         </StackPanel>
     </Border>
@@ -89,10 +82,21 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Speech.Voice}"/>
-                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Speech.VoiceHint}"/>
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Speech.Engine}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Speech.EngineHint}"/>
                 </StackPanel>
-                <ComboBox x:Name="SpeechVoiceCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150" MaxWidth="220"
+                <ComboBox x:Name="SpeechModelCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" MaxWidth="240"
+                          AutomationProperties.Name="{DynamicResource S.Speech.Engine}"
+                          SelectionChanged="SpeechModelCombo_SelectionChanged"/>
+            </Grid>
+            <Border Style="{StaticResource GroupDivider}"/>
+            <Grid Style="{StaticResource GroupRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="{DynamicResource S.Speech.Voice}"/>
+                <ComboBox x:Name="SpeechVoiceCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190" MaxWidth="240"
                           AutomationProperties.Name="{DynamicResource S.Speech.Voice}"
                           SelectionChanged="SpeechVoiceCombo_SelectionChanged"/>
             </Grid>
@@ -103,7 +107,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="{DynamicResource S.Speech.Rate}"/>
-                <ComboBox x:Name="SpeechRateCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
+                <ComboBox x:Name="SpeechRateCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="190"
                           AutomationProperties.Name="{DynamicResource S.Speech.Rate}"
                           SelectionChanged="SpeechRateCombo_SelectionChanged">
                     <ComboBoxItem Tag="-3" Content="{DynamicResource S.Speech.RateSlow}"/>

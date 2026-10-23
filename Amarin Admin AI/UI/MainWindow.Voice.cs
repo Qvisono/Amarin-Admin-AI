@@ -111,7 +111,11 @@ namespace Amarin.UI
                 services.Settings,
                 VoiceAvailability.SpeechCulture(services.Settings, LanguageManager.Current),
                 culture => LocalSpeech.Find(culture) is not null,
-                model => !string.IsNullOrWhiteSpace(services.Keys.CredentialFor(model, null).Secret));
+                HasKeyFor);
+
+        /// <summary>Есть ли ключ провайдера этой модели — по нему облачная модель годится или нет.</summary>
+        private bool HasKeyFor(string model) =>
+            _services is { } services && !string.IsNullOrWhiteSpace(services.Keys.CredentialFor(model, null).Secret);
 
         private bool StartRecording()
         {
@@ -302,7 +306,7 @@ namespace Amarin.UI
                     installed.Count == 0 ? "-" : string.Join(", ", installed.Select(item => item.Name))));
             }
 
-            var model = settings.VoiceModel?.Trim();
+            var model = VoiceAvailability.CloudModel(settings, HasKeyFor);
             if (string.IsNullOrEmpty(model))
             {
                 throw new VoiceUnavailableException(Loc.Format("S.Voice.NoCloudModel", culture.DisplayName));

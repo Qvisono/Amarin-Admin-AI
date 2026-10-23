@@ -24,6 +24,46 @@ internal static partial class SpeechText
         return Spaces().Replace(InlineMath().Replace(text.ToString(), " "), " ").Trim();
     }
 
+    /// <summary>
+    /// Текст частями не длиннее <paramref name="max"/> знаков — по границам предложений: модели
+    /// озвучки берут ограниченный кусок (у Venice — 4096 знаков), а обрыв посреди слова слышен.
+    /// </summary>
+    public static IReadOnlyList<string> Chunks(string text, int max)
+    {
+        var chunks = new List<string>();
+        var current = new StringBuilder();
+        foreach (var sentence in SentenceEnd().Split(text.Trim()).Where(part => part.Length > 0))
+        {
+            var piece = sentence;
+            while (piece.Length > max)
+            {
+                Flush();
+                var cut = piece.LastIndexOf(' ', max - 1) is > 0 and var space ? space : max;
+                chunks.Add(piece[..cut].Trim());
+                piece = piece[cut..].TrimStart();
+            }
+
+            if (current.Length + piece.Length + 1 > max)
+            {
+                Flush();
+            }
+
+            current.Append(current.Length > 0 ? " " : "").Append(piece);
+        }
+
+        Flush();
+        return chunks;
+
+        void Flush()
+        {
+            if (current.Length > 0)
+            {
+                chunks.Add(current.ToString().Trim());
+                current.Clear();
+            }
+        }
+    }
+
     private static void Append(StringBuilder text, IEnumerable<DocBlock> blocks)
     {
         foreach (var block in blocks)
@@ -76,4 +116,7 @@ internal static partial class SpeechText
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Spaces();
+
+    [GeneratedRegex(@"(?<=[.!?…])\s+")]
+    private static partial Regex SentenceEnd();
 }

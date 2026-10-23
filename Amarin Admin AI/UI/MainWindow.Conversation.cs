@@ -36,6 +36,7 @@ namespace Amarin.UI
                 {
                     _speech = new SpeechOutput();
                     _speech.Finished += OnSpeechFinished;
+                    _speech.Failed += message => ShowTransientNotice(_session.Id, Loc.Format("S.Speech.Failed", message));
                 }
 
                 return _speech;
@@ -56,7 +57,41 @@ namespace Amarin.UI
                 return;
             }
 
-            Speech.Speak(message.Id, SpeechText.From(message.Text), _services.Settings.SpeechVoice, _services.Settings.SpeechRate);
+            SpeakText(message.Id, message.Text);
+        }
+
+        /// <summary>
+        /// Читает текст ответа так, как выбрано в настройках: моделью провайдера (Venice, OpenRouter)
+        /// или синтезатором Windows.
+        /// </summary>
+        private void SpeakText(string key, string? markdown)
+        {
+            if (_services is not { } services || !OperatingSystem.IsWindows())
+            {
+                return;
+            }
+
+            var settings = services.Settings;
+            var text = SpeechText.From(markdown);
+            if (settings.SpeechModel is not { Length: > 0 } model)
+            {
+                Speech.Speak(key, text, settings.SpeechVoice, settings.SpeechRate);
+                return;
+            }
+
+            var credential = services.Keys.CredentialFor(model, null);
+            var speed = SpeechOutput.Speed(settings.SpeechRate);
+            Speech.SpeakWithModel(key, text, async (chunk, token) =>
+            {
+                // Каталог — за ценой знака и голосами: без него траты не записались бы, а голос,
+                // оставшийся от другой модели, она бы не приняла.
+                await services.AudioModels.LoadAsync(AudioKind.Speech, ModelRef.Of(model), token);
+                var info = services.AudioModels.Find(AudioKind.Speech, model);
+                var voice = info is { Voices.Count: > 0 } && !info.Voices.Contains(settings.SpeechVoice ?? "", StringComparer.Ordinal)
+                    ? info.Voices[0]
+                    : settings.SpeechVoice;
+                return await services.Venice.SpeakAsync(chunk, model, voice, speed, info?.UsdPerChar, credential, token);
+            });
         }
 
         private void ConversationButton_Click(object sender, RoutedEventArgs e) => ToggleConversation();
@@ -165,7 +200,7 @@ namespace Amarin.UI
                 return;
             }
 
-            Speech.Speak(answer.Id, SpeechText.From(answer.Text), _services.Settings.SpeechVoice, _services.Settings.SpeechRate);
+            SpeakText(answer.Id, answer.Text);
         }
 
         /// <summary>Фраза в разговоре не распозналась или была пустой — слушать дальше.</summary>

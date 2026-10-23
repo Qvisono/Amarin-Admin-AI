@@ -67,6 +67,7 @@ internal static class UiServices
             DownloadHttp = download,
             Venice = venice,
             Models = new VeniceModelListCache(venice),
+            AudioModels = new AudioModelCatalog(http),
             Balances = new BalanceBook(),
             Chat = new ChatEngine(venice, options, () => settings, new ToolRegistry([])),
             Titles = new ChatTitleGenerator(http, options, () => settings),

@@ -90,6 +90,63 @@ public sealed partial class VeniceClient
         return text;
     }
 
+    /// <summary>
+    /// Озвучка текста моделью провайдера (1.37.0): OpenAI-совместимый <c>POST audio/speech</c>,
+    /// как его принимают Venice и OpenRouter. В ответ приходит сам звук, MP3.
+    /// </summary>
+    /// <remarks>
+    /// Цену ответ не называет, поэтому она считается по цене знака из каталога
+    /// (<see cref="AudioModelCatalog"/>) и помечается оценкой — как у прямых провайдеров. Каталог
+    /// цену не назвал — траты не записываются, а не выдумываются.
+    /// </remarks>
+    /// <param name="speed">Скорость речи (1 — обычная); null — не передавать, не все модели её берут.</param>
+    public async Task<SpeechAudio> SpeakAsync(
+        string text,
+        string modelId,
+        string? voice,
+        double? speed,
+        decimal? usdPerChar,
+        ApiCredential credential,
+        CancellationToken cancellationToken = default)
+    {
+        await GuardSpendAsync(credential, cancellationToken).ConfigureAwait(false);
+        var body = new System.Text.Json.Nodes.JsonObject
+        {
+            ["model"] = ModelRef.Bare(modelId),
+            ["input"] = text,
+            ["response_format"] = "mp3"
+        };
+        if (!string.IsNullOrWhiteSpace(voice))
+        {
+            body["voice"] = voice.Trim();
+        }
+
+        if (speed is { } rate && Math.Abs(rate - 1) > 0.01)
+        {
+            body["speed"] = Math.Round(rate, 2);
+        }
+
+        using var content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+        using var httpRequest = Request(HttpMethod.Post, "audio/speech", credential);
+        httpRequest.Content = content;
+        using var response = await _http.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        UpdateBalanceFromHeaders(response, credential);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            throw ApiError(credential, (int)response.StatusCode, ExtractErrorMessage(error));
+        }
+
+        var audio = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        if (usdPerChar is { } price && price > 0)
+        {
+            AddCost(new VeniceCost { Usd = price * text.Length, HasData = true, Estimated = true }, VeniceSku.Speech, credential);
+        }
+
+        return new SpeechAudio(audio, response.Content.Headers.ContentType?.ToString() ?? "audio/mpeg");
+    }
+
     /// <summary>Текст и цена из ответа распознавания; незнакомый ответ — пустой текст.</summary>
     internal static (string Text, decimal? Cost) ParseTranscription(string body)
     {

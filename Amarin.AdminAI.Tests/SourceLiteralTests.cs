@@ -114,6 +114,7 @@ public sealed partial class SourceLiteralTests
     [InlineData("Tools", "AnalyzeTableTool.cs")]
     [InlineData("Tools", "RecognizeTextTool.cs")]
     [InlineData("Chat", "ChartSpec.cs")]
+    [InlineData("Providers", "AudioModelCatalog.cs")]
     [InlineData("Chat", "SpeechText.cs")]
     [InlineData("Platform", "SilenceDetector.cs")]
     [InlineData("UI", "ChatChartView.cs")]

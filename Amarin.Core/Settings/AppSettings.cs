@@ -593,8 +593,14 @@ public sealed class AppSettings : IJsonOnDeserializing
     public string? VoiceLanguage { get; set; }
 
     /// <summary>
-    /// Голос чтения ответов вслух (1.37.0) — имя голоса Windows. Пусто — голос языка ответа, иначе
-    /// голос по умолчанию; голос, которого на этом ПК нет, читается так же, как пустой.
+    /// Модель озвучки провайдера (1.37.0), с приставкой, как у моделей чата: Venice — голая,
+    /// OpenRouter — <c>openrouter:…</c>. Пусто — синтезатор Windows на этом ПК.
+    /// </summary>
+    public string? SpeechModel { get; set; }
+
+    /// <summary>
+    /// Голос чтения вслух (1.37.0): голос Windows или голос модели <see cref="SpeechModel"/>. Пусто —
+    /// у Windows голос языка ответа, у модели её первый голос; голос, которого нет, — как пустой.
     /// </summary>
     public string? SpeechVoice { get; set; }
 

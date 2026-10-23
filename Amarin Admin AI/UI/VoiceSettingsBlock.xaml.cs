@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using Amarin.Core;
@@ -8,19 +9,35 @@ namespace Amarin.UI;
 /// Подстраница «Голосовой ввод» на странице Behavior (D14). Как у страниц настроек: правда в
 /// <see cref="AppSettings"/>, контролы только отражают её и пишут изменения под <c>_loading</c>.
 /// </summary>
+/// <remarks>
+/// Модели распознавания и озвучки — из каталогов Venice и OpenRouter (<see cref="AudioModelCatalog"/>),
+/// только тех провайдеров, к которым есть ключ: модель без ключа выбрать можно было бы, а работать
+/// она бы не стала. Каталоги спрашиваются, когда подстраницу показали, а не при прогреве настроек:
+/// сеть не нужна человеку, который сюда не заходит.
+/// </remarks>
 public partial class VoiceSettingsBlock : UserControl
 {
+    /// <summary>Языки речи в списке; язык из настроек, которого здесь нет, добавляется к ним.</summary>
+    private static readonly string[] Languages =
+        ["ru-RU", "en-US", "uk-UA", "be-BY", "kk-KZ", "de-DE", "fr-FR", "es-ES", "it-IT", "pt-BR", "pl-PL", "tr-TR", "zh-CN", "ja-JP"];
+
     private AppServices? _services;
     private bool _loading;
+    private bool _catalogsAsked;
 
     public VoiceSettingsBlock()
     {
         InitializeComponent();
-        ModelBox.TextChanged += (_, _) => ModelPlaceholder.Visibility = ModelBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        LanguageBox.TextChanged += (_, _) => LanguagePlaceholder.Visibility = LanguageBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        IsVisibleChanged += (_, e) =>
+        {
+            if ((bool)e.NewValue)
+            {
+                Detached.Run(LoadCatalogsAsync(), "voice_catalogs");
+            }
+        };
     }
 
-    /// <summary>Что-то поменялось — строка-ссылка на странице перечитывает своё значение.</summary>
+    /// <summary>Что-то поменялось — строка-ссылка на странице и микрофон пересчитываются.</summary>
     internal event Action? Changed;
 
     internal void Load(AppServices services)
@@ -32,46 +49,21 @@ public partial class VoiceSettingsBlock : UserControl
             var settings = services.Settings;
             EngineCombo.SelectedItem = EngineCombo.Items.OfType<ComboBoxItem>()
                 .FirstOrDefault(item => (string)item.Tag == settings.VoiceEngine.ToString()) ?? EngineCombo.Items[0];
-            ModelBox.Text = settings.VoiceModel ?? "";
-            LanguageBox.Text = settings.VoiceLanguage ?? "";
-            var installed = OperatingSystem.IsWindows() ? LocalSpeech.Languages() : [];
-            LocalLanguagesText.Text = installed.Count == 0
-                ? Loc.Get("S.Voice.LocalNone")
-                : Loc.Format("S.Voice.LocalList", string.Join(", ", installed.Select(culture => culture.DisplayName)));
+            FillModels();
+            FillLanguages();
+            FillSpeechModels();
+            FillVoices();
+
+            // Скорость, выставленная не из списка (руками в файле), садится на ближайший пункт.
+            SpeechRateCombo.SelectedItem = SpeechRateCombo.Items.OfType<ComboBoxItem>()
+                .MinBy(item => Math.Abs(int.Parse((string)item.Tag, CultureInfo.InvariantCulture) - settings.SpeechRate));
             ApplyEngine(settings.VoiceEngine);
-            LoadSpeech(settings);
+            UpdateStatus();
         }
         finally
         {
             _loading = false;
         }
-    }
-
-    /// <summary>
-    /// Голоса чтения вслух: «Авто» и установленные в Windows. Выбранный, но удалённый из Windows
-    /// голос остаётся в списке — иначе открытие страницы молча сбросило бы выбор человека.
-    /// </summary>
-    private void LoadSpeech(AppSettings settings)
-    {
-        SpeechVoiceCombo.Items.Clear();
-        SpeechVoiceCombo.Items.Add(new ComboBoxItem { Tag = "", Content = Loc.Get("S.Speech.VoiceAuto") });
-        var voices = OperatingSystem.IsWindows() ? SpeechOutput.Voices().ToList() : [];
-        if (settings.SpeechVoice is { Length: > 0 } chosen && !voices.Contains(chosen, StringComparer.OrdinalIgnoreCase))
-        {
-            voices.Add(chosen);
-        }
-
-        foreach (var voice in voices)
-        {
-            SpeechVoiceCombo.Items.Add(new ComboBoxItem { Tag = voice, Content = voice });
-        }
-
-        SpeechVoiceCombo.SelectedItem = SpeechVoiceCombo.Items.OfType<ComboBoxItem>()
-            .FirstOrDefault(item => string.Equals((string)item.Tag, settings.SpeechVoice ?? "", StringComparison.OrdinalIgnoreCase)) ?? SpeechVoiceCombo.Items[0];
-
-        // Скорость, выставленная не из списка (руками в файле), садится на ближайший пункт.
-        SpeechRateCombo.SelectedItem = SpeechRateCombo.Items.OfType<ComboBoxItem>()
-            .MinBy(item => Math.Abs(int.Parse((string)item.Tag, System.Globalization.CultureInfo.InvariantCulture) - settings.SpeechRate));
     }
 
     /// <summary>Значение строки-ссылки: выбранный способ или «не настроен», если распознавать нечем.</summary>
@@ -94,6 +86,182 @@ public partial class VoiceSettingsBlock : UserControl
     private void ApplyEngine(VoiceEngine engine) =>
         CloudRow.Visibility = engine == VoiceEngine.Local ? Visibility.Collapsed : Visibility.Visible;
 
+    private bool HasKey(LlmProvider provider) =>
+        _services is { } services && !string.IsNullOrWhiteSpace(services.Keys.DefaultFor(provider).Secret);
+
+    private bool HasKeyFor(string model) =>
+        _services is { } services && !string.IsNullOrWhiteSpace(services.Keys.CredentialFor(model, null).Secret);
+
+    /// <summary>Модели провайдеров с ключом, уже загруженные в каталог.</summary>
+    private IEnumerable<AudioModel> Models(AudioKind kind) =>
+        _services is not { } services
+            ? []
+            : AudioModelCatalog.Providers.Where(HasKey).SelectMany(provider => services.AudioModels.Cached(kind, provider) ?? []);
+
+    /// <summary>«Whisper Large V3 · Venice»: одна и та же модель бывает у обоих провайдеров.</summary>
+    private string Display(AudioKind kind, string id)
+    {
+        var name = _services?.AudioModels.Find(kind, id)?.Name ?? ModelRef.Bare(id);
+        return name + " · " + ProviderSpec.For(ModelRef.Of(id)).Name;
+    }
+
+    private static ComboBoxItem Item(string tag, string text) => new() { Tag = tag, Content = text };
+
+    private static void Select(ComboBox combo, string? tag) =>
+        combo.SelectedItem = combo.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(item => string.Equals((string)item.Tag, tag ?? "", StringComparison.OrdinalIgnoreCase)) ?? combo.Items[0];
+
+    private void FillModels()
+    {
+        if (_services is not { } services)
+        {
+            return;
+        }
+
+        var chosen = services.Settings.VoiceModel?.Trim() ?? "";
+        ModelCombo.Items.Clear();
+        var automatic = VoiceAvailability.CloudModel(new AppSettings(), HasKeyFor);
+        ModelCombo.Items.Add(Item("", automatic is null ? Loc.Get("S.Voice.EngineAuto") : Loc.Format("S.Voice.ModelAuto", Display(AudioKind.Transcription, automatic))));
+        foreach (var model in Models(AudioKind.Transcription))
+        {
+            ModelCombo.Items.Add(Item(model.Id, Display(AudioKind.Transcription, model.Id)));
+        }
+
+        if (chosen.Length > 0 && !ModelCombo.Items.OfType<ComboBoxItem>().Any(item => string.Equals((string)item.Tag, chosen, StringComparison.OrdinalIgnoreCase)))
+        {
+            ModelCombo.Items.Add(Item(chosen, Display(AudioKind.Transcription, chosen)));
+        }
+
+        Select(ModelCombo, chosen);
+    }
+
+    private void FillLanguages()
+    {
+        var chosen = _services?.Settings.VoiceLanguage?.Trim() ?? "";
+        LanguageCombo.Items.Clear();
+        LanguageCombo.Items.Add(Item("", Loc.Get("S.Voice.LanguageEmpty")));
+        foreach (var name in chosen.Length > 0 && !Languages.Contains(chosen, StringComparer.OrdinalIgnoreCase) ? [.. Languages, chosen] : Languages)
+        {
+            LanguageCombo.Items.Add(Item(name, Culture(name)));
+        }
+
+        Select(LanguageCombo, chosen);
+    }
+
+    private static string Culture(string name)
+    {
+        try
+        {
+            var culture = CultureInfo.GetCultureInfo(name);
+            return char.ToUpper(culture.NativeName[0], culture) + culture.NativeName[1..];
+        }
+        catch (CultureNotFoundException)
+        {
+            return name;
+        }
+    }
+
+    private void FillSpeechModels()
+    {
+        var chosen = _services?.Settings.SpeechModel?.Trim() ?? "";
+        SpeechModelCombo.Items.Clear();
+        SpeechModelCombo.Items.Add(Item("", Loc.Get("S.Speech.EngineWindows")));
+        foreach (var model in Models(AudioKind.Speech))
+        {
+            SpeechModelCombo.Items.Add(Item(model.Id, Display(AudioKind.Speech, model.Id)));
+        }
+
+        if (chosen.Length > 0 && !SpeechModelCombo.Items.OfType<ComboBoxItem>().Any(item => string.Equals((string)item.Tag, chosen, StringComparison.OrdinalIgnoreCase)))
+        {
+            SpeechModelCombo.Items.Add(Item(chosen, Display(AudioKind.Speech, chosen)));
+        }
+
+        Select(SpeechModelCombo, chosen);
+    }
+
+    /// <summary>
+    /// Голоса того, чем читают: у Windows — установленные голоса, у модели — её голоса из каталога.
+    /// Выбранный, но пропавший голос остаётся в списке: открытие страницы не должно молча сбрасывать
+    /// выбор человека.
+    /// </summary>
+    private void FillVoices()
+    {
+        if (_services is not { } services)
+        {
+            return;
+        }
+
+        var model = services.Settings.SpeechModel?.Trim() ?? "";
+        var chosen = services.Settings.SpeechVoice ?? "";
+        var voices = model.Length == 0
+            ? OperatingSystem.IsWindows() ? [.. SpeechOutput.Voices()] : new List<string>()
+            : [.. services.AudioModels.Find(AudioKind.Speech, model)?.Voices ?? []];
+        if (chosen.Length > 0 && !voices.Contains(chosen, StringComparer.OrdinalIgnoreCase))
+        {
+            voices.Add(chosen);
+        }
+
+        SpeechVoiceCombo.Items.Clear();
+        SpeechVoiceCombo.Items.Add(Item("", Loc.Get("S.Speech.VoiceAuto")));
+        foreach (var voice in voices)
+        {
+            SpeechVoiceCombo.Items.Add(Item(voice, voice));
+        }
+
+        Select(SpeechVoiceCombo, chosen);
+    }
+
+    /// <summary>Строка под «Распознаванием»: что распознаёт сейчас, или почему распознавать нечем.</summary>
+    private void UpdateStatus()
+    {
+        if (_services is not { } services)
+        {
+            return;
+        }
+
+        var settings = services.Settings;
+        var culture = VoiceAvailability.SpeechCulture(settings, LanguageManager.Current);
+        var local = OperatingSystem.IsWindows() ? (Func<CultureInfo, bool>)(item => LocalSpeech.Find(item) is not null) : _ => false;
+        StatusText.Text = VoiceAvailability.Route(settings, culture, local, HasKeyFor) switch
+        {
+            VoiceRoute.Local => Loc.Format("S.Voice.StatusLocal", culture.DisplayName),
+            VoiceRoute.Cloud when VoiceAvailability.CloudModel(settings, HasKeyFor) is { } model =>
+                Loc.Format("S.Voice.StatusCloud", Display(AudioKind.Transcription, model)),
+            VoiceRoute.NoLocal => Loc.Format("S.Voice.StatusNoLocal", culture.DisplayName),
+            _ => Loc.Get("S.Voice.StatusNoKey")
+        };
+    }
+
+    /// <summary>Каталоги провайдеров с ключом; пришли — списки собираются заново, выбор остаётся.</summary>
+    private async Task LoadCatalogsAsync()
+    {
+        if (_services is not { } services || _catalogsAsked)
+        {
+            return;
+        }
+
+        _catalogsAsked = true;
+        var loads = AudioModelCatalog.Providers.Where(HasKey)
+            .SelectMany(provider => new[] { AudioKind.Transcription, AudioKind.Speech }.Select(kind => services.AudioModels.LoadAsync(kind, provider, CancellationToken.None)))
+            .ToList();
+        var lists = await Task.WhenAll(loads);
+
+        // Неудачная загрузка не запоминается: следующий показ подстраницы спросит снова.
+        _catalogsAsked = lists.All(list => list.Count > 0);
+        _loading = true;
+        try
+        {
+            FillModels();
+            FillSpeechModels();
+            FillVoices();
+            UpdateStatus();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
     private void Save(Action<AppSettings> change)
     {
         if (_loading || _services is null)
@@ -103,6 +271,7 @@ public partial class VoiceSettingsBlock : UserControl
 
         change(_services.Settings);
         _services.SettingsStore.Save(_services.Settings);
+        UpdateStatus();
         Changed?.Invoke();
     }
 
@@ -119,6 +288,46 @@ public partial class VoiceSettingsBlock : UserControl
         Save(settings => settings.VoiceEngine = engine);
     }
 
+    private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ModelCombo.SelectedItem is ComboBoxItem { Tag: string model })
+        {
+            Save(settings => settings.VoiceModel = model.Length == 0 ? null : model);
+        }
+    }
+
+    private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (LanguageCombo.SelectedItem is ComboBoxItem { Tag: string language })
+        {
+            Save(settings => settings.VoiceLanguage = language.Length == 0 ? null : language);
+        }
+    }
+
+    private void SpeechModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || SpeechModelCombo.SelectedItem is not ComboBoxItem { Tag: string model })
+        {
+            return;
+        }
+
+        // Голос принадлежит модели: голос Windows модель не примет, и наоборот.
+        Save(settings =>
+        {
+            settings.SpeechModel = model.Length == 0 ? null : model;
+            settings.SpeechVoice = null;
+        });
+        _loading = true;
+        try
+        {
+            FillVoices();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
     private void SpeechVoiceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (SpeechVoiceCombo.SelectedItem is ComboBoxItem { Tag: string voice })
@@ -131,13 +340,7 @@ public partial class VoiceSettingsBlock : UserControl
     {
         if (SpeechRateCombo.SelectedItem is ComboBoxItem { Tag: string rate })
         {
-            Save(settings => settings.SpeechRate = int.Parse(rate, System.Globalization.CultureInfo.InvariantCulture));
+            Save(settings => settings.SpeechRate = int.Parse(rate, CultureInfo.InvariantCulture));
         }
     }
-
-    private void ModelBox_LostFocus(object sender, RoutedEventArgs e) =>
-        Save(settings => settings.VoiceModel = string.IsNullOrWhiteSpace(ModelBox.Text) ? null : ModelBox.Text.Trim());
-
-    private void LanguageBox_LostFocus(object sender, RoutedEventArgs e) =>
-        Save(settings => settings.VoiceLanguage = string.IsNullOrWhiteSpace(LanguageBox.Text) ? null : LanguageBox.Text.Trim());
 }

@@ -54,10 +54,10 @@ public sealed class VoiceButtonTests
                 typeof(MainWindow).GetMethod("UpdateMicAvailability", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
                 var before = window.MicHost.Visibility.ToString();
 
-                // Вписал язык, для которого в Windows есть распознаватель: поле сохраняется с потерей фокуса.
-                var box = (TextBox)block.FindName("LanguageBox");
-                box.Text = installed[0].Name;
-                box.RaiseEvent(new RoutedEventArgs(UIElement.LostFocusEvent));
+                // Выбрал язык, для которого в Windows есть распознаватель (а «Авто» без ключа — не выход).
+                var combo = (ComboBox)block.FindName("LanguageCombo");
+                combo.SelectedItem = combo.Items.OfType<ComboBoxItem>()
+                    .First(item => ((string)item.Tag).StartsWith(installed[0].TwoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase));
                 return (Before: before, After: window.MicHost.Visibility.ToString());
             }
             finally

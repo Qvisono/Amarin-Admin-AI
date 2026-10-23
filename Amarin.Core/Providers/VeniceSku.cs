@@ -56,6 +56,9 @@ internal static class VeniceSku
     /// <summary>Распознавание речи в облаке (D14).</summary>
     public const string Transcription = "transcription-request";
 
+    /// <summary>Чтение ответа вслух моделью озвучки провайдера (1.37.0).</summary>
+    public const string Speech = "speech-request";
+
     /// <summary>Разбор фактов в отчёте о работе (D7).</summary>
     public const string WorkReport = "work-report-request";
 
@@ -90,7 +93,8 @@ internal static class VeniceSku
         [WorkReport] = "S.Spend.Kind.WorkReport",
         [Fox] = "S.Spend.Kind.Fox",
         [ContextCompact] = "S.Cost.Compact",
-        [Transcription] = "S.Spend.Kind.Transcription"
+        [Transcription] = "S.Spend.Kind.Transcription",
+        [Speech] = "S.Spend.Kind.Audio"
     };
 
     /// <summary>

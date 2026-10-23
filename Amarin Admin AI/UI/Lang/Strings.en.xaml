@@ -2256,6 +2256,10 @@
     <system:String x:Key="S.Conversation.Start" xml:space="preserve">Voice conversation: speak, and the answer is read aloud</system:String>
     <system:String x:Key="S.Conversation.Stop" xml:space="preserve">End the conversation (Esc)</system:String>
     <system:String x:Key="S.Speech.Group" xml:space="preserve">Reading aloud</system:String>
+    <system:String x:Key="S.Speech.Engine" xml:space="preserve">Read with</system:String>
+    <system:String x:Key="S.Speech.EngineHint" xml:space="preserve">Windows reads for free; provider models are paid</system:String>
+    <system:String x:Key="S.Speech.EngineWindows" xml:space="preserve">Windows on this PC</system:String>
+    <system:String x:Key="S.Speech.Failed" xml:space="preserve">Could not read aloud: {0}</system:String>
     <system:String x:Key="S.Speech.Voice" xml:space="preserve">Voice</system:String>
     <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Voices installed in Windows</system:String>
     <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Auto</system:String>
@@ -2273,18 +2277,20 @@
     <system:String x:Key="S.Transcribe.Failed" xml:space="preserve">{0}: could not transcribe. {1}</system:String>
     <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Recording cancelled.</system:String>
     <system:String x:Key="S.Voice.Engine" xml:space="preserve">Recognition</system:String>
+    <system:String x:Key="S.Voice.StatusLocal" xml:space="preserve">Now recognized by Windows: {0}</system:String>
+    <system:String x:Key="S.Voice.StatusCloud" xml:space="preserve">Now recognized by {0}</system:String>
+    <system:String x:Key="S.Voice.StatusNoLocal" xml:space="preserve">Windows cannot recognize {0}: choose Auto or In the cloud</system:String>
+    <system:String x:Key="S.Voice.StatusNoKey" xml:space="preserve">The cloud needs a Venice or OpenRouter key on the Keys and spending page</system:String>
+    <system:String x:Key="S.Voice.ModelAuto" xml:space="preserve">Auto: {0}</system:String>
     <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Auto</system:String>
     <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">In the cloud</system:String>
     <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">On this PC</system:String>
     <system:String x:Key="S.Voice.Failed" xml:space="preserve">Recognition failed: {0}</system:String>
     <system:String x:Key="S.Voice.Language" xml:space="preserve">Speech language</system:String>
     <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Same as the interface</system:String>
-    <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">A language code like en-US</system:String>
-    <system:String x:Key="S.Voice.LocalList" xml:space="preserve">Windows recognises: {0}</system:String>
-    <system:String x:Key="S.Voice.LocalNone" xml:space="preserve">No Windows recogniser on this PC</system:String>
+    <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">The language you speak</system:String>
     <system:String x:Key="S.Voice.Model" xml:space="preserve">Cloud model</system:String>
-    <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Not set</system:String>
-    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">With the openrouter: prefix, the model runs via OpenRouter</system:String>
+    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">When Windows cannot recognize the language</system:String>
     <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Windows has no recogniser for “{0}”, and no cloud model is set.</system:String>
     <system:String x:Key="S.Voice.NoKey" xml:space="preserve">There is no key for the recognition model's provider. Add one on the Keys &amp; spending page.</system:String>
     <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">Windows has no recogniser for “{0}”. Installed: {1}.</system:String>
@@ -2294,7 +2300,7 @@
     <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Recognising speech…</system:String>
     <system:String x:Key="S.Voice.Recording" xml:space="preserve">Recording. Click to finish, or press Esc to cancel</system:String>
     <system:String x:Key="S.Voice.SetupOpen" xml:space="preserve">Set up</system:String>
-    <system:String x:Key="S.Voice.SetupText" xml:space="preserve">Windows has no speech recogniser for the interface language. Set a cloud recognition model and the microphone appears next to the input field.</system:String>
+    <system:String x:Key="S.Voice.SetupText" xml:space="preserve">There is nothing to recognize speech with: Windows cannot recognize this language, and the cloud needs a Venice or OpenRouter key.</system:String>
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Voice input</system:String>
     <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Too short, nothing was recorded.</system:String>
     <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Voice input is not set up</system:String>

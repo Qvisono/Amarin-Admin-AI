@@ -2256,6 +2256,10 @@
     <system:String x:Key="S.Conversation.Start" xml:space="preserve">Разговор голосом: говорите, ответ прозвучит вслух</system:String>
     <system:String x:Key="S.Conversation.Stop" xml:space="preserve">Закончить разговор (Esc)</system:String>
     <system:String x:Key="S.Speech.Group" xml:space="preserve">Чтение вслух</system:String>
+    <system:String x:Key="S.Speech.Engine" xml:space="preserve">Чем читать</system:String>
+    <system:String x:Key="S.Speech.EngineHint" xml:space="preserve">Windows читает бесплатно, модели провайдеров платные</system:String>
+    <system:String x:Key="S.Speech.EngineWindows" xml:space="preserve">Windows на этом ПК</system:String>
+    <system:String x:Key="S.Speech.Failed" xml:space="preserve">Прочитать вслух не удалось: {0}</system:String>
     <system:String x:Key="S.Speech.Voice" xml:space="preserve">Голос</system:String>
     <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Голоса, установленные в Windows</system:String>
     <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Авто</system:String>
@@ -2273,18 +2277,20 @@
     <system:String x:Key="S.Transcribe.Failed" xml:space="preserve">{0}: не удалось расшифровать. {1}</system:String>
     <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Запись отменена.</system:String>
     <system:String x:Key="S.Voice.Engine" xml:space="preserve">Распознавание</system:String>
+    <system:String x:Key="S.Voice.StatusLocal" xml:space="preserve">Сейчас распознаёт Windows: {0}</system:String>
+    <system:String x:Key="S.Voice.StatusCloud" xml:space="preserve">Сейчас распознаёт {0}</system:String>
+    <system:String x:Key="S.Voice.StatusNoLocal" xml:space="preserve">В Windows нет распознавания языка «{0}»: выберите «Авто» или «В облаке»</system:String>
+    <system:String x:Key="S.Voice.StatusNoKey" xml:space="preserve">Для облака нужен ключ Venice или OpenRouter на странице «Ключи и траты»</system:String>
+    <system:String x:Key="S.Voice.ModelAuto" xml:space="preserve">Авто: {0}</system:String>
     <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Авто</system:String>
     <system:String x:Key="S.Voice.EngineCloud" xml:space="preserve">В облаке</system:String>
     <system:String x:Key="S.Voice.EngineLocal" xml:space="preserve">На этом ПК</system:String>
     <system:String x:Key="S.Voice.Failed" xml:space="preserve">Распознать не удалось: {0}</system:String>
     <system:String x:Key="S.Voice.Language" xml:space="preserve">Язык речи</system:String>
     <system:String x:Key="S.Voice.LanguageEmpty" xml:space="preserve">Как в интерфейсе</system:String>
-    <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">Код языка, например ru-RU</system:String>
-    <system:String x:Key="S.Voice.LocalList" xml:space="preserve">Windows распознаёт: {0}</system:String>
-    <system:String x:Key="S.Voice.LocalNone" xml:space="preserve">Распознавателей Windows на этом ПК нет</system:String>
+    <system:String x:Key="S.Voice.LanguageHint" xml:space="preserve">Язык, на котором вы говорите</system:String>
     <system:String x:Key="S.Voice.Model" xml:space="preserve">Модель в облаке</system:String>
-    <system:String x:Key="S.Voice.ModelEmpty" xml:space="preserve">Не выбрана</system:String>
-    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">С приставкой openrouter: модель работает через OpenRouter</system:String>
+    <system:String x:Key="S.Voice.ModelHint" xml:space="preserve">Если Windows не распознаёт язык</system:String>
     <system:String x:Key="S.Voice.NoCloudModel" xml:space="preserve">Для языка «{0}» в Windows нет распознавателя, а модель в облаке не выбрана.</system:String>
     <system:String x:Key="S.Voice.NoKey" xml:space="preserve">Нет ключа для провайдера модели распознавания. Добавьте его на странице «Ключи и траты».</system:String>
     <system:String x:Key="S.Voice.NoLocal" xml:space="preserve">В Windows нет распознавателя для языка «{0}». Установлены: {1}.</system:String>
@@ -2294,7 +2300,7 @@
     <system:String x:Key="S.Voice.Recognizing" xml:space="preserve">Распознаю речь…</system:String>
     <system:String x:Key="S.Voice.Recording" xml:space="preserve">Идёт запись. Нажмите, чтобы закончить, или Esc, чтобы отменить</system:String>
     <system:String x:Key="S.Voice.SetupOpen" xml:space="preserve">Настроить</system:String>
-    <system:String x:Key="S.Voice.SetupText" xml:space="preserve">Для языка интерфейса в Windows нет распознавателя речи. Укажите модель распознавания в облаке, и у поля ввода появится микрофон.</system:String>
+    <system:String x:Key="S.Voice.SetupText" xml:space="preserve">Распознавать речь нечем: в Windows нет распознавания этого языка, а для облака нужен ключ Venice или OpenRouter.</system:String>
     <system:String x:Key="S.Voice.Title" xml:space="preserve">Голосовой ввод</system:String>
     <system:String x:Key="S.Voice.TooShort" xml:space="preserve">Слишком коротко, ничего не записалось.</system:String>
     <system:String x:Key="S.Voice.UnavailableTitle" xml:space="preserve">Голосовой ввод не настроен</system:String>
