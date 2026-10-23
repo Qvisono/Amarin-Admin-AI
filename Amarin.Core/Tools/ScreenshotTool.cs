@@ -107,6 +107,29 @@ public sealed class ScreenshotTool : ITool
         return Convert.ToBase64String(stream.ToArray());
     }
 
+    /// <summary>
+    /// Весь рабочий стол — все мониторы одной картинкой — и где он лежит в пикселях экрана: для
+    /// снимка выделенной области, которую человек выделяет поверх этой картинки.
+    /// </summary>
+    internal static (Bitmap Image, Rectangle Bounds) CaptureDesktop()
+    {
+        var bounds = MonitorBounds.CaptureVirtualScreenBounds();
+        var bitmap = new Bitmap(bounds.Width, bounds.Height);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.CopyFromScreen(bounds.Left, bounds.Top, 0, 0, bounds.Size, CopyPixelOperation.SourceCopy);
+        return (bitmap, bounds);
+    }
+
+    /// <summary>Часть картинки рабочего стола в PNG base64 — с тем же уменьшением, что у снимка экрана.</summary>
+    internal static string CropPng(Bitmap desktop, Rectangle area)
+    {
+        using var crop = desktop.Clone(Rectangle.Intersect(area, new Rectangle(0, 0, desktop.Width, desktop.Height)), desktop.PixelFormat);
+        using var resized = DownscaleIfNeeded(crop);
+        using var stream = new MemoryStream();
+        resized.Save(stream, ImageFormat.Png);
+        return Convert.ToBase64String(stream.ToArray());
+    }
+
     private static Bitmap CaptureScreen(string scope)
     {
         var bounds = scope.Equals("all_monitors", StringComparison.OrdinalIgnoreCase)

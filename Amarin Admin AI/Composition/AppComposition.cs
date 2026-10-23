@@ -186,6 +186,8 @@ internal static class AppComposition
         var chatTools = new ToolRegistry(
         [
             .. FileTools(fileState),
+            new AnalyzeTableTool(),
+            new RecognizeTextTool(),
             new WebSearchTool((query, ct) =>
                 venice.SearchWebAsync(query, ModelSlots.WebSearch(ReadSettings()), ct)),
             // Соотношение сторон у вызова инструмента выводится из размера в пикселях; особое

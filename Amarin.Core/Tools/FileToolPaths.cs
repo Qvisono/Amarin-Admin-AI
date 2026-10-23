@@ -22,7 +22,8 @@ internal static class FileToolPaths
     /// <summary>Инструменты, чьи пути раскрывает это правило, — и только они.</summary>
     private static readonly FrozenSet<string> PathTools = new[]
     {
-        "read_file", "write_file", "edit_file", "create_folder", "create_document", "edit_document", "save_image"
+        "read_file", "write_file", "edit_file", "create_folder", "create_document", "edit_document", "save_image",
+        "analyze_table", "recognize_text"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     public static bool TryResolve(string? raw, out string resolved, out string? error)

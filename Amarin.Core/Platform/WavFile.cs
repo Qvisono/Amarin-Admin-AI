@@ -65,6 +65,80 @@ internal static class WavFile
 
     /// <summary>Длительность данных.</summary>
     public static TimeSpan Duration(int pcmBytes) => TimeSpan.FromSeconds(pcmBytes / (double)BytesPerSecond);
+
+    /// <summary>
+    /// Длинная запись (16 бит, моно) частями не длиннее <paramref name="length"/> — каждая своим WAV
+    /// и с моментом начала.
+    /// </summary>
+    /// <remarks>
+    /// Читается потоком, а не целиком: час записи — это больше ста мегабайт, а распознаванию
+    /// нужна одна часть за раз. Заголовок разбирается по блокам RIFF, а не по смещению 44:
+    /// перекодировщик Windows кладёт перед данными и свои блоки.
+    /// </remarks>
+    /// <exception cref="InvalidDataException">Не WAV, или не 16 бит моно.</exception>
+    public static IEnumerable<(TimeSpan Start, byte[] Wav)> Pieces(Stream wav, TimeSpan length)
+    {
+        var (sampleRate, dataBytes) = Header(wav);
+        var bytesPerSecond = sampleRate * 2;
+        var piece = (int)Math.Max(bytesPerSecond, (long)(length.TotalSeconds * bytesPerSecond) & ~1L);
+        var buffer = new byte[piece];
+        var offset = 0L;
+        while (dataBytes < 0 || offset < dataBytes)
+        {
+            var wanted = dataBytes < 0 ? piece : (int)Math.Min(piece, dataBytes - offset);
+            var read = 0;
+            while (read < wanted && wav.Read(buffer, read, wanted - read) is var got and > 0)
+            {
+                read += got;
+            }
+
+            read &= ~1;
+            if (read == 0)
+            {
+                yield break;
+            }
+
+            yield return (TimeSpan.FromSeconds(offset / (double)bytesPerSecond), Build(buffer.AsSpan(0, read), sampleRate));
+            offset += read;
+        }
+    }
+
+    /// <summary>Частота и длина данных; поток после вызова стоит на начале данных. Длина −1 — до конца файла.</summary>
+    private static (int SampleRate, long DataBytes) Header(Stream wav)
+    {
+        Span<byte> head = stackalloc byte[12];
+        wav.ReadExactly(head);
+        if (!head[..4].SequenceEqual("RIFF"u8) || !head[8..12].SequenceEqual("WAVE"u8))
+        {
+            throw new InvalidDataException("not a WAV file");
+        }
+
+        int? sampleRate = null;
+        Span<byte> chunk = stackalloc byte[8];
+        while (true)
+        {
+            wav.ReadExactly(chunk);
+            var size = BinaryPrimitives.ReadUInt32LittleEndian(chunk[4..]);
+            if (chunk[..4].SequenceEqual("data"u8))
+            {
+                return (sampleRate ?? throw new InvalidDataException("no format block"), size is 0 or uint.MaxValue ? -1 : size);
+            }
+
+            var body = new byte[size + (size & 1)];
+            wav.ReadExactly(body);
+            if (chunk[..4].SequenceEqual("fmt "u8))
+            {
+                var channels = BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(2));
+                var bits = BinaryPrimitives.ReadUInt16LittleEndian(body.AsSpan(14));
+                if (channels != 1 || bits != 16)
+                {
+                    throw new InvalidDataException("not 16-bit mono");
+                }
+
+                sampleRate = BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(4));
+            }
+        }
+    }
 }
 
 /// <summary>Чем распознавать голос (D14). Пишется в settings.json именем.</summary>

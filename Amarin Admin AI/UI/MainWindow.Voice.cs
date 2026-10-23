@@ -33,6 +33,12 @@ namespace Amarin.UI
                 }
             };
             ShowMicIdle();
+            ShowConversation(on: false);
+            Closed += (_, _) =>
+            {
+                StopConversation();
+                _speech?.Dispose();
+            };
 
             // Движок, модель, язык и ключи меняются в настройках — по их закрытию и пересчёт.
             SettingsOverlay.IsVisibleChanged += (_, e) =>
@@ -93,8 +99,11 @@ namespace Amarin.UI
         /// Показывает микрофон, только если есть чем распознать. Зовётся при подключении служб и
         /// при закрытии настроек: там меняются движок, модель, язык и ключи.
         /// </summary>
-        private void UpdateMicAvailability() =>
+        private void UpdateMicAvailability()
+        {
             MicHost.Visibility = IsVoiceAvailable() || IsRecording ? Visibility.Visible : Visibility.Collapsed;
+            ConversationButton.Visibility = MicHost.Visibility;
+        }
 
         private bool IsVoiceAvailable() =>
             _services is { } services && OperatingSystem.IsWindows() &&
@@ -144,7 +153,8 @@ namespace Amarin.UI
         }
 
         /// <summary>Esc во время записи: всё записанное выбрасывается.</summary>
-        internal bool CancelRecording()
+        /// <param name="notify">Сказать под полем «запись отменена»; разговорный режим выключается молча.</param>
+        internal bool CancelRecording(bool notify = true)
         {
             _voiceCancel?.Cancel();
             if (_recorder is not { } recorder)
@@ -155,7 +165,11 @@ namespace Amarin.UI
             _recorder = null;
             recorder.Dispose();
             ShowMicIdle();
-            ShowTransientNotice(_session.Id, Loc.Get("S.Voice.Cancelled"));
+            if (notify)
+            {
+                ShowTransientNotice(_session.Id, Loc.Get("S.Voice.Cancelled"));
+            }
+
             return true;
         }
 
@@ -185,6 +199,7 @@ namespace Amarin.UI
             if (wav.Length < 44 + WavFile.BytesPerSecond / 3)
             {
                 ShowTransientNotice(_session.Id, Loc.Get("S.Voice.TooShort"));
+                ListenAgain();
                 return;
             }
 
@@ -203,11 +218,16 @@ namespace Amarin.UI
                 if (string.IsNullOrWhiteSpace(text))
                 {
                     ShowTransientNotice(sessionId, Loc.Get("S.Voice.Nothing"));
+                    ListenAgain();
                     return;
                 }
 
                 ClearComposerNotice(sessionId);
-                if (sessionId == _session.Id)
+                if (InConversation)
+                {
+                    await SendSpokenAsync(text);
+                }
+                else if (sessionId == _session.Id)
                 {
                     InsertRecognized(text);
                 }
@@ -218,11 +238,13 @@ namespace Amarin.UI
             }
             catch (VoiceUnavailableException ex)
             {
+                StopConversation();
                 ClearComposerNotice(sessionId);
                 await ShowNoticeAsync(Loc.Get("S.Voice.UnavailableTitle"), ex.Message, Loc.Get("S.Common.Close"), null, NoticeTone.Info);
             }
             catch (Exception ex) when (ex is HttpRequestException or VeniceApiException or TimeoutException or InvalidOperationException)
             {
+                StopConversation();
                 ClearComposerNotice(sessionId);
                 ShowTransientNotice(sessionId, Loc.Format("S.Voice.Failed", ex.Message));
             }

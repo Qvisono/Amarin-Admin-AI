@@ -592,6 +592,15 @@ public sealed class AppSettings : IJsonOnDeserializing
     /// <summary>Язык речи (D14): код вроде «ru» или «en-US». Пусто — язык интерфейса.</summary>
     public string? VoiceLanguage { get; set; }
 
+    /// <summary>
+    /// Голос чтения ответов вслух (1.37.0) — имя голоса Windows. Пусто — голос языка ответа, иначе
+    /// голос по умолчанию; голос, которого на этом ПК нет, читается так же, как пустой.
+    /// </summary>
+    public string? SpeechVoice { get; set; }
+
+    /// <summary>Скорость чтения вслух: шкала Windows от −10 до 10, ноль — обычная.</summary>
+    public int SpeechRate { get; set; }
+
     /// <summary>Следовать режиму высокой контрастности Windows (I2). Заводское — да.</summary>
     public bool FollowHighContrast { get; set; } = true;
 

@@ -40,9 +40,11 @@ public sealed class CreateDocumentTool : ITool
     public string Name => "create_document";
 
     public string Description =>
-        "Create a new Word (.docx), Excel (.xlsx), PDF, HTML or text file and get its path back. The extension of " +
+        "Create a new Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF, HTML or text file and get its path back. The extension of " +
         "path picks the format. content is Markdown: headings, paragraphs, bold, italic, lists, tables, code, links, " +
-        "\\pagebreak, and pictures as ![caption](amarin-image:handle) or ![caption](C:\\full\\path.png). For .xlsx give " +
+        "\\pagebreak, and pictures as ![caption](amarin-image:handle) or ![caption](C:\\full\\path.png). For .pptx every # or ## " +
+        "heading starts a slide and is its title, --- starts a slide without a title, the rest of the section is the slide body, and " +
+        "a last paragraph that starts with Notes: becomes the speaker notes; the font size follows the amount of text. For .xlsx give " +
         "sheets: [{name, rows: [[...], ...], fill: [{range, value, step}]}] (first row is the header; numbers, YYYY-MM-DD " +
         "dates, N% percentages and =formulas keep their type), or Markdown tables, or CSV lines in content. fill writes a " +
         "whole range from one formula written for its top-left cell, with relative references shifting as dragging does in " +
@@ -50,7 +52,7 @@ public sealed class CreateDocumentTool : ITool
         "of every value. Formulas are calculated as " +
         "the file is written. source makes the document from an existing one in a single call - Word, Excel (with formula " +
         "results), PDF, PowerPoint, CSV or text - instead of retyping it. An existing file is kept unless overwrite=true. " +
-        "Too big for one call: create it with the first part and add the rest with edit_document append (Word, PDF) " +
+        "Too big for one call: create it with the first part and add the rest with edit_document append (Word, PowerPoint, PDF) " +
         "or append_rows (Excel). A table wider than the page is printed in blocks of columns. " +
         "Relative paths go to the user's Downloads folder.";
 
@@ -156,11 +158,11 @@ public sealed class CreateDocumentTool : ITool
                 ".docx" => WordWriter.Create(path, content, DocumentImages.Resolve, overwrite).Skipped,
                 ".pdf" => PdfWriter.Create(path, content, DocumentImages.Resolve, overwrite).Skipped,
                 ".xlsx" => Excel(path, arguments, content, overwrite),
-                ".pptx" => throw new DocumentException("PowerPoint presentations are not created here. Offer a Word or PDF document, or a Markdown outline of the slides."),
+                ".pptx" => SlidesWriter.Create(path, content, DocumentImages.Resolve, overwrite).Skipped,
                 ".html" or ".htm" => Text(path, Html(content, Path.GetFileNameWithoutExtension(path)), overwrite),
                 _ when DocumentKinds.Of(path) == DocumentKind.Text => Text(path, content, overwrite),
                 _ => throw new DocumentException(
-                    $"{Path.GetExtension(path)} is not a format this tool makes. It makes .docx, .xlsx, .pdf, .html and text files; pictures are saved with save_image.")
+                    $"{Path.GetExtension(path)} is not a format this tool makes. It makes .docx, .xlsx, .pptx, .pdf, .html and text files; pictures are saved with save_image.")
             };
 
             var report = new StringBuilder($"Created {path} ({FileToolPaths.Size(new FileInfo(path).Length)}).");

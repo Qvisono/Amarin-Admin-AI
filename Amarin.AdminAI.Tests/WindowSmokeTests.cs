@@ -116,7 +116,7 @@ public sealed class WindowSmokeTests
             foreach (var theme in new[] { AppTheme.Dark, AppTheme.Light })
             {
                 ThemeManager.Apply(theme);
-                foreach (var key in new[] { "ExportJson", "Upload", "Copy", "Regenerate", "Delete" })
+                foreach (var key in new[] { "ExportJson", "Upload", "Copy", "Regenerate", "Delete", "Speak" })
                 {
                     if (Application.Current.TryFindResource(key) is null)
                     {

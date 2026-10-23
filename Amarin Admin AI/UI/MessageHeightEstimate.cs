@@ -31,6 +31,9 @@ internal static class MessageHeightEstimate
     private const double TableRow = 30;
     private const double HeadingExtra = 12;
     private const double DisplayMath = 48;
+
+    /// <summary>Диаграмма блока <c>```chart</c> в своей карточке (<see cref="ChatChartView"/>).</summary>
+    private const double Chart = 240;
     private const double ToolsHeader = 36;
     private const double FileStrip = 60;
     private const double UserImages = 120;
@@ -80,6 +83,7 @@ internal static class MessageHeightEstimate
         var height = 0.0;
         var blocks = 0;
         var codeLines = -1;
+        var chart = false;
         var tableRows = -1;
         var paragraphOpen = false;
 
@@ -109,7 +113,7 @@ internal static class MessageHeightEstimate
             {
                 if (line.StartsWith("```"))
                 {
-                    height += CodeChrome + (codeLines * ChatFonts.CodeLine);
+                    height += chart ? Chart : CodeChrome + (codeLines * ChatFonts.CodeLine);
                     codeLines = -1;
                 }
                 else
@@ -126,6 +130,7 @@ internal static class MessageHeightEstimate
                 CloseParagraph();
                 StartBlock();
                 codeLines = 0;
+                chart = line[3..].Trim().Equals(ChartSpec.FenceLanguage, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 

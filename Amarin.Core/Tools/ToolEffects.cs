@@ -35,6 +35,9 @@ internal static class ToolEffects
         "read_instruction", "scrape_url", "capture_screenshot", "system_info", "search_web", "wmi_query",
         "youtube_transcript",
 
+        // Анализ таблицы и распознавание текста только читают файл, какой бы долгой ни была работа.
+        "analyze_table", "recognize_text",
+
         // Запись нагрузки и замер связи только смотрят, сколько бы ни длились.
         "perf_record", "network_quality",
 

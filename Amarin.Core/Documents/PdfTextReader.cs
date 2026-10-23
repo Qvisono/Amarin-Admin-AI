@@ -61,7 +61,7 @@ internal static class PdfTextReader
             var notes = new List<string>();
             if (shown.Count > 0 && blank == shown.Count)
             {
-                notes.Add("These pages have no text layer: the PDF is a scan or pictures. Its text cannot be read here; say so instead of guessing the content.");
+                notes.Add("These pages have no text layer: the PDF is a scan or pictures. Read their text with recognize_text and these page numbers instead of guessing the content.");
             }
 
             return new DocumentContent

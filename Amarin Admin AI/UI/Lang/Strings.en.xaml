@@ -854,6 +854,8 @@
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Recall the last sent message (empty field)</system:String>
     <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Voice input</system:String>
     <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Start or stop recording from the microphone.</system:String>
+    <system:String x:Key="S.Hotkeys.Conversation" xml:space="preserve">Voice conversation</system:String>
+    <system:String x:Key="S.Hotkeys.ConversationDesc" xml:space="preserve">Turn voice conversation on or off: answers are read aloud.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">New line in the message</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Next chat</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">The chat below in the list, in the order shown.</system:String>
@@ -1473,6 +1475,7 @@
     <system:String x:Key="S.Message.NoText" xml:space="preserve">The answer has no text</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Regenerate</system:String>
     <system:String x:Key="S.Message.Branch" xml:space="preserve">Branch into a new chat</system:String>
+    <system:String x:Key="S.Message.Speak" xml:space="preserve">Read aloud</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Share the conversation up to this answer</system:String>
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Stop</system:String>
 
@@ -1997,6 +2000,8 @@
     <system:String x:Key="S.Tool.create_folder" xml:space="preserve">Creating folders</system:String>
     <system:String x:Key="S.Tool.create_document" xml:space="preserve">Creating documents</system:String>
     <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Editing documents</system:String>
+    <system:String x:Key="S.Tool.analyze_table" xml:space="preserve">Table analysis</system:String>
+    <system:String x:Key="S.Tool.recognize_text" xml:space="preserve">Text recognition (OCR)</system:String>
     <system:String x:Key="S.Tool.save_image" xml:space="preserve">Saving pictures</system:String>
     <system:String x:Key="S.Tool.deferred_task" xml:space="preserve">Deferred tasks</system:String>
     <system:String x:Key="S.Guard.Sum.DeferredCommand" xml:space="preserve">Deferred command</system:String>
@@ -2248,6 +2253,24 @@
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Previous</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Save image</system:String>
     <system:String x:Key="S.Voice.Button" xml:space="preserve">Voice input: click to start and stop, or hold while you speak</system:String>
+    <system:String x:Key="S.Conversation.Start" xml:space="preserve">Voice conversation: speak, and the answer is read aloud</system:String>
+    <system:String x:Key="S.Conversation.Stop" xml:space="preserve">End the conversation (Esc)</system:String>
+    <system:String x:Key="S.Speech.Group" xml:space="preserve">Reading aloud</system:String>
+    <system:String x:Key="S.Speech.Voice" xml:space="preserve">Voice</system:String>
+    <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Voices installed in Windows</system:String>
+    <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Auto</system:String>
+    <system:String x:Key="S.Speech.Rate" xml:space="preserve">Speed</system:String>
+    <system:String x:Key="S.Speech.RateSlow" xml:space="preserve">Slow</system:String>
+    <system:String x:Key="S.Speech.RateNormal" xml:space="preserve">Normal</system:String>
+    <system:String x:Key="S.Speech.RateFast" xml:space="preserve">Fast</system:String>
+    <system:String x:Key="S.Transcribe.Converting" xml:space="preserve">Preparing the audio of {0}…</system:String>
+    <system:String x:Key="S.Transcribe.Progress" xml:space="preserve">Transcribing {0}: part {1} of {2}</system:String>
+    <system:String x:Key="S.Transcribe.FileName" xml:space="preserve">{0} - transcript.txt</system:String>
+    <system:String x:Key="S.Transcribe.TooLong" xml:space="preserve">{0}: the recording is longer than 4 hours. Split it into parts.</system:String>
+    <system:String x:Key="S.Transcribe.Nothing" xml:space="preserve">{0}: no speech was found in the recording.</system:String>
+    <system:String x:Key="S.Transcribe.Cancelled" xml:space="preserve">Transcription cancelled</system:String>
+    <system:String x:Key="S.Transcribe.CannotRead" xml:space="preserve">{0}: Windows cannot read the audio of this file.</system:String>
+    <system:String x:Key="S.Transcribe.Failed" xml:space="preserve">{0}: could not transcribe. {1}</system:String>
     <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Recording cancelled.</system:String>
     <system:String x:Key="S.Voice.Engine" xml:space="preserve">Recognition</system:String>
     <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Auto</system:String>
@@ -2287,6 +2310,7 @@
     <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Ask Amarin</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">New chat with clipboard text</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">New chat with a screenshot</system:String>
+    <system:String x:Key="S.Windows.Hotkey.region-screenshot" xml:space="preserve">Screenshot of an area into the open chat</system:String>
     <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Show or hide the window</system:String>
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Not a shortcut: it needs Ctrl, Alt or Win plus a key.</system:String>
     <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">none</system:String>
@@ -2307,6 +2331,8 @@
     <system:String x:Key="S.Windows.NotifyHint" xml:space="preserve">Windows notifications need the tray icon</system:String>
     <system:String x:Key="S.Windows.NotifySystem" xml:space="preserve">Windows notifications</system:String>
     <system:String x:Key="S.Windows.ScreenshotName" xml:space="preserve">screenshot.png</system:String>
+    <system:String x:Key="S.Windows.RegionName" xml:space="preserve">screen area.png</system:String>
+    <system:String x:Key="S.Snip.Hint" xml:space="preserve">Drag to select an area. Esc cancels</system:String>
     <system:String x:Key="S.Windows.Short.AutoStart" xml:space="preserve">Autostart</system:String>
     <system:String x:Key="S.Windows.Short.Explorer" xml:space="preserve">Explorer</system:String>
     <system:String x:Key="S.Windows.Short.Tray" xml:space="preserve">Tray</system:String>

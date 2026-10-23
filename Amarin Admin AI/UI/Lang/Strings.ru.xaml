@@ -854,6 +854,8 @@
     <system:String x:Key="S.Hotkeys.LastSent" xml:space="preserve">Вернуть последнее отправленное (поле пустое)</system:String>
     <system:String x:Key="S.Hotkeys.Microphone" xml:space="preserve">Голосовой ввод</system:String>
     <system:String x:Key="S.Hotkeys.MicrophoneDesc" xml:space="preserve">Начать или закончить запись с микрофона.</system:String>
+    <system:String x:Key="S.Hotkeys.Conversation" xml:space="preserve">Разговор голосом</system:String>
+    <system:String x:Key="S.Hotkeys.ConversationDesc" xml:space="preserve">Включить или выключить разговорный режим: ответы читаются вслух.</system:String>
     <system:String x:Key="S.Hotkeys.NewLine" xml:space="preserve">Новая строка в сообщении</system:String>
     <system:String x:Key="S.Hotkeys.NextChat" xml:space="preserve">Следующий чат</system:String>
     <system:String x:Key="S.Hotkeys.NextChatDesc" xml:space="preserve">Чат ниже в списке, в том порядке, как на экране.</system:String>
@@ -1473,6 +1475,7 @@
     <system:String x:Key="S.Message.NoText" xml:space="preserve">Ответ без текста</system:String>
     <system:String x:Key="S.Message.Regenerate" xml:space="preserve">Повторить</system:String>
     <system:String x:Key="S.Message.Branch" xml:space="preserve">Ветка в новый чат</system:String>
+    <system:String x:Key="S.Message.Speak" xml:space="preserve">Прочитать вслух</system:String>
     <system:String x:Key="S.Message.Share" xml:space="preserve">Поделиться диалогом до этого ответа</system:String>
     <system:String x:Key="S.Message.Stop" xml:space="preserve">Остановить</system:String>
 
@@ -1997,6 +2000,8 @@
     <system:String x:Key="S.Tool.create_folder" xml:space="preserve">Создание папок</system:String>
     <system:String x:Key="S.Tool.create_document" xml:space="preserve">Создание документов</system:String>
     <system:String x:Key="S.Tool.edit_document" xml:space="preserve">Правка документов</system:String>
+    <system:String x:Key="S.Tool.analyze_table" xml:space="preserve">Анализ таблиц</system:String>
+    <system:String x:Key="S.Tool.recognize_text" xml:space="preserve">Распознавание текста (OCR)</system:String>
     <system:String x:Key="S.Tool.save_image" xml:space="preserve">Сохранение картинок</system:String>
     <system:String x:Key="S.Tool.deferred_task" xml:space="preserve">Отложенные задачи</system:String>
     <system:String x:Key="S.Guard.Sum.DeferredCommand" xml:space="preserve">Отложенная команда</system:String>
@@ -2248,6 +2253,24 @@
     <system:String x:Key="S.Viewer.Previous" xml:space="preserve">Предыдущая</system:String>
     <system:String x:Key="S.Viewer.SaveTitle" xml:space="preserve">Сохранить изображение</system:String>
     <system:String x:Key="S.Voice.Button" xml:space="preserve">Голосовой ввод: нажмите, чтобы начать и закончить, или удерживайте, пока говорите</system:String>
+    <system:String x:Key="S.Conversation.Start" xml:space="preserve">Разговор голосом: говорите, ответ прозвучит вслух</system:String>
+    <system:String x:Key="S.Conversation.Stop" xml:space="preserve">Закончить разговор (Esc)</system:String>
+    <system:String x:Key="S.Speech.Group" xml:space="preserve">Чтение вслух</system:String>
+    <system:String x:Key="S.Speech.Voice" xml:space="preserve">Голос</system:String>
+    <system:String x:Key="S.Speech.VoiceHint" xml:space="preserve">Голоса, установленные в Windows</system:String>
+    <system:String x:Key="S.Speech.VoiceAuto" xml:space="preserve">Авто</system:String>
+    <system:String x:Key="S.Speech.Rate" xml:space="preserve">Скорость</system:String>
+    <system:String x:Key="S.Speech.RateSlow" xml:space="preserve">Медленно</system:String>
+    <system:String x:Key="S.Speech.RateNormal" xml:space="preserve">Обычно</system:String>
+    <system:String x:Key="S.Speech.RateFast" xml:space="preserve">Быстро</system:String>
+    <system:String x:Key="S.Transcribe.Converting" xml:space="preserve">Готовлю звук {0}…</system:String>
+    <system:String x:Key="S.Transcribe.Progress" xml:space="preserve">Расшифровываю {0}: часть {1} из {2}</system:String>
+    <system:String x:Key="S.Transcribe.FileName" xml:space="preserve">{0} - расшифровка.txt</system:String>
+    <system:String x:Key="S.Transcribe.TooLong" xml:space="preserve">{0}: запись длиннее 4 часов. Разделите её на части.</system:String>
+    <system:String x:Key="S.Transcribe.Nothing" xml:space="preserve">{0}: речи в записи не нашлось.</system:String>
+    <system:String x:Key="S.Transcribe.Cancelled" xml:space="preserve">Расшифровка отменена</system:String>
+    <system:String x:Key="S.Transcribe.CannotRead" xml:space="preserve">{0}: Windows не может прочитать звук этого файла.</system:String>
+    <system:String x:Key="S.Transcribe.Failed" xml:space="preserve">{0}: не удалось расшифровать. {1}</system:String>
     <system:String x:Key="S.Voice.Cancelled" xml:space="preserve">Запись отменена.</system:String>
     <system:String x:Key="S.Voice.Engine" xml:space="preserve">Распознавание</system:String>
     <system:String x:Key="S.Voice.EngineAuto" xml:space="preserve">Авто</system:String>
@@ -2287,6 +2310,7 @@
     <system:String x:Key="S.Windows.ExplorerVerb" xml:space="preserve">Спросить Amarin</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-from-clipboard" xml:space="preserve">Новый чат с текстом из буфера</system:String>
     <system:String x:Key="S.Windows.Hotkey.new-with-screenshot" xml:space="preserve">Новый чат со снимком экрана</system:String>
+    <system:String x:Key="S.Windows.Hotkey.region-screenshot" xml:space="preserve">Снимок области в открытый чат</system:String>
     <system:String x:Key="S.Windows.Hotkey.show-hide" xml:space="preserve">Показать или спрятать окно</system:String>
     <system:String x:Key="S.Windows.HotkeyInvalid" xml:space="preserve">Не сочетание: нужен Ctrl, Alt или Win и клавиша.</system:String>
     <system:String x:Key="S.Windows.HotkeyNone" xml:space="preserve">нет</system:String>
@@ -2307,6 +2331,8 @@
     <system:String x:Key="S.Windows.NotifyHint" xml:space="preserve">Уведомлениям Windows нужен значок в трее</system:String>
     <system:String x:Key="S.Windows.NotifySystem" xml:space="preserve">Уведомления Windows</system:String>
     <system:String x:Key="S.Windows.ScreenshotName" xml:space="preserve">снимок экрана.png</system:String>
+    <system:String x:Key="S.Windows.RegionName" xml:space="preserve">область экрана.png</system:String>
+    <system:String x:Key="S.Snip.Hint" xml:space="preserve">Выделите область мышью. Esc - отмена</system:String>
     <system:String x:Key="S.Windows.Short.AutoStart" xml:space="preserve">Автозапуск</system:String>
     <system:String x:Key="S.Windows.Short.Explorer" xml:space="preserve">Проводник</system:String>
     <system:String x:Key="S.Windows.Short.Tray" xml:space="preserve">Трей</system:String>

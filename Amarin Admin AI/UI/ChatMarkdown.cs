@@ -279,6 +279,12 @@ internal static class ChatMarkdown
                 target.Add(BuildMathBlock(fenced.Lines.ToString(), context, last));
                 break;
 
+            // ```chart — диаграмма (раздел D 1.37.0). Недописанный или негодный блок остаётся кодом:
+            // пока ответ идёт, JSON обрывается на полуслове, и лента не должна мигать пустой рамкой.
+            case FencedCodeBlock fenced when IsChartFence(fenced.Info) && ChartSpec.TryParse(fenced.Lines.ToString(), out var chart):
+                target.Add(BuildChart(chart, fenced.Lines.ToString()));
+                break;
+
             case FencedCodeBlock fenced:
                 target.Add(BuildCode(fenced.Lines.ToString(), fenced.Info, context));
                 break;
@@ -391,6 +397,17 @@ internal static class ChatMarkdown
             LineHeight = double.NaN,
             LineStackingStrategy = LineStackingStrategy.MaxHeight
         };
+    }
+
+    private static bool IsChartFence(string? info) =>
+        info is not null && info.Trim().Equals(ChartSpec.FenceLanguage, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Диаграмма; исходник — чтобы цитата и копирование донесли блок целиком.</summary>
+    private static WpfBlock BuildChart(ChartSpec chart, string source)
+    {
+        var view = ChatChartView.Create(chart);
+        QuoteSelection.SetSource(view, new QuoteSource("```" + ChartSpec.FenceLanguage, source.TrimEnd('\n'), "```", Block: true));
+        return new BlockUIContainer(view) { Margin = new Thickness(0) };
     }
 
     private static bool IsMathFence(string? info) =>

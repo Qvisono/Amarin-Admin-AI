@@ -50,6 +50,8 @@ public sealed partial class ChatPromptRuleTests
             List<ITool> tools =
             [
                 .. AppComposition.FileTools(new FileToolState()),
+                new AnalyzeTableTool(),
+                new RecognizeTextTool(),
                 new WebSearchTool((_, _) => Task.FromResult("")),
                 new GenerateImageTool((_, _, _, _, _) => Task.FromResult("")),
                 new FetchImageTool(),

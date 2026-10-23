@@ -124,7 +124,7 @@ public sealed class WriteFileTool : ITool
             DocumentKind.Word or DocumentKind.Excel or DocumentKind.Pdf =>
                 $"write_file writes plain text only, and a {extension} file is not text. Make it with create_document (Markdown content becomes a real Word or PDF document, tables become Excel sheets); to change an existing one use edit_document.",
             DocumentKind.Slides =>
-                $"write_file writes plain text only, and {extension} is a PowerPoint file. Presentations are not created here; offer a Word or PDF document instead.",
+                $"write_file writes plain text only, and {extension} is a PowerPoint file. Make a .pptx with create_document (Markdown content, a heading per slide); to change an existing one use edit_document.",
             DocumentKind.Image =>
                 $"write_file writes plain text only, and {extension} is a picture. Draw it with generate_image and save it with save_image; an SVG picture is text and can be written here.",
             DocumentKind.Binary =>

@@ -79,6 +79,9 @@ public static class HotkeyMap
     /// <summary>Голосовой ввод: начать или закончить запись (D14).</summary>
     public const string Microphone = "Microphone";
 
+    /// <summary>Разговорный режим голосом (1.37.0).</summary>
+    public const string Conversation = "Conversation";
+
     /// <summary>Шпаргалка по сочетаниям (D8).</summary>
     public const string Cheatsheet = "Cheatsheet";
 
@@ -106,6 +109,7 @@ public static class HotkeyMap
         new(OpenSettings, "Ctrl+OemComma", "S.Hotkeys.OpenSettings", "S.Hotkeys.OpenSettingsDesc"),
         new(Health, "Ctrl+Shift+H", "S.Hotkeys.Health", "S.Hotkeys.HealthDesc"),
         new(Microphone, "Ctrl+Shift+M", "S.Hotkeys.Microphone", "S.Hotkeys.MicrophoneDesc"),
+        new(Conversation, "Ctrl+Shift+J", "S.Hotkeys.Conversation", "S.Hotkeys.ConversationDesc"),
         new(Cheatsheet, "Ctrl+OemQuestion", "S.Hotkeys.Cheatsheet", "S.Hotkeys.CheatsheetDesc")
     ];
 

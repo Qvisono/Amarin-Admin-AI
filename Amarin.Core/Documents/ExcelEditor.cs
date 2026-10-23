@@ -202,6 +202,18 @@ internal sealed class ExcelEditor : IDisposable
         return cleared;
     }
 
+    /// <summary>Диаграмма по диапазону листа (<see cref="ExcelCharts"/>).</summary>
+    public void AddChart(string? sheet, string type, string range, string? title, string? cell)
+    {
+        var target = Sheet(sheet);
+        if (target.Id?.Value is not { } id || _workbook.GetPartById(id) is not WorksheetPart part || part.Worksheet is null)
+        {
+            throw new DocumentException($"Sheet \"{target.Name}\" could not be opened.");
+        }
+
+        ExcelCharts.Add(_workbook, part, target.Name?.Value ?? "", type, range, title, cell);
+    }
+
     /// <returns>Сколько формул посчитано здесь и сколько оставлено Excel.</returns>
     public RecalcReport Save()
     {

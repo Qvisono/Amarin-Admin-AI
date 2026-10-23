@@ -39,11 +39,39 @@ public partial class VoiceSettingsBlock : UserControl
                 ? Loc.Get("S.Voice.LocalNone")
                 : Loc.Format("S.Voice.LocalList", string.Join(", ", installed.Select(culture => culture.DisplayName)));
             ApplyEngine(settings.VoiceEngine);
+            LoadSpeech(settings);
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    /// <summary>
+    /// Голоса чтения вслух: «Авто» и установленные в Windows. Выбранный, но удалённый из Windows
+    /// голос остаётся в списке — иначе открытие страницы молча сбросило бы выбор человека.
+    /// </summary>
+    private void LoadSpeech(AppSettings settings)
+    {
+        SpeechVoiceCombo.Items.Clear();
+        SpeechVoiceCombo.Items.Add(new ComboBoxItem { Tag = "", Content = Loc.Get("S.Speech.VoiceAuto") });
+        var voices = OperatingSystem.IsWindows() ? SpeechOutput.Voices().ToList() : [];
+        if (settings.SpeechVoice is { Length: > 0 } chosen && !voices.Contains(chosen, StringComparer.OrdinalIgnoreCase))
+        {
+            voices.Add(chosen);
+        }
+
+        foreach (var voice in voices)
+        {
+            SpeechVoiceCombo.Items.Add(new ComboBoxItem { Tag = voice, Content = voice });
+        }
+
+        SpeechVoiceCombo.SelectedItem = SpeechVoiceCombo.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(item => string.Equals((string)item.Tag, settings.SpeechVoice ?? "", StringComparison.OrdinalIgnoreCase)) ?? SpeechVoiceCombo.Items[0];
+
+        // Скорость, выставленная не из списка (руками в файле), садится на ближайший пункт.
+        SpeechRateCombo.SelectedItem = SpeechRateCombo.Items.OfType<ComboBoxItem>()
+            .MinBy(item => Math.Abs(int.Parse((string)item.Tag, System.Globalization.CultureInfo.InvariantCulture) - settings.SpeechRate));
     }
 
     /// <summary>Значение строки-ссылки: выбранный способ или «не настроен», если распознавать нечем.</summary>
@@ -89,6 +117,22 @@ public partial class VoiceSettingsBlock : UserControl
         var engine = SelectedEngine;
         ApplyEngine(engine);
         Save(settings => settings.VoiceEngine = engine);
+    }
+
+    private void SpeechVoiceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SpeechVoiceCombo.SelectedItem is ComboBoxItem { Tag: string voice })
+        {
+            Save(settings => settings.SpeechVoice = voice.Length == 0 ? null : voice);
+        }
+    }
+
+    private void SpeechRateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SpeechRateCombo.SelectedItem is ComboBoxItem { Tag: string rate })
+        {
+            Save(settings => settings.SpeechRate = int.Parse(rate, System.Globalization.CultureInfo.InvariantCulture));
+        }
     }
 
     private void ModelBox_LostFocus(object sender, RoutedEventArgs e) =>

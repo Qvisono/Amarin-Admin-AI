@@ -110,6 +110,18 @@ public sealed partial class SourceLiteralTests
     [InlineData("Security", "AuditEvents.cs")]
     [InlineData("Platform", "WindowsEventLog.cs")]
     [InlineData("Settings", "OrganizationPolicy.cs")]
+    // 1.37.0, раздел D: таблицы, OCR, диаграммы, голос, расшифровка и снимок области.
+    [InlineData("Tools", "AnalyzeTableTool.cs")]
+    [InlineData("Tools", "RecognizeTextTool.cs")]
+    [InlineData("Chat", "ChartSpec.cs")]
+    [InlineData("Chat", "SpeechText.cs")]
+    [InlineData("Platform", "SilenceDetector.cs")]
+    [InlineData("UI", "ChatChartView.cs")]
+    [InlineData("UI", "SpeechOutput.cs")]
+    [InlineData("UI", "MainWindow.Conversation.cs")]
+    [InlineData("UI", "MainWindow.Transcribe.cs")]
+    [InlineData("UI", "RegionSnip.cs")]
+    [InlineData("UI", "VoiceSettingsBlock.xaml.cs")]
     public void Screens_and_their_logic_hold_no_literal_russian(string folder, string file)
     {
         // Эти экраны написали до локализации, и подписи так и остались литералами: при
@@ -126,6 +138,7 @@ public sealed partial class SourceLiteralTests
     [InlineData("ChatList")]
     [InlineData("Turns")]
     [InlineData("Documents")]
+    [InlineData("Media")]
     public void Whole_core_folders_hold_no_literal_russian(string folder)
     {
         var files = SourceTree.CoreFolder(folder);

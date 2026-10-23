@@ -20,6 +20,9 @@ internal sealed class MicRecorder : IDisposable
 {
     private const int BufferCount = 6;
     private const int BufferBytes = WavFile.BytesPerSecond / 10;
+
+    /// <summary>Длина куска, о громкости которого сообщает <see cref="LevelChanged"/>.</summary>
+    public static readonly TimeSpan ChunkLength = TimeSpan.FromSeconds((double)BufferBytes / WavFile.BytesPerSecond);
     private const uint WhdrDone = 1;
     private const uint CallbackNull = 0;
     private static readonly UIntPtr WaveMapper = new(0xFFFFFFFF);

@@ -20,6 +20,9 @@ internal sealed class MessageActions
 
     /// <summary>Ветка в новый чат с этого ответа (1.37.0).</summary>
     public Action<ChatDisplayMessage>? Branch;
+
+    /// <summary>Прочитать ответ вслух; повторное нажатие на читаемом — остановить (1.37.0).</summary>
+    public Action<ChatDisplayMessage>? Speak;
     public Action<ChatDisplayMessage>? Cancel;
 
     /// <summary>
@@ -1402,6 +1405,10 @@ internal static class ChatMessageViews
         var copy = IconAction(host, "Copy", Loc.Get("S.Common.Copy"));
         copy.Click += (_, _) => actions?.Copy?.Invoke(message);
         row.Children.Add(copy);
+        var speak = IconAction(host, "Speak", Loc.Get("S.Message.Speak"));
+        speak.Click += (_, _) => actions?.Speak?.Invoke(message);
+        HideIf(speak, actions?.Speak is null);
+        row.Children.Add(speak);
         var sharingOn = actions?.SharingEnabled?.Invoke() ?? true;
         var share = IconAction(host, "Upload", Loc.Get("S.Message.Share"));
         share.Click += (_, _) => actions?.Share?.Invoke(message);

@@ -163,6 +163,13 @@ namespace Amarin.UI
                     continue;
                 }
 
+                // Запись и видео (1.37.0) расшифровываются и прикрепляются текстом, когда готово.
+                if (MediaAudio.IsMedia(path))
+                {
+                    Detached.Run(TranscribeMediaAsync(path), "transcribe_media");
+                    continue;
+                }
+
                 Note(Loc.Format(
                     "S.Attach.UnsupportedFormat",
                     Path.GetFileName(path),

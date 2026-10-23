@@ -43,7 +43,10 @@ internal static class GlobalHotkeys
     public const string NewFromClipboard = "new-from-clipboard";
     public const string NewWithScreenshot = "new-with-screenshot";
 
-    public static readonly string[] All = [ShowHide, NewFromClipboard, NewWithScreenshot];
+    /// <summary>Снимок выделенной области в открытый чат (1.37.0).</summary>
+    public const string RegionScreenshot = "region-screenshot";
+
+    public static readonly string[] All = [ShowHide, NewFromClipboard, NewWithScreenshot, RegionScreenshot];
 
     /// <summary>
     /// Заводское — только у «показать или спрятать». Предположение, что Windows это сочетание не

@@ -50,6 +50,28 @@ internal static class DocumentConvert
     /// </summary>
     private static string ExcelMarkdown(DocumentSource source, string? sheet)
     {
+        var tables = ExcelTables(source, sheet);
+        var output = new StringBuilder();
+        foreach (var (name, table) in tables)
+        {
+            if (tables.Count > 1)
+            {
+                output.Append("## ").Append(name).Append("\n\n");
+            }
+
+            output.Append(Table(table)).Append("\n\n");
+        }
+
+        return output.Length > 0 ? output.ToString().TrimEnd() : throw new DocumentException("The workbook has no values to convert.");
+    }
+
+    /// <summary>
+    /// Листы книги строками того, что видно в ячейках, от первого занятого столбца до последнего.
+    /// Пустые листы пропускаются. Общее для перевода книги в документ и для анализа таблиц
+    /// (<see cref="TableQuery"/>): оба должны видеть одни и те же значения, а не формулы.
+    /// </summary>
+    internal static List<(string Name, List<IReadOnlyList<string>> Rows)> ExcelTables(DocumentSource source, string? sheet)
+    {
         using var stream = source.OpenRead();
         using var document = ExcelReader.Open(stream);
         var workbook = document.WorkbookPart ?? throw new DocumentException("The Excel file has no workbook.");
@@ -61,7 +83,7 @@ internal static class DocumentConvert
         var grid = ExcelGrid.Load(workbook);
         var calc = grid.Calc();
         var shown = new ExcelReader.ExcelContext(workbook);
-        var output = new StringBuilder();
+        var tables = new List<(string Name, List<IReadOnlyList<string>> Rows)>();
         foreach (var name in chosen)
         {
             var rows = new SortedDictionary<int, SortedDictionary<int, string>>();
@@ -102,18 +124,11 @@ internal static class DocumentConvert
 
             var first = rows.Values.Min(line => line.Keys.Min());
             var last = rows.Values.Max(line => line.Keys.Max());
-            var table = rows.Values
-                .Select(line => (IReadOnlyList<string>)[.. Enumerable.Range(first, last - first + 1).Select(column => line.GetValueOrDefault(column, ""))])
-                .ToList();
-            if (chosen.Count > 1)
-            {
-                output.Append("## ").Append(name).Append("\n\n");
-            }
-
-            output.Append(Table(table)).Append("\n\n");
+            tables.Add((name, [.. rows.Values
+                .Select(line => (IReadOnlyList<string>)[.. Enumerable.Range(first, last - first + 1).Select(column => line.GetValueOrDefault(column, ""))])]));
         }
 
-        return output.Length > 0 ? output.ToString().TrimEnd() : throw new DocumentException("The workbook has no values to convert.");
+        return tables;
     }
 
     /// <summary>Что видно в ячейке: сохранённое значение, а у формулы без итога — посчитанное. Null — посчитать нельзя.</summary>

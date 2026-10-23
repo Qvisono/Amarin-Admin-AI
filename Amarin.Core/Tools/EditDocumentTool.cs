@@ -6,8 +6,8 @@ using Amarin.Core;
 namespace Amarin.Tools;
 
 /// <summary>
-/// Правка Word, Excel и PDF по частям — абзацами по номерам из чтения, ячейками по адресам,
-/// страницами по номерам — с сохранением всего, чего правка не касалась.
+/// Правка Word, Excel, PowerPoint и PDF по частям — абзацами и слайдами по номерам из чтения,
+/// ячейками по адресам, страницами по номерам — с сохранением всего, чего правка не касалась.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -33,7 +33,7 @@ public sealed class EditDocumentTool : ITool
     public string Name => "edit_document";
 
     public string Description =>
-        "Change a Word, Excel or PDF file in parts, keeping everything else as it was. operations run in order and refer " +
+        "Change a Word, Excel, PowerPoint or PDF file in parts, keeping everything else as it was. operations run in order and refer " +
         "to the numbers read_file showed. Word (.docx): {op:\"replace\", find, replace, all}, {op:\"insert\", after|before: " +
         "paragraph, content}, {op:\"set\", paragraph, content}, {op:\"delete\", paragraph, to}, {op:\"append\", content} - " +
         "content is Markdown. Excel (.xlsx), with A1-style cells and ranges: {op:\"set_cells\", sheet, cells:[{cell, value}]} - " +
@@ -42,12 +42,18 @@ public sealed class EditDocumentTool : ITool
         "for every other cell as dragging does in Excel ($ keeps a column or row), a number that starts a series growing " +
         "by step cell by cell, row by row, or text for every cell. " +
         "{op:\"append_rows\", sheet, rows}, {op:\"add_sheet\", name, rows}, {op:\"rename_sheet\", sheet, name}, " +
-        "{op:\"clear\", sheet, range}. Formulas are calculated when the file is saved. " +
+        "{op:\"clear\", sheet, range}, {op:\"add_chart\", sheet, range, chart, title, cell} puts a chart of the range on the " +
+        "sheet: its first row names the series, its first column holds the labels, the other columns are the series, and " +
+        "cell is the top-left corner of the chart (default: right of the range). Formulas are calculated when the file is saved. " +
+        "PowerPoint (.pptx): {op:\"replace\", find, replace, all} on every slide and its notes, {op:\"insert\", after|before: " +
+        "slide, content}, {op:\"set\", slide, content} replaces the slide, {op:\"delete\", slide, to}, {op:\"append\", content} - " +
+        "content is Markdown laid out as in create_document: a # or ## heading starts a slide, a last Notes: paragraph is the " +
+        "speaker notes. " +
         "PDF: {op:\"append\", content} adds Markdown as new pages at the end, " +
         "{op:\"keep_pages\", pages} keeps the listed pages (numbers and N-M ranges, comma-separated), " +
         "{op:\"append_pdf\", files} adds other PDF files at the end. " +
         "A document too big for one call is built in parts: create it with the first part, then append the rest " +
-        "(append for Word and PDF, append_rows for Excel) call by call into the same file. " +
+        "(append for Word, PowerPoint and PDF, append_rows for Excel) call by call into the same file. " +
         "save_as writes the result to a new file and keeps the original.";
 
     public JsonElement ParametersSchema => JsonSchema.Parse("""
@@ -61,11 +67,12 @@ public sealed class EditDocumentTool : ITool
               "items": {
                 "type": "object",
                 "properties": {
-                  "op": { "type": "string", "enum": ["replace", "insert", "set", "delete", "append", "set_cells", "fill", "append_rows", "add_sheet", "rename_sheet", "clear", "keep_pages", "append_pdf"] },
+                  "op": { "type": "string", "enum": ["replace", "insert", "set", "delete", "append", "set_cells", "fill", "append_rows", "add_sheet", "rename_sheet", "clear", "add_chart", "keep_pages", "append_pdf"] },
                   "find": { "type": "string" },
                   "replace": { "type": "string" },
                   "all": { "type": "boolean" },
                   "paragraph": { "type": "integer" },
+                  "slide": { "type": "integer", "description": "PowerPoint: slide number from read_file" },
                   "after": { "type": "integer" },
                   "before": { "type": "integer" },
                   "to": { "type": "integer" },
@@ -87,6 +94,9 @@ public sealed class EditDocumentTool : ITool
                   "range": { "type": "string" },
                   "value": { "type": "string", "description": "fill: =formula with relative references, a number to start a series, or text" },
                   "step": { "type": "number", "description": "fill: step of a number series" },
+                  "chart": { "type": "string", "enum": ["bar", "line", "pie"], "description": "add_chart: kind of chart" },
+                  "title": { "type": "string", "description": "add_chart: chart title" },
+                  "cell": { "type": "string", "description": "add_chart: A1-style top-left corner of the chart" },
                   "pages": { "type": "string" },
                   "files": { "type": "array", "items": { "type": "string" } }
                 },
@@ -196,6 +206,9 @@ public sealed class EditDocumentTool : ITool
                 case DocumentKind.Excel:
                     DocumentFiles.EditCopy(source, target, overwrite, copy => EditExcel(copy, operations, log));
                     break;
+                case DocumentKind.Slides:
+                    DocumentFiles.EditCopy(source, target, overwrite, copy => EditSlides(copy, operations, log));
+                    break;
                 case DocumentKind.Pdf:
                     var bytes = EditPdf(source.ReadAllBytes(), operations, log);
                     DocumentFiles.WriteAtomically(target, stream => stream.Write(bytes), overwrite);
@@ -284,6 +297,65 @@ public sealed class EditDocumentTool : ITool
         editor.Save();
     }
 
+    private static void EditSlides(string copy, JsonElement operations, StringBuilder log)
+    {
+        using var editor = SlidesEditor.Open(copy, DocumentImages.Resolve);
+        var step = 0;
+        foreach (var operation in operations.EnumerateArray())
+        {
+            step++;
+            var op = Op(operation);
+
+            // Номер слайда — slide; paragraph тоже понимается: модели пишут его по привычке Word.
+            var slide = FileToolPaths.Int(operation, "slide") ?? FileToolPaths.Int(operation, "paragraph");
+            switch (op)
+            {
+                case "replace":
+                    var (count, units) = editor.Replace(
+                        Required(operation, "find", step),
+                        FileToolPaths.String(operation, "replace") ?? "",
+                        FileToolPaths.Flag(operation, "all"));
+                    log.Append(step).Append(". replaced ").Append(count).Append(" on slide(s) ").Append(string.Join(", ", units)).Append('\n');
+                    break;
+                case "insert":
+                    var before = FileToolPaths.Int(operation, "before");
+                    var after = FileToolPaths.Int(operation, "after");
+                    if (before is null && after is null)
+                    {
+                        throw new DocumentException($"Operation {step} (insert) needs after or before: the slide number to insert next to (before: 1 inserts at the start).");
+                    }
+
+                    editor.Insert(before ?? after!.Value, before is not null, Required(operation, "content", step));
+                    log.Append(step).Append(". inserted ").Append(before is not null ? "before slide " : "after slide ").Append(before ?? after).Append('\n');
+                    break;
+                case "set":
+                    var target = slide ?? throw new DocumentException($"Operation {step} (set) needs slide.");
+                    editor.Set(target, Required(operation, "content", step));
+                    log.Append(step).Append(". replaced slide ").Append(target).Append('\n');
+                    break;
+                case "delete":
+                    var from = slide ?? throw new DocumentException($"Operation {step} (delete) needs slide.");
+                    var to = FileToolPaths.Int(operation, "to") ?? from;
+                    editor.Delete(from, to);
+                    log.Append(step).Append(". deleted slide(s) ").Append(from).Append(to != from ? "-" + to.ToString(CultureInfo.InvariantCulture) : "").Append('\n');
+                    break;
+                case "append":
+                    editor.Append(Required(operation, "content", step));
+                    log.Append(step).Append(". appended slides at the end\n");
+                    break;
+                default:
+                    throw new DocumentException($"Operation {step}: \"{op}\" is not a PowerPoint operation. PowerPoint takes replace, insert, set, delete, append.");
+            }
+        }
+
+        foreach (var skipped in editor.Skipped)
+        {
+            log.Append("Skipped: ").Append(skipped).Append('\n');
+        }
+
+        editor.Save();
+    }
+
     private static void EditExcel(string copy, JsonElement operations, StringBuilder log)
     {
         using var editor = ExcelEditor.Open(copy);
@@ -321,8 +393,17 @@ public sealed class EditDocumentTool : ITool
                     var filled = editor.Fill(sheet, Fill(operation, step));
                     log.Append(step).Append(". filled ").Append(filled).Append(" cell(s)\n");
                     break;
+                case "add_chart":
+                    editor.AddChart(
+                        sheet,
+                        (FileToolPaths.String(operation, "chart") ?? ChartSpec.Bar).Trim().ToLowerInvariant(),
+                        Required(operation, "range", step),
+                        FileToolPaths.String(operation, "title"),
+                        FileToolPaths.String(operation, "cell"));
+                    log.Append(step).Append(". added a chart\n");
+                    break;
                 default:
-                    throw new DocumentException($"Operation {step}: \"{op}\" is not an Excel operation. Excel takes set_cells, fill, append_rows, add_sheet, rename_sheet, clear.");
+                    throw new DocumentException($"Operation {step}: \"{op}\" is not an Excel operation. Excel takes set_cells, fill, append_rows, add_sheet, rename_sheet, clear, add_chart.");
             }
         }
 

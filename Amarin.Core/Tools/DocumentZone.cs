@@ -27,7 +27,7 @@ internal static class DocumentZone
 {
     private static readonly FrozenSet<string> DocumentExtensions = new[]
     {
-        ".docx", ".xlsx", ".pdf", ".txt", ".md", ".markdown", ".csv", ".tsv", ".html", ".htm", ".rtf",
+        ".docx", ".xlsx", ".pptx", ".pdf", ".txt", ".md", ".markdown", ".csv", ".tsv", ".html", ".htm", ".rtf",
         ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 

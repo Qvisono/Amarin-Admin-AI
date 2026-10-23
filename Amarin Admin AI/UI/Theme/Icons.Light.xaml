@@ -77,6 +77,22 @@
     </DrawingImage>
 
 
+    <!--
+        Чтение ответа вслух (1.37.0): динамик и две волны звука. Только обводка, как у ветки, —
+        размер подгоняет поле кнопки (ChatMessageViews.IconAction).
+    -->
+    <DrawingImage x:Key="Speak">
+        <DrawingImage.Drawing>
+            <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">
+                <GeometryDrawing Geometry="F1 M24,24z M0,0z M3.5,9 L7.5,9 L12.5,4.5 L12.5,19.5 L7.5,15 L3.5,15 Z M16,9 C17.4,10.4 17.4,13.6 16,15 M18.8,6.2 C21.9,9.3 21.9,14.7 18.8,17.8">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#FF1A1A1A" Thickness="2.4" StartLineCap="Round" EndLineCap="Round" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
     <DrawingImage x:Key="Compress">
         <DrawingImage.Drawing>
             <DrawingGroup ClipGeometry="M0,0 V24 H24 V0 H0 Z">

@@ -587,7 +587,27 @@ namespace Amarin.UI
 
                     FocusMessageInput();
                     break;
+                case GlobalHotkeys.RegionScreenshot:
+                    Detached.Run(SnipRegionAsync(), "region_snip");
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Выделение области поверх замершего экрана; выделенное — вложением в открытый чат. Окно
+        /// показывается после выделения: иначе оно легло бы поверх того, что человек хотел снять.
+        /// </summary>
+        private async Task SnipRegionAsync()
+        {
+            var png = await RegionSnip.SelectAsync(this);
+            if (png is null)
+            {
+                return;
+            }
+
+            ShowFromTray();
+            AddImage(new ImageAttachment(png, "image/png", Loc.Get("S.Windows.RegionName")));
+            FocusMessageInput();
         }
 
         // ───────────────────────── действия запуска и список переходов (G6) ─────────────────────────

@@ -13,7 +13,9 @@
         Подстраница «Голосовой ввод» (D14): чем распознавать, какой моделью в облаке и на каком
         языке. Под выбором — одна строка о том, что умеет этот ПК: без неё «Авто» и «На этом ПК»
         ничего не говорили бы человеку, у которого распознавателя Windows для его языка нет.
+        Ниже — чтение ответов вслух (1.37.0): голос и скорость синтезатора Windows.
     -->
+    <StackPanel>
     <Border Style="{StaticResource SettingsGroup}">
         <StackPanel>
             <Grid Style="{StaticResource GroupRow}">
@@ -77,4 +79,39 @@
             </Grid>
         </StackPanel>
     </Border>
+
+    <TextBlock Style="{StaticResource GroupLabel}" Text="{DynamicResource S.Speech.Group}"/>
+    <Border Style="{StaticResource SettingsGroup}">
+        <StackPanel>
+            <Grid Style="{StaticResource GroupRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource SettingTitle}" Text="{DynamicResource S.Speech.Voice}"/>
+                    <TextBlock Style="{StaticResource SettingDesc}" Text="{DynamicResource S.Speech.VoiceHint}"/>
+                </StackPanel>
+                <ComboBox x:Name="SpeechVoiceCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150" MaxWidth="220"
+                          AutomationProperties.Name="{DynamicResource S.Speech.Voice}"
+                          SelectionChanged="SpeechVoiceCombo_SelectionChanged"/>
+            </Grid>
+            <Border Style="{StaticResource GroupDivider}"/>
+            <Grid Style="{StaticResource GroupRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="{DynamicResource S.Speech.Rate}"/>
+                <ComboBox x:Name="SpeechRateCombo" Grid.Column="1" Style="{StaticResource DarkComboBox}" MinWidth="150"
+                          AutomationProperties.Name="{DynamicResource S.Speech.Rate}"
+                          SelectionChanged="SpeechRateCombo_SelectionChanged">
+                    <ComboBoxItem Tag="-3" Content="{DynamicResource S.Speech.RateSlow}"/>
+                    <ComboBoxItem Tag="0" Content="{DynamicResource S.Speech.RateNormal}"/>
+                    <ComboBoxItem Tag="3" Content="{DynamicResource S.Speech.RateFast}"/>
+                </ComboBox>
+            </Grid>
+        </StackPanel>
+    </Border>
+    </StackPanel>
 </UserControl>

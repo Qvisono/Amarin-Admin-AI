@@ -106,6 +106,9 @@ namespace Amarin.UI
                 layer.IsEnabled = false;
             }
 
+            // Под блокировкой программа не слушает микрофон и не читает ответы вслух.
+            StopConversation();
+            _speech?.Stop();
             LockOverlay.Prepare(ActiveProfile.Name);
             LockOverlay.Visibility = Visibility.Visible;
             LockOverlay.FocusPassword();
