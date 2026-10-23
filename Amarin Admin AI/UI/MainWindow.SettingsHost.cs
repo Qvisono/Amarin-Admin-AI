@@ -257,6 +257,11 @@ namespace Amarin.UI
                     general.WindowsSettings.Applied = ApplyWindowsIntegration;
                     general.WindowsSettings.Changed += RefreshBehaviorLinks;
                     general.VoiceSettings.Changed += RefreshBehaviorLinks;
+
+                    // Модель и язык сохраняются с потерей фокуса, а это бывает уже после закрытия
+                    // настроек по Esc: пересчёт на закрытии видел прежнее значение, и микрофон не
+                    // появлялся. Поэтому — и на каждое сохранение настройки голоса.
+                    general.VoiceSettings.Changed += UpdateMicAvailability;
                     general.GlobalHotkeysSettings.Applied = () =>
                     {
                         ApplyWindowsIntegration();
